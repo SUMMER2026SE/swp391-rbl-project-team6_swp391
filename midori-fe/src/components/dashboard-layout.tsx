@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
+import type { Notification } from "@/types/notification";
 
 type NavItem = { to: string; label: string; icon: React.ElementType };
 
@@ -36,6 +38,7 @@ const teacherNav: NavItem[] = [
   { to: "/teacher/listening", label: "Listening", icon: Headphones },
   { to: "/teacher/shadowing", label: "Shadowing", icon: Mic },
   { to: "/teacher/exams", label: "Exams", icon: ClipboardCheck },
+  { to: "/teacher/notifications", label: "Notifications", icon: BellRing },
   { to: "/teacher/profile", label: "Profile", icon: User },
   { to: "/teacher/settings", label: "Settings", icon: Settings },
 ];
@@ -65,9 +68,8 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
   const [open, setOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [expandedNotifIds, setExpandedNotifIds] = useState<Set<number>>(new Set());
 
-  const notifications = [
+  const studentNotifications: Notification[] = [
     { id: 1, title: "New grammar lesson available", desc: "~なければならない pattern is ready", time: "2 min ago", unread: true, icon: GraduationCap },
     { id: 2, title: "Daily streak reminder", desc: "Complete today's lesson to keep your 32-day streak!", time: "1 hour ago", unread: true, icon: Flame },
     { id: 3, title: "Weekly leaderboard update", desc: "You're now #4 — just 80 XP behind #3!", time: "3 hours ago", unread: false, icon: Trophy },
@@ -75,17 +77,15 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
     { id: 5, title: "New badge earned", desc: "You unlocked 'Week Warrior' badge!", time: "2 days ago", unread: false, icon: Sparkles },
   ];
 
-  const LONG_TEXT_THRESHOLD = 60;
-  const isLongText = (text: string) => text.length > LONG_TEXT_THRESHOLD;
+  const teacherNotifications = TEACHER_NOTIFICATIONS;
 
-  const toggleExpanded = (id: number) => {
-    setExpandedNotifIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const notifications: Notification[] =
+    role === "teacher" ? teacherNotifications : studentNotifications;
+
+  const notificationsPath = `/${role}/notifications`;
+
+  // Dropdown shows only the first 4 notifications (short view)
+  const dropdownNotifications = notifications.slice(0, 4);
 
   useEffect(() => {
     if (user === null) {
@@ -262,10 +262,8 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
                       {/* Scrollable list */}
                       <div className="overflow-y-auto flex-1" style={{ maxHeight: "calc(520px - 116px)" }}>
                         <div className="p-2 space-y-1">
-                          {notifications.map(n => {
+                          {dropdownNotifications.map(n => {
                             const Icon = n.icon;
-                            const isExpanded = expandedNotifIds.has(n.id);
-                            const showToggle = isLongText(n.desc);
                             return (
                               <div
                                 key={n.id}
@@ -285,20 +283,10 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
                                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{n.title}</span>
                                     {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />}
                                   </div>
-                                  <p className={`text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed ${isExpanded ? "" : "line-clamp-2"}`}>
+                                  <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
                                     {n.desc}
                                   </p>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-[11px] text-gray-400 dark:text-gray-500">{n.time}</span>
-                                    {showToggle && (
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); toggleExpanded(n.id); }}
-                                        className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition"
-                                      >
-                                        {isExpanded ? "Less" : "More"}
-                                      </button>
-                                    )}
-                                  </div>
+                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">{n.time}</span>
                                 </div>
                               </div>
                             );
@@ -309,7 +297,7 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
                       {/* Footer — solid background, no transparency */}
                       <div className="border-t border-gray-100 dark:border-white/10 p-2 flex-shrink-0 bg-white dark:bg-[#0f1117]">
                         <Link
-                          to="/student/notifications"
+                          to={notificationsPath}
                           onClick={() => setNotifOpen(false)}
                           className="w-full block py-2.5 text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition"
                         >
