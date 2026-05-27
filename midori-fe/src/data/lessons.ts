@@ -1,0 +1,61 @@
+export type VocabWord = {
+  id: number; word: string; furigana: string; romaji: string;
+  meaning: string; level: string; topic: string; type: string;
+  audio: boolean; examples: number; views: number; favorites: number;
+};
+
+export type Lesson = {
+  id: string; title: string; level: string; words: VocabWord[];
+  createdAt: string; stats: { total: number; audio: number };
+};
+
+export const lessonsData: Lesson[] = [
+  {
+    id: "l1",
+    title: "Bài 1 — Greetings (Chào hỏi)",
+    level: "N5",
+    createdAt: "2026-05-10",
+    stats: { total: 15, audio: 12 },
+    words: [
+      { id: 101, word: "こんにちは", furigana: "かんちには", romaji: "konnichiwa", meaning: "Xin chào", level: "N5", topic: "General", type: "expression", audio: true, examples: 3, views: 2100, favorites: 88 },
+      { id: 102, word: "おはよう", furigana: "おはよう", romaji: "ohayou", meaning: "Chào buổi sáng", level: "N5", topic: "General", type: "expression", audio: true, examples: 2, views: 1890, favorites: 72 },
+      { id: 103, word: "こんばんは", furigana: "こんばんは", romaji: "konbanwa", meaning: "Chào buổi tối", level: "N5", topic: "General", type: "expression", audio: true, examples: 2, views: 1560, favorites: 65 },
+      { id: 104, word: "さようなら", furigana: "さようなら", romaji: "sayounara", meaning: "Tạm biệt", level: "N5", topic: "General", type: "expression", audio: true, examples: 3, views: 1340, favorites: 58 },
+      { id: 105, word: "ありがとう", furigana: "ありがとう", romaji: "arigatou", meaning: "Cảm ơn", level: "N5", topic: "General", type: "expression", audio: true, examples: 4, views: 2200, favorites: 95 },
+      { id: 106, word: "すみません", furigana: "すみません", romaji: "sumimasen", meaning: "Xin lỗi", level: "N5", topic: "General", type: "expression", audio: true, examples: 3, views: 1100, favorites: 47 },
+      { id: 107, word: "おはようございます", furigana: "おはようございます", romaji: "ohayou gozaimasu", meaning: "Chào buổi sáng (lịch sự)", level: "N5", topic: "General", type: "expression", audio: true, examples: 2, views: 980, favorites: 41 },
+      { id: 108, word: "いってらっしゃい", furigana: "いってらっしゃい", romaji: "itterasshai", meaning: "Chúc đi vui", level: "N5", topic: "General", type: "expression", audio: false, examples: 2, views: 760, favorites: 33 },
+      { id: 109, word: "ただいま", furigana: "ただいま", romaji: "tadaima", meaning: "Tôi về rồi", level: "N5", topic: "General", type: "expression", audio: true, examples: 2, views: 890, favorites: 39 },
+      { id: 110, word: "いただきます", furigana: "いただきます", romaji: "itadakimasu", meaning: "Xin mời (trước khi ăn)", level: "N5", topic: "General", type: "expression", audio: true, examples: 3, views: 1020, favorites: 52 },
+      { id: 111, word: "ごちそうさま", furigana: "ごちそうさま", romaji: "gochisousama", meaning: "Cảm ơn về bữa ăn", level: "N5", topic: "General", type: "expression", audio: true, examples: 3, views: 940, favorites: 48 },
+      { id: 112, word: "おやすみなさい", furigana: "おやすみなさい", romaji: "oyasuminasai", meaning: "Chúc ngủ ngon", level: "N5", topic: "General", type: "expression", audio: true, examples: 2, views: 870, favorites: 44 },
+      { id: 113, word: "はじめまして", furigana: "はじめまして", romaji: "hajimemashite", meaning: "Rất hân hạnh", level: "N5", topic: "General", type: "expression", audio: true, examples: 3, views: 1150, favorites: 61 },
+      { id: 114, word: "どうぞ", furigana: "どうぞ", romaji: "douzo", meaning: "Xin mời", level: "N5", topic: "General", type: "expression", audio: true, examples: 3, views: 780, favorites: 35 },
+      { id: 115, word: "odefau", furigana: "odefau", romaji: "odefau", meaning: "Ồ", level: "N5", topic: "General", type: "expression", audio: false, examples: 1, views: 320, favorites: 12 },
+    ],
+  },
+  {
+    id: "l2",
+    title: "Bài 2 — Nature (Thiên nhiên)",
+    level: "N3",
+    createdAt: "2026-05-12",
+    stats: { total: 8, audio: 5 },
+    words: [
+      { id: 201, word: "環境", furigana: "かんきょう", romaji: "kankyō", meaning: "Môi trường", level: "N3", topic: "Nature", type: "noun", audio: true, examples: 3, views: 890, favorites: 45 },
+      { id: 202, word: "海", furigana: "うみ", romaji: "umi", meaning: "Biển", level: "N5", topic: "Nature", type: "noun", audio: true, examples: 4, views: 760, favorites: 38 },
+      { id: 203, word: "山", furigana: "やま", romaji: "yama", meaning: "Núi", level: "N5", topic: "Nature", type: "noun", audio: true, examples: 5, views: 820, favorites: 42 },
+    ],
+  },
+  {
+    id: "l3",
+    title: "Bài 3 — Work (Công việc)",
+    level: "N2",
+    createdAt: "2026-05-15",
+    stats: { total: 10, audio: 8 },
+    words: [
+      { id: 301, word: "経験", furigana: "けいけん", romaji: "keiken", meaning: "Kinh nghiệm", level: "N3", topic: "Work", type: "noun", audio: true, examples: 5, views: 1200, favorites: 78 },
+      { id: 302, word: "努力", furigana: "どりょく", romaji: "doryoku", meaning: "Nỗ lực", level: "N3", topic: "Work", type: "noun", audio: true, examples: 4, views: 760, favorites: 52 },
+      { id: 303, word: "影響", furigana: "えいきょう", romaji: "eikyō", meaning: "Ảnh hưởng", level: "N2", topic: "Work", type: "noun", audio: false, examples: 7, views: 980, favorites: 67 },
+    ],
+  },
+];

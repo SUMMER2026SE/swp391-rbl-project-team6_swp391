@@ -1,0 +1,71 @@
+export type Flashcard = {
+  id: string;
+  word: string;
+  furigana: string;
+  romaji: string;
+  meaning: string;
+  example: string;
+  image: string;
+  audio: string;
+  level: string;
+  topic: string;
+  learned: boolean;
+};
+
+export type FlashcardSet = {
+  id: string;
+  title: string;
+  description: string;
+  level: string;
+  topic: string;
+  cards: Flashcard[];
+  createdAt: string;
+};
+
+export const flashcardSetsData: FlashcardSet[] = [
+  {
+    id: "fs1",
+    title: "Greetings & Expressions",
+    description: "Essential Japanese greetings for everyday conversations",
+    level: "N5",
+    topic: "General",
+    createdAt: "2026-05-10",
+    cards: [
+      { id: "fc1", word: "こんにちは", furigana: "こんにちは", romaji: "konnichiwa", meaning: "Xin chào", example: "こんにちは、田中さん。", image: "", audio: "", level: "N5", topic: "General", learned: false },
+      { id: "fc2", word: "おはよう", furigana: "おはよう", romaji: "ohayou", meaning: "Chào buổi sáng", example: "おはようございます！", image: "", audio: "", level: "N5", topic: "General", learned: false },
+      { id: "fc3", word: "こんばんは", furigana: "こんばんは", romaji: "konbanwa", meaning: "Chào buổi tối", example: "こんばんは、今日は何をしましたか？", image: "", audio: "", level: "N5", topic: "General", learned: false },
+      { id: "fc4", word: "ありがとう", furigana: "ありがとう", romaji: "arigatou", meaning: "Cảm ơn", example: "ありがとうございます！", image: "", audio: "", level: "N5", topic: "General", learned: false },
+      { id: "fc5", word: "すみません", furigana: "すみません", romaji: "sumimasen", meaning: "Xin lỗi / Xin phép", example: "すみません、駅はどこですか？", image: "", audio: "", level: "N5", topic: "General", learned: false },
+      { id: "fc6", word: "おはようございます", furigana: "おはようございます", romaji: "ohayou gozaimasu", meaning: "Chào buổi sáng (lịch sự)", example: "おはようございます、先生。", image: "", audio: "", level: "N5", topic: "General", learned: false },
+    ],
+  },
+  {
+    id: "fs2",
+    title: "Numbers & Counting",
+    description: "Japanese numbers from 1 to 100 and basic counting",
+    level: "N5",
+    topic: "Daily Life",
+    createdAt: "2026-05-12",
+    cards: [
+      { id: "fc7", word: "一", furigana: "いち", romaji: "ichi", meaning: "Một (1)", example: "りんごを一つください。", image: "", audio: "", level: "N5", topic: "Daily Life", learned: false },
+      { id: "fc8", word: "二", furigana: "に", romaji: "ni", meaning: "Hai (2)", example: "二郎ください。", image: "", audio: "", level: "N5", topic: "Daily Life", learned: false },
+      { id: "fc9", word: "三", furigana: "さん", romaji: "san", meaning: "Ba (3)", example: "三年生です。", image: "", audio: "", level: "N5", topic: "Daily Life", learned: false },
+      { id: "fc10", word: "四", furigana: "よん / し", romaji: "yon / shi", meaning: "Bốn (4)", example: "四月は桜の季節です。", image: "", audio: "", level: "N5", topic: "Daily Life", learned: false },
+      { id: "fc11", word: "五", furigana: "ご", romaji: "go", meaning: "Năm (5)", example: "五月はゴールデンウィークです。", image: "", audio: "", level: "N5", topic: "Daily Life", learned: false },
+    ],
+  },
+  {
+    id: "fs3",
+    title: "Nature & Seasons",
+    description: "Words related to nature, weather and seasons",
+    level: "N5",
+    topic: "Nature",
+    createdAt: "2026-05-15",
+    cards: [
+      { id: "fc12", word: "山", furigana: "やま", romaji: "yama", meaning: "Núi", example: "富士山は日本で一番高い山です。", image: "", audio: "", level: "N5", topic: "Nature", learned: false },
+      { id: "fc13", word: "海", furigana: "うみ", romaji: "umi", meaning: "Biển", example: "夏休みに海へ行きました。", image: "", audio: "", level: "N5", topic: "Nature", learned: false },
+      { id: "fc14", word: "花", furigana: "はな", romaji: "hana", meaning: "Hoa", example: "桜の花が咲いています。", image: "", audio: "", level: "N5", topic: "Nature", learned: false },
+      { id: "fc15", word: "春", furigana: "はる", romaji: "haru", meaning: "Mùa xuân", example: "春になると暖かくなります。", image: "", audio: "", level: "N5", topic: "Nature", learned: false },
+    ],
+  },
+];
