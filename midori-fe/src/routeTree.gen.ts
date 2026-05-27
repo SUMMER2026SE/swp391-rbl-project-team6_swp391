@@ -27,6 +27,7 @@ import { Route as TeacherVocabularyRouteImport } from './routes/teacher.vocabula
 import { Route as TeacherShadowingRouteImport } from './routes/teacher.shadowing'
 import { Route as TeacherSettingsRouteImport } from './routes/teacher.settings'
 import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
+import { Route as TeacherNotificationsRouteImport } from './routes/teacher.notifications'
 import { Route as TeacherListeningRouteImport } from './routes/teacher.listening'
 import { Route as TeacherGrammarRouteImport } from './routes/teacher.grammar'
 import { Route as TeacherFlashcardsRouteImport } from './routes/teacher.flashcards'
@@ -146,6 +147,11 @@ const TeacherSettingsRoute = TeacherSettingsRouteImport.update({
 const TeacherProfileRoute = TeacherProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherNotificationsRoute = TeacherNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => TeacherRoute,
 } as any)
 const TeacherListeningRoute = TeacherListeningRouteImport.update({
@@ -338,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/listening': typeof TeacherListeningRoute
+  '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
@@ -384,6 +391,7 @@ export interface FileRoutesByTo {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/listening': typeof TeacherListeningRoute
+  '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
@@ -434,6 +442,7 @@ export interface FileRoutesById {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/listening': typeof TeacherListeningRoute
+  '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
@@ -486,6 +495,7 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/listening'
+    | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/settings'
     | '/teacher/shadowing'
@@ -532,6 +542,7 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/listening'
+    | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/settings'
     | '/teacher/shadowing'
@@ -581,6 +592,7 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/listening'
+    | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/settings'
     | '/teacher/shadowing'
@@ -735,6 +747,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/teacher/profile'
       preLoaderRoute: typeof TeacherProfileRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/notifications': {
+      id: '/teacher/notifications'
+      path: '/notifications'
+      fullPath: '/teacher/notifications'
+      preLoaderRoute: typeof TeacherNotificationsRouteImport
       parentRoute: typeof TeacherRoute
     }
     '/teacher/listening': {
@@ -1069,6 +1088,7 @@ interface TeacherRouteChildren {
   TeacherFlashcardsRoute: typeof TeacherFlashcardsRoute
   TeacherGrammarRoute: typeof TeacherGrammarRoute
   TeacherListeningRoute: typeof TeacherListeningRoute
+  TeacherNotificationsRoute: typeof TeacherNotificationsRoute
   TeacherProfileRoute: typeof TeacherProfileRoute
   TeacherSettingsRoute: typeof TeacherSettingsRoute
   TeacherShadowingRoute: typeof TeacherShadowingRoute
@@ -1081,6 +1101,7 @@ const TeacherRouteChildren: TeacherRouteChildren = {
   TeacherFlashcardsRoute: TeacherFlashcardsRoute,
   TeacherGrammarRoute: TeacherGrammarRoute,
   TeacherListeningRoute: TeacherListeningRoute,
+  TeacherNotificationsRoute: TeacherNotificationsRoute,
   TeacherProfileRoute: TeacherProfileRoute,
   TeacherSettingsRoute: TeacherSettingsRoute,
   TeacherShadowingRoute: TeacherShadowingRoute,
