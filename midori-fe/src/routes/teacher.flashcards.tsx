@@ -31,12 +31,12 @@ function PaginationUI({ current, total, onPage }: { current: number; total: numb
   return (
     <div className="flex items-center justify-between pt-4">
       <span className="text-xs text-muted-foreground">
-        Hiển thị <span className="font-semibold text-foreground">{Math.min((current - 1) * PAGE_SIZE + 1, total)}</span>
+        Showing <span className="font-semibold text-foreground">{Math.min((current - 1) * PAGE_SIZE + 1, total)}</span>
         {" – "}
         <span className="font-semibold text-foreground">{Math.min(current * PAGE_SIZE, total)}</span>
         {" / "}
         <span className="font-semibold text-foreground">{total}</span>
-        {" bộ"}
+        {" sets"}
       </span>
       <div className="flex items-center gap-1.5">
         <button onClick={() => onPage(current - 1)} disabled={current === 1}
@@ -86,7 +86,7 @@ function CardForm({
           <div className="w-5 h-5 rounded-md bg-gradient-hero text-white flex items-center justify-center text-[10px] font-black">
             {mode === "add" ? "+" : "✎"}
           </div>
-          <span className="text-sm font-bold text-foreground">{mode === "add" ? "Thêm flashcard mới" : "Sửa flashcard"}</span>
+          <span className="text-sm font-bold text-foreground">{mode === "add" ? "Add new card" : "Edit card"}</span>
         </div>
         <button onClick={onCancel} className="p-1 rounded-lg hover:bg-primary/10 transition text-muted-foreground hover:text-foreground">
           <X className="w-4 h-4" />
@@ -95,7 +95,7 @@ function CardForm({
       <div className="p-4 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Từ (Kanji) <span className="text-red-400">*</span></label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Word (Kanji) <span className="text-red-400">*</span></label>
             <input value={form.word} onChange={e => setForm(f => ({ ...f, word: e.target.value }))}
               placeholder="環境"
               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40" />
@@ -113,14 +113,14 @@ function CardForm({
               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Nghĩa <span className="text-red-400">*</span></label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
             <input value={form.meaning} onChange={e => setForm(f => ({ ...f, meaning: e.target.value }))}
               placeholder="Môi trường"
               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Ví dụ</label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example</label>
           <input value={form.example} onChange={e => setForm(f => ({ ...f, example: e.target.value }))}
             placeholder="今日は天気が很好です。"
             className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
@@ -134,7 +134,7 @@ function CardForm({
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Cấp độ</label>
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Level</label>
             <select value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40">
               {["N5","N4","N3","N2","N1"].map(l => <option key={l} value={l}>{l}</option>)}
@@ -144,12 +144,12 @@ function CardForm({
         <div className="flex gap-2 pt-1">
           <button onClick={onCancel}
             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 transition">
-            Hủy
+            Cancel
           </button>
           <button onClick={onSave}
             disabled={!form.word.trim() || !form.meaning.trim()}
             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition flex items-center justify-center gap-2">
-            {mode === "add" ? <><Plus className="w-4 h-4" /> Thêm flashcard</> : <><Save className="w-4 h-4" /> Cập nhật</>}
+            {mode === "add" ? <><Plus className="w-4 h-4" /> Add card</> : <><Save className="w-4 h-4" /> Update</>}
           </button>
         </div>
       </div>
@@ -297,21 +297,21 @@ function TeacherFlashcardsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-black text-foreground">Flashcard Management</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{sets.length} bộ · {totalCards} thẻ</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{sets.length} sets · {totalCards} cards</p>
         </div>
         <button onClick={() => setShowAdd(true)}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition active:scale-95">
-          <Plus className="w-4 h-4" /> Thêm bộ flashcard
+          <Plus className="w-4 h-4" /> Add flashcard set
         </button>
       </div>
 
       {/* ── Stats ───────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Bộ flashcard", value: sets.length, icon: Layers, color: "text-blue-500" },
-          { label: "Tổng thẻ", value: totalCards, icon: BookText, color: "text-green-500" },
+          { label: "Flashcard sets", value: sets.length, icon: Layers, color: "text-blue-500" },
+          { label: "Total cards", value: totalCards, icon: BookText, color: "text-green-500" },
           { label: "Topics", value: allTopics.length, icon: Tag, color: "text-purple-500" },
-          { label: "Cấp độ", value: "N5–N1", icon: Star, color: "text-yellow-500", noNum: true },
+          { label: "Levels", value: "N5–N1", icon: Star, color: "text-yellow-500", noNum: true },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -339,7 +339,7 @@ function TeacherFlashcardsPage() {
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Tìm bộ flashcard..."
+              placeholder="Search flashcard sets..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
         </div>
@@ -364,8 +364,8 @@ function TeacherFlashcardsPage() {
       {filtered.length === 0 ? (
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <Layers className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
-          <p className="font-semibold text-base text-muted-foreground">Không tìm thấy bộ nào</p>
-          <button onClick={() => setShowAdd(true)} className="mt-3 text-primary underline text-sm">+ Tạo bộ đầu tiên</button>
+          <p className="font-semibold text-base text-muted-foreground">No flashcard sets found</p>
+          <button onClick={() => setShowAdd(true)} className="mt-3 text-primary underline text-sm">+ Create your first set</button>
         </div>
       ) : (
         <>
@@ -389,7 +389,7 @@ function TeacherFlashcardsPage() {
                       </div>
                       {s.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{s.description}</p>}
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><BookText className="w-3 h-3" />{s.cards.length} thẻ</span>
+                        <span className="flex items-center gap-1"><BookText className="w-3 h-3" />{s.cards.length} cards</span>
                         <span className="px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/30 text-purple-500 text-[10px] font-semibold">{s.topic}</span>
                       </div>
                     </div>
@@ -397,11 +397,11 @@ function TeacherFlashcardsPage() {
                   <div className="flex items-center gap-2">
                     <button onClick={() => setViewing(s)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all">
-                      <Eye className="w-3.5 h-3.5" /> Xem
+                      <Eye className="w-3.5 h-3.5" /> View
                     </button>
                     <button onClick={() => openEditSet(s)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all">
-                      <Edit3 className="w-3.5 h-3.5" /> Sửa
+                      <Edit3 className="w-3.5 h-3.5" /> Edit
                     </button>
                     <button onClick={() => setDeleting(s)}
                       className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all">
@@ -428,26 +428,26 @@ function TeacherFlashcardsPage() {
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5"
               style={{ maxWidth: 480 }}>
               <div className="flex items-center justify-between">
-                <h2 className="font-display font-black text-lg text-foreground">Tạo bộ flashcard mới</h2>
+                <h2 className="font-display font-black text-lg text-foreground">Create new flashcard set</h2>
                 <button onClick={() => setShowAdd(false)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Tên bộ <span className="text-red-400">*</span></label>
-                  <input value={addName} onChange={e => setAddName(e.target.value)} placeholder="Ví dụ: Greetings N5"
+                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Set name <span className="text-red-400">*</span></label>
+                  <input value={addName} onChange={e => setAddName(e.target.value)} placeholder="e.g. Greetings N5"
                     className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Mô tả</label>
-                  <textarea value={addDesc} onChange={e => setAddDesc(e.target.value)} placeholder="Mô tả ngắn về bộ flashcard..."
+                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Description</label>
+                  <textarea value={addDesc} onChange={e => setAddDesc(e.target.value)} placeholder="Short description for this flashcard set..."
                     rows={2}
                     className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Cấp độ</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Level</label>
                     <select value={addLevel} onChange={e => setAddLevel(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40">
                       {["N5","N4","N3","N2","N1"].map(l => <option key={l}>{l}</option>)}
@@ -464,10 +464,10 @@ function TeacherFlashcardsPage() {
               </div>
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setShowAdd(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">Hủy</button>
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
                 <button onClick={handleAddSet} disabled={!addName.trim()}
                   className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition">
-                  Tạo bộ &amp; quản lý thẻ
+                  Create &amp; manage cards
                 </button>
               </div>
             </motion.div>
@@ -489,16 +489,16 @@ function TeacherFlashcardsPage() {
               <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-500/20 grid place-items-center mx-auto mb-3">
                 <Trash2 className="w-7 h-7 text-red-500" />
               </div>
-              <h2 className="font-display font-black text-lg mb-1">Xóa bộ flashcard?</h2>
+              <h2 className="font-display font-black text-lg mb-1">Delete flashcard set?</h2>
               <p className="text-sm text-muted-foreground mb-1">
-                <strong className="text-foreground">{deleting.title}</strong> sẽ bị xóa vĩnh viễn.
+                <strong className="text-foreground">{deleting.title}</strong> will be permanently deleted.
               </p>
-              <p className="text-xs text-red-400 mb-5">Bao gồm {deleting.cards.length} thẻ bên trong.</p>
+              <p className="text-xs text-red-400 mb-5">Includes {deleting.cards.length} cards inside.</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleting(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">Hủy</button>
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
                 <button onClick={handleDeleteSet}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">Xóa</button>
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">Delete</button>
               </div>
             </motion.div>
           </div>
@@ -526,7 +526,7 @@ function TeacherFlashcardsPage() {
                     <span className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/30 text-purple-500 text-xs font-bold border border-purple-100 dark:border-purple-900">{viewing.topic}</span>
                   </div>
                   {viewing.description && <p className="text-sm text-muted-foreground">{viewing.description}</p>}
-                  <p className="text-xs text-muted-foreground mt-0.5">{viewing.cards.length} thẻ · Tạo {viewing.createdAt}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{viewing.cards.length} cards · Created {viewing.createdAt}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs text-muted-foreground font-semibold border border-slate-200 dark:border-slate-700">
@@ -544,8 +544,8 @@ function TeacherFlashcardsPage() {
                 {viewing.cards.length === 0 ? (
                   <div className="py-20 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                     <Layers className="w-12 h-12 mx-auto mb-3 text-muted-foreground/20" />
-                    <p className="font-semibold text-muted-foreground">Chưa có thẻ nào</p>
-                    <p className="text-sm text-muted-foreground mt-1">Bấm nút Sửa (✏️) để quản lý flashcard</p>
+                    <p className="font-semibold text-muted-foreground">No cards yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">Click Edit (✏️) to manage flashcards</p>
                   </div>
                 ) : (
                   viewing.cards.map((card, i) => (
@@ -583,15 +583,15 @@ function TeacherFlashcardsPage() {
 
               {/* Footer */}
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{viewing.cards.length} thẻ</span>
+                <span className="text-xs text-muted-foreground">{viewing.cards.length} cards</span>
                 <div className="flex gap-2">
                   <button onClick={() => { setViewing(null); openEditSet(viewing); }}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-500 text-sm font-bold transition-all">
-                    <Edit3 className="w-3.5 h-3.5" /> Sửa bộ này
+                    <Edit3 className="w-3.5 h-3.5" /> Edit
                   </button>
                   <button onClick={() => setViewing(null)}
                     className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">
-                    Đóng
+                    Close
                   </button>
                 </div>
               </div>
@@ -619,13 +619,13 @@ function TeacherFlashcardsPage() {
                     <div className="w-5 h-5 rounded bg-gradient-hero text-white flex items-center justify-center text-xs font-black">
                       <ListChecks className="w-3 h-3" />
                     </div>
-                    <h2 className="font-display font-black text-lg text-foreground">Quản lý flashcard</h2>
+                    <h2 className="font-display font-black text-lg text-foreground">Manage flashcards</h2>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-foreground">{editSetInfo.title}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(editSetInfo.level)}`}>{editSetInfo.level}</span>
                     <span className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/30 text-purple-500 text-[10px] font-bold border border-purple-100 dark:border-purple-900">{editSetInfo.topic}</span>
-                    <span className="text-xs text-muted-foreground">{editCards.length} thẻ</span>
+                    <span className="text-xs text-muted-foreground">{editCards.length} cards</span>
                   </div>
                 </div>
                 <button onClick={closeEditSet}
@@ -638,7 +638,7 @@ function TeacherFlashcardsPage() {
                 {/* ── Set info mini-form ── */}
                 <div className="flex items-end gap-3 flex-shrink-0">
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Tên bộ</label>
+                    <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Set name</label>
                     <input value={editSetInfo.title} onChange={e => setEditSetInfo(i => ({ ...i, title: e.target.value }))}
                       className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40" />
                   </div>
@@ -658,7 +658,7 @@ function TeacherFlashcardsPage() {
                   </div>
                   <button onClick={() => setShowAddCard(true)}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition flex-shrink-0">
-                    <Plus className="w-4 h-4" /> Thêm thẻ
+                    <Plus className="w-4 h-4" /> Add card
                   </button>
                 </div>
 
@@ -681,11 +681,11 @@ function TeacherFlashcardsPage() {
                   {editCards.length === 0 && !showAddCard && !editingCard ? (
                     <div className="py-16 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                       <Layers className="w-10 h-10 mx-auto mb-2 text-muted-foreground/20" />
-                      <p className="font-semibold text-muted-foreground text-sm mb-1">Chưa có thẻ nào trong bộ này</p>
-                      <p className="text-xs text-muted-foreground">Bấm "Thêm thẻ" để bắt đầu thêm flashcard</p>
+                      <p className="font-semibold text-muted-foreground text-sm mb-1">No cards yet in this set</p>
+                      <p className="text-xs text-muted-foreground">Click "Add card" to get started</p>
                       <button onClick={() => setShowAddCard(true)}
                         className="mt-4 flex items-center gap-2 mx-auto px-4 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition">
-                        <Plus className="w-4 h-4" /> Thêm flashcard đầu tiên
+                        <Plus className="w-4 h-4" /> Add first flashcard
                       </button>
                     </div>
                   ) : (
@@ -714,12 +714,12 @@ function TeacherFlashcardsPage() {
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button onClick={() => openEditCard(card)}
                             className="w-8 h-8 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-400 hover:text-blue-600 transition"
-                            title="Sửa thẻ">
+                            title="Edit card">
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => setDeletingCard(card)}
                             className="w-8 h-8 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
-                            title="Xóa thẻ">
+                            title="Delete card">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -732,16 +732,16 @@ function TeacherFlashcardsPage() {
               {/* Footer */}
               <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">
-                  {editCards.length > 0 ? `${editCards.length} thẻ` : "Chưa có thẻ"}
+                  {editCards.length > 0 ? `${editCards.length} cards` : "No cards"}
                 </span>
                 <div className="flex gap-2">
                   <button onClick={closeEditSet}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">
-                    Hủy
+                    Cancel
                   </button>
                   <button onClick={handleSaveEditSet}
                     className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow flex items-center gap-2 hover:opacity-90 transition">
-                    <Save className="w-4 h-4" /> Lưu tất cả
+                    <Save className="w-4 h-4" /> Save all
                   </button>
                 </div>
               </div>
@@ -764,16 +764,16 @@ function TeacherFlashcardsPage() {
               <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-500/20 grid place-items-center mx-auto mb-3">
                 <AlertTriangle className="w-7 h-7 text-red-500" />
               </div>
-              <h2 className="font-display font-black text-lg mb-1">Xóa flashcard?</h2>
+              <h2 className="font-display font-black text-lg mb-1">Delete card?</h2>
               <p className="text-sm text-muted-foreground mb-1">
-                Xóa <strong className="text-foreground">"{deletingCard.word}"</strong> ({deletingCard.meaning})?
+                Are you sure you want to delete <strong className="text-foreground">"{deletingCard.word}"</strong> ({deletingCard.meaning})?
               </p>
-              <p className="text-xs text-red-400 mb-5">Thao tác này không thể hoàn tác.</p>
+              <p className="text-xs text-red-400 mb-5">This action cannot be undone.</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeletingCard(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">Hủy</button>
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition">Cancel</button>
                 <button onClick={handleDeleteCard}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">Xóa</button>
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">Delete</button>
               </div>
             </motion.div>
           </div>

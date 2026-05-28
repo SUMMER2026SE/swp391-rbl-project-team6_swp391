@@ -7,14 +7,14 @@ import {
   BarChart3, Star, Users
 } from "lucide-react";
 
-const grammarContent = [
+const INITIAL_GRAMMAR = [
   { id: 1, title: "〜ながらも", teacher: "Sakura Hayashi", level: "N2", reports: 3, status: "under_review", views: 890, date: "2 days ago", reason: "Inaccurate explanation" },
   { id: 2, title: "〜そばから", teacher: "Kenji Yamamoto", level: "N2", reports: 5, status: "pending", views: 420, date: "4 days ago", reason: "Duplicate content" },
   { id: 3, title: "〜uance", teacher: "Park Joon-ho", level: "N1", reports: 1, status: "pending", views: 120, date: "1 day ago", reason: "Spelling error" },
   { id: 4, title: "Verb conjugation basics", teacher: "Taro Yamamoto", level: "N5", reports: 0, status: "approved", views: 3420, date: "2 weeks ago", reason: "" },
 ];
 
-const vocabContent = [
+const INITIAL_VOCAB = [
   { id: 5, title: "N3 Business Kanji Set", teacher: "Yumi Kobayashi", level: "N3", reports: 2, status: "pending", views: 180, date: "3 days ago", reason: "Duplicate entry" },
   { id: 6, title: "Keigo vocabulary", teacher: "Shinji Abe", level: "N2", reports: 0, status: "approved", views: 890, date: "1 week ago", reason: "" },
 ];
@@ -24,10 +24,12 @@ export const Route = createFileRoute("/admin/grammar")({ component: GrammarModer
 function GrammarModerationPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selected, setSelected] = useState<typeof grammarContent[0] | null>(null);
+  const [selected, setSelected] = useState<{ id: number; title: string; teacher: string; level: string; reports: number; status: string; views: number; date: string; reason: string } | null>(null);
   const [typeFilter, setTypeFilter] = useState("grammar");
+  const [grammarData, setGrammarData] = useState(INITIAL_GRAMMAR);
+  const [vocabData, setVocabData] = useState(INITIAL_VOCAB);
 
-  const allContent = typeFilter === "grammar" ? grammarContent : vocabContent;
+  const allContent = typeFilter === "grammar" ? grammarData : vocabData;
 
   const filtered = allContent.filter(c => {
     const matchSearch = c.title.toLowerCase().includes(search.toLowerCase());
@@ -35,9 +37,31 @@ function GrammarModerationPage() {
     return matchSearch && matchStatus;
   });
 
+  const handleApprove = (id: number) => {
+    if (typeFilter === "grammar") {
+      setGrammarData(prev => prev.map(c => c.id === id ? { ...c, status: "approved" } : c));
+    } else {
+      setVocabData(prev => prev.map(c => c.id === id ? { ...c, status: "approved" } : c));
+    }
+    if (statusFilter === "pending") {
+      if (selected?.id === id) setSelected(null);
+    }
+  };
+
+  const handleReject = (id: number) => {
+    if (typeFilter === "grammar") {
+      setGrammarData(prev => prev.map(c => c.id === id ? { ...c, status: "rejected" } : c));
+    } else {
+      setVocabData(prev => prev.map(c => c.id === id ? { ...c, status: "rejected" } : c));
+    }
+    if (statusFilter === "pending") {
+      if (selected?.id === id) setSelected(null);
+    }
+  };
+
   const contentTypes = [
-    { id: "grammar", label: "Grammar", icon: GraduationCap, count: grammarContent.filter(c => c.status !== "approved").length },
-    { id: "vocabulary", label: "Vocabulary", icon: BookOpen, count: vocabContent.filter(c => c.status !== "approved").length },
+    { id: "grammar", label: "Grammar", icon: GraduationCap, count: grammarData.filter(c => c.status !== "approved").length },
+    { id: "vocabulary", label: "Vocabulary", icon: BookOpen, count: vocabData.filter(c => c.status !== "approved").length },
     { id: "listening", label: "Listening", icon: Headphones, count: 2 },
     { id: "shadowing", label: "Shadowing", icon: Mic, count: 1 },
   ];
@@ -129,9 +153,9 @@ function GrammarModerationPage() {
                 )}
               </div>
               <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                <button className="p-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 transition"><CheckCircle className="w-4 h-4" /></button>
-                <button className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"><XCircle className="w-4 h-4" /></button>
-                <button className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition"><Eye className="w-4 h-4" /></button>
+                <button onClick={() => handleApprove(item.id)} className="p-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 transition"><CheckCircle className="w-4 h-4" /></button>
+                <button onClick={() => handleReject(item.id)} className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"><XCircle className="w-4 h-4" /></button>
+                <button onClick={() => setSelected(item)} className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 transition"><Eye className="w-4 h-4" /></button>
               </div>
             </div>
           </motion.div>

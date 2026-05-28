@@ -174,18 +174,18 @@ function StudentFlashcardsPage() {
               <h1 className="text-xl font-display font-black text-foreground">{studySet.title}</h1>
               <span className={`px-2 py-0.5 rounded-full text-xs font-black border ${levelBadge(studySet.level)}`}>{studySet.level}</span>
             </div>
-            <p className="text-sm text-muted-foreground">{total} thẻ · {learned} đã học · {remaining} còn lại</p>
+            <p className="text-sm text-muted-foreground">{total} cards · {learned} learned · {remaining} remaining</p>
           </div>
           <button onClick={shuffleCards}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:border-primary/40 transition shadow-sm">
-            <Shuffle className="w-4 h-4" /> Xáo trộn
+            <Shuffle className="w-4 h-4" /> Shuffle
           </button>
         </div>
 
         {/* Progress bar */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold text-foreground">Tiến độ học</span>
+            <span className="text-sm font-bold text-foreground">Study progress</span>
             <span className="text-sm font-black text-primary">{progressPct}%</span>
           </div>
           <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
@@ -198,10 +198,10 @@ function StudentFlashcardsPage() {
           </div>
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-1 text-xs text-green-500 font-semibold">
-              <CheckCircle className="w-3.5 h-3.5" /> {learned} đã thuộc
+              <CheckCircle className="w-3.5 h-3.5" /> {learned} mastered
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground font-semibold">
-              <Layers className="w-3.5 h-3.5" /> {remaining} còn lại
+              <Layers className="w-3.5 h-3.5" /> {remaining} remaining
             </div>
           </div>
         </div>
@@ -211,7 +211,7 @@ function StudentFlashcardsPage() {
           {[
             { id: "flashcard" as StudyMode, icon: FlipHorizontal, label: "Flashcard" },
             { id: "quiz" as StudyMode, icon: BrainCircuit, label: "Quiz" },
-            { id: "random" as StudyMode, icon: Zap, label: "Ngẫu nhiên" },
+            { id: "random" as StudyMode, icon: Zap, label: "Random" },
           ].map(mode => (
             <button key={mode.id}
               onClick={() => { setStudyMode(mode.id); setCurrentIdx(0); setFlipped(false); setQuizAnswer(null); setQuizDone(false); }}
@@ -227,7 +227,7 @@ function StudentFlashcardsPage() {
         {total === 0 ? (
           <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
             <Layers className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
-            <p className="font-semibold text-muted-foreground">Bộ flashcard này chưa có thẻ nào.</p>
+            <p className="font-semibold text-muted-foreground">This flashcard set has no cards yet.</p>
         </div>
         ) : studyMode === "flashcard" || studyMode === "random" ? (
           <div className="flex flex-col items-center gap-6">
@@ -254,7 +254,7 @@ function StudentFlashcardsPage() {
                         className="rounded-3xl bg-gradient-hero p-8 text-white shadow-2xl min-h-[280px] flex flex-col justify-between"
                       >
                         <div>
-                          <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest mb-4">Nghĩa</div>
+                          <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest mb-4">Meaning</div>
                           <div className="font-display font-black text-4xl leading-tight mb-3">{currentCard.meaning}</div>
                           {currentCard.furigana && (
                             <div className="text-xl text-white/70 font-medium">{currentCard.furigana}</div>
@@ -264,7 +264,7 @@ function StudentFlashcardsPage() {
                           )}
                           {currentCard.example && (
                             <div className="mt-4 pt-4 border-t border-white/20">
-                              <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Ví dụ</div>
+                              <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Example</div>
                               <div className="text-sm text-white/80 italic">"{currentCard.example}"</div>
                       </div>
                         )}
@@ -287,7 +287,7 @@ function StudentFlashcardsPage() {
                         className="rounded-3xl bg-white dark:bg-slate-800 border-2 border-primary/20 p-8 shadow-2xl min-h-[280px] flex flex-col justify-between"
                       >
                         <div>
-                          <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-4">Từ</div>
+                          <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-4">Word</div>
                           <div className="font-display font-black text-5xl text-foreground leading-tight mb-2">{currentCard.word}</div>
                           {currentCard.furigana && (
                             <div className="text-2xl text-sky-500 font-medium">{currentCard.furigana}</div>
@@ -327,7 +327,7 @@ function StudentFlashcardsPage() {
                   }`}
                 >
                   <CheckCircle className="w-4 h-4" />
-                  {isLearned(currentCard.id) ? "Đã thuộc" : "Đánh dấu thuộc"}
+                  {isLearned(currentCard.id) ? "Mastered" : "Mark as mastered"}
                 </button>
               </div>
 
@@ -358,7 +358,7 @@ function StudentFlashcardsPage() {
               >
                 {/* Quiz word */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 text-center shadow-sm mb-4">
-                  <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2">Nghĩa của từ</div>
+                  <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2">Word meaning</div>
                   <div className="font-display font-black text-4xl text-foreground">{currentCard.word}</div>
                   {currentCard.furigana && <div className="text-lg text-sky-500 font-medium mt-1">{currentCard.furigana}</div>}
                 </div>
@@ -391,7 +391,7 @@ function StudentFlashcardsPage() {
                         ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-300 border border-green-300"
                         : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 border border-red-300"
                     }`}>
-                    {getQuizOptions(currentCard, studySet.cards)[quizAnswer].correct ? "✓ Chính xác!" : "✗ Sai rồi! Đáp án đúng: " + currentCard.meaning}
+                    {getQuizOptions(currentCard, studySet.cards)[quizAnswer].correct ? "✓ Correct!" : "✗ Incorrect. Correct answer: " + currentCard.meaning}
                   </motion.div>
                 )}
               </motion.div>
@@ -423,16 +423,16 @@ function StudentFlashcardsPage() {
       {/* Header */}
         <div>
         <h1 className="text-2xl font-display font-black text-foreground">Flashcards</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Học từ vựng bằng flashcard</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Learn vocabulary with flashcards</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Tổng bộ thẻ", value: sets.length, icon: Layers, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-          { label: "Tổng thẻ", value: sets.reduce((s, x) => s + x.cards.length, 0), icon: BookOpen, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-          { label: "Đã học", value: Object.values(progress).flat().length, icon: CheckCircle, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/30" },
-          { label: "Cấp độ", value: "N5–N1", icon: Star, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950/30", noNum: true },
+          { label: "Total sets", value: sets.length, icon: Layers, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
+          { label: "Total cards", value: sets.reduce((s, x) => s + x.cards.length, 0), icon: BookOpen, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
+          { label: "Learned", value: Object.values(progress).flat().length, icon: CheckCircle, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/30" },
+          { label: "Levels", value: "N5–N1", icon: Star, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950/30", noNum: true },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -461,9 +461,9 @@ function StudentFlashcardsPage() {
             <Sparkles className="w-5 h-5 text-emerald-500" />
           </div>
           <div>
-            <h3 className="font-display font-black text-foreground mb-1">Gợi ý học tập</h3>
+            <h3 className="font-display font-black text-foreground mb-1">Learning tip</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Hãy bắt đầu với bộ <span className="font-bold text-emerald-600 dark:text-emerald-400">Greetings & Expressions</span> để nắm vững những lời chào cơ bản trước, sau đó mở rộng sang Numbers & Counting để xây dựng nền tảng vững chắc cho hành trình học tiếng Nhật của bạn!
+              Start with the <span className="font-bold text-emerald-600 dark:text-emerald-400">Greetings &amp; Expressions</span> set to master basic greetings first, then expand to Numbers &amp; Counting to build a solid foundation for your Japanese learning journey!
             </p>
           </div>
         </div>
@@ -475,7 +475,7 @@ function StudentFlashcardsPage() {
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Tìm bộ flashcard..."
+              placeholder="Search flashcard sets..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground" />
       </div>
         </div>
@@ -493,7 +493,7 @@ function StudentFlashcardsPage() {
       {filtered.length === 0 ? (
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <Layers className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
-          <p className="font-semibold text-muted-foreground">Không tìm thấy bộ nào</p>
+          <p className="font-semibold text-muted-foreground">No flashcard sets found</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -518,7 +518,7 @@ function StudentFlashcardsPage() {
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(s.level)}`}>{s.level}</span>
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span>{s.cards.length} thẻ</span>
+                          <span>{s.cards.length} cards</span>
                           <span className="px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/30 text-purple-500 text-[10px] font-semibold">{s.topic}</span>
                         </div>
                       </div>
@@ -528,7 +528,7 @@ function StudentFlashcardsPage() {
                     {s.cards.length > 0 && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground font-semibold">Tiến độ</span>
+                          <span className="text-muted-foreground font-semibold">Progress</span>
                           <span className="font-bold text-primary">{pct}%</span>
                         </div>
                         <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
@@ -536,7 +536,7 @@ function StudentFlashcardsPage() {
                             transition={{ duration: 0.6, delay: i * 0.05 }}
                             className="h-full rounded-full bg-gradient-hero" />
                         </div>
-                        <div className="text-[10px] text-muted-foreground mt-1 font-medium">{learned}/{s.cards.length} đã học</div>
+                        <div className="text-[10px] text-muted-foreground mt-1 font-medium">{learned}/{s.cards.length} learned</div>
                       </div>
                     )}
 
@@ -544,7 +544,7 @@ function StudentFlashcardsPage() {
                     <div className="flex items-center gap-2">
                       <button onClick={() => startStudy(s, "flashcard")}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-hero hover:opacity-90 text-white text-xs font-bold transition-all shadow group-hover:shadow-md">
-                        <FlipHorizontal className="w-3.5 h-3.5" /> Học ngay
+                        <FlipHorizontal className="w-3.5 h-3.5" /> Study now
                       </button>
                       <button onClick={() => startStudy(s, "quiz")}
                         className="px-3.5 py-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-500 text-xs font-bold transition-all"
@@ -553,7 +553,7 @@ function StudentFlashcardsPage() {
                       </button>
                       <button onClick={() => startStudy(s, "random")}
                         className="px-3.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
-                        title="Ngẫu nhiên">
+                        title="Random">
                         <Zap className="w-3.5 h-3.5" />
                       </button>
                     </div>
