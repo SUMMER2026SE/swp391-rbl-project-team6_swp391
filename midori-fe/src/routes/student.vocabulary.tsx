@@ -231,6 +231,17 @@ const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"] as const;
 
 const FILTER_TABS = ["Tất cả", "Đã thuộc", "Chưa thuộc", "Yêu thích"] as const;
 
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
+
 function getLevelGradient(level: string): string {
   const g: Record<string, string> = {
     N5: "from-blue-300 via-sky-400 to-cyan-400",
@@ -656,7 +667,11 @@ function VocabularyPage() {
                     </button>
 
                     {/* Audio */}
-                    <button className="p-1.5 rounded-lg text-slate-300 hover:bg-blue-50 hover:text-blue-500 transition-all">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); speakJapanese(word.furigana || word.word); }}
+                      title="Play pronunciation"
+                      className="p-1.5 rounded-lg text-slate-300 hover:bg-blue-50 hover:text-blue-500 transition-all"
+                    >
                       <Volume2 className="w-4 h-4" />
                     </button>
                   </div>

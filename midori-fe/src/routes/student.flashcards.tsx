@@ -9,6 +9,17 @@ import {
 import { flashcardSetsData, type FlashcardSet, type Flashcard } from "../data/flashcards";
 
 const STORAGE_KEY = "midori_flashcard_sets";
+
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
 const PROGRESS_KEY = "midori_flashcard_progress";
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
 
@@ -288,7 +299,16 @@ function StudentFlashcardsPage() {
                       >
                         <div>
                           <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-4">Word</div>
-                          <div className="font-display font-black text-5xl text-foreground leading-tight mb-2">{currentCard.word}</div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="font-display font-black text-5xl text-foreground leading-tight flex-1">{currentCard.word}</div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); speakJapanese(currentCard.furigana || currentCard.word); }}
+                              title="Play pronunciation"
+                              className="flex-shrink-0 w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shadow-sm flex-shrink-0"
+                            >
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                          </div>
                           {currentCard.furigana && (
                             <div className="text-2xl text-sky-500 font-medium">{currentCard.furigana}</div>
                           )}
@@ -359,8 +379,17 @@ function StudentFlashcardsPage() {
                 {/* Quiz word */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 text-center shadow-sm mb-4">
                   <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2">Word meaning</div>
-                  <div className="font-display font-black text-4xl text-foreground">{currentCard.word}</div>
-                  {currentCard.furigana && <div className="text-lg text-sky-500 font-medium mt-1">{currentCard.furigana}</div>}
+                  <div className="flex items-center gap-3 justify-center mb-1">
+                    <div className="font-display font-black text-4xl text-foreground">{currentCard.word}</div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); speakJapanese(currentCard.furigana || currentCard.word); }}
+                      title="Play pronunciation"
+                      className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shadow-sm flex-shrink-0"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {currentCard.furigana && <div className="text-lg text-sky-500 font-medium">{currentCard.furigana}</div>}
                 </div>
 
                 {/* Options */}

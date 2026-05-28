@@ -8,6 +8,19 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
+
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
 interface GrammarExample {
@@ -336,7 +349,8 @@ function StructureStudyPage() {
                     {isBook ? <BookmarkCheck className="w-4 h-4 fill-yellow-400" /> : <Bookmark className="w-4 h-4" />}
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); }}
+                    onClick={(e) => { e.stopPropagation(); speakJapanese(grammar.title); }}
+                    title="Play pronunciation"
                     className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition"
                   >
                     <Volume2 className="w-4 h-4 text-white" />
