@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit3, Trash2, Eye,
   GraduationCap, BookOpen, Mic, ArrowUpDown, CheckCircle,
   XCircle, Star, Clock, ArrowLeft, ChevronLeft, ChevronRight,
-  BarChart3, Users, TrendingUp
+  BarChart3, Users, TrendingUp, Volume2
 } from "lucide-react";
 
 const grammarLessons = [
@@ -41,6 +41,19 @@ const statusColors: Record<string, string> = {
 };
 
 const PAGE_SIZE = 8;
+
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
 
 export const Route = createFileRoute("/teacher/grammar")({ component: GrammarPage });
 
@@ -524,8 +537,12 @@ function GrammarPage() {
                       <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">{ex.jp}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">{ex.en}</div>
                     </div>
-                    <button className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition self-start">
-                      <Mic className="w-4 h-4" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); speakJapanese(ex.jp); }}
+                      title="Play pronunciation"
+                      className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition self-start"
+                    >
+                      <Volume2 className="w-4 h-4" />
                     </button>
                   </div>
                 ))}

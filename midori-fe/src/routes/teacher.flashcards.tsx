@@ -4,11 +4,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Edit3, Trash2, Eye, BookOpen, Layers,
   X, Save, BookText, Tag, Star, FlipHorizontal,
-  GripVertical, AlertTriangle, EyeOff, ListChecks
+  GripVertical, AlertTriangle, EyeOff, ListChecks, Volume2
 } from "lucide-react";
 import { flashcardSetsData, type FlashcardSet, type Flashcard } from "../data/flashcards";
 
 const STORAGE_KEY = "midori_flashcard_sets";
+
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
 const VOCAB_TOPICS = ["General","Daily Life","School","Food","Shopping","Travel","Family","Business","Nature","Work","Social","Emotions","Health","Technology","Education","Culture","Sports","Art","Science","Politics","Entertainment"];
 const PAGE_SIZE = 9;
@@ -561,6 +572,11 @@ function TeacherFlashcardsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 flex-wrap mb-1">
                               <span className="font-display font-black text-xl text-foreground">{card.word}</span>
+                              <button onClick={(e) => { e.stopPropagation(); speakJapanese(card.furigana || card.word); }}
+                                title="Play pronunciation"
+                                className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                                <Volume2 className="w-4 h-4" />
+                              </button>
                               {card.furigana && <span className="text-base text-sky-500 font-medium">{card.furigana}</span>}
                               {card.romaji && <span className="text-xs text-muted-foreground italic">{card.romaji}</span>}
                             </div>
@@ -699,6 +715,11 @@ function TeacherFlashcardsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-sm text-foreground">{card.word}</span>
+                            <button onClick={(e) => { e.stopPropagation(); speakJapanese(card.furigana || card.word); }}
+                              title="Play pronunciation"
+                              className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </button>
                             {card.furigana && <span className="text-xs text-sky-500">{card.furigana}</span>}
                             <span className="text-xs text-muted-foreground">→</span>
                             <span className="text-xs font-semibold text-foreground">{card.meaning}</span>

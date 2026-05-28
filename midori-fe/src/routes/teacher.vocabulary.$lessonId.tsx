@@ -4,11 +4,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Edit3, Trash2, ArrowLeft, Search, X, Save,
   BookOpen, Tag, Eye, Download, ChevronDown, ChevronUp,
-  BookText, Layers
+  BookText, Layers, Volume2
 } from "lucide-react";
 import { type Lesson, type VocabWord } from "../data/lessons";
 
 const STORAGE_KEY = "midori_vocab_lessons";
+
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
 const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"];
 const TOPICS = ["General", "Nature", "Life", "Work", "Social", "Emotions", "Travel", "Food", "Health", "Technology", "Education", "Business", "Culture", "Sports", "Art", "Science", "Politics", "Entertainment"];
 const WORD_TYPES = ["noun", "verb", "adjective", "adverb", "expression"];
@@ -620,7 +631,14 @@ function VocabularyLessonDetailPage() {
 
               {/* Word display */}
               <div className="text-center p-5 rounded-2xl bg-gradient-hero/5 border border-primary/20">
-                <div className="font-display font-black text-4xl text-foreground mb-2">{viewWord.word}</div>
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <div className="font-display font-black text-4xl text-foreground">{viewWord.word}</div>
+                  <button onClick={(e) => { e.stopPropagation(); speakJapanese(viewWord.furigana || viewWord.word); }}
+                    title="Play pronunciation"
+                    className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                    <Volume2 className="w-5 h-5" />
+                  </button>
+                </div>
                 <div className="text-lg text-sky-500 font-medium">{viewWord.furigana}</div>
                 {viewWord.romaji && (
                   <div className="text-sm text-muted-foreground mt-1">{viewWord.romaji}</div>

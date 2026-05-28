@@ -4,13 +4,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Edit3, Trash2, Eye,
   BookOpen, Layers, X, Save, ChevronDown,
-  BookText, Tag
+  BookText, Tag, Volume2
 } from "lucide-react";
 import { lessonsData, type Lesson, type VocabWord } from "../data/lessons";
 
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
 const VOCAB_TOPICS = ["General", "Daily Life", "School", "Food", "Shopping", "Travel", "Family", "Business", "Nature", "Work", "Social", "Emotions", "Health", "Technology", "Education", "Culture", "Sports", "Art", "Science", "Politics", "Entertainment"];
 const STORAGE_KEY = "midori_vocab_lessons";
+
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
 const PAGE_SIZE = 9;
 
 function loadLessons(): Lesson[] {
@@ -710,6 +721,11 @@ function VocabularyManagementPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-sm text-foreground">{w.word}</span>
+                              <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
+                                title="Play pronunciation"
+                                className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                                <Volume2 className="w-3.5 h-3.5" />
+                              </button>
                               {w.furigana && (
                                 <span className="text-xs text-sky-500">{w.furigana}</span>
                               )}
@@ -1097,6 +1113,11 @@ function VocabularyManagementPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-sm text-foreground">{w.word}</span>
+                              <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
+                                title="Play pronunciation"
+                                className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                                <Volume2 className="w-3.5 h-3.5" />
+                              </button>
                               {w.furigana && <span className="text-xs text-sky-500">{w.furigana}</span>}
                               <span className="text-xs text-muted-foreground">→</span>
                               <span className="text-xs font-semibold text-foreground">{w.meaning}</span>
@@ -1256,8 +1277,13 @@ function VocabularyManagementPage() {
                             {/* Word info */}
                             <div className="flex-1 min-w-0">
                               {/* Word + Reading */}
-                              <div className="flex items-baseline gap-3 flex-wrap mb-2">
+                              <div className="flex items-center gap-2 flex-wrap mb-2">
                                 <span className="font-display font-black text-xl text-foreground">{w.word}</span>
+                                <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
+                                  title="Play pronunciation"
+                                  className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                                  <Volume2 className="w-4 h-4" />
+                                </button>
                                 {w.furigana && (
                                   <span className="text-base text-sky-500 font-medium">{w.furigana}</span>
                                 )}

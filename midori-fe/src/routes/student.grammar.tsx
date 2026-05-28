@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, GraduationCap, Eye, CheckCircle2, Bookmark, BookmarkCheck,
   ChevronLeft, ChevronRight, BookOpen, X, ArrowLeft,
-  Clock, Mic, Target
+  Clock, Volume2, Target
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 
@@ -246,6 +246,19 @@ function Pagination({
 
 // ─── Grammar Detail Modal ──────────────────────────────────────────────────────
 
+function speakJapanese(text: string) {
+  if (!text?.trim()) return;
+  if (typeof window === "undefined") return;
+  if (!("speechSynthesis" in window)) return;
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ja-JP";
+  utterance.rate = 0.85;
+  window.speechSynthesis.speak(utterance);
+}
+
 function ExampleCard({
   ex, index,
 }: {
@@ -267,8 +280,12 @@ function ExampleCard({
         <div className="text-xs text-sky-500 dark:text-sky-400 italic mt-0.5">{ex.romaji}</div>
         <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{ex.translation}</div>
       </div>
-      <button className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition self-start flex-shrink-0">
-        <Mic className="w-4 h-4" />
+      <button
+        onClick={(e) => { e.stopPropagation(); speakJapanese(ex.japanese); }}
+        title="Play pronunciation"
+        className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition self-start flex-shrink-0"
+      >
+        <Volume2 className="w-4 h-4" />
       </button>
     </div>
   );
