@@ -114,7 +114,7 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
-              Từ (Kanji/Hiragana) <span className="text-red-400">*</span>
+              Word (Kanji/Hiragana) <span className="text-red-400">*</span>
             </label>
             <input
               value={word.word}
@@ -146,12 +146,12 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
           </div>
           <div>
             <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
-              Nghĩa <span className="text-red-400">*</span>
+              Meaning <span className="text-red-400">*</span>
             </label>
             <input
               value={word.meaning}
               onChange={e => set("meaning", e.target.value)}
-              placeholder="Môi trường"
+              placeholder="e.g. Environment"
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -176,7 +176,7 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Loại từ</label>
+            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Word type</label>
             <select
               value={word.type}
               onChange={e => set("type", e.target.value)}
@@ -190,7 +190,7 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
         <div className="flex gap-3 pt-1">
           <button onClick={onClose}
             className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
-            Hủy
+            Cancel
           </button>
           <button onClick={onSave}
             disabled={!word.word.trim() || !word.meaning.trim()}
@@ -249,9 +249,9 @@ function VocabularyLessonDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 text-muted-foreground">
         <BookOpen className="w-12 h-12 mb-3 opacity-30" />
-        <p className="text-lg font-bold">Không tìm thấy bài học</p>
+        <p className="text-lg font-bold">Lesson not found</p>
         <Link to="/teacher/vocabulary" className="mt-3 text-primary underline text-sm">
-          ← Quay lại danh sách bài học
+          ← Back to lesson list
         </Link>
       </div>
     );
@@ -351,7 +351,7 @@ function VocabularyLessonDetailPage() {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {words.length} từ vựng · Tạo {lesson.createdAt}
+            {words.length} words · Created {lesson.createdAt}
           </p>
         </div>
 
@@ -366,7 +366,7 @@ function VocabularyLessonDetailPage() {
             onClick={() => setAddNew(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition active:scale-95"
           >
-            <Plus className="w-4 h-4" /> Thêm từ
+            <Plus className="w-4 h-4" /> Add word
           </button>
         </div>
       </div>
@@ -374,7 +374,7 @@ function VocabularyLessonDetailPage() {
       {/* ── Stats bar ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Tổng từ", value: words.length, icon: BookText, color: "text-blue-500" },
+          { label: "Total words", value: words.length, icon: BookText, color: "text-blue-500" },
           { label: "Topics", value: wordTopics.length, icon: Tag, color: "text-purple-500" },
           { label: "N5–N3", value: words.filter(w => ["N5","N4","N3"].includes(w.level)).length, icon: Layers, color: "text-green-500" },
           { label: "N2–N1", value: words.filter(w => ["N2","N1"].includes(w.level)).length, icon: Layers, color: "text-orange-500" },
@@ -408,7 +408,7 @@ function VocabularyLessonDetailPage() {
             <input
               value={search}
               onChange={e => handleSearch(e.target.value)}
-              placeholder="Tìm từ, nghĩa, kana..."
+              placeholder="Search word, meaning, kana..."
               className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground"
             />
             {search && (
@@ -428,9 +428,9 @@ function VocabularyLessonDetailPage() {
           onChange={e => setSortBy(e.target.value as typeof sortBy)}
           className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none"
         >
-          <option value="default">Mặc định</option>
+          <option value="default">Default</option>
           <option value="alpha">A → Z</option>
-          <option value="level">Theo cấp độ</option>
+          <option value="level">By level</option>
         </select>
 
         {/* Topic filter */}
@@ -452,12 +452,12 @@ function VocabularyLessonDetailPage() {
       {filtered.length === 0 && !search && filterTopic === "All" && (
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
-          <p className="text-muted-foreground font-semibold text-base mb-1">Chưa có từ vựng nào</p>
-          <p className="text-sm text-muted-foreground/60 mb-5">Bấm "Thêm từ" để bắt đầu</p>
+          <p className="text-muted-foreground font-semibold text-base mb-1">No vocabulary yet</p>
+          <p className="text-sm text-muted-foreground/60 mb-5">Click "Add word" to get started</p>
           <button
             onClick={() => setAddNew(true)}
             className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition">
-            <Plus className="w-4 h-4 inline mr-1" /> Thêm từ đầu tiên
+            <Plus className="w-4 h-4 inline mr-1" /> Add your first word
           </button>
         </div>
       )}
@@ -465,9 +465,9 @@ function VocabularyLessonDetailPage() {
       {filtered.length === 0 && (search || filterTopic !== "All") && (
         <div className="text-center py-16">
           <Search className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-          <p className="text-muted-foreground font-semibold">Không tìm thấy từ nào</p>
+          <p className="text-muted-foreground font-semibold">No matching words found</p>
           <button onClick={() => { setSearch(""); setFilterTopic("All"); setPage(1); }}
-            className="mt-2 text-primary underline text-sm">Xóa bộ lọc</button>
+            className="mt-2 text-primary underline text-sm">Clear filters</button>
         </div>
       )}
 
@@ -476,12 +476,12 @@ function VocabularyLessonDetailPage() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700">
           {/* Table header */}
           <div className="grid grid-cols-[1.5fr_1.5fr_2fr_1.5fr_100px_120px] gap-3 px-5 py-3 bg-slate-50 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider text-muted-foreground font-bold">
-            <div>Tiếng Nhật</div>
-            <div>Đọc</div>
-            <div>Nghĩa</div>
+            <div>Japanese</div>
+            <div>Reading</div>
+            <div>Meaning</div>
             <div>Tags</div>
-            <div className="text-center">Cấp độ</div>
-            <div className="text-right">Hành động</div>
+            <div className="text-center">Level</div>
+            <div className="text-right">Actions</div>
           </div>
 
           {/* Table rows */}
@@ -537,21 +537,21 @@ function VocabularyLessonDetailPage() {
                 <div className="text-right flex justify-end gap-1.5">
                   <button
                     onClick={() => setViewWord(w)}
-                    title="Xem chi tiết"
+                    title="View details"
                     className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition"
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => { setEditForm(w); setEditingWord(w); }}
-                    title="Sửa"
+                    title="Edit"
                     className="w-8 h-8 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-500 hover:text-blue-600 transition"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setDeleteWord(w)}
-                    title="Xóa"
+                    title="Delete"
                     className="w-8 h-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -574,12 +574,12 @@ function VocabularyLessonDetailPage() {
       <AnimatePresence>
         {addNew && (
           <WordModal
-            title="Thêm từ mới"
+            title="Add new word"
             word={newWord}
             onChange={setNewWord}
             onSave={handleAddWord}
             onClose={() => setAddNew(false)}
-            saveLabel="Thêm từ"
+            saveLabel="Add word"
           />
         )}
       </AnimatePresence>
@@ -588,12 +588,12 @@ function VocabularyLessonDetailPage() {
       <AnimatePresence>
         {editingWord && editForm && (
           <WordModal
-            title="Sửa từ vựng"
+            title="Edit word"
             word={editForm}
             onChange={(w) => setEditForm(w as VocabWord)}
             onSave={handleSaveEdit}
             onClose={() => setEditingWord(null)}
-            saveLabel="Lưu thay đổi"
+            saveLabel="Save changes"
           />
         )}
       </AnimatePresence>
@@ -612,7 +612,7 @@ function VocabularyLessonDetailPage() {
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5"
               style={{ maxWidth: 560 }}>
               <div className="flex items-center justify-between">
-                <h2 className="font-display font-black text-lg text-foreground">Chi tiết từ vựng</h2>
+                <h2 className="font-display font-black text-lg text-foreground">Vocabulary details</h2>
                 <button onClick={() => setViewWord(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <X className="w-4 h-4" />
                 </button>
@@ -629,7 +629,7 @@ function VocabularyLessonDetailPage() {
 
               {/* Meaning */}
               <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Nghĩa</div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Meaning</div>
                 <div className="text-base font-semibold text-foreground">{viewWord.meaning}</div>
               </div>
 
@@ -651,13 +651,13 @@ function VocabularyLessonDetailPage() {
                   onClick={() => { setViewWord(null); setEditForm(viewWord); setEditingWord(viewWord); }}
                   className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-600 transition"
                 >
-                  <Edit3 className="w-4 h-4" /> Sửa từ
+                  <Edit3 className="w-4 h-4" /> Edit word
                 </button>
                 <button
                   onClick={() => setViewWord(null)}
                   className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                 >
-                  Đóng
+                  Close
                 </button>
               </div>
             </motion.div>
@@ -680,19 +680,19 @@ function VocabularyLessonDetailPage() {
               <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-500/20 grid place-items-center mx-auto mb-3">
                 <Trash2 className="w-7 h-7 text-red-500" />
               </div>
-              <h2 className="font-display font-black text-lg mb-1">Xóa từ vựng?</h2>
+              <h2 className="font-display font-black text-lg mb-1">Delete word?</h2>
               <p className="text-sm text-muted-foreground mb-1">
-                Xóa <strong className="text-foreground">{deleteWord.word}</strong> ({deleteWord.meaning})?
+                Delete <strong className="text-foreground">{deleteWord.word}</strong> ({deleteWord.meaning})?
               </p>
-              <p className="text-xs text-red-400 mb-5">Hành động này không thể hoàn tác.</p>
+              <p className="text-xs text-red-400 mb-5">This action cannot be undone.</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleteWord(null)}
                   className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
-                  Hủy
+                  Cancel
                 </button>
                 <button onClick={handleDelete}
                   className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">
-                  Xóa
+                  Delete
                 </button>
               </div>
             </motion.div>

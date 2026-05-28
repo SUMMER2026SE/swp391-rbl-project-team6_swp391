@@ -257,23 +257,23 @@ function VocabularyManagementPage() {
         <div>
           <h1 className="text-2xl font-display font-black text-foreground">Vocabulary Management</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {lessons.length} bài học · {totalWords} từ vựng
+            {lessons.length} lessons · {totalWords} words
           </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition active:scale-95"
         >
-          <Plus className="w-4 h-4" /> Thêm bài học
+          <Plus className="w-4 h-4" /> Add lesson
         </button>
       </div>
 
       {/* ── Stats row ──────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Bài học", value: lessons.length, icon: BookText, color: "text-blue-500" },
-          { label: "Từ vựng", value: totalWords, icon: Layers, color: "text-green-500" },
-          { label: "Cấp độ", value: "N5 – N1", icon: Tag, color: "text-purple-500", noNum: true },
+          { label: "Lessons", value: lessons.length, icon: BookText, color: "text-blue-500" },
+          { label: "Words", value: totalWords, icon: Layers, color: "text-green-500" },
+          { label: "Levels", value: "N5 – N1", icon: Tag, color: "text-purple-500", noNum: true },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -304,7 +304,7 @@ function VocabularyManagementPage() {
           <input
             value={search}
               onChange={e => handleSearch(e.target.value)}
-            placeholder="Tìm bài học..."
+            placeholder="Search lessons..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground"
           />
           </div>
@@ -337,9 +337,9 @@ function VocabularyManagementPage() {
       {filtered.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-semibold text-base">Không tìm thấy bài học nào</p>
+          <p className="font-semibold text-base">No lessons found</p>
           <button onClick={() => setShowAdd(true)} className="mt-3 text-primary underline text-sm">
-            + Tạo bài học đầu tiên
+            + Create your first lesson
           </button>
         </div>
       ) : (
@@ -376,7 +376,7 @@ function VocabularyManagementPage() {
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <BookText className="w-3 h-3" />
-                        {lesson.words.length} từ
+                        {lesson.words.length} words
                       </span>
                         {lesson.words.length > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold">
@@ -394,19 +394,19 @@ function VocabularyManagementPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      Xem
+                      View
                     </button>
                   <button
                       onClick={(e) => { e.stopPropagation(); openEdit(lesson); }}
                       className="px-3.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
-                    title="Sửa bài học"
+                    title="Edit lesson"
                   >
                       <Edit3 className="w-3.5 h-3.5" />
                   </button>
                   <button
                       onClick={(e) => { e.stopPropagation(); setDeleting(lesson); }}
                       className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all"
-                    title="Xóa bài học"
+                    title="Delete lesson"
                   >
                       <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -437,7 +437,7 @@ function VocabularyManagementPage() {
               style={{ maxWidth: 760, maxHeight: "90vh" }}>
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-5 flex-shrink-0">
-                <h2 className="font-display font-black text-lg text-foreground">Thêm bài học mới</h2>
+                <h2 className="font-display font-black text-lg text-foreground">Add new lesson</h2>
                 <button onClick={() => setShowAdd(false)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <X className="w-4 h-4" />
                 </button>
@@ -448,12 +448,12 @@ function VocabularyManagementPage() {
                 {/* ── Lesson Info ───────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
-                    Tên bài học <span className="text-red-400">*</span>
+                    Lesson title <span className="text-red-400">*</span>
                   </label>
                   <input
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
-                    placeholder="Ví dụ: Bài 4 — Numbers (Số đếm)"
+                    placeholder="e.g. Lesson 4 — Numbers"
                     className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
@@ -461,7 +461,7 @@ function VocabularyManagementPage() {
                 {/* ── JLPT Level ────────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
-                    Cấp độ JLPT
+                    JLPT Level
                   </label>
                   <div className="flex gap-1">
                     {["N5","N4","N3","N2","N1"].map(lvl => (
@@ -485,12 +485,12 @@ function VocabularyManagementPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Danh sách từ vựng
+                      Vocabulary list
                     </label>
                     <span className="text-[10px] text-muted-foreground font-semibold">
-                      {tempWords.length} từ
+                      {tempWords.length} words
                     </span>
-              </div>
+                  </div>
 
                   {/* Word form toggle */}
                   {!showWordForm ? (
@@ -500,14 +500,14 @@ function VocabularyManagementPage() {
                       className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
-                      Thêm từ vựng
+                      Add vocabulary
                     </button>
                   ) : (
                     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                       {/* Form header */}
                       <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <span className="text-sm font-bold text-foreground">
-                          {editingWordIdx !== null ? "Sửa từ vựng" : "Thêm từ mới"}
+                          {editingWordIdx !== null ? "Edit word" : "Add new word"}
                         </span>
                         <button
                           type="button"
@@ -522,7 +522,7 @@ function VocabularyManagementPage() {
                       <div className="p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Từ <span className="text-red-400">*</span></label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Word <span className="text-red-400">*</span></label>
                             <input
                               value={wordForm.word}
                               onChange={e => setWordForm(f => ({ ...f, word: e.target.value }))}
@@ -531,7 +531,7 @@ function VocabularyManagementPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Đọc (Hiragana)</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Reading (Hiragana)</label>
                             <input
                               value={wordForm.furigana}
                               onChange={e => setWordForm(f => ({ ...f, furigana: e.target.value }))}
@@ -549,11 +549,11 @@ function VocabularyManagementPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Nghĩa <span className="text-red-400">*</span></label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
                             <input
                               value={wordForm.meaning}
                               onChange={e => setWordForm(f => ({ ...f, meaning: e.target.value }))}
-                              placeholder="Môi trường"
+                              placeholder="e.g. Environment"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
@@ -575,7 +575,7 @@ function VocabularyManagementPage() {
                                   type="button"
                                   onClick={() => setShowCustomTopic(o => !o)}
                                   className="px-2.5 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition border border-primary/30"
-                                  title="Tạo topic mới"
+                                  title="Create new topic"
                                 >
                                   +
                                 </button>
@@ -584,7 +584,7 @@ function VocabularyManagementPage() {
                                     <input
                                       value={customTopicInput}
                                       onChange={e => setCustomTopicInput(e.target.value)}
-                                      placeholder="Tên topic..."
+                                      placeholder="Topic name..."
                                       className="w-full px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs outline-none focus:ring-1 focus:ring-primary/40"
                                       autoFocus
                                       onKeyDown={e => {
@@ -609,7 +609,7 @@ function VocabularyManagementPage() {
                                         }}
                                         className="w-full py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition"
                                       >
-                                        Tạo "{customTopicInput.trim()}"
+                                        Create "{customTopicInput.trim()}"
                                       </button>
                                     )}
                                   </div>
@@ -618,7 +618,7 @@ function VocabularyManagementPage() {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Cấp độ</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Level</label>
                             <select
                               value={wordForm.level}
                               onChange={e => setWordForm(f => ({ ...f, level: e.target.value }))}
@@ -630,11 +630,11 @@ function VocabularyManagementPage() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Ví dụ</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example</label>
                           <input
                             value={wordForm.examples}
                             onChange={e => setWordForm(f => ({ ...f, examples: e.target.value }))}
-                            placeholder=" жизнь окружающей среды..."
+                            placeholder="e.g. environment"
                             className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                           />
                         </div>
@@ -645,7 +645,7 @@ function VocabularyManagementPage() {
                             onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: newLevel, examples: "" }); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                           >
-                  Hủy
+                  Cancel
                 </button>
                           <button
                             type="button"
@@ -679,7 +679,7 @@ function VocabularyManagementPage() {
                             disabled={!wordForm.word.trim() || !wordForm.meaning.trim()}
                             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
                           >
-                            {editingWordIdx !== null ? "Cập nhật từ" : "Thêm từ"}
+                            {editingWordIdx !== null ? "Update word" : "Add word"}
                           </button>
                         </div>
                       </div>
@@ -744,7 +744,7 @@ function VocabularyManagementPage() {
                                 setShowWordForm(true);
                               }}
                               className="w-7 h-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-400 hover:text-blue-600 transition"
-                              title="Sửa"
+                              title="Edit"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
@@ -752,7 +752,7 @@ function VocabularyManagementPage() {
                               type="button"
                               onClick={() => setTempWords(prev => prev.filter((_, i) => i !== idx))}
                               className="w-7 h-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
-                              title="Xóa"
+                              title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -767,7 +767,7 @@ function VocabularyManagementPage() {
               {/* Footer actions */}
               <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">
                 <span className="text-xs text-muted-foreground">
-                  {tempWords.length > 0 ? `${tempWords.length} từ vựng sẽ được lưu` : "Chưa có từ vựng"}
+                  {tempWords.length > 0 ? `${tempWords.length} words will be saved` : "No words added yet"}
                 </span>
                 <div className="flex gap-2">
                   <button
@@ -775,7 +775,7 @@ function VocabularyManagementPage() {
                     onClick={() => { setShowAdd(false); setTempWords([]); setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "" }); }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
-                    Hủy
+                    Cancel
                   </button>
                   <button
                     type="button"
@@ -800,7 +800,7 @@ function VocabularyManagementPage() {
                     disabled={!newName.trim()}
                     className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
                   >
-                  Tạo bài học
+                  Create lesson
                 </button>
                 </div>
               </div>
@@ -825,7 +825,7 @@ function VocabularyManagementPage() {
               style={{ maxWidth: 760, maxHeight: "90vh" }}>
               {/* Header */}
               <div className="flex items-center justify-between mb-5 flex-shrink-0">
-                <h2 className="font-display font-black text-lg text-foreground">Sửa bài học</h2>
+                <h2 className="font-display font-black text-lg text-foreground">Edit lesson</h2>
                 <button onClick={() => setEditing(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <X className="w-4 h-4" />
                 </button>
@@ -836,7 +836,7 @@ function VocabularyManagementPage() {
                 {/* ── Lesson Info ──────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
-                    Tên bài học
+                    Lesson title
                   </label>
                   <input
                     value={editName}
@@ -846,7 +846,7 @@ function VocabularyManagementPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
-                    Cấp độ JLPT
+                    Level JLPT
                   </label>
                   <div className="flex gap-1">
                     {["N5","N4","N3","N2","N1"].map(lvl => (
@@ -870,12 +870,12 @@ function VocabularyManagementPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Danh sách từ vựng
+                      Vocabulary list
                     </label>
                     <span className="text-[10px] text-muted-foreground font-semibold">
-                      {editTempWords.length} từ
+                      {editTempWords.length} words
                     </span>
-              </div>
+                  </div>
 
                   {/* Word form toggle */}
                   {!editShowWordForm ? (
@@ -885,14 +885,14 @@ function VocabularyManagementPage() {
                       className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
-                      Thêm từ vựng
+                      Add vocabulary
                     </button>
                   ) : (
                     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-3">
                       {/* Form header */}
                       <div className="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                         <span className="text-sm font-bold text-foreground">
-                          {editEditingIdx !== null ? "Sửa từ vựng" : "Thêm từ mới"}
+                          {editEditingIdx !== null ? "Edit word" : "Add new word"}
                         </span>
                         <button
                           type="button"
@@ -907,7 +907,7 @@ function VocabularyManagementPage() {
                       <div className="p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Từ <span className="text-red-400">*</span></label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Word <span className="text-red-400">*</span></label>
                             <input
                               value={editWordForm.word}
                               onChange={e => setEditWordForm(f => ({ ...f, word: e.target.value }))}
@@ -934,11 +934,11 @@ function VocabularyManagementPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Nghĩa <span className="text-red-400">*</span></label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
                             <input
                               value={editWordForm.meaning}
                               onChange={e => setEditWordForm(f => ({ ...f, meaning: e.target.value }))}
-                              placeholder="Môi trường"
+                              placeholder="e.g. Environment"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
@@ -960,7 +960,7 @@ function VocabularyManagementPage() {
                                   type="button"
                                   onClick={() => setEditShowCustomTopic(o => !o)}
                                   className="px-2.5 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition border border-primary/30"
-                                  title="Tạo topic mới"
+                                  title="Create new topic"
                                 >
                                   +
                                 </button>
@@ -969,7 +969,7 @@ function VocabularyManagementPage() {
                                     <input
                                       value={editCustomTopicInput}
                                       onChange={e => setEditCustomTopicInput(e.target.value)}
-                                      placeholder="Tên topic..."
+                                      placeholder="Topic name..."
                                       className="w-full px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs outline-none focus:ring-1 focus:ring-primary/40"
                                       autoFocus
                                       onKeyDown={e => {
@@ -996,7 +996,7 @@ function VocabularyManagementPage() {
                                         }}
                                         className="w-full py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition"
                                       >
-                                        Tạo "{editCustomTopicInput.trim()}"
+                                        Create "{editCustomTopicInput.trim()}"
                                       </button>
                                     )}
                                   </div>
@@ -1005,7 +1005,7 @@ function VocabularyManagementPage() {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Cấp độ</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Level</label>
                             <select
                               value={editWordForm.level}
                               onChange={e => setEditWordForm(f => ({ ...f, level: e.target.value }))}
@@ -1017,11 +1017,11 @@ function VocabularyManagementPage() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Ví dụ</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example</label>
                           <input
                             value={editWordForm.examples}
                             onChange={e => setEditWordForm(f => ({ ...f, examples: e.target.value }))}
-                            placeholder=" жизнь окружающей среды..."
+                            placeholder="e.g. environment"
                             className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                           />
                         </div>
@@ -1032,7 +1032,7 @@ function VocabularyManagementPage() {
                             onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: editLevel, examples: "" }); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                           >
-                  Hủy
+                  Cancel
                 </button>
                           <button
                             type="button"
@@ -1066,7 +1066,7 @@ function VocabularyManagementPage() {
                             disabled={!editWordForm.word.trim() || !editWordForm.meaning.trim()}
                             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
                           >
-                            {editEditingIdx !== null ? "Cập nhật từ" : "Thêm từ"}
+                            {editEditingIdx !== null ? "Update word" : "Add word"}
                           </button>
                         </div>
                       </div>
@@ -1121,7 +1121,7 @@ function VocabularyManagementPage() {
                                 setEditShowWordForm(true);
                               }}
                               className="w-7 h-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-400 hover:text-blue-600 transition"
-                              title="Sửa"
+                              title="Edit"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
@@ -1129,7 +1129,7 @@ function VocabularyManagementPage() {
                               type="button"
                               onClick={() => setEditTempWords(prev => prev.filter((_, i) => i !== idx))}
                               className="w-7 h-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
-                              title="Xóa"
+                              title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -1140,7 +1140,7 @@ function VocabularyManagementPage() {
                   ) : (
                     <div className="py-8 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                       <BookOpen className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                      <p className="text-xs text-muted-foreground">Chưa có từ vựng nào trong bài này</p>
+                      <p className="text-xs text-muted-foreground">No words in this lesson yet</p>
                     </div>
                   )}
                 </div>
@@ -1149,7 +1149,7 @@ function VocabularyManagementPage() {
               {/* Footer */}
               <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">
                 <span className="text-xs text-muted-foreground">
-                  {editTempWords.length > 0 ? `${editTempWords.length} từ vựng` : "Chưa có từ vựng"}
+                  {editTempWords.length > 0 ? `${editTempWords.length} words` : "No words"}
                 </span>
                 <div className="flex gap-2">
                   <button
@@ -1157,7 +1157,7 @@ function VocabularyManagementPage() {
                     onClick={() => { setEditing(null); setEditTempWords([]); setEditShowWordForm(false); setEditEditingIdx(null); }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
-                    Hủy
+                    Cancel
                   </button>
                   <button
                     type="button"
@@ -1165,7 +1165,7 @@ function VocabularyManagementPage() {
                     disabled={!editName.trim()}
                     className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
                   >
-                    <Save className="w-4 h-4 inline mr-1" /> Lưu thay đổi
+                    <Save className="w-4 h-4 inline mr-1" /> Save changes
                   </button>
                 </div>
               </div>
@@ -1199,7 +1199,7 @@ function VocabularyManagementPage() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {viewingLesson.words.length} từ vựng · Tạo {viewingLesson.createdAt}
+                    {viewingLesson.words.length} words · Created {viewingLesson.createdAt}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1208,7 +1208,7 @@ function VocabularyManagementPage() {
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                    Sửa bài
+                    Edit
                   </button>
                   <button
                     onClick={() => setViewingLesson(null)}
@@ -1224,13 +1224,13 @@ function VocabularyManagementPage() {
                 {viewingLesson.words.length === 0 ? (
                   <div className="py-20 text-center">
                     <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
-                    <p className="font-semibold text-base text-foreground mb-1">Chưa có từ vựng nào</p>
-                    <p className="text-sm text-muted-foreground">Bài học này chưa có từ vựng nào được thêm.</p>
+                    <p className="font-semibold text-base text-foreground mb-1">No words yet</p>
+                    <p className="text-sm text-muted-foreground">This lesson has no vocabulary added yet.</p>
                     <button
                       onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
                       className="mt-4 px-4 py-2 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow hover:opacity-90 transition"
                     >
-                      + Thêm từ vựng
+                      + Add vocabulary
                     </button>
                   </div>
                 ) : (
@@ -1287,8 +1287,8 @@ function VocabularyManagementPage() {
                               {/* Example */}
                               {w.examples && w.examples > 0 && (
                                 <div className="mt-2 text-xs text-muted-foreground">
-                                  <span className="font-semibold text-foreground/60">Ví dụ:</span>{" "}
-                                  {w.examples} câu
+                                  <span className="font-semibold text-foreground/60">Example:</span>{" "}
+                                  {w.examples} examples
                                 </div>
                               )}
                             </div>
@@ -1305,14 +1305,14 @@ function VocabularyManagementPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     {viewingLesson.words.length > 0
-                      ? `${viewingLesson.words.length} từ vựng`
-                      : "0 từ vựng"}
+                      ? `${viewingLesson.words.length} words`
+                      : "0 words"}
                   </span>
                   <button
                     onClick={() => setViewingLesson(null)}
                     className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
-                    Đóng
+                    Close
                   </button>
                 </div>
               </div>
@@ -1338,21 +1338,21 @@ function VocabularyManagementPage() {
               <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-500/20 grid place-items-center mx-auto mb-3">
                 <Trash2 className="w-7 h-7 text-red-500" />
               </div>
-              <h2 className="font-display font-black text-lg mb-1">Xóa bài học?</h2>
+              <h2 className="font-display font-black text-lg mb-1">Delete lesson?</h2>
               <p className="text-sm text-muted-foreground mb-2">
-                Bài <strong className="text-foreground">{deleting.title}</strong> sẽ bị xóa vĩnh viễn.
+                Lesson <strong className="text-foreground">{deleting.title}</strong> will be permanently deleted.
               </p>
               <p className="text-xs text-red-400 mb-5">
-                Điều này cũng xóa {deleting.words.length} từ vựng bên trong.
+                This will also delete {deleting.words.length} words inside.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleting(null)}
                   className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
-                  Hủy
+                  Cancel
                 </button>
                 <button onClick={handleDelete}
                   className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">
-                  Xóa
+                  Delete
                 </button>
               </div>
             </motion.div>

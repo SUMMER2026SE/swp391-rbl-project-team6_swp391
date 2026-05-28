@@ -2,10 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ClipboardCheck, CheckCircle, XCircle, Eye, Clock,
+  ClipboardCheck, CheckCircle, XCircle, Eye,
   AlertTriangle, X, ChevronLeft, BookOpen,
   Timer, Calendar, User, Tag, List, Loader2,
-  BarChart2
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -61,14 +60,14 @@ const initialExams: Exam[] = [
         text: "彼は忙し____、電話に出てくれない。",
         options: ["そうで", "そうでも", "そうな", "そうなのに"],
         correctIndex: 2,
-        explanation: "「〜そうで」は様態の意味で「〜の様子で」を表します。「忙しそうで」は「avrebbe l'aria di essere occupato」という意味で適切です。",
+        explanation: "「〜そうで」は様態の意味で「〜の様子で」を表します。「忙しそうで」は「忙しそうな様子で」を意味します。",
       },
       {
         id: 3,
-        text: "この問題は____сом dépourvu de difficulté mais requires une réflexion approfondie.",
+        text: "この問題は____、却很为难。",
         options: ["簡単なのに", "簡単なので", "簡単なはずだ", "簡単なわけだ"],
         correctIndex: 0,
-        explanation: "「〜のに」は逆接の意味で、「簡単なのに」（ einfacher als erwartet却又很难）与预期相反。",
+        explanation: "「〜のに」は逆接の意味で、予期とは反対の結果を表します。「簡単なのに」（although it's simple）と予想に反します。",
       },
       {
         id: 4,
@@ -80,7 +79,7 @@ const initialExams: Exam[] = [
       {
         id: 5,
         text: "彼は日本語教師____、京都大学で博士号を取った。",
-        options: ["として", "escu и 加えて", "だけでなく", "のみで"],
+        options: ["として", "である上に", "だけでなく", "のみで"],
         correctIndex: 2,
         explanation: "「〜だけでなく…も」は「not only ... but also…」という構造です。「だけでなく」の後に「京都大学でも」が省略されています。",
       },
@@ -330,7 +329,6 @@ function RejectModal({
   onClose: () => void;
 }) {
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
-  const [otherReason, setOtherReason] = useState("");
   const [detail, setDetail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -340,14 +338,14 @@ function RejectModal({
     );
   };
 
-  const isOtherSelected = selectedReasons.includes("Khác");
+  const isOtherSelected = selectedReasons.includes("Other");
   const isValid = selectedReasons.length > 0 && (!isOtherSelected || detail.trim().length > 0);
 
   const handleConfirm = async () => {
     if (!isValid) return;
     setLoading(true);
     await new Promise(r => setTimeout(r, 600));
-    const reason = [...selectedReasons, isOtherSelected && detail.trim() ? `Khác: ${detail}` : ""]
+    const reason = [...selectedReasons, isOtherSelected && detail.trim() ? `Other: ${detail}` : ""]
       .filter(Boolean).join("; ");
     onConfirm(exam.id, reason);
     setLoading(false);
