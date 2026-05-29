@@ -23,6 +23,7 @@
 ## Table of Contents
 
 - [About](#about)
+- [Project Status](#project-status)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -30,7 +31,6 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Running the App](#running-the-app)
-- [Database Setup](#database-setup)
 - [Scripts](#scripts)
 - [User Roles](#user-roles)
 - [Database Schema](#database-schema)
@@ -57,6 +57,18 @@ The platform covers all essential aspects of Japanese language learning:
 | **Exams** | JLPT mock exams to test knowledge and track progress |
 | **AI Sensei** | AI-powered chat assistant for personalized Q&A and conversation practice |
 | **Progress Tracking** | XP, daily streaks, leaderboards, and skill score dashboards |
+
+---
+
+## Project Status
+
+> **Frontend (midori-fe):** Functional — all role-based dashboards, modules, and UI components are implemented with mock data for development.
+>
+> **Backend (midori-be):** Not yet implemented — the backend API is planned but not yet built.
+>
+> **Database Schema:** Not yet created — the SQL Server schema is planned but not yet committed to the repository.
+>
+> **AI Sensei:** Implemented as a chat interface with mock data; backend integration pending.
 
 ---
 
@@ -110,8 +122,8 @@ The platform covers all essential aspects of Japanese language learning:
 
 | Technology | Purpose |
 |---|---|
-| **SQL Server** | Relational database |
-| Backend API | To be implemented (`midori-be/`) |
+| **SQL Server** | Relational database (planned) |
+| **midori-be** | Backend API — **not yet implemented** |
 
 ### Infrastructure
 
@@ -133,7 +145,7 @@ swp391-rbl-project-team6_swp391/
 │   │   └── logo.png
 │   ├── src/
 │   │   ├── components/          # React components
-│   │   │   ├── ui/              # 44+ reusable UI components
+│   │   │   ├── ui/              # 44 reusable UI components (shadcn/ui)
 │   │   │   │   ├── button.tsx
 │   │   │   │   ├── card.tsx
 │   │   │   │   ├── dialog.tsx
@@ -142,51 +154,55 @@ swp391-rbl-project-team6_swp391/
 │   │   │   │   ├── tabs.tsx
 │   │   │   │   ├── avatar.tsx
 │   │   │   │   ├── badge.tsx
-│   │   │   │   └── ... (40+ more)
+│   │   │   │   └── ... (38+ more)
 │   │   │   ├── auth-shell.tsx         # Authentication layout wrapper
 │   │   │   ├── dashboard-layout.tsx   # Main dashboard layout
 │   │   │   ├── ai-sensei-chat.tsx     # AI chat interface
 │   │   │   ├── logo.tsx               # Brand logo component
+│   │   │   ├── page-ui.tsx            # Page wrapper
 │   │   │   └── sakura-bg.tsx          # Animated sakura background
-│   │   ├── routes/                    # TanStack Router file-based routes
+│   │   ├── routes/                    # TanStack Router file-based routes (50 routes)
 │   │   │   ├── index.tsx              # Landing page (public)
 │   │   │   ├── login.tsx              # Login page
 │   │   │   ├── register.tsx           # Registration page
 │   │   │   ├── forgot-password.tsx
 │   │   │   ├── verify-otp.tsx
 │   │   │   ├── reset-password.tsx
-│   │   │   ├── admin.*.tsx            # Admin dashboard routes (9+ routes)
-│   │   │   ├── teacher.*.tsx          # Teacher dashboard routes (8+ routes)
-│   │   │   └── student.*.tsx          # Student dashboard routes (12+ routes)
+│   │   │   ├── reset-success.tsx
+│   │   │   ├── teacher-pending.tsx
+│   │   │   ├── student.*.tsx          # 22 student dashboard routes
+│   │   │   ├── teacher.*.tsx          # 13 teacher dashboard routes
+│   │   │   └── admin.*.tsx            # 11 admin dashboard routes
 │   │   ├── lib/                       # Utilities and context
 │   │   │   ├── utils.ts               # cn() helper, class utilities
 │   │   │   ├── auth.tsx               # Auth & Theme context providers
 │   │   │   ├── error-capture.tsx
 │   │   │   ├── error-page.tsx
 │   │   │   └── mock-data.ts           # Sample data for development
-│   │   ├── hooks/                     # Custom React hooks
-│   │   │   └── use-mobile.tsx
 │   │   ├── data/                      # Static data files
 │   │   │   ├── lessons.ts             # Sample vocabulary lessons
-│   │   │   └── flashcards.ts          # Sample flashcard decks
+│   │   │   ├── flashcards.ts          # Sample flashcard decks
+│   │   │   ├── teacher-notifications.ts
+│   │   │   └── data/                  # Duplicate copies of lessons.ts & flashcards.ts
+│   │   ├── hooks/                     # Custom React hooks
+│   │   │   └── use-mobile.tsx
 │   │   ├── router.tsx                 # Router configuration
 │   │   ├── routeTree.gen.ts          # Auto-generated route tree
-│   │   ├── server.ts                  # SSR entry point
+│   │   ├── server.ts                  # SSR entry point (Cloudflare Workers)
 │   │   └── styles.css                 # Global styles & CSS variables
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── vite.config.ts
 │   └── wrangler.jsonc                 # Cloudflare Workers config
-├── midori-be/                         # Backend services (placeholder)
+├── midori-be/                         # Backend services — **not yet implemented**
 │   └── .gitkeep
-├── database_schema.sql                # SQL Server database schema (25+ tables)
-├── package.json                       # Root package.json (symlink to midori-fe)
+├── package.json                       # Root package.json (mirrors midori-fe/)
 ├── tsconfig.json
 ├── vite.config.ts
 ├── wrangler.jsonc
 ├── components.json                    # shadcn/ui configuration
 ├── eslint.config.js
-├── .prettierrc
+├── .prettierignore
 ├── bun.lock
 └── bunfig.toml
 ```
@@ -199,7 +215,6 @@ swp391-rbl-project-team6_swp391/
 
 - **Node.js** 18+ (LTS recommended)
 - **Bun** (optional, for faster package management) — [Install Bun](https://bun.sh)
-- **SQL Server** (for database)
 - **Git**
 
 ### Installation
@@ -227,10 +242,10 @@ bun install
 
 #### 3. Set up environment variables
 
-Create a `.env` file in the project root (copy from template if available):
+Create a `.env` file in the project root:
 
 ```env
-# Database
+# Database (required once backend is implemented)
 DATABASE_URL=sqlserver://localhost:1433;database=MidoriSensei;trustedConnection=true;trustServerCertificate=true
 
 # Authentication
@@ -245,7 +260,7 @@ CLOUDFLARE_ACCOUNT_ID=your-cloudflare-account-id
 CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
 ```
 
-> ⚠️ The `.gitignore` file excludes `.env` and `.env*.local` from version control.
+> The `.gitignore` file excludes `.env` and `.env*.local` from version control.
 
 ### Running the App
 
@@ -263,48 +278,6 @@ The app will be available at `http://localhost:5173`.
 npm run build
 npm run preview
 ```
-
----
-
-## Database Setup
-
-### SQL Server
-
-1. Ensure SQL Server is running and accessible.
-2. Create a new database:
-
-```sql
-CREATE DATABASE MidoriSensei;
-GO
-```
-
-3. Run the schema script:
-
-```bash
-sqlcmd -S localhost -d MidoriSensei -i database_schema.sql
-```
-
-Or via SQL Server Management Studio (SSMS):
-
-1. Open `database_schema.sql`
-2. Execute against the `MidoriSensei` database
-
-The schema includes **25+ tables** covering all platform features:
-
-- `users`, `sessions` — Authentication
-- `student_profiles`, `teacher_profiles` — User profiles
-- `vocabulary_lessons`, `vocabulary_words` — Vocabulary content
-- `grammar_categories`, `grammar_structures` — Grammar content
-- `listening_exercises`, `listening_progress` — Listening practice
-- `shadowing_topics`, `shadowing_conversations`, `shadowing_sentences`, `shadowing_progress` — Shadowing practice
-- `flashcard_decks`, `flashcards`, `flashcard_sessions` — Flashcard system
-- `exams`, `exam_questions`, `exam_attempts` — Exam management
-- `user_progress`, `daily_xp`, `skill_scores` — Progress tracking
-- `ai_conversations`, `ai_messages` — AI Sensei chat
-- `notifications` — Notification system
-- `reports`, `teacher_students` — Admin & moderation
-- `analytics_events` — Analytics
-- `user_settings` — User preferences
 
 ---
 
@@ -327,9 +300,9 @@ The platform supports **three user roles** with distinct dashboards and permissi
 
 | Role | Access | Dashboard Routes |
 |---|---|---|
-| **Student** | Default role for learners | Vocabulary, Grammar, Listening, Shadowing, Flashcards, Exams, AI Sensei, Leaderboard, Progress, Profile |
-| **Teacher** | Content creator & student mentor | Dashboard, Vocabulary, Grammar, Listening, Shadowing, Flashcards, Exams, Profile, Settings |
-| **Admin** | Full platform management | Dashboard, Users, Teachers, Grammar, Exams, Moderation, Analytics, Notifications, Profile, Settings |
+| **Student** | Default role for learners | 22 routes: Vocabulary, Grammar, Listening, Shadowing, Flashcards, Exams, JLPT Info, AI Sensei, Leaderboard, Progress, Profile, Notifications |
+| **Teacher** | Content creator & student mentor | 13 routes: Dashboard, Vocabulary, Grammar, Listening, Shadowing, Flashcards, Exams, Profile, Notifications, Settings |
+| **Admin** | Full platform management | 11 routes: Dashboard, Users, Teachers, Grammar, Exams, Moderation, Analytics, Notifications, Profile, Settings |
 
 ### Authentication Flow
 
@@ -345,7 +318,9 @@ Public Pages → Login/Register → Role-based Dashboard
 
 ## Database Schema
 
-### Entity Relationship Overview
+> The SQL Server database schema has not yet been created. The schema design is planned to include the following entities once implemented.
+
+### Planned Entity Overview
 
 ```
 users (1) ──── (1) student_profiles
@@ -387,7 +362,7 @@ All content is organized across **5 JLPT proficiency levels**:
 
 ## API Design
 
-The backend API (to be implemented in `midori-be/`) follows RESTful conventions:
+> The backend API has not yet been implemented. The following RESTful conventions are planned for `midori-be/`.
 
 ```
 Base URL: /api/v1
@@ -525,7 +500,7 @@ This project was created for **FPT University's SWP391 Course**. All rights rese
 ---
 
 <p align="center">
-  Made with ❤️ for Japanese language learners
+  Made with for Japanese language learners
   <br />
-  🌸 日本語を勉強しましょう！ 🌸
+  Japanese to study!
 </p>
