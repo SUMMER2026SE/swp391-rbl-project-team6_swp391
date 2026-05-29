@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, BookOpen, Layers, Eye, Star, Tag, X,
   ChevronLeft, ChevronRight, Shuffle, CheckCircle, Volume2,
-  FlipHorizontal, Zap, BrainCircuit, BookMarked, ArrowLeft, Sparkles, BookText
+  FlipHorizontal, Zap, BrainCircuit, BookMarked, ArrowLeft, Sparkles, BookText, RotateCcw
 } from "lucide-react";
 import { flashcardSetsData, type FlashcardSet, type Flashcard } from "../data/flashcards";
 
@@ -51,6 +51,14 @@ export const Route = createFileRoute("/student/flashcards")({ component: Student
 
 type StudyMode = "flashcard" | "quiz" | "random";
 
+type QuizResult = {
+  cardId: string;
+  word: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+};
+
 function levelBadge(l: string) {
   const map: Record<string, string> = {
     N5: "bg-blue-50 text-blue-500 dark:bg-blue-950/30 dark:text-blue-300 border-blue-200",
@@ -89,10 +97,28 @@ function StudentFlashcardsPage() {
   const [studyMode, setStudyMode] = useState<StudyMode>("flashcard");
   const [currentIdx, setCurrentIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [quizAnswer, setQuizAnswer] = useState<number | null>(null);
+  const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
   const [quizDone, setQuizDone] = useState(false);
+  const [isFlashcardComplete, setIsFlashcardComplete] = useState(false);
+  const [isRandomComplete, setIsRandomComplete] = useState(false);
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [isQuizComplete, setIsQuizComplete] = useState(false);
+  const [quizOptions, setQuizOptions] = useState<{ text: string; correct: boolean; wrong: boolean; selected: boolean }[]>([]);
+  const [reviewCardIds, setReviewCardIds] = useState<string[]>([]);
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [reviewCards, setReviewCards] = useState<Flashcard[]>([]);
 
   useEffect(() => { saveProgress(progress); }, [progress]);
+
+  // Generate quiz options when moving to a new card in quiz mode
+  useEffect(() => {
+    if (studyMode === "quiz" && studySet) {
+      const card = studySet.cards[currentIdx];
+      if (card) {
+        setQuizOptions(getQuizOptions(card, studySet.cards));
+      }
+    }
+  }, [currentIdx, studyMode, studySet]);
 
   const learnedCount = (setId: string) => progress[setId]?.length ?? 0;
 
@@ -109,6 +135,14 @@ function StudentFlashcardsPage() {
     setFlipped(false);
     setQuizAnswer(null);
     setQuizDone(false);
+    setIsFlashcardComplete(false);
+    setQuizResults([]);
+    setIsQuizComplete(false);
+    setQuizOptions([]);
+    setIsRandomComplete(false);
+    setReviewCardIds([]);
+    setIsReviewMode(false);
+    setReviewCards([]);
   };
 
   const markLearned = (cardId: string) => {
@@ -129,6 +163,14 @@ function StudentFlashcardsPage() {
 
   const isLearned = (cardId: string) => progress[studySet?.id ?? ""]?.includes(cardId) ?? false;
 
+  const isReviewCard = (cardId: string) => reviewCardIds.includes(cardId);
+
+  const toggleReviewCard = (cardId: string) => {
+    setReviewCardIds(prev =>
+      prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]
+    );
+  };
+
   const shuffleCards = () => {
     if (!studySet) return;
     const shuffled = [...studySet.cards].sort(() => Math.random() - 0.5);
@@ -137,11 +179,29 @@ function StudentFlashcardsPage() {
     setFlipped(false);
     setQuizAnswer(null);
     setQuizDone(false);
+    setIsFlashcardComplete(false);
+    setQuizResults([]);
+    setIsQuizComplete(false);
+    setQuizOptions([]);
+    setIsRandomComplete(false);
   };
 
   const goNext = () => {
     if (!studySet) return;
-    setCurrentIdx(i => Math.min(i + 1, studySet.cards.length - 1));
+    const activeCards = isReviewMode ? reviewCards : studySet.cards;
+    if (studyMode === "flashcard" && currentIdx === activeCards.length - 1) {
+      setIsFlashcardComplete(true);
+      return;
+    }
+    if (studyMode === "quiz" && currentIdx === studySet.cards.length - 1) {
+      setIsQuizComplete(true);
+      return;
+    }
+    if (studyMode === "random" && currentIdx === studySet.cards.length - 1) {
+      setIsRandomComplete(true);
+      return;
+    }
+    setCurrentIdx(i => Math.min(i + 1, activeCards.length - 1));
     setFlipped(false);
     setQuizAnswer(null);
     setQuizDone(false);
@@ -152,6 +212,11 @@ function StudentFlashcardsPage() {
     setFlipped(false);
     setQuizAnswer(null);
     setQuizDone(false);
+    if (studyMode === "quiz" && currentIdx > 0) {
+      const prevCard = studySet!.cards[currentIdx - 1];
+      const existing = quizResults.find(r => r.cardId === prevCard?.id);
+      setQuizAnswer(existing?.userAnswer ?? null);
+    }
   };
 
   // Quiz: pick 3 wrong options from other cards
@@ -166,11 +231,13 @@ function StudentFlashcardsPage() {
 
   // ── STUDY VIEW ────────────────────────────────────────────────────────
   if (studySet) {
-    const currentCard = studySet.cards[currentIdx]!;
+    const activeCards = isReviewMode ? reviewCards : studySet.cards;
+    const currentCard = activeCards[currentIdx]!;
     const total = studySet.cards.length;
     const learned = learnedCount(studySet.id);
     const remaining = total - learned;
     const progressPct = total > 0 ? Math.round((learned / total) * 100) : 0;
+    const needReviewCount = studySet.cards.filter(c => !isLearned(c.id) || reviewCardIds.includes(c.id)).length;
 
     return (
       <div className="space-y-6">
@@ -225,7 +292,7 @@ function StudentFlashcardsPage() {
             { id: "random" as StudyMode, icon: Zap, label: "Random" },
           ].map(mode => (
             <button key={mode.id}
-              onClick={() => { setStudyMode(mode.id); setCurrentIdx(0); setFlipped(false); setQuizAnswer(null); setQuizDone(false); }}
+              onClick={() => { setStudyMode(mode.id); setCurrentIdx(0); setFlipped(false); setQuizAnswer(null); setQuizDone(false); setIsFlashcardComplete(false); setQuizResults([]); setIsQuizComplete(false); setQuizOptions([]); setIsRandomComplete(false); setReviewCardIds([]); setIsReviewMode(false); setReviewCards([]); }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                 studyMode === mode.id ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:text-foreground"
               }`}>
@@ -234,6 +301,155 @@ function StudentFlashcardsPage() {
           ))}
         </div>
 
+        {/* Flashcard completion screen */}
+        {studyMode === "flashcard" && isFlashcardComplete && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center gap-6 py-8"
+          >
+            <div className="w-20 h-20 rounded-full bg-gradient-hero flex items-center justify-center shadow-2xl mb-2">
+              <Sparkles className="w-10 h-10 text-white" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-2xl font-display font-black text-foreground">Study session complete</h2>
+              <p className="text-sm text-muted-foreground mt-1">Great job! You've finished this flashcard set.</p>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                <div className="font-display font-black text-2xl text-foreground">{total}</div>
+                <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Total cards</div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                <div className="font-display font-black text-2xl text-green-500">{learned}</div>
+                <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Mastered</div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                <div className="font-display font-black text-2xl text-yellow-500">{needReviewCount}</div>
+                <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Need review</div>
+              </div>
+            </div>
+
+            {/* Review need-to-practice */}
+            {needReviewCount > 0 && (
+              <button
+                onClick={() => {
+                  const cardsToReview = studySet!.cards.filter(c => !isLearned(c.id) || reviewCardIds.includes(c.id));
+                  setReviewCards(cardsToReview);
+                  setCurrentIdx(0);
+                  setFlipped(false);
+                  setIsFlashcardComplete(false);
+                  setIsReviewMode(true);
+                }}
+                className="w-full max-w-md flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-yellow-900 text-sm font-bold transition shadow-sm"
+              >
+                <Star className="w-4 h-4 fill-yellow-500" /> Review need-to-practice
+              </button>
+            )}
+
+            {/* Progress */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 w-full max-w-md shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-foreground">Completion</span>
+                <span className="text-sm font-black text-primary">{progressPct}%</span>
+              </div>
+              <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="h-full rounded-full bg-gradient-hero"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 w-full max-w-md">
+              <button
+                onClick={() => { setCurrentIdx(0); setFlipped(false); setIsFlashcardComplete(false); setIsReviewMode(false); setReviewCards([]); }}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-foreground hover:border-primary/40 transition shadow-sm"
+              >
+                <RotateCcw className="w-4 h-4" /> Review again
+              </button>
+              <button
+                onClick={() => { setStudySet(null); setStudyMode("flashcard"); setIsFlashcardComplete(false); setIsReviewMode(false); setReviewCards([]); }}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-hero text-white text-sm font-bold hover:opacity-90 transition shadow-sm"
+              >
+                <BookOpen className="w-4 h-4" /> Back to sets
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Random completion screen */}
+        {studyMode === "random" && isRandomComplete && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center gap-6 py-8"
+          >
+            <div className="w-20 h-20 rounded-full bg-gradient-hero flex items-center justify-center shadow-2xl mb-2">
+              <Zap className="w-10 h-10 text-white" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-2xl font-display font-black text-foreground">Random session complete</h2>
+              <p className="text-sm text-muted-foreground mt-1">You've reviewed all cards in random order.</p>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                <div className="font-display font-black text-2xl text-foreground">{total}</div>
+                <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Total cards</div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                <div className="font-display font-black text-2xl text-green-500">{learned}</div>
+                <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Mastered</div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                <div className="font-display font-black text-2xl text-muted-foreground">{total - learned}</div>
+                <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Remaining</div>
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 w-full max-w-md shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-foreground">Completion</span>
+                <span className="text-sm font-black text-primary">{progressPct}%</span>
+              </div>
+              <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="h-full rounded-full bg-gradient-hero"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 w-full max-w-md">
+              <button
+                onClick={() => { setCurrentIdx(0); setFlipped(false); setIsRandomComplete(false); }}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-foreground hover:border-primary/40 transition shadow-sm"
+              >
+                <RotateCcw className="w-4 h-4" /> Restart random
+              </button>
+              <button
+                onClick={() => { setStudySet(null); setStudyMode("flashcard"); setIsRandomComplete(false); }}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-hero text-white text-sm font-bold hover:opacity-90 transition shadow-sm"
+              >
+                <BookOpen className="w-4 h-4" /> Back to sets
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Card area */}
         {total === 0 ? (
           <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
@@ -241,6 +457,7 @@ function StudentFlashcardsPage() {
             <p className="font-semibold text-muted-foreground">This flashcard set has no cards yet.</p>
         </div>
         ) : studyMode === "flashcard" || studyMode === "random" ? (
+          !isFlashcardComplete && !isRandomComplete && (
           <div className="flex flex-col items-center gap-6">
             {/* Flashcard */}
             <div className="w-full max-w-lg">
@@ -262,7 +479,7 @@ function StudentFlashcardsPage() {
                         animate={{ rotateY: 0, opacity: 1 }}
                         exit={{ rotateY: -90, opacity: 0 }}
                         transition={{ duration: 0.4 }}
-                        className="rounded-3xl bg-gradient-hero p-8 text-white shadow-2xl min-h-[280px] flex flex-col justify-between"
+                        className="rounded-3xl bg-gradient-hero p-8 text-white shadow-2xl min-h-[280px] flex flex-col justify-between relative overflow-visible"
                       >
                         <div>
                           <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest mb-4">Meaning</div>
@@ -277,9 +494,20 @@ function StudentFlashcardsPage() {
                             <div className="mt-4 pt-4 border-t border-white/20">
                               <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Example</div>
                               <div className="text-sm text-white/80 italic">"{currentCard.example}"</div>
-                      </div>
-                        )}
-                      </div>
+                            </div>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleReviewCard(currentCard.id); }}
+                            title="Mark for review"
+                            className={`absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition ${
+                              isReviewCard(currentCard.id)
+                                ? "bg-yellow-400 text-yellow-900 shadow"
+                                : "bg-white/20 text-white/60 hover:bg-white/30"
+                            }`}
+                          >
+                            <Star className={`w-4 h-4 ${isReviewCard(currentCard.id) ? "fill-yellow-400" : ""}`} />
+                          </button>
+                        </div>
                         <div className="flex items-center justify-between mt-4">
                           <div className="flex gap-2">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 border border-white/30">{currentCard.level}</span>
@@ -295,7 +523,7 @@ function StudentFlashcardsPage() {
                         animate={{ rotateY: 0, opacity: 1 }}
                         exit={{ rotateY: 90, opacity: 0 }}
                         transition={{ duration: 0.4 }}
-                        className="rounded-3xl bg-white dark:bg-slate-800 border-2 border-primary/20 p-8 shadow-2xl min-h-[280px] flex flex-col justify-between"
+                        className="rounded-3xl bg-white dark:bg-slate-800 border-2 border-primary/20 p-8 shadow-2xl min-h-[280px] flex flex-col justify-between relative"
                       >
                         <div>
                           <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-4">Word</div>
@@ -304,11 +532,22 @@ function StudentFlashcardsPage() {
                             <button
                               onClick={(e) => { e.stopPropagation(); speakJapanese(currentCard.furigana || currentCard.word); }}
                               title="Play pronunciation"
-                              className="flex-shrink-0 w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shadow-sm flex-shrink-0"
+                              className="flex-shrink-0 w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shadow-sm"
                             >
                               <Volume2 className="w-4 h-4" />
                             </button>
                           </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleReviewCard(currentCard.id); }}
+                            title="Mark for review"
+                            className={`absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition ${
+                              isReviewCard(currentCard.id)
+                                ? "bg-yellow-400 text-yellow-900 shadow"
+                                : "bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30"
+                            }`}
+                          >
+                            <Star className={`w-4 h-4 ${isReviewCard(currentCard.id) ? "fill-yellow-500" : ""}`} />
+                          </button>
                           {currentCard.furigana && (
                             <div className="text-2xl text-sky-500 font-medium">{currentCard.furigana}</div>
                           )}
@@ -339,7 +578,21 @@ function StudentFlashcardsPage() {
 
               <div className="flex-1 flex items-center justify-center gap-3">
           <button
-                  onClick={() => isLearned(currentCard.id) ? unmarkLearned(currentCard.id) : markLearned(currentCard.id)}
+                  onClick={() => {
+                    const alreadyLearned = isLearned(currentCard.id);
+                    if (!alreadyLearned) markLearned(currentCard.id);
+                    setFlipped(false);
+                    const activeCards = isReviewMode ? reviewCards : studySet.cards;
+                    if (currentIdx === activeCards.length - 1) {
+                      if (studyMode === "random") {
+                        setIsRandomComplete(true);
+                      } else {
+                        setIsFlashcardComplete(true);
+                      }
+                    } else {
+                      setCurrentIdx(i => i + 1);
+                    }
+                  }}
                   className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all ${
                     isLearned(currentCard.id)
                       ? "bg-green-500 text-white shadow-lg"
@@ -351,8 +604,8 @@ function StudentFlashcardsPage() {
                 </button>
               </div>
 
-              <button onClick={goNext} disabled={currentIdx === total - 1}
-                className="w-12 h-12 rounded-2xl bg-gradient-hero text-white flex items-center justify-center hover:opacity-90 transition shadow-lg disabled:opacity-40">
+              <button onClick={goNext}
+                className="w-12 h-12 rounded-2xl bg-gradient-hero text-white flex items-center justify-center hover:opacity-90 transition shadow-lg">
                 <ChevronRight className="w-5 h-5" />
           </button>
             </div>
@@ -361,85 +614,211 @@ function StudentFlashcardsPage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
               <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black">{currentIdx + 1}</span>
               <span>/</span>
-              <span>{total}</span>
+              <span>{isReviewMode ? reviewCards.length : total}</span>
+              {isReviewMode && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 text-[10px] font-bold">review</span>
+              )}
             </div>
           </div>
-        ) : (
+        )) : (
           /* QUIZ MODE */
           <div className="flex flex-col items-center gap-6 max-w-lg mx-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentCard.id + currentIdx}
-                initial={{ opacity: 0, x: 60 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -60 }}
-                transition={{ duration: 0.3 }}
-                className="w-full"
-              >
-                {/* Quiz word */}
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 text-center shadow-sm mb-4">
-                  <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2">Word meaning</div>
-                  <div className="flex items-center gap-3 justify-center mb-1">
-                    <div className="font-display font-black text-4xl text-foreground">{currentCard.word}</div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); speakJapanese(currentCard.furigana || currentCard.word); }}
-                      title="Play pronunciation"
-                      className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shadow-sm flex-shrink-0"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
+            {!isQuizComplete ? (
+              <>
+                <div className="w-full">
+                  {/* Quiz word */}
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 text-center shadow-sm mb-4">
+                    <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2">Word meaning</div>
+                    <div className="flex items-center gap-3 justify-center mb-1">
+                      <div className="font-display font-black text-4xl text-foreground">{currentCard.word}</div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); speakJapanese(currentCard.furigana || currentCard.word); }}
+                        title="Play pronunciation"
+                        className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shadow-sm flex-shrink-0"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {currentCard.furigana && <div className="text-lg text-sky-500 font-medium">{currentCard.furigana}</div>}
                   </div>
-                  {currentCard.furigana && <div className="text-lg text-sky-500 font-medium">{currentCard.furigana}</div>}
+
+                  {/* Options */}
+                  <div className="space-y-2">
+                    {quizOptions.map((opt) => {
+                      let cls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
+                      if (quizAnswer !== null) {
+                        if (opt.correct) cls = "bg-green-50 dark:bg-green-950/30 border-green-400 text-green-700 dark:text-green-300";
+                        else if (opt.text === quizAnswer && !opt.correct) cls = "bg-red-50 dark:bg-red-950/30 border-red-400 text-red-700 dark:text-red-300";
+                      }
+                      return (
+                        <button key={opt.text} onClick={() => {
+                          if (quizAnswer === null) {
+                            setQuizAnswer(opt.text);
+                            setQuizResults(prev => {
+                              const existing = prev.findIndex(r => r.cardId === currentCard.id);
+                              const result: QuizResult = {
+                                cardId: currentCard.id,
+                                word: currentCard.word,
+                                userAnswer: opt.text,
+                                correctAnswer: currentCard.meaning,
+                                isCorrect: opt.correct,
+                              };
+                              if (existing >= 0) {
+                                const updated = [...prev];
+                                updated[existing] = result;
+                                return updated;
+                              }
+                              return [...prev, result];
+                            });
+                          }
+                        }}
+                          className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm font-semibold ${cls}`}
+                          disabled={quizAnswer !== null}>
+                          {opt.text}
+                          {quizAnswer !== null && opt.correct && (
+                            <CheckCircle className="w-4 h-4 inline ml-2 text-green-500" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Feedback - fixed height to prevent nav from jumping */}
+                  <div className="min-h-[72px] mt-4">
+                    {quizAnswer !== null && (() => {
+                      const currentResult = quizResults.find(r => r.cardId === currentCard.id);
+                      return (
+                        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                          className={`p-4 rounded-2xl text-center font-bold text-sm ${
+                            currentResult?.isCorrect
+                              ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-300 border border-green-300"
+                              : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 border border-red-300"
+                          }`}>
+                          {currentResult?.isCorrect ? "✓ Correct!" : "✗ Incorrect. Correct answer: " + currentCard.meaning}
+                        </motion.div>
+                      );
+                    })()}
+                  </div>
                 </div>
 
-                {/* Options */}
-                <div className="space-y-2">
-                  {getQuizOptions(currentCard, studySet.cards).map((opt, i) => {
-                    let cls = "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700";
-                    if (quizAnswer !== null) {
-                      if (opt.correct) cls = "bg-green-50 dark:bg-green-950/30 border-green-400 text-green-700 dark:text-green-300";
-                      else if (i === quizAnswer && !opt.correct) cls = "bg-red-50 dark:bg-red-950/30 border-red-400 text-red-700 dark:text-red-300";
-                    }
-                    return (
-                      <button key={i} onClick={() => { if (quizAnswer === null) setQuizAnswer(i); }}
-                        className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm font-semibold ${cls}`}
-                        disabled={quizAnswer !== null}>
-                        {opt.text}
-                        {quizAnswer !== null && opt.correct && (
-                          <CheckCircle className="w-4 h-4 inline ml-2 text-green-500" />
-                        )}
-            </button>
-                    );
-                  })}
-        </div>
+                {/* Quiz nav - OUTSIDE card content, always visible */}
+                <div className="flex items-center gap-4 w-full">
+                  <button onClick={goPrev} disabled={currentIdx === 0}
+                    className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:border-primary/40 transition disabled:opacity-30 shadow">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex-1 flex items-center justify-center gap-2 text-sm text-muted-foreground font-semibold">
+                    <span>{currentIdx + 1} / {total}</span>
+                  </div>
+                  <button onClick={goNext}
+                    className="w-12 h-12 rounded-2xl bg-gradient-hero text-white flex items-center justify-center hover:opacity-90 transition shadow-lg">
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="w-full"
+              >
+                <div className="flex flex-col items-center gap-5">
+                  <div className="w-16 h-16 rounded-full bg-gradient-hero flex items-center justify-center shadow-2xl">
+                    <BrainCircuit className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-center">
+                    <h2 className="text-2xl font-display font-black text-foreground">Quiz complete</h2>
+                    <p className="text-sm text-muted-foreground mt-1">You finished all questions!</p>
+                  </div>
+                </div>
 
-                {quizAnswer !== null && (
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className={`mt-4 p-4 rounded-2xl text-center font-bold text-sm ${
-                      getQuizOptions(currentCard, studySet.cards)[quizAnswer].correct
-                        ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-300 border border-green-300"
-                        : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 border border-red-300"
-                    }`}>
-                    {getQuizOptions(currentCard, studySet.cards)[quizAnswer].correct ? "✓ Correct!" : "✗ Incorrect. Correct answer: " + currentCard.meaning}
-                  </motion.div>
+                {/* Score cards */}
+                <div className="grid grid-cols-3 gap-3 w-full mt-2">
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                    <div className="font-display font-black text-2xl text-foreground">{total}</div>
+                    <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Total</div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                    <div className="font-display font-black text-2xl text-green-500">{quizResults.filter(r => r.isCorrect).length}</div>
+                    <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Correct</div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 text-center shadow-sm">
+                    <div className="font-display font-black text-2xl text-red-500">{quizResults.filter(r => !r.isCorrect).length}</div>
+                    <div className="text-[11px] text-muted-foreground font-semibold mt-0.5">Incorrect</div>
+                  </div>
+                </div>
+
+                {/* Accuracy */}
+                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 w-full shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-foreground">Accuracy</span>
+                    <span className="text-sm font-black text-primary">
+                      {total > 0 ? Math.round((quizResults.filter(r => r.isCorrect).length / total) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${total > 0 ? (quizResults.filter(r => r.isCorrect).length / total) * 100 : 0}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className="h-full rounded-full bg-gradient-hero"
+                    />
+                  </div>
+                </div>
+
+                {/* Review list */}
+                {quizResults.length > 0 && (
+                  <div className="w-full space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {quizResults.map((r) => (
+                      <div key={r.cardId}
+                        className={`rounded-xl p-3 border ${
+                          r.isCorrect
+                            ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                            : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {r.isCorrect ? (
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            ) : (
+                              <X className="w-4 h-4 text-red-500 flex-shrink-0" />
+                            )}
+                            <div>
+                              <div className="font-bold text-sm text-foreground">{r.word}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {r.isCorrect ? (
+                                  <span>Your answer: <span className="font-semibold">{r.userAnswer}</span></span>
+                                ) : (
+                                  <span>Your answer: <span className="font-semibold text-red-500 line-through">{r.userAnswer}</span> · Correct: <span className="font-semibold text-green-500">{r.correctAnswer}</span></span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </motion.div>
-            </AnimatePresence>
 
-            {/* Quiz nav */}
-            <div className="flex items-center gap-4 w-full">
-              <button onClick={goPrev} disabled={currentIdx === 0}
-                className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:border-primary/40 transition disabled:opacity-30 shadow">
-                <ChevronLeft className="w-5 h-5" />
-            </button>
-              <div className="flex-1 flex items-center justify-center gap-2 text-sm text-muted-foreground font-semibold">
-                <span>{currentIdx + 1} / {total}</span>
-              </div>
-              <button onClick={goNext} disabled={currentIdx === total - 1}
-                className="w-12 h-12 rounded-2xl bg-gradient-hero text-white flex items-center justify-center hover:opacity-90 transition shadow-lg disabled:opacity-40">
-                <ChevronRight className="w-5 h-5" />
-            </button>
-        </div>
+                {/* Actions */}
+                <div className="flex flex-col gap-2 w-full">
+                  <button
+                    onClick={() => { setCurrentIdx(0); setQuizAnswer(null); setQuizResults([]); setIsQuizComplete(false); setQuizOptions([]); }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-hero text-white text-sm font-bold hover:opacity-90 transition shadow-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Try again
+                  </button>
+                  <button
+                    onClick={() => { setStudySet(null); setStudyMode("flashcard"); setQuizResults([]); setIsQuizComplete(false); setQuizOptions([]); }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold text-foreground hover:border-primary/40 transition shadow-sm"
+                  >
+                    <BookOpen className="w-4 h-4" /> Back to sets
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </div>
         )}
       </div>
