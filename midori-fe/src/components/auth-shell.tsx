@@ -2,6 +2,7 @@ import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 
 export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode }) {
   return (
@@ -89,9 +90,18 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
           className="w-full max-w-md glass rounded-3xl p-8 md:p-10"
         >
           {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <Logo size={44} />
-            <span className="font-display font-extrabold text-2xl tracking-[0.12em] text-foreground">MIDORI</span>
+          <div className="flex items-center justify-between mb-6">
+            <Link to="/" className="flex items-center gap-2 group">
+              <Logo size={44} />
+              <span className="font-display font-extrabold text-2xl tracking-[0.12em] text-foreground">MIDORI</span>
+            </Link>
+            <Link to="/" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-medium">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              Back to home
+            </Link>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-extrabold font-display tracking-tight leading-tight">{title}</h1>
