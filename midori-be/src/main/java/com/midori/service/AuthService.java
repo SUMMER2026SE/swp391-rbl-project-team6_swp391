@@ -168,6 +168,24 @@ public class AuthService {
         passwordResetTokenRepository.save(tokenEntity);
     }
 
+    @Transactional
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    public void logout() {
+        // Stateless JWT - token is stored client-side.
+        // Backend just returns success. Client must delete token from storage.
+    }
+
     private EmailVerificationToken createEmailVerificationToken(User user) {
         String token = generateSecureToken();
         Instant expiresAt = Instant.now().plusSeconds(emailVerificationExpiration);

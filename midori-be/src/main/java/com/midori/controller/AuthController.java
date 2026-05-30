@@ -70,4 +70,18 @@ public class AuthController {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Password reset successful", null));
     }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(userDetails.getEmail(), request);
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        authService.logout();
+        return ResponseEntity.ok(ApiResponse.success("Logout successful. Please remove token from client storage.", null));
+    }
 }
