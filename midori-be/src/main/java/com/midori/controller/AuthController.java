@@ -1,8 +1,7 @@
 package com.midori.controller;
 
 import com.midori.common.ApiResponse;
-import com.midori.dto.request.LoginRequest;
-import com.midori.dto.request.RegisterRequest;
+import com.midori.dto.request.*;
 import com.midori.dto.response.AuthResponse;
 import com.midori.dto.response.UserResponse;
 import com.midori.security.CustomUserDetails;
@@ -27,7 +26,7 @@ public class AuthController {
         UserResponse user = authService.register(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Registration successful", user));
+                .body(ApiResponse.success("Registration successful. Please verify your email.", user));
     }
 
     @PostMapping("/login")
@@ -42,5 +41,33 @@ public class AuthController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         UserResponse user = authService.getCurrentUser(userDetails.getEmail());
         return ResponseEntity.ok(ApiResponse.success(user));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request);
+        return ResponseEntity.ok(ApiResponse.success("Email verified successfully", null));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<Void>> resendVerification(
+            @Valid @RequestBody ResendVerificationRequest request) {
+        authService.resendVerification(request);
+        return ResponseEntity.ok(ApiResponse.success("Verification email sent if account exists", null));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("If that email exists, a reset link has been sent", null));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Password reset successful", null));
     }
 }

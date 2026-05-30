@@ -26,6 +26,9 @@ app:
   jwt:
     secret: ${JWT_SECRET:your_jwt_secret_here_must_be_at_least_32_characters_long_for_hs256}
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
+  token:
+    email-verification-expiration: ${TOKEN_EMAIL_VERIFICATION_EXPIRATION:86400}
+    password-reset-expiration: ${TOKEN_PASSWORD_RESET_EXPIRATION:3600}
 
 logging:
   level:
