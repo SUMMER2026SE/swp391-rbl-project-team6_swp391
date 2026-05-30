@@ -1,9 +1,8 @@
 # ============================================================
-# MIDORI Backend Configuration
+# MIDORI Local Configuration
 # ============================================================
-# DO NOT commit this file with real secrets.
-# Copy this file to application-local.yml and fill in real values.
-# application-local.yml is already in .gitignore.
+# COPY this file to application-local.yml
+# DO NOT commit application-local.yml with real secrets
 # ============================================================
 
 spring:
@@ -11,15 +10,15 @@ spring:
     name: midori-be
 
   datasource:
-    url: ${SUPABASE_DB_URL:jdbc:postgresql://localhost:5432/midori}
-    username: ${SUPABASE_DB_USERNAME:your_username_here}
-    password: ${SUPABASE_DB_PASSWORD:your_password_here}
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USERNAME}
+    password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate
-    show-sql: false
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -32,7 +31,7 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:your_jwt_secret_here_must_be_at_least_32_characters_long_for_hs256}
+    secret: ${JWT_SECRET}
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
   token:
     email-verification-expiration: ${TOKEN_EMAIL_VERIFICATION_EXPIRATION:86400}
