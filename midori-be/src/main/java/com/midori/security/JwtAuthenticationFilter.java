@@ -32,9 +32,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
-                // TODO Phase 3: implement full JWT authentication
-                // Skeleton only — validateToken always returns false until Phase 3
-                log.debug("JWT validation skipped in Phase 2 skeleton");
+                String email = jwtTokenProvider.getEmailFromToken(jwt);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context", ex);
@@ -49,15 +56,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return bearerToken.substring(7);
         }
         return null;
-    }
-
-    private void authenticateWithUserDetails(UserDetails userDetails) {
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(null));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

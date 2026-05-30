@@ -4,7 +4,6 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -26,14 +25,7 @@ public class JwtTokenProvider {
         this.accessTokenExpiration = accessTokenExpiration;
     }
 
-    public String generateToken(Authentication authentication) {
-        // TODO Phase 3: implement token generation from Authentication
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        return generateTokenFromUserDetails(userDetails);
-    }
-
     public String generateTokenFromUserDetails(CustomUserDetails userDetails) {
-        // TODO Phase 3: implement token generation with user details
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpiration);
         return Jwts.builder()
@@ -47,28 +39,25 @@ public class JwtTokenProvider {
     }
 
     public String getEmailFromToken(String token) {
-        // TODO Phase 3: validate token and extract email
-        return Jwts.parser()
+        Claims claims = Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
+        return claims.getSubject();
     }
 
     public UUID getUserIdFromToken(String token) {
-        // TODO Phase 3: validate token and extract user ID
-        String userId = Jwts.parser()
+        Claims claims = Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .get("userId", String.class);
+                .getPayload();
+        String userId = claims.get("userId", String.class);
         return UUID.fromString(userId);
     }
 
     public boolean validateToken(String token) {
-        // TODO Phase 3: implement full token validation
         try {
             Jwts.parser()
                     .verifyWith(secretKey)
@@ -83,6 +72,8 @@ public class JwtTokenProvider {
             log.error("Unsupported JWT token");
         } catch (IllegalArgumentException ex) {
             log.error("JWT claims string is empty");
+        } catch (JwtException ex) {
+            log.error("JWT validation error: {}", ex.getMessage());
         }
         return false;
     }
