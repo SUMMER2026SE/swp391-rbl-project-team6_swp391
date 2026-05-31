@@ -1,7 +1,5 @@
 package com.midori.service;
 
-import com.midori.exception.BadRequestException;
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,9 +63,8 @@ public class EmailService {
 
             mailSender.send(message);
             log.info("[Email] Sent '{}' to {}", subject, to);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             log.error("[Email] Failed to send '{}' to {}", subject, to);
-            throw new BadRequestException("Failed to send email. Please try again later.");
         }
     }
 

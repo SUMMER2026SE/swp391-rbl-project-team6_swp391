@@ -35,6 +35,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirmPassword?: string;
+  role?: "STUDENT" | "TEACHER";
 }
 
 export interface VerifyEmailRequest {

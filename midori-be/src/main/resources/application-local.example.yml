@@ -35,6 +35,9 @@ spring:
           auth: true
           starttls:
             enable: true
+          connectiontimeout: 60000
+          timeout: 60000
+          writetimeout: 60000
 
 server:
   port: 8080

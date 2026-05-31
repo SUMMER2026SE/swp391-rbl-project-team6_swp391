@@ -178,21 +178,25 @@ export function GoogleBtn({ onSuccess, onError, disabled }: {
   }
 
   return (
-    <GoogleLogin
-      onSuccess={(response) => {
-        if (response.credential) {
-          onSuccess(response.credential);
-        }
-      }}
-      onError={() => {
-        if (onError) onError(null);
-      }}
-      useOneTap={false}
-      theme="outline"
-      size="large"
-      text="signin_with"
-      shape="rectangular"
-      logo_alignment="left"
-    />
+    <div className="w-full">
+      <div className="rounded-xl overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200">
+        <GoogleLogin
+          onSuccess={(response) => {
+            if (response.credential) {
+              onSuccess(response.credential);
+            }
+          }}
+          onError={() => {
+            if (onError) onError(null);
+          }}
+          useOneTap={false}
+          theme="outline"
+          size="large"
+          text="signin_with"
+          shape="rectangular"
+          logo_alignment="left"
+        />
+      </div>
+    </div>
   );
 }

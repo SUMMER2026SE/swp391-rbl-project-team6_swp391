@@ -49,11 +49,14 @@ public class AuthService {
             throw new BadRequestException("Email already registered");
         }
 
+        Role role = resolveRole(request.getRole());
+        UserStatus status = (role == Role.TEACHER) ? UserStatus.ACTIVE : UserStatus.ACTIVE;
+
         User user = User.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(Role.STUDENT)
-                .status(UserStatus.ACTIVE)
+                .role(role)
+                .status(status)
                 .emailVerified(false)
                 .build();
         user = userRepository.save(user);
@@ -68,6 +71,23 @@ public class AuthService {
         emailService.sendVerificationOtp(user.getEmail(), verificationToken.getToken());
 
         return toUserResponse(user);
+    }
+
+    private Role resolveRole(String roleStr) {
+        if (roleStr == null || roleStr.isBlank()) {
+            return Role.STUDENT;
+        }
+        String normalized = roleStr.toUpperCase().trim();
+        switch (normalized) {
+            case "STUDENT":
+                return Role.STUDENT;
+            case "TEACHER":
+                return Role.TEACHER;
+            case "ADMIN":
+                throw new BadRequestException("Admin registration is not allowed via public signup");
+            default:
+                throw new BadRequestException("Invalid role: " + roleStr + ". Allowed values: STUDENT, TEACHER");
+        }
     }
 
     public AuthResponse login(LoginRequest request) {
