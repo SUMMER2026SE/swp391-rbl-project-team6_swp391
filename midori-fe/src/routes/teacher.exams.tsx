@@ -424,7 +424,6 @@ function ExamsPage() {
 
   const handlePublish = useCallback(() => {
     const finalQuestions = generatedQuestions.filter(q => selectedQuestions.has(q.id));
-    console.log("Publishing exam:", { title: examTitle, level: examLevel, questions: finalQuestions });
     alert(`Exam "${examTitle}" published with ${finalQuestions.length} questions!`);
     setShowPDFGenerator(false);
     setUploadedFile(null);
@@ -435,7 +434,6 @@ function ExamsPage() {
 
   const handleSaveDraft = useCallback(() => {
     const finalQuestions = generatedQuestions.filter(q => selectedQuestions.has(q.id));
-    console.log("Saving draft:", { title: examTitle, level: examLevel, questions: finalQuestions });
     alert(`Draft saved with ${finalQuestions.length} questions!`);
   }, [examTitle, examLevel, generatedQuestions, selectedQuestions]);
 
