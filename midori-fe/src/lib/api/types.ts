@@ -58,34 +58,3 @@ export interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
 }
-
-export interface ProfileResponse {
-  id: string;
-  email: string;
-  name?: string;
-  avatarUrl?: string;
-  bio?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  address?: string;
-  nativeLanguage?: string;
-  learningGoals?: string[];
-  preferredStudyTime?: string;
-  role: Role;
-  status: UserStatus;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface UpdateProfileRequest {
-  name?: string;
-  bio?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  address?: string;
-  nativeLanguage?: string;
-  learningGoals?: string[];
-  preferredStudyTime?: string;
-}

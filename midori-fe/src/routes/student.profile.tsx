@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Award, Settings, Shield, Lock, Loader2, AlertCircle, CheckCheck,
@@ -9,62 +9,33 @@ import {
   Upload, Trash2, Camera, Sun,
 } from "lucide-react";
 import { useTheme } from "@/lib/auth";
-
-const userProfile = {
-  name: "Yuki Tanaka",
-  email: "yuki.tanaka@example.com",
-  bio: "Studying for JLPT N2 and practicing daily with Midori. Want to master conversational Japanese and pass the exam!",
-  location: "Tokyo, Japan",
-  joinedDate: "March 2024",
-  xp: 9840,
-  level: 12,
-  streak: 32,
-  target: "N2",
-  avatar: "Y",
-  stats: {
-    studyHours: 284,
-    wordsLearned: 1847,
-    grammarCompleted: 89,
-    listeningAccuracy: 78,
-  },
-  recentActivity: [
-    { id: 1, title: "JLPT N3 Grammar — めながら", time: "2h ago", xp: 120, icon: "📖", color: "text-indigo-500" },
-    { id: 2, title: "N3 Vocab — 30 cards", time: "4h ago", xp: 80, icon: "📚", color: "text-blue-500" },
-    { id: 3, title: "Listening — Business Japanese", time: "6h ago", xp: 90, icon: "🎧", color: "text-purple-500" },
-    { id: 4, title: "Shadowing — Dialogue 12", time: "Yesterday", xp: 150, icon: "🎤", color: "text-pink-500" },
-  ],
-  achievements: [
-    { id: 1, name: "First Steps", progress: 100, earned: true },
-    { id: 2, name: "Vocab Voyager", progress: 100, earned: true },
-    { id: 3, name: "Grammar Guardian", progress: 89, earned: true },
-    { id: 4, name: "Night Scholar", progress: 100, earned: true },
-    { id: 5, name: "100-Day Streak", progress: 32, earned: false },
-    { id: 6, name: "N1 Ninja", progress: 0, earned: false },
-  ],
-};
+import { profileApi, type ProfileResponse } from "@/lib/api/profile";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/student/profile")({
   component: ProfilePage,
 });
 
-// ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inputBase = "w-full px-3 py-1.5 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-400/40 transition-colors duration-200 bg-white dark:bg-slate-900/80 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400";
-
-// ─── Main Component ──────────────────────────────────────────────────────────
 
 function ProfilePage() {
   const [activeTab, setActiveTab] = useState<"overview" | "achievements" | "settings">("overview");
   const [settingsSection, setSettingsSection] = useState<"account" | "appearance" | "security">("account");
 
-  // Global theme
   const { theme, toggleTheme } = useTheme();
+
+  // Profile data from backend
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Edit state
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(userProfile.name);
-  const [editBio, setEditBio] = useState(userProfile.bio);
-  const [editLocation, setEditLocation] = useState(userProfile.location);
-  const [editTarget, setEditTarget] = useState(userProfile.target);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -81,7 +52,68 @@ function ProfilePage() {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
 
-  const xpProgress = Math.round((userProfile.xp % 1000) / 10);
+  // Static mock data for gamification elements (not available in backend profile)
+  const mockStats = {
+    studyHours: 0,
+    wordsLearned: 0,
+    grammarCompleted: 0,
+    listeningAccuracy: 0,
+  };
+  const mockAchievements = [
+    { id: 1, name: "First Steps", progress: 100, earned: true },
+    { id: 2, name: "Vocab Voyager", progress: 100, earned: true },
+    { id: 3, name: "Grammar Guardian", progress: 89, earned: true },
+    { id: 4, name: "Night Scholar", progress: 100, earned: true },
+    { id: 5, name: "100-Day Streak", progress: 32, earned: false },
+    { id: 6, name: "N1 Ninja", progress: 0, earned: false },
+  ];
+
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await profileApi.getMyProfile();
+      setProfile(res);
+      setEditName(res.displayName || "");
+      setEditBio(res.bio || "");
+      setEditLocation(res.location || "");
+      if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Failed to load profile.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const handleSave = async () => {
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const updated = await profileApi.updateMyProfile({
+        displayName: editName || undefined,
+        bio: editBio || undefined,
+        location: editLocation || undefined,
+      });
+      setProfile(updated);
+      setEditing(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSaveError(err.message);
+      } else {
+        setSaveError("Failed to save profile.");
+      }
+    }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,8 +126,6 @@ function ProfilePage() {
       reader.readAsDataURL(file);
     }
   };
-
-  const handleSave = () => setEditing(false);
 
   const getStrength = (pw: string) => {
     if (!pw) return null;
@@ -116,16 +146,46 @@ function ProfilePage() {
     { label: "One special character", met: /[^A-Za-z0-9]/.test(newPw) },
   ];
 
-  const displayName = editing ? editName : userProfile.name;
-  const displayBio = editing ? editBio : userProfile.bio;
-  const displayLocation = editing ? editLocation : userProfile.location;
-  const displayTarget = editing ? editTarget : userProfile.target;
+  const displayName = editing ? editName : (profile?.displayName || "");
+  const displayBio = editing ? editBio : (profile?.bio || "");
+  const displayLocation = editing ? editLocation : (profile?.location || "");
+
+  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
   const languages = [
     { code: "en", label: "English", flag: "🇺🇸" },
     { code: "vi", label: "Tiếng Việt", flag: "🇻🇳" },
     { code: "ja", label: "日本語", flag: "🇯🇵" },
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
+          <p className="text-sm text-slate-400">Loading profile…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3 max-w-sm">
+          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-500/15 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6 text-red-500" />
+          </div>
+          <p className="text-sm text-red-500 font-medium">{loadError}</p>
+          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-bold hover:opacity-90 transition">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -148,7 +208,7 @@ function ProfilePage() {
           <div className="absolute top-3 right-3 flex gap-2">
             {editing ? (
               <>
-                <button onClick={() => setEditing(false)}
+                <button onClick={() => { setEditing(false); setEditName(profile?.displayName || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); }}
                   className="px-2.5 py-1 rounded-lg bg-white/20 text-white/80 text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition">
                   Cancel
                 </button>
@@ -181,14 +241,11 @@ function ProfilePage() {
                 ) : (
                   <motion.div whileHover={{ scale: 1.05 }}
                     className="w-20 h-20 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl font-black shadow-lg border-4 border-white dark:border-white/20 relative">
-                    {userProfile.avatar}
+                    {avatarLetter}
                     <motion.div animate={{ opacity: [0.15, 0.35, 0.15] }} transition={{ repeat: Infinity, duration: 2.5 }}
                       className="absolute inset-0 rounded-xl bg-white/20" />
                   </motion.div>
                 )}
-                <div className="absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white text-[10px] font-black shadow-md border-2 border-white dark:border-white/20 z-10">
-                  Lv.{userProfile.level}
-                </div>
                 <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-white/20 z-10" />
                 <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-20">
                   <button onClick={() => setShowAvatarMenu(!showAvatarMenu)}
@@ -200,17 +257,7 @@ function ProfilePage() {
                       <motion.div initial={{ opacity: 0, y: -6, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.95 }} transition={{ duration: 0.15 }}
                         className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden z-50">
-                        <label className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 cursor-pointer transition">
-                          <Upload className="w-3.5 h-3.5 text-indigo-500" />
-                          <span>Upload Avatar</span>
-                          <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                        </label>
-                        {avatarPreview && (
-                          <button onClick={() => { setShowRemoveConfirm(true); setShowAvatarMenu(false); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition">
-                            <Trash2 className="w-3.5 h-3.5" /> Remove Avatar
-                          </button>
-                        )}
+                        <p className="px-3 py-2 text-[10px] text-muted-foreground">Avatar upload coming soon</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -219,46 +266,58 @@ function ProfilePage() {
 
               {/* Info */}
               <div className="flex-1 w-full text-center sm:text-left">
+                {saveSuccess && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-1 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50/80 dark:bg-green-500/15 border border-green-200/80 dark:border-green-500/30 text-green-600 dark:text-green-400 text-xs font-bold">
+                    <CheckCheck className="w-3.5 h-3.5" /> Profile saved!
+                  </motion.div>
+                )}
+                {saveError && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-1 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50/80 dark:bg-red-500/15 border border-red-200/80 dark:border-red-500/30 text-red-500 dark:text-red-400 text-xs font-bold">
+                    <AlertCircle className="w-3.5 h-3.5" /> {saveError}
+                  </motion.div>
+                )}
+
                 {editing ? (
                   <input value={editName} onChange={e => setEditName(e.target.value)}
                     className="text-xl font-black bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1 outline-none focus:ring-2 focus:ring-indigo-400/50 w-full text-center sm:text-left mb-1.5" />
                 ) : (
-                  <h2 className="text-xl font-black text-slate-900 dark:text-white">{displayName}</h2>
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white">{displayName || "—"}</h2>
                 )}
 
-                {/* Metadata row */}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 mt-0.5">
-                  <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
-                    <MapPin className="w-3 h-3" /> {displayLocation}
-                  </span>
-                  <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
-                    <Calendar className="w-3 h-3" /> {userProfile.joinedDate}
-                  </span>
-                  <span className="flex items-center gap-1 text-[11px] text-indigo-500 dark:text-indigo-400 font-semibold">
-                    <Target className="w-3 h-3" /> JLPT {displayTarget}
-                  </span>
+                  {displayLocation && (
+                    <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+                      <MapPin className="w-3 h-3" /> {displayLocation}
+                    </span>
+                  )}
+                  {profile?.createdAt && (
+                    <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+                      <Calendar className="w-3 h-3" /> Joined {new Date(profile.createdAt).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
 
-                {/* Bio */}
                 {editing ? (
                   <textarea value={editBio} onChange={e => setEditBio(e.target.value)} rows={2}
-                    className="mt-2 w-full text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-400/50 resize-none text-center sm:text-left" />
-                ) : (
+                    className="mt-2 w-full text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-400/50 resize-none text-center sm:text-left" placeholder="Tell us about yourself..." />
+                ) : displayBio ? (
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 max-w-md leading-relaxed line-clamp-2">
                     {displayBio}
+                  </p>
+                ) : editing ? null : (
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 max-w-md italic">
+                    No bio yet.{" "}
+                    <button onClick={() => setEditing(true)} className="text-indigo-500 hover:underline">Add one</button>
                   </p>
                 )}
 
                 {editing && (
                   <div className="mt-1.5">
-                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1 block">JLPT Target</label>
-                    <div className="relative max-w-[130px]">
-                      <select value={editTarget} onChange={e => setEditTarget(e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-400/50 appearance-none pr-5">
-                        {["N5","N4","N3","N2","N1"].map(l => <option key={l}>{l}</option>)}
-                      </select>
-                      <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1 block">Location</label>
+                    <input value={editLocation} onChange={e => setEditLocation(e.target.value)}
+                      className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400/50 w-full sm:max-w-[200px]" placeholder="e.g. Tokyo, Japan" />
                   </div>
                 )}
               </div>
@@ -266,40 +325,32 @@ function ProfilePage() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats placeholder */}
         <div className="px-5 pb-5 grid grid-cols-3 gap-2 -mt-0.5">
           <div className="text-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100/80 dark:border-white/5 transition-colors duration-300">
-            <div className="font-black text-lg text-indigo-500 dark:text-indigo-400">{userProfile.xp.toLocaleString()}</div>
+            <div className="font-black text-lg text-indigo-500 dark:text-indigo-400">0</div>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Total XP</div>
             <div className="mt-1.5 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${xpProgress}%` }} transition={{ delay: 0.3, duration: 0.8 }}
-                className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-pink-400" />
+              <div className="h-full w-0 rounded-full bg-gradient-to-r from-indigo-400 to-pink-400" />
             </div>
-            <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">{xpProgress}% next Lv</div>
           </div>
           <div className="text-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100/80 dark:border-white/5 transition-colors duration-300">
-            <div className="font-black text-lg text-orange-500">{userProfile.streak}d</div>
+            <div className="font-black text-lg text-orange-500">0d</div>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Day Streak</div>
             <div className="flex justify-center gap-0.5 mt-1.5">
               {[...Array(7)].map((_, i) => (
-                <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < 3 ? "bg-orange-400" : "bg-slate-200 dark:bg-slate-700"}`} />
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700" />
               ))}
             </div>
-            <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">Keep it up!</div>
           </div>
           <div className="text-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100/80 dark:border-white/5 transition-colors duration-300">
-            <div className="font-black text-lg text-pink-500">{userProfile.target}</div>
+            <div className="font-black text-lg text-pink-500">—</div>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">JLPT Target</div>
             <div className="flex justify-center gap-1 mt-1.5">
-              {["N5","N4","N3","N2","N1"].map((l, i) => {
-                const targetIdx = ["N5","N4","N3","N2","N1"].indexOf(userProfile.target);
-                return (
-                  <div key={l}
-                    className={`w-4 h-1.5 rounded-sm ${i <= targetIdx ? "bg-gradient-to-r from-indigo-400 to-pink-400" : "bg-slate-200 dark:bg-slate-700"}`} />
-                );
-              })}
+              {["N5","N4","N3","N2","N1"].map((l, i) => (
+                <div key={l} className="w-4 h-1.5 rounded-sm bg-slate-200 dark:bg-slate-700" />
+              ))}
             </div>
-            <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">Progress map</div>
           </div>
         </div>
       </motion.div>
@@ -344,14 +395,12 @@ function ProfilePage() {
       {/* ─── OVERVIEW ─── */}
       {activeTab === "overview" && (
         <div className="space-y-3">
-
-          {/* Stats */}
           <div className="grid grid-cols-4 gap-2">
             {[
-              { label: "Study Hours", value: userProfile.stats.studyHours, color: "text-orange-500" },
-              { label: "Words", value: userProfile.stats.wordsLearned.toLocaleString(), color: "text-blue-500" },
-              { label: "Grammar", value: userProfile.stats.grammarCompleted, color: "text-green-500" },
-              { label: "Accuracy", value: `${userProfile.stats.listeningAccuracy}%`, color: "text-purple-500" },
+              { label: "Study Hours", value: mockStats.studyHours, color: "text-orange-500" },
+              { label: "Words", value: mockStats.wordsLearned.toLocaleString(), color: "text-blue-500" },
+              { label: "Grammar", value: mockStats.grammarCompleted, color: "text-green-500" },
+              { label: "Accuracy", value: `${mockStats.listeningAccuracy}%`, color: "text-purple-500" },
             ].map(s => (
               <div key={s.label}
                 className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-white/60 dark:border-white/10 rounded-xl p-2.5 text-center transition-colors duration-300">
@@ -366,7 +415,7 @@ function ProfilePage() {
       {/* ─── ACHIEVEMENTS ─── */}
       {activeTab === "achievements" && (
         <div className="grid grid-cols-3 gap-2">
-          {userProfile.achievements.map((ach, i) => (
+          {mockAchievements.map((ach, i) => (
             <motion.div key={ach.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.04 }}
               className={`rounded-xl p-3 transition-all duration-200 hover:scale-[1.02] ${
@@ -427,7 +476,7 @@ function ProfilePage() {
           </div>
 
           {/* ── Account ── */}
-          {settingsSection === "account" && (
+          {settingsSection === "account" && profile && (
             <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-white/60 dark:border-white/10 rounded-xl p-4 transition-colors duration-300">
               <div className="flex items-center gap-2 mb-3">
                 <User className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -436,24 +485,40 @@ function ProfilePage() {
               <div className="space-y-2">
                 <div>
                   <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Full Name</label>
-                  <input type="text" defaultValue={userProfile.name} className={inputBase} readOnly />
+                  <input type="text" value={editName}
+                    onChange={e => { setEditName(e.target.value); if (!editing) setEditing(true); }}
+                    className={inputBase} />
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Email</label>
-                  <input type="text" defaultValue={userProfile.email} className={inputBase} readOnly />
+                  <input type="text" value={profile.email || ""} className={inputBase} readOnly />
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Location</label>
-                  <input type="text" defaultValue={userProfile.location} className={inputBase} />
+                  <input type="text" value={editLocation}
+                    onChange={e => { setEditLocation(e.target.value); if (!editing) setEditing(true); }}
+                    className={inputBase} placeholder="e.g. Tokyo, Japan" />
                 </div>
-                {/* Bio */}
                 <div>
                   <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Bio</label>
-                  <textarea rows={2} defaultValue={userProfile.bio}
-                    className={`${inputBase} resize-none leading-relaxed`} />
+                  <textarea rows={2} value={editBio}
+                    onChange={e => { setEditBio(e.target.value); if (!editing) setEditing(true); }}
+                    className={`${inputBase} resize-none leading-relaxed`} placeholder="Tell us about yourself..." />
                   <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">Max 2–3 sentences about your Japanese learning goals.</p>
                 </div>
               </div>
+              {editing && (
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => { setEditing(false); setEditName(profile.displayName || ""); setEditBio(profile.bio || ""); setEditLocation(profile.location || ""); }}
+                    className="flex-1 py-2 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                    Cancel
+                  </button>
+                  <button onClick={handleSave}
+                    className="flex-1 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 text-white text-xs font-bold shadow-md shadow-indigo-500/20 hover:opacity-90 transition flex items-center justify-center gap-1.5">
+                    <Save className="w-3 h-3" /> Save Changes
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -461,8 +526,6 @@ function ProfilePage() {
           {settingsSection === "appearance" && (
             <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-white/60 dark:border-white/10 rounded-xl p-4 transition-colors duration-300">
               <div className="grid sm:grid-cols-2 gap-4">
-
-                {/* Theme */}
                 <div>
                   <div className="flex items-center gap-2 mb-2.5">
                     {theme === "dark"
@@ -489,8 +552,6 @@ function ProfilePage() {
                     ))}
                   </div>
                 </div>
-
-                {/* Language */}
                 <div>
                   <div className="flex items-center gap-2 mb-2.5">
                     <Globe className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -513,7 +574,6 @@ function ProfilePage() {
           {/* ── Security ── */}
           {settingsSection === "security" && (
             <div>
-              {/* Change Password */}
               <div className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-white/60 dark:border-white/10 rounded-xl p-4 transition-colors duration-300">
                 <div className="flex items-center gap-2 mb-2.5">
                   <Lock className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -537,7 +597,7 @@ function ProfilePage() {
                       <input type={showPw ? "text" : "password"} value={currentPw} onChange={e => setCurrentPw(e.target.value)}
                         placeholder="••••••••"
                         className={`${inputBase} pr-9`} />
-                      <button onClick={() => setShowPw(v => !v)}
+                      <button onClick={() => setShowPw(v => !v)} type="button"
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition">
                         {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>

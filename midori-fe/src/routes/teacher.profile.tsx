@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Edit3, BookOpen, GraduationCap, Award, Upload, Clock,
   FileCheck, Eye, Calendar, MapPin, Globe, Mail, Edit, Save, X,
   ChevronRight, Users, TrendingUp, CheckCircle, Camera, Trash2,
-  Image as ImageIcon, FileImage, Plus
+  Image as ImageIcon, FileImage, Plus, Loader2, AlertCircle, CheckCheck
 } from "lucide-react";
+import { profileApi, type ProfileResponse } from "@/lib/api/profile";
+import { ApiError } from "@/lib/api/client";
 
 interface Certificate {
   id: string;
@@ -581,9 +583,16 @@ function CertCard({
 
 // --- Main Page ---
 function TeacherProfilePage() {
+  // Profile data from backend
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(teacherProfile.name);
-  const [editBio, setEditBio] = useState(teacherProfile.bio);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
@@ -593,6 +602,49 @@ function TeacherProfilePage() {
   const [showRemoveCertConfirm, setShowRemoveCertConfirm] = useState<string | null>(null);
 
   const hasCustomAvatar = avatarPreview !== null;
+
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await profileApi.getMyProfile();
+      setProfile(res);
+      setEditName(res.displayName || "");
+      setEditBio(res.bio || "");
+      if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Failed to load profile.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  const handleSave = async () => {
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const updated = await profileApi.updateMyProfile({
+        displayName: editName || undefined,
+        bio: editBio || undefined,
+      });
+      setProfile(updated);
+      setEditing(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSaveError(err.message);
+      } else {
+        setSaveError("Failed to save profile.");
+      }
+    }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -631,6 +683,37 @@ function TeacherProfilePage() {
     setShowRemoveCertConfirm(null);
   };
 
+  const avatarLetter = (editName || profile?.displayName || "?").charAt(0).toUpperCase();
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-sm text-muted-foreground">Loading profile…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3 max-w-sm">
+          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-500/15 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6 text-red-500" />
+          </div>
+          <p className="text-sm text-red-500 font-medium">{loadError}</p>
+          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Profile Header */}
@@ -652,7 +735,7 @@ function TeacherProfilePage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => setEditing(false)}
+                  onClick={handleSave}
                   className="px-3 py-1.5 rounded-lg bg-white text-purple-600 text-xs font-bold backdrop-blur-sm shadow hover:bg-white/90 transition"
                 >
                   Save Changes
@@ -688,13 +771,13 @@ function TeacherProfilePage() {
                     whileHover={{ scale: 1.05 }}
                     className="w-24 h-24 rounded-2xl bg-gradient-hero flex items-center justify-center text-white text-4xl font-black shadow-xl border-4 border-white dark:border-slate-800"
                   >
-                    {teacherProfile.avatar}
+                    {avatarLetter}
                   </motion.div>
                 )}
 
                 {/* Level badge */}
                 <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-gradient-hero text-white text-[10px] font-black shadow-lg border-2 border-white dark:border-slate-800 z-10">
-                  Lv.{teacherProfile.level}
+                  Teacher
                 </div>
 
                 {/* Avatar Action Button */}
@@ -753,19 +836,20 @@ function TeacherProfilePage() {
                   />
                 ) : (
                   <h2 className="text-2xl font-display font-black text-slate-900 dark:text-white">
-                    {teacherProfile.name}
+                    {profile?.displayName || "—"}
                   </h2>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
-                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <MapPin className="w-3 h-3" /> {teacherProfile.location}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <Globe className="w-3 h-3" /> {teacherProfile.website}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <Calendar className="w-3 h-3" /> {teacherProfile.joinDate}
-                  </span>
+                  {profile?.location && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <MapPin className="w-3 h-3" /> {profile.location}
+                    </span>
+                  )}
+                  {profile?.createdAt && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <Calendar className="w-3 h-3" /> Joined {new Date(profile.createdAt).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
                 {editing ? (
                   <textarea
@@ -773,12 +857,13 @@ function TeacherProfilePage() {
                     onChange={e => setEditBio(e.target.value)}
                     rows={2}
                     className="mt-2 w-full max-w-lg text-sm bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40 resize-none text-center sm:text-left"
+                    placeholder="Tell us about yourself..."
                   />
-                ) : (
+                ) : profile?.bio ? (
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-lg leading-relaxed">
-                    {teacherProfile.bio}
+                    {profile.bio}
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
@@ -787,15 +872,15 @@ function TeacherProfilePage() {
         {/* Stats */}
         <div className="px-6 pb-6 grid grid-cols-3 gap-3">
           <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-primary">{teacherProfile.students.toLocaleString()}</div>
+            <div className="font-display font-black text-xl text-primary">—</div>
             <div className="text-[10px] text-muted-foreground">Students taught</div>
           </div>
           <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-purple-500">{teacherProfile.lessons}</div>
+            <div className="font-display font-black text-xl text-purple-500">—</div>
             <div className="text-[10px] text-muted-foreground">Lessons created</div>
           </div>
           <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-green-500">{teacherProfile.experience}</div>
+            <div className="font-display font-black text-xl text-green-500">—</div>
             <div className="text-[10px] text-muted-foreground">Experience</div>
           </div>
         </div>

@@ -1,28 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   User, Edit, Save, Shield, Clock,
   CheckCircle, Mail, Calendar, MapPin,
-  Eye, EyeOff, Key, AlertTriangle
+  Eye, EyeOff, Key, AlertTriangle, Loader2, CheckCheck
 } from "lucide-react";
-
-const adminProfile = {
-  name: "Midori Admin",
-  email: "admin@midori.app",
-  bio: "Platform administrator managing Midori's Japanese learning ecosystem. Overseeing content moderation, teacher approvals, analytics, and system operations.",
-  location: "Kyoto, Japan",
-  avatar: "A",
-  joinDate: "January 2023",
-  permissions: [
-    { label: "User Management", granted: true },
-    { label: "Teacher Approval", granted: true },
-    { label: "Content Moderation", granted: true },
-    { label: "System Settings", granted: true },
-    { label: "Analytics Access", granted: true },
-    { label: "API Key Management", granted: true },
-  ],
-};
+import { profileApi, type ProfileResponse } from "@/lib/api/profile";
+import { ApiError } from "@/lib/api/client";
 
 function ProfileCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -56,12 +41,102 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 export const Route = createFileRoute("/admin/profile")({ component: AdminProfilePage });
 
 function AdminProfilePage() {
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(adminProfile.name);
-  const [editBio, setEditBio] = useState(adminProfile.bio);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await profileApi.getMyProfile();
+      setProfile(res);
+      setEditName(res.displayName || "");
+      setEditBio(res.bio || "");
+      setEditLocation(res.location || "");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Failed to load profile.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const handleSave = async () => {
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const updated = await profileApi.updateMyProfile({
+        displayName: editName || undefined,
+        bio: editBio || undefined,
+        location: editLocation || undefined,
+      });
+      setProfile(updated);
+      setEditing(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSaveError(err.message);
+      } else {
+        setSaveError("Failed to save profile.");
+      }
+    }
+  };
+
+  const avatarLetter = (editName || profile?.displayName || "?").charAt(0).toUpperCase();
+
+  const permissions = [
+    { label: "User Management", granted: true },
+    { label: "Teacher Approval", granted: true },
+    { label: "Content Moderation", granted: true },
+    { label: "System Settings", granted: true },
+    { label: "Analytics Access", granted: true },
+    { label: "API Key Management", granted: true },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-sm text-muted-foreground">Loading profile…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3 max-w-sm">
+          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-6 h-6 text-destructive" />
+          </div>
+          <p className="text-sm text-destructive font-medium">{loadError}</p>
+          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -76,15 +151,18 @@ function AdminProfilePage() {
           <div className="absolute top-4 right-6 flex gap-2">
             {editing ? (
               <>
-                <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition">
+                <button onClick={() => { setEditing(false); setEditName(profile?.displayName || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); }}
+                  className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition">
                   Cancel
                 </button>
-                <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition flex items-center gap-1">
+                <button onClick={handleSave}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition flex items-center gap-1">
                   <Save className="w-3 h-3" /> Save Changes
                 </button>
               </>
             ) : (
-              <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition flex items-center gap-1">
+              <button onClick={() => setEditing(true)}
+                className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition flex items-center gap-1">
                 <Edit className="w-3 h-3" /> Edit Profile
               </button>
             )}
@@ -96,13 +174,25 @@ function AdminProfilePage() {
             <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4">
               <div className="relative flex-shrink-0">
                 <div className="w-24 h-24 rounded-2xl glass-modal flex items-center justify-center text-primary-col text-4xl font-black shadow-xl border border-glass-border">
-                  {adminProfile.avatar}
+                  {avatarLetter}
                 </div>
                 <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full glass-surface text-secondary-col text-[10px] font-black shadow-lg border border-glass-border flex items-center gap-0.5">
                   <Shield className="w-3 h-3" /> Admin
                 </div>
               </div>
               <div className="flex-1 w-full text-center sm:text-left">
+                {saveSuccess && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-bold">
+                    <CheckCheck className="w-3.5 h-3.5" /> Profile saved!
+                  </motion.div>
+                )}
+                {saveError && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold">
+                    <AlertTriangle className="w-3.5 h-3.5" /> {saveError}
+                  </motion.div>
+                )}
                 {editing ? (
                   <input
                     value={editName}
@@ -110,29 +200,34 @@ function AdminProfilePage() {
                     className="text-2xl font-display font-black bg-transparent border-b-2 border-primary outline-none w-full text-center sm:text-left mb-1 text-primary-col"
                   />
                 ) : (
-                  <h1 className="text-2xl font-display font-black text-primary-col">{adminProfile.name}</h1>
+                  <h1 className="text-2xl font-display font-black text-primary-col">{profile?.displayName || "—"}</h1>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full glass-surface text-secondary-col text-xs font-bold border border-glass-border">
                     <Shield className="w-3 h-3" /> Administrator
                   </span>
-                  <span className="text-xs text-muted-col flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> {adminProfile.location}
-                  </span>
-                  <span className="text-xs text-muted-col flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> {adminProfile.joinDate}
-                  </span>
+                  {profile?.location && (
+                    <span className="text-xs text-muted-col flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {profile.location}
+                    </span>
+                  )}
+                  {profile?.createdAt && (
+                    <span className="text-xs text-muted-col flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> {new Date(profile.createdAt).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
                 {editing ? (
                   <textarea
                     value={editBio}
                     onChange={e => setEditBio(e.target.value)}
                     rows={2}
+                    placeholder="Tell us about yourself..."
                     className="mt-2 w-full max-w-lg text-sm bg-transparent border border-glass-border rounded-xl p-3 outline-none focus:border-primary/50 resize-none text-center sm:text-left text-secondary-col"
                   />
-                ) : (
-                  <p className="text-sm text-secondary-col mt-1.5 max-w-lg leading-relaxed">{adminProfile.bio}</p>
-                )}
+                ) : profile?.bio ? (
+                  <p className="text-sm text-secondary-col mt-1.5 max-w-lg leading-relaxed">{profile.bio}</p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -149,10 +244,10 @@ function AdminProfilePage() {
             </h3>
             <div className="space-y-3">
               {[
-                { icon: Mail, label: "Email", value: adminProfile.email },
+                { icon: Mail, label: "Email", value: profile?.email || "—" },
                 { icon: Shield, label: "Role", value: "Administrator" },
-                { icon: MapPin, label: "Location", value: adminProfile.location },
-                { icon: Calendar, label: "Member Since", value: adminProfile.joinDate },
+                { icon: MapPin, label: "Location", value: profile?.location || "—" },
+                { icon: Calendar, label: "Member Since", value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "—" },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex items-center gap-3 p-3 rounded-xl glass-surface">
                   <Icon className="w-4 h-4 text-secondary-col flex-shrink-0" />
@@ -170,7 +265,7 @@ function AdminProfilePage() {
               <Shield className="w-4 h-4 text-[var(--status-pending)]" /> Permissions
             </h3>
             <div className="space-y-2">
-              {adminProfile.permissions.map(perm => (
+              {permissions.map(perm => (
                 <div key={perm.label} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
                   <span className="text-sm text-secondary-col">{perm.label}</span>
                   {perm.granted ? (
