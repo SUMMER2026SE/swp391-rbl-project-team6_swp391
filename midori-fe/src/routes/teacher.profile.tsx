@@ -5,7 +5,8 @@ import {
   User, Edit3, BookOpen, GraduationCap, Award, Upload, Clock,
   FileCheck, Eye, Calendar, MapPin, Globe, Mail, Edit, Save, X,
   ChevronRight, Users, TrendingUp, CheckCircle, Camera, Trash2,
-  Image as ImageIcon, FileImage, Plus, Loader2, AlertCircle, CheckCheck
+  Image as ImageIcon, FileImage, Plus, Loader2, AlertCircle, CheckCheck,
+  Phone, Cake
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
@@ -594,6 +595,9 @@ function TeacherProfilePage() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editDateOfBirth, setEditDateOfBirth] = useState("");
   const { updateCurrentUser } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -613,6 +617,9 @@ function TeacherProfilePage() {
       setProfile(res);
       setEditName(res.displayName || "");
       setEditBio(res.bio || "");
+      setEditLocation(res.location || "");
+      setEditPhone(res.phone || "");
+      setEditDateOfBirth(res.dateOfBirth || "");
       if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -630,10 +637,14 @@ function TeacherProfilePage() {
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(false);
+    if (!editName.trim()) { setSaveError("Display name is required."); return; }
     try {
       const updated = await profileApi.updateMyProfile({
-        displayName: editName || undefined,
+        displayName: editName.trim(),
         bio: editBio || undefined,
+        location: editLocation || undefined,
+        phone: editPhone || undefined,
+        dateOfBirth: editDateOfBirth || undefined,
       });
       setProfile(updated);
       updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
@@ -732,7 +743,14 @@ function TeacherProfilePage() {
             {editing ? (
               <>
                 <button
-                  onClick={() => setEditing(false)}
+                  onClick={() => {
+                    setEditing(false);
+                    setEditName(profile?.displayName || "");
+                    setEditBio(profile?.bio || "");
+                    setEditLocation(profile?.location || "");
+                    setEditPhone(profile?.phone || "");
+                    setEditDateOfBirth(profile?.dateOfBirth || "");
+                  }}
                   className="px-3 py-1.5 rounded-lg bg-white/20 text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition"
                 >
                   Cancel
@@ -848,6 +866,16 @@ function TeacherProfilePage() {
                       <MapPin className="w-3 h-3" /> {profile.location}
                     </span>
                   )}
+                  {profile?.phone && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <Phone className="w-3 h-3" /> {profile.phone}
+                    </span>
+                  )}
+                  {profile?.dateOfBirth && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <Cake className="w-3 h-3" /> {new Date(profile.dateOfBirth).toLocaleDateString()}
+                    </span>
+                  )}
                   {profile?.createdAt && (
                     <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                       <Calendar className="w-3 h-3" /> Joined {new Date(profile.createdAt).toLocaleDateString()}
@@ -867,6 +895,25 @@ function TeacherProfilePage() {
                     {profile.bio}
                   </p>
                 ) : null}
+                {editing && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Location</label>
+                      <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" placeholder="Location" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Phone</label>
+                      <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" placeholder="+84..." />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Date of Birth</label>
+                      <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

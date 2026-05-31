@@ -6,7 +6,7 @@ import {
   Eye, EyeOff,
   Moon, Globe, ChevronDown, Target, Save, Edit,
   CheckCircle, Star, MapPin, Calendar, Sparkles,
-  Upload, Trash2, Camera, Sun,
+  Upload, Trash2, Camera, Sun, Phone, Cake,
 } from "lucide-react";
 import { useTheme, useAuth } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
@@ -38,6 +38,8 @@ function ProfilePage() {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editDateOfBirth, setEditDateOfBirth] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -79,6 +81,8 @@ function ProfilePage() {
       setEditName(res.displayName || "");
       setEditBio(res.bio || "");
       setEditLocation(res.location || "");
+      setEditPhone(res.phone || "");
+      setEditDateOfBirth(res.dateOfBirth || "");
       if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -98,11 +102,14 @@ function ProfilePage() {
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(false);
+    if (!editName.trim()) { setSaveError("Display name is required."); return; }
     try {
       const updated = await profileApi.updateMyProfile({
-        displayName: editName || undefined,
+        displayName: editName.trim(),
         bio: editBio || undefined,
         location: editLocation || undefined,
+        phone: editPhone || undefined,
+        dateOfBirth: editDateOfBirth || undefined,
       });
       setProfile(updated);
       updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
@@ -152,6 +159,8 @@ function ProfilePage() {
   const displayName = editing ? editName : (profile?.displayName || "");
   const displayBio = editing ? editBio : (profile?.bio || "");
   const displayLocation = editing ? editLocation : (profile?.location || "");
+  const displayPhone = editing ? editPhone : (profile?.phone || "");
+  const displayDateOfBirth = editing ? editDateOfBirth : (profile?.dateOfBirth || "");
 
   const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
@@ -211,7 +220,7 @@ function ProfilePage() {
           <div className="absolute top-3 right-3 flex gap-2">
             {editing ? (
               <>
-                <button onClick={() => { setEditing(false); setEditName(profile?.displayName || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); }}
+                <button onClick={() => { setEditing(false); setEditName(profile?.displayName || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); setEditPhone(profile?.phone || ""); setEditDateOfBirth(profile?.dateOfBirth || ""); }}
                   className="px-2.5 py-1 rounded-lg bg-white/20 text-white/80 text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition">
                   Cancel
                 </button>
@@ -321,6 +330,34 @@ function ProfilePage() {
                     <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1 block">Location</label>
                     <input value={editLocation} onChange={e => setEditLocation(e.target.value)}
                       className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400/50 w-full sm:max-w-[200px]" placeholder="e.g. Tokyo, Japan" />
+                  </div>
+                )}
+
+                {/* Phone */}
+                {displayPhone && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                    <Phone className="w-3 h-3" /> {displayPhone}
+                  </p>
+                )}
+                {editing && (
+                  <div className="mt-1">
+                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1 block">Phone</label>
+                    <input value={editPhone} onChange={e => setEditPhone(e.target.value)}
+                      className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400/50 w-full sm:max-w-[200px]" placeholder="+84..." />
+                  </div>
+                )}
+
+                {/* Date of Birth */}
+                {displayDateOfBirth && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+                    <Cake className="w-3 h-3" /> {new Date(displayDateOfBirth).toLocaleDateString()}
+                  </p>
+                )}
+                {editing && (
+                  <div className="mt-1">
+                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-1 block">Date of Birth</label>
+                    <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)}
+                      className="text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400/50 w-full sm:max-w-[200px]" />
                   </div>
                 )}
               </div>
@@ -509,10 +546,22 @@ function ProfilePage() {
                     className={`${inputBase} resize-none leading-relaxed`} placeholder="Tell us about yourself..." />
                   <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">Max 2–3 sentences about your Japanese learning goals.</p>
                 </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Phone</label>
+                  <input type="tel" value={editPhone}
+                    onChange={e => { setEditPhone(e.target.value); if (!editing) setEditing(true); }}
+                    className={inputBase} placeholder="+84..." />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Date of Birth</label>
+                  <input type="date" value={editDateOfBirth}
+                    onChange={e => { setEditDateOfBirth(e.target.value); if (!editing) setEditing(true); }}
+                    className={inputBase} />
+                </div>
               </div>
               {editing && (
                 <div className="flex gap-2 mt-3">
-                  <button onClick={() => { setEditing(false); setEditName(profile.displayName || ""); setEditBio(profile.bio || ""); setEditLocation(profile.location || ""); }}
+                  <button onClick={() => { setEditing(false); setEditName(profile.displayName || ""); setEditBio(profile.bio || ""); setEditLocation(profile.location || ""); setEditPhone(profile.phone || ""); setEditDateOfBirth(profile.dateOfBirth || ""); }}
                     className="flex-1 py-2 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                     Cancel
                   </button>

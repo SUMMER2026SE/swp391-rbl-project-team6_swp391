@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   User, Edit, Save, Shield, Clock,
-  CheckCircle, Mail, Calendar, MapPin,
+  CheckCircle, Mail, Calendar, MapPin, Phone, Cake,
   Eye, EyeOff, Key, AlertTriangle, Loader2, CheckCheck
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
@@ -50,6 +50,8 @@ function AdminProfilePage() {
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editDateOfBirth, setEditDateOfBirth] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +74,8 @@ function AdminProfilePage() {
       setEditName(res.displayName || "");
       setEditBio(res.bio || "");
       setEditLocation(res.location || "");
+      setEditPhone(res.phone || "");
+      setEditDateOfBirth(res.dateOfBirth || "");
     } catch (err) {
       if (err instanceof ApiError) {
         setLoadError(err.message);
@@ -90,11 +94,14 @@ function AdminProfilePage() {
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(false);
+    if (!editName.trim()) { setSaveError("Display name is required."); return; }
     try {
       const updated = await profileApi.updateMyProfile({
-        displayName: editName || undefined,
+        displayName: editName.trim(),
         bio: editBio || undefined,
         location: editLocation || undefined,
+        phone: editPhone || undefined,
+        dateOfBirth: editDateOfBirth || undefined,
       });
       setProfile(updated);
       updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
@@ -161,7 +168,7 @@ function AdminProfilePage() {
           <div className="absolute top-4 right-6 flex gap-2">
             {editing ? (
               <>
-                <button onClick={() => { setEditing(false); setEditName(profile?.displayName || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); }}
+                <button onClick={() => { setEditing(false); setEditName(profile?.displayName || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); setEditPhone(profile?.phone || ""); setEditDateOfBirth(profile?.dateOfBirth || ""); }}
                   className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition">
                   Cancel
                 </button>
@@ -221,6 +228,16 @@ function AdminProfilePage() {
                       <MapPin className="w-3 h-3" /> {profile.location}
                     </span>
                   )}
+                  {profile?.phone && (
+                    <span className="text-xs text-muted-col flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> {profile.phone}
+                    </span>
+                  )}
+                  {profile?.dateOfBirth && (
+                    <span className="text-xs text-muted-col flex items-center gap-1">
+                      <Cake className="w-3 h-3" /> {new Date(profile.dateOfBirth).toLocaleDateString()}
+                    </span>
+                  )}
                   {profile?.createdAt && (
                     <span className="text-xs text-muted-col flex items-center gap-1">
                       <Calendar className="w-3 h-3" /> {new Date(profile.createdAt).toLocaleDateString()}
@@ -238,6 +255,20 @@ function AdminProfilePage() {
                 ) : profile?.bio ? (
                   <p className="text-sm text-secondary-col mt-1.5 max-w-lg leading-relaxed">{profile.bio}</p>
                 ) : null}
+                {editing && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <div>
+                      <label className="text-[10px] text-muted-col block mb-1">Phone</label>
+                      <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-glass-border bg-transparent text-xs text-secondary-col outline-none focus:border-primary/50 w-36" placeholder="+84..." />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-col block mb-1">Date of Birth</label>
+                      <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-glass-border bg-transparent text-xs text-secondary-col outline-none focus:border-primary/50 w-36" />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
