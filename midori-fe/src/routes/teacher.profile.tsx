@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth";
 
 interface Certificate {
   id: string;
@@ -593,6 +594,7 @@ function TeacherProfilePage() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
+  const { updateCurrentUser } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
@@ -634,6 +636,7 @@ function TeacherProfilePage() {
         bio: editBio || undefined,
       });
       setProfile(updated);
+      updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
       setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);

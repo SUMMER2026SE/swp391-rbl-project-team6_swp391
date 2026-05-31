@@ -9,6 +9,7 @@ import {
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
+import { useAuth } from "@/lib/auth";
 
 function ProfileCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -55,6 +56,7 @@ function AdminProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [pwCurrent, setPwCurrent] = useState("");
+  const { updateCurrentUser } = useAuth();
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
@@ -95,6 +97,7 @@ function AdminProfilePage() {
         location: editLocation || undefined,
       });
       setProfile(updated);
+      updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
       setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);

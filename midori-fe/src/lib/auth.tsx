@@ -22,6 +22,7 @@ type AuthCtx = {
   register: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<User>;
   logout: () => void;
+  updateCurrentUser: (patch: Partial<User>) => void;
   accessToken: string | null;
 };
 
@@ -130,6 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.removeToken();
       localStorage.removeItem(TOKEN_KEY);
       persistUser(null);
+    },
+
+    updateCurrentUser: (patch: Partial<User>) => {
+      if (!user) return;
+      const updated = { ...user, ...patch };
+      persistUser(updated);
     },
   };
 

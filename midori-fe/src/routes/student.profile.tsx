@@ -8,7 +8,7 @@ import {
   CheckCircle, Star, MapPin, Calendar, Sparkles,
   Upload, Trash2, Camera, Sun,
 } from "lucide-react";
-import { useTheme } from "@/lib/auth";
+import { useTheme, useAuth } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
@@ -24,6 +24,7 @@ function ProfilePage() {
   const [settingsSection, setSettingsSection] = useState<"account" | "appearance" | "security">("account");
 
   const { theme, toggleTheme } = useTheme();
+  const { updateCurrentUser } = useAuth();
 
   // Profile data from backend
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
@@ -104,6 +105,7 @@ function ProfilePage() {
         location: editLocation || undefined,
       });
       setProfile(updated);
+      updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
       setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
