@@ -75,17 +75,22 @@ function RegisterPage() {
           <div className="px-3 py-3 rounded-xl text-sm font-semibold capitalize text-center bg-gradient-hero text-white shadow-lg shadow-primary/30">
             🎓 Student
           </div>
-          <div className="px-3 py-3 rounded-xl text-sm font-semibold capitalize text-center text-muted-foreground hover:bg-white/60 transition cursor-not-allowed opacity-50">
+          <div
+            className="px-3 py-3 rounded-xl text-sm font-semibold capitalize text-center text-muted-foreground/60 bg-muted/30 cursor-not-allowed relative group"
+            title="Teacher registration is coming soon. Please contact admin for onboarding."
+          >
             🧑‍🏫 Teacher
+            <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+              Coming soon
+            </span>
           </div>
         </div>
 
         <p className="text-xs text-center text-muted-foreground -mt-1">
           Teacher registration coming soon.{" "}
-          <Link to="/register" className="text-primary hover:underline">
-            Contact us
-          </Link>{" "}
-          for teacher onboarding.
+          <span className="text-muted-foreground/60">
+            Contact admin for teacher onboarding.
+          </span>
         </p>
 
         <Field
