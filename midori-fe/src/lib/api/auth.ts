@@ -38,4 +38,7 @@ export const authApi = {
 
   changePassword: (data: ChangePasswordRequest) =>
     api.post<null>("/auth/change-password", data),
+
+  googleLogin: (idToken: string) =>
+    api.post<AuthResponse>("/auth/google", { idToken }),
 };

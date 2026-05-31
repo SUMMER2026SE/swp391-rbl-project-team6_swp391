@@ -6,6 +6,7 @@ import com.midori.dto.response.AuthResponse;
 import com.midori.dto.response.UserResponse;
 import com.midori.security.CustomUserDetails;
 import com.midori.service.AuthService;
+import com.midori.service.GoogleOAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleOAuthService googleOAuthService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(
@@ -83,5 +85,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout() {
         authService.logout();
         return ResponseEntity.ok(ApiResponse.success("Logout successful. Please remove token from client storage.", null));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
+            @Valid @RequestBody GoogleLoginRequest request) {
+        AuthResponse authResponse = googleOAuthService.authenticateWithGoogle(request.getIdToken());
+        return ResponseEntity.ok(ApiResponse.success("Google login successful", authResponse));
     }
 }

@@ -34,6 +34,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EmailService emailService;
     private final Random otpRandom = new SecureRandom();
 
     @Value("${app.token.email-verification-expiration:86400}")
@@ -64,7 +65,7 @@ public class AuthService {
         userProfileRepository.save(profile);
 
         EmailVerificationToken verificationToken = createEmailVerificationToken(user);
-        log.info("Verification token generated for user {}: {}", user.getEmail(), verificationToken.getToken());
+        emailService.sendVerificationOtp(user.getEmail(), verificationToken.getToken());
 
         return toUserResponse(user);
     }
@@ -135,7 +136,8 @@ public class AuthService {
             return;
         }
 
-        createEmailVerificationToken(user);
+        EmailVerificationToken verificationToken = createEmailVerificationToken(user);
+        emailService.sendVerificationOtp(user.getEmail(), verificationToken.getToken());
     }
 
     public void forgotPassword(ForgotPasswordRequest request) {
@@ -145,7 +147,8 @@ public class AuthService {
             return;
         }
 
-        createPasswordResetToken(user);
+        PasswordResetToken resetToken = createPasswordResetToken(user);
+        emailService.sendPasswordResetEmail(user.getEmail(), resetToken.getToken());
     }
 
     @Transactional
@@ -184,8 +187,6 @@ public class AuthService {
     }
 
     public void logout() {
-        // Stateless JWT - token is stored client-side.
-        // Backend just returns success. Client must delete token from storage.
     }
 
     private EmailVerificationToken createEmailVerificationToken(User user) {
@@ -199,9 +200,7 @@ public class AuthService {
                 .used(false)
                 .build();
 
-        EmailVerificationToken saved = emailVerificationTokenRepository.save(verificationToken);
-        log.info("Verification OTP generated for user {}: {}", user.getEmail(), otp);
-        return saved;
+        return emailVerificationTokenRepository.save(verificationToken);
     }
 
     private PasswordResetToken createPasswordResetToken(User user) {
@@ -215,9 +214,7 @@ public class AuthService {
                 .used(false)
                 .build();
 
-        PasswordResetToken saved = passwordResetTokenRepository.save(resetToken);
-        log.info("Password reset token generated for user {}: {}", user.getEmail(), saved.getToken());
-        return saved;
+        return passwordResetTokenRepository.save(resetToken);
     }
 
     private String generateOtp() {

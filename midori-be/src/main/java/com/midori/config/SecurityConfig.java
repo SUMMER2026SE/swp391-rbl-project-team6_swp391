@@ -69,6 +69,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/resend-verification").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/verify-email").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/google").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/auth/change-password").authenticated()
                         .requestMatchers(HttpMethod.GET, "/profiles/me").authenticated()

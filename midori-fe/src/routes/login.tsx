@@ -31,16 +31,20 @@ function LoginPage() {
     }
   };
 
-  const handleGoogle = async () => {
+  const handleGoogleSuccess = async (credential: string) => {
     setGoogleLoading(true);
     try {
-      const u = await loginWithGoogle();
+      const u = await loginWithGoogle(credential);
       nav({ to: rolePath(u.role) });
     } catch {
       setErr("Google sign-in failed. Please try again.");
     } finally {
       setGoogleLoading(false);
     }
+  };
+
+  const handleGoogleError = () => {
+    setErr("Google sign-in failed. Please try again.");
   };
 
   return (
@@ -116,7 +120,7 @@ function LoginPage() {
           <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">or</span>
           <div className="flex-1 h-px bg-border" />
         </div>
-        <GoogleBtn onClick={handleGoogle} disabled={loading || googleLoading} />
+        <GoogleBtn onSuccess={handleGoogleSuccess} onError={handleGoogleError} disabled={loading || googleLoading} />
       </form>
     </AuthShell>
   );

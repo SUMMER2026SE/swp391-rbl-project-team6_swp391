@@ -24,6 +24,18 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   port: 8080
   servlet:
@@ -36,6 +48,13 @@ app:
   token:
     email-verification-expiration: ${TOKEN_EMAIL_VERIFICATION_EXPIRATION:86400}
     password-reset-expiration: ${TOKEN_PASSWORD_RESET_EXPIRATION:3600}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@midori.local}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
 
 logging:
   level:
