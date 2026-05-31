@@ -3,6 +3,7 @@ import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth, rolePath } from "@/lib/auth";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -24,8 +25,12 @@ function LoginPage() {
     try {
       const u = await login(email, password);
       nav({ to: rolePath(u.role) });
-    } catch {
-      setErr("Invalid email or password. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErr(err.message);
+      } else {
+        setErr("Unable to sign in. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -36,8 +41,12 @@ function LoginPage() {
     try {
       const u = await loginWithGoogle(credential);
       nav({ to: rolePath(u.role) });
-    } catch {
-      setErr("Google sign-in failed. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErr(err.message);
+      } else {
+        setErr("Unable to sign in. Please try again.");
+      }
     } finally {
       setGoogleLoading(false);
     }

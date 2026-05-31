@@ -50,7 +50,7 @@ public class AuthService {
         }
 
         Role role = resolveRole(request.getRole());
-        UserStatus status = (role == Role.TEACHER) ? UserStatus.ACTIVE : UserStatus.ACTIVE;
+        UserStatus status = (role == Role.TEACHER) ? UserStatus.PENDING_APPROVAL : UserStatus.ACTIVE;
 
         User user = User.builder()
                 .email(request.getEmail())
@@ -107,6 +107,9 @@ public class AuthService {
         }
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new UnauthorizedException("Account has been suspended");
+        }
+        if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
+            throw new UnauthorizedException("Your teacher account is pending admin approval. You will be able to login once approved.");
         }
 
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);

@@ -20,7 +20,7 @@ type AuthCtx = {
   loaded: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<User>;
+  loginWithGoogle: (idToken: string, role?: string) => Promise<User>;
   logout: () => void;
   updateCurrentUser: (patch: Partial<User>) => void;
   accessToken: string | null;
@@ -114,8 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authApi.register({ email, password });
     },
 
-    loginWithGoogle: async (idToken: string) => {
-      const res = await authApi.googleLogin(idToken);
+    loginWithGoogle: async (idToken: string, role?: string) => {
+      const res = await authApi.googleLogin(idToken, role);
       api.setToken(res.accessToken);
       const u = userResponseToUser(res.user);
       persistUser(u);

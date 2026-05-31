@@ -59,23 +59,30 @@ async function request<T>(
 
   const res = await fetch(url, options);
 
-  if (!res.ok && res.status === 401) {
-    removeToken();
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
-    }
-    throw new ApiError("Session expired. Please login again.", 401);
-  }
-
   let json: ApiResponse<T>;
   try {
     json = await res.json();
   } catch {
+    if (!res.ok) {
+      const msg = res.status === 401 && (path === "/auth/login" || path === "/auth/google")
+        ? "Unable to sign in. Please try again."
+        : "Request failed. Please try again.";
+      throw new ApiError(msg, res.status);
+    }
     throw new ApiError(`Request failed: ${res.status} ${res.statusText}`, res.status);
   }
 
   if (!json.success) {
     throw new ApiError(json.message ?? "An unexpected error occurred.", res.status, false);
+  }
+
+  if (!res.ok && res.status === 401) {
+    removeToken();
+    const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+    if (!isLoginPage && typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    throw new ApiError(json.message ?? "Session expired. Please login again.", 401);
   }
 
   return json.data as T;

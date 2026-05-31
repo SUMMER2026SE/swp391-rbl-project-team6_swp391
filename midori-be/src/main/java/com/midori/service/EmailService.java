@@ -1,5 +1,7 @@
 package com.midori.service;
 
+import jakarta.mail.AuthenticationFailedException;
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +10,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.net.SocketTimeoutException;
+import java.net.ConnectException;
 
 @Slf4j
 @Service
@@ -28,7 +33,7 @@ public class EmailService {
     @Async
     public void sendVerificationOtp(String to, String otp) {
         if (!mailEnabled) {
-            log.info("[Email] Verification OTP for {}: {} (mail disabled)", to, otp);
+            log.info("[Email] Verification email queued for {} (mail disabled)", to);
             return;
         }
 
@@ -41,7 +46,7 @@ public class EmailService {
     @Async
     public void sendPasswordResetEmail(String to, String resetToken) {
         if (!mailEnabled) {
-            log.info("[Email] Password reset for {}: {} (mail disabled)", to, resetToken);
+            log.info("[Email] Password reset email queued for {} (mail disabled)", to);
             return;
         }
 
@@ -63,8 +68,19 @@ public class EmailService {
 
             mailSender.send(message);
             log.info("[Email] Sent '{}' to {}", subject, to);
+        } catch (AuthenticationFailedException e) {
+            log.error("[Email] Failed to send '{}' to {} — Mail authentication failed. Check Gmail App Password.", subject, to);
+        } catch (MessagingException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SocketTimeoutException || cause instanceof ConnectException) {
+                log.error("[Email] Failed to send '{}' to {} — Mail server timed out. Check SMTP/network or increase timeout.", subject, to);
+            } else {
+                log.error("[Email] Failed to send '{}' to {} — Messaging error: {}", subject, to, e.getMessage());
+                log.debug("[Email] Stack trace for {} to {}", subject, to, e);
+            }
         } catch (Exception e) {
-            log.error("[Email] Failed to send '{}' to {}", subject, to);
+            log.error("[Email] Failed to send '{}' to {} — {}: {}", subject, to, e.getClass().getSimpleName(), e.getMessage());
+            log.debug("[Email] Stack trace for {} to {}", subject, to, e);
         }
     }
 

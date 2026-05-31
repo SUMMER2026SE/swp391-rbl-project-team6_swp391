@@ -7,8 +7,10 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.midori.dto.response.AuthResponse;
 import com.midori.dto.response.UserResponse;
 import com.midori.entity.OAuthAccount;
+import com.midori.entity.Role;
 import com.midori.entity.User;
 import com.midori.entity.UserProfile;
+import com.midori.entity.UserStatus;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.UnauthorizedException;
 import com.midori.repository.OAuthAccountRepository;
@@ -55,7 +57,7 @@ public class GoogleOAuthService {
     }
 
     @Transactional
-    public AuthResponse authenticateWithGoogle(String idTokenString) {
+    public AuthResponse authenticateWithGoogle(String idTokenString, String role) {
         GoogleIdToken idToken = verifyIdToken(idTokenString);
 
         GoogleIdToken.Payload payload = idToken.getPayload();
@@ -73,6 +75,8 @@ public class GoogleOAuthService {
             throw new BadRequestException("Google email must be verified");
         }
 
+        Role resolvedRole = resolveRole(role);
+
         var existingOAuth = oauthAccountRepository
                 .findByProviderAndProviderUserId(PROVIDER_GOOGLE, googleUserId);
 
@@ -87,15 +91,50 @@ public class GoogleOAuthService {
                 linkOAuthAccount(user, googleUserId, email);
                 log.info("Linked Google OAuth account to existing user: {}", email);
             } else {
-                user = createUserFromGoogle(email, name, picture);
+                user = createUserFromGoogle(email, name, picture, resolvedRole);
                 linkOAuthAccount(user, googleUserId, email);
-                log.info("Created new user via Google OAuth: {}", email);
+                log.info("Created new user via Google OAuth: {} with role {}", email, resolvedRole);
             }
         }
+
+        // Check user status before issuing JWT
+        checkUserStatus(user);
 
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
         String token = jwtTokenProvider.generateTokenFromUserDetails(userDetails);
         return AuthResponse.of(token, toUserResponse(user));
+    }
+
+    private void checkUserStatus(User user) {
+        switch (user.getStatus()) {
+            case BANNED:
+                throw new UnauthorizedException("Account has been banned");
+            case SUSPENDED:
+                throw new UnauthorizedException("Account has been suspended");
+            case PENDING_APPROVAL:
+                throw new UnauthorizedException("Your teacher account is pending admin approval. You will be able to login once approved.");
+            case PENDING:
+            case ACTIVE:
+                // Allowed
+                break;
+        }
+    }
+
+    private Role resolveRole(String role) {
+        if (role == null || role.isBlank()) {
+            return Role.STUDENT;
+        }
+        String normalized = role.toUpperCase().trim();
+        switch (normalized) {
+            case "STUDENT":
+                return Role.STUDENT;
+            case "TEACHER":
+                return Role.TEACHER;
+            case "ADMIN":
+                throw new BadRequestException("Admin role is not allowed for Google registration");
+            default:
+                throw new BadRequestException("Invalid role: " + role + ". Allowed values: STUDENT, TEACHER");
+        }
     }
 
     private GoogleIdToken verifyIdToken(String idTokenString) {
@@ -129,12 +168,13 @@ public class GoogleOAuthService {
         oauthAccountRepository.save(oauth);
     }
 
-    private User createUserFromGoogle(String email, String name, String picture) {
+    private User createUserFromGoogle(String email, String name, String picture, Role role) {
+        UserStatus status = (role == Role.TEACHER) ? UserStatus.PENDING_APPROVAL : UserStatus.ACTIVE;
         User user = User.builder()
                 .email(email)
                 .passwordHash(generateRandomPasswordHash())
-                .role(com.midori.entity.Role.STUDENT)
-                .status(com.midori.entity.UserStatus.ACTIVE)
+                .role(role)
+                .status(status)
                 .emailVerified(true)
                 .build();
         user = userRepository.save(user);

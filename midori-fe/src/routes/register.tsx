@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AuthShell, Field, PrimaryBtn } from "@/components/auth-shell";
+import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState, useRef } from "react";
 import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File } from "lucide-react";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
+import { useAuth, rolePath } from "@/lib/auth";
 
 export const Route = createFileRoute("/register")({ component: RegisterPage });
 
@@ -56,7 +57,10 @@ function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { loginWithGoogle } = useAuth();
 
   const update = (key: keyof RegisterForm, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -195,6 +199,30 @@ function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setGoogleLoading(true);
+    try {
+      const u = await loginWithGoogle(credential, selectedRole);
+      nav({ to: rolePath(u.role) });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.message.toLowerCase().includes("pending admin approval")) {
+          setErr("Your teacher account is pending admin approval. Please wait for admin review.");
+        } else {
+          setErr(err.message);
+        }
+      } else {
+        setErr("Google sign-in failed. Please try again.");
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setErr("Google sign-in failed. Please try again.");
   };
 
   return (
@@ -449,14 +477,7 @@ function RegisterPage() {
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        <div className="text-center">
-          <Link
-            to="/login"
-            className="text-xs text-muted-foreground hover:text-primary transition"
-          >
-            Sign in with Google — coming soon
-          </Link>
-        </div>
+        <GoogleBtn onSuccess={handleGoogleSuccess} onError={handleGoogleError} disabled={loading || googleLoading} />
 
         <p className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">
           Admin accounts are created internally — not via signup.
