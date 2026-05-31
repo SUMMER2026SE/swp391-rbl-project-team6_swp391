@@ -12,6 +12,7 @@ import { useTheme, useAuth } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
+import { uploadAvatar } from "@/lib/avatar";
 
 export const Route = createFileRoute("/student/profile")({
   component: ProfilePage,
@@ -24,7 +25,7 @@ function ProfilePage() {
   const [settingsSection, setSettingsSection] = useState<"account" | "appearance" | "security">("account");
 
   const { theme, toggleTheme } = useTheme();
-  const { updateCurrentUser } = useAuth();
+  const { user, updateCurrentUser } = useAuth();
 
   // Profile data from backend
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
@@ -43,6 +44,8 @@ function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   // Settings
   const [language, setLanguage] = useState("en");
@@ -125,15 +128,39 @@ function ProfilePage() {
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-        setShowAvatarMenu(false);
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
+    setShowAvatarMenu(false);
+    try {
+      const { avatarUrl } = await uploadAvatar(user.id, file);
+      const updated = await profileApi.updateMyProfile({ avatarUrl });
+      setProfile(updated);
+      setAvatarPreview(avatarUrl);
+      updateCurrentUser({ avatar: avatarUrl });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
+    setShowRemoveConfirm(false);
+    try {
+      const updated = await profileApi.updateMyProfile({ avatarUrl: null });
+      setProfile(updated);
+      setAvatarPreview(null);
+      updateCurrentUser({ avatar: undefined });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
+    } finally {
+      setAvatarLoading(false);
     }
   };
 
@@ -260,19 +287,56 @@ function ProfilePage() {
                 )}
                 <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white dark:border-white/20 z-10" />
                 <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-20">
-                  <button onClick={() => setShowAvatarMenu(!showAvatarMenu)}
-                    className="w-6 h-6 rounded-full bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-                    <Camera className="w-3 h-3 text-slate-600 dark:text-slate-300" />
-                  </button>
-                  <AnimatePresence>
-                    {showAvatarMenu && (
-                      <motion.div initial={{ opacity: 0, y: -6, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -6, scale: 0.95 }} transition={{ duration: 0.15 }}
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden z-50">
-                        <p className="px-3 py-2 text-[10px] text-muted-foreground">Avatar upload coming soon</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <div className="relative">
+                    <button onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+                      className="w-6 h-6 rounded-full bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                      {avatarLoading ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-slate-600 dark:text-slate-300" />
+                      ) : (
+                        <Camera className="w-3 h-3 text-slate-600 dark:text-slate-300" />
+                      )}
+                    </button>
+                    <AnimatePresence>
+                      {showAvatarMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[180px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                        >
+                          <label className="flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition">
+                            {avatarLoading ? (
+                              <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin text-indigo-500" />
+                            ) : (
+                              <Upload className="w-4 h-4 flex-shrink-0 text-indigo-500" />
+                            )}
+                            <span className="font-medium">{avatarLoading ? "Uploading..." : "Change Avatar"}</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={avatarLoading}
+                              onChange={handleAvatarChange}
+                              className="hidden"
+                            />
+                          </label>
+                          {avatarPreview && (
+                            <button
+                              disabled={avatarLoading}
+                              onClick={() => { setShowAvatarMenu(false); setShowRemoveConfirm(true); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition disabled:opacity-50"
+                            >
+                              <Trash2 className="w-4 h-4 flex-shrink-0" />
+                              <span className="font-medium">Remove Avatar</span>
+                            </button>
+                          )}
+                          {avatarError && (
+                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">{avatarError}</p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
@@ -749,9 +813,9 @@ function ProfilePage() {
                   className="flex-1 py-2 rounded-lg border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                   Cancel
                 </button>
-                <button onClick={() => { setAvatarPreview(null); setShowRemoveConfirm(false); }}
-                  className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition">
-                  Remove
+                <button onClick={handleRemoveAvatar} disabled={avatarLoading}
+                  className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                  {avatarLoading ? <><Loader2 className="w-3 h-3 animate-spin" /> Removing...</> : "Remove"}
                 </button>
               </div>
             </motion.div>

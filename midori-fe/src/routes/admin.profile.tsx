@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Edit, Save, Shield, Clock,
   CheckCircle, Mail, Calendar, MapPin, Phone, Cake,
-  Eye, EyeOff, Key, AlertTriangle, Loader2, CheckCheck
+  Eye, EyeOff, Key, AlertTriangle, Loader2, CheckCheck,
+  Camera, Upload, Trash2
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
 import { useAuth } from "@/lib/auth";
+import { uploadAvatar } from "@/lib/avatar";
 
 function ProfileCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -58,12 +60,17 @@ function AdminProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [pwCurrent, setPwCurrent] = useState("");
-  const { updateCurrentUser } = useAuth();
+  const { user, updateCurrentUser } = useAuth();
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -76,6 +83,7 @@ function AdminProfilePage() {
       setEditLocation(res.location || "");
       setEditPhone(res.phone || "");
       setEditDateOfBirth(res.dateOfBirth || "");
+      if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
     } catch (err) {
       if (err instanceof ApiError) {
         setLoadError(err.message);
@@ -114,6 +122,42 @@ function AdminProfilePage() {
       } else {
         setSaveError("Failed to save profile.");
       }
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
+    setShowAvatarMenu(false);
+    try {
+      const { avatarUrl } = await uploadAvatar(user.id, file);
+      const updated = await profileApi.updateMyProfile({ avatarUrl });
+      setProfile(updated);
+      setAvatarPreview(avatarUrl);
+      updateCurrentUser({ avatar: avatarUrl });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
+    setShowRemoveConfirm(false);
+    try {
+      const updated = await profileApi.updateMyProfile({ avatarUrl: null });
+      setProfile(updated);
+      setAvatarPreview(null);
+      updateCurrentUser({ avatar: undefined });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
+    } finally {
+      setAvatarLoading(false);
     }
   };
 
@@ -190,11 +234,72 @@ function AdminProfilePage() {
           <div className="card-base p-5">
             <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4">
               <div className="relative flex-shrink-0">
-                <div className="w-24 h-24 rounded-2xl glass-modal flex items-center justify-center text-primary-col text-4xl font-black shadow-xl border border-glass-border">
-                  {avatarLetter}
-                </div>
+                {avatarPreview ? (
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-xl border border-glass-border">
+                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-2xl glass-modal flex items-center justify-center text-primary-col text-4xl font-black shadow-xl border border-glass-border">
+                    {avatarLetter}
+                  </div>
+                )}
                 <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full glass-surface text-secondary-col text-[10px] font-black shadow-lg border border-glass-border flex items-center gap-0.5">
                   <Shield className="w-3 h-3" /> Admin
+                </div>
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+                      disabled={avatarLoading}
+                      className="w-7 h-7 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 transition disabled:opacity-50"
+                    >
+                      {avatarLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-slate-300" />
+                      ) : (
+                        <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                      )}
+                    </button>
+                    <AnimatePresence>
+                      {showAvatarMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[180px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                        >
+                          <label className="flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition">
+                            {avatarLoading ? (
+                              <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin text-indigo-500" />
+                            ) : (
+                              <Upload className="w-4 h-4 flex-shrink-0 text-indigo-500" />
+                            )}
+                            <span className="font-medium">{avatarLoading ? "Uploading..." : "Change Avatar"}</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={avatarLoading}
+                              onChange={handleAvatarChange}
+                              className="hidden"
+                            />
+                          </label>
+                          {avatarPreview && (
+                            <button
+                              disabled={avatarLoading}
+                              onClick={() => { setShowAvatarMenu(false); setShowRemoveConfirm(true); }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition disabled:opacity-50"
+                            >
+                              <Trash2 className="w-4 h-4 flex-shrink-0" />
+                              <span className="font-medium">Remove Avatar</span>
+                            </button>
+                          )}
+                          {avatarError && (
+                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">{avatarError}</p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
               <div className="flex-1 w-full text-center sm:text-left">
@@ -460,6 +565,38 @@ function AdminProfilePage() {
           </ProfileCard>
         </div>
       </div>
+
+      {/* Avatar Remove Confirm Dialog */}
+      <AnimatePresence>
+        {showRemoveConfirm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowRemoveConfirm(false)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl p-5 shadow-2xl border border-white/60 dark:border-white/10 max-w-xs w-full mx-4"
+              onClick={e => e.stopPropagation()}>
+              <div className="w-10 h-10 rounded-full bg-red-50/80 dark:bg-red-500/15 flex items-center justify-center mx-auto mb-3">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white text-center mb-1.5">Remove Avatar?</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-4">
+                Your profile will return to the default avatar.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowRemoveConfirm(false)}
+                  className="flex-1 py-2 rounded-lg border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                  Cancel
+                </button>
+                <button onClick={handleRemoveAvatar} disabled={avatarLoading}
+                  className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                  {avatarLoading ? <><Loader2 className="w-3 h-3 animate-spin" /> Removing...</> : "Remove"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

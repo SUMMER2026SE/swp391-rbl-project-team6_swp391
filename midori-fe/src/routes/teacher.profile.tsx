@@ -11,6 +11,7 @@ import {
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
+import { uploadAvatar } from "@/lib/avatar";
 
 interface Certificate {
   id: string;
@@ -598,10 +599,12 @@ function TeacherProfilePage() {
   const [editLocation, setEditLocation] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editDateOfBirth, setEditDateOfBirth] = useState("");
-  const { updateCurrentUser } = useAuth();
+  const { user, updateCurrentUser } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [certificates, setCertificates] = useState<Certificate[]>(defaultCerts);
   const [showAddCert, setShowAddCert] = useState(false);
   const [editingCert, setEditingCert] = useState<Certificate | null>(null);
@@ -660,22 +663,40 @@ function TeacherProfilePage() {
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-        setShowAvatarMenu(false);
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
+    setShowAvatarMenu(false);
+    try {
+      const { avatarUrl } = await uploadAvatar(user.id, file);
+      const updated = await profileApi.updateMyProfile({ avatarUrl });
+      setProfile(updated);
+      setAvatarPreview(avatarUrl);
+      updateCurrentUser({ avatar: avatarUrl });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
+    } finally {
+      setAvatarLoading(false);
     }
   };
 
-  const handleRemoveAvatar = () => {
-    setAvatarPreview(null);
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
     setShowRemoveConfirm(false);
-    setShowAvatarMenu(false);
+    try {
+      const updated = await profileApi.updateMyProfile({ avatarUrl: null });
+      setProfile(updated);
+      setAvatarPreview(null);
+      updateCurrentUser({ avatar: undefined });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
+    } finally {
+      setAvatarLoading(false);
+    }
   };
 
   const handleAddCert = (cert: Omit<Certificate, "id">) => {
@@ -806,39 +827,53 @@ function TeacherProfilePage() {
                   <div className="relative">
                     <button
                       onClick={() => setShowAvatarMenu(!showAvatarMenu)}
-                      className="w-7 h-7 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 transition"
+                      disabled={avatarLoading}
+                      className="w-7 h-7 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 transition disabled:opacity-50"
                     >
-                      <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                      {avatarLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-slate-300" />
+                      ) : (
+                        <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                      )}
                     </button>
 
                     {/* Avatar Dropdown Menu */}
                     <AnimatePresence>
                       {showAvatarMenu && (
                         <motion.div
-                          initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                          initial={{ opacity: 0, y: 4, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.95 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[180px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
                         >
-                          <label className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-primary/5 cursor-pointer transition">
-                            <Upload className="w-4 h-4 text-primary" />
-                            <span>Upload Avatar</span>
+                          <label className="flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition">
+                            {avatarLoading ? (
+                              <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin text-indigo-500" />
+                            ) : (
+                              <Upload className="w-4 h-4 flex-shrink-0 text-indigo-500" />
+                            )}
+                            <span className="font-medium">{avatarLoading ? "Uploading..." : "Change Avatar"}</span>
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={avatarLoading}
                               onChange={handleAvatarChange}
                               className="hidden"
                             />
                           </label>
                           {hasCustomAvatar && (
                             <button
+                              disabled={avatarLoading}
                               onClick={() => { setShowRemoveConfirm(true); setShowAvatarMenu(false); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition disabled:opacity-50"
                             >
-                              <Trash2 className="w-4 h-4" />
-                              Remove Avatar
+                              <Trash2 className="w-4 h-4 flex-shrink-0" />
+                              <span className="font-medium">Remove Avatar</span>
                             </button>
+                          )}
+                          {avatarError && (
+                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">{avatarError}</p>
                           )}
                         </motion.div>
                       )}
@@ -1004,9 +1039,10 @@ function TeacherProfilePage() {
                 </button>
                 <button
                   onClick={handleRemoveAvatar}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition"
+                  disabled={avatarLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1"
                 >
-                  Remove
+                  {avatarLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Removing...</> : "Remove"}
                 </button>
               </div>
             </motion.div>
