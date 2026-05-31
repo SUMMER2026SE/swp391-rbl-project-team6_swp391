@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { useRef, useEffect, useState } from "react";
 
 import appCss from "../styles.css?url";
 import { AuthProvider, ThemeProvider } from "@/lib/auth";
@@ -120,6 +121,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [googleReady, setGoogleReady] = useState(false);
+  const didInit = useRef(false);
+
+  useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
+    setGoogleReady(true);
+  }, []);
+
+  if (!googleReady) return null;
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
