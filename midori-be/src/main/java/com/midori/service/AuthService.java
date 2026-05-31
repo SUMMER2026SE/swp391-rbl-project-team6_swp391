@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Random;
 
 @Slf4j
 @Service
@@ -33,6 +34,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final Random otpRandom = new SecureRandom();
 
     @Value("${app.token.email-verification-expiration:86400}")
     private long emailVerificationExpiration;
@@ -187,17 +189,19 @@ public class AuthService {
     }
 
     private EmailVerificationToken createEmailVerificationToken(User user) {
-        String token = generateSecureToken();
+        String otp = generateOtp();
         Instant expiresAt = Instant.now().plusSeconds(emailVerificationExpiration);
 
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
                 .user(user)
-                .token(token)
+                .token(otp)
                 .expiresAt(expiresAt)
                 .used(false)
                 .build();
 
-        return emailVerificationTokenRepository.save(verificationToken);
+        EmailVerificationToken saved = emailVerificationTokenRepository.save(verificationToken);
+        log.info("Verification OTP generated for user {}: {}", user.getEmail(), otp);
+        return saved;
     }
 
     private PasswordResetToken createPasswordResetToken(User user) {
@@ -214,6 +218,11 @@ public class AuthService {
         PasswordResetToken saved = passwordResetTokenRepository.save(resetToken);
         log.info("Password reset token generated for user {}: {}", user.getEmail(), saved.getToken());
         return saved;
+    }
+
+    private String generateOtp() {
+        int otp = otpRandom.nextInt(1_000_000);
+        return String.format("%06d", otp);
     }
 
     private String generateSecureToken() {

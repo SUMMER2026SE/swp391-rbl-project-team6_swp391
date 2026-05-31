@@ -2,6 +2,8 @@ import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode }) {
   return (
@@ -106,14 +108,34 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
   );
 }
 
-export function Field({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+export function Field({
+  label,
+  endAdornment,
+  className,
+  ...props
+}: {
+  label: string;
+  endAdornment?: React.ReactNode;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block">
-      <span className="text-xs font-bold text-foreground/70 uppercase tracking-wider">{label}</span>
-      <input
-        {...props}
-        className="mt-1.5 w-full px-4 py-3 rounded-xl bg-white/60 dark:bg-white/5 border border-white/50 outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30 text-sm transition-all"
-      />
+      <span className="text-xs font-bold text-foreground/70 uppercase tracking-wider">
+        {label}
+      </span>
+      <div className="relative">
+        <input
+          {...props}
+          className={
+            "mt-1.5 w-full px-4 py-3 rounded-xl bg-white/60 dark:bg-white/5 border border-white/50 outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30 text-sm transition-all pr-12" +
+            (className ? " " + className : "")
+          }
+        />
+        {endAdornment && (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3.5">
+            {endAdornment}
+          </div>
+        )}
+      </div>
     </label>
   );
 }

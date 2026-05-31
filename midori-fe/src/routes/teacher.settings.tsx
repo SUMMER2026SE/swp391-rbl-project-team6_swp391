@@ -222,6 +222,7 @@ function TeacherSettingsPage() {
 
   // Security state
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [twoFactor, setTwoFactor] = useState(false);
 
   // Apply theme on mount and change
@@ -463,7 +464,21 @@ function TeacherSettingsPage() {
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">New Password</label>
-                      <input type="password" placeholder="New password" className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          placeholder="New password"
+                          className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword((v) => !v)}
+                          aria-label={showNewPassword ? "Hide password" : "Show password"}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                     <div className="flex-1">
                       <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Confirm</label>

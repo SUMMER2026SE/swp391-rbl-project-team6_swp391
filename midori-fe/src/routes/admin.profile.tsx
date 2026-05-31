@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   User, Edit, Save, Shield, Clock,
   CheckCircle, Mail, Calendar, MapPin,
-  Eye, Key, AlertTriangle
+  Eye, EyeOff, Key, AlertTriangle
 } from "lucide-react";
 
 const adminProfile = {
@@ -60,6 +60,8 @@ function AdminProfilePage() {
   const [editName, setEditName] = useState(adminProfile.name);
   const [editBio, setEditBio] = useState(adminProfile.bio);
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
     <div className="space-y-5">
@@ -220,14 +222,44 @@ function AdminProfilePage() {
                     className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
                   />
                   <button
+                    type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-col hover:text-primary-col transition"
                   >
-                    {showPassword ? <Eye className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <input type="password" placeholder="New password" className="w-full pl-3 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40 mb-2" />
-                <input type="password" placeholder="Confirm new password" className="w-full pl-3 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40 mb-3" />
+                <div className="relative mb-2">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="New password"
+                    className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    aria-label={showNewPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-col hover:text-primary-col transition"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="relative mb-3">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm new password"
+                    className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-col hover:text-primary-col transition"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <button className="w-full py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition">
                   Update Password
                 </button>

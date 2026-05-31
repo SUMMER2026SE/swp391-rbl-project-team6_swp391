@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth, rolePath } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
@@ -10,6 +11,7 @@ function LoginPage() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -56,12 +58,26 @@ function LoginPage() {
         />
         <Field
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter your password"
           autoComplete="current-password"
+          endAdornment={
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((v) => !v)}
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          }
         />
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 cursor-pointer select-none">
