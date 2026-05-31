@@ -37,5 +37,5 @@ export const authApi = {
     api.post<null>("/auth/reset-password", data),
 
   changePassword: (data: ChangePasswordRequest) =>
-    api.put<null>("/auth/change-password", data),
+    api.post<null>("/auth/change-password", data),
 };

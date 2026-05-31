@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
+import { authApi } from "@/lib/api/auth";
 
 function ProfileCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
@@ -53,6 +54,12 @@ function AdminProfilePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -310,9 +317,23 @@ function AdminProfilePage() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-muted-col uppercase tracking-wider block mb-2">Change Password</label>
+                {pwSuccess && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-bold">
+                    <CheckCheck className="w-3.5 h-3.5" /> Password updated successfully!
+                  </motion.div>
+                )}
+                {pwError && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
+                    <AlertTriangle className="w-3.5 h-3.5" /> {pwError}
+                  </motion.div>
+                )}
                 <div className="relative mb-2">
                   <input
                     type={showPassword ? "text" : "password"}
+                    value={pwCurrent}
+                    onChange={e => setPwCurrent(e.target.value)}
                     placeholder="Current password"
                     className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
                   />
@@ -328,6 +349,8 @@ function AdminProfilePage() {
                 <div className="relative mb-2">
                   <input
                     type={showNewPassword ? "text" : "password"}
+                    value={pwNew}
+                    onChange={e => setPwNew(e.target.value)}
                     placeholder="New password"
                     className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
                   />
@@ -343,8 +366,12 @@ function AdminProfilePage() {
                 <div className="relative mb-3">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
+                    value={pwConfirm}
+                    onChange={e => setPwConfirm(e.target.value)}
                     placeholder="Confirm new password"
-                    className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
+                    className={`w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40 ${
+                      pwConfirm && pwNew !== pwConfirm ? "border-red-400/40" : pwConfirm && pwNew === pwConfirm ? "border-green-400/40" : ""
+                    }`}
                   />
                   <button
                     type="button"
@@ -355,8 +382,37 @@ function AdminProfilePage() {
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <button className="w-full py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition">
-                  Update Password
+                <button
+                  onClick={async () => {
+                    setPwError(null);
+                    if (!pwCurrent) { setPwError("Current password is required."); return; }
+                    if (pwNew.length < 8) { setPwError("Min. 8 characters."); return; }
+                    if (!/[A-Z]/.test(pwNew)) { setPwError("Add at least one uppercase letter."); return; }
+                    if (!/[0-9]/.test(pwNew)) { setPwError("Add at least one number."); return; }
+                    if (!/[^A-Za-z0-9]/.test(pwNew)) { setPwError("Add at least one special character."); return; }
+                    if (pwNew !== pwConfirm) { setPwError("Passwords do not match."); return; }
+                    setPwLoading(true);
+                    try {
+                      await authApi.changePassword({ currentPassword: pwCurrent, newPassword: pwNew });
+                      setPwSuccess(true);
+                      setPwCurrent(""); setPwNew(""); setPwConfirm("");
+                      setTimeout(() => setPwSuccess(false), 4000);
+                    } catch (err) {
+                      if (err instanceof ApiError) {
+                        setPwError(err.message);
+                      } else {
+                        setPwError("Failed to change password.");
+                      }
+                    } finally {
+                      setPwLoading(false);
+                    }
+                  }}
+                  disabled={pwLoading}
+                  className="w-full py-2.5 rounded-xl text-white text-sm font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-hero"
+                >
+                  {pwLoading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
+                    : <><Key className="w-4 h-4" /> Update Password</>}
                 </button>
               </div>
 

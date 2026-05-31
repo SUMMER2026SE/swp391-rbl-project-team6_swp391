@@ -55,6 +55,6 @@ export interface ResendVerificationRequest {
 }
 
 export interface ChangePasswordRequest {
-  oldPassword: string;
+  currentPassword: string;
   newPassword: string;
 }

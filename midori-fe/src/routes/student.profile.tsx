@@ -11,6 +11,7 @@ import {
 import { useTheme } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
+import { authApi } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/student/profile")({
   component: ProfilePage,
@@ -647,11 +648,20 @@ function ProfilePage() {
                     if (!/[^A-Za-z0-9]/.test(newPw)) { setPwError("Add at least one special character."); return; }
                     if (newPw !== confirmPw) { setPwError("Passwords do not match."); return; }
                     setPwLoading(true);
-                    await new Promise(r => setTimeout(r, 1500));
-                    setPwLoading(false);
-                    setPwSuccess(true);
-                    setCurrentPw(""); setNewPw(""); setConfirmPw("");
-                    setTimeout(() => setPwSuccess(false), 4000);
+                    try {
+                      await authApi.changePassword({ currentPassword: currentPw, newPassword: newPw });
+                      setPwSuccess(true);
+                      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+                      setTimeout(() => setPwSuccess(false), 4000);
+                    } catch (err) {
+                      if (err instanceof ApiError) {
+                        setPwError(err.message);
+                      } else {
+                        setPwError("Failed to change password.");
+                      }
+                    } finally {
+                      setPwLoading(false);
+                    }
                   }} disabled={pwLoading}
                     className="w-full py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 text-white text-xs font-bold shadow-md shadow-indigo-500/20 hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-1.5 mt-1">
                     {pwLoading
