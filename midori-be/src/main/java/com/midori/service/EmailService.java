@@ -120,7 +120,7 @@ public class EmailService {
                   </p>
                   <div class="otp-code">%s</div>
                   <p class="note">
-                    This code expires in 24 hours. If you did not create a MIDORI account,
+                    This code expires in 1 minute. If you did not create a MIDORI account,
                     you can safely ignore this email.
                   </p>
                 </div>
