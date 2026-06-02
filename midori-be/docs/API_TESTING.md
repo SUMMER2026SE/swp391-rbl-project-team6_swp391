@@ -27,7 +27,7 @@ curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@midori.com",
-    "password": "password123"
+    "password": "Password@123"
   }'
 ```
 
@@ -87,7 +87,7 @@ curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@midori.com",
-    "password": "password123"
+    "password": "Password@123"
   }'
 ```
 
@@ -189,8 +189,8 @@ curl -X POST http://localhost:8080/api/auth/change-password \
   -H "Authorization: Bearer <JWT_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
-    "currentPassword": "password123",
-    "newPassword": "newpassword456"
+    "currentPassword": "Password@123",
+    "newPassword": "NewPass@456"
   }'
 ```
 
@@ -250,7 +250,7 @@ curl -X POST http://localhost:8080/api/auth/reset-password \
   -H "Content-Type: application/json" \
   -d '{
     "token": "<TOKEN_FROM_CONSOLE>",
-    "newPassword": "resetpassword789"
+    "newPassword": "ResetPass@789"
   }'
 ```
 
@@ -335,6 +335,6 @@ SUPABASE_DB_USERNAME=<username>
 SUPABASE_DB_PASSWORD=<password>
 JWT_SECRET=<your_jwt_secret_at_least_32_chars>
 JWT_ACCESS_TOKEN_EXPIRATION=86400000
-TOKEN_EMAIL_VERIFICATION_EXPIRATION=86400
+TOKEN_EMAIL_VERIFICATION_EXPIRATION=60
 TOKEN_PASSWORD_RESET_EXPIRATION=3600
 ```

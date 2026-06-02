@@ -37,7 +37,7 @@ public class AuthService {
     private final EmailService emailService;
     private final Random otpRandom = new SecureRandom();
 
-    @Value("${app.token.email-verification-expiration:86400}")
+    @Value("${app.token.email-verification-expiration:60}")
     private long emailVerificationExpiration;
 
     @Value("${app.token.password-reset-expiration:3600}")
