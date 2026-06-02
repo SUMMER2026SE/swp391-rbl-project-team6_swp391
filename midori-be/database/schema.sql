@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT chk_role      CHECK (role IN ('STUDENT', 'TEACHER', 'ADMIN')),
-    CONSTRAINT chk_status    CHECK (status IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'BANNED')),
+    CONSTRAINT chk_status    CHECK (status IN ('PENDING', 'PENDING_APPROVAL', 'ACTIVE', 'SUSPENDED', 'BANNED')),
     CONSTRAINT chk_email    CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
