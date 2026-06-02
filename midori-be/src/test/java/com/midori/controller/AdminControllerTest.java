@@ -63,7 +63,7 @@ class AdminControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /admin/users/teachers/pending")
+    @DisplayName("GET /api/admin/users/teachers/pending")
     class GetPendingTeachers {
 
         @Test
@@ -72,7 +72,7 @@ class AdminControllerTest {
             List<UserResponse> teachers = List.of(sampleTeacher);
             when(adminUserService.getPendingTeachers()).thenReturn(teachers);
 
-            mockMvc.perform(get("/admin/users/teachers/pending"))
+            mockMvc.perform(get("/api/admin/users/teachers/pending"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.data", hasSize(1)))
@@ -87,7 +87,7 @@ class AdminControllerTest {
         void getPendingTeachers_empty() throws Exception {
             when(adminUserService.getPendingTeachers()).thenReturn(Collections.emptyList());
 
-            mockMvc.perform(get("/admin/users/teachers/pending"))
+            mockMvc.perform(get("/api/admin/users/teachers/pending"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.data", hasSize(0)));
@@ -97,7 +97,7 @@ class AdminControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT /admin/users/{userId}/approve")
+    @DisplayName("PUT /api/admin/users/{userId}/approve")
     class ApproveTeacher {
 
         @Test
@@ -115,7 +115,7 @@ class AdminControllerTest {
 
             when(adminUserService.approveTeacher(teacherId)).thenReturn(approvedTeacher);
 
-            mockMvc.perform(put("/admin/users/{userId}/approve", teacherId))
+            mockMvc.perform(put("/api/admin/users/{userId}/approve", teacherId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.message", is("Teacher approved successfully")))
@@ -131,7 +131,7 @@ class AdminControllerTest {
             when(adminUserService.approveTeacher(randomId))
                     .thenThrow(new ResourceNotFoundException("User", "id", randomId));
 
-            mockMvc.perform(put("/admin/users/{userId}/approve", randomId))
+            mockMvc.perform(put("/api/admin/users/{userId}/approve", randomId))
                     .andExpect(status().isNotFound());
 
             verify(adminUserService).approveTeacher(randomId);
@@ -139,7 +139,7 @@ class AdminControllerTest {
     }
 
     @Nested
-    @DisplayName("PUT /admin/users/{userId}/suspend")
+    @DisplayName("PUT /api/admin/users/{userId}/suspend")
     class SuspendUser {
 
         @Test
@@ -158,7 +158,7 @@ class AdminControllerTest {
 
             when(adminUserService.suspendUser(userId)).thenReturn(suspendedUser);
 
-            mockMvc.perform(put("/admin/users/{userId}/suspend", userId))
+            mockMvc.perform(put("/api/admin/users/{userId}/suspend", userId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
                     .andExpect(jsonPath("$.message", is("User suspended successfully")))
@@ -174,7 +174,7 @@ class AdminControllerTest {
             when(adminUserService.suspendUser(randomId))
                     .thenThrow(new ResourceNotFoundException("User", "id", randomId));
 
-            mockMvc.perform(put("/admin/users/{userId}/suspend", randomId))
+            mockMvc.perform(put("/api/admin/users/{userId}/suspend", randomId))
                     .andExpect(status().isNotFound());
 
             verify(adminUserService).suspendUser(randomId);
