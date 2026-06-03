@@ -1,8 +1,7 @@
 # ============================================================
-# MIDORI Local Configuration
-# ============================================================
-# COPY this file to application-local.yml
-# DO NOT commit application-local.yml with real secrets
+# MIDORI Local Configuration Template
+# COPY THIS FILE TO application-local.yml AND FILL IN SECRETS
+# DO NOT COMMIT application-local.yml
 # ============================================================
 
 spring:
@@ -10,9 +9,9 @@ spring:
     name: midori-be
 
   datasource:
-    url: ${SUPABASE_DB_URL}
-    username: ${SUPABASE_DB_USERNAME}
-    password: ${SUPABASE_DB_PASSWORD}
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+    username: postgres.clyuyvdaoprxrpmrcyhd
+    password: PASTE_SUPABASE_DB_PASSWORD_HERE
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -26,14 +25,14 @@ spring:
 
   mail:
     host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    port: 465
+    username: PASTE_GMAIL_SENDER_HERE
+    password: PASTE_GMAIL_APP_PASSWORD_HERE
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
+          ssl:
             enable: true
           connectiontimeout: 60000
           timeout: 60000
@@ -44,18 +43,18 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET}
-    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
+    secret: local-dev-jwt-secret-key-for-midori-backend-at-least-32-chars
+    access-token-expiration: 86400000
   token:
-    email-verification-expiration: ${TOKEN_EMAIL_VERIFICATION_EXPIRATION:60}
-    password-reset-expiration: ${TOKEN_PASSWORD_RESET_EXPIRATION:3600}
+    email-verification-expiration: 60
+    password-reset-expiration: 3600
   google:
-    client-id: ${GOOGLE_CLIENT_ID}
+    client-id: 65823123353-je7nstqt77f1l4d0576vijjaklrnfum9.apps.googleusercontent.com
   mail:
-    enabled: ${MAIL_ENABLED:false}
-    from: ${MAIL_FROM:no-reply@midori.local}
+    enabled: true
+    from: PASTE_GMAIL_SENDER_HERE
   frontend:
-    base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+    base-url: http://localhost:8081
 
 logging:
   level:
