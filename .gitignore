@@ -29,6 +29,11 @@ build/
 *.env
 
 # =============================================
+# Backend local secrets (NEVER commit)
+# =============================================
+midori-be/src/main/resources/application-local.yml
+
+# =============================================
 # Cloudflare / Wrangler
 # =============================================
 .wrangler/
