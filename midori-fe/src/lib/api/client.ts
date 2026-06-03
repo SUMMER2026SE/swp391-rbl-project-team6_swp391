@@ -73,6 +73,14 @@ async function request<T>(
   }
 
   if (!json.success) {
+    // Extract field-level error if available (e.g. from MethodArgumentNotValidException)
+    if (json.errors && typeof json.errors === "object") {
+      const fieldErrors = json.errors as Record<string, string>;
+      const errorValues = Object.values(fieldErrors);
+      if (errorValues.length > 0) {
+        throw new ApiError(errorValues[0], res.status, false);
+      }
+    }
     throw new ApiError(json.message ?? "An unexpected error occurred.", res.status, false);
   }
 

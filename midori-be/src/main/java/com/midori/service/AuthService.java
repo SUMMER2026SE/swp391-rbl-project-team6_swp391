@@ -205,6 +205,9 @@ public class AuthService {
             throw new BadRequestException("Current password is incorrect");
         }
 
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new BadRequestException("New password must be different from current password.");
+        }
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }

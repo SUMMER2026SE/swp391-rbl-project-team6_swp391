@@ -536,6 +536,7 @@ function TeacherSettingsPage() {
                     onClick={async () => {
                       setPwError(null);
                       if (!pwCurrent) { setPwError("Current password is required."); return; }
+                      if (pwNew === pwCurrent) { setPwError("New password must be different from current password."); return; }
                       if (pwNew.length < 8) { setPwError("Min. 8 characters."); return; }
                       if (!/[A-Z]/.test(pwNew)) { setPwError("Add at least one uppercase letter."); return; }
                       if (!/[0-9]/.test(pwNew)) { setPwError("Add at least one number."); return; }

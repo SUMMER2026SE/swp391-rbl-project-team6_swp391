@@ -132,15 +132,25 @@ function RootComponent() {
 
   if (!googleReady) return null;
 
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
+  const app = (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+
+  if (!googleClientId) {
+    return app;
+  }
+
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthProvider>
-            <Outlet />
-          </AuthProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      {app}
     </GoogleOAuthProvider>
   );
 }

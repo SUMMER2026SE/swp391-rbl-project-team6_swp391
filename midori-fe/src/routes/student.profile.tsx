@@ -12,7 +12,8 @@ import { useTheme, useAuth } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
-import { uploadAvatar } from "@/lib/avatar";
+import { useAuth } from "@/lib/auth";
+import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 
 export const Route = createFileRoute("/student/profile")({
   component: ProfilePage,
@@ -153,7 +154,9 @@ function ProfilePage() {
     setAvatarLoading(true);
     setShowRemoveConfirm(false);
     try {
-      const updated = await profileApi.updateMyProfile({ avatarUrl: null });
+      const currentUrl = avatarPreview;
+      await removeAvatar(currentUrl);
+      const updated = await profileApi.updateMyProfile({ avatarUrl: "" });
       setProfile(updated);
       setAvatarPreview(null);
       updateCurrentUser({ avatar: undefined });
@@ -757,6 +760,7 @@ function ProfilePage() {
                   <button onClick={async () => {
                     setPwError(null);
                     if (!currentPw) { setPwError("Current password is required."); return; }
+                    if (newPw === currentPw) { setPwError("New password must be different from current password."); return; }
                     if (newPw.length < 8) { setPwError("Min. 8 characters."); return; }
                     if (!/[A-Z]/.test(newPw)) { setPwError("Add at least one uppercase letter."); return; }
                     if (!/[0-9]/.test(newPw)) { setPwError("Add at least one number."); return; }
