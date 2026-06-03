@@ -11,7 +11,7 @@ import {
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
-import { uploadAvatar } from "@/lib/avatar";
+import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 
 interface Certificate {
   id: string;
@@ -688,7 +688,9 @@ function TeacherProfilePage() {
     setAvatarLoading(true);
     setShowRemoveConfirm(false);
     try {
-      const updated = await profileApi.updateMyProfile({ avatarUrl: null });
+      const currentUrl = avatarPreview;
+      await removeAvatar(currentUrl);
+      const updated = await profileApi.updateMyProfile({ avatarUrl: "" });
       setProfile(updated);
       setAvatarPreview(null);
       updateCurrentUser({ avatar: undefined });

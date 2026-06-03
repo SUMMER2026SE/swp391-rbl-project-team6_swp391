@@ -121,6 +121,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   const handleSave = async () => {
     setErrorMsg(null);
     if (!current) { setErrorMsg("Current password is required."); return; }
+    if (newPw === current) { setErrorMsg("New password must be different from current password."); return; }
     if (strength < 2) {
       setErrorMsg("New password is too weak. Use 8+ chars with uppercase and number.");
       return;

@@ -53,3 +53,25 @@ export async function uploadAvatar(
 
   return { avatarUrl: urlData.publicUrl };
 }
+
+export async function removeAvatar(
+  avatarUrl: string | null | undefined
+): Promise<void> {
+  if (!avatarUrl || avatarUrl.trim() === "") return;
+
+  const bucket = (import.meta.env.VITE_SUPABASE_AVATAR_BUCKET as string) || "avatars";
+
+  // Extract the storage path from the public URL
+  // Format: https://xxx.supabase.co/storage/v1/object/public/avatars/userId/filename
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const pathIndex = avatarUrl.indexOf(marker);
+  if (pathIndex === -1) return;
+
+  const path = avatarUrl.substring(pathIndex + marker.length);
+  if (!path) return;
+
+  const { error } = await supabase.storage.from(bucket).remove([path]);
+  if (error) {
+    console.warn("[Avatar] Failed to delete old avatar file from storage:", error.message);
+  }
+}
