@@ -1,9 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
-import { useState } from "react";
-import { useAuth, rolePath, type Role } from "@/lib/auth";
+import { useState, useRef } from "react";
+import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File } from "lucide-react";
+import { ApiError } from "@/lib/api/client";
+import { authApi } from "@/lib/api/auth";
+import { useAuth, rolePath } from "@/lib/auth";
 
 export const Route = createFileRoute("/register")({ component: RegisterPage });
+
+type Role = "STUDENT" | "TEACHER";
 
 type RegisterForm = {
   name: string;
@@ -12,88 +17,270 @@ type RegisterForm = {
   confirm: string;
 };
 
+type CertificateFile = {
+  file: File;
+  name: string;
+  issuer: string;
+  size: string;
+};
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function getFileIcon(type: string) {
+  if (type.startsWith("image/")) return <ImageIcon className="w-4 h-4 text-blue-500" />;
+  if (type === "application/pdf") return <FileText className="w-4 h-4 text-red-500" />;
+  return <File className="w-4 h-4 text-gray-500" />;
+}
+
 function RegisterPage() {
-  const { register, loginWithGoogle } = useAuth();
   const nav = useNavigate();
-  const [form, setForm] = useState<RegisterForm>({ name: "", email: "", password: "", confirm: "" });
-  const [role, setRole] = useState<Role>("student");
-  const [experience, setExperience] = useState("");
+  const [selectedRole, setSelectedRole] = useState<Role>("STUDENT");
+  const [form, setForm] = useState<RegisterForm>({
+    name: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
+  const [teachingExperience, setTeachingExperience] = useState("");
   const [bio, setBio] = useState("");
-  const [certificate, setCertificate] = useState<File | null>(null);
+  const [certificates, setCertificates] = useState<CertificateFile[]>([]);
+  const [fileError, setFileError] = useState("");
+  const [certificateErrors, setCertificateErrors] = useState<Record<number, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { loginWithGoogle } = useAuth();
 
   const update = (key: keyof RegisterForm, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const subtitle =
+    selectedRole === "STUDENT"
+      ? "Join thousands of students learning Japanese."
+      : "Create your teacher account and share Japanese with students.";
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError("");
+    const files = Array.from(e.target.files || []);
+
+    if (files.length === 0) return;
+
+    const validFiles: CertificateFile[] = [];
+    let hasError = false;
+
+    for (const file of files) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setFileError(`Invalid file type: ${file.name}. Only PDF, JPG, PNG allowed.`);
+        hasError = true;
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setFileError(`File too large: ${file.name}. Maximum 5MB per file.`);
+        hasError = true;
+        continue;
+      }
+      validFiles.push({
+        file,
+        name: "",
+        issuer: "",
+        size: formatFileSize(file.size),
+      });
+    }
+
+    if (validFiles.length > 0) {
+      setCertificates((prev) => [...prev, ...validFiles]);
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeCertificate = (index: number) => {
+    setCertificates((prev) => prev.filter((_, i) => i !== index));
+    setFileError("");
+    setCertificateErrors((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
+  const updateCertificateName = (index: number, name: string) => {
+    setCertificates((prev) =>
+      prev.map((cert, i) => (i === index ? { ...cert, name } : cert))
+    );
+    if (name.trim()) {
+      setCertificateErrors((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+    }
+  };
+
+  const updateCertificateIssuer = (index: number, issuer: string) => {
+    setCertificates((prev) =>
+      prev.map((cert, i) => (i === index ? { ...cert, issuer } : cert))
+    );
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
-    if (form.password !== form.confirm) { setErr("Passwords don't match."); return; }
-    if (form.password.length < 8) { setErr("Password must be at least 8 characters."); return; }
+
+    if (!form.name.trim()) {
+      setErr("Full name is required.");
+      return;
+    }
+    if (!form.email.trim()) {
+      setErr("Email is required.");
+      return;
+    }
+    if (form.password !== form.confirm) {
+      setErr("Passwords don't match.");
+      return;
+    }
+    if (form.password.length < 8) {
+      setErr("Password must be at least 8 characters.");
+      return;
+    }
+
+    // Validate certificate names if any files are uploaded
+    if (certificates.length > 0) {
+      const errors: Record<number, string> = {};
+      let hasErrors = false;
+      certificates.forEach((cert, index) => {
+        if (!cert.name.trim()) {
+          errors[index] = "Please enter a certificate name.";
+          hasErrors = true;
+        }
+      });
+      if (hasErrors) {
+        setCertificateErrors(errors);
+        setErr("Please fill in all certificate names.");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      const extra = role === "teacher" ? { experience, bio } : undefined;
-      const u = await register(form.name, form.email, form.password, role, extra);
-      if (role === "teacher") {
-        nav({ to: "/teacher-pending" });
+      // TODO: upload teacher certificates when backend supports it
+      // For now, only send basic register request
+      await authApi.register({
+        email: form.email,
+        password: form.password,
+        role: selectedRole,
+      });
+
+      const message =
+        selectedRole === "TEACHER"
+          ? "Teacher account created. Please verify your email."
+          : "Account created. Please verify your email.";
+      nav({ to: "/verify-otp", state: { email: form.email, message } });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErr(err.message);
       } else {
-        nav({ to: rolePath(u.role) });
+        setErr("Registration failed. Please try again.");
       }
-    } catch {
-      setErr("Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogle = async () => {
+  const handleGoogleSuccess = async (credential: string) => {
     setGoogleLoading(true);
     try {
-      const u = await loginWithGoogle();
+      const u = await loginWithGoogle(credential, selectedRole);
       nav({ to: rolePath(u.role) });
-    } catch {
-      setErr("Google sign-in failed. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.message.toLowerCase().includes("pending admin approval")) {
+          setErr("Your teacher account is pending admin approval. Please wait for admin review.");
+        } else {
+          setErr(err.message);
+        }
+      } else {
+        setErr("Google sign-in failed. Please try again.");
+      }
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  const handleCertChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) setCertificate(e.target.files[0]);
+  const handleGoogleError = () => {
+    setErr("Google sign-in failed. Please try again.");
   };
 
   return (
-    <AuthShell title="Create your account 🌸" subtitle="Join thousands of students learning Japanese."
-      footer={<>Already have an account? <Link to="/login" className="text-primary font-semibold">Sign in</Link></>}>
+    <AuthShell
+      title="Create your account 🌸"
+      subtitle={subtitle}
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link to="/login" className="text-primary font-semibold">
+            Sign in
+          </Link>
+        </>
+      }
+    >
       <form onSubmit={submit} className="space-y-4">
-        {/* Role selector — Student / Teacher only */}
         <div className="grid grid-cols-2 gap-2 p-1.5 bg-white/50 dark:bg-white/5 rounded-2xl">
-          {(["student", "teacher"] as Role[]).map((r) => (
-            <button
-              type="button"
-              key={r}
-              onClick={() => setRole(r)}
-              className={`px-3 py-3 rounded-xl text-sm font-semibold capitalize transition-all duration-200 ${
-                role === r
-                  ? "bg-gradient-hero text-white shadow-lg shadow-primary/30"
-                  : "text-muted-foreground hover:bg-white/60"
-              }`}
-            >
-              {r === "student" ? "🎓 Student" : "🧑‍🏫 Teacher"}
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => setSelectedRole("STUDENT")}
+            className={`px-3 py-3 rounded-xl text-sm font-semibold capitalize text-center transition-all ${
+              selectedRole === "STUDENT"
+                ? "bg-gradient-hero text-white shadow-lg shadow-primary/30"
+                : "text-muted-foreground hover:bg-white/60"
+            }`}
+          >
+            🎓 Student
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedRole("TEACHER")}
+            className={`px-3 py-3 rounded-xl text-sm font-semibold capitalize text-center transition-all ${
+              selectedRole === "TEACHER"
+                ? "bg-gradient-hero text-white shadow-lg shadow-primary/30"
+                : "text-muted-foreground hover:bg-white/60"
+            }`}
+          >
+            🧑‍🏫 Teacher
+          </button>
         </div>
 
+        {selectedRole === "TEACHER" && (
+          <p className="text-xs text-center text-muted-foreground -mt-1">
+            Your teacher profile can be completed after email verification.
+          </p>
+        )}
+
+        {/* Common fields */}
         <Field
           label="Full name"
+          type="text"
           required
           value={form.name}
           onChange={(e) => update("name", e.target.value)}
-          placeholder="Yuki Tanaka"
+          placeholder="Enter your full name"
           autoComplete="name"
         />
+
         <Field
           label="Email address"
           type="email"
@@ -103,75 +290,151 @@ function RegisterPage() {
           placeholder="you@example.com"
           autoComplete="email"
         />
+
         <Field
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           required
           value={form.password}
           onChange={(e) => update("password", e.target.value)}
           placeholder="Min. 8 characters"
           autoComplete="new-password"
+          endAdornment={
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((v) => !v)}
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          }
         />
+
         <Field
           label="Confirm password"
-          type="password"
+          type={showConfirm ? "text" : "password"}
           required
           value={form.confirm}
           onChange={(e) => update("confirm", e.target.value)}
           placeholder="Repeat your password"
           autoComplete="new-password"
+          endAdornment={
+            <button
+              type="button"
+              aria-label={showConfirm ? "Hide password" : "Show password"}
+              onClick={() => setShowConfirm((v) => !v)}
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
+            >
+              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          }
         />
 
-        {/* Teacher extra fields */}
-        {role === "teacher" && (
-          <div className="space-y-4 p-4 rounded-2xl bg-white/30 dark:bg-white/5 border border-white/40">
-            <p className="text-xs font-bold text-foreground/70 uppercase tracking-widest mb-1">Teacher application</p>
+        {/* Teacher Application Section */}
+        {selectedRole === "TEACHER" && (
+          <div className="rounded-2xl border border-border bg-white/30 dark:bg-white/5 p-4 space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">Teacher Application</h3>
 
-            <label className="block">
-              <span className="text-xs font-semibold text-foreground/80">Teaching Experience</span>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                Teaching Experience
+              </label>
               <textarea
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                placeholder="e.g. 3 years teaching at Tokyo Language School, JLPT N1 certified…"
+                value={teachingExperience}
+                onChange={(e) => setTeachingExperience(e.target.value)}
+                placeholder="e.g. 3 years teaching at Tokyo Language School, JLPT N1 certified..."
+                className="w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-black/20 border border-input text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                 rows={3}
-                className="mt-1.5 w-full px-4 py-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-white/50 outline-none focus:ring-2 focus:ring-primary/40 text-sm resize-none"
               />
-            </label>
+            </div>
 
-            <label className="block">
-              <span className="text-xs font-semibold text-foreground/80">Bio / About Me</span>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                Bio / About Me
+              </label>
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell students about your background and teaching style…"
+                placeholder="Tell students about your background and teaching style..."
+                className="w-full px-3 py-2.5 rounded-xl bg-white/50 dark:bg-black/20 border border-input text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                 rows={3}
-                className="mt-1.5 w-full px-4 py-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-white/50 outline-none focus:ring-2 focus:ring-primary/40 text-sm resize-none"
               />
-            </label>
+            </div>
 
-            <label className="block">
-              <span className="text-xs font-semibold text-foreground/80">Certificate Upload</span>
-              <div className="mt-1.5 relative">
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleCertChange}
-                  className="hidden"
-                  id="cert-upload"
-                />
-                <label
-                  htmlFor="cert-upload"
-                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-primary/40 bg-white/40 text-sm font-medium text-primary cursor-pointer hover:bg-white/60 transition"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  {certificate ? certificate.name : "Upload certificate (PDF, JPG, PNG)"}
-                </label>
-              </div>
-            </label>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                Certificate Upload
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                id="certificate-upload"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Upload certificates PDF / JPG / PNG (max 5MB)
+              </button>
+              {fileError && (
+                <p className="mt-1.5 text-xs text-destructive">{fileError}</p>
+              )}
+
+              {certificates.length > 0 && (
+                <div className="mt-3 space-y-3">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Certificate Details ({certificates.length})
+                  </p>
+                  {certificates.map((cert, index) => (
+                    <div
+                      key={index}
+                      className="p-3 rounded-xl bg-white/50 dark:bg-black/20 border border-border space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {getFileIcon(cert.file.type)}
+                          <span className="text-sm truncate font-medium">{cert.name || cert.file.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            ({cert.size})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeCertificate(index)}
+                          className="p-1 hover:bg-destructive/10 rounded transition-colors shrink-0"
+                        >
+                          <X className="w-4 h-4 text-destructive" />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={cert.name}
+                        onChange={(e) => updateCertificateName(index, e.target.value)}
+                        placeholder="Certificate name (e.g. JLPT N1, Japanese Teaching Certificate...)"
+                        className="w-full px-3 py-2 rounded-lg bg-white/70 dark:bg-black/30 border border-input text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                      {certificateErrors[index] && (
+                        <p className="text-xs text-destructive">{certificateErrors[index]}</p>
+                      )}
+                      <input
+                        type="text"
+                        value={cert.issuer}
+                        onChange={(e) => updateCertificateIssuer(index, e.target.value)}
+                        placeholder="Issuer / Organization (optional) (e.g. Japan Foundation...)"
+                        className="w-full px-3 py-2 rounded-lg bg-white/70 dark:bg-black/30 border border-input text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -181,17 +444,26 @@ function RegisterPage() {
           </div>
         )}
 
-        <PrimaryBtn type="submit" disabled={loading || googleLoading}>
+        <PrimaryBtn type="submit" disabled={loading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+                />
               </svg>
               Creating account…
             </span>
-          ) : role === "teacher" ? (
-            "Submit teacher application"
           ) : (
             "Create account"
           )}
@@ -199,11 +471,13 @@ function RegisterPage() {
 
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">or</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            or
+          </span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        <GoogleBtn onClick={handleGoogle} disabled={loading || googleLoading} />
+        <GoogleBtn onSuccess={handleGoogleSuccess} onError={handleGoogleError} disabled={loading || googleLoading} />
 
         <p className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">
           Admin accounts are created internally — not via signup.
