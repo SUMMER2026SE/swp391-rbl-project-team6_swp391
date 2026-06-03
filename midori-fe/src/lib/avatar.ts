@@ -1,5 +1,3 @@
-import { supabase } from "./api/supabase";
-
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE_MB = 5;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
@@ -16,6 +14,8 @@ export async function uploadAvatar(
   userId: string,
   file: File
 ): Promise<AvatarUploadResult> {
+  const { supabase } = await import("./api/supabase");
+
   if (!userId) {
     return Promise.reject({ message: "User ID is required." });
   }
@@ -59,6 +59,7 @@ export async function removeAvatar(
 ): Promise<void> {
   if (!avatarUrl || avatarUrl.trim() === "") return;
 
+  const { supabase } = await import("./api/supabase");
   const bucket = (import.meta.env.VITE_SUPABASE_AVATAR_BUCKET as string) || "avatars";
 
   // Extract the storage path from the public URL

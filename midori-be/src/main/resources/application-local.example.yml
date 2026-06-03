@@ -9,8 +9,8 @@ spring:
     name: midori-be
 
   datasource:
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
-    username: postgres.clyuyvdaoprxrpmrcyhd
+    url: jdbc:postgresql://YOUR_SUPABASE_HOST.supabase.co:5432/postgres?sslmode=require
+    username: postgres
     password: PASTE_SUPABASE_DB_PASSWORD_HERE
     driver-class-name: org.postgresql.Driver
 
@@ -49,7 +49,7 @@ app:
     email-verification-expiration: 60
     password-reset-expiration: 3600
   google:
-    client-id: 65823123353-je7nstqt77f1l4d0576vijjaklrnfum9.apps.googleusercontent.com
+    client-id: YOUR_GOOGLE_CLIENT_ID
   mail:
     enabled: true
     from: PASTE_GMAIL_SENDER_HERE

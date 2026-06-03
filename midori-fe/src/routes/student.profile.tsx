@@ -12,6 +12,7 @@ import { useTheme, useAuth } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
+import { useAuth } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 
 export const Route = createFileRoute("/student/profile")({

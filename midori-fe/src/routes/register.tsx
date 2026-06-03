@@ -139,7 +139,6 @@ function RegisterPage() {
       setCertificates((prev) => [...prev, ...validFiles]);
     }
 
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -193,7 +192,6 @@ function RegisterPage() {
       return;
     }
 
-    // Validate certificate names if any files are uploaded
     if (certificates.length > 0) {
       const errors: Record<number, string> = {};
       let hasErrors = false;
@@ -303,7 +301,6 @@ function RegisterPage() {
           </p>
         )}
 
-        {/* Common fields */}
         <Field
           label="Full name"
           type="text"
@@ -344,7 +341,6 @@ function RegisterPage() {
           }
         />
 
-        {/* Password strength checklist */}
         {form.password.length > 0 && (
           <div className="space-y-1.5 px-1">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -428,7 +424,6 @@ function RegisterPage() {
           }
         />
 
-        {/* Teacher Application Section */}
         {selectedRole === "TEACHER" && (
           <div className="rounded-2xl border border-border bg-white/30 dark:bg-white/5 p-4 space-y-4">
             <h3 className="text-sm font-semibold text-foreground">Teacher Application</h3>
