@@ -1,7 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth, rolePath } from "@/lib/auth";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -10,6 +12,7 @@ function LoginPage() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -22,23 +25,35 @@ function LoginPage() {
     try {
       const u = await login(email, password);
       nav({ to: rolePath(u.role) });
-    } catch {
-      setErr("Invalid email or password. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErr(err.message);
+      } else {
+        setErr("Unable to sign in. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogle = async () => {
+  const handleGoogleSuccess = async (credential: string) => {
     setGoogleLoading(true);
     try {
-      const u = await loginWithGoogle();
+      const u = await loginWithGoogle(credential);
       nav({ to: rolePath(u.role) });
-    } catch {
-      setErr("Google sign-in failed. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErr(err.message);
+      } else {
+        setErr("Unable to sign in. Please try again.");
+      }
     } finally {
       setGoogleLoading(false);
     }
+  };
+
+  const handleGoogleError = () => {
+    setErr("Google sign-in failed. Please try again.");
   };
 
   return (
@@ -56,12 +71,26 @@ function LoginPage() {
         />
         <Field
           label="Password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter your password"
           autoComplete="current-password"
+          endAdornment={
+            <button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((v) => !v)}
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          }
         />
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -100,7 +129,7 @@ function LoginPage() {
           <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">or</span>
           <div className="flex-1 h-px bg-border" />
         </div>
-        <GoogleBtn onClick={handleGoogle} disabled={loading || googleLoading} />
+        <GoogleBtn onSuccess={handleGoogleSuccess} onError={handleGoogleError} disabled={loading || googleLoading} />
       </form>
     </AuthShell>
   );
