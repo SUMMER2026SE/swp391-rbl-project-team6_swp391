@@ -45,8 +45,9 @@ public class ProfileService {
         if (request.getDisplayName() != null) {
             profile.setDisplayName(request.getDisplayName());
         }
-        if (request.getAvatarUrl() != null) {
-            profile.setAvatarUrl(request.getAvatarUrl());
+        String avatarUrl = request.getAvatarUrl();
+        if (avatarUrl != null) {
+            profile.setAvatarUrl(avatarUrl.isBlank() ? null : avatarUrl);
         }
         if (request.getBio() != null) {
             profile.setBio(request.getBio());
