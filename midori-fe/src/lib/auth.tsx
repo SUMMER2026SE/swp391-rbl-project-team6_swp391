@@ -1,12 +1,16 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { api } from "./api/client";
+import { authApi } from "./api/auth";
+import type { Role } from "./api/types";
+import type { UserResponse } from "./api/types";
 
-export type Role = "student" | "teacher" | "admin";
+export type FrontendRole = "student" | "teacher" | "admin";
 
 export type User = {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  role: FrontendRole;
   avatar?: string;
   status?: "active" | "pending";
 };
@@ -15,72 +19,120 @@ type AuthCtx = {
   user: User | null;
   loaded: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (name: string, email: string, password: string, role: Role, extra?: TeacherExtra) => Promise<User>;
-  loginWithGoogle: () => Promise<User>;
+  register: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, role?: string) => Promise<User>;
   logout: () => void;
-};
-
-export type TeacherExtra = {
-  experience?: string;
-  bio?: string;
-  certificate?: File;
+  updateCurrentUser: (patch: Partial<User>) => void;
+  accessToken: string | null;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
-const KEY = "midori_user";
+const USER_KEY = "midori_user";
+const TOKEN_KEY = "midori_access_token";
+
+function mapBackendRole(role: string): FrontendRole {
+  switch (role) {
+    case "TEACHER":
+      return "teacher";
+    case "ADMIN":
+      return "admin";
+    case "STUDENT":
+    default:
+      return "student";
+  }
+}
+
+function userResponseToUser(r: UserResponse): User {
+  return {
+    id: r.id,
+    name: r.name ?? r.email.split("@")[0],
+    email: r.email,
+    role: mapBackendRole(r.role),
+    avatar: r.avatarUrl,
+    status: r.status === "ACTIVE" ? "active" : "pending",
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
-      if (raw) setUser(JSON.parse(raw));
-    } catch {}
-    setLoaded(true);
+    async function restore() {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+
+      if (token) {
+        try {
+          const userResponse = await authApi.getMe();
+          setUser(userResponseToUser(userResponse));
+        } catch (err) {
+          console.debug("[Auth] getMe failed during restore", err);
+          api.removeToken();
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+        }
+      } else {
+        try {
+          const raw =
+            typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+          if (raw) setUser(JSON.parse(raw));
+        } catch {}
+      }
+
+      setLoaded(true);
+    }
+
+    restore();
   }, []);
 
-  const persist = (u: User | null) => {
+  const persistUser = (u: User | null) => {
     setUser(u);
     if (typeof window !== "undefined") {
-      if (u) localStorage.setItem(KEY, JSON.stringify(u));
-      else localStorage.removeItem(KEY);
+      if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+      else localStorage.removeItem(USER_KEY);
     }
-  };
-
-  const inferRole = (email: string): Role => {
-    if (email.includes("admin")) return "admin";
-    if (email.includes("teacher") || email.includes("sensei")) return "teacher";
-    return "student";
   };
 
   const value: AuthCtx = {
     user,
     loaded,
-    login: async (email, _pw) => {
-      const r = inferRole(email);
-      const u: User = { id: "u_" + Date.now(), name: email.split("@")[0], email, role: r, status: "active" };
-      persist(u);
+    accessToken:
+      typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
+
+    login: async (email, password) => {
+      const res = await authApi.login({ email, password });
+      const data = res;
+
+      api.setToken(data.accessToken);
+      const u = userResponseToUser(data.user);
+      persistUser(u);
       return u;
     },
-    register: async (name, email, _pw, role, extra) => {
-      if (role === "teacher") {
-        const u: User = { id: "u_" + Date.now(), name, email, role, status: "pending" };
-        persist(u);
-        return u;
-      }
-      const u: User = { id: "u_" + Date.now(), name, email, role, status: "active" };
-      persist(u);
+
+    register: async (email, password) => {
+      await authApi.register({ email, password });
+    },
+
+    loginWithGoogle: async (idToken: string, role?: string) => {
+      const res = await authApi.googleLogin(idToken, role);
+      api.setToken(res.accessToken);
+      const u = userResponseToUser(res.user);
+      persistUser(u);
       return u;
     },
-    loginWithGoogle: async () => {
-      const u: User = { id: "g_" + Date.now(), name: "Yuki Tanaka", email: "yuki@gmail.com", role: "student", status: "active" };
-      persist(u);
-      return u;
+
+    logout: () => {
+      api.removeToken();
+      localStorage.removeItem(TOKEN_KEY);
+      persistUser(null);
     },
-    logout: () => persist(null),
+
+    updateCurrentUser: (patch: Partial<User>) => {
+      if (!user) return;
+      const updated = { ...user, ...patch };
+      persistUser(updated);
+    },
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -92,7 +144,7 @@ export function useAuth() {
   return c;
 }
 
-export function rolePath(role: Role) {
+export function rolePath(role: FrontendRole) {
   return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
 }
 
@@ -125,11 +177,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
-    if (typeof document !== "undefined") document.documentElement.classList.toggle("dark", next === "dark");
+    if (typeof document !== "undefined")
+      document.documentElement.classList.toggle("dark", next === "dark");
     if (typeof window !== "undefined") localStorage.setItem(THEME_KEY, next);
   };
 
-  return <ThemeCtx.Provider value={{ theme, toggleTheme }}>{children}</ThemeCtx.Provider>;
+  return (
+    <ThemeCtx.Provider value={{ theme, toggleTheme }}>{children}</ThemeCtx.Provider>
+  );
 }
 
 export function useTheme() {
