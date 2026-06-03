@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Bell, Palette, Shield, Camera, Save, Check,
-  Moon, Sun, Globe, Mail, MapPin, Link2, Clock,
-  Eye, EyeOff, ChevronDown, X, Languages, Monitor
+  Moon, Sun, Globe, Mail, MapPin, Link2, Clock, Lock, AlertCircle,
+  Eye, EyeOff, ChevronDown, X, Languages, Monitor, Loader2
 } from "lucide-react";
+import { authApi } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/client";
 
 type SettingsTab = "account" | "notifications" | "appearance" | "security";
 
@@ -222,6 +224,14 @@ function TeacherSettingsPage() {
 
   // Security state
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwSuccess, setPwSuccess] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
   const [twoFactor, setTwoFactor] = useState(false);
 
   // Apply theme on mount and change
@@ -441,12 +451,26 @@ function TeacherSettingsPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
               <SectionCard>
                 <h2 className="font-display font-bold text-lg mb-5">Security Settings</h2>
+                {pwSuccess && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-green-50 dark:bg-green-500/15 border border-green-200 dark:border-green-500/30 text-green-600 dark:text-green-400 text-xs font-bold">
+                    <Check className="w-4 h-4" /> Password updated successfully!
+                  </motion.div>
+                )}
+                {pwError && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30 text-red-500 dark:text-red-400 text-xs font-bold">
+                    <AlertCircle className="w-4 h-4" /> {pwError}
+                  </motion.div>
+                )}
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Current Password</label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
+                        value={pwCurrent}
+                        onChange={e => setPwCurrent(e.target.value)}
                         placeholder="Enter current password"
                         className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                       />
@@ -463,16 +487,82 @@ function TeacherSettingsPage() {
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">New Password</label>
-                      <input type="password" placeholder="New password" className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={pwNew}
+                          onChange={e => setPwNew(e.target.value)}
+                          placeholder="New password"
+                          className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(v => !v)}
+                          aria-label={showNewPassword ? "Hide password" : "Show password"}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                     <div className="flex-1">
                       <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Confirm</label>
-                      <input type="password" placeholder="Confirm password" className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={pwConfirm}
+                          onChange={e => setPwConfirm(e.target.value)}
+                          placeholder="Confirm password"
+                          className={`w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border text-sm outline-none focus:ring-2 focus:ring-primary/40 ${
+                            pwConfirm && pwNew !== pwConfirm ? "border-red-400 dark:border-red-500/50" : "border-slate-200 dark:border-slate-700"
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(v => !v)}
+                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {pwConfirm && pwNew !== pwConfirm && (
+                        <p className="text-[10px] text-red-500 font-bold mt-1">Passwords do not match</p>
+                      )}
                     </div>
                   </div>
 
-                  <button className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition">
-                    Update Password
+                  <button
+                    onClick={async () => {
+                      setPwError(null);
+                      if (!pwCurrent) { setPwError("Current password is required."); return; }
+                      if (pwNew.length < 8) { setPwError("Min. 8 characters."); return; }
+                      if (!/[A-Z]/.test(pwNew)) { setPwError("Add at least one uppercase letter."); return; }
+                      if (!/[0-9]/.test(pwNew)) { setPwError("Add at least one number."); return; }
+                      if (!/[^A-Za-z0-9]/.test(pwNew)) { setPwError("Add at least one special character."); return; }
+                      if (pwNew !== pwConfirm) { setPwError("Passwords do not match."); return; }
+                      setPwLoading(true);
+                      try {
+                        await authApi.changePassword({ currentPassword: pwCurrent, newPassword: pwNew });
+                        setPwSuccess(true);
+                        setPwCurrent(""); setPwNew(""); setPwConfirm("");
+                        setTimeout(() => setPwSuccess(false), 4000);
+                      } catch (err) {
+                        if (err instanceof ApiError) {
+                          setPwError(err.message);
+                        } else {
+                          setPwError("Failed to change password.");
+                        }
+                      } finally {
+                        setPwLoading(false);
+                      }
+                    }}
+                    disabled={pwLoading}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {pwLoading
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
+                      : <><Lock className="w-4 h-4" /> Update Password</>}
                   </button>
                 </div>
               </SectionCard>

@@ -1,12 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Edit3, BookOpen, GraduationCap, Award, Upload, Clock,
   FileCheck, Eye, Calendar, MapPin, Globe, Mail, Edit, Save, X,
   ChevronRight, Users, TrendingUp, CheckCircle, Camera, Trash2,
-  Image as ImageIcon, FileImage, Plus
+  Image as ImageIcon, FileImage, Plus, Loader2, AlertCircle, CheckCheck,
+  Phone, Cake
 } from "lucide-react";
+import { profileApi, type ProfileResponse } from "@/lib/api/profile";
+import { ApiError } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth";
+import { uploadAvatar } from "@/lib/avatar";
 
 interface Certificate {
   id: string;
@@ -581,12 +586,25 @@ function CertCard({
 
 // --- Main Page ---
 function TeacherProfilePage() {
+  // Profile data from backend
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(teacherProfile.name);
-  const [editBio, setEditBio] = useState(teacherProfile.bio);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editDateOfBirth, setEditDateOfBirth] = useState("");
+  const { user, updateCurrentUser } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [certificates, setCertificates] = useState<Certificate[]>(defaultCerts);
   const [showAddCert, setShowAddCert] = useState(false);
   const [editingCert, setEditingCert] = useState<Certificate | null>(null);
@@ -594,22 +612,91 @@ function TeacherProfilePage() {
 
   const hasCustomAvatar = avatarPreview !== null;
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-        setShowAvatarMenu(false);
-      };
-      reader.readAsDataURL(file);
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await profileApi.getMyProfile();
+      setProfile(res);
+      setEditName(res.displayName || "");
+      setEditBio(res.bio || "");
+      setEditLocation(res.location || "");
+      setEditPhone(res.phone || "");
+      setEditDateOfBirth(res.dateOfBirth || "");
+      if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setLoadError(err.message);
+      } else {
+        setLoadError("Failed to load profile.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  const handleSave = async () => {
+    setSaveError(null);
+    setSaveSuccess(false);
+    if (!editName.trim()) { setSaveError("Display name is required."); return; }
+    try {
+      const updated = await profileApi.updateMyProfile({
+        displayName: editName.trim(),
+        bio: editBio || undefined,
+        location: editLocation || undefined,
+        phone: editPhone || undefined,
+        dateOfBirth: editDateOfBirth || undefined,
+      });
+      setProfile(updated);
+      updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
+      setEditing(false);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSaveError(err.message);
+      } else {
+        setSaveError("Failed to save profile.");
+      }
     }
   };
 
-  const handleRemoveAvatar = () => {
-    setAvatarPreview(null);
-    setShowRemoveConfirm(false);
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
     setShowAvatarMenu(false);
+    try {
+      const { avatarUrl } = await uploadAvatar(user.id, file);
+      const updated = await profileApi.updateMyProfile({ avatarUrl });
+      setProfile(updated);
+      setAvatarPreview(avatarUrl);
+      updateCurrentUser({ avatar: avatarUrl });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setAvatarError(null);
+    setAvatarLoading(true);
+    setShowRemoveConfirm(false);
+    try {
+      const updated = await profileApi.updateMyProfile({ avatarUrl: null });
+      setProfile(updated);
+      setAvatarPreview(null);
+      updateCurrentUser({ avatar: undefined });
+    } catch (err: unknown) {
+      setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
+    } finally {
+      setAvatarLoading(false);
+    }
   };
 
   const handleAddCert = (cert: Omit<Certificate, "id">) => {
@@ -631,6 +718,37 @@ function TeacherProfilePage() {
     setShowRemoveCertConfirm(null);
   };
 
+  const avatarLetter = (editName || profile?.displayName || "?").charAt(0).toUpperCase();
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-sm text-muted-foreground">Loading profile…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3 max-w-sm">
+          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-500/15 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6 text-red-500" />
+          </div>
+          <p className="text-sm text-red-500 font-medium">{loadError}</p>
+          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Profile Header */}
@@ -646,13 +764,20 @@ function TeacherProfilePage() {
             {editing ? (
               <>
                 <button
-                  onClick={() => setEditing(false)}
+                  onClick={() => {
+                    setEditing(false);
+                    setEditName(profile?.displayName || "");
+                    setEditBio(profile?.bio || "");
+                    setEditLocation(profile?.location || "");
+                    setEditPhone(profile?.phone || "");
+                    setEditDateOfBirth(profile?.dateOfBirth || "");
+                  }}
                   className="px-3 py-1.5 rounded-lg bg-white/20 text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => setEditing(false)}
+                  onClick={handleSave}
                   className="px-3 py-1.5 rounded-lg bg-white text-purple-600 text-xs font-bold backdrop-blur-sm shadow hover:bg-white/90 transition"
                 >
                   Save Changes
@@ -688,13 +813,13 @@ function TeacherProfilePage() {
                     whileHover={{ scale: 1.05 }}
                     className="w-24 h-24 rounded-2xl bg-gradient-hero flex items-center justify-center text-white text-4xl font-black shadow-xl border-4 border-white dark:border-slate-800"
                   >
-                    {teacherProfile.avatar}
+                    {avatarLetter}
                   </motion.div>
                 )}
 
                 {/* Level badge */}
                 <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-gradient-hero text-white text-[10px] font-black shadow-lg border-2 border-white dark:border-slate-800 z-10">
-                  Lv.{teacherProfile.level}
+                  Teacher
                 </div>
 
                 {/* Avatar Action Button */}
@@ -702,39 +827,53 @@ function TeacherProfilePage() {
                   <div className="relative">
                     <button
                       onClick={() => setShowAvatarMenu(!showAvatarMenu)}
-                      className="w-7 h-7 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 transition"
+                      disabled={avatarLoading}
+                      className="w-7 h-7 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 transition disabled:opacity-50"
                     >
-                      <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                      {avatarLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-slate-300" />
+                      ) : (
+                        <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                      )}
                     </button>
 
                     {/* Avatar Dropdown Menu */}
                     <AnimatePresence>
                       {showAvatarMenu && (
                         <motion.div
-                          initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                          initial={{ opacity: 0, y: 4, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                          exit={{ opacity: 0, y: 4, scale: 0.95 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[180px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
                         >
-                          <label className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-primary/5 cursor-pointer transition">
-                            <Upload className="w-4 h-4 text-primary" />
-                            <span>Upload Avatar</span>
+                          <label className="flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition">
+                            {avatarLoading ? (
+                              <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin text-indigo-500" />
+                            ) : (
+                              <Upload className="w-4 h-4 flex-shrink-0 text-indigo-500" />
+                            )}
+                            <span className="font-medium">{avatarLoading ? "Uploading..." : "Change Avatar"}</span>
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={avatarLoading}
                               onChange={handleAvatarChange}
                               className="hidden"
                             />
                           </label>
                           {hasCustomAvatar && (
                             <button
+                              disabled={avatarLoading}
                               onClick={() => { setShowRemoveConfirm(true); setShowAvatarMenu(false); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition disabled:opacity-50"
                             >
-                              <Trash2 className="w-4 h-4" />
-                              Remove Avatar
+                              <Trash2 className="w-4 h-4 flex-shrink-0" />
+                              <span className="font-medium">Remove Avatar</span>
                             </button>
+                          )}
+                          {avatarError && (
+                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">{avatarError}</p>
                           )}
                         </motion.div>
                       )}
@@ -753,19 +892,30 @@ function TeacherProfilePage() {
                   />
                 ) : (
                   <h2 className="text-2xl font-display font-black text-slate-900 dark:text-white">
-                    {teacherProfile.name}
+                    {profile?.displayName || "—"}
                   </h2>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
-                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <MapPin className="w-3 h-3" /> {teacherProfile.location}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <Globe className="w-3 h-3" /> {teacherProfile.website}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                    <Calendar className="w-3 h-3" /> {teacherProfile.joinDate}
-                  </span>
+                  {profile?.location && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <MapPin className="w-3 h-3" /> {profile.location}
+                    </span>
+                  )}
+                  {profile?.phone && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <Phone className="w-3 h-3" /> {profile.phone}
+                    </span>
+                  )}
+                  {profile?.dateOfBirth && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <Cake className="w-3 h-3" /> {new Date(profile.dateOfBirth).toLocaleDateString()}
+                    </span>
+                  )}
+                  {profile?.createdAt && (
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                      <Calendar className="w-3 h-3" /> Joined {new Date(profile.createdAt).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
                 {editing ? (
                   <textarea
@@ -773,11 +923,31 @@ function TeacherProfilePage() {
                     onChange={e => setEditBio(e.target.value)}
                     rows={2}
                     className="mt-2 w-full max-w-lg text-sm bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40 resize-none text-center sm:text-left"
+                    placeholder="Tell us about yourself..."
                   />
-                ) : (
+                ) : profile?.bio ? (
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-lg leading-relaxed">
-                    {teacherProfile.bio}
+                    {profile.bio}
                   </p>
+                ) : null}
+                {editing && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Location</label>
+                      <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" placeholder="Location" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Phone</label>
+                      <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" placeholder="+84..." />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Date of Birth</label>
+                      <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -787,15 +957,15 @@ function TeacherProfilePage() {
         {/* Stats */}
         <div className="px-6 pb-6 grid grid-cols-3 gap-3">
           <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-primary">{teacherProfile.students.toLocaleString()}</div>
+            <div className="font-display font-black text-xl text-primary">—</div>
             <div className="text-[10px] text-muted-foreground">Students taught</div>
           </div>
           <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-purple-500">{teacherProfile.lessons}</div>
+            <div className="font-display font-black text-xl text-purple-500">—</div>
             <div className="text-[10px] text-muted-foreground">Lessons created</div>
           </div>
           <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-green-500">{teacherProfile.experience}</div>
+            <div className="font-display font-black text-xl text-green-500">—</div>
             <div className="text-[10px] text-muted-foreground">Experience</div>
           </div>
         </div>
@@ -869,9 +1039,10 @@ function TeacherProfilePage() {
                 </button>
                 <button
                   onClick={handleRemoveAvatar}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition"
+                  disabled={avatarLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1"
                 >
-                  Remove
+                  {avatarLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Removing...</> : "Remove"}
                 </button>
               </div>
             </motion.div>
