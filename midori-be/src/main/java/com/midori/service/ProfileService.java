@@ -49,7 +49,6 @@ public class ProfileService {
         if (avatarUrl != null) {
             profile.setAvatarUrl(avatarUrl.isBlank() ? null : avatarUrl);
         }
-        }
         if (request.getBio() != null) {
             profile.setBio(request.getBio());
         }
