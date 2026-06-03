@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState, useRef } from "react";
-import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File } from "lucide-react";
+import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File, Check } from "lucide-react";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
 import { useAuth, rolePath } from "@/lib/auth";
@@ -16,6 +16,43 @@ type RegisterForm = {
   password: string;
   confirm: string;
 };
+
+type PasswordRule = {
+  label: string;
+  test: (pw: string) => boolean;
+};
+
+const PASSWORD_RULES: PasswordRule[] = [
+  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
+  { label: "At least 1 uppercase letter (A-Z)", test: (pw) => /[A-Z]/.test(pw) },
+  { label: "At least 1 lowercase letter (a-z)", test: (pw) => /[a-z]/.test(pw) },
+  { label: "At least 1 number (0-9)", test: (pw) => /\d/.test(pw) },
+  {
+    label: "At least 1 special character (!@#$%^&*?._-)",
+    test: (pw) => /[@$!%*?&.#_\-]/.test(pw),
+  },
+];
+
+function getPasswordErrors(password: string, confirm: string): string[] {
+  const errors: string[] = [];
+  if (password.length > 0 && password.length < 8)
+    errors.push("Password must be at least 8 characters.");
+  if (password.length > 0 && !/[A-Z]/.test(password))
+    errors.push("Password must include an uppercase letter.");
+  if (password.length > 0 && !/[a-z]/.test(password))
+    errors.push("Password must include a lowercase letter.");
+  if (password.length > 0 && !/\d/.test(password))
+    errors.push("Password must include a number.");
+  if (password.length > 0 && !/[@$!%*?&.#_\-]/.test(password))
+    errors.push("Password must include a special character.");
+  if (confirm.length > 0 && password !== confirm)
+    errors.push("Passwords do not match.");
+  return errors;
+}
+
+function isPasswordStrong(password: string): boolean {
+  return PASSWORD_RULES.every((rule) => rule.test(password));
+}
 
 type CertificateFile = {
   file: File;
@@ -149,12 +186,10 @@ function RegisterPage() {
       setErr("Email is required.");
       return;
     }
-    if (form.password !== form.confirm) {
-      setErr("Passwords don't match.");
-      return;
-    }
-    if (form.password.length < 8) {
-      setErr("Password must be at least 8 characters.");
+
+    const passwordErrors = getPasswordErrors(form.password, form.confirm);
+    if (passwordErrors.length > 0) {
+      setErr(passwordErrors[0]);
       return;
     }
 
@@ -177,8 +212,6 @@ function RegisterPage() {
 
     setLoading(true);
     try {
-      // TODO: upload teacher certificates when backend supports it
-      // For now, only send basic register request
       await authApi.register({
         email: form.email,
         password: form.password,
@@ -297,7 +330,7 @@ function RegisterPage() {
           required
           value={form.password}
           onChange={(e) => update("password", e.target.value)}
-          placeholder="Min. 8 characters"
+          placeholder="Min. 8 characters with uppercase, number, special"
           autoComplete="new-password"
           endAdornment={
             <button
@@ -310,6 +343,70 @@ function RegisterPage() {
             </button>
           }
         />
+
+        {/* Password strength checklist */}
+        {form.password.length > 0 && (
+          <div className="space-y-1.5 px-1">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Password requirements
+            </p>
+            <div className="grid grid-cols-1 gap-1">
+              {PASSWORD_RULES.map((rule, i) => {
+                const passed = rule.test(form.password);
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                        passed
+                          ? "bg-green-500 text-white"
+                          : "bg-white/40 dark:bg-white/10 text-muted-foreground"
+                      }`}
+                    >
+                      {passed ? (
+                        <Check className="w-2.5 h-2.5 font-bold" />
+                      ) : (
+                        <span className="text-[10px] font-bold leading-none">&#x2022;</span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs transition-colors ${
+                        passed ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+                      }`}
+                    >
+                      {rule.label}
+                    </span>
+                  </div>
+                );
+              })}
+              {form.confirm.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                      form.password === form.confirm
+                        ? "bg-green-500 text-white"
+                        : "bg-white/40 dark:bg-white/10 text-muted-foreground"
+                    }`}
+                  >
+                    {form.password === form.confirm ? (
+                      <Check className="w-2.5 h-2.5 font-bold" />
+                    ) : (
+                      <span className="text-[10px] font-bold leading-none">&#x2022;</span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs transition-colors ${
+                      form.password === form.confirm
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    Passwords match
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <Field
           label="Confirm password"
@@ -444,7 +541,7 @@ function RegisterPage() {
           </div>
         )}
 
-        <PrimaryBtn type="submit" disabled={loading}>
+        <PrimaryBtn type="submit" disabled={loading || !isPasswordStrong(form.password) || !form.confirm}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">

@@ -8,7 +8,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { useRef, useEffect, useState } from "react";
 
 import appCss from "../styles.css?url";
 import { AuthProvider, ThemeProvider } from "@/lib/auth";
@@ -121,26 +120,25 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [googleReady, setGoogleReady] = useState(false);
-  const didInit = useRef(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-  useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    setGoogleReady(true);
-  }, []);
+  const app = (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 
-  if (!googleReady) return null;
+  if (!googleClientId) {
+    return app;
+  }
 
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthProvider>
-            <Outlet />
-          </AuthProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      {app}
     </GoogleOAuthProvider>
   );
 }
