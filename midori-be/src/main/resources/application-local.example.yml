@@ -1,0 +1,63 @@
+# ============================================================
+# MIDORI Local Configuration
+# ============================================================
+# COPY this file to application-local.yml
+# DO NOT commit application-local.yml with real secrets
+# ============================================================
+
+spring:
+  application:
+    name: midori-be
+
+  datasource:
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USERNAME}
+    password: ${SUPABASE_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 60000
+          timeout: 60000
+          writetimeout: 60000
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
+  token:
+    email-verification-expiration: ${TOKEN_EMAIL_VERIFICATION_EXPIRATION:60}
+    password-reset-expiration: ${TOKEN_PASSWORD_RESET_EXPIRATION:3600}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@midori.local}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+
+logging:
+  level:
+    com.midori: debug
+    org.springframework.security: debug
