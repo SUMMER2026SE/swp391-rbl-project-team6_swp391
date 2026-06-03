@@ -1,21 +1,21 @@
-# Midori Sensei - Japanese Language Learning Platform
+# MIDORI Japanese Learning Platform
 
 <p align="center">
-  <img src="midori-fe/public/logo.png" alt="Midori Sensei Logo" width="120" />
+  <img src="midori-fe/public/logo.png" alt="MIDORI Logo" width="120" />
 </p>
 
 <p align="center">
-  <strong>An AI-powered Japanese language learning platform for mastering Japanese from JLPT N5 to N1</strong>
+  <strong>An AI-powered Japanese language learning platform — grammar, listening dictation, AI shadowing, and JLPT exam practice.</strong>
   <br />
   <em>Built for FPT University SWP391 Course Project</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/JLPT-N5%20→%20N1-green?style=for-the-badge" alt="JLPT Levels" />
+  <img src="https://img.shields.io/badge/Java-17-blue?style=for-the-badge&logo=openjdk" alt="Java 17" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.3-green?style=for-the-badge&logo=springboot" alt="Spring Boot" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Tailwind-4.2-38B2AC?style=for-the-badge&logo=tailwindcss" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare" alt="Cloudflare Workers" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-green?style=for-the-badge&logo=supabase" alt="Supabase" />
 </p>
 
 ---
@@ -23,19 +23,17 @@
 ## Table of Contents
 
 - [About](#about)
-- [Project Status](#project-status)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Running the App](#running-the-app)
-- [Scripts](#scripts)
+- [Quick Start](#quick-start)
+- [Local Development Setup](#local-development-setup)
+- [Environment Files](#environment-files)
 - [User Roles](#user-roles)
-- [Database Schema](#database-schema)
-- [API Design](#api-design)
-- [Deployment](#deployment)
+- [API Overview](#api-overview)
+- [Troubleshooting](#troubleshooting)
+- [Smoke Test Before Commit](#smoke-test-before-commit)
+- [Git Safety Checklist](#git-safety-checklist)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -43,95 +41,79 @@
 
 ## About
 
-**Midori Sensei** (midori = green/leaf in Japanese) is a comprehensive web-based Japanese language learning platform designed to help students progress from absolute beginner (JLPT N5) to advanced (JLPT N1). The platform combines structured lessons with AI-powered features to create an immersive and personalized learning experience.
-
-The platform covers all essential aspects of Japanese language learning:
-
-| Module | Description |
-|---|---|
-| **Vocabulary** | Structured lessons organized by JLPT level with kanji, kana, romaji, and audio pronunciation |
-| **Grammar** | Grammar patterns organized by JLPT level with detailed explanations and usage examples |
-| **Listening** | Audio-based exercises to improve comprehension skills |
-| **Shadowing** | Practice speaking with guided conversation scripts and real-world dialogues |
-| **Flashcards** | Spaced-repetition flashcard system for effective memorization |
-| **Exams** | JLPT mock exams to test knowledge and track progress |
-| **AI Sensei** | AI-powered chat assistant for personalized Q&A and conversation practice |
-| **Progress Tracking** | XP, daily streaks, leaderboards, and skill score dashboards |
-
----
-
-## Project Status
-
-> **Frontend (midori-fe):** Functional — all role-based dashboards, modules, and UI components are implemented with mock data for development.
->
-> **Backend (midori-be):** Not yet implemented — the backend API is planned but not yet built.
->
-> **Database Schema:** Not yet created — the SQL Server schema is planned but not yet committed to the repository.
->
-> **AI Sensei:** Implemented as a chat interface with mock data; backend integration pending.
+**MIDORI** (`midori` = green/leaf in Japanese) is a comprehensive Japanese language learning platform covering all JLPT levels (N5 to N1). The project consists of a Spring Boot backend and a React/Vite frontend, with Supabase as the PostgreSQL database and Supabase Storage for user avatar uploads.
 
 ---
 
 ## Features
 
-### For Students
-- 📖 **Vocabulary Lessons** — Structured lessons from N5 to N1 with audio, images, and examples
-- 📝 **Grammar Reference** — Comprehensive grammar patterns with formation rules and usage notes
-- 🎧 **Listening Exercises** — Audio-based comprehension training
-- 🎭 **Shadowing Practice** — Guided speaking practice with dialogue scripts
-- 🃏 **Smart Flashcards** — Spaced-repetition flashcards with 4 study modes (New, Learning, Review, Mastered)
-- 📋 **Mock Exams** — Timed JLPT practice exams with automatic scoring
-- 🤖 **AI Sensei Chat** — Ask questions and practice conversations with an AI tutor
-- 🏆 **Leaderboard** — Compete with other learners and track your rank
-- 📊 **Progress Dashboard** — Visualize XP earned, streaks maintained, and skills mastered
-- 🔔 **Notifications** — Stay updated with achievements, reminders, and messages
+### Authentication & Profile
 
-### For Teachers
-- 📚 **Content Management** — Manage vocabulary, grammar, listening, and flashcard content
-- 📋 **Student Overview** — View student progress and performance analytics
-- 📈 **Exam Management** — Create and manage JLPT mock exams
-- 👥 **Student-Teacher Assignment** — Manage teacher-student relationships
+- Register with email verification via OTP
+- Login / Logout with JWT access tokens
+- Google OAuth single sign-on
+- Forgot password with email reset link
+- Profile view and edit (display name, bio, avatar)
+- Change password with validation
+- Password strength validation on registration
 
-### For Admins
-- 📊 **Analytics Dashboard** — Platform-wide analytics and user statistics
-- 👤 **User Management** — Manage students, teachers, and admin accounts
-- 🚨 **Moderation** — Review and handle user reports and flagged content
-- 🔔 **System Notifications** — Send announcements to all users
+### Learning Modules
+
+- Vocabulary lessons organized by JLPT level
+- Grammar patterns with formation rules and examples
+- Listening exercises with audio
+- AI Shadowing practice with dialogue scripts
+- Smart Flashcards with spaced-repetition (New, Learning, Review, Mastered)
+- JLPT Mock Exams with automatic scoring
+- AI Sensei chat for Q&A and conversation practice
+- Progress tracking: XP, daily streaks, leaderboard, skill scores
+
+### Role-Based Dashboards
+
+- **Students** — Full access to all learning modules and progress tracking
+- **Teachers** — Manage vocabulary, grammar, listening, flashcards, exams; view student progress
+- **Admins** — Platform-wide user management, analytics, content moderation, announcements
 
 ---
 
 ## Tech Stack
 
-### Frontend
-
-| Technology | Version | Purpose |
-|---|---|---|
-| **React** | 19.2.0 | UI framework |
-| **TypeScript** | 5.8.3 | Type safety |
-| **TanStack Start** | 1.167.50 | Full-stack React framework with SSR |
-| **TanStack Router** | 1.168.25 | File-based routing |
-| **TanStack React Query** | 5.83.0 | Server state management |
-| **Vite** | 7.3.1 | Build tool |
-| **Tailwind CSS** | 4.2.1 | Utility-first styling |
-| **shadcn/ui** | — | Radix UI-based component library |
-| **Framer Motion** | 12.40.0 | Animations |
-| **Recharts** | 3.8.1 | Data visualization |
-| **React Hook Form** + **Zod** | — | Form handling & validation |
-
 ### Backend
 
-| Technology | Purpose |
-|---|---|
-| **SQL Server** | Relational database (planned) |
-| **midori-be** | Backend API — **not yet implemented** |
+| Technology                   | Purpose                               |
+| ---------------------------- | ------------------------------------- |
+| **Java 17**                  | Runtime                               |
+| **Spring Boot 3.3**          | Web framework                         |
+| **Spring Security**          | Authentication & authorization        |
+| **JWT (jjwt)**               | Stateless access token authentication |
+| **Spring Data JPA**          | Database ORM                          |
+| **PostgreSQL (Supabase)**    | Relational database                   |
+| **Spring Mail / Gmail SMTP** | OTP and password reset emails         |
+| **Google OAuth 2.0**         | Social login                          |
+
+### Frontend
+
+| Technology                   | Purpose                      |
+| ---------------------------- | ---------------------------- |
+| **React 19**                 | UI framework                 |
+| **Vite**                     | Build tool and dev server    |
+| **TypeScript**               | Type safety                  |
+| **TanStack Start + Router**  | File-based routing, SSR      |
+| **TanStack React Query**     | Server state management      |
+| **Tailwind CSS + shadcn/ui** | Styling and UI components    |
+| **Framer Motion**            | Animations                   |
+| **@react-oauth/google**      | Google OAuth client          |
+| **@supabase/supabase-js**    | Supabase Storage for avatars |
+| **React Hook Form + Zod**    | Form validation              |
+| **Recharts**                 | Data visualization charts    |
 
 ### Infrastructure
 
-| Technology | Purpose |
-|---|---|
-| **Cloudflare Workers** | Deployment platform (SSR) |
-| **Wrangler** | Cloudflare Workers CLI |
-| **Bun** | Package manager (optional) |
+| Technology             | Purpose                                   |
+| ---------------------- | ----------------------------------------- |
+| **Supabase**           | PostgreSQL database + Auth + Storage      |
+| **Gmail SMTP**         | Transactional email (OTP, password reset) |
+| **PowerShell scripts** | Local development automation              |
 
 ---
 
@@ -139,344 +121,260 @@ The platform covers all essential aspects of Japanese language learning:
 
 ```
 swp391-rbl-project-team6_swp391/
-├── midori-fe/                    # Frontend application
-│   ├── public/                   # Static assets (logo, favicon)
-│   │   ├── favicon.svg
-│   │   └── logo.png
+├── midori-be/                         # Spring Boot backend
+│   └── src/main/
+│       ├── java/com/midori/
+│       │   ├── MidoriBeApplication.java
+│       │   ├── config/               # Security, CORS, JWT config
+│       │   ├── controller/           # REST API controllers
+│       │   ├── dto/                 # Request/Response DTOs
+│       │   ├── entity/              # JPA entities
+│       │   ├── repository/          # Spring Data JPA repositories
+│       │   ├── security/            # JWT filter, auth provider
+│       │   └── service/             # Business logic services
+│       └── resources/
+│           ├── application-local.yml  # Local secrets (NEVER commit)
+│           └── application-local.example.yml  # Config template (commit)
+│
+├── midori-fe/                         # React/Vite frontend
+│   ├── public/                       # Static assets (logo, favicon)
 │   ├── src/
-│   │   ├── components/          # React components
-│   │   │   ├── ui/              # 44 reusable UI components (shadcn/ui)
-│   │   │   │   ├── button.tsx
-│   │   │   │   ├── card.tsx
-│   │   │   │   ├── dialog.tsx
-│   │   │   │   ├── table.tsx
-│   │   │   │   ├── dropdown-menu.tsx
-│   │   │   │   ├── tabs.tsx
-│   │   │   │   ├── avatar.tsx
-│   │   │   │   ├── badge.tsx
-│   │   │   │   └── ... (38+ more)
-│   │   │   ├── auth-shell.tsx         # Authentication layout wrapper
-│   │   │   ├── dashboard-layout.tsx   # Main dashboard layout
-│   │   │   ├── ai-sensei-chat.tsx     # AI chat interface
-│   │   │   ├── logo.tsx               # Brand logo component
-│   │   │   ├── page-ui.tsx            # Page wrapper
-│   │   │   └── sakura-bg.tsx          # Animated sakura background
-│   │   ├── routes/                    # TanStack Router file-based routes (50 routes)
-│   │   │   ├── index.tsx              # Landing page (public)
-│   │   │   ├── login.tsx              # Login page
-│   │   │   ├── register.tsx           # Registration page
-│   │   │   ├── forgot-password.tsx
-│   │   │   ├── verify-otp.tsx
-│   │   │   ├── reset-password.tsx
-│   │   │   ├── reset-success.tsx
-│   │   │   ├── teacher-pending.tsx
-│   │   │   ├── student.*.tsx          # 22 student dashboard routes
-│   │   │   ├── teacher.*.tsx          # 13 teacher dashboard routes
-│   │   │   └── admin.*.tsx            # 11 admin dashboard routes
-│   │   ├── lib/                       # Utilities and context
-│   │   │   ├── utils.ts               # cn() helper, class utilities
-│   │   │   ├── auth.tsx               # Auth & Theme context providers
-│   │   │   ├── error-capture.tsx
-│   │   │   ├── error-page.tsx
-│   │   │   └── mock-data.ts           # Sample data for development
-│   │   ├── data/                      # Static data files
-│   │   │   ├── lessons.ts             # Sample vocabulary lessons
-│   │   │   ├── flashcards.ts          # Sample flashcard decks
-│   │   │   ├── teacher-notifications.ts
-│   │   │   └── data/                  # Duplicate copies of lessons.ts & flashcards.ts
-│   │   ├── hooks/                     # Custom React hooks
-│   │   │   └── use-mobile.tsx
-│   │   ├── router.tsx                 # Router configuration
-│   │   ├── routeTree.gen.ts          # Auto-generated route tree
-│   │   ├── server.ts                  # SSR entry point (Cloudflare Workers)
-│   │   └── styles.css                 # Global styles & CSS variables
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   └── wrangler.jsonc                 # Cloudflare Workers config
-├── midori-be/                         # Backend services — **not yet implemented**
-│   └── .gitkeep
-├── package.json                       # Root package.json (mirrors midori-fe/)
-├── tsconfig.json
-├── vite.config.ts
-├── wrangler.jsonc
-├── components.json                    # shadcn/ui configuration
-├── eslint.config.js
-├── .prettierignore
-├── bun.lock
-└── bunfig.toml
+│   │   ├── components/             # React components
+│   │   │   ├── ui/                # shadcn/ui reusable components
+│   │   │   └── *.tsx              # Feature components (auth-shell, dashboard-layout, etc.)
+│   │   ├── routes/                 # TanStack Router file-based routes (50 routes)
+│   │   ├── lib/                    # Utilities, auth context, Supabase client
+│   │   ├── data/                   # Static sample data
+│   │   └── styles.css              # Global styles & Tailwind variables
+│   ├── .env.local                   # Local secrets (NEVER commit)
+│   └── .env.example                # Env template (commit)
+│
+├── scripts/                          # Local run scripts
+│   ├── run-backend-local.ps1
+│   └── run-frontend.ps1
+│
+└── docs/                             # Team documentation
+    ├── LOCAL_SETUP.md               # Full local setup guide
+    └── TEAM_ENV_TEMPLATE.md         # Secrets request guide
 ```
 
 ---
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
+```powershell
+# 1. Backend (Terminal 1)
+.\scripts\run-backend-local.ps1
 
-- **Node.js** 18+ (LTS recommended)
-- **Bun** (optional, for faster package management) — [Install Bun](https://bun.sh)
-- **Git**
-
-### Installation
-
-#### 1. Clone the repository
-
-```bash
-git clone https://github.com/your-org/swp391-rbl-project-team6_swp391.git
-cd swp391-rbl-project-team6_swp391
+# 2. Frontend (Terminal 2)
+.\scripts\run-frontend.ps1
 ```
 
-#### 2. Install dependencies
+> **First time?** Follow the [Local Development Setup](#local-development-setup) guide first to copy and configure environment files.
 
-Using npm:
-
-```bash
-npm install
-```
-
-Or using Bun (recommended for faster installation):
-
-```bash
-bun install
-```
-
-#### 3. Set up environment variables
-
-Create a `.env` file in the project root:
-
-```env
-# Database (required once backend is implemented)
-DATABASE_URL=sqlserver://localhost:1433;database=MidoriSensei;trustedConnection=true;trustServerCertificate=true
-
-# Authentication
-JWT_SECRET=your-super-secret-jwt-key
-SESSION_SECRET=your-session-secret
-
-# API (for backend, when implemented)
-API_BASE_URL=http://localhost:3000/api
-
-# Cloudflare (optional, for deployment)
-CLOUDFLARE_ACCOUNT_ID=your-cloudflare-account-id
-CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
-```
-
-> The `.gitignore` file excludes `.env` and `.env*.local` from version control.
-
-### Running the App
-
-#### Development mode
-
-```bash
-npm run dev
-```
-
-The app will be available at `http://localhost:5173`.
-
-#### Production build
-
-```bash
-npm run build
-npm run preview
-```
+- **Backend:** `http://localhost:8080`
+- **Frontend:** `http://localhost:8081` (or next available port if 8081 is in use)
 
 ---
 
-## Scripts
+## Local Development Setup
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the Vite development server |
-| `npm run build` | Build for production |
-| `npm run build:dev` | Build in development mode |
-| `npm run preview` | Preview the production build locally |
-| `npm run lint` | Run ESLint to check code quality |
-| `npm run format` | Format code with Prettier |
+See detailed guide: [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)
+
+### Summary
+
+1. **Copy backend config:**
+
+   ```powershell
+   copy-item "midori-be/src/main/resources/application-local.example.yml" "midori-be/src/main/resources/application-local.yml"
+   ```
+
+2. **Copy frontend env:**
+
+   ```powershell
+   copy-item "midori-fe/.env.example" "midori-fe/.env.local"
+   ```
+
+3. **Fill in secrets** — ask the team leader for values listed in [docs/TEAM_ENV_TEMPLATE.md](docs/TEAM_ENV_TEMPLATE.md).
+
+4. **Run backend:**
+
+   ```powershell
+   .\scripts\run-backend-local.ps1
+   ```
+
+5. **Run frontend:**
+   ```powershell
+   .\scripts\run-frontend.ps1
+   ```
+
+---
+
+## Environment Files
+
+| File                                                         | Purpose                                         | Commit? |
+| ------------------------------------------------------------ | ----------------------------------------------- | ------- |
+| `midori-be/src/main/resources/application-local.example.yml` | Backend config template with placeholders       | **Yes** |
+| `midori-be/src/main/resources/application-local.yml`         | Real backend secrets (DB password, Gmail, etc.) | **No**  |
+| `midori-fe/.env.example`                                     | Frontend env template with placeholders         | **Yes** |
+| `midori-fe/.env.local`                                       | Real frontend env (Supabase anon key)           | **No**  |
+
+### Public values (safe to commit)
+
+These are in both `.example` files and are not secrets:
+
+- `VITE_API_BASE_URL=http://localhost:8080/api`
+- `VITE_GOOGLE_CLIENT_ID=65823123353-... .apps.googleusercontent.com`
+- `VITE_SUPABASE_URL=https://clyuyvdaoprxrpmrcyhd.supabase.co`
+- `VITE_SUPABASE_AVATAR_BUCKET=avatars`
+- `spring.datasource.url`
+- `spring.datasource.username`
+- `app.google.client-id`
+- `app.jwt.secret` (uses a dev-only JWT key)
+- `app.frontend.base-url`
+
+### Secret values (never commit)
+
+- `spring.datasource.password` — Supabase DB password
+- `spring.mail.username` — Gmail sender address
+- `spring.mail.password` — Gmail App Password
+- `VITE_SUPABASE_PUBLISHABLE_KEY` — Supabase anon key
 
 ---
 
 ## User Roles
 
-The platform supports **three user roles** with distinct dashboards and permissions:
-
-| Role | Access | Dashboard Routes |
-|---|---|---|
-| **Student** | Default role for learners | 22 routes: Vocabulary, Grammar, Listening, Shadowing, Flashcards, Exams, JLPT Info, AI Sensei, Leaderboard, Progress, Profile, Notifications |
-| **Teacher** | Content creator & student mentor | 13 routes: Dashboard, Vocabulary, Grammar, Listening, Shadowing, Flashcards, Exams, Profile, Notifications, Settings |
-| **Admin** | Full platform management | 11 routes: Dashboard, Users, Teachers, Grammar, Exams, Moderation, Analytics, Notifications, Profile, Settings |
+| Role        | Dashboard | Access Level                                                                                            |
+| ----------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| **Student** | 22 routes | Vocabulary, Grammar, Listening, Shadowing, Flashcards, Exams, AI Sensei, Leaderboard, Progress, Profile |
+| **Teacher** | 13 routes | Same modules + student progress overview, exam management                                               |
+| **Admin**   | 11 routes | Full platform: user management, analytics, moderation, announcements                                    |
 
 ### Authentication Flow
 
 ```
-Public Pages → Login/Register → Role-based Dashboard
-                                    ↓
-        ┌──────────┬──────────┬──────────┐
-        │ Student  │ Teacher  │  Admin   │
-        └──────────┴──────────┴──────────┘
+Public Pages → Login/Register → Email OTP Verify
+                                        ↓
+                        ┌──────────┬──────────┬──────────┐
+                        │ Student  │ Teacher  │  Admin   │
+                        └──────────┴──────────┴──────────┘
 ```
 
 ---
 
-## Database Schema
+## API Overview
 
-> The SQL Server database schema has not yet been created. The schema design is planned to include the following entities once implemented.
+All API endpoints are prefixed with `/api`.
 
-### Planned Entity Overview
+| Group    | Method | Endpoint                | Auth   | Description                         |
+| -------- | ------ | ----------------------- | ------ | ----------------------------------- |
+| **Auth** | POST   | `/auth/register`        | Public | Register with email & password      |
+|          | POST   | `/auth/verify-otp`      | Public | Verify email with 6-digit OTP       |
+|          | POST   | `/auth/login`           | Public | Login with email/password           |
+|          | POST   | `/auth/google`          | Public | Login/register with Google ID token |
+|          | POST   | `/auth/forgot-password` | Public | Send password reset email           |
+|          | POST   | `/auth/reset-password`  | Public | Reset password with token           |
+|          | POST   | `/auth/logout`          | JWT    | Logout (blacklist token)            |
+| **User** | GET    | `/users/me`             | JWT    | Get current user profile            |
+|          | PUT    | `/users/me`             | JWT    | Update profile (name, bio, avatar)  |
+|          | DELETE | `/users/me/avatar`      | JWT    | Remove avatar                       |
+|          | PUT    | `/users/me/password`    | JWT    | Change password                     |
 
-```
-users (1) ──── (1) student_profiles
-        │
-        └─── (1) teacher_profiles
+### JWT Token Flow
 
-users (1) ──── (N) ai_conversations (1) ──── (N) ai_messages
-users (1) ──── (N) notifications
-users (1) ──── (N) user_progress
-users (1) ──── (N) daily_xp
-users (1) ──── (N) skill_scores
-users (1) ──── (N) flashcard_sessions
-users (1) ──── (N) exam_attempts
-users (1) ──── (N) listening_progress
-users (1) ──── (N) shadowing_progress
-users (1) ──── (N) reports
-users (1) ──── (N) teacher_students
-
-vocabulary_lessons (1) ──── (N) vocabulary_words
-grammar_categories (1) ──── (N) grammar_structures
-shadowing_topics (1) ──── (N) shadowing_conversations (1) ──── (N) shadowing_sentences
-flashcard_decks (1) ──── (N) flashcards
-exams (1) ──── (N) exam_questions (1) ──── (N) exam_attempts
-```
-
-### JLPT Level System
-
-All content is organized across **5 JLPT proficiency levels**:
-
-| Level | Proficiency | Kanji Known | Description |
-|---|---|---|---|
-| **N5** | Beginner | ~100 kanji | Basic hiragana, katakana, simple grammar |
-| **N4** | Elementary | ~300 kanji | Basic kanji, everyday vocabulary |
-| **N3** | Intermediate | ~650 kanji | Comfortable with everyday Japanese |
-| **N2** | Pre-Advanced | ~1,000 kanji | Read and understand Japanese in daily situations |
-| **N1** | Advanced | ~2,000 kanji | Master complex texts and formal writing |
+1. User registers/logins → server returns `accessToken` (24h expiry)
+2. Frontend stores token in memory (not localStorage for security)
+3. All authenticated requests include `Authorization: Bearer <token>` header
+4. On 401 response, frontend redirects to login
 
 ---
 
-## API Design
+## Troubleshooting
 
-> The backend API has not yet been implemented. The following RESTful conventions are planned for `midori-be/`.
+| Problem                                      | Cause                                                    | Fix                                                                                                                      |
+| -------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Port 8080 already in use**                 | Backend already running                                  | `netstat -ano \| findstr :8080` then `taskkill /PID <PID> /F`                                                            |
+| **Frontend runs on 8082**                    | Port 8081 is occupied                                    | Kill the process on 8081, or use 8082 — it's fine                                                                        |
+| **Google Login: `invalid_client`**           | Wrong or missing `VITE_GOOGLE_CLIENT_ID` in `.env.local` | Verify `.env.local` has the correct client ID and restart frontend                                                       |
+| **Supabase avatar: `failed to fetch` / 403** | Wrong URL or key in `.env.local`                         | Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, ensure `avatars` bucket is public                        |
+| **OTP email not received**                   | Gmail SMTP/App Password misconfigured                    | Verify `mail.username` and `mail.password` in `application-local.yml` — must be Gmail App Password, not account password |
+| **YAML: `DuplicateKeyException`**            | Wrong indentation                                        | Use **2 spaces** only (no tabs). Do not mix indentation styles                                                           |
+| **Backend: `Could not resolve placeholder`** | Missing env var in config                                | Verify all required fields are in `application-local.yml`                                                                |
 
-```
-Base URL: /api/v1
+### Common Commands
 
-Auth:
-  POST   /auth/register
-  POST   /auth/login
-  POST   /auth/logout
-  POST   /auth/forgot-password
-  POST   /auth/reset-password
-  POST   /auth/verify-otp
+```powershell
+# Kill process on port
+netstat -ano | findstr :8080
+taskkill /PID <PID> /F
 
-Users:
-  GET    /users/me
-  PUT    /users/me
-  GET    /users/:id (admin)
+# Verify .env.local is correct
+cat midori-fe/.env.local
 
-Vocabulary:
-  GET    /vocabulary/lessons
-  GET    /vocabulary/lessons/:id
-  GET    /vocabulary/lessons/:id/words
-  POST   /vocabulary/progress (teacher/admin)
+# Verify application-local.yml is correct
+cat midori-be/src/main/resources/application-local.yml
 
-Grammar:
-  GET    /grammar/categories
-  GET    /grammar/categories/:id/structures
-  POST   /grammar/structures (teacher/admin)
-
-Listening:
-  GET    /listening/exercises
-  GET    /listening/exercises/:id
-  POST   /listening/progress
-
-Shadowing:
-  GET    /shadowing/topics
-  GET    /shadowing/topics/:id/conversations
-  POST   /shadowing/progress
-
-Flashcards:
-  GET    /flashcards/decks
-  GET    /flashcards/decks/:id/cards
-  POST   /flashcards/sessions
-  PUT    /flashcards/cards/:id
-
-Exams:
-  GET    /exams
-  GET    /exams/:id
-  POST   /exams/:id/attempt
-  GET    /exams/attempts
-
-AI Sensei:
-  GET    /ai/conversations
-  POST   /ai/conversations
-  POST   /ai/conversations/:id/messages
-
-Progress:
-  GET    /progress/me
-  GET    /progress/leaderboard
-  GET    /progress/skills
-
-Admin:
-  GET    /admin/users
-  PUT    /admin/users/:id/role
-  GET    /admin/analytics
-  POST   /admin/notifications
-  GET    /admin/reports
-  PUT    /admin/reports/:id
+# Check what the backend is reading
+curl http://localhost:8080/actuator/env 2>$null  # if actuator enabled
 ```
 
 ---
 
-## Deployment
+## Smoke Test Before Commit
 
-### Deploy to Cloudflare Workers
+Run this before every commit to catch config errors and leaked secrets early:
 
-The project is pre-configured for Cloudflare Workers deployment using Wrangler.
-
-#### 1. Login to Cloudflare
-
-```bash
-npx wrangler login
+```powershell
+.\scripts\test\smoke-all.ps1
 ```
 
-#### 2. Configure `wrangler.jsonc`
+This runs three checks in sequence:
 
-Update with your Cloudflare account details:
+| Check                           | Script               | Backend Required? |
+| ------------------------------- | -------------------- | ----------------- |
+| Frontend build + env validation | `smoke-frontend.ps1` | No                |
+| Backend API endpoints           | `smoke-backend.ps1`  | **Yes**           |
+| Secret leak scan                | `check-secrets.ps1`  | No                |
 
-```jsonc
-{
-  "name": "midori-sensei",
-  "compatibility_date": "2024-01-01",
-  // ... additional config
-}
+**To run individually:**
+
+```powershell
+.\scripts\test\smoke-frontend.ps1   # Build + env check
+.\scripts\test\smoke-backend.ps1     # API test (needs backend running)
+.\scripts\test\check-secrets.ps1     # Scan staged files for secrets
 ```
 
-#### 3. Deploy
+> **Note:** Smoke tests do not replace manual QA. Google OAuth popup and avatar upload UI should still be tested manually after any related UI changes.
 
-```bash
-npx wrangler deploy
+---
+
+## Git Safety Checklist
+
+Before committing, run:
+
+```powershell
+git status --short
 ```
 
-#### 4. Configure environment variables on Cloudflare
+Then verify secret files are ignored:
 
-```bash
-npx wrangler secret put DATABASE_URL
-npx wrangler secret put JWT_SECRET
-npx wrangler secret put SESSION_SECRET
+```powershell
+git check-ignore -v midori-be/src/main/resources/application-local.yml
+git check-ignore -v midori-fe/.env.local
 ```
+
+Both commands should return a path. If a command returns nothing, that file is **not ignored** and must not be committed.
+
+### Never commit:
+
+- `application-local.yml`
+- `.env.local`
+- Any file containing real passwords, tokens, or secrets
+- Any `.log` files
 
 ---
 
 ## Contributing
-
-We welcome contributions! Please follow these steps:
 
 1. **Fork** the repository
 2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
@@ -486,10 +384,10 @@ We welcome contributions! Please follow these steps:
 
 ### Code Standards
 
-- Use **TypeScript** for all new files
-- Run `npm run lint` and `npm run format` before committing
-- Follow the existing component patterns (shadcn/ui style)
+- Use **TypeScript** for all new frontend files
+- Follow existing component patterns (shadcn/ui style)
 - Write meaningful commit messages
+- Run lint and format before committing
 
 ---
 
@@ -501,6 +399,4 @@ This project was created for **FPT University's SWP391 Course**. All rights rese
 
 <p align="center">
   Made with for Japanese language learners
-  <br />
-  Japanese to study!
 </p>
