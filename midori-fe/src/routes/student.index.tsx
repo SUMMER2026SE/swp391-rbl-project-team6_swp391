@@ -96,8 +96,8 @@ function StudentHome() {
           <h2 className="font-display font-bold text-base text-foreground">Weekly XP</h2>
           <span className="text-xs font-semibold text-primary">1,780 XP this week</span>
         </div>
-        <div className="h-[260px] min-h-[240px] w-full min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full min-w-0">
+          <ResponsiveContainer width="100%" height={260}>
             <LineChart data={weeklyXp}>
               <defs>
                 <linearGradient id="xpg" x1="0" y1="0" x2="1" y2="0">

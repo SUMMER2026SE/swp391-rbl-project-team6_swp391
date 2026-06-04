@@ -12,7 +12,6 @@ import { useTheme, useAuth } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
-import { useAuth } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 
 export const Route = createFileRoute("/student/profile")({
@@ -230,7 +229,7 @@ function ProfilePage() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-32 lg:pb-0">
 
       {/* ─── Profile Header ─── */}
       <motion.div
