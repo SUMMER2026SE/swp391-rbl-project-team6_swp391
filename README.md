@@ -45,6 +45,16 @@
 
 ---
 
+## Local Setup
+
+To run MIDORI on your local machine, follow the setup guide:
+
+[README_SETUP_LOCAL.md](./README_SETUP_LOCAL.md)
+
+This guide includes backend setup, frontend setup, Supabase configuration, Gmail OTP setup, Google Login setup, common errors, and safe Git rules.
+
+---
+
 ## Features
 
 ### Authentication & Profile

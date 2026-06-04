@@ -25,14 +25,14 @@ spring:
 
   mail:
     host: smtp.gmail.com
-    port: 465
+    port: 587
     username: PASTE_GMAIL_SENDER_HERE
     password: PASTE_GMAIL_APP_PASSWORD_HERE
     properties:
       mail:
         smtp:
           auth: true
-          ssl:
+          starttls:
             enable: true
           connectiontimeout: 60000
           timeout: 60000
