@@ -10,6 +10,13 @@ export const Route = createFileRoute("/register")({ component: RegisterPage });
 
 type Role = "STUDENT" | "TEACHER";
 
+type FieldErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirm?: string;
+};
+
 type RegisterForm = {
   name: string;
   email: string;
@@ -17,42 +24,12 @@ type RegisterForm = {
   confirm: string;
 };
 
-type PasswordRule = {
-  label: string;
-  test: (pw: string) => boolean;
+type PasswordChecks = {
+  length: boolean;
+  uppercase: boolean;
+  number: boolean;
+  special: boolean;
 };
-
-const PASSWORD_RULES: PasswordRule[] = [
-  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
-  { label: "At least 1 uppercase letter (A-Z)", test: (pw) => /[A-Z]/.test(pw) },
-  { label: "At least 1 lowercase letter (a-z)", test: (pw) => /[a-z]/.test(pw) },
-  { label: "At least 1 number (0-9)", test: (pw) => /\d/.test(pw) },
-  {
-    label: "At least 1 special character (!@#$%^&*?._-)",
-    test: (pw) => /[@$!%*?&.#_\-]/.test(pw),
-  },
-];
-
-function getPasswordErrors(password: string, confirm: string): string[] {
-  const errors: string[] = [];
-  if (password.length > 0 && password.length < 8)
-    errors.push("Password must be at least 8 characters.");
-  if (password.length > 0 && !/[A-Z]/.test(password))
-    errors.push("Password must include an uppercase letter.");
-  if (password.length > 0 && !/[a-z]/.test(password))
-    errors.push("Password must include a lowercase letter.");
-  if (password.length > 0 && !/\d/.test(password))
-    errors.push("Password must include a number.");
-  if (password.length > 0 && !/[@$!%*?&.#_\-]/.test(password))
-    errors.push("Password must include a special character.");
-  if (confirm.length > 0 && password !== confirm)
-    errors.push("Passwords do not match.");
-  return errors;
-}
-
-function isPasswordStrong(password: string): boolean {
-  return PASSWORD_RULES.every((rule) => rule.test(password));
-}
 
 type CertificateFile = {
   file: File;
@@ -76,6 +53,15 @@ function getFileIcon(type: string) {
   return <File className="w-4 h-4 text-gray-500" />;
 }
 
+function getPasswordChecks(pw: string): PasswordChecks {
+  return {
+    length: pw.length >= 8,
+    uppercase: /[A-Z]/.test(pw),
+    number: /[0-9]/.test(pw),
+    special: /[^A-Za-z0-9]/.test(pw),
+  };
+}
+
 function RegisterPage() {
   const nav = useNavigate();
   const [selectedRole, setSelectedRole] = useState<Role>("STUDENT");
@@ -85,6 +71,7 @@ function RegisterPage() {
     password: "",
     confirm: "",
   });
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [teachingExperience, setTeachingExperience] = useState("");
   const [bio, setBio] = useState("");
   const [certificates, setCertificates] = useState<CertificateFile[]>([]);
@@ -97,6 +84,7 @@ function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const passwordChecks = getPasswordChecks(form.password);
   const { loginWithGoogle } = useAuth();
 
   const update = (key: keyof RegisterForm, value: string) =>
@@ -177,32 +165,48 @@ function RegisterPage() {
     e.preventDefault();
     setErr("");
 
+    const errors: FieldErrors = {};
+
     if (!form.name.trim()) {
-      setErr("Full name is required.");
-      return;
+      errors.name = "Full name is required.";
     }
     if (!form.email.trim()) {
-      setErr("Email is required.");
-      return;
+      errors.email = "Email is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      errors.email = "Please enter a valid email address.";
     }
 
-    const passwordErrors = getPasswordErrors(form.password, form.confirm);
-    if (passwordErrors.length > 0) {
-      setErr(passwordErrors[0]);
+    const checks = getPasswordChecks(form.password);
+    if (!checks.length) {
+      errors.password = "Password must be at least 8 characters.";
+    } else if (!checks.uppercase) {
+      errors.password = "Password must include at least one uppercase letter.";
+    } else if (!checks.number) {
+      errors.password = "Password must include at least one number.";
+    } else if (!checks.special) {
+      errors.password = "Password must include at least one special character (e.g. @ # $ %).";
+    }
+
+    if (form.confirm && form.password !== form.confirm) {
+      errors.confirm = "Passwords do not match.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
     if (certificates.length > 0) {
-      const errors: Record<number, string> = {};
+      const certErrors: Record<number, string> = {};
       let hasErrors = false;
       certificates.forEach((cert, index) => {
         if (!cert.name.trim()) {
-          errors[index] = "Please enter a certificate name.";
+          certErrors[index] = "Please enter a certificate name.";
           hasErrors = true;
         }
       });
       if (hasErrors) {
-        setCertificateErrors(errors);
+        setCertificateErrors(certErrors);
         setErr("Please fill in all certificate names.");
         return;
       }
@@ -223,7 +227,14 @@ function RegisterPage() {
       nav({ to: "/verify-otp", state: { email: form.email, message } });
     } catch (err) {
       if (err instanceof ApiError) {
-        setErr(err.message);
+        const msg = err.message.toLowerCase();
+        if (msg.includes("email") && (msg.includes("exist") || msg.includes("already") || msg.includes("taken"))) {
+          setErr("This email is already registered.");
+        } else if (msg.includes("password")) {
+          setErr("Password must be at least 8 characters and include uppercase letter, number, and special character.");
+        } else {
+          setErr(err.message || "Registration failed. Please try again.");
+        }
       } else {
         setErr("Registration failed. Please try again.");
       }
@@ -306,28 +317,34 @@ function RegisterPage() {
           type="text"
           required
           value={form.name}
-          onChange={(e) => update("name", e.target.value)}
+          onChange={(e) => { update("name", e.target.value); setFieldErrors((f) => ({ ...f, name: undefined })); }}
           placeholder="Enter your full name"
           autoComplete="name"
         />
+        {fieldErrors.name && (
+          <p className="-mt-2 text-xs text-destructive font-medium pl-1">{fieldErrors.name}</p>
+        )}
 
         <Field
           label="Email address"
           type="email"
           required
           value={form.email}
-          onChange={(e) => update("email", e.target.value)}
+          onChange={(e) => { update("email", e.target.value); setFieldErrors((f) => ({ ...f, email: undefined })); }}
           placeholder="you@example.com"
           autoComplete="email"
         />
+        {fieldErrors.email && (
+          <p className="-mt-2 text-xs text-destructive font-medium pl-1">{fieldErrors.email}</p>
+        )}
 
         <Field
           label="Password"
           type={showPassword ? "text" : "password"}
           required
           value={form.password}
-          onChange={(e) => update("password", e.target.value)}
-          placeholder="Min. 8 characters with uppercase, number, special"
+          onChange={(e) => { update("password", e.target.value); setFieldErrors((f) => ({ ...f, password: undefined })); }}
+          placeholder="Min. 8 characters"
           autoComplete="new-password"
           endAdornment={
             <button
@@ -340,68 +357,27 @@ function RegisterPage() {
             </button>
           }
         />
-
-        {form.password.length > 0 && (
-          <div className="space-y-1.5 px-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Password requirements
-            </p>
-            <div className="grid grid-cols-1 gap-1">
-              {PASSWORD_RULES.map((rule, i) => {
-                const passed = rule.test(form.password);
-                return (
-                  <div key={i} className="flex items-center gap-2">
-                    <div
-                      className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                        passed
-                          ? "bg-green-500 text-white"
-                          : "bg-white/40 dark:bg-white/10 text-muted-foreground"
-                      }`}
-                    >
-                      {passed ? (
-                        <Check className="w-2.5 h-2.5 font-bold" />
-                      ) : (
-                        <span className="text-[10px] font-bold leading-none">&#x2022;</span>
-                      )}
-                    </div>
-                    <span
-                      className={`text-xs transition-colors ${
-                        passed ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
-                      }`}
-                    >
-                      {rule.label}
-                    </span>
-                  </div>
-                );
-              })}
-              {form.confirm.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                      form.password === form.confirm
-                        ? "bg-green-500 text-white"
-                        : "bg-white/40 dark:bg-white/10 text-muted-foreground"
-                    }`}
-                  >
-                    {form.password === form.confirm ? (
-                      <Check className="w-2.5 h-2.5 font-bold" />
-                    ) : (
-                      <span className="text-[10px] font-bold leading-none">&#x2022;</span>
-                    )}
-                  </div>
-                  <span
-                    className={`text-xs transition-colors ${
-                      form.password === form.confirm
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    Passwords match
-                  </span>
-                </div>
-              )}
-            </div>
+        {form.password && (
+          <div className="space-y-0.5 px-1">
+            {[
+              { key: "length", label: "At least 8 characters" },
+              { key: "uppercase", label: "One uppercase letter (e.g. A, B, C)" },
+              { key: "number", label: "One number (e.g. 1, 2, 3)" },
+              { key: "special", label: "One special character (e.g. @ # $ %)" },
+            ].map(({ key, label }) => (
+              <div key={key} className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                (passwordChecks as Record<string, boolean>)[key]
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-muted-foreground"
+              }`}>
+                <Check className="w-3 h-3 shrink-0" />
+                {label}
+              </div>
+            ))}
           </div>
+        )}
+        {fieldErrors.password && (
+          <p className="text-xs text-destructive font-medium pl-1">{fieldErrors.password}</p>
         )}
 
         <Field
@@ -409,7 +385,7 @@ function RegisterPage() {
           type={showConfirm ? "text" : "password"}
           required
           value={form.confirm}
-          onChange={(e) => update("confirm", e.target.value)}
+          onChange={(e) => { update("confirm", e.target.value); setFieldErrors((f) => ({ ...f, confirm: undefined })); }}
           placeholder="Repeat your password"
           autoComplete="new-password"
           endAdornment={
@@ -423,7 +399,11 @@ function RegisterPage() {
             </button>
           }
         />
+        {fieldErrors.confirm && (
+          <p className="text-xs text-destructive font-medium pl-1">{fieldErrors.confirm}</p>
+        )}
 
+        {/* Teacher Application Section */}
         {selectedRole === "TEACHER" && (
           <div className="rounded-2xl border border-border bg-white/30 dark:bg-white/5 p-4 space-y-4">
             <h3 className="text-sm font-semibold text-foreground">Teacher Application</h3>
@@ -536,7 +516,7 @@ function RegisterPage() {
           </div>
         )}
 
-        <PrimaryBtn type="submit" disabled={loading || !isPasswordStrong(form.password) || !form.confirm}>
+        <PrimaryBtn type="submit" disabled={loading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
