@@ -36,9 +36,30 @@ const nextRank = leaderboardData[currentUserRank]; // rank 6
 
 function PodiumCard({ rank, data }: { rank: number; data: typeof leaderboardData[0] }) {
   const medals = [
-    { icon: Crown, bg: "from-amber-300 via-yellow-400 to-amber-500", glow: "shadow-amber-400/60", glowBg: "bg-amber-400/20", ring: "ring-amber-400/50" },
-    { icon: Medal, bg: "from-slate-300 via-slate-400 to-slate-500", glow: "shadow-slate-300/40", glowBg: "bg-slate-300/15", ring: "ring-slate-400/30" },
-    { icon: Medal, bg: "from-orange-400 via-amber-600 to-orange-500", glow: "shadow-orange-400/50", glowBg: "bg-orange-400/15", ring: "ring-orange-400/30" },
+    {
+      icon: Crown,
+      bg: "from-blue-400 via-cyan-300 to-cyan-400",
+      glow: "shadow-cyan-400/50",
+      glowBg: "bg-cyan-400/15",
+      ring: "ring-cyan-300/40",
+      label: "text-cyan-400",
+    },
+    {
+      icon: Medal,
+      bg: "from-slate-300 via-slate-400 to-slate-500",
+      glow: "shadow-slate-300/30",
+      glowBg: "bg-slate-300/10",
+      ring: "ring-slate-400/25",
+      label: "text-slate-400",
+    },
+    {
+      icon: Medal,
+      bg: "from-violet-400 via-pink-400 to-pink-500",
+      glow: "shadow-pink-400/45",
+      glowBg: "bg-pink-400/12",
+      ring: "ring-pink-400/30",
+      label: "text-pink-400",
+    },
   ];
   const m = medals[rank - 1];
   const Icon = m.icon;
@@ -72,14 +93,14 @@ function PodiumCard({ rank, data }: { rank: number; data: typeof leaderboardData
       </motion.div>
 
       {/* Name */}
-      <p className="font-bold text-xs text-foreground mt-2 text-center leading-tight max-w-24">
+      <p className={`font-bold text-xs mt-2 text-center leading-tight max-w-24 ${m.label}`}>
         {data.name.split(" ")[0]}
       </p>
 
       {/* XP + Streak */}
-      <div className="flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-muted/60 text-[10px] font-bold text-muted-foreground">
+      <div className="flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/70 text-[10px] font-bold text-slate-500 dark:text-slate-300">
         <span>{data.xp.toLocaleString()} XP</span>
-        <span className="text-orange-400">🔥 {data.streak}d</span>
+        <span className="text-orange-500 dark:text-orange-300">🔥 {data.streak}d</span>
       </div>
     </motion.div>
   );
@@ -139,7 +160,7 @@ function LeaderboardPage() {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               filter === f
                 ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow"
-                : "glass text-muted-foreground hover:text-foreground"
+                : "glass text-slate-500 dark:text-slate-300 hover:text-foreground dark:hover:text-white"
             }`}
           >
             {f === "weekly" && <Clock className="w-3.5 h-3.5" />}
@@ -151,7 +172,8 @@ function LeaderboardPage() {
         <select
           value={selectedCategory}
           onChange={e => setSelectedCategory(e.target.value)}
-          className="ml-auto glass px-3 py-2 rounded-xl text-xs font-semibold outline-none cursor-pointer text-muted-foreground"
+          className="ml-auto glass px-3 py-2 rounded-xl text-xs font-semibold outline-none cursor-pointer text-slate-600 dark:text-slate-300 bg-transparent appearance-none"
+          style={{ WebkitAppearance: "none" }}
         >
           <option value="all">All Levels</option>
           <option value="N5">N5</option>
@@ -169,8 +191,8 @@ function LeaderboardPage() {
         className="glass rounded-2xl p-5 overflow-hidden relative"
       >
         {/* Glow blobs */}
-        <div className="absolute top-0 right-0 w-56 h-56 rounded-full bg-gradient-to-br from-blue-500/15 via-pink-500/10 to-transparent blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full bg-gradient-to-tr from-pink-500/10 to-amber-400/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-56 h-56 rounded-full bg-gradient-to-br from-blue-500/10 via-pink-500/8 to-transparent blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full bg-gradient-to-tr from-pink-500/8 to-cyan-400/4 blur-3xl pointer-events-none" />
 
         <div className="relative">
           <div className="text-center mb-4">
@@ -193,25 +215,25 @@ function LeaderboardPage() {
               transition={{ delay: 0.08, type: "spring", stiffness: 200, damping: 20 }}
               className="flex flex-col items-center"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 flex items-center justify-center shadow-lg mb-1.5 ring-2 ring-amber-400/50 shadow-amber-400/60">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 via-cyan-300 to-cyan-400 flex items-center justify-center shadow-lg mb-1.5 ring-2 ring-cyan-300/40 shadow-cyan-400/50">
                 <Crown className="w-4 h-4 text-white" />
               </div>
               <motion.div
                 whileHover={{ scale: 1.1, y: -6 }}
                 transition={{ type: "spring", stiffness: 300 }}
-                className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 flex items-center justify-center text-white font-black text-3xl shadow-2xl shadow-amber-400/60 ring-4 ring-amber-400/50 ring-offset-2 dark:ring-offset-slate-900"
+                className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400 via-cyan-300 to-cyan-400 flex items-center justify-center text-white font-black text-3xl shadow-2xl shadow-cyan-400/50 ring-4 ring-cyan-300/40 ring-offset-2 dark:ring-offset-slate-900"
               >
                 {top3[0].avatar}
                 <motion.div
                   animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.15, 1] }}
                   transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-                  className="absolute inset-0 rounded-2xl bg-amber-300/30 blur-md"
+                  className="absolute inset-0 rounded-2xl bg-cyan-300/30 blur-md"
                 />
               </motion.div>
               <p className="font-bold text-sm text-foreground mt-2">{top3[0].name.split(" ")[0]}</p>
-              <div className="flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-muted/60 text-[10px] font-bold text-muted-foreground">
+              <div className="flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/70 text-[10px] font-bold text-slate-600 dark:text-slate-300">
                 <span>{top3[0].xp.toLocaleString()} XP</span>
-                <span className="text-orange-400">🔥 {top3[0].streak}d</span>
+                <span className="text-orange-500 dark:text-orange-300">🔥 {top3[0].streak}d</span>
               </div>
             </motion.div>
             {/* #3 */}
@@ -239,7 +261,7 @@ function LeaderboardPage() {
               </div>
             </div>
           </div>
-          <div className="glass border-t-0 rounded-b-2xl p-3">
+          <div className="glass border-t-0 rounded-b-2xl p-3 border border-t-0">
             <div className="flex gap-3">
               {[
                 { label: "XP", value: currentUser.xp.toLocaleString() },
@@ -247,8 +269,8 @@ function LeaderboardPage() {
                 { label: "Level", value: currentUser.level.toString() },
               ].map(s => (
                 <div key={s.label} className="flex-1 text-center">
-                  <div className="font-black text-sm">{s.value}</div>
-                  <div className="text-[10px] text-muted-foreground">{s.label}</div>
+                  <div className="font-black text-sm text-foreground">{s.value}</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -263,13 +285,13 @@ function LeaderboardPage() {
           className="glass rounded-2xl p-4"
         >
           <h4 className="font-bold text-sm mb-3 flex items-center gap-2 text-foreground">
-            <TrendingUp className="w-4 h-4 text-primary" />
+            <TrendingUp className="w-4 h-4 text-blue-500" />
             XP to Rank #{currentUserRank + 1}
           </h4>
           <div className="flex items-end gap-3">
             <div className="flex-1">
-              <div className="text-[10px] text-muted-foreground mb-1.5">Keep going!</div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-1.5">Keep going!</div>
+              <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: "0%" }}
                   animate={{ width: `${Math.min(80, (currentUser.xp / (currentUser.xp + xpToNextRank)) * 100)}%` }}
@@ -277,7 +299,7 @@ function LeaderboardPage() {
                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-pink-500"
                 />
               </div>
-              <div className="text-[10px] text-muted-foreground mt-1">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                 {xpToNextRank.toLocaleString()} XP needed
               </div>
             </div>
@@ -295,9 +317,9 @@ function LeaderboardPage() {
         transition={{ delay: 0.2 }}
         className="glass rounded-2xl overflow-hidden"
       >
-        <div className="overflow-x-auto min-w-[600px]">
+        <div className="overflow-x-auto">
         {/* Table header */}
-        <div className="grid grid-cols-12 gap-2 px-4 py-2.5 border-b border-border/40 text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+        <div className="grid grid-cols-12 gap-2 px-4 py-2.5 border-b border-border/40 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
           <div className="col-span-1">#</div>
           <div className="col-span-5">Learner</div>
           <div className="col-span-2 text-right">XP</div>
@@ -316,14 +338,18 @@ function LeaderboardPage() {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center hover:bg-white/40 dark:hover:bg-white/5 transition ${
-                  isCurrentUser ? "bg-blue-500/8 border-l-4 border-l-blue-500" : ""
+                className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center transition-colors ${
+                  isCurrentUser
+                    ? "bg-blue-500/10 dark:bg-blue-500/15 border-l-4 border-l-blue-500"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800/50"
                 }`}
               >
                 {/* Rank */}
                 <div className="col-span-1 flex items-center gap-1">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${
-                    actualRank <= 10 ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow" : "bg-muted text-muted-foreground"
+                    actualRank <= 10
+                      ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow"
+                      : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
                   }`}>
                     {actualRank}
                   </div>
@@ -332,7 +358,7 @@ function LeaderboardPage() {
 
                 {/* Learner */}
                 <div className="col-span-5 flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/40 to-sakura/40 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400/40 via-cyan-400/30 to-indigo-400/40 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                     {player.avatar}
                   </div>
                   <div className="min-w-0">
@@ -340,19 +366,19 @@ function LeaderboardPage() {
                       {player.name}
                       {isCurrentUser && <span className="ml-1 text-[10px] font-bold">(You)</span>}
                     </div>
-                    <div className="text-[10px] text-muted-foreground">{player.country}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{player.country}</div>
                   </div>
                 </div>
 
                 {/* XP */}
                 <div className="col-span-2 text-right">
-                  <span className="font-black text-xs">{player.xp.toLocaleString()}</span>
+                  <span className="font-black text-xs text-foreground">{player.xp.toLocaleString()}</span>
                 </div>
 
                 {/* Streak */}
                 <div className="col-span-2 flex items-center justify-center gap-1">
-                  <Flame className="w-3 h-3 text-orange-400" />
-                  <span className="font-bold text-xs text-orange-400">{player.streak}d</span>
+                  <Flame className="w-3 h-3 text-orange-500 dark:text-orange-300" />
+                  <span className="font-bold text-xs text-orange-500 dark:text-orange-300">{player.streak}d</span>
                 </div>
 
                 {/* Change */}
@@ -369,7 +395,7 @@ function LeaderboardPage() {
             <button
               onClick={() => setRankPage(p => Math.max(1, p - 1))}
               disabled={rankPage === 1}
-              className="w-8 h-8 rounded-lg flex items-center justify-center glass text-muted-foreground hover:text-foreground transition disabled:opacity-30"
+              className="w-8 h-8 rounded-lg flex items-center justify-center glass text-slate-500 dark:text-slate-300 hover:text-foreground dark:hover:text-white transition disabled:opacity-30"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
@@ -380,7 +406,7 @@ function LeaderboardPage() {
                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
                   p === rankPage
                     ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow"
-                    : "glass text-muted-foreground hover:text-foreground"
+                    : "glass text-slate-500 dark:text-slate-300 hover:text-foreground dark:hover:text-white"
                 }`}
               >
                 {p}
@@ -389,7 +415,7 @@ function LeaderboardPage() {
             <button
               onClick={() => setRankPage(p => Math.min(totalRankPages, p + 1))}
               disabled={rankPage === totalRankPages}
-              className="w-8 h-8 rounded-lg flex items-center justify-center glass text-muted-foreground hover:text-foreground transition disabled:opacity-30"
+              className="w-8 h-8 rounded-lg flex items-center justify-center glass text-slate-500 dark:text-slate-300 hover:text-foreground dark:hover:text-white transition disabled:opacity-30"
             >
               <ChevronRightIcon className="w-3.5 h-3.5" />
             </button>
