@@ -6,13 +6,14 @@ import {
   Eye, EyeOff,
   Moon, Globe, ChevronDown, Target, Save, Edit,
   CheckCircle, Star, MapPin, Calendar, Sparkles,
-  Upload, Trash2, Camera, Sun, Phone, Cake,
+  Upload, Trash2, Camera, Sun, Phone, Cake, Clock3, BookOpenText, Languages, Activity,
 } from "lucide-react";
 import { useTheme, useAuth } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
+import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/student/profile")({
   component: ProfilePage,
@@ -501,19 +502,93 @@ function ProfilePage() {
       {/* ─── OVERVIEW ─── */}
       {activeTab === "overview" && (
         <div className="space-y-3">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "Study Hours", value: mockStats.studyHours, color: "text-orange-500" },
-              { label: "Words", value: mockStats.wordsLearned.toLocaleString(), color: "text-blue-500" },
-              { label: "Grammar", value: mockStats.grammarCompleted, color: "text-green-500" },
-              { label: "Accuracy", value: `${mockStats.listeningAccuracy}%`, color: "text-purple-500" },
-            ].map(s => (
-              <div key={s.label}
-                className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-white/60 dark:border-white/10 rounded-xl p-2.5 text-center transition-colors duration-300">
-                <div className={`font-black text-base ${s.color}`}>{s.value}</div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-medium">{s.label}</div>
-              </div>
-            ))}
+              {
+                label: "Study Hours",
+                value: mockStats.studyHours,
+                subtext: `${mockStats.studyHours} hours logged`,
+                progressValue: Math.min(mockStats.studyHours, 100),
+                accent: "from-orange-500/18 via-amber-500/8 to-transparent",
+                iconWrap: "bg-orange-500/12 text-orange-400 ring-1 ring-orange-500/20",
+                progressClass: "bg-orange-500/18 [&>div]:bg-orange-400",
+                icon: Clock3,
+              },
+              {
+                label: "Words",
+                value: mockStats.wordsLearned.toLocaleString(),
+                subtext: `${mockStats.wordsLearned.toLocaleString()} learned words`,
+                progressValue: Math.min(mockStats.wordsLearned, 100),
+                accent: "from-blue-500/18 via-sky-500/8 to-transparent",
+                iconWrap: "bg-blue-500/12 text-blue-400 ring-1 ring-blue-500/20",
+                progressClass: "bg-blue-500/18 [&>div]:bg-blue-400",
+                icon: BookOpenText,
+              },
+              {
+                label: "Grammar",
+                value: mockStats.grammarCompleted,
+                subtext: `${mockStats.grammarCompleted} completed points`,
+                progressValue: Math.min(mockStats.grammarCompleted, 100),
+                accent: "from-emerald-500/18 via-green-500/8 to-transparent",
+                iconWrap: "bg-emerald-500/12 text-emerald-400 ring-1 ring-emerald-500/20",
+                progressClass: "bg-emerald-500/18 [&>div]:bg-emerald-400",
+                icon: Languages,
+              },
+              {
+                label: "Accuracy",
+                value: `${mockStats.listeningAccuracy}%`,
+                subtext: `${mockStats.listeningAccuracy}% listening accuracy`,
+                progressValue: mockStats.listeningAccuracy,
+                accent: "from-violet-500/18 via-fuchsia-500/8 to-transparent",
+                iconWrap: "bg-violet-500/12 text-violet-400 ring-1 ring-violet-500/20",
+                progressClass: "bg-violet-500/18 [&>div]:bg-violet-400",
+                icon: Activity,
+              },
+            ].map((stat, index) => {
+              const Icon = stat.icon;
+
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                  className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white/85 p-4 shadow-sm shadow-slate-200/40 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-300/30 dark:border-white/10 dark:bg-slate-900/75 dark:shadow-black/10"
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${stat.accent} opacity-100`} />
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent dark:via-white/10" />
+
+                  <div className="relative flex h-full flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                          {stat.label}
+                        </p>
+                        <div className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                          {stat.value}
+                        </div>
+                      </div>
+
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.iconWrap}`}>
+                        <Icon className="h-4.5 w-4.5" />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {stat.subtext}
+                    </p>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+                        <span>Progress</span>
+                        <span>{stat.progressValue}%</span>
+                      </div>
+                      <Progress value={stat.progressValue} className={`h-1.5 ${stat.progressClass}`} />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       )}
