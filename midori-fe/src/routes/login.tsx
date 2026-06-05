@@ -57,8 +57,11 @@ function LoginPage() {
   };
 
   return (
-    <AuthShell title="Welcome back 🌸" subtitle="Sign in to continue your Japanese journey."
-      footer={<>Don't have an account? <Link to="/register" className="text-primary font-semibold">Sign up free</Link></>}>
+    <AuthShell
+      title="Welcome back 🌸"
+      subtitle="Sign in to continue your Japanese journey."
+      footer={<>Don't have an account? <Link to="/register" className="text-primary font-semibold">Sign up free</Link></>}
+    >
       <form onSubmit={submit} className="space-y-4">
         <Field
           label="Email address"
