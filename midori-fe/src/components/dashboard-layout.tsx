@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth, useTheme, type FrontendRole } from "@/lib/auth";
+import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
@@ -431,6 +432,8 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             {children}
           </motion.div>
         </main>
+
+        {role !== "admin" && <Footer />}
 
         {/* Mobile bottom nav */}
         <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">

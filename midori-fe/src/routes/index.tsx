@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SakuraBg } from "@/components/sakura-bg";
 import { Logo } from "@/components/logo";
+import { Footer } from "@/components/layout/Footer";
 import { motion } from "framer-motion";
 import { Sparkles, Mic, Headphones, ClipboardCheck, GraduationCap, Trophy, ArrowRight, Check } from "lucide-react";
 import { rolePath } from "@/lib/auth";
@@ -237,10 +238,7 @@ function Landing() {
         </p>
       </section>
 
-      <footer className="max-w-7xl mx-auto px-6 py-8 text-sm text-muted-foreground flex flex-wrap items-center justify-between gap-3">
-        <div>© 2026 MIDORI — Learn Japanese with AI</div>
-        <div className="flex gap-5"><a href="#" className="hover:text-foreground transition">Privacy</a><a href="#" className="hover:text-foreground transition">Terms</a><a href="#" className="hover:text-foreground transition">Contact</a></div>
-      </footer>
+      <Footer />
     </div>
   );
 }
