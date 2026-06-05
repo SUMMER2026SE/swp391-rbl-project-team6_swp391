@@ -13,7 +13,7 @@ const quickLinks: FooterLink[] = [
   { label: "Vocabulary", href: "/student/vocabulary" },
   { label: "Lessons", href: "/student/grammar" },
   { label: "Practice", href: "/student/flashcards" },
-  { label: "About", href: "#features" },
+  { label: "About", href: "#features", external: true },
 ];
 
 const learningLinks: FooterLink[] = [
@@ -27,7 +27,7 @@ const learningLinks: FooterLink[] = [
 function FooterLinkList({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div className="min-w-0">
-      <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground/85">
+      <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-foreground/85">
         {title}
       </h3>
       <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
@@ -57,35 +57,34 @@ function FooterLinkList({ title, links }: { title: string; links: FooterLink[] }
 
 export function Footer() {
   return (
-    <footer className="relative mt-16 overflow-hidden border-t border-white/10 bg-linear-to-b from-[#0d1326] via-[#0b1020] to-[#080d18] text-white">
-      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent" />
-      <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-white/5 to-transparent" />
-
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 py-12 sm:px-8 md:grid-cols-3 md:gap-x-10 md:gap-y-10 lg:grid-cols-[1.5fr_1fr_1fr] lg:items-start">
-        <div className="min-w-0 max-w-[320px] md:max-w-none">
-          <Link to="/" className="inline-flex items-center gap-3.5">
-            <Logo size={46} />
-            <div className="space-y-1">
-              <div className="font-display text-xl font-extrabold tracking-[0.16em] text-white">
-                MIDORI
+    <footer className="mt-16 border-t border-border/60 bg-linear-to-b from-background via-background to-primary/5">
+      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+        <div className="grid grid-cols-1 items-start gap-10 md:grid-cols-3 lg:grid-cols-[1.6fr_1fr_1fr] lg:gap-16">
+          <div className="min-w-0 max-w-[320px]">
+            <Link to="/" className="inline-flex items-center gap-3">
+              <Logo size={40} />
+              <div className="space-y-1">
+                <div className="font-display text-lg font-extrabold tracking-[0.14em] text-foreground">
+                  MIDORI
+                </div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Japanese Learning
+                </div>
               </div>
-              <div className="text-[11px] uppercase tracking-[0.28em] text-white/60">
-                Japanese Learning
-              </div>
-            </div>
-          </Link>
+            </Link>
 
-          <p className="mt-5 max-w-[320px] text-sm leading-6 text-white/65">
-            Learn Japanese smarter with vocabulary, lessons, and practice tools.
-          </p>
+            <p className="mt-4 max-w-[320px] text-sm leading-6 text-muted-foreground">
+              Learn Japanese smarter with vocabulary, lessons, and practice tools.
+            </p>
+          </div>
+
+          <FooterLinkList title="Quick Links" links={quickLinks} />
+          <FooterLinkList title="Learning" links={learningLinks} />
         </div>
-
-        <FooterLinkList title="Quick Links" links={quickLinks} />
-        <FooterLinkList title="Learning" links={learningLinks} />
       </div>
 
-      <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-2 px-6 py-5 text-center text-sm text-white/55 sm:px-8 md:flex-row md:justify-between md:text-left">
+      <div className="border-t border-border/50">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-4 text-center text-sm text-muted-foreground sm:px-8 md:flex-row md:items-center md:justify-between md:text-left lg:px-8">
           <p>© 2026 MIDORI. All rights reserved.</p>
           <p>Built for Japanese learning platform.</p>
         </div>
