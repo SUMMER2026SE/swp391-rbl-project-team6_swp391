@@ -121,11 +121,11 @@ const SAMPLE_QUESTIONS = [
 
 function LevelBadge({ level }: { level: JLPTLevel }) {
   const colors: Record<JLPTLevel, string> = {
-    N5: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-    N4: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-    N3: "bg-pink-500/20 text-pink-300 border-pink-500/30",
-    N2: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-    N1: "bg-red-500/20 text-red-300 border-red-500/30",
+    N5: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/20 dark:bg-blue-500/12 dark:text-blue-300",
+    N4: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/20 dark:bg-violet-500/12 dark:text-violet-300",
+    N3: "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-500/12 dark:text-cyan-300",
+    N2: "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/20 dark:bg-indigo-500/12 dark:text-indigo-300",
+    N1: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-400/20 dark:bg-slate-500/12 dark:text-slate-300",
   };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${colors[level]}`}>
@@ -138,7 +138,7 @@ function DifficultyDot({ difficulty }: { difficulty: Difficulty }) {
   const colors = { easy: "bg-green-400", medium: "bg-amber-400", hard: "bg-red-400" };
   const labels = { easy: "Easy", medium: "Medium", hard: "Hard" };
   return (
-    <span className="flex items-center gap-1.5 text-[10px] text-white/70">
+    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground dark:text-white/70">
       <span className={`w-2 h-2 rounded-full ${colors[difficulty]}`} />
       {labels[difficulty]}
     </span>
@@ -149,54 +149,76 @@ function ExamCard({ exam, onStart, onReview }: { exam: Exam; onStart: (exam: Exa
   const Icon = exam.typeIcon;
   const isCompleted = exam.status === "completed";
 
-  const gradMap: Record<JLPTLevel, string> = {
-    N5: "from-blue-500/80 via-sky-500/80 to-cyan-500/80",
-    N4: "from-violet-500/80 via-purple-500/80 to-fuchsia-500/80",
-    N3: "from-pink-500/80 via-rose-500/80 to-red-500/80",
-    N2: "from-amber-500/80 via-orange-500/80 to-yellow-500/80",
-    N1: "from-red-500/80 via-pink-500/80 to-fuchsia-500/80",
+  const accentMap: Record<JLPTLevel, string> = {
+    N5: "bg-blue-500 dark:bg-blue-400",
+    N4: "bg-violet-500 dark:bg-violet-400",
+    N3: "bg-cyan-500 dark:bg-cyan-400",
+    N2: "bg-indigo-500 dark:bg-indigo-400",
+    N1: "bg-slate-500 dark:bg-slate-400",
+  };
+
+  const lightHeaderMap: Record<JLPTLevel, string> = {
+    N5: "from-sky-50 via-cyan-50/80 to-indigo-50/70",
+    N4: "from-sky-50 via-indigo-50/80 to-violet-50/65",
+    N3: "from-cyan-50 via-sky-50/80 to-blue-50/70",
+    N2: "from-blue-50 via-indigo-50/85 to-sky-50/70",
+    N1: "from-slate-50 via-sky-50/55 to-indigo-50/45",
+  };
+
+  const darkHeaderMap: Record<JLPTLevel, string> = {
+    N5: "dark:from-blue-500/14 dark:via-cyan-500/8 dark:to-transparent",
+    N4: "dark:from-violet-500/14 dark:via-fuchsia-500/8 dark:to-transparent",
+    N3: "dark:from-cyan-500/14 dark:via-blue-500/8 dark:to-transparent",
+    N2: "dark:from-indigo-500/14 dark:via-violet-500/8 dark:to-transparent",
+    N1: "dark:from-slate-500/14 dark:via-slate-400/8 dark:to-transparent",
+  };
+
+  const iconToneMap: Record<JLPTLevel, string> = {
+    N5: "bg-gradient-to-br from-sky-100 to-cyan-50 text-blue-600 ring-1 ring-sky-200 shadow-sm shadow-sky-100/70 dark:from-blue-500/18 dark:to-cyan-500/12 dark:text-blue-300 dark:ring-blue-400/15 dark:shadow-none",
+    N4: "bg-gradient-to-br from-indigo-100 to-violet-50 text-indigo-600 ring-1 ring-indigo-200 shadow-sm shadow-indigo-100/70 dark:from-violet-500/18 dark:to-fuchsia-500/12 dark:text-violet-300 dark:ring-violet-400/15 dark:shadow-none",
+    N3: "bg-gradient-to-br from-cyan-100 to-sky-50 text-cyan-600 ring-1 ring-cyan-200 shadow-sm shadow-cyan-100/70 dark:from-cyan-500/18 dark:to-blue-500/12 dark:text-cyan-300 dark:ring-cyan-400/15 dark:shadow-none",
+    N2: "bg-gradient-to-br from-blue-100 to-indigo-50 text-indigo-600 ring-1 ring-blue-200 shadow-sm shadow-blue-100/70 dark:from-indigo-500/18 dark:to-violet-500/12 dark:text-indigo-300 dark:ring-indigo-400/15 dark:shadow-none",
+    N1: "bg-gradient-to-br from-slate-100 to-slate-50 text-slate-600 ring-1 ring-slate-200 shadow-sm shadow-slate-200/70 dark:from-slate-500/18 dark:to-slate-400/12 dark:text-slate-300 dark:ring-slate-400/15 dark:shadow-none",
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-2xl overflow-hidden border bg-white/80 dark:bg-slate-800/80 border-white/50 dark:border-slate-700/50 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer transition-all"
+      className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_12px_28px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:border-sky-200/90 hover:shadow-[0_16px_34px_rgba(37,99,235,0.10)] dark:border-slate-700/55 dark:bg-slate-900/72 dark:shadow-black/10 dark:hover:border-slate-600/70 dark:hover:shadow-black/20"
       onClick={() => onStart(exam)}
     >
-      {/* Gradient header */}
-      <div className={`relative px-4 pt-4 pb-3 bg-gradient-to-br ${gradMap[exam.level]}`}>
-        <div className="absolute inset-0 bg-black/10" />
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${accentMap[exam.level]}`} />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/90 to-transparent dark:via-white/10" />
 
-        <div className="relative flex items-start justify-between">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <Icon className="w-5 h-5 text-white" />
+      <div className={`relative min-h-[180px] border-b border-slate-200/85 px-4 pt-4 pb-3 bg-gradient-to-br ${lightHeaderMap[exam.level]} ${darkHeaderMap[exam.level]} dark:border-slate-700/55`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconToneMap[exam.level]}`}>
+            <Icon className="w-5 h-5" />
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <LevelBadge level={exam.level} />
             {isCompleted && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold">
+              <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:border-emerald-400/15 dark:bg-emerald-500/12 dark:text-emerald-300">
                 <CheckCircle className="w-3 h-3" /> Done
               </span>
             )}
           </div>
         </div>
 
-        <h3 className="font-display font-black text-sm mt-3 leading-tight text-white">{exam.title}</h3>
-        <p className="text-white/60 text-[11px] mt-1 leading-relaxed">{exam.description}</p>
+        <h3 className="mt-3 font-display text-sm font-black leading-tight text-slate-900 dark:text-white">{exam.title}</h3>
+        <p className="mt-1 text-[11px] leading-relaxed text-slate-600 dark:text-white/60">{exam.description}</p>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1 mt-2">
+        <div className="mt-2 flex flex-wrap gap-1">
           {exam.tags.map(tag => (
-            <span key={tag} className="px-2 py-0.5 rounded-full bg-white/15 text-white/70 text-[10px] font-semibold">
+            <span key={tag} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-white/10 dark:bg-white/8 dark:text-white/70">
               {tag}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="px-4 py-3 space-y-2">
+      <div className="relative space-y-2 px-4 py-3 dark:bg-slate-900/72">
         <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <FileText className="w-3.5 h-3.5" /> {exam.questions} Q
@@ -214,20 +236,21 @@ function ExamCard({ exam, onStart, onReview }: { exam: Exam; onStart: (exam: Exa
             </span>
           )}
           {exam.yourBest !== null && (
-            <span className="flex items-center gap-1 text-green-400 font-bold ml-auto">
+            <span className="ml-auto flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 font-bold text-green-600 dark:border-emerald-400/14 dark:bg-emerald-500/12 dark:text-green-400">
               <Trophy className="w-3.5 h-3.5" /> Best: {exam.yourBest}%
             </span>
           )}
         </div>
 
-        <div className="flex gap-2 mt-2">
+        <div className="mt-2 flex gap-2">
           <button
             onClick={(e) => { e.stopPropagation(); onStart(exam); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-xs transition-all ${
+            className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-xs font-bold transition-all ${
               isCompleted
-                ? "bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/20"
-                : "bg-white text-slate-700 hover:bg-white/90 shadow"
-            }`}>
+                ? "border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-400/16 dark:bg-blue-500/12 dark:text-blue-400 dark:hover:bg-blue-500/18"
+                : "border border-transparent bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-sm shadow-blue-900/10 hover:opacity-95 dark:from-blue-600 dark:to-indigo-500 dark:shadow-black/20"
+            }`}
+          >
             {isCompleted ? (
               <><RotateCcw className="w-3.5 h-3.5" /> Retake</>
             ) : (
@@ -237,7 +260,7 @@ function ExamCard({ exam, onStart, onReview }: { exam: Exam; onStart: (exam: Exa
           {isCompleted && onReview && (
             <button
               onClick={(e) => { e.stopPropagation(); onReview(exam); }}
-              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-xs transition-all bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20"
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-blue-600 transition-all hover:border-blue-200 hover:bg-blue-50 dark:border-slate-700/60 dark:bg-slate-800/85 dark:text-blue-400 dark:hover:border-blue-400/18 dark:hover:bg-blue-500/10"
             >
               <Eye className="w-3.5 h-3.5" /> Review
             </button>
@@ -261,73 +284,134 @@ function ExamIntro({
 }) {
   const Icon = exam.typeIcon;
 
-  const gradMap: Record<JLPTLevel, string> = {
-    N5: "from-blue-500 via-sky-400 to-cyan-400",
-    N4: "from-violet-500 via-purple-400 to-fuchsia-400",
-    N3: "from-pink-500 via-rose-400 to-red-400",
-    N2: "from-amber-500 via-orange-400 to-yellow-400",
-    N1: "from-red-500 via-pink-400 to-fuchsia-400",
+  const accentMap: Record<JLPTLevel, string> = {
+    N5: "bg-blue-500 dark:bg-blue-400",
+    N4: "bg-violet-500 dark:bg-violet-400",
+    N3: "bg-cyan-500 dark:bg-cyan-400",
+    N2: "bg-indigo-500 dark:bg-indigo-400",
+    N1: "bg-slate-500 dark:bg-slate-400",
+  };
+
+  const lightHeaderMap: Record<JLPTLevel, string> = {
+    N5: "from-sky-50 via-cyan-50/80 to-indigo-50/70",
+    N4: "from-sky-50 via-indigo-50/80 to-violet-50/65",
+    N3: "from-cyan-50 via-sky-50/80 to-blue-50/70",
+    N2: "from-blue-50 via-indigo-50/85 to-sky-50/70",
+    N1: "from-slate-50 via-sky-50/55 to-indigo-50/45",
+  };
+
+  const darkHeaderMap: Record<JLPTLevel, string> = {
+    N5: "dark:from-blue-500/14 dark:via-cyan-500/8 dark:to-transparent",
+    N4: "dark:from-violet-500/14 dark:via-fuchsia-500/8 dark:to-transparent",
+    N3: "dark:from-cyan-500/14 dark:via-blue-500/8 dark:to-transparent",
+    N2: "dark:from-indigo-500/14 dark:via-violet-500/8 dark:to-transparent",
+    N1: "dark:from-slate-500/14 dark:via-slate-400/8 dark:to-transparent",
+  };
+
+  const iconToneMap: Record<JLPTLevel, string> = {
+    N5: "bg-gradient-to-br from-blue-100 to-cyan-50 text-blue-600 ring-1 ring-blue-200 dark:from-blue-500/18 dark:to-cyan-500/12 dark:text-blue-300 dark:ring-blue-400/15",
+    N4: "bg-gradient-to-br from-violet-100 to-fuchsia-50 text-violet-600 ring-1 ring-violet-200 dark:from-violet-500/18 dark:to-fuchsia-500/12 dark:text-violet-300 dark:ring-violet-400/15",
+    N3: "bg-gradient-to-br from-cyan-100 to-blue-50 text-cyan-600 ring-1 ring-cyan-200 dark:from-cyan-500/18 dark:to-blue-500/12 dark:text-cyan-300 dark:ring-cyan-400/15",
+    N2: "bg-gradient-to-br from-indigo-100 to-violet-50 text-indigo-600 ring-1 ring-indigo-200 dark:from-indigo-500/18 dark:to-violet-500/12 dark:text-indigo-300 dark:ring-indigo-400/15",
+    N1: "bg-gradient-to-br from-slate-100 to-slate-50 text-slate-600 ring-1 ring-slate-200 dark:from-slate-500/18 dark:to-slate-400/12 dark:text-slate-300 dark:ring-slate-400/15",
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="max-w-xl mx-auto"
+      className="mx-auto max-w-xl"
     >
-      {/* Header card */}
-      <div className={`relative rounded-2xl overflow-hidden mb-4 bg-gradient-to-br ${gradMap[exam.level]}`}>
-        <div className="absolute inset-0 bg-black/10" />
-        <div className="relative px-5 pt-5 pb-4 text-center text-white">
-
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <Icon className="w-5 h-5" />
+      <div className="group relative mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/60 dark:border-slate-700/55 dark:bg-slate-900/72 dark:shadow-black/10">
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${accentMap[exam.level]}`} />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-white/10" />
+        <div className={`relative min-h-[240px] border-b border-slate-200 bg-gradient-to-br px-5 pt-5 pb-4 ${lightHeaderMap[exam.level]} ${darkHeaderMap[exam.level]} dark:border-slate-700/55`}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className={`flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm ${iconToneMap[exam.level]}`}>
+                <Icon className="w-5 h-5" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <LevelBadge level={exam.level} />
+                  {exam.yourBest !== null && (
+                    <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-400/15 dark:bg-emerald-500/12 dark:text-emerald-300">
+                      <Trophy className="w-3.5 h-3.5" /> {exam.yourBest}%
+                    </span>
+                  )}
+                </div>
+                <h2 className="font-display text-lg font-black leading-tight text-slate-900 dark:text-white">
+                  {exam.title}
+                </h2>
+                <p className="max-w-lg text-xs leading-relaxed text-slate-600 dark:text-white/70">
+                  {exam.description}
+                </p>
+              </div>
             </div>
-            <LevelBadge level={exam.level} />
-            {exam.yourBest !== null && (
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/20 text-[11px] font-bold">
-                <Trophy className="w-3.5 h-3.5" /> {exam.yourBest}%
-              </span>
-            )}
+
+            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/55">
+              <div className="grid grid-cols-3 gap-4 text-center text-xs">
+                <div>
+                  <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Questions</span>
+                  </div>
+                  <div className="mt-1 font-black text-foreground">{exam.questions}</div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Time</span>
+                  </div>
+                  <div className="mt-1 font-black text-foreground">{exam.time}m</div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                    <Target className="w-3.5 h-3.5" />
+                    <span>Level</span>
+                  </div>
+                  <div className="mt-1 font-black text-foreground">{exam.level}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <h2 className="font-display font-black text-lg leading-tight">{exam.title}</h2>
-          <p className="text-white/70 text-xs mt-1 leading-relaxed">{exam.description}</p>
-
-          <div className="flex items-center justify-center gap-5 mt-4 text-white/80 text-xs">
-            <span className="flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5" /> {exam.questions} questions
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" /> {exam.time} minutes
-            </span>
-            <DifficultyDot difficulty={exam.difficulty} />
-          </div>
-
-          <div className="mt-3 flex items-center justify-center gap-4 text-[10px] text-white/60">
-            <span className="flex items-center gap-1"><Timer className="w-3 h-3" />{exam.time} min countdown</span>
-            <span className="text-white/30">·</span>
-            <span className="flex items-center gap-1"><CheckCircle className="w-3 h-3" />Change answers freely</span>
-            <span className="text-white/30">·</span>
-            <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" />Detailed explanations</span>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {[
+              { icon: Timer, label: `${exam.time} min countdown` },
+              { icon: CheckCircle, label: "Change answers freely" },
+              { icon: TrendingUp, label: "Detailed explanations" },
+            ].map((item) => {
+              const ItemIcon = item.icon;
+              return (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-600 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/50 dark:text-white/65"
+                >
+                  <ItemIcon className="h-3.5 w-3.5 text-blue-500 dark:text-blue-300" />
+                  <span>{item.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      <div className="flex gap-3">
-        <button
-          onClick={onBack}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-sm font-semibold hover:bg-white transition"
-        >
-          <ChevronLeft className="w-4 h-4" /> Back
-        </button>
-        <button
-          onClick={onStart}
-          className="flex-[2] flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-slate-800 font-bold shadow hover:bg-white/90 transition"
-        >
-          <Play className="w-4 h-4" /> Start Exam
-        </button>
+        <div className="relative px-5 py-4">
+          <div className="flex gap-3">
+            <button
+              onClick={onBack}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-3 text-sm font-semibold shadow-sm transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700/60 dark:bg-slate-800/75 dark:hover:border-slate-600/70 dark:hover:bg-slate-800"
+            >
+              <ChevronLeft className="w-4 h-4" /> Back
+            </button>
+            <button
+              onClick={onStart}
+              className="flex-[2] flex items-center justify-center gap-2 rounded-xl border border-transparent bg-gradient-to-r from-sky-600 to-indigo-600 py-3 font-bold text-white shadow-sm shadow-blue-900/10 transition hover:opacity-95 dark:from-blue-600 dark:to-indigo-500 dark:shadow-black/20"
+            >
+              <Play className="w-4 h-4" /> Start Exam
+            </button>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -963,7 +1047,7 @@ function ExamsPage() {
     );
   }
 
-  // ─── DOING ────────────────────────────────────────────────────────────────
+  // ─── DOING ───────────────────────────────────────────────────────────────
   if (phase === "doing" && selectedExam) {
     const q = questions[currentQ];
     const isLowTime = timeLeft < 60;
@@ -1067,17 +1151,22 @@ function ExamsPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: "Exams", value: totalAvailable, icon: TargetIcon, color: "from-blue-500/10 to-purple-500/10", textColor: "text-blue-400" },
-          { label: "Completed", value: completedCount, icon: CheckCircle, color: "from-green-500/10 to-emerald-500/10", textColor: "text-green-400" },
-          { label: "Avg Score", value: avgScore > 0 ? `${avgScore}%` : "—", icon: Trophy, color: "from-amber-500/10 to-orange-500/10", textColor: "text-amber-400" },
+          { label: "Exams", value: totalAvailable, icon: TargetIcon, color: "from-sky-100/80 to-white dark:from-blue-500/12 dark:to-transparent", textColor: "text-blue-500", iconWrap: "bg-blue-50 ring-1 ring-blue-100 dark:bg-blue-500/12 dark:ring-blue-400/10" },
+          { label: "Completed", value: completedCount, icon: CheckCircle, color: "from-cyan-100/75 to-white dark:from-cyan-500/12 dark:to-transparent", textColor: "text-cyan-500", iconWrap: "bg-cyan-50 ring-1 ring-cyan-100 dark:bg-cyan-500/12 dark:ring-cyan-400/10" },
+          { label: "Avg Score", value: avgScore > 0 ? `${avgScore}%` : "—", icon: Trophy, color: "from-indigo-100/75 to-white dark:from-violet-500/12 dark:to-transparent", textColor: "text-indigo-500", iconWrap: "bg-indigo-50 ring-1 ring-indigo-100 dark:bg-violet-500/12 dark:ring-violet-400/10" },
         ].map(stat => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} className={`flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r ${stat.color} border border-white/50 dark:border-slate-700/50`}>
-              <Icon className={`w-5 h-5 flex-shrink-0 ${stat.textColor}`} />
-              <div>
-                <div className={`text-xl font-black leading-tight ${stat.textColor}`}>{stat.value}</div>
-                <div className="text-[10px] text-muted-foreground">{stat.label}</div>
+            <div key={stat.label} className="relative overflow-hidden rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm shadow-slate-200/35 dark:border-slate-700/55 dark:bg-slate-900/72 dark:shadow-black/10">
+              <div className={`absolute inset-0 bg-gradient-to-r ${stat.color}`} />
+              <div className="relative flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.iconWrap}`}>
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${stat.textColor}`} />
+                </div>
+                <div>
+                  <div className={`text-xl font-black leading-tight ${stat.textColor}`}>{stat.value}</div>
+                  <div className="text-[10px] text-muted-foreground">{stat.label}</div>
+                </div>
               </div>
             </div>
           );
@@ -1095,12 +1184,12 @@ function ExamsPage() {
               onClick={() => handleSetLevel(lvl)}
               className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 isSelected
-                  ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow"
-                  : "bg-white/70 dark:bg-slate-800/70 border border-white/50 dark:border-slate-700/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  ? "border border-blue-200/90 bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-sm shadow-blue-900/10 dark:from-blue-600 dark:to-indigo-500 dark:border-transparent dark:shadow-black/20"
+                  : "bg-white/75 dark:bg-slate-900/72 border border-slate-200/70 dark:border-slate-700/55 text-muted-foreground hover:border-blue-400/20 hover:bg-blue-500/5 hover:text-foreground dark:hover:border-blue-400/16 dark:hover:bg-blue-500/8"
               }`}
             >
               <span>{lvl}</span>
-              <span className={`text-[10px] ${isSelected ? "text-white/60" : ""}`}>{count}</span>
+              <span className={`text-[10px] ${isSelected ? "text-white/65" : ""}`}>{count}</span>
             </button>
           );
         })}
@@ -1114,7 +1203,7 @@ function ExamsPage() {
             value={search}
             onChange={e => handleSetSearch(e.target.value)}
             placeholder="Search exams..."
-            className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-white/70 dark:bg-slate-800/70 border border-white/50 dark:border-slate-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 text-foreground placeholder:text-muted-foreground"
+            className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-white/78 dark:bg-slate-900/72 border border-slate-200/70 dark:border-slate-700/55 shadow-sm shadow-slate-200/35 dark:shadow-black/10 text-sm outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400/20 text-foreground placeholder:text-muted-foreground"
           />
           {search && (
             <button
@@ -1132,8 +1221,8 @@ function ExamsPage() {
             onClick={() => setTopicDropdownOpen(o => !o)}
             className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
               topicFilter !== "All Topics"
-                ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white border-transparent shadow"
-                : "bg-white/70 dark:bg-slate-800/70 border-white/50 dark:border-slate-700/50 text-muted-foreground hover:text-foreground hover:border-primary/30"
+                  ? "bg-gradient-to-r from-sky-500 to-indigo-500 text-white border border-blue-200/80 shadow-sm shadow-blue-900/10 dark:from-blue-600 dark:to-indigo-500 dark:border-transparent dark:shadow-black/20"
+                : "bg-white/75 dark:bg-slate-900/72 border-slate-200/70 dark:border-slate-700/55 text-muted-foreground hover:text-foreground hover:border-blue-400/20 hover:bg-blue-500/5 dark:hover:border-blue-400/16 dark:hover:bg-blue-500/8"
             }`}
           >
             <span>{topicFilter}</span>
@@ -1146,7 +1235,7 @@ function ExamsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-1.5 w-44 rounded-xl bg-white dark:bg-slate-800 border border-white/50 dark:border-slate-700/50 shadow-xl z-20 overflow-hidden py-1"
+                className="absolute right-0 top-full mt-1.5 z-20 w-44 overflow-hidden rounded-xl border border-slate-200/70 bg-white/96 py-1 shadow-xl shadow-slate-200/35 dark:border-slate-700/55 dark:bg-slate-900/95 dark:shadow-black/25"
               >
                 {["All Topics", "Vocabulary", "Grammar", "Listening", "Mixed"].map(t => (
                   <button
@@ -1154,8 +1243,8 @@ function ExamsPage() {
                     onClick={() => handleSetTopic(t)}
                     className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition ${
                       topicFilter === t
-                        ? "bg-blue-500/10 text-blue-500 font-semibold"
-                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        ? "bg-blue-500/8 text-blue-500 font-semibold dark:bg-blue-500/10"
+                        : "text-muted-foreground hover:bg-blue-500/5 hover:text-foreground dark:hover:bg-slate-800/90"
                     }`}
                   >
                     {topicFilter === t && (
@@ -1182,8 +1271,8 @@ function ExamsPage() {
             onClick={() => handleSetStatus(s.key)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
               statusFilter === s.key
-                ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow"
-                : "bg-white/70 dark:bg-slate-800/70 border border-white/50 dark:border-slate-700/50 text-muted-foreground hover:text-foreground"
+                ? "border border-blue-200/90 bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-sm shadow-blue-900/10 dark:from-blue-600 dark:to-indigo-500 dark:border-transparent dark:shadow-black/20"
+                : "bg-white/75 dark:bg-slate-900/72 border border-slate-200/70 dark:border-slate-700/55 text-muted-foreground hover:border-blue-400/20 hover:bg-blue-500/5 hover:text-foreground dark:hover:border-blue-400/16 dark:hover:bg-blue-500/8"
             }`}
           >
             {s.label}
