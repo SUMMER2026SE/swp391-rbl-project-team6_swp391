@@ -24,14 +24,6 @@ const learningLinks: FooterLink[] = [
   { label: "Progress", href: "/student/progress" },
 ];
 
-const supportLinks: FooterLink[] = [
-  { label: "Help Center", href: "#" },
-  { label: "Contact", href: "#" },
-  { label: "FAQ", href: "#" },
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
-];
-
 function FooterLinkList({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div className="min-w-0">
@@ -69,8 +61,8 @@ export function Footer() {
       <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/40 to-transparent" />
       <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-white/5 to-transparent" />
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 py-12 sm:px-8 md:grid-cols-2 md:gap-x-10 md:gap-y-10 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:items-start">
-        <div className="min-w-0 max-w-[320px]">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 py-12 sm:px-8 md:grid-cols-3 md:gap-x-10 md:gap-y-10 lg:grid-cols-[1.5fr_1fr_1fr] lg:items-start">
+        <div className="min-w-0 max-w-[320px] md:max-w-none">
           <Link to="/" className="inline-flex items-center gap-3.5">
             <Logo size={46} />
             <div className="space-y-1">
@@ -90,7 +82,6 @@ export function Footer() {
 
         <FooterLinkList title="Quick Links" links={quickLinks} />
         <FooterLinkList title="Learning" links={learningLinks} />
-        <FooterLinkList title="Support" links={supportLinks} />
       </div>
 
       <div className="border-t border-white/10">
