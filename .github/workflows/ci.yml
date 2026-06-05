@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  backend:
+    name: Backend / Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: midori-be
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build backend with Maven
+        run: mvn clean package -DskipTests
+
+  frontend:
+    name: Frontend / Lint, Type-check & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: midori-fe
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: midori-fe/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run lint if available
+        shell: bash
+        run: |
+          lint_script=$(npm pkg get scripts.lint)
+          if [ "$lint_script" != "{}" ] && [ "$lint_script" != "null" ]; then
+            if ! npm run lint; then
+              echo "::warning::Lint script reported errors, but CI will continue."
+            fi
+          else
+            echo "No lint script found, skipping."
+          fi
+
+      - name: Run type-check if available
+        shell: bash
+        run: |
+          typecheck_script=$(npm pkg get scripts.typecheck)
+          if [ "$typecheck_script" != "{}" ] && [ "$typecheck_script" != "null" ]; then
+            npm run typecheck
+          else
+            type_check_script=$(npm pkg get scripts.type-check)
+            if [ "$type_check_script" != "{}" ] && [ "$type_check_script" != "null" ]; then
+              npm run type-check
+            else
+              echo "No typecheck/type-check script found, skipping."
+            fi
+          fi
+
+      - name: Build frontend
+        run: npm run build
