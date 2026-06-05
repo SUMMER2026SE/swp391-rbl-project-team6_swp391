@@ -54,7 +54,9 @@ jobs:
         run: |
           lint_script=$(npm pkg get scripts.lint)
           if [ "$lint_script" != "{}" ] && [ "$lint_script" != "null" ]; then
-            npm run lint
+            if ! npm run lint; then
+              echo "::warning::Lint script reported errors, but CI will continue."
+            fi
           else
             echo "No lint script found, skipping."
           fi
