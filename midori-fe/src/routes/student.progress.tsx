@@ -12,14 +12,38 @@ import {
 // ─── Mock Data ─────────────────────────────────────────────────────────────
 
 const weeklyStudyData = [
-  { day: "Mon", vocabulary: 45, grammar: 30, listening: 25, shadowing: 20 },
-  { day: "Tue", vocabulary: 30, grammar: 45, listening: 15, shadowing: 30 },
-  { day: "Wed", vocabulary: 60, grammar: 20, listening: 40, shadowing: 15 },
-  { day: "Thu", vocabulary: 25, grammar: 55, listening: 20, shadowing: 35 },
-  { day: "Fri", vocabulary: 50, grammar: 25, listening: 30, shadowing: 25 },
-  { day: "Sat", vocabulary: 70, grammar: 40, listening: 50, shadowing: 40 },
-  { day: "Sun", vocabulary: 40, grammar: 35, listening: 25, shadowing: 30 },
+  { day: "Mon", vocab: 45, grammar: 30, listening: 25, shadow: 20 },
+  { day: "Tue", vocab: 30, grammar: 45, listening: 15, shadow: 30 },
+  { day: "Wed", vocab: 60, grammar: 20, listening: 40, shadow: 15 },
+  { day: "Thu", vocab: 25, grammar: 55, listening: 20, shadow: 35 },
+  { day: "Fri", vocab: 50, grammar: 25, listening: 30, shadow: 25 },
+  { day: "Sat", vocab: 70, grammar: 40, listening: 50, shadow: 40 },
+  { day: "Sun", vocab: 40, grammar: 35, listening: 25, shadow: 30 },
 ];
+
+// ─── Chart colors ────────────────────────────────────────────────────────────
+
+function getChartColors() {
+  const isDark =
+    document.documentElement.classList.contains("dark") ||
+    document.body.classList.contains("dark");
+  return {
+    axis: isDark ? "rgba(203,213,225,0.82)" : "rgba(71,85,105,0.85)",
+    grid: isDark ? "rgba(148,163,184,0.22)" : "rgba(148,163,184,0.28)",
+    legendText: isDark ? "rgba(226,232,240,0.78)" : "rgba(51,65,85,0.88)",
+    barVocab: isDark ? "#8EA7FF" : "#4F7DF3",
+    barGrammar: isDark ? "#67E8F9" : "#38BDF8",
+    barListening: isDark ? "#C4B5FD" : "#A78BFA",
+    barShadow: isDark ? "#FDA4AF" : "#F9A8D4",
+    tooltipBg: isDark ? "rgba(14,20,40,0.97)" : "rgba(255,255,255,0.97)",
+    tooltipBorder: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)",
+    tooltipText: isDark ? "#F1F5F9" : "#0F172A",
+    tooltipLabel: isDark ? "rgba(203,213,225,0.75)" : "#64748B",
+    legendColors: isDark
+      ? ["#8EA7FF", "#67E8F9", "#C4B5FD", "#FDA4AF"]
+      : ["#4F7DF3", "#38BDF8", "#A78BFA", "#F9A8D4"],
+  };
+}
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
@@ -28,6 +52,8 @@ export const Route = createFileRoute("/student/progress")({
 });
 
 function ProgressPage() {
+  const chartColors = getChartColors();
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -36,12 +62,48 @@ function ProgressPage() {
       />
 
       {/* ─── Stats Row ─── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total XP", value: "9,840", delta: "+18%", up: true, icon: Sparkles, color: "primary" },
-          { label: "Study Streak", value: "32 days", delta: "+4", up: true, icon: Flame, color: "orange" },
-          { label: "This Month", value: "48.2h", delta: "+12%", up: true, icon: Clock, color: "sky" },
-          { label: "Accuracy", value: "83%", delta: "+3%", up: true, icon: Target, color: "green" },
+          {
+            label: "Total XP",
+            value: "9,840",
+            delta: "+18%",
+            up: true,
+            icon: Sparkles,
+            color: "primary",
+            bgLight: "bg-primary/10 dark:bg-primary/20",
+            textLight: "text-primary dark:text-primary/90",
+          },
+          {
+            label: "Study Streak",
+            value: "32 days",
+            delta: "+4",
+            up: true,
+            icon: Flame,
+            color: "orange",
+            bgLight: "bg-orange-50 dark:bg-orange-950/50",
+            textLight: "text-orange-500 dark:text-orange-300",
+          },
+          {
+            label: "This Month",
+            value: "48.2h",
+            delta: "+12%",
+            up: true,
+            icon: Clock,
+            color: "sky",
+            bgLight: "bg-sky-blue/10 dark:bg-sky-blue/15",
+            textLight: "text-sky-blue dark:text-sky-blue/90",
+          },
+          {
+            label: "Accuracy",
+            value: "83%",
+            delta: "+3%",
+            up: true,
+            icon: Target,
+            color: "green",
+            bgLight: "bg-green-50 dark:bg-green-950/50",
+            textLight: "text-green-600 dark:text-green-300",
+          },
         ].map((kpi, i) => {
           const Icon = kpi.icon;
           return (
@@ -50,21 +112,18 @@ function ProgressPage() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06 }}
-              className="glass rounded-2xl p-4"
+              className="glass rounded-2xl p-4 hover:shadow-md transition-shadow duration-200"
             >
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                  kpi.color === "primary" ? "bg-primary/10 text-primary" :
-                  kpi.color === "orange" ? "bg-orange-100 text-orange-500 dark:bg-orange-950/30" :
-                  kpi.color === "sky" ? "bg-sky-blue/10 text-sky-blue" :
-                  "bg-green-100 text-green-500 dark:bg-green-950/30"
-                }`}>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${kpi.bgLight} ${kpi.textLight}`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <span className="text-xs text-muted-foreground">{kpi.label}</span>
               </div>
-              <div className="font-display font-black text-2xl">{kpi.value}</div>
-              <div className={`flex items-center gap-1 text-[10px] font-semibold mt-1 ${kpi.up ? "text-green-500" : "text-red-400"}`}>
+              <div className="font-display font-bold text-2xl text-foreground">
+                {kpi.value}
+              </div>
+              <div className={`flex items-center gap-1 text-xs font-semibold mt-1 ${kpi.up ? "text-green-500 dark:text-green-400" : "text-red-400"}`}>
                 <ArrowUpRight className="w-3 h-3" />
                 {kpi.delta}
               </div>
@@ -85,26 +144,79 @@ function ProgressPage() {
             <BarChart3 className="w-4 h-4 text-primary" />
             Weekly Study Breakdown
           </h3>
-          <div className="flex gap-3 text-[10px]">
-            {[{ c: "oklch(0.62 0.18 270)", l: "Vocab" }, { c: "oklch(0.72 0.15 230)", l: "Grammar" }, { c: "oklch(0.75 0.18 340)", l: "Listening" }, { c: "oklch(0.6 0.22 25)", l: "Shadow" }].map((c, i) => (
-              <span key={i} className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.c }} /> {c.l}
+          <div className="flex gap-4 text-xs">
+            {[
+              { l: "Vocab" },
+              { l: "Grammar" },
+              { l: "Listening" },
+              { l: "Shadow" },
+            ].map((c, i) => (
+              <span key={i} className="flex items-center gap-1.5 text-xs" style={{ color: chartColors.legendText }}>
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: chartColors.legendColors[i] }}
+                />
+                {c.l}
               </span>
             ))}
           </div>
         </div>
         <p className="text-xs text-muted-foreground mb-4">Study time distribution by skill</p>
-        <div style={{ height: 180 }}>
+        <div style={{ height: 235 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weeklyStudyData} barCategoryGap="30%" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" opacity={0.5} vertical={false} />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'oklch(0.5 0.02 300)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'oklch(0.5 0.02 300)' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.12)", backgroundColor: 'oklch(0.99 0 0)' }} labelStyle={{ color: 'oklch(0.2 0 0)', fontWeight: 600 }} />
-              <Bar dataKey="vocabulary" fill="oklch(0.62 0.18 270)" radius={[4, 4, 0, 0]} stackId="a" />
-              <Bar dataKey="grammar" fill="oklch(0.72 0.15 230)" radius={[4, 4, 0, 0]} stackId="a" />
-              <Bar dataKey="listening" fill="oklch(0.75 0.18 340)" radius={[4, 4, 0, 0]} stackId="a" />
-              <Bar dataKey="shadowing" fill="oklch(0.6 0.22 25)" radius={[4, 4, 0, 0]} stackId="a" />
+            <BarChart
+              data={weeklyStudyData}
+              barCategoryGap="28%"
+              barGap={3}
+              margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={1} vertical={false} />
+              <XAxis
+                dataKey="day"
+                tick={{ fontSize: 11, fill: chartColors.axis }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: chartColors.axis }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: `1px solid ${chartColors.tooltipBorder}`,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                  backgroundColor: chartColors.tooltipBg,
+                  color: chartColors.tooltipText,
+                }}
+                labelStyle={{ color: chartColors.tooltipLabel, fontWeight: 600, marginBottom: 4 }}
+                itemStyle={{ color: chartColors.tooltipText, paddingTop: 2 }}
+                formatter={(value: number, name: string) => {
+                  const itemColors: Record<string, string> = {
+                    vocab: chartColors.barVocab,
+                    grammar: chartColors.barGrammar,
+                    listening: chartColors.barListening,
+                    shadow: chartColors.barShadow,
+                  };
+                  const labels: Record<string, string> = {
+                    vocab: "Vocab",
+                    grammar: "Grammar",
+                    listening: "Listening",
+                    shadow: "Shadow",
+                  };
+                  return [
+                    <span key="val" style={{ color: itemColors[name] ?? chartColors.tooltipText, fontWeight: 600 }}>
+                      {value} min
+                    </span>,
+                    labels[name] ?? name,
+                  ];
+                }}
+              />
+              <Bar dataKey="vocab" fill={chartColors.barVocab} radius={[5, 5, 0, 0]} barSize={12} />
+              <Bar dataKey="grammar" fill={chartColors.barGrammar} radius={[5, 5, 0, 0]} barSize={12} />
+              <Bar dataKey="listening" fill={chartColors.barListening} radius={[5, 5, 0, 0]} barSize={12} />
+              <Bar dataKey="shadow" fill={chartColors.barShadow} radius={[5, 5, 0, 0]} barSize={12} />
             </BarChart>
           </ResponsiveContainer>
         </div>
