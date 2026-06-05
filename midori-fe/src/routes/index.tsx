@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SakuraBg } from "@/components/sakura-bg";
 import { Logo } from "@/components/logo";
+import { Footer } from "@/components/layout/Footer";
 import { motion } from "framer-motion";
 import { Sparkles, Mic, Headphones, ClipboardCheck, GraduationCap, Trophy, ArrowRight, Check } from "lucide-react";
 import { rolePath } from "@/lib/auth";
@@ -58,7 +59,7 @@ function Landing() {
           <span className="font-display font-extrabold text-xl tracking-[0.12em] text-foreground">MIDORI</span>
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-foreground/80">
-          <a href="#features">Features</a><a href="#levels">JLPT Levels</a><a href="#pricing">Pricing</a>
+          <a href="#features">Features</a><a href="#levels">JLPT Levels</a>
         </nav>
         <div className="flex items-center gap-2">
           {navButtons}
@@ -164,83 +165,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="max-w-6xl mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-extrabold font-display">Simple, transparent pricing</h2>
-          <p className="mt-3 text-muted-foreground max-w-lg mx-auto">Start free. Upgrade when you need more power.</p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Free */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0 }}
-            className="glass rounded-3xl p-7 flex flex-col">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-3">Free</div>
-            <div className="font-display font-black text-4xl mb-1">¥0</div>
-            <div className="text-sm text-muted-foreground mb-6">Forever free</div>
-            <Link to="/register" className="w-full py-3 rounded-2xl border-2 border-border font-semibold text-center hover:bg-muted transition">
-              Get started
-            </Link>
-            <div className="mt-6 space-y-3 flex-1">
-              {["N5 & N4 lessons", "100 vocabulary cards", "Basic flashcard mode", "Community leaderboard", "3 shadowing sessions/day"].map(f => (
-                <div key={f} className="flex items-center gap-2.5 text-sm">
-                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span>{f}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Pro — highlighted */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="relative glass rounded-3xl p-7 flex flex-col ring-2 ring-primary shadow-lg scale-105">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-hero text-white text-xs font-bold shadow">
-              Most Popular
-            </div>
-            <div className="text-xs uppercase tracking-widest text-primary font-semibold mb-3">Pro</div>
-            <div className="font-display font-black text-4xl mb-1">¥980<span className="text-base font-normal text-muted-foreground">/mo</span></div>
-            <div className="text-sm text-muted-foreground mb-6">All JLPT levels unlocked</div>
-            <Link to="/register" className="w-full py-3 rounded-2xl bg-gradient-hero text-white font-bold text-center shadow-lg hover:shadow-xl transition">
-              Start Pro trial
-            </Link>
-            <div className="mt-6 space-y-3 flex-1">
-              {["All N5 → N1 content", "Unlimited flashcards", "All study modes", "AI shadowing sessions", "Mock JLPT exams", "Unlimited AI Shadowing", "Progress analytics", "No ads"].map(f => (
-                <div key={f} className="flex items-center gap-2.5 text-sm">
-                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span>{f}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Team */}
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-            className="glass rounded-3xl p-7 flex flex-col">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mb-3">Team</div>
-            <div className="font-display font-black text-4xl mb-1">¥2,980<span className="text-base font-normal text-muted-foreground">/mo</span></div>
-            <div className="text-sm text-muted-foreground mb-6">For schools & teams</div>
-            <Link to="/register" className="w-full py-3 rounded-2xl border-2 border-border font-semibold text-center hover:bg-muted transition">
-              Contact sales
-            </Link>
-            <div className="mt-6 space-y-3 flex-1">
-              {["Everything in Pro", "Up to 50 students", "Teacher dashboard", "Custom content upload", "Admin analytics panel", "API access", "SLA support", "Custom branding"].map(f => (
-                <div key={f} className="flex items-center gap-2.5 text-sm">
-                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span>{f}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        <p className="text-center text-sm text-muted-foreground mt-8">
-          All plans include a 7-day free trial. No credit card required to start.
-        </p>
-      </section>
-
-      <footer className="max-w-7xl mx-auto px-6 py-8 text-sm text-muted-foreground flex flex-wrap items-center justify-between gap-3">
-        <div>© 2026 MIDORI — Learn Japanese with AI</div>
-        <div className="flex gap-5"><a href="#" className="hover:text-foreground transition">Privacy</a><a href="#" className="hover:text-foreground transition">Terms</a><a href="#" className="hover:text-foreground transition">Contact</a></div>
-      </footer>
+      <Footer />
     </div>
   );
 }

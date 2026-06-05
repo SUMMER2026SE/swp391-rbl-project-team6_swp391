@@ -1,12 +1,14 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useAuth, useTheme, type Role } from "@/lib/auth";
+import { useAuth, useTheme, type FrontendRole } from "@/lib/auth";
+import { Footer } from "@/components/layout/Footer";
+import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Layers, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   Users, ShieldCheck, Settings, BookMarked, Megaphone, ChevronRight, Menu,
-  Bot, ChevronDown, Sun, Moon, BellRing
+  Bot, ChevronDown, Sun, Moon, BellRing, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -55,17 +57,18 @@ const adminNav: NavItem[] = [
   { to: "/admin/profile", label: "Profile", icon: User },
 ];
 
-function getNav(role: Role): NavItem[] {
+function getNav(role: FrontendRole): NavItem[] {
   return role === "student" ? studentNav : role === "teacher" ? teacherNav : adminNav;
 }
 
-export function DashboardLayout({ role, children }: { role: Role; children?: React.ReactNode }) {
+export function DashboardLayout({ role, children }: { role: FrontendRole; children?: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = getNav(role);
   const [open, setOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -104,7 +107,7 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
     return () => document.removeEventListener("click", handler);
   }, [notifOpen, userMenuOpen]);
 
-  const roleLabels: Record<Role, string> = {
+  const roleLabels: Record<FrontendRole, string> = {
     student: "Student",
     teacher: "Teacher",
     admin: "Administrator",
@@ -115,41 +118,106 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
       <SakuraBg count={14} />
 
       {/* Sidebar — desktop */}
-      <aside className="hidden lg:flex flex-col w-64 glass-sidebar m-3 mr-0 rounded-3xl p-4 sticky top-3 h-[calc(100vh-1.5rem)]">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 px-3 py-3 mb-2">
-          <Logo size={36} />
-          <div>
-            <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col">MIDORI</div>
-            <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold">{role}</div>
-          </div>
-        </Link>
+      <aside
+        className={cn(
+          "hidden lg:flex flex-col glass-sidebar m-3 mr-0 rounded-3xl p-4 sticky top-3 h-[calc(100vh-1.5rem)] transition-[width,padding] duration-300 ease-in-out overflow-visible",
+          isCollapsed ? "w-20 px-3" : "w-72"
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          className={cn(
+            "absolute -right-3 top-8 z-20 hidden lg:flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-slate-900/95 text-secondary-col shadow-lg backdrop-blur-sm transition-all duration-300 hover:text-primary",
+            isCollapsed ? "top-7" : "top-8"
+          )}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+        </button>
+
+        <div className={cn("mb-2", isCollapsed ? "flex justify-center pr-2" : "flex items-start justify-between gap-3 pr-8") }>
+          <Link
+            to="/"
+            className={cn(
+              "flex min-w-0 px-3 py-3 transition-all duration-300",
+              isCollapsed ? "w-full justify-center" : "items-center gap-2.5"
+            )}
+            title={isCollapsed ? "MIDORI" : undefined}
+          >
+            <div className="shrink-0 transition-all duration-300">
+              <Logo size={36} />
+            </div>
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300",
+                isCollapsed ? "hidden w-0 opacity-0 pointer-events-none" : "block w-auto opacity-100"
+              )}
+            >
+              <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col whitespace-nowrap">MIDORI</div>
+              <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold whitespace-nowrap">{role}</div>
+            </div>
+          </Link>
+        </div>
 
         {/* Nav */}
-        <nav className="flex-1 mt-2 space-y-1 overflow-y-auto">
+        <nav className="flex-1 mt-2 space-y-1 overflow-y-auto overflow-x-hidden">
           {items.map((it) => {
             const isBaseRoute = it.to === `/${role}`;
             const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
             const Icon = it.icon;
             return (
-              <Link key={it.to} to={it.to}
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  active
-                    ? "nav-active"
-                    : "nav-item"
-                }`}>
-                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-white" : "text-muted-foreground group-hover:text-primary"}`} />
-                <span className={active ? "text-white font-semibold" : "text-secondary-col"}>{it.label}</span>
-                {active && <ChevronRight className="w-4 h-4 ml-auto text-white/70" />}
+              <Link
+                key={it.to}
+                to={it.to}
+                title={isCollapsed ? it.label : undefined}
+                className={cn(
+                  "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
+                  active ? "nav-active" : "nav-item",
+                  isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "w-4 h-4 flex-shrink-0 transition-all duration-300",
+                    active ? "text-white" : "text-muted-foreground group-hover:text-primary",
+                    isCollapsed ? "mx-auto" : ""
+                  )}
+                />
+                <span
+                  className={cn(
+                    "transition-all duration-300 whitespace-nowrap overflow-hidden",
+                    active ? "text-white font-semibold" : "text-secondary-col",
+                    isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                  )}
+                >
+                  {it.label}
+                </span>
+                {!isCollapsed && active && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
               </Link>
             );
           })}
         </nav>
 
         {/* Logout */}
-        <button onClick={() => { logout(); nav({ to: "/login" }); }}
-          className="mt-2 flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium nav-item text-[var(--jp-red)] hover:bg-[var(--jp-red)]/10 transition">
-          <LogOut className="w-4 h-4" /> Logout
+        <button
+          onClick={() => { logout(); nav({ to: "/login" }); }}
+          title={isCollapsed ? "Logout" : undefined}
+          className={cn(
+            "mt-2 rounded-xl text-sm font-medium nav-item text-[var(--jp-red)] hover:bg-[var(--jp-red)]/10 transition-all duration-300 flex items-center",
+            isCollapsed ? "justify-center px-0 py-2.5" : "gap-2 px-3 py-2.5"
+          )}
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          <span
+            className={cn(
+              "overflow-hidden whitespace-nowrap transition-all duration-300",
+              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+            )}
+          >
+            Logout
+          </span>
         </button>
       </aside>
 
@@ -333,7 +401,7 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
                     style={{ top: "72px", right: "24px" }}
                   >
                     <Link
-                      to={`/${role}/profile`}
+                      to={`/${role}/profile` as never}
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm nav-item"
                     >
@@ -364,6 +432,8 @@ export function DashboardLayout({ role, children }: { role: Role; children?: Rea
             {children}
           </motion.div>
         </main>
+
+        {role !== "admin" && <Footer />}
 
         {/* Mobile bottom nav */}
         <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">

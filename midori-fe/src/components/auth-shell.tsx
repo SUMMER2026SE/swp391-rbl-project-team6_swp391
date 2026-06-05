@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import { motion } from "framer-motion";
@@ -92,16 +93,27 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
           className="w-full max-w-md glass rounded-3xl p-8 md:p-10"
         >
           {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-6">
+          <Link
+            to="/"
+            className="group flex items-center justify-center gap-2 transition-all duration-200 hover:opacity-90 hover:scale-[1.01]"
+          >
             <Logo size={44} />
-            <span className="font-display font-extrabold text-2xl tracking-[0.12em] text-foreground">MIDORI</span>
-          </div>
+            <span className="font-display font-extrabold text-2xl tracking-[0.12em] text-foreground transition-colors duration-200 group-hover:text-primary/90">
+              MIDORI
+            </span>
+          </Link>
 
-          <h1 className="text-3xl md:text-4xl font-extrabold font-display tracking-tight leading-tight">{title}</h1>
-          {subtitle && (
-            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{subtitle}</p>
-          )}
-          <div className="mt-7">{children}</div>
+          <div className="mt-5 text-center">
+            <h1 className="mx-auto w-full whitespace-nowrap text-center text-3xl md:text-4xl font-extrabold font-display leading-tight tracking-tight text-foreground">
+              {title}
+            </h1>
+            {subtitle && (
+              <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
+                {subtitle}
+              </p>
+            )}
+          </div>
+          <div className="mt-8">{children}</div>
           {footer && <div className="mt-7 text-sm text-center">{footer}</div>}
         </motion.div>
       </div>
