@@ -157,7 +157,7 @@ function ShadowingPage() {
   return (
     <div>
       <SakuraBg count={12} />
-      <div className="relative z-10 bg-white dark:bg-slate-900">
+      <div className="relative z-10">
         <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
 
           {/* Page Header */}
@@ -226,8 +226,8 @@ function ShadowingPage() {
                   </div>
 
                   <div className="px-5 pb-5">
-                    <div className="rounded-2xl bg-gradient-sakura p-6 mt-1">
-                      <div className="text-4xl font-display font-extrabold leading-tight text-foreground">
+                    <div className="rounded-2xl bg-gradient-sakura p-5 sm:p-6 mt-1">
+                      <div className="text-3xl sm:text-4xl font-display font-extrabold leading-tight text-foreground">
                         {currentSentence.jp}
                       </div>
                       <div className="text-muted-foreground mt-2 text-sm">
@@ -236,7 +236,7 @@ function ShadowingPage() {
                       <div className="text-sm mt-1 text-muted-foreground/80">
                         "{currentSentence.en}"
                       </div>
-                      <button className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 text-sm font-semibold text-foreground hover:bg-white transition">
+                      <button className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 dark:bg-white/20 text-sm font-semibold text-foreground hover:bg-white/90 dark:hover:bg-white/30 transition">
                         <Volume2 className="w-4 h-4" /> Play native audio
                       </button>
                     </div>
@@ -250,8 +250,8 @@ function ShadowingPage() {
                         }}
                         animate={recording ? { scale: [1, 1.08, 1] } : {}}
                         transition={{ repeat: Infinity, duration: 1.2 }}
-                        className={`w-24 h-24 rounded-full grid place-items-center text-white shadow-xl transition-all ${
-                          recording ? "bg-jp-red" : "bg-gradient-hero"
+                        className={`w-24 h-24 rounded-full grid place-items-center text-white transition-all ${
+                          recording ? "bg-jp-red shadow-lg shadow-jp-red/40 dark:shadow-jp-red/60" : "bg-gradient-hero shadow-xl shadow-primary/30 dark:shadow-primary/50"
                         }`}
                       >
                         {recording
@@ -321,7 +321,7 @@ function ShadowingPage() {
                               <span className="text-foreground">{k}</span>
                               <span className="font-semibold">{v}</span>
                             </div>
-                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
                               <div className="h-full bg-gradient-hero" style={{ width: `${v}%` }} />
                             </div>
                           </div>
@@ -397,12 +397,12 @@ function ShadowingPage() {
                 </div>
 
                 {/* N5–N1 filter chips */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {ALL_LEVELS.map(lvl => (
                     <button
                       key={lvl}
                       onClick={() => setLevelFilter(levelFilter === lvl ? null : lvl)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                         levelFilter === lvl
                           ? LEVEL_COLORS[lvl]
                           : "bg-card text-muted-foreground border-border/50 hover:bg-muted/50"
@@ -441,11 +441,11 @@ function ShadowingPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-1.5 w-52 rounded-xl bg-card border border-border/50 shadow-xl z-20 overflow-hidden py-1"
+                        className="absolute right-0 top-full mt-1.5 w-52 rounded-xl bg-card/80 dark:bg-slate-900/90 backdrop-blur-sm border border-border/50 shadow-xl z-20 overflow-hidden py-1"
                       >
                         <button
                           onClick={() => { setSelectedTopic(null); setDropdownOpen(false); }}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground transition"
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted/60 dark:hover:bg-white/10 hover:text-foreground transition"
                         >
                           All Topics
                         </button>
@@ -453,7 +453,7 @@ function ShadowingPage() {
                           <button
                             key={topic.id}
                             onClick={() => { setSelectedTopic(topic); setDropdownOpen(false); }}
-                            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted/60 hover:text-foreground transition ${selectedTopic?.id === topic.id ? "bg-muted/60 text-foreground font-semibold" : "text-muted-foreground"}`}
+                            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted/60 dark:hover:bg-white/10 hover:text-foreground transition ${selectedTopic?.id === topic.id ? "bg-muted/60 dark:bg-white/5 text-foreground font-semibold" : "text-muted-foreground"}`}
                           >
                             <span>{topic.emoji}</span>
                             <span>{topic.label}</span>
@@ -508,7 +508,7 @@ function ShadowingPage() {
                       >
                         <button
                           onClick={() => handleSelectFromList(topic, conv)}
-                          className="w-full text-left rounded-2xl p-4 border bg-card hover:shadow-lg hover:border-primary/30 transition-all"
+                          className="w-full text-left rounded-2xl p-4 border bg-card hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200"
                         >
                           <div className="flex items-center gap-4">
                             {/* Icon */}
@@ -524,7 +524,7 @@ function ShadowingPage() {
 
                             {/* Info */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <h3 className="font-bold text-sm text-foreground">{conv.title}</h3>
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${getLevelBadge(topic.level)}`}>
                                   {topic.level}
@@ -544,7 +544,7 @@ function ShadowingPage() {
                               </div>
                               {/* Mini progress bar */}
                               {status !== "not_started" && (
-                                <div className="mt-1.5 h-1 bg-muted rounded-full overflow-hidden">
+                                <div className="mt-1.5 h-2 bg-muted rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all ${status === "completed" ? "bg-gradient-to-r from-green-400 to-emerald-500" : "bg-gradient-hero"}`}
                                     style={{ width: `${pct}%` }}
