@@ -24,7 +24,12 @@ function LoginPage() {
     setLoading(true);
     try {
       const u = await login(email, password);
-      nav({ to: rolePath(u.role) });
+
+      if (u.role === "teacher" && u.status === "pending") {
+        nav({ to: "/teacher-pending" });
+      } else {
+        nav({ to: rolePath(u.role) });
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);
@@ -40,7 +45,12 @@ function LoginPage() {
     setGoogleLoading(true);
     try {
       const u = await loginWithGoogle(credential);
-      nav({ to: rolePath(u.role) });
+
+      if (u.role === "teacher" && u.status === "pending") {
+        nav({ to: "/teacher-pending" });
+      } else {
+        nav({ to: rolePath(u.role) });
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);

@@ -66,6 +66,21 @@ export function getUserAvatar(user: User | null): string | null {
   return null;
 }
 
+export function getStoredUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isTeacherPending(): boolean {
+  const u = getStoredUser();
+  return u?.role === "teacher" && u?.status === "pending";
+}
+
 export function getAvatarInitial(user: User | null, displayName?: string | null): string {
   const name =
     (displayName && isAvatar(displayName) ? displayName : null) ||

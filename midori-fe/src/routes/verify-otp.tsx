@@ -3,7 +3,6 @@ import { AuthShell, PrimaryBtn } from "@/components/auth-shell";
 import { useEffect, useRef, useState } from "react";
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-import { useLocation } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/verify-otp")({
   component: VerifyOtpPage,
@@ -16,10 +15,7 @@ function VerifyOtpPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const nav = useNavigate();
-  const location = useLocation<{ email?: string }>();
-
-  const email =
-    (location.state as { email?: string } | undefined)?.email ?? "";
+  const { email = "" } = Route.useSearch();
 
   useEffect(() => {
     if (seconds <= 0) return;

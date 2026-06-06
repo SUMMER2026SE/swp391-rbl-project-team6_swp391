@@ -108,9 +108,8 @@ public class AuthService {
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new UnauthorizedException("Account has been suspended");
         }
-        if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
-            throw new UnauthorizedException("Your teacher account is pending admin approval. You will be able to login once approved.");
-        }
+
+        // Teacher accounts with PENDING_APPROVAL can log in but are redirected to /teacher-pending
 
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
         String token = jwtTokenProvider.generateTokenFromUserDetails(userDetails);

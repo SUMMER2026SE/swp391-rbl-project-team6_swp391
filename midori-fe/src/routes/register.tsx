@@ -224,7 +224,7 @@ function RegisterPage() {
         selectedRole === "TEACHER"
           ? "Teacher account created. Please verify your email."
           : "Account created. Please verify your email.";
-      nav({ to: "/verify-otp", state: { email: form.email, message } });
+      nav({ to: "/verify-otp", search: { email: form.email } });
     } catch (err) {
       if (err instanceof ApiError) {
         const msg = err.message.toLowerCase();
@@ -317,7 +317,10 @@ function RegisterPage() {
           type="text"
           required
           value={form.name}
-          onChange={(e) => { update("name", e.target.value); setFieldErrors((f) => ({ ...f, name: undefined })); }}
+          onChange={(e) => {
+            update("name", e.target.value);
+            setFieldErrors((f) => ({ ...f, name: undefined }));
+          }}
           placeholder="Enter your full name"
           autoComplete="name"
         />
@@ -330,7 +333,10 @@ function RegisterPage() {
           type="email"
           required
           value={form.email}
-          onChange={(e) => { update("email", e.target.value); setFieldErrors((f) => ({ ...f, email: undefined })); }}
+          onChange={(e) => {
+            update("email", e.target.value);
+            setFieldErrors((f) => ({ ...f, email: undefined }));
+          }}
           placeholder="you@example.com"
           autoComplete="email"
         />
@@ -343,7 +349,10 @@ function RegisterPage() {
           type={showPassword ? "text" : "password"}
           required
           value={form.password}
-          onChange={(e) => { update("password", e.target.value); setFieldErrors((f) => ({ ...f, password: undefined })); }}
+          onChange={(e) => {
+            update("password", e.target.value);
+            setFieldErrors((f) => ({ ...f, password: undefined }));
+          }}
           placeholder="Min. 8 characters"
           autoComplete="new-password"
           endAdornment={
@@ -365,11 +374,14 @@ function RegisterPage() {
               { key: "number", label: "One number (e.g. 1, 2, 3)" },
               { key: "special", label: "One special character (e.g. @ # $ %)" },
             ].map(({ key, label }) => (
-              <div key={key} className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
-                (passwordChecks as Record<string, boolean>)[key]
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-muted-foreground"
-              }`}>
+              <div
+                key={key}
+                className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                  (passwordChecks as Record<string, boolean>)[key]
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-muted-foreground"
+                }`}
+              >
                 <Check className="w-3 h-3 shrink-0" />
                 {label}
               </div>
@@ -385,7 +397,10 @@ function RegisterPage() {
           type={showConfirm ? "text" : "password"}
           required
           value={form.confirm}
-          onChange={(e) => { update("confirm", e.target.value); setFieldErrors((f) => ({ ...f, confirm: undefined })); }}
+          onChange={(e) => {
+            update("confirm", e.target.value);
+            setFieldErrors((f) => ({ ...f, confirm: undefined }));
+          }}
           placeholder="Repeat your password"
           autoComplete="new-password"
           endAdornment={
@@ -472,7 +487,9 @@ function RegisterPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
                           {getFileIcon(cert.file.type)}
-                          <span className="text-sm truncate font-medium">{cert.name || cert.file.name}</span>
+                          <span className="text-sm truncate font-medium">
+                            {cert.name || cert.file.name}
+                          </span>
                           <span className="text-xs text-muted-foreground shrink-0">
                             ({cert.size})
                           </span>
@@ -549,7 +566,11 @@ function RegisterPage() {
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        <GoogleBtn onSuccess={handleGoogleSuccess} onError={handleGoogleError} disabled={loading || googleLoading} />
+        <GoogleBtn
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+          disabled={loading || googleLoading}
+        />
 
         <p className="text-[11px] text-muted-foreground/70 text-center leading-relaxed">
           Admin accounts are created internally — not via signup.
