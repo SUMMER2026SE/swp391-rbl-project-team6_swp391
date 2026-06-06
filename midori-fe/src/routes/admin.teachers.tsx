@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle, XCircle, Clock, Eye, AlertTriangle,
@@ -435,16 +435,14 @@ function RejectModal({
                   <button
                     key={reason}
                     onClick={() => toggleReason(reason)}
-                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left ${
-                      checked
-                        ? "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border-[var(--status-rejected)]/25"
-                        : "glass-surface text-secondary-col"
-                    }`}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left ${checked
+                      ? "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border-[var(--status-rejected)]/25"
+                      : "glass-surface text-secondary-col"
+                      }`}
                   >
                     <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                        checked ? "bg-[var(--status-rejected)] border-[var(--status-rejected)]" : "border-[var(--border)]"
-                      }`}>
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${checked ? "bg-[var(--status-rejected)] border-[var(--status-rejected)]" : "border-[var(--border)]"
+                        }`}>
                         {checked && <CheckCircle className="w-3 h-3 text-white" />}
                       </div>
                       {reason}
@@ -805,11 +803,10 @@ function Toast({
     <AnimatePresence>
       {visible && (
         <motion.div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold border shadow-xl glass-modal ${
-            isSuccess
-              ? "bg-[var(--status-active)]/15 text-[var(--status-active)] border-[var(--status-active)]/25"
-              : "bg-[var(--status-rejected)]/15 text-[var(--status-rejected)] border-[var(--status-rejected)]/25"
-          }`}
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold border shadow-xl glass-modal ${isSuccess
+            ? "bg-[var(--status-active)]/15 text-[var(--status-active)] border-[var(--status-active)]/25"
+            : "bg-[var(--status-rejected)]/15 text-[var(--status-rejected)] border-[var(--status-rejected)]/25"
+            }`}
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -830,6 +827,12 @@ export const Route = createFileRoute("/admin/teachers")({ component: TeachersPag
 function TeachersPage() {
   const [tab, setTab] = useState<"pending" | "approved">("pending");
   const [teachers, setTeachers] = useState(initialTeachers);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
   const [viewing, setViewing] = useState<TeacherApplication | null>(null);
   const [viewingApproved, setViewingApproved] = useState<TeacherApplication | null>(null);
   const [rejectTarget, setRejectTarget] = useState<TeacherApplication | null>(null);
@@ -857,6 +860,16 @@ function TeachersPage() {
 
   const pendingCount = teachers.length;
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-secondary-col font-semibold text-sm">Loading pending teachers...</p>
+        <p className="text-muted-col text-xs">Please wait while information is being prepared.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -867,9 +880,9 @@ function TeachersPage() {
         </div>
         {pendingCount > 0 && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--status-pending)]/10 text-[var(--status-pending)] text-xs font-bold border border-[var(--status-pending)]/20">
-          <AlertTriangle className="w-3 h-3" />
+            <AlertTriangle className="w-3 h-3" />
             {pendingCount} pending {pendingCount === 1 ? "review" : "reviews"}
-        </div>
+          </div>
         )}
       </div>
 
@@ -879,11 +892,10 @@ function TeachersPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${
-              tab === t
-                ? "bg-gradient-hero text-white shadow-md"
-                : "text-secondary-col nav-item"
-            }`}
+            className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${tab === t
+              ? "bg-gradient-hero text-white shadow-md"
+              : "text-secondary-col nav-item"
+              }`}
           >
             {t === "pending" ? `Pending (${pendingCount})` : `Approved (${approvedTeachers.length})`}
           </button>
@@ -897,11 +909,12 @@ function TeachersPage() {
             <div className="col-span-2 flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
               <CheckCircle className="w-12 h-12 text-[var(--status-active)]/40 mb-3" />
               <p className="text-secondary-col font-semibold text-sm">All caught up — no pending applications!</p>
+              <p className="text-muted-col text-xs mt-1">There are currently no records to review.</p>
             </div>
           ) : (
             teachers.map(teacher => (
               <TeacherCard
-              key={teacher.id}
+                key={teacher.id}
                 teacher={teacher}
                 onApprove={handleApprove}
                 onReject={id => {
@@ -912,7 +925,7 @@ function TeachersPage() {
               />
             ))
           )}
-                </div>
+        </div>
       )}
 
       {/* Approved Tab */}
@@ -923,48 +936,56 @@ function TeachersPage() {
             <div className="col-span-4 text-center">Stats</div>
             <div className="col-span-1 text-center">Joined</div>
             <div className="col-span-2 text-right">Profile</div>
-                    </div>
-          {approvedTeachers.map((teacher, i) => {
-            const initials = teacher.name.split(" ").map((n: string) => n[0]).join("");
-            const students = [1240, 890, 560][i];
-            const lessons = [87, 94, 112][i];
-            return (
-              <div
-                key={i}
-                className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
-              >
-                <div className="col-span-5 flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                    {initials}
-                    </div>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-primary-col text-sm truncate">{teacher.name}</div>
-                    <div className="text-muted-col text-[10px] truncate">{teacher.email}</div>
-                  </div>
-                </div>
-                <div className="col-span-4 flex items-center justify-center gap-4">
-                  <div className="flex flex-col items-center">
-                    <span className="text-primary-col font-display font-bold text-sm">{students.toLocaleString()}</span>
-                    <span className="text-muted-col text-[9px]">students</span>
-                  </div>
-                  <div className="w-px h-6 bg-[var(--border)]" />
-                  <div className="flex flex-col items-center">
-                    <span className="text-primary-col font-display font-bold text-sm">{lessons}</span>
-                    <span className="text-muted-col text-[9px]">lessons</span>
-                  </div>
-                </div>
-                <div className="col-span-1 text-center text-muted-col text-xs">{["Jan 2023","Feb 2023","Mar 2023"][i]}</div>
-                <div className="col-span-2 flex justify-end">
-                  <button
-                    onClick={() => setViewingApproved(teacher)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-surface text-secondary-col text-xs font-bold border border-glass-border hover:border-primary/30 hover:text-primary transition"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View
-                  </button>
           </div>
-              </div>
-            );
-          })}
+          {approvedTeachers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <UserCheck className="w-10 h-10 text-muted-col/40 mb-3" />
+              <p className="text-secondary-col font-semibold text-sm">No approved teachers yet.</p>
+              <p className="text-muted-col text-xs mt-1">Nothing to display at the moment.</p>
+            </div>
+          ) : (
+            approvedTeachers.map((teacher, i) => {
+              const initials = teacher.name.split(" ").map((n: string) => n[0]).join("");
+              const students = [1240, 890, 560][i];
+              const lessons = [87, 94, 112][i];
+              return (
+                <div
+                  key={i}
+                  className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
+                >
+                  <div className="col-span-5 flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                      {initials}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-primary-col text-sm truncate">{teacher.name}</div>
+                      <div className="text-muted-col text-[10px] truncate">{teacher.email}</div>
+                    </div>
+                  </div>
+                  <div className="col-span-4 flex items-center justify-center gap-4">
+                    <div className="flex flex-col items-center">
+                      <span className="text-primary-col font-display font-bold text-sm">{students.toLocaleString()}</span>
+                      <span className="text-muted-col text-[9px]">students</span>
+                    </div>
+                    <div className="w-px h-6 bg-[var(--border)]" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-primary-col font-display font-bold text-sm">{lessons}</span>
+                      <span className="text-muted-col text-[9px]">lessons</span>
+                    </div>
+                  </div>
+                  <div className="col-span-1 text-center text-muted-col text-xs">{["Jan 2023", "Feb 2023", "Mar 2023"][i]}</div>
+                  <div className="col-span-2 flex justify-end">
+                    <button
+                      onClick={() => setViewingApproved(teacher)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-surface text-secondary-col text-xs font-bold border border-glass-border hover:border-primary/30 hover:text-primary transition"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
@@ -1004,8 +1025,8 @@ function TeachersPage() {
           <TeacherViewDrawer
             teacher={viewingApproved}
             onClose={() => setViewingApproved(null)}
-            onApprove={() => {}}
-            onReject={() => {}}
+            onApprove={() => { }}
+            onReject={() => { }}
           />
         )}
       </AnimatePresence>
