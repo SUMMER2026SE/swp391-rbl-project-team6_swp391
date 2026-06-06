@@ -1,0 +1,19 @@
+package com.midori.config;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+@Getter
+@Setter
+@Component
+@ConfigurationProperties(prefix = "app.admin")
+public class AdminBootstrapProperties {
+
+    private boolean bootstrapEnabled = true;
+
+    private String email = "admin@midori.local";
+
+    private String password = "ChangeMe123!";
+}
