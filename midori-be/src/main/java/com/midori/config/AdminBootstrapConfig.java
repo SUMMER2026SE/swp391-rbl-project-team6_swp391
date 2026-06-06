@@ -2,7 +2,9 @@ package com.midori.config;
 
 import com.midori.entity.Role;
 import com.midori.entity.User;
+import com.midori.entity.UserProfile;
 import com.midori.entity.UserStatus;
+import com.midori.repository.UserProfileRepository;
 import com.midori.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ public class AdminBootstrapConfig {
 
     private final AdminBootstrapProperties adminProperties;
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Bean
@@ -51,8 +54,15 @@ public class AdminBootstrapConfig {
                     .emailVerified(true)
                     .build();
 
-            userRepository.save(admin);
+            admin = userRepository.save(admin);
             log.info("[AdminBootstrap] Created local admin: {}", adminEmail);
+
+            UserProfile adminProfile = UserProfile.builder()
+                    .user(admin)
+                    .displayName("Admin")
+                    .build();
+            userProfileRepository.save(adminProfile);
+            log.info("[AdminBootstrap] Created profile for admin: {}", adminEmail);
         };
     }
 }
