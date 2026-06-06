@@ -143,9 +143,7 @@ function RegisterPage() {
   };
 
   const updateCertificateName = (index: number, name: string) => {
-    setCertificates((prev) =>
-      prev.map((cert, i) => (i === index ? { ...cert, name } : cert))
-    );
+    setCertificates((prev) => prev.map((cert, i) => (i === index ? { ...cert, name } : cert)));
     if (name.trim()) {
       setCertificateErrors((prev) => {
         const next = { ...prev };
@@ -156,9 +154,7 @@ function RegisterPage() {
   };
 
   const updateCertificateIssuer = (index: number, issuer: string) => {
-    setCertificates((prev) =>
-      prev.map((cert, i) => (i === index ? { ...cert, issuer } : cert))
-    );
+    setCertificates((prev) => prev.map((cert, i) => (i === index ? { ...cert, issuer } : cert)));
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -228,10 +224,15 @@ function RegisterPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         const msg = err.message.toLowerCase();
-        if (msg.includes("email") && (msg.includes("exist") || msg.includes("already") || msg.includes("taken"))) {
+        if (
+          msg.includes("email") &&
+          (msg.includes("exist") || msg.includes("already") || msg.includes("taken"))
+        ) {
           setErr("This email is already registered.");
         } else if (msg.includes("password")) {
-          setErr("Password must be at least 8 characters and include uppercase letter, number, and special character.");
+          setErr(
+            "Password must be at least 8 characters and include uppercase letter, number, and special character.",
+          );
         } else {
           setErr(err.message || "Registration failed. Please try again.");
         }
@@ -470,9 +471,7 @@ function RegisterPage() {
                 <Upload className="w-4 h-4" />
                 Upload certificates PDF / JPG / PNG (max 5MB)
               </button>
-              {fileError && (
-                <p className="mt-1.5 text-xs text-destructive">{fileError}</p>
-              )}
+              {fileError && <p className="mt-1.5 text-xs text-destructive">{fileError}</p>}
 
               {certificates.length > 0 && (
                 <div className="mt-3 space-y-3">

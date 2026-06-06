@@ -125,14 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function restore() {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+      const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
       if (token) {
         try {
           const userResponse = await authApi.getMe();
-          const storedRaw =
-            typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+          const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
           const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
           const apiUser = userResponseToUser(userResponse);
           const merged = mergeUser(storedUser, apiUser);
@@ -146,8 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         try {
-          const raw =
-            typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+          const raw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
           if (raw) setUser(JSON.parse(raw));
         } catch {}
       }
@@ -169,8 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthCtx = {
     user,
     loaded,
-    accessToken:
-      typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
+    accessToken: typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
 
     login: async (email, password) => {
       const res = await authApi.login({ email, password });
@@ -265,9 +261,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") localStorage.setItem(THEME_KEY, next);
   };
 
-  return (
-    <ThemeCtx.Provider value={{ theme, toggleTheme }}>{children}</ThemeCtx.Provider>
-  );
+  return <ThemeCtx.Provider value={{ theme, toggleTheme }}>{children}</ThemeCtx.Provider>;
 }
 
 export function useTheme() {

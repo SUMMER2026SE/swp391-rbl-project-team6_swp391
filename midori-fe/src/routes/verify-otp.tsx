@@ -75,10 +75,7 @@ function VerifyOtpPage() {
   const allFilled = code.every((c) => c);
 
   return (
-    <AuthShell
-      title="Verify your email"
-      subtitle="Enter the 6-digit code we just sent."
-    >
+    <AuthShell title="Verify your email" subtitle="Enter the 6-digit code we just sent.">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="flex justify-between gap-2">
           {code.map((c, i) => (
@@ -122,11 +119,7 @@ function VerifyOtpPage() {
         <PrimaryBtn type="submit" disabled={!allFilled || loading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <svg
-                className="animate-spin w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle
                   className="opacity-25"
                   cx="12"

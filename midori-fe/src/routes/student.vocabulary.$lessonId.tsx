@@ -3,9 +3,16 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronLeft, Volume2, Bookmark, BookmarkCheck,
-  CheckCircle2, X, Play, ArrowRight, ArrowLeft,
-  BookOpen
+  ChevronLeft,
+  Volume2,
+  Bookmark,
+  BookmarkCheck,
+  CheckCircle2,
+  X,
+  Play,
+  ArrowRight,
+  ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
@@ -25,13 +32,20 @@ const levelColors: Record<string, string> = {
   N1: "bg-red-500/20 text-red-400 border-red-400/30",
 };
 
-export const Route = createFileRoute("/student/vocabulary/$lessonId")({ component: VocabStudyPage });
+export const Route = createFileRoute("/student/vocabulary/$lessonId")({
+  component: VocabStudyPage,
+});
 
 function VocabStudyPage() {
   const { lessonId } = Route.useParams();
 
   // ── Query: Lesson details (includes words) ─────────────────────────────────
-  const { data: lesson, isLoading, isError, error } = useQuery({
+  const {
+    data: lesson,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["vocabulary-lesson", lessonId],
     queryFn: () => vocabularyApi.getVocabularyLesson(lessonId),
     enabled: !!lessonId,
@@ -52,19 +66,19 @@ function VocabStudyPage() {
   const status = wordStatuses[current] ?? "not_learned";
   const isBook = bookmarked.has(current);
 
-  const learnedCount = Object.values(wordStatuses).filter(s => s === "learned").length;
+  const learnedCount = Object.values(wordStatuses).filter((s) => s === "learned").length;
   const notLearnedCount = words.length - learnedCount;
 
   const goNext = () => {
     if (current < words.length - 1) {
-      setCurrent(c => c + 1);
+      setCurrent((c) => c + 1);
       setRevealed(false);
     }
   };
 
   const goPrev = () => {
     if (current > 0) {
-      setCurrent(c => c - 1);
+      setCurrent((c) => c - 1);
       setRevealed(false);
     }
   };
@@ -75,14 +89,14 @@ function VocabStudyPage() {
   };
 
   const toggleLearned = () => {
-    setWordStatuses(prev => ({
+    setWordStatuses((prev) => ({
       ...prev,
       [current]: prev[current] === "learned" ? "not_learned" : "learned",
     }));
   };
 
   const toggleBookmark = () => {
-    setBookmarked(prev => {
+    setBookmarked((prev) => {
       const next = new Set(prev);
       if (next.has(current)) next.delete(current);
       else next.add(current);
@@ -139,9 +153,7 @@ function VocabStudyPage() {
         <div className="relative z-10 text-center max-w-sm mx-auto px-4">
           <BookOpen className="w-12 h-12 mx-auto text-white/30 mb-4" />
           <h3 className="text-lg font-bold text-white mb-2">No vocabulary words available</h3>
-          <p className="text-sm text-white/60 mb-4">
-            This lesson does not have any words yet.
-          </p>
+          <p className="text-sm text-white/60 mb-4">This lesson does not have any words yet.</p>
           <Link
             to="/student/vocabulary"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition"
@@ -176,7 +188,9 @@ function VocabStudyPage() {
           {/* Title */}
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lessonLevel] ?? levelColors.N5}`}>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lessonLevel] ?? levelColors.N5}`}
+              >
                 JLPT {lessonLevel}
               </span>
               <span className="font-display font-black text-white text-base leading-tight text-center">
@@ -201,7 +215,9 @@ function VocabStudyPage() {
         {/* Progress stats */}
         <div className="flex items-center justify-center gap-4 text-xs text-white/80 font-semibold">
           <span className="flex items-center gap-1">
-            <span className="font-black text-white text-sm">{current + 1} / {words.length}</span>
+            <span className="font-black text-white text-sm">
+              {current + 1} / {words.length}
+            </span>
           </span>
           <div className="w-px h-4 bg-white/20" />
           <span className="flex items-center gap-1">
@@ -230,8 +246,8 @@ function VocabStudyPage() {
                   isCurrent
                     ? "bg-gradient-hero text-white shadow-lg shadow-primary/40 scale-110"
                     : isLearned
-                    ? "bg-green-500/30 text-green-300 border border-green-400/30"
-                    : "bg-white/15 text-white/70 border border-white/20 hover:bg-white/25"
+                      ? "bg-green-500/30 text-green-300 border border-green-400/30"
+                      : "bg-white/15 text-white/70 border border-white/20 hover:bg-white/25"
                 }`}
               >
                 {i + 1}
@@ -268,23 +284,35 @@ function VocabStudyPage() {
             >
               {/* Card header strip */}
               <div className="bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 px-5 py-2.5 flex items-center justify-between">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lessonLevel] ?? levelColors.N5}`}>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lessonLevel] ?? levelColors.N5}`}
+                >
                   JLPT {lessonLevel}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={(e) => { e.stopPropagation(); toggleBookmark(); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleBookmark();
+                    }}
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                      isBook ? "bg-yellow-400/30 text-yellow-300" : "hover:bg-white/10 text-white/60"
+                      isBook
+                        ? "bg-yellow-400/30 text-yellow-300"
+                        : "hover:bg-white/10 text-white/60"
                     }`}
                   >
-                    {isBook
-                      ? <BookmarkCheck className="w-4 h-4 fill-yellow-400" />
-                      : <Bookmark className="w-4 h-4" />}
+                    {isBook ? (
+                      <BookmarkCheck className="w-4 h-4 fill-yellow-400" />
+                    ) : (
+                      <Bookmark className="w-4 h-4" />
+                    )}
                   </button>
                   {word?.audioUrl ? (
                     <button
-                      onClick={(e) => { e.stopPropagation(); playAudio(word.audioUrl!); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(word.audioUrl!);
+                      }}
                       className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition"
                     >
                       <Volume2 className="w-4 h-4 text-white" />
@@ -303,7 +331,10 @@ function VocabStudyPage() {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.1 }}
                   className="font-display font-black text-white leading-none mb-3"
-                  style={{ fontSize: "clamp(2.5rem, 8vw, 4.5rem)", fontFamily: "var(--font-japanese, serif)" }}
+                  style={{
+                    fontSize: "clamp(2.5rem, 8vw, 4.5rem)",
+                    fontFamily: "var(--font-japanese, serif)",
+                  }}
                 >
                   {word.word}
                 </motion.div>
@@ -315,9 +346,7 @@ function VocabStudyPage() {
 
                 {/* Romaji */}
                 {word.romaji && (
-                  <div className="text-white/40 text-sm font-medium italic mb-6">
-                    {word.romaji}
-                  </div>
+                  <div className="text-white/40 text-sm font-medium italic mb-6">{word.romaji}</div>
                 )}
 
                 {/* Tap to reveal / Meaning */}
@@ -351,14 +380,20 @@ function VocabStudyPage() {
                     >
                       {/* Meaning */}
                       <div className="px-4 py-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15">
-                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Meaning</div>
-                        <div className="text-white font-bold text-lg leading-tight">{word.meaning}</div>
+                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">
+                          Meaning
+                        </div>
+                        <div className="text-white font-bold text-lg leading-tight">
+                          {word.meaning}
+                        </div>
                       </div>
 
                       {/* Example */}
                       {(word.exampleJapanese || word.exampleMeaning) && (
                         <div className="px-4 py-3 rounded-2xl bg-purple-500/15 backdrop-blur-sm border border-purple-400/20">
-                          <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-1">Example</div>
+                          <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-1">
+                            Example
+                          </div>
                           {word.exampleJapanese && (
                             <div
                               className="text-white font-bold text-base leading-tight mb-1"
@@ -367,14 +402,18 @@ function VocabStudyPage() {
                               {word.exampleJapanese}
                             </div>
                           )}
-                          <div className="text-white/70 text-sm">{word.exampleMeaning ?? word.exampleJapanese}</div>
+                          <div className="text-white/70 text-sm">
+                            {word.exampleMeaning ?? word.exampleJapanese}
+                          </div>
                         </div>
                       )}
 
                       {/* Audio Player */}
                       {word.audioUrl && (
                         <div className="px-4 py-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15">
-                          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">Pronunciation</div>
+                          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
+                            Pronunciation
+                          </div>
                           <audio controls className="w-full h-8">
                             <source src={word.audioUrl} />
                             Your browser does not support the audio element.

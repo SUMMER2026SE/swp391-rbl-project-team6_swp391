@@ -6,8 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
-  Hourglass, Clock, CheckCircle2, Circle, Home, LogOut,
-  User, Mail, Info, RefreshCw, Loader2
+  Hourglass,
+  Clock,
+  CheckCircle2,
+  Circle,
+  Home,
+  LogOut,
+  User,
+  Mail,
+  Info,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
@@ -54,7 +63,11 @@ function TeacherPendingPage() {
   const { user, logout, updateCurrentUser } = useAuth();
 
   // ── React Query: Poll profile/me every 30s ─────────────────────────────
-  const { data: profile, isFetching, refetch } = useQuery({
+  const {
+    data: profile,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ["teacher-pending-status"],
     queryFn: async () => {
       const res = await authApi.getMe();
@@ -117,7 +130,6 @@ function TeacherPendingPage() {
         {/* ── Main Status Card ─────────────────────────────────────────── */}
         <Card className="bg-card/80 backdrop-blur-xl border border-border shadow-xl">
           <CardHeader className="text-center pb-2">
-
             {/* Animated hourglass icon */}
             <div className="flex justify-center mb-4">
               <motion.div
@@ -131,7 +143,10 @@ function TeacherPendingPage() {
             </div>
 
             {/* Status badge */}
-            <Badge variant="warning" className="mx-auto mb-3 text-xs font-bold tracking-wide uppercase px-3 py-1">
+            <Badge
+              variant="warning"
+              className="mx-auto mb-3 text-xs font-bold tracking-wide uppercase px-3 py-1"
+            >
               Pending Approval
             </Badge>
 
@@ -139,15 +154,18 @@ function TeacherPendingPage() {
               Your teacher application is under review
             </CardTitle>
             <CardDescription className="text-muted-foreground text-base pt-1">
-              Your teacher account has been created successfully and is currently awaiting administrator approval.
+              Your teacher account has been created successfully and is currently awaiting
+              administrator approval.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
-
             {/* ── Application Information ───────────────────────────────── */}
             <section aria-labelledby="app-info-heading">
-              <h2 id="app-info-heading" className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2.5">
+              <h2
+                id="app-info-heading"
+                className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2.5"
+              >
                 Application Status
               </h2>
               <div className="space-y-2">
@@ -165,7 +183,10 @@ function TeacherPendingPage() {
                     />
                     <span className={item.done ? "" : "italic"}>{item.label}</span>
                     {item.done ? (
-                      <CheckCircle2 className="ml-auto w-4 h-4 text-green-600 dark:text-green-400" aria-hidden="true" />
+                      <CheckCircle2
+                        className="ml-auto w-4 h-4 text-green-600 dark:text-green-400"
+                        aria-hidden="true"
+                      />
                     ) : (
                       <span className="ml-auto text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="w-3 h-3" aria-hidden="true" />
@@ -179,12 +200,18 @@ function TeacherPendingPage() {
 
             {/* ── Progress Timeline ────────────────────────────────────── */}
             <section aria-labelledby="timeline-heading">
-              <h2 id="timeline-heading" className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
+              <h2
+                id="timeline-heading"
+                className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3"
+              >
                 Progress
               </h2>
               <div className="relative">
                 {/* Connector line */}
-                <div className="absolute top-4 left-5 right-5 h-0.5 bg-border dark:bg-white/10" aria-hidden="true" />
+                <div
+                  className="absolute top-4 left-5 right-5 h-0.5 bg-border dark:bg-white/10"
+                  aria-hidden="true"
+                />
 
                 <div className="flex justify-between relative">
                   {timelineSteps.map((step, i) => (
@@ -195,8 +222,8 @@ function TeacherPendingPage() {
                           step.status === "done"
                             ? "bg-green-500 border-green-500 text-white"
                             : step.status === "active"
-                            ? "bg-amber-400 border-amber-400 text-white shadow-lg shadow-amber-400/30"
-                            : "bg-muted border-border text-muted-foreground"
+                              ? "bg-amber-400 border-amber-400 text-white shadow-lg shadow-amber-400/30"
+                              : "bg-muted border-border text-muted-foreground"
                         }`}
                         aria-label={`${step.label}: ${step.status === "done" ? "completed" : step.status === "active" ? "in progress" : "pending"}`}
                       >
@@ -214,8 +241,8 @@ function TeacherPendingPage() {
                           step.status === "done"
                             ? "text-green-600 dark:text-green-400"
                             : step.status === "active"
-                            ? "text-amber-600 dark:text-amber-400"
-                            : "text-muted-foreground"
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-muted-foreground"
                         }`}
                       >
                         {step.label}
@@ -305,11 +332,11 @@ function TeacherPendingPage() {
 
             {/* ── Support Section ──────────────────────────────────────── */}
             <section aria-labelledby="support-heading" className="text-center pt-1">
-              <h2 id="support-heading" className="sr-only">Support</h2>
+              <h2 id="support-heading" className="sr-only">
+                Support
+              </h2>
               <div className="flex flex-col items-center gap-1">
-                <p className="text-xs text-muted-foreground">
-                  Need help?
-                </p>
+                <p className="text-xs text-muted-foreground">Need help?</p>
                 <p className="text-xs text-muted-foreground">
                   If your application has been pending for an extended period, please contact{" "}
                   <a
@@ -321,7 +348,6 @@ function TeacherPendingPage() {
                 </p>
               </div>
             </section>
-
           </CardContent>
         </Card>
       </motion.div>
