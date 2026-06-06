@@ -27,6 +27,18 @@ function getLevelBadge(level: string) {
   return c[level] ?? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300";
 }
 
+function getLevelBoxStyle(level: string, isSelected: boolean) {
+  if (isSelected) return "bg-gradient-hero text-white shadow-md";
+  const styles: Record<string, string> = {
+    N5: "bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-200",
+    N4: "bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-200",
+    N3: "bg-pink-100 dark:bg-pink-900/60 text-pink-700 dark:text-pink-200",
+    N2: "bg-orange-100 dark:bg-orange-900/60 text-orange-700 dark:text-orange-200",
+    N1: "bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-200",
+  };
+  return styles[level] ?? "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300";
+}
+
 export const Route = createFileRoute("/student/listening")({ component: Listening });
 
 function Listening() {
@@ -87,7 +99,7 @@ function Listening() {
           />
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 w-fit">
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/55 dark:bg-white/[0.04] backdrop-blur-md border border-white/70 dark:border-white/10 w-fit shadow-sm">
             <TabButton
               active={activeTab === "select"}
               onClick={() => setActiveTab("select")}
@@ -113,14 +125,14 @@ function Listening() {
               {/* Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
                 {[
-                  { label: "Total exercises", value: statsTotal, icon: ListChecks, color: "text-blue-500" },
-                  { label: "Practiced", value: statsPracticed, icon: CheckCircle2, color: "text-green-500" },
-                  { label: "Avg score", value: statsAvg, icon: Sparkles, color: "text-purple-500" },
+                  { label: "Total exercises", value: statsTotal, icon: ListChecks, color: "text-blue-500", gradient: "from-blue-50/90 to-white/80 dark:from-blue-950/30 dark:to-slate-900/70", iconBg: "bg-blue-500/10 text-blue-500" },
+                  { label: "Practiced", value: statsPracticed, icon: CheckCircle2, color: "text-emerald-500", gradient: "from-emerald-50/90 to-white/80 dark:from-emerald-950/30 dark:to-slate-900/70", iconBg: "bg-emerald-500/10 text-emerald-500" },
+                  { label: "Avg score", value: statsAvg, icon: Sparkles, color: "text-violet-500", gradient: "from-violet-50/90 to-pink-50/60 dark:from-violet-950/30 dark:to-slate-900/70", iconBg: "bg-violet-500/10 text-violet-500" },
                 ].map(stat => {
                   const Icon = stat.icon;
                   return (
-                    <div key={stat.label} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 shadow-sm">
-                      <div className={`w-9 h-9 rounded-xl bg-current/10 flex items-center justify-center ${stat.color}`}>
+                    <div key={stat.label} className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-br ${stat.gradient} dark:bg-gradient-to-br border border-white/70 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}>
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
                         <Icon className="w-4 h-4" />
                       </div>
                       <div>
@@ -140,10 +152,10 @@ function Listening() {
                     <button
                       key={level}
                       onClick={() => handleSelectLevel(level)}
-                      className={`px-4 py-2 rounded-2xl text-sm font-bold transition-all shadow-sm ${
+                      className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-200 ${
                         isActive
-                          ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md"
-                          : "bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                          ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md shadow-primary/15 ring-1 ring-white/60 dark:ring-white/10"
+                          : "bg-white/60 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 shadow-sm text-muted-foreground hover:bg-white/90 dark:hover:bg-white/[0.08] hover:text-foreground hover:-translate-y-0.5 hover:shadow-sm"
                       }`}
                     >
                       {level}
@@ -153,7 +165,11 @@ function Listening() {
               </div>
 
               {/* Exercise List */}
-              <div className="space-y-3">
+              <div className="rounded-[2rem] bg-white/40 dark:bg-white/[0.03] border border-white/60 dark:border-white/10 backdrop-blur-xl shadow-sm overflow-hidden">
+                <div className="px-4 pt-4 pb-1">
+                  <p className="text-sm font-semibold text-foreground/70">Choose a listening exercise</p>
+                </div>
+                <div className="p-3 sm:p-4 space-y-2">
                 {paginatedExercises.length === 0 ? (
                   <div className="text-center py-16 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50">
                     <Headphones className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
@@ -172,44 +188,44 @@ function Listening() {
                       >
                         <button
                           onClick={() => handleSelectExercise(ex)}
-                          className={`w-full text-left rounded-2xl p-4 transition-all border ${
+                          className={`w-full text-left rounded-2xl p-3 sm:p-4 transition-all duration-200 border ${
                             isSelected
-                              ? "bg-white dark:bg-slate-800 border-primary/40 shadow-lg shadow-primary/10 ring-2 ring-primary/20"
-                              : "bg-white/80 dark:bg-slate-800/80 border-white/50 dark:border-slate-700/50 hover:shadow-md hover:border-primary/30 dark:hover:border-primary/40"
+                              ? "bg-gradient-to-r from-blue-50/95 via-white/90 to-pink-50/90 dark:from-blue-950/35 dark:via-slate-900/80 dark:to-pink-950/30 border-primary/25 dark:border-primary/30 shadow-lg shadow-primary/10 ring-1 ring-primary/15 dark:ring-primary/20"
+                              : "bg-white/85 dark:bg-slate-800/85 backdrop-blur-sm border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-white/98 dark:hover:bg-slate-800/98 dark:hover:border-white/15 hover:border-primary/25 dark:hover:border-primary/30"
                           }`}
                         >
                           <div className="flex items-center gap-4">
                             {/* Level badge */}
-                            <div className={`flex-shrink-0 w-14 h-14 rounded-2xl flex flex-col items-center justify-center ${isSelected ? "bg-gradient-hero text-white shadow-md" : "bg-slate-100 dark:bg-slate-700"}`}>
-                              <span className={`font-display font-black text-base ${isSelected ? "text-white" : ""}`}>{ex.level}</span>
-                              <span className={`text-[8px] font-semibold ${isSelected ? "text-white/70" : "text-muted-foreground"}`}>JLPT</span>
+                            <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex flex-col items-center justify-center ${isSelected ? "bg-gradient-hero text-white shadow-md shadow-primary/25" : `${getLevelBoxStyle(ex.level, false)} shadow-sm ring-1 ring-white/60 dark:ring-white/10`}`}>
+                              <span className="font-display font-black text-sm">{ex.level}</span>
+                              <span className="text-[7px] font-semibold opacity-60">JLPT</span>
                             </div>
 
                             {/* Info */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-display font-bold text-base text-slate-800 dark:text-white truncate">
+                                <h3 className="font-display font-bold text-base text-foreground dark:text-white truncate pr-2">
                                   {ex.title}
                                 </h3>
                                 {isSelected && (
-                                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex-shrink-0">
+                                  <span className="px-2 py-0.5 rounded-full bg-primary/10 dark:bg-primary/20 text-primary text-[10px] font-bold flex-shrink-0">
                                     Selected
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/[0.07] dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 font-medium">
                                   <Headphones className="w-3 h-3" />
                                   {ex.duration}
                                 </span>
-                                <span className="flex items-center gap-1">
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/[0.07] dark:bg-purple-500/15 text-purple-600 dark:text-purple-300 font-medium">
                                   <ListChecks className="w-3 h-3" />
                                   Dictation
                                 </span>
                                 {ex.transcript && (
-                                  <span className="flex items-center gap-1 text-green-500">
+                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/[0.07] dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 font-medium">
                                     <CheckCircle2 className="w-3 h-3" />
-                                    Has transcript
+                                    Transcript
                                   </span>
                                 )}
                               </div>
@@ -217,7 +233,7 @@ function Listening() {
 
                             {/* Arrow */}
                             <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition ${
-                              isSelected ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground"
+                              isSelected ? "bg-primary text-white shadow-sm" : "bg-slate-100/80 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 text-muted-foreground"
                             }`}>
                               <ChevronRight className="w-4 h-4" />
                             </div>
@@ -235,6 +251,7 @@ function Listening() {
                     );
                   })
                 )}
+                </div>
               </div>
 
               {/* Pagination */}
@@ -304,12 +321,17 @@ function Listening() {
                 /* Practice mode */
                 <div className="space-y-4">
                   {/* Audio Player Card */}
-                  <div className="rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 p-6 text-white shadow-xl shadow-purple-200/20 dark:shadow-none">
-                    <div className="flex items-center gap-4">
+                  <div className="relative rounded-2xl overflow-hidden p-6 shadow-xl shadow-indigo-500/[0.07] dark:shadow-black/15">
+                    {/* Gradient background */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-violet-500 to-pink-400 dark:from-indigo-800/85 dark:via-violet-800/80 dark:to-pink-700/75" />
+                    {/* Decorative overlay */}
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(255,255,255,0.22),transparent_35%),radial-gradient(ellipse_at_80%_20%,rgba(255,255,255,0.09),transparent_30%),radial-gradient(ellipse_at_50%_100%,rgba(139,92,246,0.15),transparent_40%)]" />
+                    {/* Content */}
+                    <div className="relative z-10 flex items-center gap-4 text-white">
                       {/* Play button */}
                       <button
                         onClick={() => setPlaying(p => !p)}
-                        className="w-16 h-16 rounded-full bg-white text-primary grid place-items-center shadow-xl flex-shrink-0 hover:scale-105 transition-transform"
+                        className="w-16 h-16 rounded-full bg-white text-indigo-600 grid place-items-center shadow-xl shadow-black/10 flex-shrink-0 hover:scale-105 active:scale-95 transition-transform"
                       >
                         {playing ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
                       </button>
@@ -324,21 +346,21 @@ function Listening() {
                         </div>
                         <div className="font-display font-bold text-xl leading-tight mb-3">{selectedEx.title}</div>
 
-                        {/* Simulated waveform */}
                         <div className="flex items-end gap-0.5 h-8 mb-1">
-                          {Array.from({ length: 40 }).map((_, wi) => (
-                            <div
-                              key={wi}
-                              className={`flex-1 rounded-full transition-all ${playing ? "bg-white" : "bg-white/40"}`}
-                              style={{
-                                height: `${20 + Math.sin(wi * 0.4) * 25 + Math.random() * 15}%`,
-                                minHeight: "3px",
-                              }}
-                            />
-                          ))}
+                          {Array.from({ length: 40 }).map((_, wi) => {
+                            const raw = 20 + Math.abs(Math.sin(wi * 0.75)) * 46 + Math.abs(Math.cos(wi * 0.38)) * 20;
+                            const height = Math.min(90, Math.max(20, raw));
+                            return (
+                              <div
+                                key={wi}
+                                className={`flex-1 rounded-full transition-all ${playing ? "bg-white" : "bg-white/60"}`}
+                                style={{ height: `${height}%`, minHeight: "3px" }}
+                              />
+                            );
+                          })}
                         </div>
-                        <div className="flex justify-between text-[10px] text-white/60">
-                          <span>{playing ? "0:42" : "0:00"}</span>
+                        <div className="flex justify-between text-[10px] text-white/75">
+                          <span>0:00</span>
                           <span>{selectedEx.duration}</span>
                         </div>
                       </div>
@@ -346,7 +368,7 @@ function Listening() {
                       {/* Replay */}
                       <button
                         onClick={() => { setPlaying(false); setTimeout(() => setPlaying(true), 100); }}
-                        className="p-3 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-sm transition flex-shrink-0"
+                        className="p-3 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition flex-shrink-0"
                         title="Replay"
                       >
                         <RotateCcw className="w-5 h-5" />
@@ -355,10 +377,10 @@ function Listening() {
                   </div>
 
                   {/* Transcription Card */}
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
+                  <div className="rounded-2xl border border-border/60 bg-card/80 dark:bg-slate-800/90 shadow-sm overflow-hidden backdrop-blur-sm">
                     {/* Card Header */}
-                    <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
-                      <h3 className="font-display font-bold text-sm">Transcription</h3>
+                    <div className="px-5 py-3 border-b border-border/60 dark:border-slate-700">
+                      <h3 className="font-display font-bold text-sm text-foreground">Transcription</h3>
                       <p className="text-[10px] text-muted-foreground">Listen and type the sentence in Japanese</p>
                     </div>
 
@@ -370,7 +392,7 @@ function Listening() {
                           onChange={e => { setAnswer(e.target.value); setChecked(false); }}
                           rows={4}
                           placeholder="日本語でタイプしてください..."
-                          className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 outline-none focus:ring-2 focus:ring-primary/40 text-lg font-display text-slate-800 dark:text-white resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                          className="w-full p-4 rounded-2xl bg-card/70 dark:bg-slate-700/50 border border-border/60 dark:border-slate-600/60 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 text-lg font-display text-foreground dark:text-white resize-none placeholder:text-muted-foreground/70 transition-colors"
                         />
                       </div>
 
@@ -381,19 +403,19 @@ function Listening() {
                           animate={{ opacity: 1, y: 0 }}
                           className={`p-4 rounded-2xl border ${
                             correct
-                              ? "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800"
-                              : "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
+                              ? "bg-emerald-50/80 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800"
+                              : "bg-red-50/80 dark:bg-red-900/30 border-red-200 dark:border-red-800"
                           }`}
                         >
                           <div className={`flex items-center gap-2 font-bold text-sm ${
-                            correct ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                            correct ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                           }`}>
                             {correct ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                             {correct ? "Correct! Well done!" : "Not quite right — Try again!"}
                           </div>
 
                           {!correct && (
-                            <div className="mt-3 flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/60 p-3 rounded-xl">
+                            <div className="mt-3 flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300 bg-muted/50 dark:bg-slate-800/60 p-3 rounded-xl">
                               <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                               <div>
                                 <span className="font-bold text-primary">AI Tip: </span>
@@ -408,14 +430,14 @@ function Listening() {
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={handleRetry}
-                          className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                          className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white/70 dark:bg-white/[0.05] border border-border/60 dark:border-white/10 text-foreground dark:text-slate-200 font-semibold text-sm hover:bg-white dark:hover:bg-white/10 transition-all duration-200"
                         >
                           <RotateCcw className="w-4 h-4" /> Retry
                         </button>
                         <button
                           onClick={() => setChecked(true)}
                           disabled={!answer.trim()}
-                          className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gradient-hero text-white font-bold text-sm shadow hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold text-sm shadow-md hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Check className="w-4 h-4" /> Check answer
                         </button>
@@ -424,11 +446,11 @@ function Listening() {
                   </div>
 
                   {/* Back to select hint */}
-                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <span>Want to switch exercises?</span>
                     <button
                       onClick={() => setActiveTab("select")}
-                      className="text-primary font-semibold hover:underline"
+                      className="text-primary font-semibold hover:underline underline-offset-4 transition-all"
                     >
                       Back to exercises
                     </button>
@@ -457,10 +479,10 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+      className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
         active
-          ? "bg-gradient-hero text-white shadow-md"
-          : "text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-slate-700/50"
+          ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow-md shadow-pink-500/15"
+          : "text-muted-foreground hover:text-foreground hover:bg-white/70 dark:hover:bg-white/10"
       }`}
     >
       {icon}
@@ -468,7 +490,7 @@ function TabButton({
       {active && (
         <motion.div
           layoutId="activeTab"
-          className="absolute inset-0 rounded-xl bg-gradient-hero -z-10"
+          className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500 to-pink-500 -z-10"
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         />
       )}
