@@ -28,6 +28,7 @@
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
 - [Local Development Setup](#local-development-setup)
+- [Admin & Vocabulary Setup](#admin--vocabulary-setup)
 - [Environment Files](#environment-files)
 - [User Roles](#user-roles)
 - [API Overview](#api-overview)
@@ -52,6 +53,10 @@ To run MIDORI on your local machine, follow the setup guide:
 [README_SETUP_LOCAL.md](./README_SETUP_LOCAL.md)
 
 This guide includes backend setup, frontend setup, Supabase configuration, Gmail OTP setup, Google Login setup, common errors, and safe Git rules.
+
+For detailed instructions on roles, routes, and operational flows for Admin and Vocabulary setup, see:
+
+[ADMIN_VOCAB_SETUP.md](./midori-be/docs/ADMIN_VOCAB_SETUP.md)
 
 ---
 
@@ -165,7 +170,9 @@ swp391-rbl-project-team6_swp391/
 │
 └── docs/                             # Team documentation
     ├── LOCAL_SETUP.md               # Full local setup guide
-    └── TEAM_ENV_TEMPLATE.md         # Secrets request guide
+    ├── TEAM_ENV_TEMPLATE.md         # Secrets request guide
+    ├── API_TESTING.md               # API testing guide
+    └── ADMIN_VOCAB_SETUP.md         # Admin & Vocabulary setup guide
 ```
 
 ---
