@@ -828,6 +828,7 @@ function TeachersPage() {
   const [tab, setTab] = useState<"pending" | "approved">("pending");
   const [teachers, setTeachers] = useState(initialTeachers);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
@@ -866,6 +867,22 @@ function TeachersPage() {
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
         <p className="text-secondary-col font-semibold text-sm">Loading pending teachers...</p>
         <p className="text-muted-col text-xs">Please wait while information is being prepared.</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <AlertTriangle className="w-10 h-10 text-[var(--status-rejected)]/70" />
+        <p className="text-primary-col font-bold text-sm">Something went wrong.</p>
+        <p className="text-muted-col text-xs">Unable to load data. Please try again later.</p>
+        <button
+          onClick={() => { setError(false); setLoading(true); setTimeout(() => setLoading(false), 800); }}
+          className="mt-2 px-5 py-2 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow hover:opacity-90 transition"
+        >
+          Retry
+        </button>
       </div>
     );
   }
