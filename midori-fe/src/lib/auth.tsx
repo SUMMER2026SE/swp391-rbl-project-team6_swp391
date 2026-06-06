@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api } from "./api/client";
 import { authApi } from "./api/auth";
+import { profileApi, type ProfileResponse } from "./api/profile";
 import type { Role } from "./api/types";
 import type { UserResponse } from "./api/types";
 
@@ -11,7 +12,8 @@ export type User = {
   name: string;
   email: string;
   role: FrontendRole;
-  avatar?: string;
+  avatar?: string | null;
+  googleAvatar?: string | null;
   status?: "active" | "pending";
 };
 
@@ -48,9 +50,58 @@ function userResponseToUser(r: UserResponse): User {
     name: r.name ?? r.email.split("@")[0],
     email: r.email,
     role: mapBackendRole(r.role),
-    avatar: r.avatarUrl,
+    avatar: r.avatarUrl ?? null,
     status: r.status === "ACTIVE" ? "active" : "pending",
   };
+}
+
+export function isAvatar(s: string | null | undefined): s is string {
+  return !!s && s.trim() !== "";
+}
+
+export function getUserAvatar(user: User | null): string | null {
+  if (!user) return null;
+  if (isAvatar(user.avatar)) return user.avatar;
+  if (isAvatar(user.googleAvatar)) return user.googleAvatar;
+  return null;
+}
+
+export function getAvatarInitial(user: User | null, displayName?: string | null): string {
+  const name =
+    (displayName && isAvatar(displayName) ? displayName : null) ||
+    (user && isAvatar(user.name) ? user.name : null) ||
+    (user && isAvatar(user.email) ? user.email : null);
+  if (name) return name.trim().charAt(0).toUpperCase();
+  return "U";
+}
+
+function mergeUser(storedUser: User | null, apiUser: User): User {
+  return {
+    ...apiUser,
+    ...(storedUser ?? {}),
+    id: storedUser?.id ?? apiUser.id,
+    email: storedUser?.email ?? apiUser.email,
+    role: storedUser?.role ?? apiUser.role,
+    status: storedUser?.status ?? apiUser.status,
+    avatar: storedUser?.avatar ?? apiUser.avatar ?? null,
+    googleAvatar: storedUser?.googleAvatar ?? apiUser.googleAvatar ?? null,
+    name: storedUser?.name ?? apiUser.name,
+  };
+}
+
+async function hydrateWithProfile(baseUser: User): Promise<User> {
+  try {
+    const profile: ProfileResponse = await profileApi.getMyProfile();
+    const profileAvatar = isAvatar(profile.avatarUrl) ? profile.avatarUrl : null;
+    const profileName = isAvatar(profile.displayName) ? profile.displayName : null;
+    return {
+      ...baseUser,
+      name: profileName ?? baseUser.name,
+      avatar: profileAvatar ?? baseUser.avatar ?? null,
+    };
+  } catch {
+    return baseUser;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,7 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         try {
           const userResponse = await authApi.getMe();
-          setUser(userResponseToUser(userResponse));
+          const storedRaw =
+            typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+          const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
+          const apiUser = userResponseToUser(userResponse);
+          const merged = mergeUser(storedUser, apiUser);
+          const hydrated = await hydrateWithProfile(merged);
+          persistUser(hydrated);
         } catch (err) {
           console.debug("[Auth] getMe failed during restore", err);
           api.removeToken();
@@ -106,8 +163,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       api.setToken(data.accessToken);
       const u = userResponseToUser(data.user);
-      persistUser(u);
-      return u;
+      const hydrated = await hydrateWithProfile(u);
+      persistUser(hydrated);
+      return hydrated;
     },
 
     register: async (email, password) => {
@@ -117,9 +175,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithGoogle: async (idToken: string, role?: string) => {
       const res = await authApi.googleLogin(idToken, role);
       api.setToken(res.accessToken);
-      const u = userResponseToUser(res.user);
-      persistUser(u);
-      return u;
+      let u = userResponseToUser(res.user);
+      if (!isAvatar(u.avatar) && !isAvatar(u.googleAvatar)) {
+        const base64Url = idToken.split(".")[1];
+        if (base64Url) {
+          try {
+            const payload = JSON.parse(atob(base64Url.replace(/-/g, "+").replace(/_/g, "/")));
+            if (isAvatar(payload.picture)) {
+              u = { ...u, googleAvatar: payload.picture };
+            }
+          } catch {}
+        }
+      }
+      const hydrated = await hydrateWithProfile(u);
+      persistUser(hydrated);
+      return hydrated;
     },
 
     logout: () => {
@@ -147,8 +217,6 @@ export function useAuth() {
 export function rolePath(role: FrontendRole) {
   return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
 }
-
-// ─── Theme Context ─────────────────────────────────────────────────────────────
 
 type ThemeCtx = {
   theme: "light" | "dark";
