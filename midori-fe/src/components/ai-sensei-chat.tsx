@@ -1136,6 +1136,24 @@ export function AISenseiPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const settingsRef = useRef(settings);
+  const shouldAutoScrollRef = useRef(false);
+
+  // Reset window scroll on mount (handles browser scroll restoration after navigation)
+  useEffect(() => {
+    shouldAutoScrollRef.current = false;
+    const timer1 = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+    });
+    const timer2 = setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+    }, 100);
+    return () => {
+      cancelAnimationFrame(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
 
   // Load from storage
   useEffect(() => {
@@ -1168,9 +1186,10 @@ What would you like to learn today?`,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-scroll
+  // Auto-scroll: only fires when user has sent a message
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!shouldAutoScrollRef.current) return;
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, isTyping]);
 
   // Auto-resize textarea
@@ -1195,6 +1214,8 @@ What would you like to learn today?`,
   const handleSend = useCallback((text?: string) => {
     const trimmed = (text ?? input).trim();
     if (!trimmed) return;
+
+    shouldAutoScrollRef.current = true;
 
     const userMsg: Message = {
       id: genId(),
