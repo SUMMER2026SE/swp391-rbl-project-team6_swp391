@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Award, Settings, Shield, Lock, Loader2, AlertCircle, CheckCheck,
@@ -8,7 +8,7 @@ import {
   CheckCircle, Star, MapPin, Calendar, Sparkles,
   Upload, Trash2, Camera, Sun, Phone, Cake, Clock3, BookOpenText, Languages, Activity,
 } from "lucide-react";
-import { useTheme, useAuth } from "@/lib/auth";
+import { useTheme, useAuth, getUserAvatar, isAvatar } from "@/lib/auth";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
@@ -76,6 +76,9 @@ function ProfilePage() {
     { id: 6, name: "N1 Ninja", progress: 0, earned: false },
   ];
 
+  const hasSyncedRef = useRef(false);
+  const userIdRef = useRef<string | undefined>(undefined);
+
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -87,7 +90,28 @@ function ProfilePage() {
       setEditLocation(res.location || "");
       setEditPhone(res.phone || "");
       setEditDateOfBirth(res.dateOfBirth || "");
-      if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
+      if (isAvatar(res.avatarUrl)) {
+        setAvatarPreview(res.avatarUrl);
+      } else {
+        const googleAv = user?.googleAvatar;
+        setAvatarPreview(isAvatar(googleAv) ? googleAv : null);
+      }
+
+      const nextName = isAvatar(res.displayName) ? res.displayName : (user?.name ?? "");
+      const nextAvatar = isAvatar(res.avatarUrl) ? res.avatarUrl : null;
+      const nextGoogle = user?.googleAvatar ?? null;
+
+      if (
+        !hasSyncedRef.current ||
+        userIdRef.current !== user?.id ||
+        user?.name !== nextName ||
+        user?.avatar !== nextAvatar ||
+        user?.googleAvatar !== nextGoogle
+      ) {
+        hasSyncedRef.current = true;
+        userIdRef.current = user?.id;
+        updateCurrentUser({ name: nextName, avatar: nextAvatar, googleAvatar: nextGoogle });
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setLoadError(err.message);
@@ -97,11 +121,18 @@ function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user, updateCurrentUser]);
 
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+  }, []);
+
+  // Re-run fetchProfile once user becomes available (after async auth restore)
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user?.id]);
 
   const handleSave = async () => {
     setSaveError(null);
@@ -116,7 +147,7 @@ function ProfilePage() {
         dateOfBirth: editDateOfBirth || undefined,
       });
       setProfile(updated);
-      updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
+      updateCurrentUser({ name: updated.displayName, avatar: user?.avatar ?? null, googleAvatar: user?.googleAvatar ?? null });
       setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -140,7 +171,7 @@ function ProfilePage() {
       const updated = await profileApi.updateMyProfile({ avatarUrl });
       setProfile(updated);
       setAvatarPreview(avatarUrl);
-      updateCurrentUser({ avatar: avatarUrl });
+      updateCurrentUser({ avatar: avatarUrl, googleAvatar: user.googleAvatar ?? null });
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
     } finally {
@@ -159,7 +190,7 @@ function ProfilePage() {
       const updated = await profileApi.updateMyProfile({ avatarUrl: "" });
       setProfile(updated);
       setAvatarPreview(null);
-      updateCurrentUser({ avatar: undefined });
+      updateCurrentUser({ avatar: null, googleAvatar: user.googleAvatar ?? null });
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
     } finally {
@@ -192,7 +223,8 @@ function ProfilePage() {
   const displayPhone = editing ? editPhone : (profile?.phone || "");
   const displayDateOfBirth = editing ? editDateOfBirth : (profile?.dateOfBirth || "");
 
-  const avatarLetter = displayName ? displayName.charAt(0).toUpperCase() : "?";
+  const displayAvatar = avatarPreview || getUserAvatar(user);
+  const avatarLetter = (profile?.displayName || user?.name || user?.email || "").trim().charAt(0).toUpperCase() || "?";
 
   const languages = [
     { code: "en", label: "English", flag: "🇺🇸" },
@@ -275,10 +307,10 @@ function ProfilePage() {
 
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                {avatarPreview ? (
+                {displayAvatar ? (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     className="w-20 h-20 rounded-xl shadow-lg border-4 border-white dark:border-white/20 overflow-hidden">
-                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={displayAvatar} alt="Avatar" className="w-full h-full object-cover" />
                   </motion.div>
                 ) : (
                   <motion.div whileHover={{ scale: 1.05 }}
@@ -672,7 +704,7 @@ function ProfilePage() {
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Email</label>
-                  <input type="text" value={profile.email || ""} className={inputBase} readOnly />
+                  <input type="text" value={user?.email || ""} className={inputBase} readOnly />
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 block mb-1">Location</label>
