@@ -29,6 +29,10 @@ server:
   port: 8080
 
 app:
+  admin:
+    bootstrap-enabled: ${ADMIN_BOOTSTRAP_ENABLED:true}
+    email: ${ADMIN_EMAIL:admin@midori.local}
+    password: ${ADMIN_PASSWORD:ChangeMe123!}
   jwt:
     secret: ${JWT_SECRET:your_jwt_secret_here_must_be_at_least_32_characters_long_for_hs256}
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
