@@ -1,6 +1,7 @@
 package com.midori.dto.vocabulary;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -15,34 +16,81 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class VocabularyWordCreateRequest {
 
-    @JsonAlias({"japanese"})
-    @NotBlank(message = "Word is required")
-    @Size(max = 255, message = "Word must not exceed 255 characters")
-    private String word;
+    @JsonAlias({"word", "japanese"})
+    @Size(max = 255, message = "Japanese must not exceed 255 characters")
+    private String japanese;
 
-    @JsonAlias({"reading"})
-    @Size(max = 255, message = "Furigana must not exceed 255 characters")
-    private String furigana;
+    @JsonAlias({"furigana", "reading"})
+    @Size(max = 255, message = "Reading must not exceed 255 characters")
+    private String reading;
 
     @Size(max = 255, message = "Romaji must not exceed 255 characters")
     private String romaji;
 
-    @JsonAlias({"vietnamese"})
-    @NotBlank(message = "Meaning is required")
-    @Size(max = 500, message = "Meaning must not exceed 500 characters")
-    private String meaning;
+    @JsonAlias({"meaning", "vietnamese"})
+    @Size(max = 500, message = "Vietnamese must not exceed 500 characters")
+    private String vietnamese;
 
-    @JsonAlias({"example_japanese"})
+    @JsonAlias({"exampleJapanese", "example_japanese"})
     private String exampleJapanese;
 
-    @JsonAlias({"exampleVietnamese", "example_vietnamese"})
-    private String exampleMeaning;
+    @JsonAlias({"exampleMeaning", "exampleVietnamese", "example_vietnamese"})
+    private String exampleVietnamese;
 
-    @JsonAlias({"audio_url"})
+    @JsonAlias({"audioUrl", "audio_url"})
     @Size(max = 500, message = "Audio URL must not exceed 500 characters")
     private String audioUrl;
 
-    @JsonAlias({"display_order"})
+    @JsonAlias({"displayOrder", "display_order"})
     @Min(value = 0, message = "Display order must be at least 0")
     private Integer displayOrder;
+
+    @JsonIgnore
+    public String getWord() {
+        return japanese;
+    }
+
+    @JsonIgnore
+    public String getFurigana() {
+        return reading;
+    }
+
+    @JsonIgnore
+    public String getMeaning() {
+        return vietnamese;
+    }
+
+    @JsonIgnore
+    public String getExampleMeaning() {
+        return exampleVietnamese;
+    }
+
+    @JsonIgnore
+    @NotBlank(message = "Japanese is required")
+    public String getValidatedJapanese() {
+        return japanese;
+    }
+
+    @JsonIgnore
+    @NotBlank(message = "Vietnamese is required")
+    public String getValidatedVietnamese() {
+        return vietnamese;
+    }
+
+    @JsonIgnore
+    public boolean hasContent() {
+        return hasText(japanese) || hasText(vietnamese) || hasText(reading)
+                || hasText(romaji) || hasText(exampleJapanese) || hasText(exampleVietnamese)
+                || hasText(audioUrl);
+    }
+
+    @JsonIgnore
+    public boolean isValidForCreate() {
+        // Accept any language — Vietnamese, Japanese, English, etc.
+        return hasText(japanese) || hasText(vietnamese) || hasText(romaji);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
 }
