@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, Clock, Eye, AlertTriangle,
   MapPin, Mail, Calendar, Briefcase, BookOpen, Award,
   Download, X, ChevronLeft, ZoomIn, Loader2, UserCheck,
-  InboxIcon, AlertCircle
+  InboxIcon, AlertCircle, Ban
 } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
@@ -323,6 +323,8 @@ function TeacherViewDrawer({
   onReject,
   showActions = true,
   actionLoading = false,
+  onSuspend,
+  teacherStatus = "pending",
 }: {
   teacher: TeacherApplication;
   onClose: () => void;
@@ -330,6 +332,8 @@ function TeacherViewDrawer({
   onReject: (id: string) => void;
   showActions?: boolean;
   actionLoading?: boolean;
+  onSuspend?: (id: string) => void;
+  teacherStatus?: "pending" | "approved" | "rejected";
 }) {
   const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
   const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
@@ -489,20 +493,33 @@ function TeacherViewDrawer({
               >
                 Close
               </button>
-              <button
-                onClick={() => onReject(teacher.id)}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-xl bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] text-sm font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
-              >
-                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Reject
-              </button>
-              <button
-                onClick={() => onApprove(teacher.id)}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
-              >
-                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
-              </button>
+              {teacherStatus === "pending" && (
+                <>
+                  <button
+                    onClick={() => onReject(teacher.id)}
+                    disabled={actionLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] text-sm font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+                  >
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Reject
+                  </button>
+                  <button
+                    onClick={() => onApprove(teacher.id)}
+                    disabled={actionLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+                  >
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
+                  </button>
+                </>
+              )}
+              {teacherStatus === "approved" && (
+                <button
+                  onClick={() => onSuspend?.(teacher.id)}
+                  disabled={actionLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] text-sm font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />} Deactivate
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -663,6 +680,9 @@ function TeachersPage() {
   const [pendingTeachers, setPendingTeachers] = useState<TeacherApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [approvedTeachers, setApprovedTeachers] = useState<TeacherApplication[]>([]);
+  const [approvedLoading, setApprovedLoading] = useState(false);
+  const [approvedError, setApprovedError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<TeacherApplication | null>(null);
   const [viewingApproved, setViewingApproved] = useState<TeacherApplication | null>(null);
@@ -692,16 +712,43 @@ function TeachersPage() {
     }
   }, []);
 
+  const fetchApprovedTeachers = useCallback(async () => {
+    setApprovedLoading(true);
+    setApprovedError(null);
+    try {
+      const users = await adminApi.getActiveTeachers();
+      setApprovedTeachers(users.map(mapToTeacherApplication));
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Failed to load approved teachers. Please try again.";
+      setApprovedError(message);
+      setApprovedTeachers([]);
+    } finally {
+      setApprovedLoading(false);
+    }
+  }, []);
+
+  // Load pending on mount
   useEffect(() => {
     fetchPendingTeachers();
   }, [fetchPendingTeachers]);
+
+  // Load approved when switching to approved tab
+  useEffect(() => {
+    if (tab === "approved" && approvedTeachers.length === 0 && !approvedLoading && !approvedError) {
+      fetchApprovedTeachers();
+    }
+  }, [tab, approvedTeachers.length, approvedLoading, approvedError, fetchApprovedTeachers]);
 
   const handleApprove = useCallback(async (id: string) => {
     setActionLoadingId(id);
     try {
       await adminApi.approveTeacher(id);
       showToast("Teacher approved successfully!", "success");
-      await fetchPendingTeachers();
+      await Promise.all([fetchPendingTeachers(), fetchApprovedTeachers()]);
     } catch (err) {
       const message = err instanceof ApiError
         ? err.message
@@ -712,14 +759,14 @@ function TeachersPage() {
     } finally {
       setActionLoadingId(null);
     }
-  }, [showToast, fetchPendingTeachers]);
+  }, [showToast, fetchPendingTeachers, fetchApprovedTeachers]);
 
   const handleReject = useCallback(async (id: string, _reason: string) => {
     setActionLoadingId(id);
     try {
       await adminApi.rejectTeacher(id);
       showToast("Teacher application rejected.", "error");
-      await fetchPendingTeachers();
+      await Promise.all([fetchPendingTeachers(), fetchApprovedTeachers()]);
     } catch (err) {
       const message = err instanceof ApiError
         ? err.message
@@ -730,12 +777,31 @@ function TeachersPage() {
     } finally {
       setActionLoadingId(null);
     }
-  }, [showToast, fetchPendingTeachers]);
+  }, [showToast, fetchPendingTeachers, fetchApprovedTeachers]);
 
   const handleRejectConfirm = useCallback(async (id: string, reason: string) => {
     await handleReject(id, reason);
     setRejectTarget(null);
   }, [handleReject]);
+
+  const handleSuspend = useCallback(async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      await adminApi.suspendTeacher(id);
+      showToast("Teacher deactivated.", "success");
+      setViewingApproved(null);
+      await fetchApprovedTeachers();
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Failed to deactivate teacher. Please try again.";
+      showToast(message, "error");
+    } finally {
+      setActionLoadingId(null);
+    }
+  }, [showToast, fetchApprovedTeachers]);
 
   const pendingCount = pendingTeachers.length;
 
@@ -824,21 +890,83 @@ function TeachersPage() {
 
       {/* Approved Tab */}
       {tab === "approved" && (
-        <div className="card-base overflow-hidden">
-          <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold">
-            <div className="col-span-5">Teacher</div>
-            <div className="col-span-4 text-center">Stats</div>
-            <div className="col-span-1 text-center">Joined</div>
-            <div className="col-span-2 text-right">Profile</div>
-          </div>
-          <div className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] text-xs text-muted-col">
-            <div className="col-span-12 text-center py-8">
-              <UserCheck className="w-8 h-8 mx-auto mb-2 text-muted-col/40" />
-              <p className="text-sm text-secondary-col">Approved teacher list requires a backend endpoint.</p>
-              <p className="text-xs text-muted-col/60 mt-1">This data is not yet available from the API.</p>
+        <>
+          {approvedLoading && (
+            <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4">
+              <Loader2 className="w-10 h-10 animate-spin text-primary/50" />
+              <p className="text-secondary-col text-sm font-semibold">Loading approved teachers…</p>
             </div>
-          </div>
-        </div>
+          )}
+
+          {!approvedLoading && approvedError && (
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state gap-3">
+              <AlertCircle className="w-12 h-12 text-[var(--status-rejected)]/50" />
+              <p className="text-secondary-col font-semibold text-sm">{approvedError}</p>
+              <button
+                onClick={fetchApprovedTeachers}
+                className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {!approvedLoading && !approvedError && approvedTeachers.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
+              <UserCheck className="w-12 h-12 text-[var(--status-active)]/40 mb-3" />
+              <p className="text-secondary-col font-semibold text-sm">No approved teachers yet.</p>
+            </div>
+          )}
+
+          {!approvedLoading && !approvedError && approvedTeachers.length > 0 && (
+            <div className="card-base overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold">
+                <div className="col-span-5">Teacher</div>
+                <div className="col-span-4 text-center">Email</div>
+                <div className="col-span-1 text-center">Verified</div>
+                <div className="col-span-2 text-right">Profile</div>
+              </div>
+              {approvedTeachers.map(teacher => {
+                const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+                const avatarColor = getAvatarColor(teacher.id);
+                return (
+                  <div
+                    key={teacher.id}
+                    className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
+                  >
+                    <div className="col-span-5 flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-primary-col font-semibold text-sm truncate">{teacher.name}</p>
+                        <p className="text-muted-col text-[10px] truncate">{teacher.email}</p>
+                      </div>
+                    </div>
+                    <div className="col-span-4 text-center text-xs text-secondary-col truncate px-2">
+                      {teacher.email}
+                    </div>
+                    <div className="col-span-1 text-center">
+                      {teacher.email ? (
+                        <CheckCircle className="w-4 h-4 text-[var(--status-active)] mx-auto" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-[var(--status-rejected)] mx-auto" />
+                      )}
+                    </div>
+                    <div className="col-span-2 text-right">
+                      <button
+                        onClick={() => setViewingApproved(teacher)}
+                        className="px-3 py-1.5 rounded-xl glass-surface text-secondary-col text-xs font-bold border border-glass-border hover:border-primary/30 hover:text-primary transition"
+                      >
+                        View
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* View Profile Drawer */}
@@ -882,6 +1010,10 @@ function TeachersPage() {
             onClose={() => setViewingApproved(null)}
             onApprove={() => {}}
             onReject={() => {}}
+            showActions
+            actionLoading={actionLoadingId !== null}
+            onSuspend={handleSuspend}
+            teacherStatus="approved"
           />
         )}
       </AnimatePresence>
