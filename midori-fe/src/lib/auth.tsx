@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { api } from "./api/client";
 import { authApi } from "./api/auth";
 import { profileApi, type ProfileResponse } from "./api/profile";
-import type { Role, UserResponse, UserStatus } from "./api/types";
+import type { LoginRequest, RegisterRequest, Role, UserResponse, UserStatus } from "./api/types";
 
 export type FrontendRole = "student" | "teacher" | "admin";
 
@@ -20,7 +20,7 @@ type AuthCtx = {
   user: User | null;
   loaded: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
   loginWithGoogle: (idToken: string, role?: string) => Promise<User>;
   logout: () => void;
   updateCurrentUser: (patch: Partial<User>) => void;
@@ -116,12 +116,40 @@ export function getDashboardPath(user: Pick<User, "role" | "status">) {
   return rolePath(user.role);
 }
 
-export function canAccessRoleRoute(user: Pick<User, "role" | "status">, routeRole: FrontendRole) {
-  if (routeRole === "teacher") {
-    return user.role === "teacher" && user.status !== "PENDING_APPROVAL";
+export function getRouteGuardRedirect(user: Pick<User, "role" | "status"> | null, routeRole: FrontendRole) {
+  if (!user) {
+    return "/login";
   }
 
-  return user.role === routeRole;
+  if (routeRole === "teacher") {
+    if (user.role !== "teacher") {
+      return getDashboardPath(user);
+    }
+
+    if (user.status === "PENDING_APPROVAL") {
+      return "/teacher-pending";
+    }
+
+    return null;
+  }
+
+  if (user.role !== routeRole) {
+    return getDashboardPath(user);
+  }
+
+  return null;
+}
+
+export function getTeacherPendingRedirect(user: Pick<User, "role" | "status"> | null) {
+  if (!user) {
+    return "/login";
+  }
+
+  return getDashboardPath(user) === "/teacher-pending" ? null : getDashboardPath(user);
+}
+
+export function canAccessRoleRoute(user: Pick<User, "role" | "status">, routeRole: FrontendRole) {
+  return getRouteGuardRedirect(user, routeRole) === null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -193,8 +221,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return hydrated;
     },
 
-    register: async (email, password) => {
-      await authApi.register({ email, password });
+    register: async (data) => {
+      await authApi.register(data);
     },
 
     loginWithGoogle: async (idToken: string, role?: string) => {

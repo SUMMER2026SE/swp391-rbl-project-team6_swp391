@@ -4,8 +4,8 @@ import { useState, useRef } from "react";
 import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File, Check } from "lucide-react";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
-import { useAuth, getDashboardPath } from "@/lib/auth";
-import type { AuthResponse, RegisterRequest } from "@/lib/api/types";
+import { useAuth } from "@/lib/auth";
+import type { RegisterRequest } from "@/lib/api/types";
 
 export const Route = createFileRoute("/register")({ component: RegisterPage });
 
@@ -69,18 +69,13 @@ function getPasswordChecks(pw: string): PasswordChecks {
   };
 }
 
-function isAuthResponse(value: unknown): value is AuthResponse {
-  if (!value || typeof value !== "object") return false;
-  return "accessToken" in value && "user" in value;
-}
-
 function buildVerifyOtpState(role: Role, email: string): VerificationState {
   return {
     email,
     role,
     message:
       role === "TEACHER"
-        ? "Teacher account created. Please verify your email."
+        ? "Teacher account created. Please verify your email. You'll go to the pending approval page after sign-in if your account is still under review."
         : "Account created. Please verify your email.",
   };
 }
@@ -243,12 +238,7 @@ function RegisterPage() {
 
     setLoading(true);
     try {
-      const result = await authApi.register(createRegisterPayload(form, selectedRole));
-
-      if (isAuthResponse(result)) {
-        nav({ to: getDashboardPath({ role: selectedRole === "TEACHER" ? "teacher" : "student", status: result.user.status }) });
-        return;
-      }
+      await authApi.register(createRegisterPayload(form, selectedRole));
 
       nav({
         to: "/verify-otp",

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useAuth, useTheme, getAvatarInitial, getUserAvatar, type FrontendRole, canAccessRoleRoute, getDashboardPath } from "@/lib/auth";
+import { useAuth, useTheme, getAvatarInitial, getUserAvatar, type FrontendRole } from "@/lib/auth";
 import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
@@ -62,7 +62,7 @@ function getNav(role: FrontendRole): NavItem[] {
 }
 
 export function DashboardLayout({ role, children }: { role: FrontendRole; children?: React.ReactNode }) {
-  const { user, logout, loaded } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -88,24 +88,6 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
   const notificationsPath = `/${role}/notifications`;
 
   const dropdownNotifications = notifications.slice(0, 4);
-
-  useEffect(() => {
-    if (!loaded) return;
-
-    if (user === null) {
-      nav({ to: "/login" });
-      return;
-    }
-
-    if (!canAccessRoleRoute(user, role)) {
-      nav({ to: getDashboardPath(user) });
-      return;
-    }
-
-    if (user.role !== role) {
-      nav({ to: getDashboardPath(user) });
-    }
-  }, [loaded, nav, role, user]);
 
   useEffect(() => {
     if (!notifOpen && !userMenuOpen) return;

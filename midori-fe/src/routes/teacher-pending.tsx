@@ -1,39 +1,19 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SakuraBg } from "@/components/sakura-bg";
 import { motion } from "framer-motion";
-import { getDashboardPath, rolePath, useAuth } from "@/lib/auth";
-import { useEffect } from "react";
+import { AuthGuard } from "@/components/auth-guard";
 
 export const Route = createFileRoute("/teacher-pending")({
   component: TeacherPendingPage,
 });
 
 function TeacherPendingPage() {
-  const { user, loaded } = useAuth();
-  const nav = useNavigate();
-
-  useEffect(() => {
-    if (!loaded) return;
-
-    if (!user) {
-      nav({ to: "/login" });
-      return;
-    }
-
-    if (getDashboardPath(user) !== "/teacher-pending") {
-      nav({ to: rolePath(user.role) });
-    }
-  }, [loaded, nav, user]);
-
-  if (!loaded || !user || getDashboardPath(user) !== "/teacher-pending") {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
-      <SakuraBg count={14} />
+    <AuthGuard pendingOnly>
+      <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+        <SakuraBg count={14} />
 
-      <motion.div
+        <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -106,7 +86,8 @@ function TeacherPendingPage() {
             support@midori.app
           </a>
         </p>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+    </AuthGuard>
   );
 }
