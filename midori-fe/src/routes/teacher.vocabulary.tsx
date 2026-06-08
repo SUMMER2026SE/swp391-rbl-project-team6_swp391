@@ -1,16 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Edit3, Trash2, Eye,
   BookOpen, Layers, X, Save, ChevronDown,
-  BookText, Tag, Volume2
+  BookText, Tag, Volume2, Loader2,
 } from "lucide-react";
-import { lessonsData, type Lesson, type VocabWord } from "../data/lessons";
+import {
+  teacherVocabularyApi,
+  type VocabularyLessonResponse,
+  type VocabularyWordResponse,
+  type VocabularyLessonDetailResponse,
+  type VocabularyLessonCreateRequest,
+} from "@/lib/api/teacherVocabulary";
+import { ApiError } from "@/lib/api/client";
 
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
 const VOCAB_TOPICS = ["General", "Daily Life", "School", "Food", "Shopping", "Travel", "Family", "Business", "Nature", "Work", "Social", "Emotions", "Health", "Technology", "Education", "Culture", "Sports", "Art", "Science", "Politics", "Entertainment"];
-const STORAGE_KEY = "midori_vocab_lessons";
+const PAGE_SIZE = 9;
 
 function speakJapanese(text: string) {
   if (!text?.trim()) return;
@@ -22,26 +29,13 @@ function speakJapanese(text: string) {
   utterance.rate = 0.85;
   window.speechSynthesis.speak(utterance);
 }
-const PAGE_SIZE = 9;
 
-function loadLessons(): Lesson[] {
-  if (typeof window === "undefined") return lessonsData;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Lesson[];
-  } catch {}
-  return lessonsData;
-}
-
-function getAllTopics(lessons: Lesson[]): string[] {
-  const topics = new Set<string>();
-  lessons.forEach(l => l.words.forEach(w => { if (w.topic) topics.add(w.topic); }));
-  return Array.from(topics).sort();
-}
+// Maps VocabularyLessonDetailResponse (with words) to VocabularyLessonResponse (list display)
+type LessonDisplay = VocabularyLessonResponse & { _words?: VocabularyWordResponse[] };
 
 export const Route = createFileRoute("/teacher/vocabulary")({ component: VocabularyManagementPage });
 
-// ─── Pagination component ────────────────────────────────────────────────
+// ─── Pagination component ────────────────────────────────────────────────────
 function PaginationUI({ current, total, onPage }: { current: number; total: number; onPage: (p: number) => void }) {
   const pages = Math.ceil(total / PAGE_SIZE);
   if (pages <= 1) return null;
@@ -165,25 +159,31 @@ function TopicFilter({
 
 // ─── Main Page ───────────────────────────────────────────────────────────
 function VocabularyManagementPage() {
-  const [lessons, setLessons] = useState<Lesson[]>(loadLessons);
+  const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All");
   const [topicFilter, setTopicFilter] = useState("All");
   const [page, setPage] = useState(1);
-  const allTopics = getAllTopics(lessons);
 
   // Modal states
   const [showAdd, setShowAdd] = useState(false);
-  const [viewingLesson, setViewingLesson] = useState<Lesson | null>(null);
+  const [viewingLesson, setViewingLesson] = useState<VocabularyLessonDetailResponse | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newLevel, setNewLevel] = useState("N5");
-  const [editing, setEditing] = useState<Lesson | null>(null);
+  const [newTopic, setNewTopic] = useState("General");
+  const [newDescription, setNewDescription] = useState("");
+  const [editing, setEditing] = useState<VocabularyLessonResponse | null>(null);
   const [editName, setEditName] = useState("");
   const [editLevel, setEditLevel] = useState("N5");
-  const [deleting, setDeleting] = useState<Lesson | null>(null);
+  const [deleting, setDeleting] = useState<VocabularyLessonResponse | null>(null);
 
   // Inline vocabulary form state (Add modal)
-  const [tempWords, setTempWords] = useState<VocabWord[]>([]);
+  const [tempWords, setTempWords] = useState<VocabularyWordResponse[]>([]);
   const [showWordForm, setShowWordForm] = useState(false);
   const [editingWordIdx, setEditingWordIdx] = useState<number | null>(null);
   const [tempTopics, setTempTopics] = useState<string[]>([]);
@@ -194,7 +194,7 @@ function VocabularyManagementPage() {
   });
 
   // Edit modal vocabulary state
-  const [editTempWords, setEditTempWords] = useState<VocabWord[]>([]);
+  const [editTempWords, setEditTempWords] = useState<VocabularyWordResponse[]>([]);
   const [editShowWordForm, setEditShowWordForm] = useState(false);
   const [editEditingIdx, setEditEditingIdx] = useState<number | null>(null);
   const [editTempTopics, setEditTempTopics] = useState<string[]>([]);
@@ -204,27 +204,59 @@ function VocabularyManagementPage() {
     word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "",
   });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lessons));
-  }, [lessons]);
+  // Create lesson loading
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  const totalWords = lessons.reduce((s, l) => s + l.words.length, 0);
+  // Edit lesson loading
+  const [editingSave, setEditingSave] = useState(false);
+  const [editSaveError, setEditSaveError] = useState<string | null>(null);
+
+  // Delete loading
+  const [deletingInProgress, setDeletingInProgress] = useState(false);
+
+  // Load lessons from backend
+  const fetchLessons = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: { level?: string; topic?: string; search?: string } = {};
+      if (levelFilter !== "All") params.level = levelFilter;
+      if (topicFilter !== "All") params.topic = topicFilter;
+      if (search.trim()) params.search = search.trim();
+      const data = await teacherVocabularyApi.getTeacherLessons(
+        Object.keys(params).length > 0 ? params : undefined
+      );
+      setLessons(data);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load lessons. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [levelFilter, topicFilter, search]);
+
+  useEffect(() => {
+    fetchLessons();
+  }, [fetchLessons]);
+
+  const totalWords = lessons.reduce((s, l) => s + (l.wordCount ?? 0), 0);
+  const allTopics = Array.from(new Set(lessons.map(l => l.topic).filter(Boolean) as string[])).sort();
 
   const filtered = lessons.filter(l => {
-    const matchLevel = levelFilter === "All" || l.level === levelFilter;
     const matchSearch = !search || l.title.toLowerCase().includes(search.toLowerCase());
-    const matchTopic =
-      topicFilter === "All" ||
-      l.words.some(w => w.topic === topicFilter);
-    return matchLevel && matchSearch && matchTopic;
+    const matchTopic = topicFilter === "All" || l.topic === topicFilter;
+    return matchSearch && matchTopic;
   });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleSearch = (val: string) => { setSearch(val); setPage(1); };
-  const handleLevel = (val: string) => { setLevelFilter(val); setPage(1); };
-  const handleTopic = (val: string) => { setTopicFilter(val); setPage(1); };
+  // Reset page when filter/search changes
+  useEffect(() => { setPage(1); }, [levelFilter, topicFilter, search]);
+
+  const handleSearch = (val: string) => { setSearch(val); };
+  const handleLevel = (val: string) => { setLevelFilter(val); };
+  const handleTopic = (val: string) => { setTopicFilter(val); };
 
   const levelBadge = (l: string) => {
     const map: Record<string, string> = {
@@ -237,28 +269,109 @@ function VocabularyManagementPage() {
     return map[l] ?? "bg-slate-50 text-slate-500 border-slate-200";
   };
 
-  const openEdit = (l: Lesson) => {
-    setEditing(l); setEditName(l.title); setEditLevel(l.level);
-    setEditTempWords([...l.words]);
+  // Open view modal — fetch lesson detail (with words) from backend
+  const openViewLesson = async (lesson: VocabularyLessonResponse) => {
+    setViewingLesson(null);
+    setViewLoading(true);
+    setViewError(null);
+    try {
+      const detail = await teacherVocabularyApi.getTeacherLessonDetail(lesson.id);
+      setViewingLesson(detail);
+    } catch (err) {
+      setViewError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
+  const openEdit = (l: VocabularyLessonResponse) => {
+    setEditing(l);
+    setEditName(l.title ?? "");
+    setEditLevel(l.level ?? "N5");
+    setEditTempWords([]);
     setEditShowWordForm(false);
     setEditEditingIdx(null);
-    setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: l.level, examples: "" });
+    setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: l.level ?? "N5", examples: "" });
+    setEditSaveError(null);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editing || !editName.trim()) return;
-    setLessons(prev => prev.map(l =>
-      l.id === editing.id
-        ? { ...l, title: editName.trim(), level: editLevel, stats: { ...l.stats, total: editTempWords.length }, words: editTempWords }
-        : l
-    ));
-    setEditing(null);
+    setEditingSave(true);
+    setEditSaveError(null);
+    try {
+      await teacherVocabularyApi.updateLesson(editing.id, {
+        title: editName.trim(),
+        level: editLevel,
+      });
+      setEditing(null);
+      await fetchLessons();
+    } catch (err) {
+      setEditSaveError(err instanceof ApiError ? err.message : "Failed to update lesson.");
+    } finally {
+      setEditingSave(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleting) return;
-    setLessons(prev => prev.filter(l => l.id !== deleting.id));
-    setDeleting(null);
+    setDeletingInProgress(true);
+    try {
+      await teacherVocabularyApi.deleteLesson(deleting.id);
+      setDeleting(null);
+      await fetchLessons();
+    } catch (err) {
+      // Silently handle delete error — just close modal
+      setDeleting(null);
+    } finally {
+      setDeletingInProgress(false);
+    }
+  };
+
+  // Create lesson with inline words
+  const handleCreateLesson = async () => {
+    if (!newName.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      // Step 1: Create the lesson
+      const lesson = await teacherVocabularyApi.createLesson({
+        title: newName.trim(),
+        level: newLevel,
+        topic: newTopic !== "General" ? newTopic : undefined,
+        description: newDescription.trim() || undefined,
+      } satisfies VocabularyLessonCreateRequest);
+
+      // Step 2: Add each word
+      for (const w of tempWords) {
+        await teacherVocabularyApi.addWord(lesson.id, {
+          word: w.word,
+          furigana: w.furigana,
+          romaji: w.romaji,
+          meaning: w.meaning,
+          exampleJapanese: w.exampleJapanese,
+          exampleMeaning: w.exampleMeaning,
+          audioUrl: w.audioUrl,
+          displayOrder: w.displayOrder,
+        });
+      }
+
+      // Reset form and close
+      setNewName("");
+      setNewLevel("N5");
+      setNewTopic("General");
+      setNewDescription("");
+      setTempWords([]);
+      setShowWordForm(false);
+      setEditingWordIdx(null);
+      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "" });
+      setShowAdd(false);
+      await fetchLessons();
+    } catch (err) {
+      setCreateError(err instanceof ApiError ? err.message : "Failed to create lesson.");
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -293,11 +406,11 @@ function VocabularyManagementPage() {
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-700 ${stat.color}`}>
                   <Icon className="w-5 h-5" />
-              </div>
-              <div>
+                </div>
+                <div>
                   <div className={`font-display font-black text-xl leading-none ${stat.color}`}>
                     {stat.noNum ? stat.value : stat.value.toLocaleString()}
-                </div>
+                  </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">{stat.label}</div>
                 </div>
               </div>
@@ -312,12 +425,12 @@ function VocabularyManagementPage() {
         <div className="flex-1 min-w-64 max-w-80">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
+            <input
+              value={search}
               onChange={e => handleSearch(e.target.value)}
-            placeholder="Search lessons..."
+              placeholder="Search lessons..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground"
-          />
+            />
           </div>
         </div>
 
@@ -344,8 +457,22 @@ function VocabularyManagementPage() {
         )}
       </div>
 
-      {/* ── Lesson grid ───────────────────────────────────────── */}
-      {filtered.length === 0 ? (
+      {/* ── Loading / Error / Empty states ───────────────────── */}
+      {loading && (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <span className="ml-3 text-sm font-semibold">Loading lessons...</span>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="text-center py-16 rounded-2xl border border-dashed border-red-200 dark:border-red-800">
+          <p className="font-semibold text-red-500 mb-2">{error}</p>
+          <button onClick={fetchLessons} className="text-sm text-primary underline">Try again</button>
+        </div>
+      )}
+
+      {!loading && !error && filtered.length === 0 && (
         <div className="text-center py-20 text-muted-foreground rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-semibold text-base">No lessons found</p>
@@ -353,14 +480,17 @@ function VocabularyManagementPage() {
             + Create your first lesson
           </button>
         </div>
-      ) : (
+      )}
+
+      {/* ── Lesson grid ───────────────────────────────────────── */}
+      {!loading && !error && filtered.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginated.map((lesson, i) => (
-            <motion.div
-              key={lesson.id}
+              <motion.div
+                key={lesson.id}
                 initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
                 className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 overflow-hidden"
               >
@@ -373,59 +503,61 @@ function VocabularyManagementPage() {
                     <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <div className="w-7 h-7 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center">
                         {i + 1 + (page - 1) * PAGE_SIZE}
-                  </div>
+                      </div>
                     </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="font-display font-black text-sm text-foreground leading-tight truncate">
-                        {lesson.title}
-                      </h3>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(lesson.level)}`}>
-                        {lesson.level}
-                      </span>
-                    </div>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <BookText className="w-3 h-3" />
-                        {lesson.words.length} words
-                      </span>
-                        {lesson.words.length > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold">
-                            {Array.from(new Set(lesson.words.map(w => w.topic))).slice(0, 2).join(", ") || "—"}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-display font-black text-sm text-foreground leading-tight truncate">
+                          {lesson.title}
+                        </h3>
+                        {lesson.level && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(lesson.level)}`}>
+                            {lesson.level}
+                          </span>
                         )}
-                    </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <BookText className="w-3 h-3" />
+                          {lesson.wordCount ?? 0} words
+                        </span>
+                        {lesson.topic && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold">
+                            {lesson.topic}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setViewingLesson(lesson); }}
+                      onClick={(e) => { e.stopPropagation(); openViewLesson(lesson); }}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       View
                     </button>
-                  <button
+                    <button
                       onClick={(e) => { e.stopPropagation(); openEdit(lesson); }}
                       className="px-3.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
                     title="Edit lesson"
-                  >
+                    >
                       <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
+                    </button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); setDeleting(lesson); }}
                       className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all"
                     title="Delete lesson"
-                  >
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                    </button>
+                  </div>
                 </div>
-                </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
 
           {/* Pagination */}
           <PaginationUI current={page} total={filtered.length} onPage={setPage} />
@@ -456,6 +588,12 @@ function VocabularyManagementPage() {
 
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto space-y-5 pr-1 -mr-1">
+                {createError && (
+                  <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
+                    {createError}
+                  </div>
+                )}
+
                 {/* ── Lesson Info ───────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
@@ -490,6 +628,20 @@ function VocabularyManagementPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* ── Topic ─────────────────────────────────────── */}
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
+                    Topic
+                  </label>
+                  <select
+                    value={newTopic}
+                    onChange={e => setNewTopic(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    {VOCAB_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
                 </div>
 
                 {/* ── Vocabulary List ────────────────────────────── */}
@@ -656,25 +808,25 @@ function VocabularyManagementPage() {
                             onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: newLevel, examples: "" }); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                           >
-                  Cancel
-                </button>
+                            Cancel
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
                               if (!wordForm.word.trim() || !wordForm.meaning.trim()) return;
-                              const w = {
-                                id: editingWordIdx !== null ? tempWords[editingWordIdx].id : Date.now(),
+                              const w: VocabularyWordResponse = {
+                                id: editingWordIdx !== null ? (tempWords[editingWordIdx]?.id ?? "") : String(Date.now()),
+                                lessonId: "",
                                 word: wordForm.word.trim(),
-                                furigana: wordForm.furigana.trim(),
-                                romaji: wordForm.romaji.trim(),
+                                furigana: wordForm.furigana.trim() || undefined,
+                                romaji: wordForm.romaji.trim() || undefined,
                                 meaning: wordForm.meaning.trim(),
-                                topic: wordForm.topic,
-                                level: wordForm.level,
-                                type: "noun" as const,
-                                audio: false,
-                                examples: 0,
-                                views: 0,
-                                favorites: 0,
+                                exampleJapanese: wordForm.examples.trim() || undefined,
+                                exampleMeaning: undefined,
+                                audioUrl: undefined,
+                                displayOrder: editingWordIdx !== null ? (tempWords[editingWordIdx]?.displayOrder ?? 0) : tempWords.length,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString(),
                               };
                               if (editingWordIdx !== null) {
                                 const updated = [...tempWords];
@@ -702,7 +854,7 @@ function VocabularyManagementPage() {
                     <div className="mt-3 space-y-2">
                       {tempWords.map((w, idx) => (
                         <motion.div
-                          key={w.id}
+                          key={w.id || idx}
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition group"
@@ -733,11 +885,8 @@ function VocabularyManagementPage() {
                               <span className="text-xs font-semibold text-foreground">{w.meaning}</span>
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black border ${levelBadge(w.level)}`}>
-                                {w.level}
-                              </span>
-                              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 dark:bg-purple-950/30 text-purple-500 border border-purple-100 dark:border-purple-900">
-                                {w.topic}
+                              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black border ${levelBadge(w.level ?? "N5")}`}>
+                                {w.level ?? "N5"}
                               </span>
                             </div>
                           </div>
@@ -750,12 +899,12 @@ function VocabularyManagementPage() {
                                 setEditingWordIdx(idx);
                                 setWordForm({
                                   word: w.word,
-                                  furigana: w.furigana,
-                                  romaji: w.romaji,
+                                  furigana: w.furigana ?? "",
+                                  romaji: w.romaji ?? "",
                                   meaning: w.meaning,
-                                  topic: w.topic,
-                                  level: w.level,
-                                  examples: "",
+                                  topic: w.level ?? "N5",
+                                  level: w.level ?? "N5",
+                                  examples: w.exampleJapanese ?? "",
                                 });
                                 setShowWordForm(true);
                               }}
@@ -788,36 +937,27 @@ function VocabularyManagementPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => { setShowAdd(false); setTempWords([]); setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "" }); }}
+                    onClick={() => {
+                      setShowAdd(false);
+                      setTempWords([]);
+                      setShowWordForm(false);
+                      setEditingWordIdx(null);
+                      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "" });
+                      setCreateError(null);
+                    }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!newName.trim()) return;
-                      const lesson: Lesson = {
-                        id: "l" + Date.now(),
-                        title: newName.trim(),
-                        level: newLevel,
-                        createdAt: new Date().toISOString().split("T")[0],
-                        stats: { total: tempWords.length, audio: 0 },
-                        words: tempWords,
-                      };
-                      setLessons(prev => [...prev, lesson]);
-                      setNewName(""); setNewLevel("N5");
-                      setTempWords([]);
-                      setShowWordForm(false);
-                      setEditingWordIdx(null);
-                      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "" });
-                      setShowAdd(false);
-                    }}
-                    disabled={!newName.trim()}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
+                    onClick={handleCreateLesson}
+                    disabled={!newName.trim() || creating}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition flex items-center gap-2"
                   >
-                  Create lesson
-                </button>
+                    {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {creating ? "Creating..." : "Create lesson"}
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -849,6 +989,12 @@ function VocabularyManagementPage() {
 
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto space-y-5 pr-1 -mr-1">
+                {editSaveError && (
+                  <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
+                    {editSaveError}
+                  </div>
+                )}
+
                 {/* ── Lesson Info ──────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
@@ -1048,25 +1194,25 @@ function VocabularyManagementPage() {
                             onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: editLevel, examples: "" }); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                           >
-                  Cancel
-                </button>
+                            Cancel
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
                               if (!editWordForm.word.trim() || !editWordForm.meaning.trim()) return;
-                              const w = {
-                                id: editEditingIdx !== null ? editTempWords[editEditingIdx].id : Date.now(),
+                              const w: VocabularyWordResponse = {
+                                id: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.id ?? "") : String(Date.now()),
+                                lessonId: editing?.id ?? "",
                                 word: editWordForm.word.trim(),
-                                furigana: editWordForm.furigana.trim(),
-                                romaji: editWordForm.romaji.trim(),
+                                furigana: editWordForm.furigana.trim() || undefined,
+                                romaji: editWordForm.romaji.trim() || undefined,
                                 meaning: editWordForm.meaning.trim(),
-                                topic: editWordForm.topic,
-                                level: editWordForm.level,
-                                type: "noun" as const,
-                                audio: false,
-                                examples: 0,
-                                views: 0,
-                                favorites: 0,
+                                exampleJapanese: editWordForm.examples.trim() || undefined,
+                                exampleMeaning: undefined,
+                                audioUrl: undefined,
+                                displayOrder: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.displayOrder ?? 0) : editTempWords.length,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString(),
                               };
                               if (editEditingIdx !== null) {
                                 const updated = [...editTempWords];
@@ -1094,7 +1240,7 @@ function VocabularyManagementPage() {
                     <div className="space-y-2">
                       {editTempWords.map((w, idx) => (
                         <motion.div
-                          key={w.id}
+                          key={w.id || idx}
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition group"
@@ -1123,11 +1269,8 @@ function VocabularyManagementPage() {
                               <span className="text-xs font-semibold text-foreground">{w.meaning}</span>
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black border ${levelBadge(w.level)}`}>
-                                {w.level}
-                              </span>
-                              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 dark:bg-purple-950/30 text-purple-500 border border-purple-100 dark:border-purple-900">
-                                {w.topic}
+                              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black border ${levelBadge(w.level ?? "N5")}`}>
+                                {w.level ?? "N5"}
                               </span>
                             </div>
                           </div>
@@ -1138,7 +1281,7 @@ function VocabularyManagementPage() {
                               type="button"
                               onClick={() => {
                                 setEditEditingIdx(idx);
-                                setEditWordForm({ word: w.word, furigana: w.furigana, romaji: w.romaji, meaning: w.meaning, topic: w.topic, level: w.level, examples: "" });
+                                setEditWordForm({ word: w.word, furigana: w.furigana ?? "", romaji: w.romaji ?? "", meaning: w.meaning, topic: w.level ?? "N5", level: w.level ?? "N5", examples: "" });
                                 setEditShowWordForm(true);
                               }}
                               className="w-7 h-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-400 hover:text-blue-600 transition"
@@ -1153,7 +1296,7 @@ function VocabularyManagementPage() {
                               title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                            </button>
                           </div>
                         </motion.div>
                       ))}
@@ -1183,10 +1326,12 @@ function VocabularyManagementPage() {
                   <button
                     type="button"
                     onClick={handleSaveEdit}
-                    disabled={!editName.trim()}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
+                    disabled={!editName.trim() || editingSave}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition flex items-center gap-2"
                   >
-                    <Save className="w-4 h-4 inline mr-1" /> Save changes
+                    {editingSave && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <Save className="w-4 h-4" />
+                    Save changes
                   </button>
                 </div>
               </div>
@@ -1199,7 +1344,7 @@ function VocabularyManagementPage() {
           VIEW VOCABULARY LIST MODAL
       ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
-        {viewingLesson && (
+        {viewingLesson !== null && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setViewingLesson(null)}>
             <motion.div
@@ -1210,138 +1355,157 @@ function VocabularyManagementPage() {
               onClick={e => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col"
               style={{ maxWidth: 800, maxHeight: "90vh" }}>
-              {/* Header */}
-              <div className="flex items-center justify-between mb-5 flex-shrink-0">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-display font-black text-lg text-foreground">{viewingLesson.title}</h2>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${levelBadge(viewingLesson.level)}`}>
-                      {viewingLesson.level}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {viewingLesson.words.length} words · Created {viewingLesson.createdAt}
-                  </p>
+              {/* Loading */}
+              {viewLoading && (
+                <div className="flex items-center justify-center py-20 text-muted-foreground">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <span className="ml-3 text-sm font-semibold">Loading...</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setViewingLesson(null)}
-                    className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              )}
 
-              {/* Scrollable word list */}
-              <div className="flex-1 overflow-y-auto pr-1 -mr-1">
-                {viewingLesson.words.length === 0 ? (
-                  <div className="py-20 text-center">
-                    <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
-                    <p className="font-semibold text-base text-foreground mb-1">No words yet</p>
-                    <p className="text-sm text-muted-foreground">This lesson has no vocabulary added yet.</p>
-                    <button
-                      onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
-                      className="mt-4 px-4 py-2 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow hover:opacity-90 transition"
-                    >
-                      + Add vocabulary
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {viewingLesson.words.map((w, i) => (
-                      <motion.div
-                        key={w.id}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.025 }}
-                        className="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 overflow-hidden hover:border-primary/30 transition group"
+              {/* Error */}
+              {!viewLoading && viewError && (
+                <div className="text-center py-16">
+                  <p className="font-semibold text-red-500 mb-2">{viewError}</p>
+                  <button onClick={() => openViewLesson(viewingLesson)} className="text-sm text-primary underline">Try again</button>
+                </div>
+              )}
+
+              {/* Content */}
+              {!viewLoading && !viewError && viewingLesson && (
+                <>
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-5 flex-shrink-0">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h2 className="font-display font-black text-lg text-foreground">{viewingLesson.title}</h2>
+                        {viewingLesson.level && (
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${levelBadge(viewingLesson.level)}`}>
+                            {viewingLesson.level}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {viewingLesson.words?.length ?? 0} words · Created {viewingLesson.createdAt ? new Date(viewingLesson.createdAt).toLocaleDateString() : "—"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
                       >
-                        {/* Top accent line */}
-                        <div className="h-1 bg-gradient-hero w-full" />
-
-                        <div className="p-4">
-                          <div className="flex items-start gap-4">
-                            {/* Number */}
-                            <div className="w-8 h-8 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">
-                              {i + 1}
-                            </div>
-
-                            {/* Word info */}
-                            <div className="flex-1 min-w-0">
-                              {/* Word + Reading */}
-                              <div className="flex items-center gap-2 flex-wrap mb-2">
-                                <span className="font-display font-black text-xl text-foreground">{w.word}</span>
-                                <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
-                                  title="Play pronunciation"
-                                  className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
-                                  <Volume2 className="w-4 h-4" />
-                                </button>
-                                {w.furigana && (
-                                  <span className="text-base text-sky-500 font-medium">{w.furigana}</span>
-                                )}
-                                {w.romaji && (
-                                  <span className="text-xs text-muted-foreground italic">{w.romaji}</span>
-                                )}
-                              </div>
-
-                              {/* Meaning */}
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="text-sm font-semibold text-foreground">{w.meaning}</span>
-                              </div>
-
-                              {/* Tags */}
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(w.level)}`}>
-                                  {w.level}
-                                </span>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/30 text-purple-500 border border-purple-100 dark:border-purple-900">
-                                  {w.topic}
-                                </span>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground capitalize">
-                                  {w.type}
-                                </span>
-                              </div>
-
-                              {/* Example */}
-                              {w.examples && w.examples > 0 && (
-                                <div className="mt-2 text-xs text-muted-foreground">
-                                  <span className="font-semibold text-foreground/60">Example:</span>{" "}
-                                  {w.examples} examples
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setViewingLesson(null)}
+                        className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
 
-              {/* Footer */}
-              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {viewingLesson.words.length > 0
-                      ? `${viewingLesson.words.length} words`
-                      : "0 words"}
-                  </span>
-                  <button
-                    onClick={() => setViewingLesson(null)}
-                    className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
+                  {/* Scrollable word list */}
+                  <div className="flex-1 overflow-y-auto pr-1 -mr-1">
+                    {viewingLesson.words?.length === 0 ? (
+                      <div className="py-20 text-center">
+                        <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
+                        <p className="font-semibold text-base text-foreground mb-1">No words yet</p>
+                        <p className="text-sm text-muted-foreground">This lesson has no vocabulary added yet.</p>
+                        <button
+                          onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
+                          className="mt-4 px-4 py-2 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow hover:opacity-90 transition"
+                        >
+                          + Add vocabulary
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {viewingLesson.words?.map((w, i) => (
+                          <motion.div
+                            key={w.id}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.025 }}
+                            className="rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 overflow-hidden hover:border-primary/30 transition group"
+                          >
+                            {/* Top accent line */}
+                            <div className="h-1 bg-gradient-hero w-full" />
+
+                            <div className="p-4">
+                              <div className="flex items-start gap-4">
+                                {/* Number */}
+                                <div className="w-8 h-8 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  {i + 1}
+                                </div>
+
+                                {/* Word info */}
+                                <div className="flex-1 min-w-0">
+                                  {/* Word + Reading */}
+                                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                                    <span className="font-display font-black text-xl text-foreground">{w.word}</span>
+                                    <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
+                                      title="Play pronunciation"
+                                      className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                                      <Volume2 className="w-4 h-4" />
+                                    </button>
+                                    {w.furigana && (
+                                      <span className="text-base text-sky-500 font-medium">{w.furigana}</span>
+                                    )}
+                                    {w.romaji && (
+                                      <span className="text-xs text-muted-foreground italic">{w.romaji}</span>
+                                    )}
+                                  </div>
+
+                                  {/* Meaning */}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-sm font-semibold text-foreground">{w.meaning}</span>
+                                  </div>
+
+                                  {/* Tags */}
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {w.level && (
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(w.level)}`}>
+                                        {w.level}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Example */}
+                                  {w.exampleJapanese && (
+                                    <div className="mt-2 text-xs text-muted-foreground">
+                                      <span className="font-semibold text-foreground/60">Example:</span>{" "}
+                                      {w.exampleJapanese}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {viewingLesson.words?.length > 0
+                          ? `${viewingLesson.words.length} words`
+                          : "0 words"}
+                      </span>
+                      <button
+                        onClick={() => setViewingLesson(null)}
+                        className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </motion.div>
           </div>
         )}
@@ -1369,16 +1533,19 @@ function VocabularyManagementPage() {
                 Lesson <strong className="text-foreground">{deleting.title}</strong> will be permanently deleted.
               </p>
               <p className="text-xs text-red-400 mb-5">
-                This will also delete {deleting.words.length} words inside.
+                This will also delete {deleting.wordCount ?? 0} words inside.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleting(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                  disabled={deletingInProgress}>
                   Cancel
                 </button>
                 <button onClick={handleDelete}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">
-                  Delete
+                  disabled={deletingInProgress}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                  {deletingInProgress && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {deletingInProgress ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </motion.div>
