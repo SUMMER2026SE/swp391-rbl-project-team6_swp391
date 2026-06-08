@@ -755,13 +755,15 @@ function VocabularyManagementPage() {
                   <button
                     type="button"
                     onClick={() => setNewIsPublished(p => !p)}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${
-                      newIsPublished ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
+                    className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-[3px] transition-colors overflow-hidden border ${
+                      newIsPublished
+                        ? "bg-green-500 border-green-400"
+                        : "bg-slate-600 border-white/10"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                        newIsPublished ? "translate-x-6" : "translate-x-0.5"
+                      className={`block h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
+                        newIsPublished ? "translate-x-6" : "translate-x-0"
                       }`}
                     />
                   </button>
@@ -1106,12 +1108,14 @@ function VocabularyManagementPage() {
                       <button
                         type="button"
                         onClick={() => setEditIsPublished(p => !p)}
-                        className={`relative w-14 h-8 rounded-full transition-all duration-200 ${
-                          editIsPublished ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
+                        className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-[3px] transition-colors overflow-hidden border ${
+                          editIsPublished
+                            ? "bg-green-500 border-green-400"
+                            : "bg-slate-600 border-white/10"
                         }`}
                       >
                         <span
-                          className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                          className={`block h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
                             editIsPublished ? "translate-x-6" : "translate-x-0"
                           }`}
                         />
