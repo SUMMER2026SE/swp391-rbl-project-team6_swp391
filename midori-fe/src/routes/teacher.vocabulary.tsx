@@ -238,7 +238,7 @@ function VocabularyManagementPage() {
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopicInput, setCustomTopicInput] = useState("");
   const [wordForm, setWordForm] = useState({
-    word: "", furigana: "", meaning: "", examples: "",
+    word: "", furigana: "", romaji: "", meaning: "", examples: "",
   });
 
   // Edit modal vocabulary state
@@ -250,7 +250,7 @@ function VocabularyManagementPage() {
   const [editCustomTopicInput, setEditCustomTopicInput] = useState("");
   const [editDeletedWordIds, setEditDeletedWordIds] = useState<Set<string>>(new Set());
   const [editWordForm, setEditWordForm] = useState({
-    word: "", furigana: "", meaning: "", examples: "",
+    word: "", furigana: "", romaji: "", meaning: "", examples: "",
   });
 
   // Create lesson loading
@@ -349,7 +349,7 @@ function VocabularyManagementPage() {
     setEditDeletedWordIds(new Set());
     setEditShowWordForm(false);
     setEditEditingIdx(null);
-    setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" });
+    setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
     setEditSaveError(null);
     setEditDetailError(null);
     setEditDetailLoading(true);
@@ -434,7 +434,7 @@ function VocabularyManagementPage() {
         await teacherVocabularyApi.addWord(lesson.id, {
           word: w.word,
           furigana: w.furigana,
-          romaji: undefined,
+          romaji: w.romaji,
           meaning: w.meaning,
           exampleJapanese: w.exampleJapanese,
           exampleMeaning: w.exampleMeaning,
@@ -453,7 +453,7 @@ function VocabularyManagementPage() {
       setTempTopics([]);
       setShowWordForm(false);
       setEditingWordIdx(null);
-      setWordForm({ word: "", furigana: "", meaning: "", examples: "" });
+      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
       setShowAdd(false);
       await fetchLessons();
     } catch (err) {
@@ -799,14 +799,14 @@ function VocabularyManagementPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
+                          onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
                           className="text-muted-foreground hover:text-foreground transition"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
-                      {/* Form fields - simplified: Word, Reading, Meaning, Example */}
+                      {/* Form fields */}
                       <div className="p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
@@ -828,6 +828,15 @@ function VocabularyManagementPage() {
                             />
                           </div>
                           <div>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">ROMAJI</label>
+                            <input
+                              value={wordForm.romaji}
+                              onChange={e => setWordForm(f => ({ ...f, romaji: e.target.value }))}
+                              placeholder="e.g. kankyou"
+                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                            />
+                          </div>
+                          <div>
                             <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
                             <input
                               value={wordForm.meaning}
@@ -836,7 +845,7 @@ function VocabularyManagementPage() {
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
-                          <div>
+                          <div className="col-span-2">
                             <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example Japanese</label>
                             <input
                               value={wordForm.examples}
@@ -850,7 +859,7 @@ function VocabularyManagementPage() {
                         <div className="flex gap-2 pt-1">
                           <button
                             type="button"
-                            onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
+                            onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                           >
                             Cancel
@@ -864,6 +873,7 @@ function VocabularyManagementPage() {
                                 lessonId: "",
                                 word: wordForm.word.trim(),
                                 furigana: wordForm.furigana.trim() || undefined,
+                                romaji: wordForm.romaji.trim() || undefined,
                                 meaning: wordForm.meaning.trim(),
                                 exampleJapanese: wordForm.examples.trim() || undefined,
                                 displayOrder: editingWordIdx !== null ? (tempWords[editingWordIdx]?.displayOrder ?? 0) : tempWords.length,
@@ -879,7 +889,7 @@ function VocabularyManagementPage() {
                               }
                               setShowWordForm(false);
                               setEditingWordIdx(null);
-                              setWordForm({ word: "", furigana: "", meaning: "", examples: "" });
+                              setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
                             }}
                             disabled={!wordForm.word.trim() || !wordForm.meaning.trim()}
                             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
@@ -923,6 +933,9 @@ function VocabularyManagementPage() {
                               {w.furigana && (
                                 <span className="text-xs text-sky-500">{w.furigana}</span>
                               )}
+                              {w.romaji && (
+                                <span className="text-xs text-muted-foreground italic">/ {w.romaji}</span>
+                              )}
                               <span className="text-xs text-muted-foreground">→</span>
                               <span className="text-xs font-semibold text-foreground">{w.meaning}</span>
                             </div>
@@ -937,6 +950,7 @@ function VocabularyManagementPage() {
                                 setWordForm({
                                   word: w.word,
                                   furigana: w.furigana ?? "",
+                                  romaji: w.romaji ?? "",
                                   meaning: w.meaning,
                                   examples: w.exampleJapanese ?? "",
                                 });
@@ -976,7 +990,7 @@ function VocabularyManagementPage() {
                       setTempWords([]);
                       setShowWordForm(false);
                       setEditingWordIdx(null);
-                      setWordForm({ word: "", furigana: "", meaning: "", examples: "" });
+                      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
                       setCreateError(null);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
@@ -1152,14 +1166,13 @@ function VocabularyManagementPage() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
+                              onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
                               className="text-muted-foreground hover:text-foreground transition"
                             >
                               <X className="w-4 h-4" />
                             </button>
                           </div>
 
-                          {/* Edit word form - simplified: Word, Reading, Meaning, Example */}
                           {/* Form fields */}
                           <div className="p-4 space-y-3">
                             <div className="grid grid-cols-2 gap-3">
@@ -1182,6 +1195,15 @@ function VocabularyManagementPage() {
                                 />
                               </div>
                               <div>
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">ROMAJI</label>
+                                <input
+                                  value={editWordForm.romaji}
+                                  onChange={e => setEditWordForm(f => ({ ...f, romaji: e.target.value }))}
+                                  placeholder="e.g. kankyou"
+                                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                                />
+                              </div>
+                              <div>
                                 <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
                                 <input
                                   value={editWordForm.meaning}
@@ -1190,7 +1212,7 @@ function VocabularyManagementPage() {
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                               </div>
-                              <div>
+                              <div className="col-span-2">
                                 <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example Japanese</label>
                                 <input
                                   value={editWordForm.examples}
@@ -1204,7 +1226,7 @@ function VocabularyManagementPage() {
                             <div className="flex gap-2 pt-1">
                               <button
                                 type="button"
-                                onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
+                                onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
                                 className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                               >
                                 Cancel
@@ -1218,6 +1240,7 @@ function VocabularyManagementPage() {
                                     lessonId: editing?.id ?? "",
                                     word: editWordForm.word.trim(),
                                     furigana: editWordForm.furigana.trim() || undefined,
+                                    romaji: editWordForm.romaji.trim() || undefined,
                                     meaning: editWordForm.meaning.trim(),
                                     exampleJapanese: editWordForm.examples.trim() || undefined,
                                     displayOrder: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.displayOrder ?? 0) : editTempWords.length,
@@ -1233,7 +1256,7 @@ function VocabularyManagementPage() {
                                   }
                                   setEditShowWordForm(false);
                                   setEditEditingIdx(null);
-                                  setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" });
+                                  setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
                                 }}
                                 disabled={!editWordForm.word.trim() || !editWordForm.meaning.trim()}
                                 className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
@@ -1275,6 +1298,9 @@ function VocabularyManagementPage() {
                                     <Volume2 className="w-3.5 h-3.5" />
                                   </button>
                                   {w.furigana && <span className="text-xs text-sky-500">{w.furigana}</span>}
+                                  {w.romaji && (
+                                    <span className="text-xs text-muted-foreground italic">/ {w.romaji}</span>
+                                  )}
                                   <span className="text-xs text-muted-foreground">→</span>
                                   <span className="text-xs font-semibold text-foreground">{w.meaning}</span>
                                 </div>
@@ -1286,7 +1312,7 @@ function VocabularyManagementPage() {
                                   type="button"
                                   onClick={() => {
                                     setEditEditingIdx(idx);
-                                    setEditWordForm({ word: w.word, furigana: w.furigana ?? "", meaning: w.meaning, examples: w.exampleJapanese ?? "" });
+                                    setEditWordForm({ word: w.word, furigana: w.furigana ?? "", romaji: w.romaji ?? "", meaning: w.meaning, examples: w.exampleJapanese ?? "" });
                                     setEditShowWordForm(true);
                                   }}
                                   className="w-7 h-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-400 hover:text-blue-600 transition"
