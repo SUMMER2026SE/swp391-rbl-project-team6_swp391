@@ -25,6 +25,12 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(teachers));
     }
 
+    @GetMapping("/teachers/active")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getActiveTeachers() {
+        List<UserResponse> teachers = adminUserService.getActiveTeachers();
+        return ResponseEntity.ok(ApiResponse.success(teachers));
+    }
+
     @PutMapping("/{userId}/approve")
     public ResponseEntity<ApiResponse<UserResponse>> approveTeacher(@PathVariable UUID userId) {
         UserResponse teacher = adminUserService.approveTeacher(userId);
@@ -35,5 +41,11 @@ public class AdminController {
     public ResponseEntity<ApiResponse<UserResponse>> suspendUser(@PathVariable UUID userId) {
         UserResponse user = adminUserService.suspendUser(userId);
         return ResponseEntity.ok(ApiResponse.success("User suspended successfully", user));
+    }
+
+    @PutMapping("/{userId}/activate")
+    public ResponseEntity<ApiResponse<UserResponse>> activateUser(@PathVariable UUID userId) {
+        UserResponse user = adminUserService.activateUser(userId);
+        return ResponseEntity.ok(ApiResponse.success("User activated successfully", user));
     }
 }
