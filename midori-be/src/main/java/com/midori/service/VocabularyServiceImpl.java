@@ -4,7 +4,6 @@ import com.midori.dto.vocabulary.*;
 import com.midori.entity.User;
 import com.midori.entity.VocabularyLesson;
 import com.midori.entity.VocabularyWord;
-import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.UserRepository;
 import com.midori.repository.VocabularyLessonRepository;
@@ -32,6 +31,7 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     public VocabularyLessonResponse createLesson(VocabularyLessonCreateRequest request, UUID createdBy) {
+        System.out.println("[TeacherVocabularyService] request words size = " + (request.getWords() == null ? "null" : request.getWords().size()));
         User creator = userRepository.findById(createdBy)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", createdBy));
 
@@ -47,6 +47,8 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .build();
 
         lesson = lessonRepository.save(lesson);
+        saveLessonWords(lesson, request.getWords());
+        syncLessonWordCount(lesson);
         return toLessonResponse(lesson);
     }
 
@@ -57,6 +59,7 @@ public class VocabularyServiceImpl implements VocabularyService {
 
         applyLessonUpdate(lesson, request);
         lesson = lessonRepository.save(lesson);
+        syncLessonWordCount(lesson);
         return toLessonResponse(lesson);
     }
 
@@ -109,19 +112,9 @@ public class VocabularyServiceImpl implements VocabularyService {
         VocabularyLesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
-        VocabularyWord word = VocabularyWord.builder()
-                .lesson(lesson)
-                .word(request.getWord())
-                .furigana(request.getFurigana())
-                .romaji(request.getRomaji())
-                .meaning(request.getMeaning())
-                .exampleJapanese(request.getExampleJapanese())
-                .exampleMeaning(request.getExampleMeaning())
-                .audioUrl(request.getAudioUrl())
-                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
-                .build();
-
+        VocabularyWord word = buildVocabularyWord(lesson, request, request.getDisplayOrder());
         word = wordRepository.save(word);
+        syncLessonWordCount(lesson);
         return toWordResponse(word);
     }
 
@@ -132,15 +125,18 @@ public class VocabularyServiceImpl implements VocabularyService {
 
         applyWordUpdate(word, request);
         word = wordRepository.save(word);
+        syncLessonWordCount(word.getLesson());
         return toWordResponse(word);
     }
 
     @Override
     public void deleteWord(UUID wordId) {
-        if (!wordRepository.existsById(wordId)) {
-            throw new ResourceNotFoundException("VocabularyWord", "id", wordId);
-        }
-        wordRepository.deleteById(wordId);
+        VocabularyWord word = wordRepository.findById(wordId)
+                .orElseThrow(() -> new ResourceNotFoundException("VocabularyWord", "id", wordId));
+
+        VocabularyLesson lesson = word.getLesson();
+        wordRepository.delete(word);
+        syncLessonWordCount(lesson);
     }
 
     @Override
@@ -150,6 +146,7 @@ public class VocabularyServiceImpl implements VocabularyService {
 
         lesson.setIsPublished(true);
         lesson = lessonRepository.save(lesson);
+        syncLessonWordCount(lesson);
         return toLessonResponse(lesson);
     }
 
@@ -160,6 +157,7 @@ public class VocabularyServiceImpl implements VocabularyService {
 
         lesson.setIsPublished(false);
         lesson = lessonRepository.save(lesson);
+        syncLessonWordCount(lesson);
         return toLessonResponse(lesson);
     }
 
@@ -228,6 +226,7 @@ public class VocabularyServiceImpl implements VocabularyService {
     // ============================================================
 
     private VocabularyLessonResponse toLessonResponse(VocabularyLesson lesson) {
+        int wordCount = resolveWordCount(lesson);
         return VocabularyLessonResponse.builder()
                 .id(lesson.getId())
                 .title(lesson.getTitle())
@@ -235,7 +234,7 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .level(lesson.getLevel())
                 .topic(lesson.getTopic())
                 .estimatedMinutes(lesson.getEstimatedMinutes())
-                .wordCount(lesson.getWordCount())
+                .wordCount(wordCount)
                 .isPublished(lesson.getIsPublished())
                 .createdBy(lesson.getCreatedBy() != null ? lesson.getCreatedBy().getId() : null)
                 .createdAt(lesson.getCreatedAt())
@@ -257,7 +256,7 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .level(lesson.getLevel())
                 .topic(lesson.getTopic())
                 .estimatedMinutes(lesson.getEstimatedMinutes())
-                .wordCount(lesson.getWordCount())
+                .wordCount(words.size())
                 .isPublished(lesson.getIsPublished())
                 .createdBy(lesson.getCreatedBy() != null ? lesson.getCreatedBy().getId() : null)
                 .createdAt(lesson.getCreatedAt())
@@ -329,5 +328,43 @@ public class VocabularyServiceImpl implements VocabularyService {
         if (request.getDisplayOrder() != null) {
             word.setDisplayOrder(request.getDisplayOrder());
         }
+    }
+
+    private void saveLessonWords(VocabularyLesson lesson, List<VocabularyWordCreateRequest> words) {
+        if (words == null || words.isEmpty()) {
+            return;
+        }
+
+        for (int index = 0; index < words.size(); index++) {
+            VocabularyWordCreateRequest wordRequest = words.get(index);
+            VocabularyWord word = buildVocabularyWord(lesson, wordRequest, index);
+            VocabularyWord savedWord = wordRepository.save(word);
+            System.out.println("[TeacherVocabularyService] saved word: " + savedWord.getId() + " lessonId=" + lesson.getId());
+        }
+    }
+
+    private VocabularyWord buildVocabularyWord(VocabularyLesson lesson, VocabularyWordCreateRequest request, int fallbackDisplayOrder) {
+        return VocabularyWord.builder()
+                .lesson(lesson)
+                .word(request.getWord())
+                .furigana(request.getFurigana())
+                .romaji(request.getRomaji())
+                .meaning(request.getMeaning())
+                .exampleJapanese(request.getExampleJapanese())
+                .exampleMeaning(request.getExampleMeaning())
+                .audioUrl(request.getAudioUrl())
+                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : fallbackDisplayOrder)
+                .build();
+    }
+
+    private int resolveWordCount(VocabularyLesson lesson) {
+        return Math.toIntExact(wordRepository.countByLessonId(lesson.getId()));
+    }
+
+    private void syncLessonWordCount(VocabularyLesson lesson) {
+        int wordCount = resolveWordCount(lesson);
+        lesson.setWordCount(wordCount);
+        lessonRepository.save(lesson);
+        System.out.println("[TeacherVocabularyService] final wordCount = " + lesson.getWordCount());
     }
 }

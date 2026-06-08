@@ -37,6 +37,9 @@ public class User {
     @Builder.Default
     private UserStatus status = UserStatus.PENDING;
 
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
+
     @Column(name = "email_verified", nullable = false)
     @Builder.Default
     private Boolean emailVerified = false;

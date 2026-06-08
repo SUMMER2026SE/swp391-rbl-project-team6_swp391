@@ -41,46 +41,76 @@ public class AdminUserService {
 
     @Transactional
     public UserResponse approveTeacher(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-        if (user.getRole() != Role.TEACHER) {
-            throw new BadRequestException("Only teacher accounts can be approved");
-        }
+        User user = getTeacherById(userId);
 
         if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
             throw new BadRequestException("Teacher account is not pending approval");
         }
 
         user.setStatus(UserStatus.ACTIVE);
-        user = userRepository.save(user);
+        user.setRejectionReason(null);
+        User savedUser = userRepository.save(user);
 
-        log.info("Approved teacher: {} ({})", user.getEmail(), userId);
-        return toUserResponse(user);
+        log.info("Approved teacher: {} ({})", savedUser.getEmail(), userId);
+        return toUserResponse(savedUser);
+    }
+
+    @Transactional
+    public UserResponse rejectTeacher(UUID userId, String reason) {
+        User user = getTeacherById(userId);
+
+        if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
+            throw new BadRequestException("Only pending teacher applications can be rejected");
+        }
+
+        user.setStatus(UserStatus.REJECTED);
+        user.setRejectionReason(reason.trim());
+        User savedUser = userRepository.save(user);
+
+        log.info("Rejected teacher application: {} ({})", savedUser.getEmail(), userId);
+        return toUserResponse(savedUser);
     }
 
     @Transactional
     public UserResponse suspendUser(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        User user = getTeacherById(userId);
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BadRequestException("Only active teachers can be suspended");
+        }
 
         user.setStatus(UserStatus.SUSPENDED);
-        user = userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        log.info("Suspended user: {} ({})", user.getEmail(), userId);
-        return toUserResponse(user);
+        log.info("Suspended teacher: {} ({})", savedUser.getEmail(), userId);
+        return toUserResponse(savedUser);
     }
 
     @Transactional
     public UserResponse activateUser(UUID userId) {
+        User user = getTeacherById(userId);
+
+        if (user.getStatus() != UserStatus.SUSPENDED) {
+            throw new BadRequestException("Only suspended teachers can be activated");
+        }
+
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRejectionReason(null);
+        User savedUser = userRepository.save(user);
+
+        log.info("Activated teacher: {} ({})", savedUser.getEmail(), userId);
+        return toUserResponse(savedUser);
+    }
+
+    private User getTeacherById(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        user.setStatus(UserStatus.ACTIVE);
-        user = userRepository.save(user);
+        if (user.getRole() != Role.TEACHER) {
+            throw new BadRequestException("Only teacher accounts can be managed here");
+        }
 
-        log.info("Activated user: {} ({})", user.getEmail(), userId);
-        return toUserResponse(user);
+        return user;
     }
 
     private UserResponse toUserResponse(User user) {
@@ -89,6 +119,7 @@ public class AdminUserService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .status(user.getStatus())
+                .rejectionReason(user.getRejectionReason())
                 .emailVerified(user.getEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

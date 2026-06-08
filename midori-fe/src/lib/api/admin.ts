@@ -1,7 +1,11 @@
 import { api } from "./client";
 
 // Align with backend UserStatus enum
-export type AdminUserStatus = "PENDING" | "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | "BANNED";
+export type AdminUserStatus = "PENDING" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "BANNED";
+
+export type RejectTeacherPayload = {
+  reason: string;
+};
 
 // Align with backend Role enum
 export type AdminRole = "STUDENT" | "TEACHER" | "ADMIN";
@@ -28,10 +32,10 @@ export const adminApi = {
     api.put<AdminUserResponse>(`/admin/users/${userId}/approve`),
 
   /**
-   * Reject a pending teacher application by suspending the account.
+   * Reject a pending teacher application.
    */
-  rejectTeacher: (userId: string) =>
-    api.put<AdminUserResponse>(`/admin/users/${userId}/suspend`),
+  rejectTeacher: (userId: string, payload: RejectTeacherPayload) =>
+    api.put<AdminUserResponse>(`/admin/users/${userId}/reject`, payload),
 
   /**
    * Suspend (ban) an approved teacher.

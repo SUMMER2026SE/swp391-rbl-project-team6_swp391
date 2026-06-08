@@ -43,6 +43,9 @@ public class VocabularyTeacherController {
     public ResponseEntity<ApiResponse<VocabularyLessonResponse>> createLesson(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody VocabularyLessonCreateRequest request) {
+        System.out.println("[TeacherVocabularyController] createLesson title = " + request.getTitle());
+        System.out.println("[TeacherVocabularyController] words = " + request.getWords());
+        System.out.println("[TeacherVocabularyController] words size = " + (request.getWords() == null ? "null" : request.getWords().size()));
         VocabularyLessonResponse lesson = vocabularyService.createLesson(request, userDetails.getId());
         return ResponseEntity
                 .status(HttpStatus.CREATED)

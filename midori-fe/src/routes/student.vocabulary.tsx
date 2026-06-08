@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, Star, Clock, ChevronRight, CheckCircle, X,
-  Volume2, VolumeX, Play, ChevronLeft, Trophy,
-  Bookmark, BookmarkCheck, ArrowRight, Zap, ChevronDown, Tag,
+  BookOpen, Clock, ChevronRight, CheckCircle, X,
+  Volume2, Play, ChevronLeft, Trophy,
+  Bookmark, Zap, ChevronDown, Tag,
   Loader2,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
@@ -141,8 +141,8 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
         onClick={onToggle}
         className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all shadow-sm ${
           isOpen || selected !== "All Topics"
-            ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md"
-            : "bg-white/70 dark:bg-white/[0.06] backdrop-blur-sm border border-white/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:text-foreground dark:hover:bg-white/[0.10] dark:hover:border-white/15"
+            ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+            : "bg-white/70 dark:bg-white/6 backdrop-blur-sm border border-white/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:text-foreground dark:hover:bg-white/10 dark:hover:border-white/15"
         }`}
       >
         <span className="text-base">{getTopicIcon(selected)}</span>
@@ -185,14 +185,14 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
                       onClick={() => handleSelect(topic)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                         isSelected
-                          ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
                           : "hover:bg-slate-50 dark:hover:bg-white/[0.07] text-slate-700 dark:text-indigo-200/80"
                       }`}
                     >
                       <span className="text-base">{getTopicIcon(topic)}</span>
                       <span className="flex-1 text-left">{topic}</span>
                       {isSelected && (
-                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                        <CheckCircle className="w-4 h-4 shrink-0" />
                       )}
                     </button>
                   );
@@ -258,10 +258,19 @@ function VocabularyPage() {
     setLoading(true);
     setError(null);
     try {
-      const allData = await studentVocabularyApi.getPublishedLessons();
-      setLessons(sortLessonsByNumber(allData));
-      
-      // Extract all unique topics
+      const lessonParams = {
+        level: selectedLevel !== "All" ? selectedLevel : undefined,
+        topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
+        search: search.trim() || undefined,
+      };
+
+      const [allData, filteredData] = await Promise.all([
+        studentVocabularyApi.getPublishedLessons(),
+        studentVocabularyApi.getPublishedLessons(lessonParams),
+      ]);
+
+      setLessons(sortLessonsByNumber(filteredData));
+
       const topics = Array.from(new Set(allData.map(l => l.topic).filter(Boolean) as string[])).sort();
       setAllTopics(topics);
     } catch (err) {
@@ -269,7 +278,7 @@ function VocabularyPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedLevel, selectedTopic, search]);
 
   useEffect(() => {
     fetchLessons();
@@ -293,27 +302,14 @@ function VocabularyPage() {
     }
   };
 
-  // Filter lessons by level, topic, and search
-  const filteredLessons = useMemo(() => {
-    return lessons.filter(l => {
-      if (selectedLevel !== "All" && l.level !== selectedLevel) return false;
-      if (selectedTopic !== "All Topics" && l.topic !== selectedTopic) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return l.title.toLowerCase().includes(q) ||
-          (l.description?.toLowerCase().includes(q) ?? false);
-      }
-      return true;
-    });
-  }, [lessons, selectedLevel, selectedTopic, search]);
+  const filteredLessons = lessons;
 
   const topicsInLevel = useMemo(() => {
-    const levelFiltered = lessons.filter(l => selectedLevel === "All" || l.level === selectedLevel);
-    const topics = new Set(levelFiltered.map(l => l.topic).filter(Boolean));
-    return ["All Topics", ...Array.from(topics)];
-  }, [lessons, selectedLevel]);
+    const levelFiltered = allTopics.filter(Boolean);
+    return ["All Topics", ...levelFiltered];
+  }, [allTopics]);
 
-  const totalWordsAll = lessons.reduce((sum, l) => sum + (l.wordCount ?? 0), 0);
+  const totalWordsAll = lessons.reduce((sum, l) => sum + (l.wordCount ?? l.word_count ?? 0), 0);
   const totalLearned = Object.values(wordStatuses).filter(s => s === "mastered").length;
   const totalLearning = Object.values(wordStatuses).filter(s => s === "learning").length;
   const totalFavorites = favorites.size;
@@ -368,7 +364,7 @@ function VocabularyPage() {
     const paginatedWords = filteredWords.slice((safePage - 1) * WORDS_PER_PAGE, safePage * WORDS_PER_PAGE);
 
     return (
-      <div className="dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950">
+      <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950">
         <SakuraBg count={14} />
         <div className="relative z-10">
           <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
@@ -376,7 +372,7 @@ function VocabularyPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => { setActiveLesson(null); setLessonDetail(null); }}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card/70 dark:bg-white/[0.06] backdrop-blur-sm border border-border/50 dark:border-white/10 text-xs font-semibold hover:bg-card dark:hover:bg-white/[0.09] transition shadow-sm"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card/70 dark:bg-white/6 backdrop-blur-sm border border-border/50 dark:border-white/10 text-xs font-semibold hover:bg-card dark:hover:bg-white/9 transition shadow-sm"
           >
             <ChevronLeft className="w-3.5 h-3.5" /> Back
           </button>
@@ -407,7 +403,7 @@ function VocabularyPage() {
           <div className="flex items-center gap-1.5">
             <div className="w-24 h-2 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all"
+                className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -447,8 +443,8 @@ function VocabularyPage() {
               onClick={() => { setFilterTab(tab); setCurrentPage(1); }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                     filterTab === tab
-                      ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-sm"
-                      : "bg-card/60 dark:bg-white/[0.045] backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.07] dark:hover:border-white/15"
+                      ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-sm"
+                      : "bg-card/60 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.07] dark:hover:border-white/15"
                   }`}
             >
               {tab}
@@ -479,16 +475,16 @@ function VocabularyPage() {
                 >
                   <div className="flex items-center">
                     {/* Status dot */}
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 self-start mt-1 mr-3 ${getWordStatusDot(wordKey)}`} />
+                    <div className={`w-2 h-2 rounded-full shrink-0 self-start mt-1 mr-3 ${getWordStatusDot(wordKey)}`} />
 
                     {/* Japanese + Furigana */}
-                    <div className="flex-shrink-0 w-36 mr-3">
+                    <div className="shrink-0 w-36 mr-3">
                       <div className="font-display text-xl font-black text-foreground dark:text-white leading-tight">{word.word}</div>
                       <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">{word.furigana || word.romaji}</div>
                     </div>
 
                     {/* Divider */}
-                    <div className="hidden sm:block w-px self-stretch shrink-0 rounded-full bg-gradient-to-b from-transparent via-indigo-400/40 to-transparent dark:bg-gradient-to-b dark:from-transparent dark:via-indigo-400/50 dark:to-transparent mr-4" />
+                    <div className="hidden sm:block w-px self-stretch shrink-0 rounded-full bg-linear-to-b from-transparent via-indigo-400/40 to-transparent dark:bg-linear-to-b dark:from-transparent dark:via-indigo-400/50 dark:to-transparent mr-4" />
 
                     {/* Meaning */}
                     <div className="flex-1 min-w-0 mr-4">
@@ -498,7 +494,7 @@ function VocabularyPage() {
                     </div>
 
                     {/* Action icons */}
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       <button
                         onClick={() => setWordStatus(wordKey, "mastered")}
                         title="Đã thuộc"
@@ -564,7 +560,7 @@ function VocabularyPage() {
               <div className="flex justify-center pt-2">
                 <button
                   onClick={() => setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; })}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
                 >
                   <Trophy className="w-4 h-4" /> Complete Lesson
                 </button>
@@ -577,7 +573,7 @@ function VocabularyPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/[0.06] border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.09] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/6 border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/9 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -588,8 +584,8 @@ function VocabularyPage() {
                     onClick={() => setCurrentPage(page)}
                     className={`w-8 h-8 rounded-xl text-xs font-bold transition-all shadow-sm ${
                       page === currentPage
-                        ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md"
-                        : "bg-card/70 dark:bg-white/[0.06] border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.09]"
+                        ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                        : "bg-card/70 dark:bg-white/6 border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/9"
                     }`}
                   >
                     {page}
@@ -599,7 +595,7 @@ function VocabularyPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/[0.06] border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.09] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/6 border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/9 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -615,7 +611,7 @@ function VocabularyPage() {
 
   // ── Browse Lessons View ───────────────────────────────────────────────
   return (
-    <div className="dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen">
+    <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen">
       <SakuraBg count={14} />
       <div className="relative z-10">
         <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
@@ -664,19 +660,19 @@ function VocabularyPage() {
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {JLPT_LEVELS.map(level => {
                   const lvlLessons = lessons.filter(l => l.level === level);
-                  const lvlTotal = lvlLessons.reduce((s, l) => s + (l.wordCount ?? 0), 0);
+                  const lvlTotal = lvlLessons.reduce((s, l) => s + (l.wordCount ?? l.word_count ?? 0), 0);
                   const lvlLearned = lvlLessons.reduce((s, l) =>
-                    s + l.words?.filter((w: any) => wordStatuses[`${l.id}-${w.word}`] === "mastered").length ?? 0, 0);
+                    s + (l.words?.filter((w: any) => wordStatuses[`${l.id}-${w.word}`] === "mastered").length || 0), 0);
                   const pct = lvlTotal > 0 ? Math.round((lvlLearned / lvlTotal) * 100) : 0;
                   const isSelected = level === selectedLevel;
                   return (
                     <button
                       key={level}
                       onClick={() => { setSelectedLevel(level); setSelectedTopic("All Topics"); }}
-                      className={`relative flex-shrink-0 flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl transition-all ${
+                      className={`relative shrink-0 flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl transition-all ${
                         isSelected
-                          ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-blue-200/40 dark:shadow-none"
-                          : "bg-card/70 dark:bg-white/[0.045] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-md dark:hover:bg-white/[0.08] dark:hover:border-indigo-300/20"
+                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-blue-200/40 dark:shadow-none"
+                          : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-md dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
                       }`}
                     >
                       <span className="font-display font-black text-base">{level}</span>
@@ -697,7 +693,7 @@ function VocabularyPage() {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Search vocabulary…"
-                    className="w-full px-4 py-2.5 rounded-2xl bg-card/70 dark:bg-white/[0.055] backdrop-blur-sm border border-border/50 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 dark:focus:ring-cyan-300/30 dark:focus:border-cyan-300/30 shadow-sm dark:placeholder:text-slate-400 dark:text-slate-200 dark:focus:bg-white/[0.07]"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-card/70 dark:bg-white/5.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 dark:focus:ring-cyan-300/30 dark:focus:border-cyan-300/30 shadow-sm dark:placeholder:text-slate-400 dark:text-slate-200 dark:focus:bg-white/[0.07]"
                   />
                   {search && (
                     <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
@@ -742,7 +738,7 @@ function VocabularyPage() {
                           className="w-full text-left rounded-2xl bg-card/80 dark:bg-white/[0.035] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-cyan-300/25 hover:-translate-y-1 transition-all duration-200 overflow-hidden group"
                         >
                           {/* Clean Header */}
-                          <div className={`relative px-4 pt-4 pb-3 bg-gradient-to-br ${getLevelGradient(lesson.level ?? "N5")} ${getLevelGradientDark(lesson.level ?? "N5")}`}>
+                          <div className={`relative px-4 pt-4 pb-3 bg-linear-to-br ${getLevelGradient(lesson.level ?? "N5")} ${getLevelGradientDark(lesson.level ?? "N5")}`}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/30 text-white backdrop-blur-sm dark:bg-slate-900/60 dark:text-white dark:border dark:border-white/20">{lesson.level}</span>
@@ -766,19 +762,19 @@ function VocabularyPage() {
                           </div>
 
                           {/* Content */}
-                          <div className="p-4 space-y-2 dark:bg-white/[0.025]">
+                          <div className="p-4 space-y-2 dark:bg-white/2.5">
                             <p className="text-xs text-muted-foreground dark:text-slate-300/85 line-clamp-2 leading-relaxed">{lesson.description || "No description"}</p>
 
                             {/* Stats */}
                             <div className="flex items-center justify-between text-[10px] text-muted-foreground dark:text-indigo-200/70">
-                              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {lesson.wordCount ?? 0} words</span>
+                              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {lesson.wordCount ?? lesson.word_count ?? 0} words</span>
                               {lesson.estimatedMinutes && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> ~{lesson.estimatedMinutes}m</span>}
                             </div>
 
                             {/* Progress */}
                             <div className="h-1.5 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
                               <div
-                                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all"
+                                className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
                                 style={{ width: `${lessonPct}%` }}
                               />
                             </div>

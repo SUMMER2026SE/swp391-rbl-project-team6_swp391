@@ -231,7 +231,7 @@ function VocabularyManagementPage() {
   const [deleting, setDeleting] = useState<VocabularyLessonResponse | null>(null);
 
   // Inline vocabulary form state (Add modal)
-  const [tempWords, setTempWords] = useState<VocabularyWordResponse[]>([]);
+  const [lessonWords, setLessonWords] = useState<VocabularyWordResponse[]>([]);
   const [showWordForm, setShowWordForm] = useState(false);
   const [editingWordIdx, setEditingWordIdx] = useState<number | null>(null);
   const [tempTopics, setTempTopics] = useState<string[]>([]);
@@ -264,30 +264,28 @@ function VocabularyManagementPage() {
   // Delete loading
   const [deletingInProgress, setDeletingInProgress] = useState(false);
 
-  // Load lessons from backend
+  // Load lessons from backend with server-side filters
   const fetchLessons = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch ALL lessons first (no filters) to get all topics
-      const allData = await teacherVocabularyApi.getTeacherLessons();
+      const lessonParams = {
+        level: levelFilter !== "All" ? levelFilter : undefined,
+        topic: topicFilter !== "All" ? topicFilter : undefined,
+        search: search.trim() || undefined,
+      };
+
+      const [allData, filteredData] = await Promise.all([
+        teacherVocabularyApi.getTeacherLessons(),
+        teacherVocabularyApi.getTeacherLessons(lessonParams),
+      ]);
+
       const allSorted = sortLessonsByNumber(allData);
-      
-      // Extract all unique topics from ALL lessons
+      const filteredSorted = sortLessonsByNumber(filteredData);
+
       const topics = Array.from(new Set(allSorted.map(l => l.topic).filter(Boolean) as string[])).sort();
       setAllTopics(topics);
-      
-      // Apply frontend filters on all lessons
-      const filtered = allSorted.filter(l => {
-        const matchLevel = levelFilter === "All" || l.level === levelFilter;
-        const matchTopic = topicFilter === "All" || l.topic === topicFilter;
-        const matchSearch = !search || 
-          l.title.toLowerCase().includes(search.toLowerCase()) ||
-          (l.description?.toLowerCase().includes(search.toLowerCase()) ?? false);
-        return matchLevel && matchTopic && matchSearch;
-      });
-      
-      setLessons(filtered);
+      setLessons(filteredSorted);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load lessons. Please try again.");
     } finally {
@@ -323,7 +321,7 @@ function VocabularyManagementPage() {
 
   // Open view modal — fetch lesson detail (with words) from backend
   const openViewLesson = async (lesson: VocabularyLessonResponse) => {
-    setViewingLesson(null);
+    setViewingLesson((prev) => prev?.id === lesson.id ? prev : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse));
     setViewLoading(true);
     setViewError(null);
     try {
@@ -331,6 +329,7 @@ function VocabularyManagementPage() {
       setViewingLesson(detail);
     } catch (err) {
       setViewError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
+      setViewingLesson((prev) => prev?.id === lesson.id ? prev : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse));
     } finally {
       setViewLoading(false);
     }
@@ -414,34 +413,88 @@ function VocabularyManagementPage() {
     }
   };
 
-  // Create lesson with inline words
+  const handleAddWord = () => {
+    if (!wordForm.word.trim() || !wordForm.meaning.trim()) return;
+
+    const wordToAdd: VocabularyWordResponse = {
+      id: editingWordIdx !== null ? (lessonWords[editingWordIdx]?.id ?? `temp-${Date.now()}`) : `temp-${Date.now()}`,
+      lessonId: "",
+      word: wordForm.word.trim(),
+      furigana: wordForm.furigana.trim() || undefined,
+      romaji: wordForm.romaji.trim() || undefined,
+      meaning: wordForm.meaning.trim(),
+      exampleJapanese: wordForm.examples.trim() || undefined,
+      exampleMeaning: undefined,
+      audioUrl: undefined,
+      displayOrder: editingWordIdx !== null ? (lessonWords[editingWordIdx]?.displayOrder ?? editingWordIdx + 1) : lessonWords.length + 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (editingWordIdx !== null) {
+      setLessonWords((prev) => {
+        const updated = [...prev];
+        updated[editingWordIdx] = wordToAdd;
+        return updated;
+      });
+    } else {
+      setLessonWords((prev) => [...prev, wordToAdd]);
+    }
+
+    setShowWordForm(false);
+    setEditingWordIdx(null);
+    setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
+  };
+
   const handleCreateLesson = async () => {
     if (!newName.trim()) return;
+
+    const pendingWordReady = wordForm.word.trim() && wordForm.meaning.trim();
+    const effectiveLessonWords = pendingWordReady
+      ? [
+          ...lessonWords,
+          {
+            id: `temp-${Date.now()}`,
+            lessonId: "",
+            word: wordForm.word.trim(),
+            furigana: wordForm.furigana.trim() || undefined,
+            romaji: wordForm.romaji.trim() || undefined,
+            meaning: wordForm.meaning.trim(),
+            exampleJapanese: wordForm.examples.trim() || undefined,
+            exampleMeaning: undefined,
+            audioUrl: undefined,
+            displayOrder: lessonWords.length + 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ]
+      : lessonWords;
+
+    const payload = {
+      title: newName.trim(),
+      level: newLevel,
+      topic: newTopic || undefined,
+      description: newDescription.trim() || undefined,
+      isPublished: newIsPublished,
+      words: effectiveLessonWords.map((word, index) => ({
+        word: word.word,
+        furigana: word.furigana ?? undefined,
+        romaji: word.romaji ?? undefined,
+        meaning: word.meaning,
+        exampleJapanese: word.exampleJapanese ?? undefined,
+        exampleMeaning: word.exampleMeaning ?? undefined,
+        audioUrl: word.audioUrl ?? undefined,
+        displayOrder: index + 1,
+      })),
+    } satisfies VocabularyLessonCreateRequest;
+
+    console.log("[TeacherVocabulary] createLesson payload:", JSON.stringify(payload, null, 2));
+    console.log("[TeacherVocabulary] payload words length:", payload.words?.length);
+
     setCreating(true);
     setCreateError(null);
     try {
-      // Step 1: Create the lesson
-      const lesson = await teacherVocabularyApi.createLesson({
-        title: newName.trim(),
-        level: newLevel,
-        topic: newTopic || undefined,
-        description: newDescription.trim() || undefined,
-        isPublished: newIsPublished,
-      } satisfies VocabularyLessonCreateRequest);
-
-      // Step 2: Add each word
-      for (const w of tempWords) {
-        await teacherVocabularyApi.addWord(lesson.id, {
-          word: w.word,
-          furigana: w.furigana,
-          romaji: w.romaji,
-          meaning: w.meaning,
-          exampleJapanese: w.exampleJapanese,
-          exampleMeaning: w.exampleMeaning,
-          audioUrl: w.audioUrl,
-          displayOrder: w.displayOrder,
-        });
-      }
+      await teacherVocabularyApi.createLesson(payload);
 
       // Reset form and close
       setNewName("");
@@ -449,7 +502,7 @@ function VocabularyManagementPage() {
       setNewTopic("");
       setNewDescription("");
       setNewIsPublished(false);
-      setTempWords([]);
+      setLessonWords([]);
       setTempTopics([]);
       setShowWordForm(false);
       setEditingWordIdx(null);
@@ -589,7 +642,7 @@ function VocabularyManagementPage() {
                 <div className="p-5">
                   {/* Header row */}
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                       <div className="w-7 h-7 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center">
                         {i + 1 + (page - 1) * PAGE_SIZE}
                       </div>
@@ -617,7 +670,7 @@ function VocabularyManagementPage() {
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <BookText className="w-3 h-3" />
-                          {lesson.wordCount ?? 0} words
+                          {lesson.wordCount ?? lesson.word_count ?? 0} words
                         </span>
                         {lesson.topic && (
                           <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold">
@@ -677,7 +730,7 @@ function VocabularyManagementPage() {
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col"
               style={{ maxWidth: 760, maxHeight: "90vh" }}>
               {/* Modal Header */}
-              <div className="flex items-center justify-between mb-5 flex-shrink-0">
+              <div className="flex items-center justify-between mb-5 shrink-0">
                 <h2 className="font-display font-black text-lg text-foreground">Add new lesson</h2>
                 <button onClick={() => setShowAdd(false)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <X className="w-4 h-4" />
@@ -776,7 +829,7 @@ function VocabularyManagementPage() {
                       Vocabulary list
                     </label>
                     <span className="text-[10px] text-muted-foreground font-semibold">
-                      {tempWords.length} words
+                      {lessonWords.length} words
                     </span>
                   </div>
 
@@ -866,31 +919,7 @@ function VocabularyManagementPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (!wordForm.word.trim() || !wordForm.meaning.trim()) return;
-                              const w: VocabularyWordResponse = {
-                                id: editingWordIdx !== null ? (tempWords[editingWordIdx]?.id ?? "") : `temp-${Date.now()}`,
-                                lessonId: "",
-                                word: wordForm.word.trim(),
-                                furigana: wordForm.furigana.trim() || undefined,
-                                romaji: wordForm.romaji.trim() || undefined,
-                                meaning: wordForm.meaning.trim(),
-                                exampleJapanese: wordForm.examples.trim() || undefined,
-                                displayOrder: editingWordIdx !== null ? (tempWords[editingWordIdx]?.displayOrder ?? 0) : tempWords.length,
-                                createdAt: new Date().toISOString(),
-                                updatedAt: new Date().toISOString(),
-                              };
-                              if (editingWordIdx !== null) {
-                                const updated = [...tempWords];
-                                updated[editingWordIdx] = w;
-                                setTempWords(updated);
-                              } else {
-                                setTempWords(prev => [...prev, w]);
-                              }
-                              setShowWordForm(false);
-                              setEditingWordIdx(null);
-                              setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
-                            }}
+                              onClick={handleAddWord}
                             disabled={!wordForm.word.trim() || !wordForm.meaning.trim()}
                             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
                           >
@@ -902,9 +931,9 @@ function VocabularyManagementPage() {
                   )}
 
                   {/* Word cards list */}
-                  {tempWords.length > 0 && (
+                  {lessonWords.length > 0 && (
                     <div className="mt-3 space-y-2">
-                      {tempWords.map((w, idx) => (
+                      {lessonWords.map((w, idx) => (
                         <motion.div
                           key={w.id || idx}
                           initial={{ opacity: 0, y: 4 }}
@@ -912,12 +941,12 @@ function VocabularyManagementPage() {
                           className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition group"
                         >
                           {/* Reorder handle */}
-                          <div className="flex-shrink-0 cursor-grab text-slate-300 dark:text-slate-600 group-hover:text-slate-400">
+                          <div className="shrink-0 cursor-grab text-slate-300 dark:text-slate-600 group-hover:text-slate-400">
                             <Layers className="w-4 h-4" />
                           </div>
 
                           {/* Index */}
-                          <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                          <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-bold">
                             {idx + 1}
                           </div>
 
@@ -927,7 +956,7 @@ function VocabularyManagementPage() {
                               <span className="font-bold text-sm text-foreground">{w.word}</span>
                               <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
                                 title="Play pronunciation"
-                                className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                                className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0">
                                 <Volume2 className="w-3.5 h-3.5" />
                               </button>
                               {w.furigana && (
@@ -942,7 +971,7 @@ function VocabularyManagementPage() {
                           </div>
 
                           {/* Actions */}
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button
                               type="button"
                               onClick={() => {
@@ -963,7 +992,7 @@ function VocabularyManagementPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setTempWords(prev => prev.filter((_, i) => i !== idx))}
+                              onClick={() => setLessonWords(prev => prev.filter((_, i) => i !== idx))}
                               className="w-7 h-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
                               title="Delete"
                             >
@@ -978,16 +1007,16 @@ function VocabularyManagementPage() {
               </div>
 
               {/* Footer actions */}
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 shrink-0">
                 <span className="text-xs text-muted-foreground">
-                  {tempWords.length > 0 ? `${tempWords.length} words will be saved` : "No words added yet"}
+                  {lessonWords.length > 0 ? `${lessonWords.length} words will be saved` : "No words added yet"}
                 </span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setShowAdd(false);
-                      setTempWords([]);
+                      setLessonWords([]);
                       setShowWordForm(false);
                       setEditingWordIdx(null);
                       setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
@@ -1028,7 +1057,7 @@ function VocabularyManagementPage() {
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col"
               style={{ maxWidth: 760, maxHeight: "90vh" }}>
               {/* Header */}
-              <div className="flex items-center justify-between mb-5 flex-shrink-0">
+              <div className="flex items-center justify-between mb-5 shrink-0">
                 <h2 className="font-display font-black text-lg text-foreground">Edit lesson</h2>
                 <button onClick={() => setEditing(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <X className="w-4 h-4" />
@@ -1111,7 +1140,7 @@ function VocabularyManagementPage() {
                     {/* ── Publish Toggle ───────────────────────────── */}
                     <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                       <div className="flex items-center gap-3">
-                        <Globe className={`w-5 h-5 flex-shrink-0 ${editIsPublished ? "text-green-500" : "text-slate-400"}`} />
+                        <Globe className={`w-5 h-5 shrink-0 ${editIsPublished ? "text-green-500" : "text-slate-400"}`} />
                         <div>
                           <div className="text-sm font-semibold text-foreground">Publish lesson</div>
                           <div className="text-xs text-muted-foreground">
@@ -1414,7 +1443,7 @@ function VocabularyManagementPage() {
               {!viewLoading && !viewError && viewingLesson && (
                 <>
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-5 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-5 shrink-0">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h2 className="font-display font-black text-lg text-foreground">{viewingLesson.title}</h2>
@@ -1475,7 +1504,7 @@ function VocabularyManagementPage() {
                             <div className="p-4">
                               <div className="flex items-start gap-4">
                                 {/* Number */}
-                                <div className="w-8 h-8 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center shrink-0 mt-0.5">
                                   {i + 1}
                                 </div>
 
@@ -1486,7 +1515,7 @@ function VocabularyManagementPage() {
                                     <span className="font-display font-black text-xl text-foreground">{w.word}</span>
                                     <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
                                       title="Play pronunciation"
-                                      className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
+                                      className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0">
                                       <Volume2 className="w-4 h-4" />
                                     </button>
                                     {w.furigana && (
@@ -1519,7 +1548,7 @@ function VocabularyManagementPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 flex-shrink-0">
+                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 shrink-0">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
                         {viewingLesson.words?.length > 0
@@ -1563,7 +1592,7 @@ function VocabularyManagementPage() {
                 Lesson <strong className="text-foreground">{deleting.title}</strong> will be permanently deleted.
               </p>
               <p className="text-xs text-red-400 mb-5">
-                This will also delete {deleting.wordCount ?? 0} words inside.
+                This will also delete {deleting.wordCount ?? deleting.word_count ?? 0} words inside.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleting(null)}
