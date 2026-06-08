@@ -134,7 +134,7 @@ function normalizeLesson<T extends VocabularyLessonResponse>(lesson: T): T {
   return {
     ...lesson,
     estimatedMinutes: lesson.estimatedMinutes ?? lesson.estimated_minutes,
-    wordCount: lesson.wordCount ?? lesson.word_count ?? 0,
+    wordCount: lesson.wordCount ?? lesson.word_count ?? ((lesson as T & { words?: unknown[] }).words?.length ?? 0),
     isPublished: lesson.isPublished ?? lesson.is_published ?? false,
   };
 }
@@ -158,20 +158,19 @@ function normalizeCreateWordPayload(word: VocabularyWordCreateRequest): Vocabula
 
   return {
     word: japanese,
-    japanese,
-    furigana: reading,
-    reading,
+    japanese: japanese,
+    reading: reading,
     romaji: word.romaji,
     meaning: vietnamese,
-    vietnamese,
-    exampleJapanese,
+    vietnamese: vietnamese,
+    exampleJapanese: exampleJapanese,
     example_japanese: exampleJapanese,
     exampleMeaning: exampleVietnamese,
-    exampleVietnamese,
+    exampleVietnamese: exampleVietnamese,
     example_vietnamese: exampleVietnamese,
-    audioUrl,
+    audioUrl: audioUrl,
     audio_url: audioUrl,
-    displayOrder,
+    displayOrder: displayOrder,
     display_order: displayOrder,
   };
 }
@@ -229,9 +228,11 @@ export const teacherVocabularyApi = {
    * Returns lesson detail including its words list.
    */
   getTeacherLessonDetail: async (lessonId: string) => {
+    console.log("[getTeacherLessonDetail] Fetching lesson:", lessonId);
     const lesson = await api.get<VocabularyLessonDetailResponse>(
       `/teacher/vocabulary/lessons/${lessonId}`
     );
+    console.log("[getTeacherLessonDetail] Received:", JSON.stringify(lesson, null, 2));
     return normalizeLessonDetail(lesson);
   },
 
@@ -241,7 +242,8 @@ export const teacherVocabularyApi = {
    */
   createLesson: async (data: VocabularyLessonCreateRequest) => {
     const payload = normalizeCreateLessonPayload(data);
-    console.log("[teacherVocabularyApi] POST createLesson body:", payload);
+    console.log("[createLesson] Before normalization - words:", data.words?.length);
+    console.log("[createLesson] After normalization - payload:", JSON.stringify(payload, null, 2));
     const lesson = await api.post<VocabularyLessonResponse>("/teacher/vocabulary/lessons", payload);
     return normalizeLesson(lesson);
   },
