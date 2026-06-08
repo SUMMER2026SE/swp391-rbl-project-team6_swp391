@@ -5,7 +5,7 @@ import {
   BookOpen, Clock, ChevronRight, CheckCircle, X,
   Volume2, Play, ChevronLeft, Trophy,
   Bookmark, Zap, ChevronDown, Tag,
-  Loader2, Star, Search,
+  Loader2, Star, Search, User,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
@@ -785,6 +785,12 @@ function VocabularyPage() {
                               <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {lesson.wordCount ?? lesson.word_count ?? 0} words</span>
                               {lesson.estimatedMinutes && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> ~{lesson.estimatedMinutes}m</span>}
                             </div>
+                            {(lesson as VocabularyLessonResponse).teacherName && (
+                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 dark:text-indigo-200/50">
+                                <User className="w-3 h-3" />
+                                <span className="truncate">{(lesson as VocabularyLessonResponse).teacherName}</span>
+                              </div>
+                            )}
 
                             {/* Progress */}
                             <div className="h-1.5 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">

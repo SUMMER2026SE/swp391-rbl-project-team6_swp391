@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit3, Trash2, Eye,
   BookOpen, Layers, X, Save, ChevronDown,
   BookText, Tag, Volume2, Loader2,
-  Globe,
+  Globe, User, Star, Users, Cpu,
 } from "lucide-react";
 import {
   teacherVocabularyApi,
@@ -299,11 +299,142 @@ function VocabularyManagementPage() {
   }, [fetchLessons]);
 
   const totalWords = lessons.reduce((s, l) => s + (l.wordCount ?? 0), 0);
-  const totalPages = Math.ceil(lessons.length / PAGE_SIZE);
-  const paginated = lessons.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Reset page when filter/search changes
-  useEffect(() => { setPage(1); }, [levelFilter, topicFilter, search]);
+  // Group lessons by ownership after filtering
+  const myLessons = lessons.filter(l => l.ownedByMe === true);
+  const otherLessons = lessons.filter(l => l.ownedByMe === false && l.teacherName && l.teacherName !== "MIDORI" && l.teacherName !== "System");
+  const systemLessons = lessons.filter(l => l.ownedByMe === false && (!l.teacherName || l.teacherName === "MIDORI" || l.teacherName === "System"));
+
+  // Pagination per group
+  const [myPage, setMyPage] = useState(1);
+  const [otherPage, setOtherPage] = useState(1);
+  const [systemPage, setSystemPage] = useState(1);
+  const GROUP_PAGE_SIZE = 12;
+
+  const paginatedMy = myLessons.slice((myPage - 1) * GROUP_PAGE_SIZE, myPage * GROUP_PAGE_SIZE);
+  const paginatedOther = otherLessons.slice((otherPage - 1) * GROUP_PAGE_SIZE, otherPage * GROUP_PAGE_SIZE);
+  const paginatedSystem = systemLessons.slice((systemPage - 1) * GROUP_PAGE_SIZE, systemPage * GROUP_PAGE_SIZE);
+
+  // Reset pages when filter/search changes
+  useEffect(() => { setPage(1); setMyPage(1); setOtherPage(1); setSystemPage(1); }, [levelFilter, topicFilter, search]);
+
+  // Helper to render lesson card
+  const renderLessonCard = (lesson: VocabularyLessonResponse, index: number, groupOffset = 0) => (
+    <motion.div
+      key={lesson.id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 overflow-hidden"
+    >
+      <div className="h-1.5 bg-gradient-hero w-full" />
+      <div className="p-5">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center">
+              {index + 1 + groupOffset}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="font-display font-black text-sm text-foreground leading-tight truncate">
+                {lesson.title}
+              </h3>
+              {lesson.level && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(lesson.level)}`}>
+                  {lesson.level}
+                </span>
+              )}
+              {lesson.isPublished ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                  Published
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                  Draft
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <BookText className="w-3 h-3" />
+                {lesson.wordCount ?? lesson.word_count ?? 0} words
+              </span>
+              {lesson.topic && (
+                <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold">
+                  {lesson.topic}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground/70 mt-1">
+              <User className="w-3 h-3" />
+              <span className="truncate">Teacher: {lesson.teacherName ?? "MIDORI"}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); openViewLesson(lesson); }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </button>
+          {lesson.ownedByMe && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); openEdit(lesson); }}
+                className="px-3.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
+                title="Edit lesson"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setDeleting(lesson); }}
+                className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all"
+                title="Delete lesson"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  const renderGroupSection = (
+    title: string,
+    icon: React.ReactNode,
+    lessons: VocabularyLessonResponse[],
+    paginated: VocabularyLessonResponse[],
+    page: number,
+    setPage: (p: number) => void,
+    badge: string,
+    emptyText: string
+  ) => (
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        {icon}
+        <h2 className="text-base font-bold text-foreground">{title}</h2>
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${badge}`}>{lessons.length}</span>
+      </div>
+      {lessons.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground/50 text-sm italic">{emptyText}</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {paginated.map((lesson, i) => renderLessonCard(lesson, i, (page - 1) * GROUP_PAGE_SIZE))}
+          </div>
+          {Math.ceil(lessons.length / GROUP_PAGE_SIZE) > 1 && (
+            <div className="flex justify-center mt-4">
+              <PaginationUI current={page} total={lessons.length} onPage={setPage} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 
   const handleSearch = (val: string) => { setSearch(val); };
   const handleLevel = (val: string) => { setLevelFilter(val); };
@@ -646,94 +777,44 @@ function VocabularyManagementPage() {
         </div>
       )}
 
-      {/* ── Lesson grid ───────────────────────────────────────── */}
+      {/* ── Grouped lesson sections ────────────────────────────── */}
       {!loading && !error && lessons.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {paginated.map((lesson, i) => (
-              <motion.div
-                key={lesson.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 overflow-hidden"
-              >
-                {/* Card top accent */}
-                <div className="h-1.5 bg-gradient-hero w-full" />
+          {/* My Lessons */}
+          {renderGroupSection(
+            "My Lessons",
+            <Star className="w-4 h-4 text-amber-500" />,
+            myLessons,
+            paginatedMy,
+            myPage,
+            setMyPage,
+            "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+            "You haven't created any lessons yet."
+          )}
 
-                <div className="p-5">
-                  {/* Header row */}
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <div className="w-7 h-7 rounded-lg bg-gradient-hero text-white font-black text-sm flex items-center justify-center">
-                        {i + 1 + (page - 1) * PAGE_SIZE}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="font-display font-black text-sm text-foreground leading-tight truncate">
-                          {lesson.title}
-                        </h3>
-                        {lesson.level && (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(lesson.level)}`}>
-                            {lesson.level}
-                          </span>
-                        )}
-                        {lesson.isPublished ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                            Published
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                            Draft
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <BookText className="w-3 h-3" />
-                          {lesson.wordCount ?? lesson.word_count ?? 0} words
-                        </span>
-                        {lesson.topic && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold">
-                            {lesson.topic}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+          {/* Other Teachers' Lessons */}
+          {renderGroupSection(
+            "Other Teachers' Lessons",
+            <Users className="w-4 h-4 text-blue-500" />,
+            otherLessons,
+            paginatedOther,
+            otherPage,
+            setOtherPage,
+            "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+            "No lessons from other teachers."
+          )}
 
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openViewLesson(lesson); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openEdit(lesson); }}
-                      className="px-3.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
-                    title="Edit lesson"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeleting(lesson); }}
-                      className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all"
-                    title="Delete lesson"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          <PaginationUI current={page} total={lessons.length} onPage={setPage} />
+          {/* System Lessons */}
+          {renderGroupSection(
+            "System Lessons",
+            <Cpu className="w-4 h-4 text-slate-400" />,
+            systemLessons,
+            paginatedSystem,
+            systemPage,
+            setSystemPage,
+            "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+            "No system lessons."
+          )}
         </>
       )}
 
