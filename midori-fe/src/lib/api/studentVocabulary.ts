@@ -1,6 +1,13 @@
 import { api } from "./client";
+import {
+  teacherVocabularyApi,
+  type VocabularyLessonResponse,
+  type VocabularyLessonDetailResponse,
+  normalizeLesson,
+  normalizeLessonDetail,
+} from "./teacherVocabulary";
 
-// Re-use types from teacher vocabulary API
+// Re-export types
 export type {
   VocabularyLessonResponse,
   VocabularyLessonDetailResponse,
@@ -20,23 +27,26 @@ export const studentVocabularyApi = {
    * Lists all published lessons available for students.
    * Supports optional query params: level, topic, search.
    */
-  getPublishedLessons: (params?: LessonListParams) => {
+  getPublishedLessons: async (params?: LessonListParams) => {
     const searchParams = new URLSearchParams();
     if (params?.level) searchParams.set("level", params.level);
     if (params?.topic) searchParams.set("topic", params.topic);
     if (params?.search) searchParams.set("search", params.search);
     const qs = searchParams.toString();
-    return api.get<import("./teacherVocabulary").VocabularyLessonResponse[]>(
+    const lessons = await api.get<VocabularyLessonResponse[]>(
       `/vocabulary/lessons${qs ? `?${qs}` : ""}`
     );
+    return lessons.map(normalizeLesson);
   },
 
   /**
    * GET /api/vocabulary/lessons/{lessonId}
    * Returns published lesson detail including its words list.
    */
-  getPublishedLessonDetail: (lessonId: string) =>
-    api.get<import("./teacherVocabulary").VocabularyLessonDetailResponse>(
+  getPublishedLessonDetail: async (lessonId: string) => {
+    const lesson = await api.get<VocabularyLessonDetailResponse>(
       `/vocabulary/lessons/${lessonId}`
-    ),
+    );
+    return normalizeLessonDetail(lesson);
+  },
 };
