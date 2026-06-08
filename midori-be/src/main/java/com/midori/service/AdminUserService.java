@@ -31,6 +31,14 @@ public class AdminUserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<UserResponse> getActiveTeachers() {
+        List<User> activeTeachers = userRepository.findByRoleAndStatus(Role.TEACHER, UserStatus.ACTIVE);
+        return activeTeachers.stream()
+                .map(this::toUserResponse)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public UserResponse approveTeacher(UUID userId) {
         User user = userRepository.findById(userId)
@@ -60,6 +68,18 @@ public class AdminUserService {
         user = userRepository.save(user);
 
         log.info("Suspended user: {} ({})", user.getEmail(), userId);
+        return toUserResponse(user);
+    }
+
+    @Transactional
+    public UserResponse activateUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        user.setStatus(UserStatus.ACTIVE);
+        user = userRepository.save(user);
+
+        log.info("Activated user: {} ({})", user.getEmail(), userId);
         return toUserResponse(user);
     }
 
