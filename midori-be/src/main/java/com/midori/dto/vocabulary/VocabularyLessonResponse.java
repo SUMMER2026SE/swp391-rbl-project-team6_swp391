@@ -23,6 +23,7 @@ public class VocabularyLessonResponse {
     private Integer wordCount;
     private Boolean isPublished;
     private UUID createdBy;
+    private String teacherName;
     private Instant createdAt;
     private Instant updatedAt;
 }

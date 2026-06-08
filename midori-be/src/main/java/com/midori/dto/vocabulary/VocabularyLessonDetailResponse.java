@@ -24,6 +24,7 @@ public class VocabularyLessonDetailResponse {
     private Integer wordCount;
     private Boolean isPublished;
     private UUID createdBy;
+    private String teacherName;
     private Instant createdAt;
     private Instant updatedAt;
     private List<VocabularyWordResponse> words;
