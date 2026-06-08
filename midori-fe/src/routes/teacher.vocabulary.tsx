@@ -244,6 +244,7 @@ function VocabularyManagementPage() {
   const [editTempTopics, setEditTempTopics] = useState<string[]>([]);
   const [editShowCustomTopic, setEditShowCustomTopic] = useState(false);
   const [editCustomTopicInput, setEditCustomTopicInput] = useState("");
+  const [editDeletedWordIds, setEditDeletedWordIds] = useState<Set<string>>(new Set());
   const [editWordForm, setEditWordForm] = useState({
     word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "",
   });
@@ -339,6 +340,7 @@ function VocabularyManagementPage() {
     setEditName(l.title ?? "");
     setEditLevel(l.level ?? "N5");
     setEditTempTopics([]);
+    setEditDeletedWordIds(new Set());
     setEditShowWordForm(false);
     setEditEditingIdx(null);
     setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: l.level ?? "N5", examples: "" });
@@ -365,11 +367,21 @@ function VocabularyManagementPage() {
     setEditingSave(true);
     setEditSaveError(null);
     try {
+      // Delete removed words
+      if (editDeletedWordIds.size > 0) {
+        await Promise.all(
+          Array.from(editDeletedWordIds).map(wordId =>
+            teacherVocabularyApi.deleteWord(wordId)
+          )
+        );
+      }
+      
       await teacherVocabularyApi.updateLesson(editing.id, {
         title: editName.trim(),
         level: editLevel,
       });
       setEditing(null);
+      setEditDeletedWordIds(new Set());
       await fetchLessons();
     } catch (err) {
       setEditSaveError(err instanceof ApiError ? err.message : "Failed to update lesson.");
@@ -1365,7 +1377,13 @@ function VocabularyManagementPage() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => setEditTempWords(prev => prev.filter((_, i) => i !== idx))}
+                                  onClick={() => {
+                                    const wordId = editTempWords[idx]?.id;
+                                    if (wordId && !wordId.startsWith("temp-")) {
+                                      setEditDeletedWordIds(prev => new Set([...prev, wordId]));
+                                    }
+                                    setEditTempWords(prev => prev.filter((_, i) => i !== idx));
+                                  }}
                                   className="w-7 h-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
                                   title="Delete"
                                 >
@@ -1394,7 +1412,7 @@ function VocabularyManagementPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => { setEditing(null); setEditTempWords([]); setEditShowWordForm(false); setEditEditingIdx(null); }}
+                    onClick={() => { setEditing(null); setEditTempWords([]); setEditDeletedWordIds(new Set()); setEditShowWordForm(false); setEditEditingIdx(null); }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
                     Cancel
