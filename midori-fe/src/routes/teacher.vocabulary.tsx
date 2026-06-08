@@ -5,6 +5,7 @@ import {
   Plus, Search, Edit3, Trash2, Eye,
   BookOpen, Layers, X, Save, ChevronDown,
   BookText, Tag, Volume2, Loader2,
+  Globe,
 } from "lucide-react";
 import {
   teacherVocabularyApi,
@@ -14,9 +15,9 @@ import {
   type VocabularyLessonCreateRequest,
 } from "@/lib/api/teacherVocabulary";
 import { ApiError } from "@/lib/api/client";
+import { TopicCombobox } from "@/components/TopicCombobox";
 
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
-const VOCAB_TOPICS = ["General", "Daily Life", "School", "Food", "Shopping", "Travel", "Family", "Business", "Nature", "Work", "Social", "Emotions", "Health", "Technology", "Education", "Culture", "Sports", "Art", "Science", "Politics", "Entertainment"];
 const PAGE_SIZE = 9;
 
 function speakJapanese(text: string) {
@@ -221,9 +222,12 @@ function VocabularyManagementPage() {
   const [newLevel, setNewLevel] = useState("N5");
   const [newTopic, setNewTopic] = useState("General");
   const [newDescription, setNewDescription] = useState("");
+  const [newIsPublished, setNewIsPublished] = useState(false);
   const [editing, setEditing] = useState<VocabularyLessonResponse | null>(null);
   const [editName, setEditName] = useState("");
   const [editLevel, setEditLevel] = useState("N5");
+  const [editTopic, setEditTopic] = useState("");
+  const [editIsPublished, setEditIsPublished] = useState(false);
   const [deleting, setDeleting] = useState<VocabularyLessonResponse | null>(null);
 
   // Inline vocabulary form state (Add modal)
@@ -234,7 +238,7 @@ function VocabularyManagementPage() {
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopicInput, setCustomTopicInput] = useState("");
   const [wordForm, setWordForm] = useState({
-    word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "",
+    word: "", furigana: "", meaning: "", examples: "",
   });
 
   // Edit modal vocabulary state
@@ -246,7 +250,7 @@ function VocabularyManagementPage() {
   const [editCustomTopicInput, setEditCustomTopicInput] = useState("");
   const [editDeletedWordIds, setEditDeletedWordIds] = useState<Set<string>>(new Set());
   const [editWordForm, setEditWordForm] = useState({
-    word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "",
+    word: "", furigana: "", meaning: "", examples: "",
   });
 
   // Create lesson loading
@@ -339,11 +343,13 @@ function VocabularyManagementPage() {
     setEditing(l);
     setEditName(l.title ?? "");
     setEditLevel(l.level ?? "N5");
+    setEditTopic(l.topic ?? "");
+    setEditIsPublished(l.isPublished ?? false);
     setEditTempTopics([]);
     setEditDeletedWordIds(new Set());
     setEditShowWordForm(false);
     setEditEditingIdx(null);
-    setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: l.level ?? "N5", examples: "" });
+    setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" });
     setEditSaveError(null);
     setEditDetailError(null);
     setEditDetailLoading(true);
@@ -354,6 +360,8 @@ function VocabularyManagementPage() {
       setEditing(detail);
       setEditName(detail.title ?? l.title ?? "");
       setEditLevel(detail.level ?? l.level ?? "N5");
+      setEditTopic(detail.topic ?? l.topic ?? "");
+      setEditIsPublished(detail.isPublished ?? l.isPublished ?? false);
     } catch (err) {
       setEditDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
       setEditTempWords([]);
@@ -379,6 +387,8 @@ function VocabularyManagementPage() {
       await teacherVocabularyApi.updateLesson(editing.id, {
         title: editName.trim(),
         level: editLevel,
+        topic: editTopic || undefined,
+        isPublished: editIsPublished,
       });
       setEditing(null);
       setEditDeletedWordIds(new Set());
@@ -398,7 +408,6 @@ function VocabularyManagementPage() {
       setDeleting(null);
       await fetchLessons();
     } catch (err) {
-      // Silently handle delete error — just close modal
       setDeleting(null);
     } finally {
       setDeletingInProgress(false);
@@ -415,8 +424,9 @@ function VocabularyManagementPage() {
       const lesson = await teacherVocabularyApi.createLesson({
         title: newName.trim(),
         level: newLevel,
-        topic: newTopic !== "General" ? newTopic : undefined,
+        topic: newTopic || undefined,
         description: newDescription.trim() || undefined,
+        isPublished: newIsPublished,
       } satisfies VocabularyLessonCreateRequest);
 
       // Step 2: Add each word
@@ -424,7 +434,7 @@ function VocabularyManagementPage() {
         await teacherVocabularyApi.addWord(lesson.id, {
           word: w.word,
           furigana: w.furigana,
-          romaji: w.romaji,
+          romaji: undefined,
           meaning: w.meaning,
           exampleJapanese: w.exampleJapanese,
           exampleMeaning: w.exampleMeaning,
@@ -436,12 +446,14 @@ function VocabularyManagementPage() {
       // Reset form and close
       setNewName("");
       setNewLevel("N5");
-      setNewTopic("General");
+      setNewTopic("");
       setNewDescription("");
+      setNewIsPublished(false);
       setTempWords([]);
+      setTempTopics([]);
       setShowWordForm(false);
       setEditingWordIdx(null);
-      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "" });
+      setWordForm({ word: "", furigana: "", meaning: "", examples: "" });
       setShowAdd(false);
       await fetchLessons();
     } catch (err) {
@@ -592,6 +604,15 @@ function VocabularyManagementPage() {
                             {lesson.level}
                           </span>
                         )}
+                        {lesson.isPublished ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                            Published
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                            Draft
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1">
@@ -707,18 +728,43 @@ function VocabularyManagementPage() {
                   </div>
                 </div>
 
-                {/* ── Topic ─────────────────────────────────────── */}
+                {/* ── Topic ──────────────────────────────── */}
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
                     Topic
                   </label>
-                  <select
+                  <TopicCombobox
                     value={newTopic}
-                    onChange={e => setNewTopic(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
+                    onChange={setNewTopic}
+                    options={[...allTopics, ...tempTopics].filter((t, i, a) => a.indexOf(t) === i)}
+                    placeholder="Select topic..."
+                  />
+                </div>
+
+                {/* ── Publish Toggle ───────────────────────────── */}
+                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <Globe className={`w-5 h-5 ${newIsPublished ? "text-green-500" : "text-muted-foreground"}`} />
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">Publish lesson</div>
+                      <div className="text-xs text-muted-foreground">
+                        {newIsPublished ? "Students can see this lesson" : "Only you can see this lesson"}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNewIsPublished(p => !p)}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${
+                      newIsPublished ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
+                    }`}
                   >
-                    {VOCAB_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        newIsPublished ? "translate-x-6" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
                 </div>
 
                 {/* ── Vocabulary List ────────────────────────────── */}
@@ -751,14 +797,14 @@ function VocabularyManagementPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: newLevel, examples: "" }); }}
+                          onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
                           className="text-muted-foreground hover:text-foreground transition"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
-                      {/* Form fields */}
+                      {/* Form fields - simplified: Word, Reading, Meaning, Example */}
                       <div className="p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
@@ -780,15 +826,6 @@ function VocabularyManagementPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Romaji</label>
-                            <input
-                              value={wordForm.romaji}
-                              onChange={e => setWordForm(f => ({ ...f, romaji: e.target.value }))}
-                              placeholder="kankyou"
-                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                            />
-                          </div>
-                          <div>
                             <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
                             <input
                               value={wordForm.meaning}
@@ -797,92 +834,21 @@ function VocabularyManagementPage() {
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Topic</label>
-                            <div className="flex gap-1.5">
-                              <select
-                                value={wordForm.topic}
-                                onChange={e => setWordForm(f => ({ ...f, topic: e.target.value }))}
-                                className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                              >
-                                {VOCAB_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
-                              </select>
-                              <div className="relative" onClick={e => e.stopPropagation()}>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowCustomTopic(o => !o)}
-                                  className="px-2.5 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition border border-primary/30"
-                                  title="Create new topic"
-                                >
-                                  +
-                                </button>
-                                {showCustomTopic && (
-                                  <div className="absolute right-0 top-full mt-2 z-10 w-48 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl p-3 space-y-2">
-                                    <input
-                                      value={customTopicInput}
-                                      onChange={e => setCustomTopicInput(e.target.value)}
-                                      placeholder="Topic name..."
-                                      className="w-full px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs outline-none focus:ring-1 focus:ring-primary/40"
-                                      autoFocus
-                                      onKeyDown={e => {
-                                        if (e.key === "Enter" && customTopicInput.trim()) {
-                                          if (!VOCAB_TOPICS.includes(customTopicInput.trim()) && !tempTopics.includes(customTopicInput.trim())) {
-                                            setTempTopics(prev => [...prev, customTopicInput.trim()]);
-                                            setWordForm(f => ({ ...f, topic: customTopicInput.trim() }));
-                                          }
-                                          setShowCustomTopic(false);
-                                          setCustomTopicInput("");
-                                        }
-                                      }}
-                                    />
-                                    {customTopicInput.trim() && !VOCAB_TOPICS.includes(customTopicInput.trim()) && !tempTopics.includes(customTopicInput.trim()) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setTempTopics(prev => [...prev, customTopicInput.trim()]);
-                                          setWordForm(f => ({ ...f, topic: customTopicInput.trim() }));
-                                          setShowCustomTopic(false);
-                                          setCustomTopicInput("");
-                                        }}
-                                        className="w-full py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition"
-                                      >
-                                        Create "{customTopicInput.trim()}"
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Level</label>
-                            <select
-                              value={wordForm.level}
-                              onChange={e => setWordForm(f => ({ ...f, level: e.target.value }))}
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example Japanese</label>
+                            <input
+                              value={wordForm.examples}
+                              onChange={e => setWordForm(f => ({ ...f, examples: e.target.value }))}
+                              placeholder="環境の大切さを学んだ"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                            >
-                              {["N5","N4","N3","N2","N1"].map(l => <option key={l} value={l}>{l}</option>)}
-                            </select>
+                            />
                           </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example</label>
-                          <input
-                            value={wordForm.examples}
-                            onChange={e => setWordForm(f => ({ ...f, examples: e.target.value }))}
-                            placeholder="e.g. environment"
-                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                          />
                         </div>
 
                         <div className="flex gap-2 pt-1">
                           <button
                             type="button"
-                            onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: newLevel, examples: "" }); }}
+                            onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                           >
                             Cancel
@@ -892,15 +858,12 @@ function VocabularyManagementPage() {
                             onClick={() => {
                               if (!wordForm.word.trim() || !wordForm.meaning.trim()) return;
                               const w: VocabularyWordResponse = {
-                                id: editingWordIdx !== null ? (tempWords[editingWordIdx]?.id ?? "") : String(Date.now()),
+                                id: editingWordIdx !== null ? (tempWords[editingWordIdx]?.id ?? "") : `temp-${Date.now()}`,
                                 lessonId: "",
                                 word: wordForm.word.trim(),
                                 furigana: wordForm.furigana.trim() || undefined,
-                                romaji: wordForm.romaji.trim() || undefined,
                                 meaning: wordForm.meaning.trim(),
                                 exampleJapanese: wordForm.examples.trim() || undefined,
-                                exampleMeaning: undefined,
-                                audioUrl: undefined,
                                 displayOrder: editingWordIdx !== null ? (tempWords[editingWordIdx]?.displayOrder ?? 0) : tempWords.length,
                                 createdAt: new Date().toISOString(),
                                 updatedAt: new Date().toISOString(),
@@ -914,7 +877,7 @@ function VocabularyManagementPage() {
                               }
                               setShowWordForm(false);
                               setEditingWordIdx(null);
-                              setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: newLevel, examples: "" });
+                              setWordForm({ word: "", furigana: "", meaning: "", examples: "" });
                             }}
                             disabled={!wordForm.word.trim() || !wordForm.meaning.trim()}
                             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
@@ -972,10 +935,7 @@ function VocabularyManagementPage() {
                                 setWordForm({
                                   word: w.word,
                                   furigana: w.furigana ?? "",
-                                  romaji: w.romaji ?? "",
                                   meaning: w.meaning,
-                                  topic: "General",
-                                  level: "N5",
                                   examples: w.exampleJapanese ?? "",
                                 });
                                 setShowWordForm(true);
@@ -1014,7 +974,7 @@ function VocabularyManagementPage() {
                       setTempWords([]);
                       setShowWordForm(false);
                       setEditingWordIdx(null);
-                      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: "N5", examples: "" });
+                      setWordForm({ word: "", furigana: "", meaning: "", examples: "" });
                       setCreateError(null);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
@@ -1119,6 +1079,45 @@ function VocabularyManagementPage() {
                       </div>
                     </div>
 
+                    {/* ── Topic ──────────────────────────────── */}
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
+                        Topic
+                      </label>
+                      <TopicCombobox
+                        value={editTopic}
+                        onChange={setEditTopic}
+                        options={[...allTopics, ...editTempTopics].filter((t, i, a) => a.indexOf(t) === i)}
+                        placeholder="Select topic..."
+                      />
+                    </div>
+
+                    {/* ── Publish Toggle ───────────────────────────── */}
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-3">
+                        <Globe className={`w-5 h-5 flex-shrink-0 ${editIsPublished ? "text-green-500" : "text-slate-400"}`} />
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Publish lesson</div>
+                          <div className="text-xs text-muted-foreground">
+                            {editIsPublished ? "Students can see this lesson" : "Only you can see this lesson"}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditIsPublished(p => !p)}
+                        className={`relative w-14 h-8 rounded-full transition-all duration-200 ${
+                          editIsPublished ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                            editIsPublished ? "translate-x-6" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
                     {/* ── Vocabulary List ──────────────────────────── */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -1149,13 +1148,14 @@ function VocabularyManagementPage() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: editLevel, examples: "" }); }}
+                              onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
                               className="text-muted-foreground hover:text-foreground transition"
                             >
                               <X className="w-4 h-4" />
                             </button>
                           </div>
 
+                          {/* Edit word form - simplified: Word, Reading, Meaning, Example */}
                           {/* Form fields */}
                           <div className="p-4 space-y-3">
                             <div className="grid grid-cols-2 gap-3">
@@ -1169,20 +1169,11 @@ function VocabularyManagementPage() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Hiragana</label>
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Reading (Hiragana)</label>
                                 <input
                                   value={editWordForm.furigana}
                                   onChange={e => setEditWordForm(f => ({ ...f, furigana: e.target.value }))}
                                   placeholder="かんきょう"
-                                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Romaji</label>
-                                <input
-                                  value={editWordForm.romaji}
-                                  onChange={e => setEditWordForm(f => ({ ...f, romaji: e.target.value }))}
-                                  placeholder="kankyou"
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                               </div>
@@ -1195,94 +1186,21 @@ function VocabularyManagementPage() {
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                               </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Topic</label>
-                                <div className="flex gap-1.5">
-                                  <select
-                                    value={editWordForm.topic}
-                                    onChange={e => setEditWordForm(f => ({ ...f, topic: e.target.value }))}
-                                    className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                                  >
-                                    {[...VOCAB_TOPICS, ...editTempTopics].map(t => <option key={t} value={t}>{t}</option>)}
-                                  </select>
-                                  <div className="relative" onClick={e => e.stopPropagation()}>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditShowCustomTopic(o => !o)}
-                                      className="px-2.5 py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition border border-primary/30"
-                                      title="Create new topic"
-                                    >
-                                      +
-                                    </button>
-                                    {editShowCustomTopic && (
-                                      <div className="absolute right-0 top-full mt-2 z-10 w-48 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl p-3 space-y-2">
-                                        <input
-                                          value={editCustomTopicInput}
-                                          onChange={e => setEditCustomTopicInput(e.target.value)}
-                                          placeholder="Topic name..."
-                                          className="w-full px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs outline-none focus:ring-1 focus:ring-primary/40"
-                                          autoFocus
-                                          onKeyDown={e => {
-                                            if (e.key === "Enter" && editCustomTopicInput.trim()) {
-                                              const t = editCustomTopicInput.trim();
-                                              if (![...VOCAB_TOPICS, ...editTempTopics].includes(t)) {
-                                                setEditTempTopics(prev => [...prev, t]);
-                                                setEditWordForm(f => ({ ...f, topic: t }));
-                                              }
-                                              setEditShowCustomTopic(false);
-                                              setEditCustomTopicInput("");
-                                            }
-                                          }}
-                                        />
-                                        {editCustomTopicInput.trim() && ![...VOCAB_TOPICS, ...editTempTopics].includes(editCustomTopicInput.trim()) && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const t = editCustomTopicInput.trim();
-                                              setEditTempTopics(prev => [...prev, t]);
-                                              setEditWordForm(f => ({ ...f, topic: t }));
-                                              setEditShowCustomTopic(false);
-                                              setEditCustomTopicInput("");
-                                            }}
-                                            className="w-full py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition"
-                                          >
-                                            Create "{editCustomTopicInput.trim()}"
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Level</label>
-                                <select
-                                  value={editWordForm.level}
-                                  onChange={e => setEditWordForm(f => ({ ...f, level: e.target.value }))}
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example Japanese</label>
+                                <input
+                                  value={editWordForm.examples}
+                                  onChange={e => setEditWordForm(f => ({ ...f, examples: e.target.value }))}
+                                  placeholder="環境の大切さを学んだ"
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                                >
-                                  {["N5","N4","N3","N2","N1"].map(l => <option key={l} value={l}>{l}</option>)}
-                                </select>
+                                />
                               </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example</label>
-                              <input
-                                value={editWordForm.examples}
-                                onChange={e => setEditWordForm(f => ({ ...f, examples: e.target.value }))}
-                                placeholder="e.g. environment"
-                                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                              />
                             </div>
 
                             <div className="flex gap-2 pt-1">
                               <button
                                 type="button"
-                                onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: editLevel, examples: "" }); }}
+                                onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" }); }}
                                 className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                               >
                                 Cancel
@@ -1292,15 +1210,12 @@ function VocabularyManagementPage() {
                                 onClick={() => {
                                   if (!editWordForm.word.trim() || !editWordForm.meaning.trim()) return;
                                   const w: VocabularyWordResponse = {
-                                    id: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.id ?? "") : String(Date.now()),
+                                    id: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.id ?? "") : `temp-${Date.now()}`,
                                     lessonId: editing?.id ?? "",
                                     word: editWordForm.word.trim(),
                                     furigana: editWordForm.furigana.trim() || undefined,
-                                    romaji: editWordForm.romaji.trim() || undefined,
                                     meaning: editWordForm.meaning.trim(),
                                     exampleJapanese: editWordForm.examples.trim() || undefined,
-                                    exampleMeaning: undefined,
-                                    audioUrl: undefined,
                                     displayOrder: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.displayOrder ?? 0) : editTempWords.length,
                                     createdAt: new Date().toISOString(),
                                     updatedAt: new Date().toISOString(),
@@ -1314,7 +1229,7 @@ function VocabularyManagementPage() {
                                   }
                                   setEditShowWordForm(false);
                                   setEditEditingIdx(null);
-                                  setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", topic: "General", level: editLevel, examples: "" });
+                                  setEditWordForm({ word: "", furigana: "", meaning: "", examples: "" });
                                 }}
                                 disabled={!editWordForm.word.trim() || !editWordForm.meaning.trim()}
                                 className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
@@ -1367,7 +1282,7 @@ function VocabularyManagementPage() {
                                   type="button"
                                   onClick={() => {
                                     setEditEditingIdx(idx);
-                                    setEditWordForm({ word: w.word, furigana: w.furigana ?? "", romaji: w.romaji ?? "", meaning: w.meaning, topic: "General", level: editLevel, examples: "" });
+                                    setEditWordForm({ word: w.word, furigana: w.furigana ?? "", meaning: w.meaning, examples: w.exampleJapanese ?? "" });
                                     setEditShowWordForm(true);
                                   }}
                                   className="w-7 h-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-400 hover:text-blue-600 transition"
