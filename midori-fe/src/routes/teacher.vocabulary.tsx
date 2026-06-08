@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Edit3, Trash2, Eye,
@@ -232,6 +232,7 @@ function VocabularyManagementPage() {
 
   // Inline vocabulary form state (Add modal)
   const [lessonWords, setLessonWords] = useState<VocabularyWordResponse[]>([]);
+  const lessonWordsRef = useRef<VocabularyWordResponse[]>([]);
   const [showWordForm, setShowWordForm] = useState(false);
   const [editingWordIdx, setEditingWordIdx] = useState<number | null>(null);
   const [tempTopics, setTempTopics] = useState<string[]>([]);
@@ -325,9 +326,16 @@ function VocabularyManagementPage() {
     setViewLoading(true);
     setViewError(null);
     try {
+      console.log("[TeacherVocabulary] Fetching lesson detail for:", lesson.id);
       const detail = await teacherVocabularyApi.getTeacherLessonDetail(lesson.id);
+      console.log("[TeacherVocabulary] Lesson detail received:", detail);
+      console.log("[TeacherVocabulary] Words count:", detail.words?.length);
+      detail.words?.forEach((w, i) => {
+        console.log(`  Word ${i + 1}: id=${w.id}, word=${w.word}, meaning=${w.meaning}`);
+      });
       setViewingLesson(detail);
     } catch (err) {
+      console.error("[TeacherVocabulary] Error fetching lesson detail:", err);
       setViewError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
       setViewingLesson((prev) => prev?.id === lesson.id ? prev : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse));
     } finally {
@@ -414,32 +422,37 @@ function VocabularyManagementPage() {
   };
 
   const handleAddWord = () => {
-    if (!wordForm.word.trim() || !wordForm.meaning.trim()) return;
+    const hasWord = wordForm.word.trim();
+    const hasFurigana = wordForm.furigana.trim();
+    const hasRomaji = wordForm.romaji.trim();
+    const hasMeaning = wordForm.meaning.trim();
+    const hasExamples = wordForm.examples.trim();
 
-    const wordToAdd: VocabularyWordResponse = {
-      id: editingWordIdx !== null ? (lessonWords[editingWordIdx]?.id ?? `temp-${Date.now()}`) : `temp-${Date.now()}`,
+    // Accept any language — Vietnamese, Japanese, English, etc.
+    if (!hasWord && !hasFurigana && !hasRomaji && !hasMeaning && !hasExamples) return;
+
+    const newWord: VocabularyWordResponse = {
+      id: editingWordIdx !== null ? (lessonWordsRef.current[editingWordIdx]?.id ?? `temp-${Date.now()}`) : `temp-${Date.now()}`,
       lessonId: "",
-      word: wordForm.word.trim(),
-      furigana: wordForm.furigana.trim() || undefined,
-      romaji: wordForm.romaji.trim() || undefined,
-      meaning: wordForm.meaning.trim(),
-      exampleJapanese: wordForm.examples.trim() || undefined,
+      word: hasWord ? wordForm.word.trim() : (hasFurigana ? wordForm.furigana.trim() : hasRomaji ? wordForm.romaji.trim() : ""),
+      furigana: hasFurigana ? wordForm.furigana.trim() : undefined,
+      romaji: hasRomaji ? wordForm.romaji.trim() : undefined,
+      meaning: hasMeaning ? wordForm.meaning.trim() : (hasWord ? wordForm.word.trim() : hasFurigana ? wordForm.furigana.trim() : hasRomaji ? wordForm.romaji.trim() : ""),
+      exampleJapanese: hasExamples ? wordForm.examples.trim() : undefined,
       exampleMeaning: undefined,
       audioUrl: undefined,
-      displayOrder: editingWordIdx !== null ? (lessonWords[editingWordIdx]?.displayOrder ?? editingWordIdx + 1) : lessonWords.length + 1,
+      displayOrder: editingWordIdx !== null ? editingWordIdx + 1 : lessonWordsRef.current.length + 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    if (editingWordIdx !== null) {
-      setLessonWords((prev) => {
-        const updated = [...prev];
-        updated[editingWordIdx] = wordToAdd;
-        return updated;
-      });
-    } else {
-      setLessonWords((prev) => [...prev, wordToAdd]);
-    }
+    setLessonWords(prev => {
+      const next = editingWordIdx !== null
+        ? prev.map((w, i) => i === editingWordIdx ? newWord : w)
+        : [...prev, newWord];
+      lessonWordsRef.current = next;
+      return next;
+    });
 
     setShowWordForm(false);
     setEditingWordIdx(null);
@@ -450,9 +463,11 @@ function VocabularyManagementPage() {
     if (!newName.trim()) return;
 
     const pendingWordReady = wordForm.word.trim() && wordForm.meaning.trim();
+    // Use ref to avoid stale state — lessonWordsRef.current is always in sync
+    const baseWords = lessonWordsRef.current;
     const effectiveLessonWords = pendingWordReady
       ? [
-          ...lessonWords,
+          ...baseWords,
           {
             id: `temp-${Date.now()}`,
             lessonId: "",
@@ -463,12 +478,12 @@ function VocabularyManagementPage() {
             exampleJapanese: wordForm.examples.trim() || undefined,
             exampleMeaning: undefined,
             audioUrl: undefined,
-            displayOrder: lessonWords.length + 1,
+            displayOrder: baseWords.length + 1,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
         ]
-      : lessonWords;
+      : baseWords;
 
     const payload = {
       title: newName.trim(),
@@ -477,19 +492,25 @@ function VocabularyManagementPage() {
       description: newDescription.trim() || undefined,
       isPublished: newIsPublished,
       words: effectiveLessonWords.map((word, index) => ({
-        word: word.word,
-        furigana: word.furigana ?? undefined,
+        japanese: word.word,
+        reading: word.furigana ?? undefined,
         romaji: word.romaji ?? undefined,
-        meaning: word.meaning,
+        vietnamese: word.meaning,
         exampleJapanese: word.exampleJapanese ?? undefined,
-        exampleMeaning: word.exampleMeaning ?? undefined,
+        exampleVietnamese: word.exampleMeaning ?? undefined,
         audioUrl: word.audioUrl ?? undefined,
         displayOrder: index + 1,
       })),
     } satisfies VocabularyLessonCreateRequest;
 
-    console.log("[TeacherVocabulary] createLesson payload:", JSON.stringify(payload, null, 2));
-    console.log("[TeacherVocabulary] payload words length:", payload.words?.length);
+    console.log("[TeacherVocabulary] === CREATE LESSON DEBUG ===");
+    console.log("title:", newName.trim());
+    console.log("level:", newLevel);
+    console.log("words count:", effectiveLessonWords.length);
+    effectiveLessonWords.forEach((w, i) => {
+      console.log(`  Word ${i + 1}: japanese="${w.word}", vietnamese="${w.meaning}"`);
+    });
+    console.log("payload words:", JSON.stringify(payload.words, null, 2));
 
     setCreating(true);
     setCreateError(null);
@@ -503,6 +524,7 @@ function VocabularyManagementPage() {
       setNewDescription("");
       setNewIsPublished(false);
       setLessonWords([]);
+      lessonWordsRef.current = [];
       setTempTopics([]);
       setShowWordForm(false);
       setEditingWordIdx(null);
@@ -527,7 +549,7 @@ function VocabularyManagementPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowAdd(true)}
+          onClick={() => { setShowAdd(true); setLessonWords([]); lessonWordsRef.current = []; setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); setCreateError(null); }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition active:scale-95"
         >
           <Plus className="w-4 h-4" /> Add lesson
@@ -618,7 +640,7 @@ function VocabularyManagementPage() {
         <div className="text-center py-20 text-muted-foreground rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-semibold text-base">No lessons found</p>
-          <button onClick={() => setShowAdd(true)} className="mt-3 text-primary underline text-sm">
+          <button onClick={() => { setShowAdd(true); setLessonWords([]); lessonWordsRef.current = []; setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); setCreateError(null); }} className="mt-3 text-primary underline text-sm">
             + Create your first lesson
           </button>
         </div>
@@ -920,7 +942,7 @@ function VocabularyManagementPage() {
                           <button
                             type="button"
                               onClick={handleAddWord}
-                            disabled={!wordForm.word.trim() || !wordForm.meaning.trim()}
+                            disabled={!wordForm.word.trim() && !wordForm.meaning.trim() && !wordForm.furigana.trim() && !wordForm.romaji.trim() && !wordForm.examples.trim()}
                             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
                           >
                             {editingWordIdx !== null ? "Update word" : "Add word"}
@@ -1017,6 +1039,7 @@ function VocabularyManagementPage() {
                     onClick={() => {
                       setShowAdd(false);
                       setLessonWords([]);
+                      lessonWordsRef.current = [];
                       setShowWordForm(false);
                       setEditingWordIdx(null);
                       setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
