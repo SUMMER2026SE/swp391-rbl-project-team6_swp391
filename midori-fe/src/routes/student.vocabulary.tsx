@@ -5,7 +5,7 @@ import {
   BookOpen, Clock, ChevronRight, CheckCircle, X,
   Volume2, Play, ChevronLeft, Trophy,
   Bookmark, Zap, ChevronDown, Tag,
-  Loader2,
+  Loader2, Star, Search,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
@@ -234,9 +234,10 @@ function VocabularyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [selectedLevel, setSelectedLevel] = useState<string>("N5");
+  const [selectedLevel, setSelectedLevel] = useState<string>("All");
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<typeof FILTER_TABS[number]>("Tất cả");
   const [topicsOpen, setTopicsOpen] = useState(false);
@@ -261,7 +262,7 @@ function VocabularyPage() {
       const lessonParams = {
         level: selectedLevel !== "All" ? selectedLevel : undefined,
         topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
-        search: search.trim() || undefined,
+        search: appliedSearch.trim() || undefined,
       };
 
       const [allData, filteredData] = await Promise.all([
@@ -278,7 +279,7 @@ function VocabularyPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedLevel, selectedTopic, search]);
+  }, [selectedLevel, selectedTopic, appliedSearch]);
 
   useEffect(() => {
     fetchLessons();
@@ -688,18 +689,32 @@ function VocabularyPage() {
               {/* Search + Topics dropdown */}
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 {/* Search */}
-                <div className="flex-1 relative">
+                <div className="flex-1 relative flex">
                   <input
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
+                    value={searchInput}
+                    onChange={e => setSearchInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        setAppliedSearch(searchInput.trim());
+                      }
+                    }}
                     placeholder="Search vocabulary…"
-                    className="w-full px-4 py-2.5 rounded-2xl bg-card/70 dark:bg-white/5.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 dark:focus:ring-cyan-300/30 dark:focus:border-cyan-300/30 shadow-sm dark:placeholder:text-slate-400 dark:text-slate-200 dark:focus:bg-white/[0.07]"
+                    className="flex-1 px-4 py-2.5 rounded-2xl bg-card/70 dark:bg-white/5.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 dark:focus:ring-cyan-300/30 dark:focus:border-cyan-300/30 shadow-sm dark:placeholder:text-slate-400 dark:text-slate-200 dark:focus:bg-white/[0.07] pr-20"
                   />
-                  {search && (
-                    <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                  {searchInput && (
+                    <button
+                      onClick={() => { setSearchInput(""); setAppliedSearch(""); }}
+                      className="absolute right-10 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition p-1"
+                    >
                       <X className="w-4 h-4" />
                     </button>
                   )}
+                  <button
+                    onClick={() => setAppliedSearch(searchInput.trim())}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition p-1"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
                 </div>
 
                 {/* Topics Dropdown */}
