@@ -42,6 +42,12 @@ server:
   port: 8080
 
 app:
+  # Admin bootstrap — auto-creates a default admin account on startup (local profile only).
+  # Set bootstrap-enabled to false to disable, or change email/password for local dev.
+  admin:
+    bootstrap-enabled: true
+    email: admin@midori.local
+    password: MidoriAdmin2026!
   jwt:
     secret: local-dev-jwt-secret-key-for-midori-backend-at-least-32-chars
     access-token-expiration: 86400000
