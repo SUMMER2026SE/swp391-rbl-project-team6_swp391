@@ -28,9 +28,23 @@ export const adminApi = {
     api.put<AdminUserResponse>(`/admin/users/${userId}/approve`),
 
   /**
-   * Backend only provides suspendUser. No dedicated rejectTeacher endpoint exists.
-   * Calling this will suspend the teacher account.
+   * Reject a pending teacher application by suspending the account.
    */
   rejectTeacher: (userId: string) =>
     api.put<AdminUserResponse>(`/admin/users/${userId}/suspend`),
+
+  /**
+   * Suspend (ban) an approved teacher.
+   */
+  suspendTeacher: (userId: string) =>
+    api.put<AdminUserResponse>(`/admin/users/${userId}/suspend`),
+
+  /**
+   * Activate (unban) a suspended teacher.
+   */
+  activateTeacher: (userId: string) =>
+    api.put<AdminUserResponse>(`/admin/users/${userId}/activate`),
+
+  getActiveTeachers: () =>
+    api.get<AdminUserResponse[]>("/admin/users/teachers/active"),
 };
