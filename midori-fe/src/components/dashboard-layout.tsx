@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useAuth, useTheme, getAvatarInitial, getUserAvatar, type FrontendRole } from "@/lib/auth";
+import { useAuth, useTheme, getAvatarInitial, getUserAvatar, type FrontendRole, canAccessRoleRoute, getDashboardPath } from "@/lib/auth";
 import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
@@ -62,7 +62,7 @@ function getNav(role: FrontendRole): NavItem[] {
 }
 
 export function DashboardLayout({ role, children }: { role: FrontendRole; children?: React.ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, loaded } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -87,19 +87,25 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
 
   const notificationsPath = `/${role}/notifications`;
 
-  // Dropdown shows only the first 4 notifications (short view)
   const dropdownNotifications = notifications.slice(0, 4);
 
   useEffect(() => {
+    if (!loaded) return;
+
     if (user === null) {
-      const t = setTimeout(() => {
-        if (typeof window !== "undefined" && !localStorage.getItem("midori_user")) nav({ to: "/login" });
-      }, 50);
-      return () => clearTimeout(t);
+      nav({ to: "/login" });
+      return;
     }
 
-    if (user.role !== role) nav({ to: `/${user.role}` });
-  }, [user, role, nav]);
+    if (!canAccessRoleRoute(user, role)) {
+      nav({ to: getDashboardPath(user) });
+      return;
+    }
+
+    if (user.role !== role) {
+      nav({ to: getDashboardPath(user) });
+    }
+  }, [loaded, nav, role, user]);
 
   useEffect(() => {
     if (!notifOpen && !userMenuOpen) return;
@@ -118,7 +124,6 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
     <div className="min-h-screen flex">
       <SakuraBg count={14} />
 
-      {/* Sidebar — desktop */}
       <aside
         className={cn(
           "hidden lg:flex flex-col glass-sidebar m-3 mr-0 rounded-3xl p-4 sticky top-3 h-[calc(100vh-1.5rem)] transition-[width,padding] duration-300 ease-in-out overflow-visible",
@@ -162,7 +167,6 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
           </Link>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 mt-2 space-y-1 overflow-y-auto overflow-x-hidden">
           {items.map((it) => {
             const isBaseRoute = it.to === `/${role}`;
@@ -201,7 +205,6 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
           })}
         </nav>
 
-        {/* Logout */}
         <button
           onClick={() => { logout(); nav({ to: "/login" }); }}
           title={isCollapsed ? "Logout" : undefined}
@@ -220,247 +223,14 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             Logout
           </span>
         </button>
+
+        <div className="mt-4">
+          <Footer />
+        </div>
       </aside>
 
-      {/* Mobile drawer */}
-      {open && (
-        <div className="md:hidden fixed inset-0 z-50 overlay-dark" onClick={() => setOpen(false)}>
-          <aside className="absolute left-0 top-0 bottom-0 w-72 glass-sidebar p-4 rounded-r-3xl" onClick={(e) => e.stopPropagation()}>
-            <div className="font-display font-extrabold text-xl tracking-[0.2em] text-primary-col mb-6">MIDORI</div>
-            <nav className="space-y-1">
-              {items.map((it) => {
-                const isBaseRoute = it.to === `/${role}`;
-                const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-                const Icon = it.icon;
-                return (
-                  <Link key={it.to} to={it.to} onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}>
-                    <Icon className="w-4 h-4" /> {it.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </aside>
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Navbar */}
-        <header className="sticky top-0 z-40 mx-3 mt-3">
-          <div className="glass-nav rounded-2xl px-5 py-3 flex items-center gap-3">
-
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden p-2 -ml-1 rounded-xl nav-item"
-              onClick={() => setOpen(true)}
-            >
-              <Menu className="w-5 h-5 text-secondary-col" />
-            </button>
-
-            {/* Search */}
-            <div className="flex-1 relative min-w-0">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-col" />
-              <input
-                placeholder="Search lessons, grammar, vocabulary…"
-                className="w-full pl-10 pr-4 py-2 rounded-xl search-input text-sm"
-              />
-            </div>
-
-            {/* XP + Streak (students) */}
-            {role === "student" && (
-              <div className="hidden xl:flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>9,820 XP</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--jp-red)]/10 text-[var(--jp-red)] text-xs font-semibold">
-                  <Flame className="w-3.5 h-3.5" />
-                  <span>32</span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1">
-
-              {/* Theme toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-xl nav-item"
-                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {theme === "dark" ? (
-                  <Sun className="w-5 h-5 text-amber-400" />
-                ) : (
-                  <Moon className="w-5 h-5 text-[var(--primary)]" />
-                )}
-              </button>
-
-              {/* Notifications */}
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); setUserMenuOpen(false); }}
-                  className="relative p-2 rounded-xl nav-item"
-                >
-                  <Bell className="w-5 h-5 text-secondary-col" />
-                  {notifications.some(n => n.unread) && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--jp-red)]" />
-                  )}
-                </button>
-
-                {notifOpen && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="fixed w-80 rounded-2xl shadow-2xl z-[200] flex flex-col overflow-hidden"
-                    style={{ top: "72px", right: "24px" }}
-                  >
-                    {/* Outer shell: solid opaque surface in both modes — stops dashboard bleed */}
-                    <div className="bg-white dark:bg-[#0f1117] border border-gray-200 dark:border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden"
-                      style={{ maxHeight: "520px" }}>
-
-                      {/* Header */}
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
-                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Notifications</span>
-                        <button
-                          onClick={() => setNotifOpen(false)}
-                          className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
-                        >
-                          Close
-                        </button>
-                      </div>
-
-                      {/* Scrollable list */}
-                      <div className="overflow-y-auto flex-1" style={{ maxHeight: "calc(520px - 116px)" }}>
-                        <div className="p-2 space-y-1">
-                          {dropdownNotifications.map(n => {
-                            const Icon = n.icon;
-                            return (
-                              <div
-                                key={n.id}
-                                className={`w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150 ${
-                                  n.unread
-                                    ? "bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
-                                    : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                                }`}
-                              >
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                  n.unread ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
-                                }`}>
-                                  <Icon className="w-4 h-4" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{n.title}</span>
-                                    {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />}
-                                  </div>
-                                  <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
-                                    {n.desc}
-                                  </p>
-                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">{n.time}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Footer — solid background, no transparency */}
-                      <div className="border-t border-gray-100 dark:border-white/10 p-2 flex-shrink-0 bg-white dark:bg-[#0f1117]">
-                        <Link
-                          to={notificationsPath}
-                          onClick={() => setNotifOpen(false)}
-                          className="w-full block py-2.5 text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition"
-                        >
-                          View all notifications
-                        </Link>
-                      </div>
-
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* User avatar */}
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
-                  className="flex items-center gap-2 p-1 pr-3 rounded-full nav-item ml-1"
-                >
-                  {getUserAvatar(user) ? (
-                    <img
-                      src={getUserAvatar(user)!}
-                      alt={user?.name ?? "User"}
-                      className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20"
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gradient-hero grid place-items-center text-white font-bold text-sm">
-                      {getAvatarInitial(user)}
-                    </div>
-                  )}
-                  <div className="hidden sm:block text-left">
-                    <div className="text-xs font-semibold leading-tight text-primary-col">{user?.name ?? "User"}</div>
-                    <div className="text-[10px] text-muted-col leading-tight">{roleLabels[role]}</div>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-muted-col hidden sm:block" />
-                </button>
-
-                {userMenuOpen && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="fixed right-6 w-48 glass-modal rounded-xl shadow-2xl z-[100] p-2"
-                    style={{ top: "72px", right: "24px" }}
-                  >
-                    <Link
-                      to={`/${role}/profile` as never}
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm nav-item"
-                    >
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      Profile
-                    </Link>
-                    <button
-                      onClick={() => { logout(); nav({ to: "/login" }); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--jp-red)] hover:bg-[var(--jp-red)]/10 transition"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main content */}
-        <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-          >
-            {children}
-          </motion.div>
-        </main>
-
-        {role !== "admin" && <Footer />}
-
-        {/* Mobile bottom nav */}
-        <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">
-          {items.slice(0, 5).map((it) => {
-            const isBaseRoute = it.to === `/${role}`;
-            const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-            const Icon = it.icon;
-            return (
-              <Link key={it.to} to={it.to}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${
-                  active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
-                }`}>
-                <Icon className={`w-5 h-5 ${active ? "text-white" : ""}`} />
-                <span>{it.label.split(" ")[0]}</span>
-              </Link>
-            );
-          })}
-        </nav>
+      <div className="flex-1 min-w-0 flex flex-col">
+        {children}
       </div>
     </div>
   );

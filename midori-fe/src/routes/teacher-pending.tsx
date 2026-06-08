@@ -1,27 +1,34 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SakuraBg } from "@/components/sakura-bg";
 import { motion } from "framer-motion";
-import { useAuth } from "@/lib/auth";
+import { getDashboardPath, rolePath, useAuth } from "@/lib/auth";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/teacher-pending")({
-  beforeLoad: () => {
-    // This route is server-side; client guard below handles the redirect
-  },
   component: TeacherPendingPage,
 });
 
 function TeacherPendingPage() {
-  const { user } = useAuth();
+  const { user, loaded } = useAuth();
+  const nav = useNavigate();
 
   useEffect(() => {
-    if (user !== null) {
-      window.location.href = `/${user.role}`;
+    if (!loaded) return;
+
+    if (!user) {
+      nav({ to: "/login" });
       return;
     }
 
-    window.location.href = "/login";
-  }, [user]);
+    if (getDashboardPath(user) !== "/teacher-pending") {
+      nav({ to: rolePath(user.role) });
+    }
+  }, [loaded, nav, user]);
+
+  if (!loaded || !user || getDashboardPath(user) !== "/teacher-pending") {
+    return null;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
       <SakuraBg count={14} />
@@ -32,7 +39,6 @@ function TeacherPendingPage() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative w-full max-w-lg glass rounded-3xl p-10 md:p-12 text-center"
       >
-        {/* Icon */}
         <motion.div
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -44,7 +50,6 @@ function TeacherPendingPage() {
           </svg>
         </motion.div>
 
-        {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold uppercase tracking-widest mb-5">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
           Awaiting Approval
@@ -58,7 +63,6 @@ function TeacherPendingPage() {
           Thank you for applying to teach on <strong className="text-foreground font-semibold">MIDORI</strong>. Our admin team will review your application and credentials shortly. You'll be notified once approved.
         </p>
 
-        {/* Steps */}
         <div className="space-y-3 mb-8 text-left">
           {[
             { icon: "📋", label: "Application submitted", done: true },
@@ -81,7 +85,6 @@ function TeacherPendingPage() {
           ))}
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col gap-3">
           <Link
             to="/"
