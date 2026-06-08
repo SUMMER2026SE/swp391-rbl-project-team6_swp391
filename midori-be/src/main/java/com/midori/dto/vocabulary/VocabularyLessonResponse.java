@@ -24,6 +24,7 @@ public class VocabularyLessonResponse {
     private Boolean isPublished;
     private UUID createdBy;
     private String teacherName;
+    private Boolean ownedByMe;
     private Instant createdAt;
     private Instant updatedAt;
 }
