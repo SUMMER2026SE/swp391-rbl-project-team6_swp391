@@ -1,15 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle, XCircle, Clock, Eye, AlertTriangle,
   MapPin, Mail, Calendar, Briefcase, BookOpen, Award,
-  Download, X, ChevronLeft, ZoomIn, Loader2, UserCheck
+  Download, X, ChevronLeft, ZoomIn, Loader2, UserCheck,
+  InboxIcon, AlertCircle
 } from "lucide-react";
+import { adminApi } from "@/lib/api/admin";
+import { ApiError } from "@/lib/api/client";
+import type { AdminUserResponse } from "@/lib/api/admin";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type Certificate = {
+type Certificate = {
   id: string;
   name: string;
   issuedYear: number;
@@ -19,8 +23,8 @@ export type Certificate = {
   thumbnailUrl?: string;
 };
 
-export type TeacherApplication = {
-  id: number;
+type TeacherApplication = {
+  id: string;
   name: string;
   email: string;
   location: string;
@@ -33,220 +37,28 @@ export type TeacherApplication = {
   certificates: Certificate[];
 };
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const initialTeachers: TeacherApplication[] = [
-  {
-    id: 1,
-    name: "Hiroshi Tanaka",
-    email: "hiroshi.t@mail.com",
-    location: "Tokyo, Japan",
-    bio: "Experienced Japanese teacher specializing in conversational Japanese and JLPT prep. I have been teaching for over 5 years and have helped hundreds of students achieve their JLPT goals. My classes focus on practical conversation skills and test-taking strategies.",
-    experience: "5 years",
-    specialization: "Conversational Japanese, JLPT N3-N2 Prep",
-    jlptLevel: "N1",
-    appliedDate: "2 days ago",
+// Map backend AdminUserResponse to display-friendly TeacherApplication
+function mapToTeacherApplication(user: AdminUserResponse): TeacherApplication {
+  const emailName = user.email.split("@")[0];
+  const nameParts = emailName.split(/[._]/).map(p =>
+    p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+  );
+  return {
+    id: user.id,
+    name: nameParts.join(" ") || emailName,
+    email: user.email,
+    location: "—",
+    bio: "—",
+    experience: "—",
+    specialization: "—",
+    jlptLevel: "—",
+    appliedDate: user.createdAt
+      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(user.createdAt))
+      : "—",
     status: "pending",
-    certificates: [
-      {
-        id: "c1-1",
-        name: "Japanese Teaching Certificate",
-        issuedYear: 2019,
-        issuedBy: "Tokyo Metropolitan Board of Education",
-        type: "image",
-        url: "https://picsum.photos/seed/cert1/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/cert1/200/150",
-      },
-      {
-        id: "c1-2",
-        name: "JLPT N1 Score Report",
-        issuedYear: 2018,
-        issuedBy: "Japan Foundation",
-        type: "pdf",
-        url: "#",
-        thumbnailUrl: "https://picsum.photos/seed/cert2/200/150",
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Yumi Kobayashi",
-    email: "yumi.k@mail.com",
-    location: "Osaka, Japan",
-    bio: "Native speaker with expertise in N5-N3 grammar and business Japanese. I have a passion for making Japanese accessible to beginners and helping them build a strong foundation.",
-    experience: "3 years",
-    specialization: "N5-N3 Grammar, Business Japanese",
-    jlptLevel: "N2",
-    appliedDate: "4 days ago",
-    status: "pending",
-    certificates: [
-      {
-        id: "c2-1",
-        name: "Teaching Proficiency Certificate",
-        issuedYear: 2021,
-        issuedBy: "Osaka Language Institute",
-        type: "image",
-        url: "https://picsum.photos/seed/cert3/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/cert3/200/150",
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Shinji Abe",
-    email: "shinji.a@mail.com",
-    location: "Kyoto, Japan",
-    bio: "Senior educator focused on advanced JLPT N1 and academic Japanese. Holds a PhD in Japanese Linguistics from Kyoto University. Published author of multiple Japanese language textbooks.",
-    experience: "8 years",
-    specialization: "JLPT N1, Academic Japanese, Linguistics",
-    jlptLevel: "N1",
-    appliedDate: "1 week ago",
-    status: "pending",
-    certificates: [
-      {
-        id: "c3-1",
-        name: "PhD in Japanese Linguistics",
-        issuedYear: 2015,
-        issuedBy: "Kyoto University",
-        type: "image",
-        url: "https://picsum.photos/seed/cert4/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/cert4/200/150",
-      },
-      {
-        id: "c3-2",
-        name: "Advanced Teaching Certificate",
-        issuedYear: 2016,
-        issuedBy: "Japan Ministry of Education",
-        type: "pdf",
-        url: "#",
-        thumbnailUrl: "https://picsum.photos/seed/cert5/200/150",
-      },
-      {
-        id: "c3-3",
-        name: "JLPT N1 Certificate",
-        issuedYear: 2014,
-        issuedBy: "Japan Foundation",
-        type: "image",
-        url: "https://picsum.photos/seed/cert6/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/cert6/200/150",
-      },
-    ],
-  },
-  {
-    id: 4,
-    name: "Naomi Watanabe",
-    email: "naomi.w@mail.com",
-    location: "Fukuoka, Japan",
-    bio: "Young passionate teacher specializing in anime and pop culture Japanese. I use entertainment media to make learning fun and engaging for younger learners.",
-    experience: "2 years",
-    specialization: "Pop Culture Japanese, Beginner Japanese",
-    jlptLevel: "N3",
-    appliedDate: "3 days ago",
-    status: "pending",
-    certificates: [
-      {
-        id: "c4-1",
-        name: "Teaching Certificate",
-        issuedYear: 2022,
-        issuedBy: "Fukuoka Education Center",
-        type: "image",
-        url: "https://picsum.photos/seed/cert7/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/cert7/200/150",
-      },
-    ],
-  },
-];
-
-// Full teacher data for approved tab
-const approvedTeachers: TeacherApplication[] = [
-  {
-    id: 101,
-    name: "Taro Yamamoto",
-    email: "taro.y@midori.jp",
-    location: "Tokyo, Japan",
-    bio: "Professional Japanese teacher with a focus on conversational fluency and cultural immersion. Former language school instructor with a track record of helping students pass JLPT N2 and N1.",
-    experience: "6 years",
-    specialization: "Conversational Japanese, JLPT Prep N2-N1",
-    jlptLevel: "N1",
-    appliedDate: "Jan 2023",
-    status: "approved",
-    certificates: [
-      {
-        id: "a1-1",
-        name: "JLPT N1 Certificate",
-        issuedYear: 2017,
-        issuedBy: "Japan Foundation",
-        type: "image",
-        url: "https://picsum.photos/seed/ta1/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/ta1/200/150",
-      },
-      {
-        id: "a1-2",
-        name: "Teaching License",
-        issuedYear: 2018,
-        issuedBy: "Tokyo Education Bureau",
-        type: "pdf",
-        url: "#",
-        thumbnailUrl: "https://picsum.photos/seed/ta2/200/150",
-      },
-    ],
-  },
-  {
-    id: 102,
-    name: "Kenji Yamamoto",
-    email: "kenji.y@midori.jp",
-    location: "Nagoya, Japan",
-    bio: "Passionate about teaching Japanese grammar in an intuitive, story-driven way. Specializes in helping beginners build strong foundations and intermediate learners break through plateaus.",
-    experience: "4 years",
-    specialization: "Beginner Japanese, Grammar, N4-N3 Prep",
-    jlptLevel: "N2",
-    appliedDate: "Feb 2023",
-    status: "approved",
-    certificates: [
-      {
-        id: "a2-1",
-        name: "Teaching Proficiency Certificate",
-        issuedYear: 2020,
-        issuedBy: "Nagoya Language Center",
-        type: "image",
-        url: "https://picsum.photos/seed/ta3/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/ta3/200/150",
-      },
-    ],
-  },
-  {
-    id: 103,
-    name: "Park Joon-ho",
-    email: "joonho.p@midori.jp",
-    location: "Seoul, South Korea",
-    bio: "Bilingual teacher fluent in Korean and Japanese. Expert in teaching Japanese to Korean speakers, with a deep understanding of both grammar systems and cultural nuances.",
-    experience: "5 years",
-    specialization: "Business Japanese, Cross-cultural Communication",
-    jlptLevel: "N1",
-    appliedDate: "Mar 2023",
-    status: "approved",
-    certificates: [
-      {
-        id: "a3-1",
-        name: "Japanese Language Teaching Certificate",
-        issuedYear: 2019,
-        issuedBy: "Korean-Japanese Education Association",
-        type: "image",
-        url: "https://picsum.photos/seed/ta4/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/ta4/200/150",
-      },
-      {
-        id: "a3-2",
-        name: "JLPT N1 Score Report",
-        issuedYear: 2018,
-        issuedBy: "Japan Foundation",
-        type: "image",
-        url: "https://picsum.photos/seed/ta5/800/600",
-        thumbnailUrl: "https://picsum.photos/seed/ta5/200/150",
-      },
-    ],
-  },
-];
+    certificates: [],
+  };
+}
 
 // ─── Avatar color helper ─────────────────────────────────────────────────────
 
@@ -258,8 +70,13 @@ const AVATAR_COLORS = [
   "from-red-500 to-pink-500",
 ];
 
-function getAvatarColor(id: number) {
-  return AVATAR_COLORS[id % AVATAR_COLORS.length];
+function getAvatarColor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
 // ─── Certificate Preview Modal ────────────────────────────────────────────────
@@ -356,14 +173,15 @@ function RejectModal({
   teacher,
   onConfirm,
   onClose,
+  loading = false,
 }: {
   teacher: TeacherApplication;
-  onConfirm: (id: number, reason: string) => void;
+  onConfirm: (id: string, reason: string) => void;
   onClose: () => void;
+  loading?: boolean;
 }) {
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [detail, setDetail] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const toggleReason = (r: string) => {
     setSelectedReasons(prev =>
@@ -376,12 +194,13 @@ function RejectModal({
 
   const handleConfirm = async () => {
     if (!isValid) return;
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    const reason = [...selectedReasons.filter(r => r !== "Other"), isOtherSelected && detail.trim() ? `Other: ${detail}` : ""]
-      .filter(Boolean).join("; ");
+    const reason = [
+      ...selectedReasons.filter(r => r !== "Other"),
+      isOtherSelected && detail.trim() ? `Other: ${detail}` : "",
+    ]
+      .filter(Boolean)
+      .join("; ");
     onConfirm(teacher.id, reason);
-    setLoading(false);
   };
 
   return (
@@ -411,15 +230,11 @@ function RejectModal({
           {/* Teacher Info */}
           <div className="flex items-center gap-3 p-3 rounded-xl glass-surface">
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-              {teacher.name.split(" ").map(n => n[0]).join("")}
+              {teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-primary-col font-semibold text-sm truncate">{teacher.name}</p>
               <p className="text-muted-col text-xs truncate">{teacher.email}</p>
-            </div>
-            <div className="flex gap-1.5 flex-shrink-0">
-              <span className="px-2 py-0.5 rounded-full bg-[var(--status-teacher)]/15 text-[var(--status-teacher)] text-[10px] font-bold border border-[var(--status-teacher)]/20">{teacher.jlptLevel}</span>
-              <span className="px-2 py-0.5 rounded-full bg-[var(--status-pending)]/12 text-[var(--status-pending)] text-[10px] font-bold border border-[var(--status-pending)]/20">{teacher.experience}</span>
             </div>
           </div>
 
@@ -478,7 +293,8 @@ function RejectModal({
         <div className="px-6 py-4 border-t separator flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition disabled:opacity-40"
           >
             Cancel
           </button>
@@ -506,15 +322,17 @@ function TeacherViewDrawer({
   onApprove,
   onReject,
   showActions = true,
+  actionLoading = false,
 }: {
   teacher: TeacherApplication;
   onClose: () => void;
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
   showActions?: boolean;
+  actionLoading?: boolean;
 }) {
   const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
-  const initials = teacher.name.split(" ").map(n => n[0]).join("");
+  const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
 
   return (
     <>
@@ -546,7 +364,7 @@ function TeacherViewDrawer({
             <span className="text-xs font-bold text-muted-col uppercase tracking-wider">View Profile</span>
           </div>
           <span className="px-2.5 py-1 rounded-full text-xs font-bold border bg-[var(--status-active)]/12 text-[var(--status-active)] border-[var(--status-active)]/25">
-            Approved
+            {teacher.status === "pending" ? "Pending" : teacher.status === "approved" ? "Approved" : teacher.status === "rejected" ? "Rejected" : teacher.status}
           </span>
         </div>
 
@@ -611,48 +429,52 @@ function TeacherViewDrawer({
               </span>
             </div>
 
-            <div className="space-y-3">
-              {teacher.certificates.map(cert => (
-                <div
-                  key={cert.id}
-                  className="rounded-xl border border-glass-border overflow-hidden glass-surface hover:border-primary/25 transition"
-                >
-                  <div className="flex items-center gap-3 p-3">
-                    <div className="relative flex-shrink-0">
-                      {cert.type === "image" ? (
-                        <img
-                          src={cert.thumbnailUrl || cert.url}
-                          alt={cert.name}
-                          className="w-14 h-10 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-14 h-10 rounded-lg bg-[var(--status-rejected)]/15 flex items-center justify-center">
-                          <span className="text-[var(--status-rejected)] font-black text-[10px] font-display">PDF</span>
-                        </div>
-                      )}
+            {teacher.certificates.length === 0 ? (
+              <p className="text-muted-col text-xs italic">No certificates available</p>
+            ) : (
+              <div className="space-y-3">
+                {teacher.certificates.map(cert => (
+                  <div
+                    key={cert.id}
+                    className="rounded-xl border border-glass-border overflow-hidden glass-surface hover:border-primary/25 transition"
+                  >
+                    <div className="flex items-center gap-3 p-3">
+                      <div className="relative flex-shrink-0">
+                        {cert.type === "image" ? (
+                          <img
+                            src={cert.thumbnailUrl || cert.url}
+                            alt={cert.name}
+                            className="w-14 h-10 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-14 h-10 rounded-lg bg-[var(--status-rejected)]/15 flex items-center justify-center">
+                            <span className="text-[var(--status-rejected)] font-black text-[10px] font-display">PDF</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setPreviewCert(cert)}
+                          className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full glass-surface border border-glass-border flex items-center justify-center hover:border-primary/30 transition"
+                          title="Preview"
+                        >
+                          <ZoomIn className="w-2.5 h-2.5 text-secondary-col" />
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-primary-col text-xs font-semibold leading-tight truncate">{cert.name}</p>
+                        <p className="text-muted-col text-[10px] mt-0.5">{cert.issuedBy}</p>
+                        <p className="text-muted-col/60 text-[10px]">{cert.issuedYear}</p>
+                      </div>
                       <button
                         onClick={() => setPreviewCert(cert)}
-                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full glass-surface border border-glass-border flex items-center justify-center hover:border-primary/30 transition"
-                        title="Preview"
+                        className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary/12 text-primary text-[10px] font-bold border border-primary/20 hover:bg-primary/20 transition"
                       >
-                        <ZoomIn className="w-2.5 h-2.5 text-secondary-col" />
+                        <Eye className="w-3 h-3" /> View
                       </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-primary-col text-xs font-semibold leading-tight truncate">{cert.name}</p>
-                      <p className="text-muted-col text-[10px] mt-0.5">{cert.issuedBy}</p>
-                      <p className="text-muted-col/60 text-[10px]">{cert.issuedYear}</p>
-                    </div>
-                    <button
-                      onClick={() => setPreviewCert(cert)}
-                      className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary/12 text-primary text-[10px] font-bold border border-primary/20 hover:bg-primary/20 transition"
-                    >
-                      <Eye className="w-3 h-3" /> View
-                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -662,21 +484,24 @@ function TeacherViewDrawer({
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition disabled:opacity-40"
               >
                 Close
               </button>
               <button
                 onClick={() => onReject(teacher.id)}
-                className="flex-1 py-2.5 rounded-xl bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] text-sm font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition flex items-center justify-center gap-1.5"
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] text-sm font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
               >
-                <XCircle className="w-4 h-4" /> Reject
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Reject
               </button>
               <button
                 onClick={() => onApprove(teacher.id)}
-                className="flex-1 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition flex items-center justify-center gap-1.5"
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
               >
-                <CheckCircle className="w-4 h-4" /> Approve
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
               </button>
             </div>
           </div>
@@ -714,13 +539,16 @@ function TeacherCard({
   onApprove,
   onReject,
   onView,
+  loadingId,
 }: {
   teacher: TeacherApplication;
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
   onView: (teacher: TeacherApplication) => void;
+  loadingId: string | null;
 }) {
-  const initials = teacher.name.split(" ").map(n => n[0]).join("");
+  const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+  const isLoading = loadingId === teacher.id;
 
   return (
     <motion.div
@@ -733,7 +561,7 @@ function TeacherCard({
       <div className="flex items-start gap-4">
         {/* Avatar */}
         <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-black text-xl flex-shrink-0`}>
-          {initials}
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : initials}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -757,7 +585,7 @@ function TeacherCard({
             <span className="px-2 py-0.5 rounded-full bg-[var(--status-teacher)]/12 text-[var(--status-teacher)] text-[10px] font-bold">{teacher.experience}</span>
             <span className="px-2 py-0.5 rounded-full bg-primary/12 text-primary text-[10px] font-bold">{teacher.jlptLevel}</span>
             <span className="px-2 py-0.5 rounded-full bg-[var(--status-pending)]/10 text-[var(--status-pending)] text-[10px] font-bold">
-              {teacher.certificates.length} cert{teacher.certificates.length > 1 ? "s" : ""}
+              {teacher.certificates.length} cert{teacher.certificates.length !== 1 ? "s" : ""}
             </span>
           </div>
 
@@ -765,19 +593,22 @@ function TeacherCard({
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => onApprove(teacher.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[var(--status-active)]/10 text-[var(--status-active)] text-xs font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition"
+              disabled={isLoading}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[var(--status-active)]/10 text-[var(--status-active)] text-xs font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle className="w-3.5 h-3.5" /> Approve
+              {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />} Approve
             </button>
             <button
               onClick={() => onReject(teacher.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-xs font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition"
+              disabled={isLoading}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-xs font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <XCircle className="w-3.5 h-3.5" /> Reject
+              {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />} Reject
             </button>
             <button
               onClick={() => onView(teacher)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl glass-surface text-secondary-col text-xs font-bold border border-glass-border hover:border-primary/30 hover:text-primary transition"
+              disabled={isLoading}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl glass-surface text-secondary-col text-xs font-bold border border-glass-border hover:border-primary/30 hover:text-primary transition disabled:opacity-50"
               title="View Profile"
             >
               <Eye className="w-3.5 h-3.5" />
@@ -829,7 +660,10 @@ export const Route = createFileRoute("/admin/teachers")({ component: TeachersPag
 
 function TeachersPage() {
   const [tab, setTab] = useState<"pending" | "approved">("pending");
-  const [teachers, setTeachers] = useState(initialTeachers);
+  const [pendingTeachers, setPendingTeachers] = useState<TeacherApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<TeacherApplication | null>(null);
   const [viewingApproved, setViewingApproved] = useState<TeacherApplication | null>(null);
   const [rejectTarget, setRejectTarget] = useState<TeacherApplication | null>(null);
@@ -840,22 +674,70 @@ function TeachersPage() {
     setTimeout(() => setToast(null), 2500);
   }, []);
 
-  const handleApprove = useCallback((id: number) => {
-    setTeachers(prev => prev.filter(t => t.id !== id));
-    showToast("Teacher approved successfully!", "success");
-  }, [showToast]);
+  const fetchPendingTeachers = useCallback(async () => {
+    try {
+      setError(null);
+      const users = await adminApi.getPendingTeachers();
+      setPendingTeachers(users.map(mapToTeacherApplication));
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Failed to load pending teachers. Please try again.";
+      setError(message);
+      setPendingTeachers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleReject = useCallback((id: number, _reason: string) => {
-    setTeachers(prev => prev.filter(t => t.id !== id));
-    showToast("Teacher application rejected.", "error");
-  }, [showToast]);
+  useEffect(() => {
+    fetchPendingTeachers();
+  }, [fetchPendingTeachers]);
 
-  const handleRejectConfirm = useCallback((id: number, reason: string) => {
-    handleReject(id, reason);
+  const handleApprove = useCallback(async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      await adminApi.approveTeacher(id);
+      showToast("Teacher approved successfully!", "success");
+      await fetchPendingTeachers();
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Failed to approve teacher. Please try again.";
+      showToast(message, "error");
+    } finally {
+      setActionLoadingId(null);
+    }
+  }, [showToast, fetchPendingTeachers]);
+
+  const handleReject = useCallback(async (id: string, _reason: string) => {
+    setActionLoadingId(id);
+    try {
+      await adminApi.rejectTeacher(id);
+      showToast("Teacher application rejected.", "error");
+      await fetchPendingTeachers();
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Failed to reject teacher. Please try again.";
+      showToast(message, "error");
+    } finally {
+      setActionLoadingId(null);
+    }
+  }, [showToast, fetchPendingTeachers]);
+
+  const handleRejectConfirm = useCallback(async (id: string, reason: string) => {
+    await handleReject(id, reason);
     setRejectTarget(null);
   }, [handleReject]);
 
-  const pendingCount = teachers.length;
+  const pendingCount = pendingTeachers.length;
 
   return (
     <div className="space-y-5">
@@ -865,7 +747,7 @@ function TeachersPage() {
           <h1 className="text-2xl font-display font-black text-primary-col">Teacher Approval</h1>
           <p className="text-sm text-secondary-col mt-0.5">Review and approve teacher applications</p>
         </div>
-        {pendingCount > 0 && (
+        {pendingCount > 0 && !loading && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--status-pending)]/10 text-[var(--status-pending)] text-xs font-bold border border-[var(--status-pending)]/20">
           <AlertTriangle className="w-3 h-3" />
             {pendingCount} pending {pendingCount === 1 ? "review" : "reviews"}
@@ -885,34 +767,59 @@ function TeachersPage() {
                 : "text-secondary-col nav-item"
             }`}
           >
-            {t === "pending" ? `Pending (${pendingCount})` : `Approved (${approvedTeachers.length})`}
+            {t === "pending" ? `Pending (${loading ? "..." : pendingCount})` : "Approved"}
           </button>
         ))}
       </div>
 
       {/* Pending Tab */}
       {tab === "pending" && (
-        <div className="grid lg:grid-cols-2 gap-4">
-          {teachers.length === 0 ? (
-            <div className="col-span-2 flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
-              <CheckCircle className="w-12 h-12 text-[var(--status-active)]/40 mb-3" />
+        <>
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4">
+              <Loader2 className="w-10 h-10 animate-spin text-primary/50" />
+              <p className="text-secondary-col text-sm font-semibold">Loading pending teachers…</p>
+            </div>
+          )}
+
+          {!loading && error && (
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state gap-3">
+              <AlertCircle className="w-12 h-12 text-[var(--status-rejected)]/50" />
+              <p className="text-secondary-col font-semibold text-sm">{error}</p>
+              <button
+                onClick={fetchPendingTeachers}
+                className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && pendingTeachers.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
+              <InboxIcon className="w-12 h-12 text-[var(--status-active)]/40 mb-3" />
               <p className="text-secondary-col font-semibold text-sm">All caught up — no pending applications!</p>
             </div>
-          ) : (
-            teachers.map(teacher => (
-              <TeacherCard
-              key={teacher.id}
-                teacher={teacher}
-                onApprove={handleApprove}
-                onReject={id => {
-                  const t = teachers.find(x => x.id === id);
-                  if (t) setRejectTarget(t);
-                }}
-                onView={setViewing}
-              />
-            ))
           )}
-                </div>
+
+          {!loading && !error && pendingTeachers.length > 0 && (
+            <div className="grid lg:grid-cols-2 gap-4">
+              {pendingTeachers.map(teacher => (
+                <TeacherCard
+                  key={teacher.id}
+                  teacher={teacher}
+                  onApprove={handleApprove}
+                  onReject={id => {
+                    const t = pendingTeachers.find(x => x.id === id);
+                    if (t) setRejectTarget(t);
+                  }}
+                  onView={setViewing}
+                  loadingId={actionLoadingId}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Approved Tab */}
@@ -923,48 +830,14 @@ function TeachersPage() {
             <div className="col-span-4 text-center">Stats</div>
             <div className="col-span-1 text-center">Joined</div>
             <div className="col-span-2 text-right">Profile</div>
-                    </div>
-          {approvedTeachers.map((teacher, i) => {
-            const initials = teacher.name.split(" ").map((n: string) => n[0]).join("");
-            const students = [1240, 890, 560][i];
-            const lessons = [87, 94, 112][i];
-            return (
-              <div
-                key={i}
-                className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
-              >
-                <div className="col-span-5 flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
-                    {initials}
-                    </div>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-primary-col text-sm truncate">{teacher.name}</div>
-                    <div className="text-muted-col text-[10px] truncate">{teacher.email}</div>
-                  </div>
-                </div>
-                <div className="col-span-4 flex items-center justify-center gap-4">
-                  <div className="flex flex-col items-center">
-                    <span className="text-primary-col font-display font-bold text-sm">{students.toLocaleString()}</span>
-                    <span className="text-muted-col text-[9px]">students</span>
-                  </div>
-                  <div className="w-px h-6 bg-[var(--border)]" />
-                  <div className="flex flex-col items-center">
-                    <span className="text-primary-col font-display font-bold text-sm">{lessons}</span>
-                    <span className="text-muted-col text-[9px]">lessons</span>
-                  </div>
-                </div>
-                <div className="col-span-1 text-center text-muted-col text-xs">{["Jan 2023","Feb 2023","Mar 2023"][i]}</div>
-                <div className="col-span-2 flex justify-end">
-                  <button
-                    onClick={() => setViewingApproved(teacher)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-surface text-secondary-col text-xs font-bold border border-glass-border hover:border-primary/30 hover:text-primary transition"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View
-                  </button>
           </div>
-              </div>
-            );
-          })}
+          <div className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] text-xs text-muted-col">
+            <div className="col-span-12 text-center py-8">
+              <UserCheck className="w-8 h-8 mx-auto mb-2 text-muted-col/40" />
+              <p className="text-sm text-secondary-col">Approved teacher list requires a backend endpoint.</p>
+              <p className="text-xs text-muted-col/60 mt-1">This data is not yet available from the API.</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -980,9 +853,11 @@ function TeachersPage() {
             }}
             onReject={id => {
               setViewing(null);
-              const t = teachers.find(x => x.id === id);
+              const t = pendingTeachers.find(x => x.id === id);
               if (t) setRejectTarget(t);
             }}
+            showActions
+            actionLoading={actionLoadingId !== null}
           />
         )}
       </AnimatePresence>
@@ -994,6 +869,7 @@ function TeachersPage() {
             teacher={rejectTarget}
             onConfirm={handleRejectConfirm}
             onClose={() => setRejectTarget(null)}
+            loading={actionLoadingId === rejectTarget.id}
           />
         )}
       </AnimatePresence>
