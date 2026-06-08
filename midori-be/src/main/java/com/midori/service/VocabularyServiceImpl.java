@@ -76,7 +76,7 @@ public class VocabularyServiceImpl implements VocabularyService {
     @Override
     @Transactional(readOnly = true)
     public VocabularyLessonDetailResponse getLessonDetailForManagement(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
         return toLessonDetailResponse(lesson);
     }
@@ -84,7 +84,7 @@ public class VocabularyServiceImpl implements VocabularyService {
     @Override
     @Transactional(readOnly = true)
     public List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search) {
-        List<VocabularyLesson> lessons = lessonRepository.findAllOrdered();
+        List<VocabularyLesson> lessons = lessonRepository.findAllOrderedWithCreator();
 
         if (level != null && !level.isBlank()) {
             lessons = lessons.stream()
@@ -149,7 +149,7 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     public VocabularyLessonResponse publishLesson(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         lesson.setIsPublished(true);
@@ -160,7 +160,7 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     public VocabularyLessonResponse unpublishLesson(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         lesson.setIsPublished(false);
@@ -197,7 +197,7 @@ public class VocabularyServiceImpl implements VocabularyService {
         } else if (hasTopic) {
             lessons = lessonRepository.findAllPublishedByTopic(topic);
         } else {
-            lessons = lessonRepository.findAllPublished();
+            lessons = lessonRepository.findAllPublishedWithCreator();
         }
 
         if (hasLevel && !hasSearch) {
@@ -219,7 +219,7 @@ public class VocabularyServiceImpl implements VocabularyService {
     @Override
     @Transactional(readOnly = true)
     public VocabularyLessonDetailResponse getPublishedLessonDetail(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         if (!Boolean.TRUE.equals(lesson.getIsPublished())) {
@@ -245,6 +245,7 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .wordCount(wordCount)
                 .isPublished(lesson.getIsPublished())
                 .createdBy(lesson.getCreatedBy() != null ? lesson.getCreatedBy().getId() : null)
+                .teacherName(resolveTeacherName(lesson.getCreatedBy()))
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
                 .build();
@@ -268,10 +269,24 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .wordCount(words.size())
                 .isPublished(lesson.getIsPublished())
                 .createdBy(lesson.getCreatedBy() != null ? lesson.getCreatedBy().getId() : null)
+                .teacherName(resolveTeacherName(lesson.getCreatedBy()))
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
                 .words(words)
                 .build();
+    }
+
+    private String resolveTeacherName(User createdBy) {
+        if (createdBy == null) {
+            return "MIDORI";
+        }
+        if (createdBy.getProfile() != null && createdBy.getProfile().getDisplayName() != null) {
+            return createdBy.getProfile().getDisplayName();
+        }
+        if (createdBy.getEmail() != null) {
+            return createdBy.getEmail();
+        }
+        return "System";
     }
 
     private VocabularyWordResponse toWordResponse(VocabularyWord word) {

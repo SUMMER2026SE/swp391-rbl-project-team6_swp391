@@ -44,6 +44,9 @@ public class User {
     @Builder.Default
     private Boolean emailVerified = false;
 
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private UserProfile profile;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
