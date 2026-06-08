@@ -2,8 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { api } from "./api/client";
 import { authApi } from "./api/auth";
 import { profileApi, type ProfileResponse } from "./api/profile";
-import type { Role } from "./api/types";
-import type { UserResponse } from "./api/types";
+import type { Role, UserResponse, UserStatus } from "./api/types";
 
 export type FrontendRole = "student" | "teacher" | "admin";
 
@@ -14,7 +13,7 @@ export type User = {
   role: FrontendRole;
   avatar?: string | null;
   googleAvatar?: string | null;
-  status?: "active" | "pending";
+  status?: UserStatus;
 };
 
 type AuthCtx = {
@@ -51,7 +50,7 @@ function userResponseToUser(r: UserResponse): User {
     email: r.email,
     role: mapBackendRole(r.role),
     avatar: r.avatarUrl ?? null,
-    status: r.status === "ACTIVE" ? "active" : "pending",
+    status: r.status,
   };
 }
 
