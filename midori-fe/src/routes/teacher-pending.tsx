@@ -1,10 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SakuraBg } from "@/components/sakura-bg";
 import { motion } from "framer-motion";
+import { useAuth } from "@/lib/auth";
+import { useEffect } from "react";
 
-export const Route = createFileRoute("/teacher-pending")({ component: TeacherPendingPage });
+export const Route = createFileRoute("/teacher-pending")({
+  beforeLoad: () => {
+    // This route is server-side; client guard below handles the redirect
+  },
+  component: TeacherPendingPage,
+});
 
 function TeacherPendingPage() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user !== null) {
+      window.location.href = `/${user.role}`;
+      return;
+    }
+
+    window.location.href = "/login";
+  }, [user]);
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
       <SakuraBg count={14} />
