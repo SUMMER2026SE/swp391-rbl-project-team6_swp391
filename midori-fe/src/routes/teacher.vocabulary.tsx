@@ -203,6 +203,7 @@ function TopicFilter({
 // ─── Main Page ───────────────────────────────────────────────────────────
 function VocabularyManagementPage() {
   const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
+  const [allTopics, setAllTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -263,15 +264,25 @@ function VocabularyManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const params: { level?: string; topic?: string; search?: string } = {};
-      if (levelFilter !== "All") params.level = levelFilter;
-      if (topicFilter !== "All") params.topic = topicFilter;
-      if (search.trim()) params.search = search.trim();
-      const data = await teacherVocabularyApi.getTeacherLessons(
-        Object.keys(params).length > 0 ? params : undefined
-      );
-      // Sort lessons by number in title (Bài 1, Bài 2, ..., Bài 10)
-      setLessons(sortLessonsByNumber(data));
+      // Fetch ALL lessons first (no filters) to get all topics
+      const allData = await teacherVocabularyApi.getTeacherLessons();
+      const allSorted = sortLessonsByNumber(allData);
+      
+      // Extract all unique topics from ALL lessons
+      const topics = Array.from(new Set(allSorted.map(l => l.topic).filter(Boolean) as string[])).sort();
+      setAllTopics(topics);
+      
+      // Apply frontend filters on all lessons
+      const filtered = allSorted.filter(l => {
+        const matchLevel = levelFilter === "All" || l.level === levelFilter;
+        const matchTopic = topicFilter === "All" || l.topic === topicFilter;
+        const matchSearch = !search || 
+          l.title.toLowerCase().includes(search.toLowerCase()) ||
+          (l.description?.toLowerCase().includes(search.toLowerCase()) ?? false);
+        return matchLevel && matchTopic && matchSearch;
+      });
+      
+      setLessons(filtered);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load lessons. Please try again.");
     } finally {
@@ -284,16 +295,8 @@ function VocabularyManagementPage() {
   }, [fetchLessons]);
 
   const totalWords = lessons.reduce((s, l) => s + (l.wordCount ?? 0), 0);
-  const allTopics = Array.from(new Set(lessons.map(l => l.topic).filter(Boolean) as string[])).sort();
-
-  const filtered = lessons.filter(l => {
-    const matchSearch = !search || l.title.toLowerCase().includes(search.toLowerCase());
-    const matchTopic = topicFilter === "All" || l.topic === topicFilter;
-    return matchSearch && matchTopic;
-  });
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(lessons.length / PAGE_SIZE);
+  const paginated = lessons.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Reset page when filter/search changes
   useEffect(() => { setPage(1); }, [levelFilter, topicFilter, search]);
@@ -516,7 +519,7 @@ function VocabularyManagementPage() {
         </div>
       )}
 
-      {!loading && !error && filtered.length === 0 && (
+      {!loading && !error && lessons.length === 0 && (
         <div className="text-center py-20 text-muted-foreground rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-semibold text-base">No lessons found</p>
@@ -527,7 +530,7 @@ function VocabularyManagementPage() {
       )}
 
       {/* ── Lesson grid ───────────────────────────────────────── */}
-      {!loading && !error && filtered.length > 0 && (
+      {!loading && !error && lessons.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginated.map((lesson, i) => (
@@ -604,7 +607,7 @@ function VocabularyManagementPage() {
           </div>
 
           {/* Pagination */}
-          <PaginationUI current={page} total={filtered.length} onPage={setPage} />
+          <PaginationUI current={page} total={lessons.length} onPage={setPage} />
         </>
       )}
 
