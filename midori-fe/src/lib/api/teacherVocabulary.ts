@@ -13,6 +13,7 @@ export interface VocabularyLessonResponse {
   isPublished: boolean;
   is_published?: boolean;
   createdBy: string;
+  created_by?: string;
   teacherName?: string;
   teacher_name?: string;
   createdByName?: string;
@@ -21,6 +22,8 @@ export interface VocabularyLessonResponse {
   created_by_username?: string;
   teacherUsername?: string;
   teacher_username?: string;
+  ownedByMe?: boolean;
+  owned_by_me?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -145,6 +148,7 @@ function normalizeLesson<T extends VocabularyLessonResponse>(lesson: T): T {
     wordCount: lesson.wordCount ?? lesson.word_count ?? ((lesson as T & { words?: unknown[] }).words?.length ?? 0),
     isPublished: lesson.isPublished ?? lesson.is_published ?? false,
     teacherName: lesson.teacherName ?? lesson.teacher_name ?? lesson.createdByName ?? lesson.created_by_name ?? lesson.createdByUsername ?? lesson.created_by_username ?? lesson.teacherUsername ?? lesson.teacher_username ?? "MIDORI",
+    ownedByMe: lesson.ownedByMe ?? lesson.owned_by_me ?? false,
   };
 }
 
