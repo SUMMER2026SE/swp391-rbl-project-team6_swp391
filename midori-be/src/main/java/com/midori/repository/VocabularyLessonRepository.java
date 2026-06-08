@@ -16,7 +16,11 @@ public interface VocabularyLessonRepository extends JpaRepository<VocabularyLess
 
     Optional<VocabularyLesson> findById(UUID id);
 
-    @Query("SELECT vl FROM VocabularyLesson vl WHERE vl.isPublished = true")
+    // Order by id for consistent lesson ordering
+    @Query("SELECT vl FROM VocabularyLesson vl ORDER BY vl.createdAt ASC")
+    List<VocabularyLesson> findAllOrdered();
+
+    @Query("SELECT vl FROM VocabularyLesson vl WHERE vl.isPublished = true ORDER BY vl.createdAt ASC")
     List<VocabularyLesson> findAllPublished();
 
     @Query("SELECT vl FROM VocabularyLesson vl WHERE vl.isPublished = true AND vl.level = :level")
