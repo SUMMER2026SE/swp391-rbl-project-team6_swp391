@@ -33,6 +33,49 @@ function speakJapanese(text: string) {
 // Maps VocabularyLessonDetailResponse (with words) to VocabularyLessonResponse (list display)
 type LessonDisplay = VocabularyLessonResponse & { _words?: VocabularyWordResponse[] };
 
+// Extract lesson number from title like "Bài 1: Chào hỏi" → 1
+function extractLessonNumber(title?: string): number {
+  if (!title) return Infinity;
+  const match = title.match(/Bài\s*\.?\s*(\d+)/i);
+  return match ? parseInt(match[1], 10) : Infinity;
+}
+
+// Extract lesson number from title like "Bài 1: Chào hỏi" → "Bài 1"
+function getLessonLabel(title?: string): string {
+  if (!title) return "Bài";
+  const match = title.match(/^(Bài\s*\.?\s*)(\d+)/i);
+  if (match) {
+    return `Bài ${match[2]}`;
+  }
+  const numMatch = title.match(/^(\d+)/);
+  if (numMatch) {
+    return `Bài ${numMatch[1]}`;
+  }
+  return title;
+}
+
+// Get subtitle from title like "Bài 1: Chào hỏi" → "Chào hỏi"
+function getLessonSubtitle(title?: string): string | null {
+  if (!title) return null;
+  const match = title.match(/^[^:：]+[：:]\s*(.+)$/);
+  return match ? match[1].trim() : null;
+}
+
+// Sort lessons by lesson number in title (Bài 1, Bài 2, ..., Bài 10)
+function sortLessonsByNumber(lessons: VocabularyLessonResponse[]): VocabularyLessonResponse[] {
+  return [...lessons].sort((a, b) => {
+    const numA = extractLessonNumber(a.title);
+    const numB = extractLessonNumber(b.title);
+    if (numA !== numB) {
+      return numA - numB;
+    }
+    // Fallback: sort by createdAt if same or no number
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateA - dateB;
+  });
+}
+
 export const Route = createFileRoute("/teacher/vocabulary")({ component: VocabularyManagementPage });
 
 // ─── Pagination component ────────────────────────────────────────────────────
@@ -227,7 +270,8 @@ function VocabularyManagementPage() {
       const data = await teacherVocabularyApi.getTeacherLessons(
         Object.keys(params).length > 0 ? params : undefined
       );
-      setLessons(data);
+      // Sort lessons by number in title (Bài 1, Bài 2, ..., Bài 10)
+      setLessons(sortLessonsByNumber(data));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load lessons. Please try again.");
     } finally {
