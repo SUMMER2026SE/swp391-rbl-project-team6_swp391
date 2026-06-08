@@ -79,7 +79,7 @@ public class VocabularyServiceImpl implements VocabularyService {
     @Override
     @Transactional(readOnly = true)
     public List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search) {
-        List<VocabularyLesson> lessons = lessonRepository.findAll();
+        List<VocabularyLesson> lessons = lessonRepository.findAllOrdered();
 
         if (level != null && !level.isBlank()) {
             lessons = lessons.stream()
