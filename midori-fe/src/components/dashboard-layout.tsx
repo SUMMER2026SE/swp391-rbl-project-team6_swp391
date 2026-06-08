@@ -97,7 +97,8 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
       }, 50);
       return () => clearTimeout(t);
     }
-    if (user && user.role !== role) nav({ to: `/${user.role}` });
+
+    if (user.role !== role) nav({ to: `/${user.role}` });
   }, [user, role, nav]);
 
   useEffect(() => {
