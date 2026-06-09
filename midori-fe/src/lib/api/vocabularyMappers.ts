@@ -1,7 +1,6 @@
 /**
  * Shared vocabulary mappers.
  * Contains types and normalize functions used by both teacher and student vocabulary APIs.
- * This prevents a dependency from studentVocabulary -> teacherVocabulary.
  */
 
 import { api } from "./client";
