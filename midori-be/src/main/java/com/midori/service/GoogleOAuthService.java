@@ -111,9 +111,8 @@ public class GoogleOAuthService {
                 throw new UnauthorizedException("Account has been banned");
             case SUSPENDED:
                 throw new UnauthorizedException("Account has been suspended");
-            case PENDING_APPROVAL:
-                throw new UnauthorizedException("Your teacher account is pending admin approval. You will be able to login once approved.");
             case PENDING:
+            case PENDING_APPROVAL:
             case ACTIVE:
                 // Allowed
                 break;

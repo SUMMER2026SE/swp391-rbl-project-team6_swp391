@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { useAuth, rolePath } from "@/lib/auth";
+import { useAuth, getDashboardPath } from "@/lib/auth";
 import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
@@ -24,7 +24,7 @@ function LoginPage() {
     setLoading(true);
     try {
       const u = await login(email, password);
-      nav({ to: rolePath(u.role) });
+      nav({ to: getDashboardPath(u) });
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);
@@ -37,10 +37,11 @@ function LoginPage() {
   };
 
   const handleGoogleSuccess = async (credential: string) => {
+    setErr("");
     setGoogleLoading(true);
     try {
       const u = await loginWithGoogle(credential);
-      nav({ to: rolePath(u.role) });
+      nav({ to: getDashboardPath(u) });
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);
