@@ -1,25 +1,17 @@
 import { api } from "./client";
 import {
-  teacherVocabularyApi,
   type VocabularyLessonResponse,
   type VocabularyLessonDetailResponse,
+  type LessonListParams,
   normalizeLesson,
   normalizeLessonDetail,
-} from "./teacherVocabulary";
+} from "./vocabularyMappers";
 
-// Re-export types
-export type {
-  VocabularyLessonResponse,
-  VocabularyLessonDetailResponse,
-} from "./teacherVocabulary";
+// Re-export shared types and mappers for consumers
+export type { VocabularyLessonResponse, VocabularyLessonDetailResponse, LessonListParams };
+export { normalizeLesson, normalizeLessonDetail };
 
-export interface LessonListParams {
-  level?: string;
-  topic?: string;
-  search?: string;
-}
-
-// ─── Student Vocabulary API ───────────────────────────────────────────────────
+// ─── Student Vocabulary API ───────────────────────────────────────────────────────
 
 export const studentVocabularyApi = {
   /**

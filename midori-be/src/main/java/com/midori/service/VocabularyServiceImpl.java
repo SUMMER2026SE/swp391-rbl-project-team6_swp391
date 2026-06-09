@@ -52,7 +52,6 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     public VocabularyLessonResponse createLesson(VocabularyLessonCreateRequest request, UUID createdBy) {
-        System.out.println("[createLesson] title=" + request.getTitle() + ", words=" + (request.getWords() == null ? 0 : request.getWords().size()));
         User creator = userRepository.findById(createdBy)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", createdBy));
 
@@ -134,19 +133,13 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     public VocabularyWordResponse addWord(UUID lessonId, VocabularyWordCreateRequest request, UUID currentUserId) {
-        System.out.println("[addWord service] lessonId=" + lessonId);
-        System.out.println("[addWord service] request.getJapanese()=" + request.getJapanese());
-        System.out.println("[addWord service] request.getVietnamese()=" + request.getVietnamese());
-        System.out.println("[addWord service] isValidForCreate=" + request.isValidForCreate());
         VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         checkLessonOwnership(lesson, currentUserId);
 
         VocabularyWord word = buildVocabularyWord(lesson, request, request.getDisplayOrder());
-        System.out.println("[addWord service] word.word=" + word.getWord() + ", word.meaning=" + word.getMeaning());
         word = wordRepository.save(word);
-        System.out.println("[addWord service] SAVED wordId=" + word.getId());
         syncLessonWordCount(lesson);
         return toWordResponse(word);
     }
@@ -287,7 +280,6 @@ public class VocabularyServiceImpl implements VocabularyService {
     }
 
     private VocabularyLessonDetailResponse toLessonDetailResponse(VocabularyLesson lesson, UUID currentUserId) {
-        System.out.println("[toLessonDetailResponse] lessonId=" + lesson.getId());
         List<VocabularyWord> wordEntities = wordRepository.findByLessonIdOrderByDisplayOrderAsc(lesson.getId());
         List<VocabularyWordResponse> words = wordEntities
                 .stream()
@@ -392,7 +384,6 @@ public class VocabularyServiceImpl implements VocabularyService {
     }
 
     private int saveLessonWords(VocabularyLesson lesson, List<VocabularyWordCreateRequest> words) {
-        System.out.println("=== [saveLessonWords] lessonId=" + lesson.getId() + ", words=" + (words == null ? "null" : words.size()));
         if (words == null || words.isEmpty()) {
             return 0;
         }
@@ -400,9 +391,6 @@ public class VocabularyServiceImpl implements VocabularyService {
         int savedWordCount = 0;
         for (int index = 0; index < words.size(); index++) {
             VocabularyWordCreateRequest wordRequest = words.get(index);
-            String j = wordRequest.getJapanese();
-            String v = wordRequest.getVietnamese();
-            System.out.println("  word[" + index + "] j=\"" + j + "\" v=\"" + v + "\" valid=" + wordRequest.isValidForCreate());
             if (!wordRequest.isValidForCreate()) {
                 continue;
             }
@@ -413,7 +401,6 @@ public class VocabularyServiceImpl implements VocabularyService {
         }
         entityManager.flush();
         entityManager.clear();
-        System.out.println("=== [saveLessonWords] done, saved=" + savedWordCount);
         return savedWordCount;
     }
 
