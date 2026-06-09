@@ -2,6 +2,10 @@
 -- Seed demo vocabulary data (N5)
 -- DATA-01 / UI-18
 -- Adds 10 published N5 lessons with 5 words each.
+--
+-- PREREQUISITE: Requires at least one TEACHER user in the users table.
+-- If no TEACHER exists, the seed will fail silently (no rows inserted).
+-- Ensure the auth/identity seed runs before this migration.
 -- ============================================================
 
 WITH teacher_seed AS (
@@ -61,7 +65,7 @@ JOIN (
         ('Bài 2: Gia đình', 'あに', 'あに', 'ani', 'anh trai', 'あにはだいがくせいです。', 'Anh trai tôi là sinh viên đại học.', 4),
         ('Bài 2: Gia đình', 'いもうと', 'いもうと', 'imouto', 'em gái', 'いもうとはこうこうせいです。', 'Em gái tôi là học sinh cấp ba.', 5),
 
-        ('Bài 3: Số đếm', 'いち', 'いち', 'ichi', 'một', 'りんごがいちつあります。', 'Có một quả táo.', 1),
+        ('Bài 3: Số đếm', 'いち', 'いち', 'ichi', 'một', 'りんごがひとつあります。', 'Có một quả táo.', 1),
         ('Bài 3: Số đếm', 'に', 'に', 'ni', 'hai', 'ねこがにひきいます。', 'Có hai con mèo.', 2),
         ('Bài 3: Số đếm', 'さん', 'さん', 'san', 'ba', 'さんにんでべんきょうします。', 'Ba người cùng học.', 3),
         ('Bài 3: Số đếm', 'よん', 'よん', 'yon', 'bốn', 'よんじにかえります。', 'Tôi về lúc bốn giờ.', 4),

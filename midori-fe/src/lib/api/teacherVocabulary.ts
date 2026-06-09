@@ -176,4 +176,26 @@ export const teacherVocabularyApi = {
    */
   deleteWord: (wordId: string) =>
     api.delete<void>(`/teacher/vocabulary/words/${wordId}`),
+
+  /**
+   * PATCH /api/teacher/vocabulary/lessons/{lessonId}/publish
+   * Publishes a lesson, making it visible to students.
+   */
+  publishLesson: async (lessonId: string) => {
+    const lesson = await api.patch<VocabularyLessonResponse>(
+      `/teacher/vocabulary/lessons/${lessonId}/publish`
+    );
+    return normalizeLesson(lesson);
+  },
+
+  /**
+   * PATCH /api/teacher/vocabulary/lessons/{lessonId}/unpublish
+   * Unpublishes a lesson, hiding it from students.
+   */
+  unpublishLesson: async (lessonId: string) => {
+    const lesson = await api.patch<VocabularyLessonResponse>(
+      `/teacher/vocabulary/lessons/${lessonId}/unpublish`
+    );
+    return normalizeLesson(lesson);
+  },
 };

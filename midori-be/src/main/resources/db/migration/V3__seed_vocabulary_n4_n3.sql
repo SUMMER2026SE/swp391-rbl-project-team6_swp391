@@ -1,6 +1,10 @@
 -- ============================================================
 -- Seed vocabulary data (N4 & N3)
 -- Adds 5 N4 lessons and 5 N3 lessons with 5 words each.
+--
+-- PREREQUISITE: Requires at least one TEACHER user in the users table.
+-- If no TEACHER exists, the seed will fail silently (no rows inserted).
+-- Ensure the auth/identity seed runs before this migration.
 -- ============================================================
 
 WITH teacher_seed AS (
