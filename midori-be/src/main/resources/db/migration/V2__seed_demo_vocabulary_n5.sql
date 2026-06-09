@@ -3,17 +3,21 @@
 -- DATA-01 / UI-18
 -- Adds 10 published N5 lessons with 5 words each.
 --
--- PREREQUISITE: Requires at least one TEACHER user in the users table.
--- If no TEACHER exists, the seed will fail silently (no rows inserted).
--- Ensure the auth/identity seed runs before this migration.
+-- Fallback logic for created_by:
+--   1. First TEACHER user (if exists)
+--   2. First ADMIN user (if exists)
+--   3. NULL (if neither exists)
+--
+-- Idempotent: safe to re-run; won't duplicate data.
 -- ============================================================
 
-WITH teacher_seed AS (
-    SELECT id
-    FROM users
-    WHERE role = 'TEACHER'
-    ORDER BY created_at ASC
-    LIMIT 1
+-- Resolve creator: TEACHER > ADMIN > NULL
+WITH creator AS (
+    SELECT
+        COALESCE(
+            (SELECT id FROM users WHERE role = 'TEACHER' ORDER BY created_at ASC LIMIT 1),
+            (SELECT id FROM users WHERE role = 'ADMIN' ORDER BY created_at ASC LIMIT 1)
+        ) AS user_id
 ),
 inserted_lessons AS (
     INSERT INTO vocabulary_lessons (
@@ -26,17 +30,26 @@ inserted_lessons AS (
         is_published,
         created_by
     )
-    VALUES
-        ('Bài 1: Chào hỏi', 'Từ vựng N5 về chào hỏi hằng ngày.', 'N5', 'Greetings', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 2: Gia đình', 'Từ vựng N5 về các thành viên trong gia đình.', 'N5', 'Family', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 3: Số đếm', 'Từ vựng N5 về số đếm cơ bản.', 'N5', 'Numbers', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 4: Thời gian', 'Từ vựng N5 về thời gian và lịch trình.', 'N5', 'Time', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 5: Trường học', 'Từ vựng N5 dùng ở trường học.', 'N5', 'School', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 6: Đồ ăn', 'Từ vựng N5 về món ăn quen thuộc.', 'N5', 'Food', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 7: Màu sắc', 'Từ vựng N5 về màu sắc cơ bản.', 'N5', 'Colors', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 8: Địa điểm', 'Từ vựng N5 về các địa điểm quen thuộc.', 'N5', 'Places', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 9: Phương tiện', 'Từ vựng N5 về phương tiện di chuyển.', 'N5', 'Transportation', 12, 5, TRUE, (SELECT id FROM teacher_seed)),
-        ('Bài 10: Tính từ', 'Từ vựng N5 về tính từ cơ bản.', 'N5', 'Adjectives', 12, 5, TRUE, (SELECT id FROM teacher_seed))
+    SELECT v.title, v.description, v.level, v.topic,
+           v.estimated_minutes, v.word_count, v.is_published,
+           c.user_id
+    FROM (VALUES
+        ('Bài 1: Chào hỏi', 'Từ vựng N5 về chào hỏi hằng ngày.', 'N5', 'Greetings', 12, 5, TRUE),
+        ('Bài 2: Gia đình', 'Từ vựng N5 về các thành viên trong gia đình.', 'N5', 'Family', 12, 5, TRUE),
+        ('Bài 3: Số đếm', 'Từ vựng N5 về số đếm cơ bản.', 'N5', 'Numbers', 12, 5, TRUE),
+        ('Bài 4: Thời gian', 'Từ vựng N5 về thời gian và lịch trình.', 'N5', 'Time', 12, 5, TRUE),
+        ('Bài 5: Trường học', 'Từ vựng N5 dùng ở trường học.', 'N5', 'School', 12, 5, TRUE),
+        ('Bài 6: Đồ ăn', 'Từ vựng N5 về món ăn quen thuộc.', 'N5', 'Food', 12, 5, TRUE),
+        ('Bài 7: Màu sắc', 'Từ vựng N5 về màu sắc cơ bản.', 'N5', 'Colors', 12, 5, TRUE),
+        ('Bài 8: Địa điểm', 'Từ vựng N5 về các địa điểm quen thuộc.', 'N5', 'Places', 12, 5, TRUE),
+        ('Bài 9: Phương tiện', 'Từ vựng N5 về phương tiện di chuyển.', 'N5', 'Transportation', 12, 5, TRUE),
+        ('Bài 10: Tính từ', 'Từ vựng N5 về tính từ cơ bản.', 'N5', 'Adjectives', 12, 5, TRUE)
+    ) AS v(title, description, level, topic, estimated_minutes, word_count, is_published)
+    CROSS JOIN creator c
+    WHERE NOT EXISTS (
+        SELECT 1 FROM vocabulary_lessons l
+        WHERE l.title = v.title AND l.level = 'N5' AND l.topic = v.topic
+    )
     RETURNING id, title
 )
 INSERT INTO vocabulary_words (
@@ -61,7 +74,7 @@ JOIN (
 
         ('Bài 2: Gia đình', 'かぞく', 'かぞく', 'kazoku', 'gia đình', 'わたしのかぞくはよにんです。', 'Gia đình tôi có bốn người.', 1),
         ('Bài 2: Gia đình', 'ちち', 'ちち', 'chichi', 'bố', 'ちちはかいしゃいんです。', 'Bố tôi là nhân viên công ty.', 2),
-        ('Bài 2: Gia đình', 'はは', 'はは', 'haha', 'mẹ', 'はははりょうりがじょうずです。', 'Mẹ tôi nấu ăn rất giỏi.', 3),
+        ('Bài 2: Gia đình', 'はは', 'はは', 'haha', 'mẹ', 'ははたりょうりがじょうずです。', 'Mẹ tôi nấu ăn rất giỏi.', 3),
         ('Bài 2: Gia đình', 'あに', 'あに', 'ani', 'anh trai', 'あにはだいがくせいです。', 'Anh trai tôi là sinh viên đại học.', 4),
         ('Bài 2: Gia đình', 'いもうと', 'いもうと', 'imouto', 'em gái', 'いもうとはこうこうせいです。', 'Em gái tôi là học sinh cấp ba.', 5),
 
@@ -112,5 +125,9 @@ JOIN (
         ('Bài 10: Tính từ', 'あたらしい', 'あたらしい', 'atarashii', 'mới', 'あたらしいほんをかいました。', 'Tôi đã mua sách mới.', 3),
         ('Bài 10: Tính từ', 'ふるい', 'ふるい', 'furui', 'cũ', 'ふるいじてんしゃです。', 'Đó là chiếc xe đạp cũ.', 4),
         ('Bài 10: Tính từ', 'たのしい', 'たのしい', 'tanoshii', 'vui', 'にほんごのじゅぎょうはたのしいです。', 'Giờ học tiếng Nhật rất vui.', 5)
-) AS w(lesson_title, word, furigana, romaji, meaning, example_japanese, example_meaning, display_order)
-    ON l.title = w.lesson_title;
+    ) AS w(lesson_title, word, furigana, romaji, meaning, example_japanese, example_meaning, display_order)
+WHERE NOT EXISTS (
+    SELECT 1 FROM vocabulary_words vw
+    JOIN vocabulary_lessons vl ON vl.id = vw.lesson_id
+    WHERE vl.title = w.lesson_title AND vw.word = w.word
+);

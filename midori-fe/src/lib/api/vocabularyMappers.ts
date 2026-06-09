@@ -3,8 +3,6 @@
  * Contains types and normalize functions used by both teacher and student vocabulary APIs.
  */
 
-import { api } from "./client";
-
 // ─── Shared Types ──────────────────────────────────────────────────────────────
 
 export interface VocabularyLessonResponse {
