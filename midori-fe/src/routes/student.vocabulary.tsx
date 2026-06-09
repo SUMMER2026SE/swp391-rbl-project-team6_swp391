@@ -42,7 +42,7 @@ function sortLessonsByNumber(lessons: VocabularyLessonResponse[]): VocabularyLes
 
 const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"] as const;
 
-const FILTER_TABS = ["Tất cả", "Đã thuộc", "Chưa thuộc", "Yêu thích"] as const;
+const FILTER_TABS = ["All", "Mastered", "Learning", "Favorite"] as const;
 
 function speakJapanese(text: string) {
   if (!text?.trim()) return;
@@ -58,21 +58,21 @@ function speakJapanese(text: string) {
 function getLevelGradient(level: string): string {
   const g: Record<string, string> = {
     N5: "from-blue-300 via-sky-400 to-cyan-400",
-    N4: "from-violet-300 via-purple-400 to-fuchsia-400",
-    N3: "from-pink-300 via-rose-400 to-red-300",
-    N2: "from-amber-300 via-orange-400 to-yellow-300",
-    N1: "from-red-300 via-pink-400 to-fuchsia-400",
+    N4: "from-blue-300 via-sky-400 to-cyan-400",
+    N3: "from-blue-300 via-sky-400 to-cyan-400",
+    N2: "from-blue-300 via-sky-400 to-cyan-400",
+    N1: "from-blue-300 via-sky-400 to-cyan-400",
   };
-  return g[level] ?? "from-blue-400 to-purple-400";
+  return g[level] ?? "from-blue-300 via-sky-400 to-cyan-400";
 }
 
 function getLevelGradientDark(level: string): string {
   const g: Record<string, string> = {
     N5: "dark:from-blue-600/90 dark:via-cyan-500/75 dark:to-violet-600/80",
-    N4: "dark:from-violet-700/90 dark:via-purple-500/75 dark:to-fuchsia-600/80",
-    N3: "dark:from-pink-700/90 dark:via-rose-500/75 dark:to-red-600/80",
-    N2: "dark:from-amber-700/90 dark:via-orange-500/75 dark:to-yellow-600/80",
-    N1: "dark:from-red-700/90 dark:via-pink-500/75 dark:to-fuchsia-600/80",
+    N4: "dark:from-blue-600/90 dark:via-cyan-500/75 dark:to-violet-600/80",
+    N3: "dark:from-blue-600/90 dark:via-cyan-500/75 dark:to-violet-600/80",
+    N2: "dark:from-blue-600/90 dark:via-cyan-500/75 dark:to-violet-600/80",
+    N1: "dark:from-blue-600/90 dark:via-cyan-500/75 dark:to-violet-600/80",
   };
   return g[level] ?? "dark:from-blue-600/90 dark:via-cyan-500/75 dark:to-violet-600/80";
 }
@@ -80,10 +80,10 @@ function getLevelGradientDark(level: string): string {
 function getLevelBadge(level: string): string {
   const c: Record<string, string> = {
     N5: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300",
-    N4: "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300",
-    N3: "bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-300",
-    N2: "bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300",
-    N1: "bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300",
+    N4: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300",
+    N3: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300",
+    N2: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300",
+    N1: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300",
   };
   return c[level] ?? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300";
 }
@@ -242,16 +242,17 @@ export const Route = createFileRoute("/student/vocabulary")({ component: Vocabul
 
 function VocabularyPage() {
   const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
+  const [allLessonsBase, setAllLessonsBase] = useState<VocabularyLessonResponse[]>([]);
   const [allTopics, setAllTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedLevel, setSelectedLevel] = useState<string>("All");
+  const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
-  const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]>("Tất cả");
+  const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]>("All");
   const [topicsOpen, setTopicsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const WORDS_PER_PAGE = 10;
@@ -265,13 +266,68 @@ function VocabularyPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
+  // ── Word-level progress (persisted in localStorage) ─────────────────────────
+  const LS_KEY = "midori_vocab_word_progress";
+  const LS_OLD_KEY = "midori_vocab_progress"; // backward compat
+
+  // Hydration guard: prevents save effect from overwriting localStorage on first render
+  const [progressHydrated, setProgressHydrated] = useState(false);
+
+  // Load persisted word statuses from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const saved: Record<string, WordStatus> = JSON.parse(raw);
+        setWordStatuses(saved);
+      }
+      // Migrate completedLessons from old key if present
+      const oldRaw = localStorage.getItem(LS_OLD_KEY);
+      if (oldRaw) {
+        const old: Record<string, { completed: boolean }> = JSON.parse(oldRaw);
+        const migrated = new Set<string>();
+        for (const [id, data] of Object.entries(old)) {
+          if (data.completed) migrated.add(id);
+        }
+        setCompletedLessons(migrated);
+      }
+    } catch {
+      // ignore malformed data
+    } finally {
+      setProgressHydrated(true);
+    }
+  }, []);
+
+  // Persist wordStatuses to localStorage only after hydration
+  useEffect(() => {
+    if (!progressHydrated) return;
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(wordStatuses));
+    } catch {
+      // ignore quota errors
+    }
+  }, [wordStatuses, progressHydrated]);
+
+  // Persist old-style completedLessons for backward compat (set only, no load needed)
+  useEffect(() => {
+    try {
+      const record: Record<string, { progress: number; completed: boolean; completedAt: string }> = {};
+      completedLessons.forEach(id => {
+        record[id] = { progress: 100, completed: true, completedAt: new Date().toISOString() };
+      });
+      localStorage.setItem(LS_OLD_KEY, JSON.stringify(record));
+    } catch {
+      // ignore quota errors
+    }
+  }, [completedLessons]);
+
   // Fetch published lessons from API
   const fetchLessons = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const lessonParams = {
-        level: selectedLevel !== "All" ? selectedLevel : undefined,
+        level: selectedLevel !== "all" ? selectedLevel : undefined,
         topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
         search: appliedSearch.trim() || undefined,
       };
@@ -281,6 +337,7 @@ function VocabularyPage() {
         studentVocabularyApi.getPublishedLessons(lessonParams),
       ]);
 
+      setAllLessonsBase(sortLessonsByNumber(allData));
       setLessons(sortLessonsByNumber(filteredData));
 
       const topics = Array.from(new Set(allData.map(l => l.topic).filter(Boolean) as string[])).sort();
@@ -302,7 +359,7 @@ function VocabularyPage() {
     setDetailLoading(true);
     setDetailError(null);
     setLessonDetail(null);
-    setFilterTab("Tất cả");
+    setFilterTab("All");
     setCurrentPage(1);
     try {
       const detail = await studentVocabularyApi.getPublishedLessonDetail(lessonId);
@@ -322,9 +379,9 @@ function VocabularyPage() {
     return ["All Topics", ...levelFiltered];
   }, [allTopics]);
 
-  const totalWordsAll = lessons.reduce((sum, l) => sum + (l.wordCount ?? l.word_count ?? 0), 0);
+  const totalWordsAll = allLessonsBase.reduce((sum, l) => sum + (l.wordCount ?? l.word_count ?? 0), 0);
   const totalLearned = Object.values(wordStatuses).filter(s => s === "mastered").length;
-  const totalLearning = Object.values(wordStatuses).filter(s => s === "learning").length;
+  const totalLearning = totalWordsAll - totalLearned;
   const totalFavorites = favorites.size;
 
   const getWordStatus = (wordKey: string): WordStatus => wordStatuses[wordKey] ?? "new";
@@ -388,9 +445,9 @@ function VocabularyPage() {
     const filteredWords = lessonWords.filter((_, idx) => {
       const wordKey = `${activeLesson}-${words[idx]?.word}`;
       const status = getWordStatus(wordKey);
-      if (filterTab === "Đã thuộc") return status === "mastered";
-      if (filterTab === "Chưa thuộc") return status !== "mastered";
-      if (filterTab === "Yêu thích") return favorites.has(wordKey);
+      if (filterTab === "Mastered") return status === "mastered";
+      if (filterTab === "Learning") return status !== "mastered";
+      if (filterTab === "Favorite") return favorites.has(wordKey);
       return true;
     });
 
@@ -427,7 +484,7 @@ function VocabularyPage() {
                       {lessonDetail.topic}
                     </span>
                   )}
-                  {completedLessons.has(activeLesson) && (
+                  {progressPct === 100 && (
                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 text-[10px] font-bold">
                       <CheckCircle className="w-3 h-3" /> Done
                     </span>
@@ -439,9 +496,9 @@ function VocabularyPage() {
             {/* Lesson Meta Bar */}
             <div className="flex items-center gap-3 flex-wrap px-4 py-3 rounded-2xl bg-card/60 dark:bg-indigo-950/40 backdrop-blur-sm border border-border/50 dark:border-white/10">
               <div className="flex items-center gap-1.5">
-                <div className="w-24 h-2 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
+                <div className="w-24 h-2 rounded-full bg-slate-300/70 dark:bg-white/10 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
+                    className="h-full rounded-full bg-linear-to-r from-blue-500 to-pink-500 transition-all"
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
@@ -469,7 +526,7 @@ function VocabularyPage() {
               <div className="w-px h-4 bg-border dark:bg-white/10" />
               <div className="flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400">
                 <Zap className="w-3 h-3" />
-                <span>{words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "learning").length} learning</span>
+                <span>{words.length - words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "mastered").length} learning</span>
               </div>
             </div>
 
@@ -531,21 +588,21 @@ function VocabularyPage() {
                       transition={{ delay: i * 0.03 }}
                       className="group bg-card/80 dark:bg-[#0f1430] dark:border-indigo-400/20 dark:hover:border-cyan-300/40 dark:hover:shadow-xl dark:hover:shadow-indigo-500/10 rounded-2xl border border-border/50 px-4 py-3 hover:shadow-md hover:border-blue-200/60 hover:-translate-y-0.5 transition-all duration-200"
                     >
-                      <div className="flex items-center">
+                      <div className="grid grid-cols-[auto_minmax(280px,34%)_1px_minmax(260px,1fr)_auto] items-start gap-x-4 gap-y-1">
                         {/* Status dot */}
-                        <div className={`w-2 h-2 rounded-full shrink-0 self-start mt-1 mr-3 ${getWordStatusDot(wordKey)}`} />
+                        <div className={`w-2 h-2 rounded-full shrink-0 self-start mt-1 ${getWordStatusDot(wordKey)}`} />
 
                         {/* Japanese + Furigana */}
-                        <div className="shrink-0 w-36 mr-3">
+                        <div className="shrink-0 min-w-0">
                           <div className="font-display text-xl font-black text-foreground dark:text-white leading-tight">{word.word}</div>
                           <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">{word.furigana || word.romaji}</div>
                         </div>
 
                         {/* Divider */}
-                        <div className="hidden sm:block w-px self-stretch shrink-0 rounded-full bg-linear-to-b from-transparent via-indigo-400/40 to-transparent dark:bg-linear-to-b dark:from-transparent dark:via-indigo-400/50 dark:to-transparent mr-4" />
+                        <div className="hidden sm:block h-16 w-px self-start shrink-0 rounded-full bg-slate-300/80 dark:bg-indigo-400/50" />
 
                         {/* Meaning */}
-                        <div className="flex-1 min-w-0 mr-4">
+                        <div className="min-w-0 flex items-start pt-0.5">
                           <div className="text-sm font-semibold text-foreground dark:text-slate-100 leading-snug">
                             {word.meaning}
                           </div>
@@ -555,7 +612,7 @@ function VocabularyPage() {
                         <div className="flex items-center gap-0.5 flex-shrink-0">
                           <button
                             onClick={() => setWordStatus(wordKey, "mastered")}
-                            title="Đã thuộc"
+                            title="Mastered"
                             className={`p-1.5 rounded-lg transition-all ${
                               status === "mastered"
                                 ? "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300"
@@ -568,7 +625,7 @@ function VocabularyPage() {
                           </button>
                           <button
                             onClick={() => setWordStatus(wordKey, "new")}
-                            title="Chưa thuộc"
+                            title="Learning"
                             className={`p-1.5 rounded-lg transition-all ${
                               status === "new"
                                 ? "bg-muted text-muted-foreground dark:bg-indigo-500/20 dark:text-indigo-300"
@@ -621,12 +678,25 @@ function VocabularyPage() {
                 {/* Complete Lesson Button */}
                 {paginatedWords.length > 0 && (
                   <div className="flex justify-center pt-2">
-                    <button
-                      onClick={() => setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; })}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
-                    >
-                      <Trophy className="w-4 h-4" /> Complete Lesson
-                    </button>
+                    {progressPct === 100 ? (
+                      <div className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 text-sm font-bold border border-green-200 dark:border-green-800">
+                        <CheckCircle className="w-4 h-4" /> Completed
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const newStatuses: Record<string, WordStatus> = {};
+                          words.forEach(w => {
+                            newStatuses[`${activeLesson}-${w.word}`] = "mastered";
+                          });
+                          setWordStatuses(prev => ({ ...prev, ...newStatuses }));
+                          setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; });
+                        }}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
+                      >
+                        <Trophy className="w-4 h-4" /> Complete Lesson
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -725,29 +795,38 @@ function VocabularyPage() {
           {!loading && !error && (
             <>
               {/* JLPT Level Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {/* All button */}
+                <button
+                  onClick={() => { setSelectedLevel("all"); setSelectedTopic("All Topics"); }}
+                  className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
+                    selectedLevel === "all"
+                      ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                      : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:shadow-sm dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
+                  }`}
+                >
+                  <span className="font-display font-bold text-sm leading-none">All</span>
+                  <span className={`text-[10px] leading-none ${selectedLevel === "all" ? "text-white/70" : "text-muted-foreground/70 dark:text-indigo-300/60"}`}>
+                    {allLessonsBase.length} lessons
+                  </span>
+                </button>
                 {JLPT_LEVELS.map(level => {
-                  const lvlLessons = lessons.filter(l => l.level === level);
-                  const lvlTotal = lvlLessons.reduce((s, l) => s + (l.wordCount ?? l.word_count ?? 0), 0);
-                  const lvlLearned = lvlLessons.reduce((s, l) =>
-                    s + (l.words?.filter((w: any) => wordStatuses[`${l.id}-${w.word}`] === "mastered").length || 0), 0);
-                  const pct = lvlTotal > 0 ? Math.round((lvlLearned / lvlTotal) * 100) : 0;
+                  const lvlCount = allLessonsBase.filter(l => l.level === level).length;
                   const isSelected = level === selectedLevel;
                   return (
                     <button
                       key={level}
                       onClick={() => { setSelectedLevel(level); setSelectedTopic("All Topics"); }}
-                      className={`relative shrink-0 flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl transition-all ${
+                      className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
                         isSelected
-                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-blue-200/40 dark:shadow-none"
-                          : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-md dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
+                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                          : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:shadow-sm dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
                       }`}
                     >
-                      <span className="font-display font-black text-base">{level}</span>
-                      <div className={`w-14 h-1 rounded-full overflow-hidden ${isSelected ? "bg-white/30" : "bg-slate-100 dark:bg-slate-700"}`}>
-                        <div className={`h-full rounded-full transition-all ${isSelected ? "bg-white" : "bg-pink-300"}`} style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-muted-foreground dark:text-indigo-300/70"}`}>{pct}%</span>
+                      <span className="font-display font-bold text-sm leading-none">{level}</span>
+                      <span className={`text-[10px] leading-none ${isSelected ? "text-white/70" : "text-muted-foreground/70 dark:text-indigo-300/60"}`}>
+                        {lvlCount} lessons
+                      </span>
                     </button>
                   );
                 })}
@@ -806,9 +885,11 @@ function VocabularyPage() {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredLessons.map((lesson, i) => {
-                    const lessonLearned = 0;
-                    const lessonLearning = 0;
-                    const lessonPct = 0;
+                    const wordCount = lesson.wordCount ?? lesson.word_count ?? 0;
+                    const masteredCount = Object.entries(wordStatuses).filter(
+                      ([k]) => k.startsWith(`${lesson.id}-`) && wordStatuses[k as string] === "mastered"
+                    ).length;
+                    const lessonPct = wordCount > 0 ? Math.round((masteredCount / wordCount) * 100) : 0;
                     return (
                       <motion.div
                         key={lesson.id}
@@ -818,7 +899,7 @@ function VocabularyPage() {
                       >
                         <button
                           onClick={() => openLesson(lesson.id)}
-                          className="w-full text-left rounded-2xl bg-card/80 dark:bg-white/[0.035] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-cyan-300/25 hover:-translate-y-1 transition-all duration-200 overflow-hidden group flex flex-col"
+                          className="w-full text-left rounded-2xl bg-white/90 dark:bg-white/[0.035] backdrop-blur-sm border border-slate-200/70 dark:border-white/10 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-cyan-300/25 hover:-translate-y-1 transition-all duration-200 overflow-hidden group flex flex-col shadow-sm"
                         >
                           {/* Clean Header */}
                           <div className={`relative px-4 pt-4 pb-3 bg-linear-to-br ${getLevelGradient(lesson.level ?? "N5")} ${getLevelGradientDark(lesson.level ?? "N5")}`}>
@@ -829,7 +910,7 @@ function VocabularyPage() {
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-white/80 backdrop-blur-sm border border-white/20 dark:bg-slate-900/50 dark:text-white/80 dark:border-white/15">{lesson.topic}</span>
                                 )}
                               </div>
-                              {completedLessons.has(lesson.id) && (
+                              {lessonPct === 100 && (
                                 <span className="w-6 h-6 rounded-full bg-green-100/70 dark:bg-green-900/50 backdrop-blur-sm flex items-center justify-center">
                                   <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-300" />
                                 </span>
@@ -845,27 +926,30 @@ function VocabularyPage() {
                           </div>
 
                           {/* Content */}
-                          <div className="p-4 mt-auto space-y-2 dark:bg-white/2.5">
-                            <p className="text-xs text-muted-foreground dark:text-slate-300/85 line-clamp-2 min-h-[2.5rem] leading-relaxed">{lesson.description || "No description"}</p>
+                          <div className="p-4 mt-auto space-y-2 bg-slate-50/80 dark:bg-white/2.5">
+                            <p className="text-xs text-slate-600 dark:text-slate-300/85 line-clamp-2 min-h-[2.5rem] leading-relaxed">{lesson.description || "No description"}</p>
 
                             {/* Stats */}
-                            <div className="flex items-center justify-between text-[10px] text-muted-foreground dark:text-indigo-200/70">
+                            <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-indigo-200/70">
                               <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {lesson.wordCount ?? lesson.word_count ?? 0} words</span>
                               {lesson.estimatedMinutes && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> ~{lesson.estimatedMinutes}m</span>}
                             </div>
                             {(lesson as VocabularyLessonResponse).teacherName && (
-                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 dark:text-indigo-200/50">
+                              <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-indigo-200/50">
                                 <User className="w-3 h-3" />
                                 <span className="truncate">{(lesson as VocabularyLessonResponse).teacherName}</span>
                               </div>
                             )}
 
                             {/* Progress */}
-                            <div className="h-1.5 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
-                                style={{ width: `${lessonPct}%` }}
-                              />
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-linear-to-r from-blue-500 to-pink-500 transition-all"
+                                  style={{ width: `${lessonPct}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-semibold tabular-nums shrink-0 dark:text-indigo-200/70">{lessonPct}%</span>
                             </div>
                           </div>
                         </button>
