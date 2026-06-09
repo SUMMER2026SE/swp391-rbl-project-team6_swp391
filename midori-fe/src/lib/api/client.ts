@@ -66,7 +66,9 @@ async function request<T>(
     if (!res.ok) {
       const msg = res.status === 401 && (path === "/auth/login" || path === "/auth/google")
         ? "Unable to sign in. Please try again."
-        : "Request failed. Please try again.";
+        : res.status === 403
+          ? "You do not have permission to access this resource."
+          : "Request failed. Please try again.";
       throw new ApiError(msg, res.status);
     }
     throw new ApiError(`Request failed: ${res.status} ${res.statusText}`, res.status);
@@ -80,6 +82,9 @@ async function request<T>(
       if (errorValues.length > 0) {
         throw new ApiError(errorValues[0], res.status, false);
       }
+    }
+    if (res.status === 403) {
+      throw new ApiError(json.message ?? "You do not have permission to access this resource.", res.status, false);
     }
     throw new ApiError(json.message ?? "An unexpected error occurred.", res.status, false);
   }

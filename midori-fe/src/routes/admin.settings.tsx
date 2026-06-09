@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Shield, Globe, Database, Bot,
+  Shield, Globe, Bot,
   Key, ChevronRight, X, Eye, EyeOff, CheckCircle,
   Copy, RefreshCw, Loader2, ExternalLink,
   AlertTriangle
@@ -10,7 +10,7 @@ import {
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 
-type SecurityView = "password" | "api" | "export" | null;
+type SecurityView = "password" | "api" | null;
 
 function Toggle({ on, onToggle, label, sublabel }: {
   on: boolean; onToggle: () => void; label: string; sublabel: string;
@@ -358,103 +358,6 @@ function APIAccessModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DataExportModal({ onClose }: { onClose: () => void }) {
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState("json");
-
-  const datasets = [
-    { label: "Users & Profiles", size: "2.4 MB", icon: Shield },
-    { label: "Vocabulary Progress", size: "1.8 MB", icon: Database },
-    { label: "Grammar Entries", size: "0.6 MB", icon: Database },
-    { label: "Exam Scores", size: "3.2 MB", icon: Shield },
-    { label: "Listening History", size: "0.9 MB", icon: Database },
-    { label: "Shadowing Sessions", size: "1.1 MB", icon: Database },
-  ];
-
-  const handleExport = async () => {
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 1800));
-    setLoading(false);
-    setDone(true);
-    await new Promise(r => setTimeout(r, 1200));
-    onClose();
-  };
-
-  const totalSize = datasets.reduce((acc, d) => acc + parseFloat(d.size), 0).toFixed(1);
-
-  return (
-    <ModalShell title="Data Export" icon={Database} iconColor="bg-primary/15 text-primary" onClose={onClose}>
-      <div className="p-6 space-y-5">
-        <div className="p-3 rounded-xl bg-primary/8 border border-primary/20">
-          <p className="text-xs text-secondary-col leading-relaxed">
-            Export all platform data as a compressed archive. Includes users, content progress, exam results, and session logs.
-          </p>
-        </div>
-
-        <div className="text-center p-4 rounded-xl bg-white/60 dark:bg-white/5">
-          <p className="text-3xl font-black text-primary-col font-display">{totalSize} MB</p>
-          <p className="text-xs text-muted-col mt-1">Total export size</p>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Included Datasets</label>
-          <div className="space-y-2">
-            {datasets.map(d => {
-              const Icon = d.icon;
-              return (
-                <div key={d.label} className="flex items-center justify-between p-3 rounded-xl bg-white/60 dark:bg-white/5">
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 text-muted-col" />
-                    <span className="text-sm text-primary-col">{d.label}</span>
-                  </div>
-                  <span className="text-xs text-muted-col font-mono">{d.size}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Export Format</label>
-          <div className="flex gap-2">
-            {[
-              { id: "json", label: "JSON Archive", desc: "Compressed JSON" },
-              { id: "csv", label: "CSV Bundle", desc: "Multiple CSVs" },
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => setSelectedFormat(f.id)}
-                className={`flex-1 p-3 rounded-xl border transition text-left ${
-                  selectedFormat === f.id
-                    ? "bg-primary/12 text-primary border-primary/25"
-                    : "bg-white/60 dark:bg-white/5 text-secondary-col border-[var(--border)]"
-                }`}
-              >
-                <p className="text-sm font-semibold text-primary-col">{f.label}</p>
-                <p className="text-[10px] text-muted-col">{f.desc}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="px-6 py-4 border-t border-[var(--border)] flex gap-3">
-        <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-white/60 dark:bg-white/10 text-secondary-col text-sm font-bold hover:bg-white/80 dark:hover:bg-white/20 transition">
-          Cancel
-        </button>
-        <button
-          onClick={handleExport}
-          disabled={loading || done}
-          className="flex-1 py-2.5 rounded-xl bg-primary/15 text-primary text-sm font-bold border border-primary/25 hover:bg-primary/25 transition flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {done ? <><CheckCircle className="w-4 h-4" /> Downloaded!</> : loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Preparing...</> : <><Database className="w-4 h-4" /> Export Data</>}
-        </button>
-      </div>
-    </ModalShell>
-  );
-}
-
 export const Route = createFileRoute("/admin/settings")({ component: SettingsPage });
 
 function SettingsPage() {
@@ -529,24 +432,12 @@ function SettingsPage() {
               <ChevronRight className="w-4 h-4 text-muted-col" />
             </button>
           </div>
-          <div className="py-3">
-            <button
-              onClick={() => setSecurityView("export")}
-              className="w-full flex items-center justify-between hover:bg-white/50 dark:hover:bg-white/5 -mx-5 px-5 py-3 rounded-xl transition"
-            >
-              <span className="flex items-center gap-2 text-sm font-semibold text-primary-col">
-                <Database className="w-4 h-4 text-secondary-col" /> Data Export
-              </span>
-              <ChevronRight className="w-4 h-4 text-muted-col" />
-            </button>
-          </div>
         </SettingsCard>
       </div>
 
       <AnimatePresence>
         {securityView === "password" && <ChangePasswordModal onClose={() => setSecurityView(null)} />}
         {securityView === "api" && <APIAccessModal onClose={() => setSecurityView(null)} />}
-        {securityView === "export" && <DataExportModal onClose={() => setSecurityView(null)} />}
       </AnimatePresence>
     </div>
   );

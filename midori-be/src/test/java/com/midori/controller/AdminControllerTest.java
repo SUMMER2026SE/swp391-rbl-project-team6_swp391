@@ -1,6 +1,5 @@
 package com.midori.controller;
 
-import com.midori.common.ApiResponse;
 import com.midori.dto.response.UserResponse;
 import com.midori.entity.Role;
 import com.midori.entity.UserStatus;
@@ -16,7 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -139,6 +138,58 @@ class AdminControllerTest {
     }
 
     @Nested
+    @DisplayName("PUT /api/admin/users/{userId}/reject")
+    class RejectTeacher {
+
+        @Test
+        @DisplayName("should reject pending teacher successfully")
+        void rejectTeacher_success() throws Exception {
+            UserResponse rejectedTeacher = UserResponse.builder()
+                    .id(teacherId)
+                    .email("teacher@example.com")
+                    .role(Role.TEACHER)
+                    .status(UserStatus.REJECTED)
+                    .rejectionReason("Certificate not valid")
+                    .emailVerified(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(adminUserService.rejectTeacher(teacherId, "Certificate not valid")).thenReturn(rejectedTeacher);
+
+            mockMvc.perform(put("/api/admin/users/{userId}/reject", teacherId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "reason": "Certificate not valid"
+                                    }
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.message", is("Teacher rejected successfully")))
+                    .andExpect(jsonPath("$.data.status", is("REJECTED")))
+                    .andExpect(jsonPath("$.data.rejectionReason", is("Certificate not valid")));
+
+            verify(adminUserService).rejectTeacher(teacherId, "Certificate not valid");
+        }
+
+        @Test
+        @DisplayName("should reject invalid payload")
+        void rejectTeacher_invalidPayload() throws Exception {
+            mockMvc.perform(put("/api/admin/users/{userId}/reject", teacherId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "reason": "   "
+                                    }
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(adminUserService, never()).rejectTeacher(any(), any());
+        }
+    }
+
+    @Nested
     @DisplayName("PUT /api/admin/users/{userId}/suspend")
     class SuspendUser {
 
@@ -161,7 +212,7 @@ class AdminControllerTest {
             mockMvc.perform(put("/api/admin/users/{userId}/suspend", userId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success", is(true)))
-                    .andExpect(jsonPath("$.message", is("User suspended successfully")))
+                    .andExpect(jsonPath("$.message", is("Teacher suspended successfully")))
                     .andExpect(jsonPath("$.data.status", is("SUSPENDED")));
 
             verify(adminUserService).suspendUser(userId);
