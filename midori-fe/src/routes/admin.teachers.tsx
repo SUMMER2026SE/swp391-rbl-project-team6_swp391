@@ -805,6 +805,8 @@ function TeachersPage() {
 
   const pendingCount = pendingTeachers.length;
 
+
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -815,9 +817,9 @@ function TeachersPage() {
         </div>
         {pendingCount > 0 && !loading && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-(--status-pending)/10 text-(--status-pending) text-xs font-bold border border-(--status-pending)/20">
-          <AlertTriangle className="w-3 h-3" />
+            <AlertTriangle className="w-3 h-3" />
             {pendingCount} pending {pendingCount === 1 ? "review" : "reviews"}
-        </div>
+          </div>
         )}
       </div>
 
@@ -827,11 +829,10 @@ function TeachersPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${
-              tab === t
-                ? "bg-gradient-hero text-white shadow-md"
-                : "text-secondary-col nav-item"
-            }`}
+            className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${tab === t
+              ? "bg-gradient-hero text-white shadow-md"
+              : "text-secondary-col nav-item"
+              }`}
           >
             {t === "pending" ? `Pending (${loading ? "..." : pendingCount})` : "Approved"}
           </button>
@@ -842,15 +843,17 @@ function TeachersPage() {
       {tab === "pending" && (
         <>
           {loading && (
-            <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4">
-              <Loader2 className="w-10 h-10 animate-spin text-primary/50" />
-              <p className="text-secondary-col text-sm font-semibold">Loading pending teachers…</p>
+            <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4 animate-pulse">
+              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              <p className="text-secondary-col font-semibold text-sm">Loading pending teachers...</p>
+              <p className="text-muted-col text-xs">Please wait while information is being prepared.</p>
             </div>
           )}
 
           {!loading && error && (
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state gap-3">
-              <AlertCircle className="w-12 h-12 text-(--status-rejected)/50" />
+              <AlertTriangle className="w-10 h-10 text-(--status-rejected)/70" />
+              <p className="text-primary-col font-bold text-sm">Something went wrong.</p>
               <p className="text-secondary-col font-semibold text-sm">{error}</p>
               <button
                 onClick={fetchPendingTeachers}
@@ -865,6 +868,7 @@ function TeachersPage() {
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
               <InboxIcon className="w-12 h-12 text-(--status-active)/40 mb-3" />
               <p className="text-secondary-col font-semibold text-sm">All caught up — no pending applications!</p>
+              <p className="text-muted-col text-xs mt-1">There are currently no records to review.</p>
             </div>
           )}
 
@@ -892,15 +896,17 @@ function TeachersPage() {
       {tab === "approved" && (
         <>
           {approvedLoading && (
-            <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4">
-              <Loader2 className="w-10 h-10 animate-spin text-primary/50" />
-              <p className="text-secondary-col text-sm font-semibold">Loading approved teachers…</p>
+            <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4 animate-pulse">
+              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              <p className="text-secondary-col font-semibold text-sm">Loading approved teachers...</p>
+              <p className="text-muted-col text-xs">Please wait while information is being prepared.</p>
             </div>
           )}
 
           {!approvedLoading && approvedError && (
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state gap-3">
-              <AlertCircle className="w-12 h-12 text-(--status-rejected)/50" />
+              <AlertTriangle className="w-10 h-10 text-(--status-rejected)/70" />
+              <p className="text-primary-col font-bold text-sm">Something went wrong.</p>
               <p className="text-secondary-col font-semibold text-sm">{approvedError}</p>
               <button
                 onClick={fetchApprovedTeachers}
@@ -915,6 +921,7 @@ function TeachersPage() {
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
               <UserCheck className="w-12 h-12 text-(--status-active)/40 mb-3" />
               <p className="text-secondary-col font-semibold text-sm">No approved teachers yet.</p>
+              <p className="text-muted-col text-xs mt-1">Nothing to display at the moment.</p>
             </div>
           )}
 

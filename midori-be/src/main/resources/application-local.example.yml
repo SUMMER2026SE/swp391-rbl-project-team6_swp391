@@ -47,7 +47,7 @@ app:
   admin:
     bootstrap-enabled: true
     email: admin@midori.local
-    password: ChangeMe123!
+    password: ${ADMIN_PASSWORD:ChangeMe123!}
   jwt:
     secret: local-dev-jwt-secret-key-for-midori-backend-at-least-32-chars
     access-token-expiration: 86400000

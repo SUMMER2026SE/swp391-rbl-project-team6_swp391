@@ -62,6 +62,7 @@ function VocabStudyPage() {
   const [wordStatuses, setWordStatuses] = useState<Record<number, WordStatus>>({});
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
 
+
   const word = words[current];
   const status = wordStatuses[current] ?? "not_learned";
   const isBook = bookmarked.has(current);
@@ -114,9 +115,10 @@ function VocabStudyPage() {
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center">
         <SakuraBg count={18} />
-        <div className="relative z-10 text-center">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/70 text-sm font-medium">Loading lesson...</p>
+        <div className="relative z-10 flex flex-col items-center gap-3 text-center animate-pulse">
+          <BookOpen className="w-12 h-12 text-white/50" />
+          <p className="text-white font-bold text-base">Loading vocabulary...</p>
+          <p className="text-white/60 text-sm">Please wait while information is being prepared.</p>
         </div>
       </div>
     );
@@ -139,6 +141,23 @@ function VocabStudyPage() {
           >
             <ChevronLeft className="w-4 h-4" />
             Back to Vocabulary
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Lesson Not Found State ────────────────────────────────────────────────
+  if (!lesson) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={18} />
+        <div className="relative z-10 flex flex-col items-center gap-3 text-center">
+          <BookOpen className="w-12 h-12 text-white/50 mb-2" />
+          <p className="text-white font-bold text-lg">Lesson not found.</p>
+          <p className="text-white/60 text-sm">Unable to load data. Please try again later.</p>
+          <Link to="/student/vocabulary" className="mt-3 px-4 py-2 rounded-xl bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition">
+            ← Back to Vocabulary
           </Link>
         </div>
       </div>
@@ -466,22 +485,20 @@ function VocabStudyPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={toggleLearned}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${
-                status === "not_learned"
-                  ? "bg-white/15 border-white/20 text-white/70 hover:bg-red-500/20 hover:border-red-400/30 hover:text-red-300"
-                  : "bg-green-500/20 border-green-400/30 text-green-300"
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${status === "not_learned"
+                ? "bg-white/15 border-white/20 text-white/70 hover:bg-red-500/20 hover:border-red-400/30 hover:text-red-300"
+                : "bg-green-500/20 border-green-400/30 text-green-300"
+                }`}
             >
               <X className="w-4 h-4" />
               Not Learned
             </button>
             <button
               onClick={toggleLearned}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${
-                status === "learned"
-                  ? "bg-green-500/20 border-green-400/30 text-green-300"
-                  : "bg-white/15 border-white/20 text-white/70 hover:bg-green-500/20 hover:border-green-400/30 hover:text-green-300"
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${status === "learned"
+                ? "bg-green-500/20 border-green-400/30 text-green-300"
+                : "bg-white/15 border-white/20 text-white/70 hover:bg-green-500/20 hover:border-green-400/30 hover:text-green-300"
+                }`}
             >
               <CheckCircle2 className={`w-4 h-4 ${status === "learned" ? "fill-green-400" : ""}`} />
               Learned

@@ -107,11 +107,10 @@ function PaginationUI({ current, total, onPage }: { current: number; total: numb
           <button
             key={p}
             onClick={() => onPage(p)}
-            className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${
-              p === current
-                ? "bg-gradient-hero text-white shadow"
-                : "border border-slate-200 dark:border-slate-700 text-muted-foreground hover:bg-muted"
-            }`}
+            className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${p === current
+              ? "bg-gradient-hero text-white shadow"
+              : "border border-slate-200 dark:border-slate-700 text-muted-foreground hover:bg-muted"
+              }`}
           >
             {p}
           </button>
@@ -150,11 +149,10 @@ function TopicFilter({
     <div className="relative" onClick={e => e.stopPropagation()}>
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-          selected !== "All"
-            ? "bg-primary/10 border-primary/30 text-primary"
-            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground hover:text-foreground"
-        }`}
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${selected !== "All"
+          ? "bg-primary/10 border-primary/30 text-primary"
+          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground hover:text-foreground"
+          }`}
       >
         <Tag className="w-4 h-4" />
         {selected === "All" ? "All Topics" : selected}
@@ -172,11 +170,10 @@ function TopicFilter({
           >
             <button
               onClick={() => { onSelect("All"); setOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${
-                selected === "All"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${selected === "All"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
             >
               All Topics
             </button>
@@ -184,11 +181,10 @@ function TopicFilter({
               <button
                 key={topic}
                 onClick={() => { onSelect(topic); setOpen(false); }}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${
-                  selected === topic
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${selected === topic
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
               >
                 <Tag className="w-3.5 h-3.5 opacity-60" />
                 {topic}
@@ -212,6 +208,12 @@ function VocabularyManagementPage() {
   const [levelFilter, setLevelFilter] = useState("All");
   const [topicFilter, setTopicFilter] = useState("All");
   const [page, setPage] = useState(1);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPageLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Modal states
   const [showAdd, setShowAdd] = useState(false);
@@ -653,6 +655,16 @@ function VocabularyManagementPage() {
     }
   };
 
+  if (pageLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <BookOpen className="w-10 h-10 text-primary animate-pulse" />
+        <p className="text-foreground font-semibold text-sm">Loading vocabulary...</p>
+        <p className="text-muted-foreground text-xs">Please wait while information is being prepared.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Page header ─────────────────────────────────────────── */}
@@ -719,11 +731,10 @@ function VocabularyManagementPage() {
             <button
               key={lvl}
               onClick={() => handleLevel(lvl)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                levelFilter === lvl
-                  ? "bg-gradient-hero text-white shadow"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${levelFilter === lvl
+                ? "bg-gradient-hero text-white shadow"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
             >
               {lvl}
             </button>
@@ -754,7 +765,8 @@ function VocabularyManagementPage() {
       {!loading && !error && lessons.length === 0 && (
         <div className="text-center py-20 text-muted-foreground rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-semibold text-base">No lessons found</p>
+          <p className="font-semibold text-base">No lessons found.</p>
+          <p className="text-sm mt-1">Nothing to display at the moment. Try adjusting your filters.</p>
           <button onClick={() => { setShowAdd(true); setLessonWords([]); lessonWordsRef.current = []; setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); setCreateError(null); }} className="mt-3 text-primary underline text-sm">
             + Create your first lesson
           </button>
@@ -851,16 +863,15 @@ function VocabularyManagementPage() {
                     JLPT Level
                   </label>
                   <div className="flex gap-1">
-                    {["N5","N4","N3","N2","N1"].map(lvl => (
+                    {["N5", "N4", "N3", "N2", "N1"].map(lvl => (
                       <button
                         key={lvl}
                         type="button"
                         onClick={() => setNewLevel(lvl)}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                          newLevel === lvl
-                            ? "bg-gradient-hero text-white shadow"
-                            : "bg-slate-50 dark:bg-slate-800 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
-                        }`}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newLevel === lvl
+                          ? "bg-gradient-hero text-white shadow"
+                          : "bg-slate-50 dark:bg-slate-800 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
+                          }`}
                       >
                         {lvl}
                       </button>
@@ -995,7 +1006,6 @@ function VocabularyManagementPage() {
                             />
                           </div>
                         </div>
-
                         <div className="flex gap-2 pt-1">
                           <button
                             type="button"
@@ -1339,7 +1349,6 @@ function VocabularyManagementPage() {
                                 />
                               </div>
                             </div>
-
                             <div className="flex gap-2 pt-1">
                               <button
                                 type="button"

@@ -31,6 +31,7 @@ function speakJapanese(text: string) {
   window.speechSynthesis.speak(utterance);
 }
 
+
 export const Route = createFileRoute("/teacher/vocabulary/$lessonId")({
   component: VocabularyLessonDetailPage,
 });
@@ -62,11 +63,10 @@ function PaginationUI({ current, total, onPage }: { current: number; total: numb
           <button
             key={p}
             onClick={() => onPage(p)}
-            className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${
-              p === current
-                ? "bg-gradient-hero text-white shadow"
-                : "border border-slate-200 dark:border-slate-700 text-muted-foreground hover:bg-muted"
-            }`}
+            className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${p === current
+              ? "bg-gradient-hero text-white shadow"
+              : "border border-slate-200 dark:border-slate-700 text-muted-foreground hover:bg-muted"
+              }`}
           >
             {p}
           </button>
@@ -283,10 +283,13 @@ function VocabularyLessonDetailPage() {
     fetchLesson();
   }, [fetchLesson]);
 
-  // Sync words when lesson changes
   useEffect(() => {
     if (lesson) setWords(lesson.words ?? []);
   }, [lesson]);
+
+  useEffect(() => {
+    if (editingWord) setEditForm(editingWord);
+  }, [editingWord]);
 
   const levelBadge = (l: string) => {
     const map: Record<string, string> = {
@@ -392,8 +395,9 @@ function VocabularyLessonDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 text-muted-foreground">
-        <Loader2 className="w-10 h-10 animate-spin mb-3" />
-        <p className="text-sm font-semibold">Loading lesson...</p>
+        <BookOpen className="w-12 h-12 mb-3 opacity-30 animate-pulse" />
+        <p className="text-base font-bold">Loading vocabulary...</p>
+        <p className="text-sm text-muted-foreground/70 mt-1">Retrieving information...</p>
       </div>
     );
   }
@@ -402,7 +406,8 @@ function VocabularyLessonDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 text-muted-foreground">
         <BookOpen className="w-12 h-12 mb-3 opacity-30" />
-        <p className="text-lg font-bold text-red-500">{error ?? "Lesson not found"}</p>
+        <p className="text-lg font-bold text-red-500">{error ?? "Lesson not found."}</p>
+        <p className="text-sm mt-1">Unable to load data. Please try again later.</p>
         <Link to="/teacher/vocabulary" className="mt-3 text-primary underline text-sm">
           ← Back to lesson list
         </Link>
@@ -520,8 +525,8 @@ function VocabularyLessonDetailPage() {
       {filtered.length === 0 && !search && filterTopic === "All" && (
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
-          <p className="text-muted-foreground font-semibold text-base mb-1">No vocabulary yet</p>
-          <p className="text-sm text-muted-foreground/60 mb-5">Click "Add word" to get started</p>
+          <p className="text-muted-foreground font-semibold text-base mb-1">No data available.</p>
+          <p className="text-sm text-muted-foreground/60 mb-5">Click "Add word" to get started.</p>
           <button
             onClick={() => setAddNew(true)}
             className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition">
@@ -533,7 +538,8 @@ function VocabularyLessonDetailPage() {
       {filtered.length === 0 && (search || filterTopic !== "All") && (
         <div className="text-center py-16">
           <Search className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-          <p className="text-muted-foreground font-semibold">No matching words found</p>
+          <p className="text-muted-foreground font-semibold">No matching words found.</p>
+          <p className="text-sm text-muted-foreground/60 mt-1">Nothing to display at the moment. Try adjusting your search.</p>
           <button onClick={() => { setSearch(""); setFilterTopic("All"); setPage(1); }}
             className="mt-2 text-primary underline text-sm">Clear filters</button>
         </div>
