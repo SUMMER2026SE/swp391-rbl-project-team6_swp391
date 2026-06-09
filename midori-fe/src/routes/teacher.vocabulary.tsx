@@ -457,16 +457,9 @@ function VocabularyManagementPage() {
     setViewLoading(true);
     setViewError(null);
     try {
-      console.log("[TeacherVocabulary] Fetching lesson detail for:", lesson.id);
       const detail = await teacherVocabularyApi.getTeacherLessonDetail(lesson.id);
-      console.log("[TeacherVocabulary] Lesson detail received:", detail);
-      console.log("[TeacherVocabulary] Words count:", detail.words?.length);
-      detail.words?.forEach((w, i) => {
-        console.log(`  Word ${i + 1}: id=${w.id}, word=${w.word}, meaning=${w.meaning}`);
-      });
       setViewingLesson(detail);
     } catch (err) {
-      console.error("[TeacherVocabulary] Error fetching lesson detail:", err);
       setViewError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
       setViewingLesson((prev) => prev?.id === lesson.id ? prev : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse));
     } finally {
@@ -633,15 +626,6 @@ function VocabularyManagementPage() {
         displayOrder: index + 1,
       })),
     } satisfies VocabularyLessonCreateRequest;
-
-    console.log("[TeacherVocabulary] === CREATE LESSON DEBUG ===");
-    console.log("title:", newName.trim());
-    console.log("level:", newLevel);
-    console.log("words count:", effectiveLessonWords.length);
-    effectiveLessonWords.forEach((w, i) => {
-      console.log(`  Word ${i + 1}: japanese="${w.word}", vietnamese="${w.meaning}"`);
-    });
-    console.log("payload words:", JSON.stringify(payload.words, null, 2));
 
     setCreating(true);
     setCreateError(null);

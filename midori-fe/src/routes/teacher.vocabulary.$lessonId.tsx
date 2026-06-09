@@ -438,10 +438,10 @@ function VocabularyLessonDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm hover:border-primary/40">
+          <button disabled className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm opacity-50 cursor-not-allowed" title="Coming soon">
             <Eye className="w-4 h-4" /> Preview
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm hover:border-primary/40">
+          <button disabled className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm opacity-50 cursor-not-allowed" title="Coming soon">
             <Download className="w-4 h-4" /> Export
           </button>
           <button

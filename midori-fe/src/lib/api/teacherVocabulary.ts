@@ -1,164 +1,32 @@
 import { api } from "./client";
+import {
+  type VocabularyLessonResponse,
+  type VocabularyWordResponse,
+  type VocabularyLessonDetailResponse,
+  type VocabularyWordCreateRequest,
+  type VocabularyLessonCreateRequest,
+  type VocabularyLessonUpdateRequest,
+  type VocabularyWordUpdateRequest,
+  type LessonListParams,
+  normalizeLesson,
+  normalizeLessonDetail,
+  normalizeWord,
+} from "./vocabularyMappers";
 
-export interface VocabularyLessonResponse {
-  id: string;
-  title: string;
-  description?: string;
-  level?: string;
-  topic?: string;
-  estimatedMinutes?: number;
-  estimated_minutes?: number;
-  wordCount: number;
-  word_count?: number;
-  isPublished: boolean;
-  is_published?: boolean;
-  createdBy: string;
-  created_by?: string;
-  teacherName?: string;
-  teacher_name?: string;
-  createdByName?: string;
-  created_by_name?: string;
-  createdByUsername?: string;
-  created_by_username?: string;
-  teacherUsername?: string;
-  teacher_username?: string;
-  ownedByMe?: boolean;
-  owned_by_me?: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+export type {
+  VocabularyLessonResponse,
+  VocabularyWordResponse,
+  VocabularyLessonDetailResponse,
+  VocabularyWordCreateRequest,
+  VocabularyLessonCreateRequest,
+  VocabularyLessonUpdateRequest,
+  VocabularyWordUpdateRequest,
+  LessonListParams,
+};
 
-export interface VocabularyWordResponse {
-  id: string;
-  lessonId: string;
-  lesson_id?: string;
-  word: string;
-  japanese?: string;
-  furigana?: string;
-  reading?: string;
-  romaji?: string;
-  meaning: string;
-  vietnamese?: string;
-  exampleJapanese?: string;
-  example_japanese?: string;
-  exampleMeaning?: string;
-  exampleVietnamese?: string;
-  example_vietnamese?: string;
-  audioUrl?: string;
-  audio_url?: string;
-  displayOrder: number;
-  display_order?: number;
-  createdAt: string;
-  updatedAt: string;
-}
+export { normalizeLesson, normalizeLessonDetail };
 
-export interface VocabularyLessonDetailResponse extends VocabularyLessonResponse {
-  words: VocabularyWordResponse[];
-}
-
-export interface VocabularyWordCreateRequest {
-  word?: string;
-  japanese?: string;
-  furigana?: string;
-  reading?: string;
-  romaji?: string;
-  meaning?: string;
-  vietnamese?: string;
-  exampleJapanese?: string;
-  example_japanese?: string;
-  exampleMeaning?: string;
-  exampleVietnamese?: string;
-  example_vietnamese?: string;
-  audioUrl?: string;
-  audio_url?: string;
-  displayOrder?: number;
-  display_order?: number;
-}
-
-export interface VocabularyLessonCreateRequest {
-  title: string;
-  description?: string;
-  level: string;
-  topic?: string;
-  estimatedMinutes?: number;
-  estimated_minutes?: number;
-  isPublished?: boolean;
-  is_published?: boolean;
-  words?: VocabularyWordCreateRequest[];
-}
-
-export interface VocabularyLessonUpdateRequest {
-  title?: string;
-  description?: string;
-  level?: string;
-  topic?: string;
-  estimatedMinutes?: number;
-  estimated_minutes?: number;
-  isPublished?: boolean;
-  is_published?: boolean;
-}
-
-export interface VocabularyWordUpdateRequest {
-  word?: string;
-  japanese?: string;
-  furigana?: string;
-  reading?: string;
-  romaji?: string;
-  meaning?: string;
-  vietnamese?: string;
-  exampleJapanese?: string;
-  example_japanese?: string;
-  exampleMeaning?: string;
-  exampleVietnamese?: string;
-  example_vietnamese?: string;
-  audioUrl?: string;
-  audio_url?: string;
-  displayOrder?: number;
-  display_order?: number;
-}
-
-export interface LessonListParams {
-  level?: string;
-  topic?: string;
-  search?: string;
-}
-
-function normalizeWord(word: VocabularyWordResponse): VocabularyWordResponse {
-  return {
-    ...word,
-    lessonId: word.lessonId ?? word.lesson_id ?? "",
-    word: word.word ?? word.japanese ?? "",
-    japanese: word.japanese ?? word.word ?? "",
-    furigana: word.furigana ?? word.reading,
-    reading: word.reading ?? word.furigana,
-    meaning: word.meaning ?? word.vietnamese ?? "",
-    vietnamese: word.vietnamese ?? word.meaning ?? "",
-    exampleJapanese: word.exampleJapanese ?? word.example_japanese,
-    exampleMeaning: word.exampleMeaning ?? word.exampleVietnamese ?? word.example_vietnamese,
-    exampleVietnamese: word.exampleVietnamese ?? word.exampleMeaning ?? word.example_vietnamese,
-    audioUrl: word.audioUrl ?? word.audio_url,
-    displayOrder: word.displayOrder ?? word.display_order ?? 0,
-  };
-}
-
-function normalizeLesson<T extends VocabularyLessonResponse>(lesson: T): T {
-  return {
-    ...lesson,
-    estimatedMinutes: lesson.estimatedMinutes ?? lesson.estimated_minutes,
-    wordCount: lesson.wordCount ?? lesson.word_count ?? ((lesson as T & { words?: unknown[] }).words?.length ?? 0),
-    isPublished: lesson.isPublished ?? lesson.is_published ?? false,
-    teacherName: lesson.teacherName ?? lesson.teacher_name ?? lesson.createdByName ?? lesson.created_by_name ?? lesson.createdByUsername ?? lesson.created_by_username ?? lesson.teacherUsername ?? lesson.teacher_username ?? "MIDORI",
-    ownedByMe: lesson.ownedByMe ?? lesson.owned_by_me ?? false,
-  };
-}
-
-function normalizeLessonDetail(lesson: VocabularyLessonDetailResponse): VocabularyLessonDetailResponse {
-  const normalizedLesson = normalizeLesson(lesson);
-  return {
-    ...normalizedLesson,
-    words: Array.isArray(lesson.words) ? lesson.words.map(normalizeWord) : [],
-  };
-}
+// ─── Payload Normalizers (teacher-only, not shared) ─────────────────────────────
 
 function normalizeCreateWordPayload(word: VocabularyWordCreateRequest): VocabularyWordCreateRequest {
   const japanese = word.japanese ?? word.word;
@@ -216,7 +84,7 @@ function normalizeUpdateWordPayload(data: VocabularyWordUpdateRequest): Vocabula
   return normalizeCreateWordPayload(data);
 }
 
-// ─── Lesson API ────────────────────────────────────────────────────────────────
+// ─── Teacher Vocabulary API ──────────────────────────────────────────────────────
 
 export const teacherVocabularyApi = {
   /**
@@ -241,11 +109,9 @@ export const teacherVocabularyApi = {
    * Returns lesson detail including its words list.
    */
   getTeacherLessonDetail: async (lessonId: string) => {
-    console.log("[getTeacherLessonDetail] Fetching lesson:", lessonId);
     const lesson = await api.get<VocabularyLessonDetailResponse>(
       `/teacher/vocabulary/lessons/${lessonId}`
     );
-    console.log("[getTeacherLessonDetail] Received:", JSON.stringify(lesson, null, 2));
     return normalizeLessonDetail(lesson);
   },
 
@@ -255,8 +121,6 @@ export const teacherVocabularyApi = {
    */
   createLesson: async (data: VocabularyLessonCreateRequest) => {
     const payload = normalizeCreateLessonPayload(data);
-    console.log("[createLesson] Before normalization - words:", data.words?.length);
-    console.log("[createLesson] After normalization - payload:", JSON.stringify(payload, null, 2));
     const lesson = await api.post<VocabularyLessonResponse>("/teacher/vocabulary/lessons", payload);
     return normalizeLesson(lesson);
   },
@@ -321,7 +185,10 @@ export const teacherVocabularyApi = {
    * Updates an existing word.
    */
   updateWord: async (wordId: string, data: VocabularyWordUpdateRequest) => {
-    const word = await api.put<VocabularyWordResponse>(`/teacher/vocabulary/words/${wordId}`, normalizeUpdateWordPayload(data));
+    const word = await api.put<VocabularyWordResponse>(
+      `/teacher/vocabulary/words/${wordId}`,
+      normalizeUpdateWordPayload(data)
+    );
     return normalizeWord(word);
   },
 
