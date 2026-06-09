@@ -12,7 +12,6 @@ import {
   Circle,
   Home,
   LogOut,
-  User,
   Mail,
   Info,
   RefreshCw,
@@ -22,8 +21,11 @@ import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { authApi } from "@/lib/api/auth";
+import { AuthGuard } from "@/components/auth-guard";
 
-export const Route = createFileRoute("/teacher-pending")({ component: TeacherPendingPage });
+export const Route = createFileRoute("/teacher-pending")({
+  component: TeacherPendingPage,
+});
 
 // ── Timeline step types ──────────────────────────────────────────────────────
 type TimelineStep = {
@@ -100,15 +102,16 @@ function TeacherPendingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 md:p-6 relative overflow-hidden">
-      <SakuraBg count={14} />
+    <AuthGuard pendingOnly>
+      <div className="min-h-screen flex items-center justify-center p-4 md:p-6 relative overflow-hidden">
+        <SakuraBg count={14} />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative w-full max-w-2xl space-y-6"
-      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative w-full max-w-2xl space-y-6"
+        >
         {/* ── User Info Banner ─────────────────────────────────────────── */}
         {user && (
           <motion.div
@@ -351,6 +354,7 @@ function TeacherPendingPage() {
           </CardContent>
         </Card>
       </motion.div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

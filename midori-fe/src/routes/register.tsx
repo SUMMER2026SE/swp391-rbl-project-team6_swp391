@@ -4,7 +4,8 @@ import { useState, useRef } from "react";
 import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File, Check } from "lucide-react";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
-import { useAuth, rolePath } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import type { RegisterRequest } from "@/lib/api/types";
 
 export const Route = createFileRoute("/register")({ component: RegisterPage });
 
@@ -38,7 +39,13 @@ type CertificateFile = {
   size: string;
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+type VerificationState = {
+  email: string;
+  message: string;
+  role: Role;
+};
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
 
 function formatFileSize(bytes: number): string {
@@ -59,6 +66,26 @@ function getPasswordChecks(pw: string): PasswordChecks {
     uppercase: /[A-Z]/.test(pw),
     number: /[0-9]/.test(pw),
     special: /[^A-Za-z0-9]/.test(pw),
+  };
+}
+
+function buildVerifyOtpState(role: Role, email: string): VerificationState {
+  return {
+    email,
+    role,
+    message:
+      role === "TEACHER"
+        ? "Teacher account created. Please verify your email. You'll go to the pending approval page after sign-in if your account is still under review."
+        : "Account created. Please verify your email.",
+  };
+}
+
+function createRegisterPayload(form: RegisterForm, selectedRole: Role): RegisterRequest {
+  return {
+    email: form.email,
+    password: form.password,
+    confirmPassword: form.confirm,
+    role: selectedRole,
   };
 }
 
@@ -102,17 +129,14 @@ function RegisterPage() {
     if (files.length === 0) return;
 
     const validFiles: CertificateFile[] = [];
-    let hasError = false;
 
     for (const file of files) {
       if (!ALLOWED_TYPES.includes(file.type)) {
         setFileError(`Invalid file type: ${file.name}. Only PDF, JPG, PNG allowed.`);
-        hasError = true;
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
         setFileError(`File too large: ${file.name}. Maximum 5MB per file.`);
-        hasError = true;
         continue;
       }
       validFiles.push({
@@ -210,17 +234,12 @@ function RegisterPage() {
 
     setLoading(true);
     try {
-      await authApi.register({
-        email: form.email,
-        password: form.password,
-        role: selectedRole,
-      });
+      await authApi.register(createRegisterPayload(form, selectedRole));
 
-      const message =
-        selectedRole === "TEACHER"
-          ? "Teacher account created. Please verify your email."
-          : "Account created. Please verify your email.";
-      nav({ to: "/verify-otp", search: { email: form.email } });
+      nav({
+        to: "/verify-otp",
+        state: buildVerifyOtpState(selectedRole, form.email),
+      });
     } catch (err) {
       if (err instanceof ApiError) {
         const msg = err.message.toLowerCase();
@@ -245,17 +264,14 @@ function RegisterPage() {
   };
 
   const handleGoogleSuccess = async (credential: string) => {
+    setErr("");
     setGoogleLoading(true);
     try {
       const u = await loginWithGoogle(credential, selectedRole);
-      nav({ to: rolePath(u.role) });
+      nav({ to: getDashboardPath(u) });
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.message.toLowerCase().includes("pending admin approval")) {
-          setErr("Your teacher account is pending admin approval. Please wait for admin review.");
-        } else {
-          setErr(err.message);
-        }
+        setErr(err.message);
       } else {
         setErr("Google sign-in failed. Please try again.");
       }
@@ -419,7 +435,6 @@ function RegisterPage() {
           <p className="text-xs text-destructive font-medium pl-1">{fieldErrors.confirm}</p>
         )}
 
-        {/* Teacher Application Section */}
         {selectedRole === "TEACHER" && (
           <div className="rounded-2xl border border-border bg-white/30 dark:bg-white/5 p-4 space-y-4">
             <h3 className="text-sm font-semibold text-foreground">Teacher Application</h3>
@@ -532,7 +547,7 @@ function RegisterPage() {
           </div>
         )}
 
-        <PrimaryBtn type="submit" disabled={loading}>
+        <PrimaryBtn type="submit" disabled={loading || googleLoading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">

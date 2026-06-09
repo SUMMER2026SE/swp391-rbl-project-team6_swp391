@@ -112,8 +112,8 @@ public class GoogleOAuthService {
             case SUSPENDED:
                 throw new UnauthorizedException("Account has been suspended");
             case PENDING:
-            case ACTIVE:
             case PENDING_APPROVAL:
+            case ACTIVE:
                 // Teacher with PENDING_APPROVAL can log in but will be redirected to /teacher-pending on frontend
                 break;
         }

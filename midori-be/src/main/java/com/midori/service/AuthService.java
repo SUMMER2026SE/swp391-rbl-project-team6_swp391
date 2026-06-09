@@ -108,7 +108,6 @@ public class AuthService {
         if (user.getStatus() == UserStatus.SUSPENDED) {
             throw new UnauthorizedException("Account has been suspended");
         }
-
         // Teacher accounts with PENDING_APPROVAL can log in but are redirected to /teacher-pending
 
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);

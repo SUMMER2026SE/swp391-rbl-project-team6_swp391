@@ -37,9 +37,15 @@ public class User {
     @Builder.Default
     private UserStatus status = UserStatus.PENDING;
 
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
+
     @Column(name = "email_verified", nullable = false)
     @Builder.Default
     private Boolean emailVerified = false;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private UserProfile profile;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

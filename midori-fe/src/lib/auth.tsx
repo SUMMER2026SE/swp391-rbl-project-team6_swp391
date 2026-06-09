@@ -2,8 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { api } from "./api/client";
 import { authApi } from "./api/auth";
 import { profileApi, type ProfileResponse } from "./api/profile";
-import type { Role } from "./api/types";
-import type { UserResponse } from "./api/types";
+import type { LoginRequest, RegisterRequest, Role, UserResponse, UserStatus } from "./api/types";
 
 export type FrontendRole = "student" | "teacher" | "admin";
 
@@ -14,17 +13,18 @@ export type User = {
   role: FrontendRole;
   avatar?: string | null;
   googleAvatar?: string | null;
-  status?: "active" | "pending";
+  status?: UserStatus;
 };
 
 type AuthCtx = {
   user: User | null;
   loaded: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
   loginWithGoogle: (idToken: string, role?: string) => Promise<User>;
   logout: () => void;
   updateCurrentUser: (patch: Partial<User>) => void;
+  refreshCurrentUser: () => Promise<User>;
   accessToken: string | null;
 };
 
@@ -32,7 +32,7 @@ const Ctx = createContext<AuthCtx | null>(null);
 const USER_KEY = "midori_user";
 const TOKEN_KEY = "midori_access_token";
 
-function mapBackendRole(role: string): FrontendRole {
+function mapBackendRole(role: Role): FrontendRole {
   switch (role) {
     case "TEACHER":
       return "teacher";
@@ -51,7 +51,7 @@ function userResponseToUser(r: UserResponse): User {
     email: r.email,
     role: mapBackendRole(r.role),
     avatar: r.avatarUrl ?? null,
-    status: r.status === "ACTIVE" ? "active" : "pending",
+    status: r.status,
   };
 }
 
@@ -119,9 +119,77 @@ async function hydrateWithProfile(baseUser: User): Promise<User> {
   }
 }
 
+export function rolePath(role: FrontendRole) {
+  return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
+}
+
+export function getDashboardPath(user: Pick<User, "role" | "status">) {
+  if (user.role === "teacher" && user.status === "PENDING_APPROVAL") {
+    return "/teacher-pending";
+  }
+
+  return rolePath(user.role);
+}
+
+export function getRouteGuardRedirect(user: Pick<User, "role" | "status"> | null, routeRole: FrontendRole) {
+  if (!user) {
+    return "/login";
+  }
+
+  if (routeRole === "teacher") {
+    if (user.role !== "teacher") {
+      return getDashboardPath(user);
+    }
+
+    if (user.status === "PENDING_APPROVAL") {
+      return "/teacher-pending";
+    }
+
+    return null;
+  }
+
+  if (user.role !== routeRole) {
+    return getDashboardPath(user);
+  }
+
+  return null;
+}
+
+export function getTeacherPendingRedirect(user: Pick<User, "role" | "status"> | null) {
+  if (!user) {
+    return "/login";
+  }
+
+  return getDashboardPath(user) === "/teacher-pending" ? null : getDashboardPath(user);
+}
+
+export function canAccessRoleRoute(user: Pick<User, "role" | "status">, routeRole: FrontendRole) {
+  return getRouteGuardRedirect(user, routeRole) === null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loaded, setLoaded] = useState(false);
+
+  const persistUser = (u: User | null) => {
+    setUser(u);
+    if (typeof window !== "undefined") {
+      if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
+      else localStorage.removeItem(USER_KEY);
+    }
+  };
+
+  const refreshCurrentUser = async () => {
+    const userResponse = await authApi.getMe();
+    const storedRaw =
+      typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+    const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
+    const apiUser = userResponseToUser(userResponse);
+    const merged = mergeUser(storedUser, apiUser);
+    const hydrated = await hydrateWithProfile(merged);
+    persistUser(hydrated);
+    return hydrated;
+  };
 
   useEffect(() => {
     async function restore() {
@@ -129,13 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (token) {
         try {
-          const userResponse = await authApi.getMe();
-          const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
-          const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
-          const apiUser = userResponseToUser(userResponse);
-          const merged = mergeUser(storedUser, apiUser);
-          const hydrated = await hydrateWithProfile(merged);
-          persistUser(hydrated);
+          await refreshCurrentUser();
         } catch (err) {
           console.debug("[Auth] getMe failed during restore", err);
           api.removeToken();
@@ -155,14 +217,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restore();
   }, []);
 
-  const persistUser = (u: User | null) => {
-    setUser(u);
-    if (typeof window !== "undefined") {
-      if (u) localStorage.setItem(USER_KEY, JSON.stringify(u));
-      else localStorage.removeItem(USER_KEY);
-    }
-  };
-
   const value: AuthCtx = {
     user,
     loaded,
@@ -179,8 +233,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return hydrated;
     },
 
-    register: async (email, password) => {
-      await authApi.register({ email, password });
+    register: async (data) => {
+      await authApi.register(data);
     },
 
     loginWithGoogle: async (idToken: string, role?: string) => {
@@ -214,6 +268,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updated = { ...user, ...patch };
       persistUser(updated);
     },
+
+    refreshCurrentUser,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -223,10 +279,6 @@ export function useAuth() {
   const c = useContext(Ctx);
   if (!c) throw new Error("useAuth outside AuthProvider");
   return c;
-}
-
-export function rolePath(role: FrontendRole) {
-  return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
 }
 
 type ThemeCtx = {

@@ -11,23 +11,23 @@ public interface VocabularyService {
 
     VocabularyLessonResponse createLesson(VocabularyLessonCreateRequest request, UUID createdBy);
 
-    VocabularyLessonResponse updateLesson(UUID lessonId, VocabularyLessonUpdateRequest request);
+    VocabularyLessonResponse updateLesson(UUID lessonId, VocabularyLessonUpdateRequest request, UUID currentUserId);
 
-    void deleteLesson(UUID lessonId);
+    void deleteLesson(UUID lessonId, UUID currentUserId);
 
-    VocabularyLessonDetailResponse getLessonDetailForManagement(UUID lessonId);
+    VocabularyLessonDetailResponse getLessonDetailForManagement(UUID lessonId, UUID currentUserId);
 
-    List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search);
+    List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search, UUID currentUserId);
 
-    VocabularyWordResponse addWord(UUID lessonId, VocabularyWordCreateRequest request);
+    VocabularyWordResponse addWord(UUID lessonId, VocabularyWordCreateRequest request, UUID currentUserId);
 
-    VocabularyWordResponse updateWord(UUID wordId, VocabularyWordUpdateRequest request);
+    VocabularyWordResponse updateWord(UUID wordId, VocabularyWordUpdateRequest request, UUID currentUserId);
 
-    void deleteWord(UUID wordId);
+    void deleteWord(UUID wordId, UUID currentUserId);
 
-    VocabularyLessonResponse publishLesson(UUID lessonId);
+    VocabularyLessonResponse publishLesson(UUID lessonId, UUID currentUserId);
 
-    VocabularyLessonResponse unpublishLesson(UUID lessonId);
+    VocabularyLessonResponse unpublishLesson(UUID lessonId, UUID currentUserId);
 
     // ===== Student =====
 

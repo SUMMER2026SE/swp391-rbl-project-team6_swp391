@@ -1,29 +1,44 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen,
-  Star,
-  ChevronRight,
-  CheckCircle,
-  X,
-  Volume2,
-  Play,
-  ChevronLeft,
-  Trophy,
-  Bookmark,
-  ArrowRight,
-  Zap,
-  ChevronDown,
-  Tag,
+  BookOpen, Clock, ChevronRight, CheckCircle, X,
+  Volume2, Play, ChevronLeft, Trophy,
+  Bookmark, Zap, ChevronDown, Tag,
+  Loader2, Star, Search, User,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { vocabularyApi } from "@/lib/api/vocabulary";
-import type { VocabularyLesson } from "@/lib/api/vocabulary";
+import {
+  studentVocabularyApi,
+  type VocabularyLessonResponse,
+  type VocabularyLessonDetailResponse,
+} from "@/lib/api/studentVocabulary";
+import { ApiError } from "@/lib/api/client";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "new" | "learning" | "mastered";
+
+// Extract lesson number from title like "Bài 1: Chào hỏi" → 1
+function extractLessonNumber(title?: string): number {
+  if (!title) return Infinity;
+  const match = title.match(/Bài\s*\.?\s*(\d+)/i);
+  return match ? parseInt(match[1], 10) : Infinity;
+}
+
+// Sort lessons by lesson number in title (Bài 1, Bài 2, ..., Bài 10)
+function sortLessonsByNumber(lessons: VocabularyLessonResponse[]): VocabularyLessonResponse[] {
+  return [...lessons].sort((a, b) => {
+    const numA = extractLessonNumber(a.title);
+    const numB = extractLessonNumber(b.title);
+    if (numA !== numB) {
+      return numA - numB;
+    }
+    // Fallback: sort by createdAt if same or no number
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateA - dateB;
+  });
+}
 
 const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"] as const;
 
@@ -102,6 +117,7 @@ function getTopicIcon(topic: string): string {
   const icons: Record<string, string> = {
     "All Topics": "🌐",
     "Daily Life": "🌅",
+    General: "📚",
     Family: "👨‍👩‍👧‍👦",
     School: "🏫",
     Food: "🍜",
@@ -135,18 +151,16 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
         onClick={onToggle}
         className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all shadow-sm ${
           isOpen || selected !== "All Topics"
-            ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md"
-            : "bg-white/70 dark:bg-white/[0.06] backdrop-blur-sm border border-white/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:text-foreground dark:hover:bg-white/[0.10] dark:hover:border-white/15"
+            ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+            : "bg-white/70 dark:bg-white/6 backdrop-blur-sm border border-white/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:text-foreground dark:hover:bg-white/10 dark:hover:border-white/15"
         }`}
       >
         <span className="text-base">{getTopicIcon(selected)}</span>
         <span>{selected}</span>
-        {selected !== "All Topics" && (
-          <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-bold">
-            1
-          </span>
-        )}
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
           <ChevronDown className="w-4 h-4" />
         </motion.div>
       </button>
@@ -177,21 +191,21 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
               <div className="space-y-1">
                 {topics.map((topic) => {
                   const isSelected = topic === selected;
-                  const isAll = topic === "All Topics";
-
                   return (
                     <button
                       key={topic}
                       onClick={() => handleSelect(topic)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                         isSelected
-                          ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
                           : "hover:bg-slate-50 dark:hover:bg-white/[0.07] text-slate-700 dark:text-indigo-200/80"
                       }`}
                     >
                       <span className="text-base">{getTopicIcon(topic)}</span>
                       <span className="flex-1 text-left">{topic}</span>
-                      {isSelected && <CheckCircle className="w-4 h-4 flex-shrink-0" />}
+                      {isSelected && (
+                        <CheckCircle className="w-4 h-4 shrink-0" />
+                      )}
                     </button>
                   );
                 })}
@@ -227,9 +241,15 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
 export const Route = createFileRoute("/student/vocabulary")({ component: VocabularyPage });
 
 function VocabularyPage() {
-  const [selectedLevel, setSelectedLevel] = useState<string>("N5");
+  const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
+  const [allTopics, setAllTopics] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedLevel, setSelectedLevel] = useState<string>("All");
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]>("Tất cả");
   const [topicsOpen, setTopicsOpen] = useState(false);
@@ -241,60 +261,72 @@ function VocabularyPage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
 
-  // ── React Query: Fetch vocabulary lessons from backend ──────────────────────
-  const {
-    data: allLessons = [],
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["student-vocabulary-lessons"],
-    queryFn: vocabularyApi.getVocabularyLessons,
-    staleTime: 5 * 60 * 1000,
-  });
+  // Lesson detail state
+  const [lessonDetail, setLessonDetail] = useState<VocabularyLessonDetailResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-  // ── Derived: lessons filtered by selected JLPT level ───────────────────────
-  const levelLessons = useMemo(
-    () => allLessons.filter((l: VocabularyLesson) => l.level === selectedLevel),
-    [allLessons, selectedLevel],
-  );
+  // Fetch published lessons from API
+  const fetchLessons = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const lessonParams = {
+        level: selectedLevel !== "All" ? selectedLevel : undefined,
+        topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
+        search: appliedSearch.trim() || undefined,
+      };
 
-  // ── Derived: lessons filtered by level + topic + search ─────────────────────
-  const filteredLessons = useMemo(() => {
-    return levelLessons.filter((l: VocabularyLesson) => {
-      if (selectedTopic !== "All Topics" && l.topic !== selectedTopic) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          l.title.toLowerCase().includes(q) || (l.description?.toLowerCase().includes(q) ?? false)
-        );
-      }
-      return true;
-    });
-  }, [levelLessons, selectedTopic, search]);
+      const [allData, filteredData] = await Promise.all([
+        studentVocabularyApi.getPublishedLessons(),
+        studentVocabularyApi.getPublishedLessons(lessonParams),
+      ]);
+
+      setLessons(sortLessonsByNumber(filteredData));
+
+      const topics = Array.from(new Set(allData.map(l => l.topic).filter(Boolean) as string[])).sort();
+      setAllTopics(topics);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load lessons");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedLevel, selectedTopic, appliedSearch]);
+
+  useEffect(() => {
+    fetchLessons();
+  }, [fetchLessons]);
+
+  // Fetch lesson detail when opening a lesson
+  const openLesson = async (lessonId: string) => {
+    setActiveLesson(lessonId);
+    setDetailLoading(true);
+    setDetailError(null);
+    setLessonDetail(null);
+    setFilterTab("Tất cả");
+    setCurrentPage(1);
+    try {
+      const detail = await studentVocabularyApi.getPublishedLessonDetail(lessonId);
+      setLessonDetail(detail);
+    } catch (err) {
+      setDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const filteredLessons = lessons;
 
   // ── Derived: topics available within the selected level ─────────────────────
   const topicsInLevel = useMemo(() => {
-    const topics = new Set(
-      levelLessons.map((l: VocabularyLesson) => l.topic).filter((t): t is string => t != null),
-    );
-    return ["All Topics", ...Array.from(topics)];
-  }, [levelLessons]);
+    const levelFiltered = allTopics.filter(Boolean);
+    return ["All Topics", ...levelFiltered];
+  }, [allTopics]);
 
-  // ── Stats derived from word statuses (local state) ──────────────────────────
-  const totalWordsAll = allLessons.reduce(
-    (sum: number, l: VocabularyLesson) => sum + (l.wordCount ?? 0),
-    0,
-  );
-  const totalLearned = Object.values(wordStatuses).filter((s) => s === "mastered").length;
-  const totalLearning = Object.values(wordStatuses).filter((s) => s === "learning").length;
+  const totalWordsAll = lessons.reduce((sum, l) => sum + (l.wordCount ?? l.word_count ?? 0), 0);
+  const totalLearned = Object.values(wordStatuses).filter(s => s === "mastered").length;
+  const totalLearning = Object.values(wordStatuses).filter(s => s === "learning").length;
   const totalFavorites = favorites.size;
-
-  // ── Active lesson data ─────────────────────────────────────────────────────
-  const activeLessonData = useMemo(
-    () => allLessons.find((l: VocabularyLesson) => l.id === activeLesson),
-    [allLessons, activeLesson],
-  );
 
   const getWordStatus = (wordKey: string): WordStatus => wordStatuses[wordKey] ?? "new";
   const getWordStatusDot = (wordKey: string): string => {
@@ -325,27 +357,28 @@ function VocabularyPage() {
     });
   };
 
-  // ── Lesson Detail View ──────────────────────────────────────────────────────
-  if (activeLesson && activeLessonData) {
-    const lesson = activeLessonData as VocabularyLesson;
-    const lessonProgress = 0; // Word status tracking per lesson (from local state)
-    const progressPct =
-      lesson.wordCount > 0 ? Math.round((lessonProgress / lesson.wordCount) * 100) : 0;
+  // ── Lesson Detail View ────────────────────────────────────────────────
+  if (activeLesson && lessonDetail) {
+    const words = lessonDetail.words ?? [];
+    const lessonProgress = words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "mastered").length;
+    const progressPct = words.length > 0 ? Math.round((lessonProgress / words.length) * 100) : 0;
 
-    // Words are not included in the list endpoint response.
-    // Show a placeholder message — detail with real words will be handled by student.vocabulary.$lessonId.tsx
-    const placeholderWords = Array.from({ length: lesson.wordCount }, (_, i) => ({
-      word: `単語 ${i + 1}`,
-      furigana: `たんご ${i + 1}`,
-      meaning: `Word ${i + 1}`,
-      example: `これは${lesson.title}の例文です。`,
-      exampleMeaning: `This is an example sentence for ${lesson.title}.`,
+    // Build word list from lessonDetail
+    const lessonWords = words.map(w => ({
+      id: w.word,
+      word: w.word,
+      furigana: w.furigana || w.romaji || "",
+      meaning: w.meaning,
+      example: w.exampleJapanese || "",
+      exampleMeaning: w.exampleMeaning || "",
     }));
 
-    const filteredWords = placeholderWords.filter(() => {
-      if (filterTab === "Đã thuộc") return false;
-      if (filterTab === "Chưa thuộc") return true;
-      if (filterTab === "Yêu thích") return false;
+    const filteredWords = lessonWords.filter((_, idx) => {
+      const wordKey = `${activeLesson}-${words[idx]?.word}`;
+      const status = getWordStatus(wordKey);
+      if (filterTab === "Đã thuộc") return status === "mastered";
+      if (filterTab === "Chưa thuộc") return status !== "mastered";
+      if (filterTab === "Yêu thích") return favorites.has(wordKey);
       return true;
     });
 
@@ -357,273 +390,270 @@ function VocabularyPage() {
     );
 
     return (
-      <div className="dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950">
+      <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950">
         <SakuraBg count={14} />
         <div className="relative z-10">
           <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
-            {/* Lesson Header */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setActiveLesson(null);
-                }}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card/70 dark:bg-white/[0.06] backdrop-blur-sm border border-border/50 dark:border-white/10 text-xs font-semibold hover:bg-card dark:hover:bg-white/[0.09] transition shadow-sm"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" /> Back
-              </button>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-display font-bold text-base dark:text-white">
-                    {lesson.title}
-                  </h2>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-black ${getLevelBadge(lesson.level ?? "")}`}
-                  >
-                    {lesson.level}
-                  </span>
-                  {lesson.topic && (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getTopicColor(lesson.topic)}`}
-                    >
-                      {lesson.topic}
-                    </span>
-                  )}
-                  {completedLessons.has(activeLesson) && (
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 text-[10px] font-bold">
-                      <CheckCircle className="w-3 h-3" /> Done
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Lesson Meta Bar */}
-            <div className="flex items-center gap-3 flex-wrap px-4 py-3 rounded-2xl bg-card/60 dark:bg-indigo-950/40 backdrop-blur-sm border border-border/50 dark:border-white/10">
-              <div className="flex items-center gap-1.5">
-                <div className="w-24 h-2 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-                <span className="text-xs font-semibold text-muted-foreground dark:text-indigo-200/80">
-                  {progressPct}%
+        {/* Lesson Header */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setActiveLesson(null); setLessonDetail(null); }}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card/70 dark:bg-white/6 backdrop-blur-sm border border-border/50 dark:border-white/10 text-xs font-semibold hover:bg-card dark:hover:bg-white/9 transition shadow-sm"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" /> Back
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-display font-bold text-base dark:text-white">{lessonDetail.title}</h2>
+              {lessonDetail.level && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${getLevelBadge(lessonDetail.level)}`}>
+                  {lessonDetail.level}
                 </span>
-              </div>
-              <div className="w-px h-4 bg-border dark:bg-white/10" />
-              <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-indigo-200/70">
-                <BookOpen className="w-3 h-3" />
-                <span>{lesson.wordCount} words</span>
-              </div>
+              )}
+              {lessonDetail.topic && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getTopicColor(lessonDetail.topic)}`}>
+                  {lessonDetail.topic}
+                </span>
+              )}
+              {completedLessons.has(activeLesson) && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 text-[10px] font-bold">
+                  <CheckCircle className="w-3 h-3" /> Done
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Lesson Meta Bar */}
+        <div className="flex items-center gap-3 flex-wrap px-4 py-3 rounded-2xl bg-card/60 dark:bg-indigo-950/40 backdrop-blur-sm border border-border/50 dark:border-white/10">
+          <div className="flex items-center gap-1.5">
+            <div className="w-24 h-2 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span className="text-xs font-semibold text-muted-foreground dark:text-indigo-200/80">{progressPct}%</span>
+          </div>
+          <div className="w-px h-4 bg-border dark:bg-white/10" />
+          <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-indigo-200/70">
+            <BookOpen className="w-3 h-3" />
+            <span>{words.length} words</span>
+          </div>
+          {lessonDetail.estimatedMinutes && (
+            <>
               <div className="w-px h-4 bg-border" />
-              <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                <CheckCircle className="w-3 h-3" />
-                <span>{lessonProgress} mastered</span>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>~{lessonDetail.estimatedMinutes} min</span>
               </div>
-              <div className="w-px h-4 bg-border dark:bg-white/10" />
-              <div className="flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400">
-                <Zap className="w-3 h-3" />
-                <span>0 learning</span>
-              </div>
-            </div>
+            </>
+          )}
+          <div className="w-px h-4 bg-border" />
+          <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+            <CheckCircle className="w-3 h-3" />
+            <span>{lessonProgress} mastered</span>
+          </div>
+          <div className="w-px h-4 bg-border dark:bg-white/10" />
+          <div className="flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400">
+            <Zap className="w-3 h-3" />
+            <span>{words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "learning").length} learning</span>
+          </div>
+        </div>
 
-            {/* Filter Tabs */}
-            <div className="flex gap-1.5 flex-wrap">
-              {FILTER_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    setFilterTab(tab);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-                    filterTab === tab
-                      ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-sm"
-                      : "bg-card/60 dark:bg-white/[0.045] backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.07] dark:hover:border-white/15"
-                  }`}
+        {/* Filter Tabs */}
+        <div className="flex gap-1.5 flex-wrap">
+          {FILTER_TABS.map(tab => (
+            <button
+              key={tab}
+              onClick={() => { setFilterTab(tab); setCurrentPage(1); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterTab === tab
+                  ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-sm"
+                  : "bg-card/60 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.07] dark:hover:border-white/15"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Vocabulary Cards */}
+        {detailLoading && (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <span className="ml-3 text-sm font-semibold">Loading words...</span>
+          </div>
+        )}
+
+        {detailError && (
+          <div className="text-center py-12">
+            <X className="w-10 h-10 mx-auto text-red-500 mb-3" />
+            <p className="text-red-500 mb-2 font-semibold">{detailError}</p>
+            <button
+              onClick={() => openLesson(activeLesson)}
+              className="text-sm text-primary underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {!detailLoading && !detailError && paginatedWords.length === 0 ? (
+          <div className="text-center py-12">
+            <BookOpen className="w-10 h-10 mx-auto text-muted-foreground/50 dark:text-indigo-300/40 mb-2" />
+            <p className="text-sm text-muted-foreground dark:text-slate-300">No words in this category</p>
+          </div>
+        ) : !detailLoading && !detailError && (
+          <div className="space-y-2">
+            {paginatedWords.map((word, i) => {
+              const wordKey = `${activeLesson}-${word.word}`;
+              const status = getWordStatus(wordKey);
+              const isFav = favorites.has(wordKey);
+
+              return (
+                <motion.div
+                  key={word.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="group bg-card/80 dark:bg-[#0f1430] dark:border-indigo-400/20 dark:hover:border-cyan-300/40 dark:hover:shadow-xl dark:hover:shadow-indigo-500/10 rounded-2xl border border-border/50 px-4 py-3 hover:shadow-md hover:border-blue-200/60 hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  {tab}
-                </button>
-              ))}
-            </div>
+                  <div className="flex items-center">
+                    {/* Status dot */}
+                    <div className={`w-2 h-2 rounded-full shrink-0 self-start mt-1 mr-3 ${getWordStatusDot(wordKey)}`} />
 
-            {/* Word Count Info */}
-            {lesson.wordCount === 0 && (
-              <div className="text-center py-12">
-                <BookOpen className="w-10 h-10 mx-auto text-muted-foreground/50 dark:text-indigo-300/40 mb-2" />
-                <p className="text-sm text-muted-foreground dark:text-slate-300">
-                  This lesson has no words yet.
-                </p>
-              </div>
-            )}
+                    {/* Japanese + Furigana */}
+                    <div className="shrink-0 w-36 mr-3">
+                      <div className="font-display text-xl font-black text-foreground dark:text-white leading-tight">{word.word}</div>
+                      <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">{word.furigana || word.romaji}</div>
+                    </div>
 
-            {/* Placeholder Word Cards (detail API will replace these) */}
-            {lesson.wordCount > 0 && paginatedWords.length === 0 ? (
-              <div className="text-center py-12">
-                <BookOpen className="w-10 h-10 mx-auto text-muted-foreground/50 dark:text-indigo-300/40 mb-2" />
-                <p className="text-sm text-muted-foreground dark:text-slate-300">
-                  No words in this category
-                </p>
-              </div>
-            ) : lesson.wordCount > 0 ? (
-              <div className="space-y-2">
-                {paginatedWords.map((word: (typeof placeholderWords)[number], i: number) => {
-                  const wordKey = `${activeLesson}-${word.word}`;
-                  const status = getWordStatus(wordKey);
-                  const isFav = favorites.has(wordKey);
+                    {/* Divider */}
+                    <div className="hidden sm:block w-px self-stretch shrink-0 rounded-full bg-linear-to-b from-transparent via-indigo-400/40 to-transparent dark:bg-linear-to-b dark:from-transparent dark:via-indigo-400/50 dark:to-transparent mr-4" />
 
-                  return (
-                    <motion.div
-                      key={wordKey}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="group bg-card/80 dark:bg-[#0f1430] dark:border-indigo-400/20 dark:hover:border-cyan-300/40 dark:hover:shadow-xl dark:hover:shadow-indigo-500/10 rounded-2xl border border-border/50 px-4 py-3 hover:shadow-md hover:border-blue-200/60 hover:-translate-y-0.5 transition-all duration-200"
-                    >
-                      <div className="flex items-center">
-                        {/* Status dot */}
-                        <div
-                          className={`w-2 h-2 rounded-full flex-shrink-0 self-start mt-1 mr-3 ${getWordStatusDot(wordKey)}`}
-                        />
-
-                        {/* Japanese + Furigana */}
-                        <div className="flex-shrink-0 w-36 mr-3">
-                          <div className="font-display text-xl font-black text-foreground dark:text-white leading-tight">
-                            {word.word}
-                          </div>
-                          <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">
-                            {word.furigana}
-                          </div>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="hidden sm:block w-px self-stretch shrink-0 rounded-full bg-gradient-to-b from-transparent via-indigo-400/40 to-transparent dark:bg-gradient-to-b dark:from-transparent dark:via-indigo-400/50 dark:to-transparent mr-4" />
-
-                        {/* Meaning */}
-                        <div className="flex-1 min-w-0 mr-4">
-                          <div className="text-sm font-semibold text-foreground dark:text-slate-100 leading-snug">
-                            {word.meaning}
-                          </div>
-                        </div>
-
-                        {/* Action icons */}
-                        <div className="flex items-center gap-0.5 flex-shrink-0">
-                          <button
-                            onClick={() => setWordStatus(wordKey, "mastered")}
-                            title="Đã thuộc"
-                            className={`p-1.5 rounded-lg transition-all ${
-                              status === "mastered"
-                                ? "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300"
-                                : "text-muted-foreground dark:text-indigo-300/60 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-500"
-                            }`}
-                          >
-                            <CheckCircle
-                              className={`w-4 h-4 ${status === "mastered" ? "fill-green-400" : ""}`}
-                            />
-                          </button>
-                          <button
-                            onClick={() => setWordStatus(wordKey, "new")}
-                            title="Chưa thuộc"
-                            className={`p-1.5 rounded-lg transition-all ${
-                              status === "new"
-                                ? "bg-muted text-muted-foreground dark:bg-indigo-500/20 dark:text-indigo-300"
-                                : "text-muted-foreground dark:text-indigo-300/60 hover:bg-muted/50 dark:hover:bg-indigo-500/15 hover:text-foreground"
-                            }`}
-                          >
-                            <Bookmark className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => toggleFavoriteWord(wordKey)}
-                            className="p-1.5 rounded-lg transition-all text-muted-foreground dark:text-indigo-300/60 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-500 dark:hover:text-amber-400 group/icon"
-                          >
-                            {isFav ? (
-                              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                            ) : (
-                              <Star className="w-4 h-4 dark:group-hover/icon:text-amber-400 transition-colors" />
-                            )}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              speakJapanese(word.furigana || word.word);
-                            }}
-                            title="Play pronunciation"
-                            className="p-1.5 rounded-lg text-muted-foreground dark:text-indigo-300/60 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-cyan-600 dark:hover:text-cyan-300 transition-all"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                    {/* Meaning */}
+                    <div className="flex-1 min-w-0 mr-4">
+                      <div className="text-sm font-semibold text-foreground dark:text-slate-100 leading-snug">
+                        {word.meaning}
                       </div>
+                    </div>
 
-                      {/* Expanded — Example Sentence */}
-                      <div className="mt-2 pt-2 border-t border-border/60 dark:border-indigo-400/15">
-                        <div
-                          className="text-xs text-muted-foreground dark:text-slate-300/80 italic pl-3"
-                          style={{ fontFamily: "var(--font-japanese, serif)" }}
-                        >
+                    {/* Action icons */}
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <button
+                        onClick={() => setWordStatus(wordKey, "mastered")}
+                        title="Đã thuộc"
+                        className={`p-1.5 rounded-lg transition-all ${
+                          status === "mastered"
+                            ? "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300"
+                            : "text-muted-foreground dark:text-indigo-300/60 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-500"
+                        }`}
+                      >
+                        <CheckCircle
+                          className={`w-4 h-4 ${status === "mastered" ? "fill-green-400" : ""}`}
+                        />
+                      </button>
+                      <button
+                        onClick={() => setWordStatus(wordKey, "new")}
+                        title="Chưa thuộc"
+                        className={`p-1.5 rounded-lg transition-all ${
+                          status === "new"
+                            ? "bg-muted text-muted-foreground dark:bg-indigo-500/20 dark:text-indigo-300"
+                            : "text-muted-foreground dark:text-indigo-300/60 hover:bg-muted/50 dark:hover:bg-indigo-500/15 hover:text-foreground"
+                        }`}
+                      >
+                        <Bookmark className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => toggleFavoriteWord(wordKey)}
+                        className="p-1.5 rounded-lg transition-all text-muted-foreground dark:text-indigo-300/60 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-500 dark:hover:text-amber-400 group/icon"
+                      >
+                        {isFav ? (
+                          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        ) : (
+                          <Star className="w-4 h-4 dark:group-hover/icon:text-amber-400 transition-colors" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          speakJapanese(word.furigana || word.word);
+                        }}
+                        title="Play pronunciation"
+                        className="p-1.5 rounded-lg text-muted-foreground dark:text-indigo-300/60 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-cyan-600 dark:hover:text-cyan-300 transition-all"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded — Example Sentence */}
+                  {(word.example || word.exampleMeaning) && (
+                    <div className="mt-2 pt-2 border-t border-border/60 dark:border-indigo-400/15">
+                      {word.example && (
+                        <div className="text-xs text-muted-foreground dark:text-slate-300/80 italic pl-3" style={{ fontFamily: "var(--font-japanese, serif)" }}>
                           {word.example}
                         </div>
+                      )}
+                      {word.exampleMeaning && (
                         <div className="text-xs text-muted-foreground/80 dark:text-indigo-200/70 pl-3 mt-0.5">
                           {word.exampleMeaning}
                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-                {/* Complete Lesson Button */}
-                {paginatedWords.length > 0 && (
-                  <div className="flex justify-center pt-2">
-                    <button
-                      onClick={() =>
-                        setCompletedLessons((prev) => {
-                          const n = new Set(prev);
-                          n.add(activeLesson ?? "");
-                          return n;
-                        })
-                      }
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
-                    >
-                      <Trophy className="w-4 h-4" /> Complete Lesson
-                    </button>
-                  </div>
-                )}
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-4 pb-2">
-                    <button
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/[0.06] border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.09] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all shadow-sm ${
-                          page === currentPage
-                            ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md"
-                            : "bg-card/70 dark:bg-white/[0.06] border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.09]"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
-
-                    <button
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/[0.06] border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.09] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+            {/* Complete Lesson Button */}
+            {paginatedWords.length > 0 && (
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; })}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
+                >
+                  <Trophy className="w-4 h-4" /> Complete Lesson
+                </button>
               </div>
-            ) : null}
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4 pb-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/6 border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/9 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                      page === currentPage
+                        ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                        : "bg-card/70 dark:bg-white/6 border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/9"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-card/70 dark:bg-white/6 border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/9 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
           </div>
         </div>
       </div>
@@ -632,49 +662,8 @@ function VocabularyPage() {
 
   // ── Browse Lessons View ──────────────────────────────────────────────────────
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen flex items-center justify-center">
-        <SakuraBg count={14} />
-        <div className="relative z-10 text-center">
-          <div className="w-12 h-12 border-4 border-blue-400/30 border-t-blue-400 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground dark:text-indigo-200/70 text-sm font-medium">
-            Loading vocabulary lessons...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (isError) {
-    return (
-      <div className="dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen flex items-center justify-center">
-        <SakuraBg count={14} />
-        <div className="relative z-10 text-center max-w-sm mx-auto px-4">
-          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-            <X className="w-8 h-8 text-red-500 dark:text-red-400" />
-          </div>
-          <h3 className="text-lg font-bold text-foreground dark:text-white mb-2">
-            Failed to load vocabulary lessons
-          </h3>
-          <p className="text-sm text-muted-foreground dark:text-slate-300 mb-4">
-            {error instanceof Error ? error.message : "Something went wrong. Please try again."}
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-400 to-pink-400 text-white text-sm font-semibold hover:opacity-90 transition"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen">
+    <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen">
       <SakuraBg count={14} />
       <div className="relative z-10">
         <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
@@ -703,177 +692,176 @@ function VocabularyPage() {
             </div>
           </div>
 
-          {/* JLPT Level Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {JLPT_LEVELS.map((level) => {
-              const lvlLessons = allLessons.filter((l: VocabularyLesson) => l.level === level);
-              const lvlTotal = lvlLessons.reduce(
-                (s: number, l: VocabularyLesson) => s + (l.wordCount ?? 0),
-                0,
-              );
-              const lvlLearned = lvlLessons.reduce((s: number, _l: VocabularyLesson) => s, 0); // word status from local state
-              const pct = lvlTotal > 0 ? Math.round((lvlLearned / lvlTotal) * 100) : 0;
-              const isSelected = level === selectedLevel;
-              return (
-                <button
-                  key={level}
-                  onClick={() => {
-                    setSelectedLevel(level);
-                    setSelectedTopic("All Topics");
-                  }}
-                  className={`relative flex-shrink-0 flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl transition-all ${
-                    isSelected
-                      ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-blue-200/40 dark:shadow-none"
-                      : "bg-card/70 dark:bg-white/[0.045] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-md dark:hover:bg-white/[0.08] dark:hover:border-indigo-300/20"
-                  }`}
-                >
-                  <span className="font-display font-black text-base">{level}</span>
-                  <div
-                    className={`w-14 h-1 rounded-full overflow-hidden ${isSelected ? "bg-white/30" : "bg-slate-100 dark:bg-slate-700"}`}
-                  >
-                    <div
-                      className={`h-full rounded-full transition-all ${isSelected ? "bg-white" : "bg-pink-300"}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span
-                    className={`text-[10px] ${isSelected ? "text-white/80" : "text-muted-foreground dark:text-indigo-300/70"}`}
-                  >
-                    {pct}%
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search + Topics dropdown */}
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search vocabulary…"
-                className="w-full px-4 py-2.5 rounded-2xl bg-card/70 dark:bg-white/[0.055] backdrop-blur-sm border border-border/50 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 dark:focus:ring-cyan-300/30 dark:focus:border-cyan-300/30 shadow-sm dark:placeholder:text-slate-400 dark:text-slate-200 dark:focus:bg-white/[0.07]"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-20 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="ml-3 text-sm font-semibold">Loading lessons...</span>
             </div>
+          )}
 
-            {/* Topics Dropdown */}
-            <TopicsDropdown
-              topics={topicsInLevel}
-              selected={selectedTopic}
-              onSelect={setSelectedTopic}
-              isOpen={topicsOpen}
-              onToggle={() => setTopicsOpen((v) => !v)}
-            />
-          </div>
-
-          {/* Lessons Grid */}
-          {filteredLessons.length === 0 ? (
+          {/* Error State */}
+          {!loading && error && (
             <div className="text-center py-16">
-              <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/50 dark:text-indigo-300/40 mb-3" />
-              <p className="text-muted-foreground dark:text-slate-300 font-medium">
-                No vocabulary lessons available.
-              </p>
+              <X className="w-10 h-10 mx-auto text-red-500 mb-3" />
+              <p className="text-red-500 mb-2 font-semibold">{error}</p>
+              <button onClick={fetchLessons} className="text-sm text-primary underline">Try again</button>
             </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredLessons.map((lesson: VocabularyLesson, i: number) => {
-                const lessonLearned = 0; // word status tracking per lesson
-                const lessonLearning = 0;
-                const lessonPct =
-                  lesson.wordCount > 0 ? Math.round((lessonLearned / lesson.wordCount) * 100) : 0;
-                return (
-                  <motion.div
-                    key={lesson.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                  >
+          )}
+
+          {/* Content after loading */}
+          {!loading && !error && (
+            <>
+              {/* JLPT Level Tabs */}
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {JLPT_LEVELS.map(level => {
+                  const lvlLessons = lessons.filter(l => l.level === level);
+                  const lvlTotal = lvlLessons.reduce((s, l) => s + (l.wordCount ?? l.word_count ?? 0), 0);
+                  const lvlLearned = lvlLessons.reduce((s, l) =>
+                    s + (l.words?.filter((w: any) => wordStatuses[`${l.id}-${w.word}`] === "mastered").length || 0), 0);
+                  const pct = lvlTotal > 0 ? Math.round((lvlLearned / lvlTotal) * 100) : 0;
+                  const isSelected = level === selectedLevel;
+                  return (
                     <button
-                      onClick={() => {
-                        setActiveLesson(lesson.id);
-                        setFilterTab("Tất cả");
-                        setCurrentPage(1);
-                      }}
-                      className="w-full text-left rounded-2xl bg-card/80 dark:bg-white/[0.035] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-cyan-300/25 hover:-translate-y-1 transition-all duration-200 overflow-hidden group"
+                      key={level}
+                      onClick={() => { setSelectedLevel(level); setSelectedTopic("All Topics"); }}
+                      className={`relative shrink-0 flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl transition-all ${
+                        isSelected
+                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-blue-200/40 dark:shadow-none"
+                          : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-md dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
+                      }`}
                     >
-                      {/* Clean Header */}
-                      <div
-                        className={`relative px-4 pt-4 pb-3 bg-gradient-to-br ${getLevelGradient(lesson.level ?? "")} ${getLevelGradientDark(lesson.level ?? "")}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/30 text-white backdrop-blur-sm dark:bg-slate-900/60 dark:text-white dark:border dark:border-white/20">
-                              {lesson.level}
-                            </span>
-                            {lesson.topic && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-white/80 backdrop-blur-sm border border-white/20 dark:bg-slate-900/50 dark:text-white/80 dark:border-white/15">
-                                {lesson.topic}
-                              </span>
-                            )}
-                          </div>
-                          {completedLessons.has(lesson.id) && (
-                            <span className="w-6 h-6 rounded-full bg-green-100/70 dark:bg-green-900/50 backdrop-blur-sm flex items-center justify-center">
-                              <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-300" />
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="font-display font-black text-base leading-tight text-white mt-2 group-hover:text-white/90 transition">
-                          {lesson.title}
-                        </h4>
-                        {/* Play overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                          <div className="w-12 h-12 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 dark:group-hover:bg-white/20 transition">
-                            <Play className="w-5 h-5 text-white fill-white" />
-                          </div>
-                        </div>
+                      <span className="font-display font-black text-base">{level}</span>
+                      <div className={`w-14 h-1 rounded-full overflow-hidden ${isSelected ? "bg-white/30" : "bg-slate-100 dark:bg-slate-700"}`}>
+                        <div className={`h-full rounded-full transition-all ${isSelected ? "bg-white" : "bg-pink-300"}`} style={{ width: `${pct}%` }} />
                       </div>
-
-                      {/* Content */}
-                      <div className="p-4 space-y-2 dark:bg-white/[0.025]">
-                        <p className="text-xs text-muted-foreground dark:text-slate-300/85 line-clamp-2 leading-relaxed">
-                          {lesson.description}
-                        </p>
-
-                        {/* Stats */}
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground dark:text-indigo-200/70">
-                          <span className="flex items-center gap-1">
-                            <BookOpen className="w-3 h-3" /> {lesson.wordCount} words
-                          </span>
-                          {lessonLearned > 0 && (
-                            <span className="flex items-center gap-1 text-green-500">
-                              <CheckCircle className="w-3 h-3" /> {lessonLearned}
-                            </span>
-                          )}
-                          {lessonLearning > 0 && (
-                            <span className="flex items-center gap-1 text-amber-500">
-                              <Zap className="w-3 h-3" /> {lessonLearning}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Progress */}
-                        <div className="h-1.5 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all"
-                            style={{ width: `${lessonPct}%` }}
-                          />
-                        </div>
-                      </div>
+                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-muted-foreground dark:text-indigo-300/70"}`}>{pct}%</span>
                     </button>
-                  </motion.div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {/* Search + Topics dropdown */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                {/* Search */}
+                <div className="flex-1 relative flex">
+                  <input
+                    value={searchInput}
+                    onChange={e => setSearchInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        setAppliedSearch(searchInput.trim());
+                      }
+                    }}
+                    placeholder="Search vocabulary…"
+                    className="flex-1 px-4 py-2.5 rounded-2xl bg-card/70 dark:bg-white/5.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-blue-400/40 dark:focus:ring-cyan-300/30 dark:focus:border-cyan-300/30 shadow-sm dark:placeholder:text-slate-400 dark:text-slate-200 dark:focus:bg-white/[0.07] pr-20"
+                  />
+                  {searchInput && (
+                    <button
+                      onClick={() => { setSearchInput(""); setAppliedSearch(""); }}
+                      className="absolute right-10 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setAppliedSearch(searchInput.trim())}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition p-1"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Topics Dropdown */}
+                {allTopics.length > 0 && (
+                  <TopicsDropdown
+                    topics={topicsInLevel}
+                    selected={selectedTopic}
+                    onSelect={setSelectedTopic}
+                    isOpen={topicsOpen}
+                    onToggle={() => setTopicsOpen(v => !v)}
+                  />
+                )}
+              </div>
+
+              {/* Lessons Grid */}
+              {filteredLessons.length === 0 ? (
+                <div className="text-center py-16">
+                  <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/50 dark:text-indigo-300/40 mb-3" />
+                  <p className="text-muted-foreground dark:text-slate-300 font-medium">No lessons found</p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredLessons.map((lesson, i) => {
+                    const lessonLearned = 0;
+                    const lessonLearning = 0;
+                    const lessonPct = 0;
+                    return (
+                      <motion.div
+                        key={lesson.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <button
+                          onClick={() => openLesson(lesson.id)}
+                          className="w-full text-left rounded-2xl bg-card/80 dark:bg-white/[0.035] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-cyan-300/25 hover:-translate-y-1 transition-all duration-200 overflow-hidden group"
+                        >
+                          {/* Clean Header */}
+                          <div className={`relative px-4 pt-4 pb-3 bg-linear-to-br ${getLevelGradient(lesson.level ?? "N5")} ${getLevelGradientDark(lesson.level ?? "N5")}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/30 text-white backdrop-blur-sm dark:bg-slate-900/60 dark:text-white dark:border dark:border-white/20">{lesson.level}</span>
+                                {lesson.topic && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-white/80 backdrop-blur-sm border border-white/20 dark:bg-slate-900/50 dark:text-white/80 dark:border-white/15">{lesson.topic}</span>
+                                )}
+                              </div>
+                              {completedLessons.has(lesson.id) && (
+                                <span className="w-6 h-6 rounded-full bg-green-100/70 dark:bg-green-900/50 backdrop-blur-sm flex items-center justify-center">
+                                  <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-300" />
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-display font-black text-base leading-tight text-white mt-2 group-hover:text-white/90 transition">{lesson.title}</h4>
+                            {/* Play overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                              <div className="w-12 h-12 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 dark:group-hover:bg-white/20 transition">
+                                <Play className="w-5 h-5 text-white fill-white" />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Content */}
+                          <div className="p-4 space-y-2 dark:bg-white/2.5">
+                            <p className="text-xs text-muted-foreground dark:text-slate-300/85 line-clamp-2 leading-relaxed">{lesson.description || "No description"}</p>
+
+                            {/* Stats */}
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground dark:text-indigo-200/70">
+                              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {lesson.wordCount ?? lesson.word_count ?? 0} words</span>
+                              {lesson.estimatedMinutes && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> ~{lesson.estimatedMinutes}m</span>}
+                            </div>
+                            {(lesson as VocabularyLessonResponse).teacherName && (
+                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 dark:text-indigo-200/50">
+                                <User className="w-3 h-3" />
+                                <span className="truncate">{(lesson as VocabularyLessonResponse).teacherName}</span>
+                              </div>
+                            )}
+
+                            {/* Progress */}
+                            <div className="h-1.5 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
+                                style={{ width: `${lessonPct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
