@@ -66,6 +66,21 @@ export function getUserAvatar(user: User | null): string | null {
   return null;
 }
 
+export function getStoredUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isTeacherPending(): boolean {
+  const u = getStoredUser();
+  return u?.role === "teacher" && u?.status === "pending";
+}
+
 export function getAvatarInitial(user: User | null, displayName?: string | null): string {
   const name =
     (displayName && isAvatar(displayName) ? displayName : null) ||
@@ -178,8 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function restore() {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+      const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
 
       if (token) {
         try {
@@ -192,8 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         try {
-          const raw =
-            typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+          const raw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
           if (raw) setUser(JSON.parse(raw));
         } catch {}
       }
@@ -207,8 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthCtx = {
     user,
     loaded,
-    accessToken:
-      typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
+    accessToken: typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null,
 
     login: async (email, password) => {
       const res = await authApi.login({ email, password });
@@ -301,9 +313,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") localStorage.setItem(THEME_KEY, next);
   };
 
-  return (
-    <ThemeCtx.Provider value={{ theme, toggleTheme }}>{children}</ThemeCtx.Provider>
-  );
+  return <ThemeCtx.Provider value={{ theme, toggleTheme }}>{children}</ThemeCtx.Provider>;
 }
 
 export function useTheme() {

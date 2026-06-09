@@ -114,7 +114,7 @@ public class GoogleOAuthService {
             case PENDING:
             case PENDING_APPROVAL:
             case ACTIVE:
-                // Allowed
+                // Teacher with PENDING_APPROVAL can log in but will be redirected to /teacher-pending on frontend
                 break;
         }
     }

@@ -61,7 +61,14 @@ function LoginPage() {
     <AuthShell
       title="Welcome back 🌸"
       subtitle="Sign in to continue your Japanese journey."
-      footer={<>Don't have an account? <Link to="/register" className="text-primary font-semibold">Sign up free</Link></>}
+      footer={
+        <>
+          Don't have an account?{" "}
+          <Link to="/register" className="text-primary font-semibold">
+            Sign up free
+          </Link>
+        </>
+      }
     >
       <form onSubmit={submit} className="space-y-4">
         <Field
@@ -88,11 +95,7 @@ function LoginPage() {
               onClick={() => setShowPassword((v) => !v)}
               className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
             >
-              {showPassword ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           }
         />
@@ -106,7 +109,10 @@ function LoginPage() {
             />
             <span className="text-muted-foreground font-medium">Remember me</span>
           </label>
-          <Link to="/forgot-password" className="text-primary font-semibold hover:underline underline-offset-2">
+          <Link
+            to="/forgot-password"
+            className="text-primary font-semibold hover:underline underline-offset-2"
+          >
             Forgot password?
           </Link>
         </div>
@@ -119,8 +125,19 @@ function LoginPage() {
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
+                />
               </svg>
               Signing in…
             </span>
@@ -130,10 +147,16 @@ function LoginPage() {
         </PrimaryBtn>
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">or</span>
+          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            or
+          </span>
           <div className="flex-1 h-px bg-border" />
         </div>
-        <GoogleBtn onSuccess={handleGoogleSuccess} onError={handleGoogleError} disabled={loading || googleLoading} />
+        <GoogleBtn
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+          disabled={loading || googleLoading}
+        />
       </form>
     </AuthShell>
   );

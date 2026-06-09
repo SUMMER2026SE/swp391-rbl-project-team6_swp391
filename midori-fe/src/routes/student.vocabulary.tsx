@@ -90,17 +90,27 @@ function getLevelBadge(level: string): string {
 
 function getTopicColor(topic: string): string {
   const c: Record<string, string> = {
-    Family: "bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 border-pink-200 dark:border-pink-800",
-    School: "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    Family:
+      "bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 border-pink-200 dark:border-pink-800",
+    School:
+      "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-800",
     Food: "bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 border-orange-200 dark:border-orange-800",
-    Travel: "bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
-    Shopping: "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+    Travel:
+      "bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+    Shopping:
+      "bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 border-rose-200 dark:border-rose-800",
     Work: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700",
-    "Daily Life": "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-300 border-green-200 dark:border-green-800",
-    "Business Japanese": "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
-    Nature: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    "Daily Life":
+      "bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-300 border-green-200 dark:border-green-800",
+    "Business Japanese":
+      "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
+    Nature:
+      "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
   };
-  return c[topic] ?? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+  return (
+    c[topic] ??
+    "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+  );
 }
 
 function getTopicIcon(topic: string): string {
@@ -172,12 +182,14 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
                   <Tag className="w-3.5 h-3.5" />
                   Topics
                 </div>
-                <span className="text-[10px] text-muted-foreground dark:text-indigo-200/60">{topics.length - 1} topics</span>
+                <span className="text-[10px] text-muted-foreground dark:text-indigo-200/60">
+                  {topics.length - 1} topics
+                </span>
               </div>
 
               {/* Topic Pills */}
               <div className="space-y-1">
-                {topics.map(topic => {
+                {topics.map((topic) => {
                   const isSelected = topic === selected;
                   return (
                     <button
@@ -233,13 +245,13 @@ function VocabularyPage() {
   const [allTopics, setAllTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [selectedLevel, setSelectedLevel] = useState<string>("All");
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
-  const [filterTab, setFilterTab] = useState<typeof FILTER_TABS[number]>("Tất cả");
+  const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]>("Tất cả");
   const [topicsOpen, setTopicsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const WORDS_PER_PAGE = 10;
@@ -305,6 +317,7 @@ function VocabularyPage() {
 
   const filteredLessons = lessons;
 
+  // ── Derived: topics available within the selected level ─────────────────────
   const topicsInLevel = useMemo(() => {
     const levelFiltered = allTopics.filter(Boolean);
     return ["All Topics", ...levelFiltered];
@@ -324,7 +337,7 @@ function VocabularyPage() {
   };
 
   const setWordStatus = (wordKey: string, status: WordStatus) => {
-    setWordStatuses(prev => {
+    setWordStatuses((prev) => {
       const next = { ...prev };
       if (prev[wordKey] === status) {
         delete next[wordKey];
@@ -336,7 +349,7 @@ function VocabularyPage() {
   };
 
   const toggleFavoriteWord = (wordKey: string) => {
-    setFavorites(prev => {
+    setFavorites((prev) => {
       const next = new Set(prev);
       if (next.has(wordKey)) next.delete(wordKey);
       else next.add(wordKey);
@@ -350,19 +363,31 @@ function VocabularyPage() {
     const lessonProgress = words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "mastered").length;
     const progressPct = words.length > 0 ? Math.round((lessonProgress / words.length) * 100) : 0;
 
-    const filteredWords = words.filter(w => {
-      const key = `${activeLesson}-${w.word}`;
-      const status = getWordStatus(key);
-      const isFav = favorites.has(key);
+    // Build word list from lessonDetail
+    const lessonWords = words.map(w => ({
+      id: w.word,
+      word: w.word,
+      furigana: w.furigana || w.romaji || "",
+      meaning: w.meaning,
+      example: w.exampleJapanese || "",
+      exampleMeaning: w.exampleMeaning || "",
+    }));
+
+    const filteredWords = lessonWords.filter((_, idx) => {
+      const wordKey = `${activeLesson}-${words[idx]?.word}`;
+      const status = getWordStatus(wordKey);
       if (filterTab === "Đã thuộc") return status === "mastered";
-      if (filterTab === "Chưa thuộc") return status === "new";
-      if (filterTab === "Yêu thích") return isFav;
+      if (filterTab === "Chưa thuộc") return status !== "mastered";
+      if (filterTab === "Yêu thích") return favorites.has(wordKey);
       return true;
     });
 
     const totalPages = Math.max(1, Math.ceil(filteredWords.length / WORDS_PER_PAGE));
     const safePage = Math.min(currentPage, totalPages);
-    const paginatedWords = filteredWords.slice((safePage - 1) * WORDS_PER_PAGE, safePage * WORDS_PER_PAGE);
+    const paginatedWords = filteredWords.slice(
+      (safePage - 1) * WORDS_PER_PAGE,
+      safePage * WORDS_PER_PAGE,
+    );
 
     return (
       <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950">
@@ -442,11 +467,11 @@ function VocabularyPage() {
             <button
               key={tab}
               onClick={() => { setFilterTab(tab); setCurrentPage(1); }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-                    filterTab === tab
-                      ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-sm"
-                      : "bg-card/60 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.07] dark:hover:border-white/15"
-                  }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                filterTab === tab
+                  ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-sm"
+                  : "bg-card/60 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/70 hover:text-foreground dark:hover:bg-white/[0.07] dark:hover:border-white/15"
+              }`}
             >
               {tab}
             </button>
@@ -454,12 +479,32 @@ function VocabularyPage() {
         </div>
 
         {/* Vocabulary Cards */}
-        {paginatedWords.length === 0 ? (
+        {detailLoading && (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <span className="ml-3 text-sm font-semibold">Loading words...</span>
+          </div>
+        )}
+
+        {detailError && (
+          <div className="text-center py-12">
+            <X className="w-10 h-10 mx-auto text-red-500 mb-3" />
+            <p className="text-red-500 mb-2 font-semibold">{detailError}</p>
+            <button
+              onClick={() => openLesson(activeLesson)}
+              className="text-sm text-primary underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {!detailLoading && !detailError && paginatedWords.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-10 h-10 mx-auto text-muted-foreground/50 dark:text-indigo-300/40 mb-2" />
             <p className="text-sm text-muted-foreground dark:text-slate-300">No words in this category</p>
           </div>
-        ) : (
+        ) : !detailLoading && !detailError && (
           <div className="space-y-2">
             {paginatedWords.map((word, i) => {
               const wordKey = `${activeLesson}-${word.word}`;
@@ -495,7 +540,7 @@ function VocabularyPage() {
                     </div>
 
                     {/* Action icons */}
-                    <div className="flex items-center gap-0.5 shrink-0">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
                         onClick={() => setWordStatus(wordKey, "mastered")}
                         title="Đã thuộc"
@@ -505,7 +550,9 @@ function VocabularyPage() {
                             : "text-muted-foreground dark:text-indigo-300/60 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-500"
                         }`}
                       >
-                        <CheckCircle className={`w-4 h-4 ${status === "mastered" ? "fill-green-400" : ""}`} />
+                        <CheckCircle
+                          className={`w-4 h-4 ${status === "mastered" ? "fill-green-400" : ""}`}
+                        />
                       </button>
                       <button
                         onClick={() => setWordStatus(wordKey, "new")}
@@ -520,7 +567,7 @@ function VocabularyPage() {
                       </button>
                       <button
                         onClick={() => toggleFavoriteWord(wordKey)}
-                        className="p-1.5 rounded-lg transition-all text-muted-foreground dark:text-indigo-300/60 hover:bg-amber-50 dark:hover:bg-amber-900/20 group/icon"
+                        className="p-1.5 rounded-lg transition-all text-muted-foreground dark:text-indigo-300/60 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-500 dark:hover:text-amber-400 group/icon"
                       >
                         {isFav ? (
                           <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
@@ -529,7 +576,10 @@ function VocabularyPage() {
                         )}
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); speakJapanese(word.furigana || word.word); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          speakJapanese(word.furigana || word.word);
+                        }}
                         title="Play pronunciation"
                         className="p-1.5 rounded-lg text-muted-foreground dark:text-indigo-300/60 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-cyan-600 dark:hover:text-cyan-300 transition-all"
                       >
@@ -539,11 +589,11 @@ function VocabularyPage() {
                   </div>
 
                   {/* Expanded — Example Sentence */}
-                  {(word.exampleJapanese || word.exampleMeaning) && (
+                  {(word.example || word.exampleMeaning) && (
                     <div className="mt-2 pt-2 border-t border-border/60 dark:border-indigo-400/15">
-                      {word.exampleJapanese && (
+                      {word.example && (
                         <div className="text-xs text-muted-foreground dark:text-slate-300/80 italic pl-3" style={{ fontFamily: "var(--font-japanese, serif)" }}>
-                          {word.exampleJapanese}
+                          {word.example}
                         </div>
                       )}
                       {word.exampleMeaning && (
@@ -604,13 +654,14 @@ function VocabularyPage() {
             )}
           </div>
         )}
+          </div>
+        </div>
       </div>
-      </div>
-    </div>
-  );
+    );
   }
 
-  // ── Browse Lessons View ───────────────────────────────────────────────
+  // ── Browse Lessons View ──────────────────────────────────────────────────────
+
   return (
     <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen">
       <SakuraBg count={14} />
@@ -629,8 +680,11 @@ function VocabularyPage() {
                 { label: "Mastered", value: totalLearned, color: "text-green-500" },
                 { label: "Learning", value: totalLearning, color: "text-amber-500" },
                 { label: "Total", value: totalWordsAll, color: "text-blue-500" },
-              ].map(stat => (
-                <div key={stat.label} className="text-center px-3 py-2 rounded-xl bg-card/70 dark:bg-indigo-950/50 backdrop-blur-sm border border-border/50 dark:border-indigo-400/20 shadow-sm">
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="text-center px-3 py-2 rounded-xl bg-card/70 dark:bg-indigo-950/50 backdrop-blur-sm border border-border/50 dark:border-indigo-400/20 shadow-sm"
+                >
                   <div className={`text-lg font-black ${stat.color}`}>{stat.value}</div>
                   <div className="text-[10px] text-muted-foreground font-medium">{stat.label}</div>
                 </div>
@@ -649,6 +703,7 @@ function VocabularyPage() {
           {/* Error State */}
           {!loading && error && (
             <div className="text-center py-16">
+              <X className="w-10 h-10 mx-auto text-red-500 mb-3" />
               <p className="text-red-500 mb-2 font-semibold">{error}</p>
               <button onClick={fetchLessons} className="text-sm text-primary underline">Try again</button>
             </div>

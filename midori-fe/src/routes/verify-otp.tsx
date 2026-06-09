@@ -156,11 +156,7 @@ function VerifyOtpPage() {
         <PrimaryBtn type="submit" disabled={!allFilled || loading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <svg
-                className="animate-spin w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle
                   className="opacity-25"
                   cx="12"

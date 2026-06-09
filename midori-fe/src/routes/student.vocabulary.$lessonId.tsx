@@ -1,73 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronLeft, Volume2, Bookmark, BookmarkCheck,
-  CheckCircle2, X, Play, ArrowRight, ArrowLeft,
-  BookOpen, GraduationCap
+  ChevronLeft,
+  Volume2,
+  Bookmark,
+  BookmarkCheck,
+  CheckCircle2,
+  X,
+  Play,
+  ArrowRight,
+  ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
+import {
+  vocabularyApi,
+  type VocabularyLessonDetail,
+  type VocabularyWord,
+} from "@/lib/api/vocabulary";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "not_learned" | "learned";
-
-// ─── Data ──────────────────────────────────────────────────────────────────────
-
-interface Word {
-  word: string;
-  furigana: string;
-  romaji: string;
-  meaning: string;
-  example: string;
-  exampleMeaning: string;
-  exampleRomaji?: string;
-}
-
-interface Lesson {
-  id: string;
-  title: string;
-  level: "N5" | "N4" | "N3" | "N2" | "N1";
-  topic: string;
-  totalWords: number;
-  words: Word[];
-}
-
-const LESSONS: Lesson[] = [
-  {
-    id: "n5-1", title: "Daily Greetings", level: "N5", topic: "Daily Life",
-    totalWords: 12,
-    words: [
-      { word: "おはよう", furigana: "おはよう", romaji: "ohayou", meaning: "Good morning", example: "おはようございます。", exampleMeaning: "Good morning (polite)", exampleRomaji: "Ohayou gozaimasu" },
-      { word: "こんにちは", furigana: "こんにちは", romaji: "konnichiwa", meaning: "Hello / Good afternoon", example: "こんにちは、先生。", exampleMeaning: "Hello, teacher.", exampleRomaji: "Konnichiwa, sensei" },
-      { word: "こんばんは", furigana: "こんばんは", romaji: "konbanwa", meaning: "Good evening", example: "こんばんは。", exampleMeaning: "Good evening.", exampleRomaji: "Konbanwa" },
-      { word: "さようなら", furigana: "さようなら", romaji: "sayounara", meaning: "Goodbye", example: "さようなら、またね。", exampleMeaning: "Goodbye, see you again.", exampleRomaji: "Sayounara, mata ne" },
-      { word: "おやすみ", furigana: "おやすみ", romaji: "oyasumi", meaning: "Good night", example: "おやすみなさい。", exampleMeaning: "Good night (polite).", exampleRomaji: "Oyasuminasai" },
-      { word: "ありがとう", furigana: "ありがとう", romaji: "arigatou", meaning: "Thank you", example: "ありがとうございます！", exampleMeaning: "Thank you very much!", exampleRomaji: "Arigatou gozaimasu" },
-      { word: "すみません", furigana: "すみません", romaji: "sumimasen", meaning: "Excuse me / Sorry", example: "すみません、駅はどこですか。", exampleMeaning: "Excuse me, where is the station?", exampleRomaji: "Sumimasen, eki wa doko desu ka" },
-      { word: "はい", furigana: "はい", romaji: "hai", meaning: "Yes", example: "はい、わかりました。", exampleMeaning: "Yes, I understand.", exampleRomaji: "Hai, wakarimashita" },
-      { word: "いいえ", furigana: "いいえ", romaji: "iie", meaning: "No", example: "いいえ、違います。", exampleMeaning: "No, that's wrong.", exampleRomaji: "Iie, chigaimasu" },
-      { word: "お願いします", furigana: "おねがいします", romaji: "onegaishimasu", meaning: "Please", example: "これ、お願いします。", exampleMeaning: "This one, please.", exampleRomaji: "Kore, onegaishimasu" },
-      { word: "いただきます", furigana: "いただきます", romaji: "itadakimasu", meaning: "Let's eat (before meal)", example: "いただきます！", exampleMeaning: "Let's eat!", exampleRomaji: "Itadakimasu" },
-      { word: "ごちそうさま", furigana: "ごちそうさま", romaji: "gochisousama", meaning: "Thank you for the meal (after)", example: "ごちそうさまでした！", exampleMeaning: "Thank you for the meal!", exampleRomaji: "Gochisousama deshita" },
-    ],
-  },
-  {
-    id: "n5-2", title: "Family Members", level: "N5", topic: "Family",
-    totalWords: 10,
-    words: [
-      { word: "家族", furigana: "かぞく", romaji: "kazoku", meaning: "family", example: "家族は何人ですか。", exampleMeaning: "How many people are in your family?", exampleRomaji: "Kazoku wa nan-nin desu ka" },
-      { word: "父", furigana: "ちち", romaji: "chichi", meaning: "father (my)", example: "父は医者です。", exampleMeaning: "My father is a doctor.", exampleRomaji: "Chichi wa isha desu" },
-      { word: "母", furigana: "はは", romaji: "haha", meaning: "mother (my)", example: "母は先生です。", exampleMeaning: "My mother is a teacher.", exampleRomaji: "Haha wa sensei desu" },
-      { word: "兄弟", furigana: "きょうだい", romaji: "kyoudai", meaning: "brothers / siblings", example: "兄弟は二人います。", exampleMeaning: "I have two siblings.", exampleRomaji: "Kyoudai wa futari imasu" },
-      { word: "姉", furigana: "あね", romaji: "ane", meaning: "older sister (my)", example: "姉は大学生です。", exampleMeaning: "My older sister is a university student.", exampleRomaji: "Ane wa daigakusei desu" },
-      { word: "祖父", furigana: "そふ", romaji: "sofu", meaning: "grandfather (my)", example: "祖父は元気です。", exampleMeaning: "My grandfather is healthy.", exampleRomaji: "Sofu wa genki desu" },
-      { word: "祖母", furigana: "そぼ", romaji: "sobo", meaning: "grandmother (my)", example: "祖母は料理が上手です。", exampleMeaning: "My grandmother cooks well.", exampleRomaji: "Sobo wa ryouri ga jouzu desu" },
-      { word: "子供", furigana: "こども", romaji: "kodomo", meaning: "child / children", example: "子供が三人います。", exampleMeaning: "I have three children.", exampleRomaji: "Kodomo ga san-nin imasu" },
-      { word: "主人", furigana: "しゅじん", romaji: "shujin", meaning: "husband (my)", example: "主人は会社で働いています。", exampleMeaning: "My husband works at a company.", exampleRomaji: "Shujin wa kaisha de hataraite imasu" },
-      { word: "妻", furigana: "つま", romaji: "tsuma", meaning: "wife (my)", example: "妻は看護師です。", exampleMeaning: "My wife is a nurse.", exampleRomaji: "Tsuma wa kango shi desu" },
-    ],
-  },
-];
 
 const levelColors: Record<string, string> = {
   N5: "bg-blue-500/20 text-blue-400 border-blue-400/30",
@@ -77,36 +32,53 @@ const levelColors: Record<string, string> = {
   N1: "bg-red-500/20 text-red-400 border-red-400/30",
 };
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
-
-export const Route = createFileRoute("/student/vocabulary/$lessonId")({ component: VocabStudyPage });
+export const Route = createFileRoute("/student/vocabulary/$lessonId")({
+  component: VocabStudyPage,
+});
 
 function VocabStudyPage() {
   const { lessonId } = Route.useParams();
-  const lesson = LESSONS.find(l => l.id === lessonId) ?? LESSONS[0];
+
+  // ── Query: Lesson details (includes words) ─────────────────────────────────
+  const {
+    data: lesson,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["vocabulary-lesson", lessonId],
+    queryFn: () => vocabularyApi.getVocabularyLesson(lessonId),
+    enabled: !!lessonId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const words: VocabularyWord[] = lesson?.words ?? [];
+
+  const errorMessage =
+    error instanceof Error ? error.message : "Something went wrong. Please try again.";
 
   const [current, setCurrent] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [wordStatuses, setWordStatuses] = useState<Record<number, WordStatus>>({});
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
 
-  const word = lesson.words[current];
+  const word = words[current];
   const status = wordStatuses[current] ?? "not_learned";
   const isBook = bookmarked.has(current);
 
-  const learnedCount = Object.values(wordStatuses).filter(s => s === "learned").length;
-  const notLearnedCount = lesson.words.length - learnedCount;
+  const learnedCount = Object.values(wordStatuses).filter((s) => s === "learned").length;
+  const notLearnedCount = words.length - learnedCount;
 
   const goNext = () => {
-    if (current < lesson.words.length - 1) {
-      setCurrent(c => c + 1);
+    if (current < words.length - 1) {
+      setCurrent((c) => c + 1);
       setRevealed(false);
     }
   };
 
   const goPrev = () => {
     if (current > 0) {
-      setCurrent(c => c - 1);
+      setCurrent((c) => c - 1);
       setRevealed(false);
     }
   };
@@ -117,20 +89,86 @@ function VocabStudyPage() {
   };
 
   const toggleLearned = () => {
-    setWordStatuses(prev => ({
+    setWordStatuses((prev) => ({
       ...prev,
       [current]: prev[current] === "learned" ? "not_learned" : "learned",
     }));
   };
 
   const toggleBookmark = () => {
-    setBookmarked(prev => {
+    setBookmarked((prev) => {
       const next = new Set(prev);
       if (next.has(current)) next.delete(current);
       else next.add(current);
       return next;
     });
   };
+
+  const playAudio = (url: string) => {
+    const audio = new Audio(url);
+    audio.play();
+  };
+
+  // ── Loading State ──────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={18} />
+        <div className="relative z-10 text-center">
+          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/70 text-sm font-medium">Loading lesson...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error State ───────────────────────────────────────────────────────────
+  if (isError) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={18} />
+        <div className="relative z-10 text-center max-w-sm mx-auto px-4">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-400/30 flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8 text-red-400" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Failed to load lesson details</h3>
+          <p className="text-sm text-white/60 mb-4">{errorMessage}</p>
+          <Link
+            to="/student/vocabulary"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Vocabulary
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Empty Word List ───────────────────────────────────────────────────────
+  if (words.length === 0) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={18} />
+        <div className="relative z-10 text-center max-w-sm mx-auto px-4">
+          <BookOpen className="w-12 h-12 mx-auto text-white/30 mb-4" />
+          <h3 className="text-lg font-bold text-white mb-2">No vocabulary words available</h3>
+          <p className="text-sm text-white/60 mb-4">This lesson does not have any words yet.</p>
+          <Link
+            to="/student/vocabulary"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to Vocabulary
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const lessonLevel = lesson?.level ?? "N5";
+  const lessonTitle = lesson?.title ?? "Vocabulary Lesson";
+  const lessonTopic = lesson?.topic;
 
   return (
     <div className="min-h-screen relative flex flex-col">
@@ -150,25 +188,36 @@ function VocabStudyPage() {
           {/* Title */}
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lesson.level]}`}>
-                JLPT {lesson.level}
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lessonLevel] ?? levelColors.N5}`}
+              >
+                JLPT {lessonLevel}
               </span>
               <span className="font-display font-black text-white text-base leading-tight text-center">
-                {lesson.title}
+                {lessonTitle}
               </span>
             </div>
           </div>
 
-          {/* Audio */}
-          <button className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/30 transition">
-            <Volume2 className="w-5 h-5 text-white" />
-          </button>
+          {/* Audio (plays first word's audio if available) */}
+          {words[0]?.audioUrl ? (
+            <button
+              onClick={() => playAudio(words[0].audioUrl!)}
+              className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/30 transition"
+            >
+              <Volume2 className="w-5 h-5 text-white" />
+            </button>
+          ) : (
+            <div className="w-10 h-10" />
+          )}
         </div>
 
         {/* Progress stats */}
         <div className="flex items-center justify-center gap-4 text-xs text-white/80 font-semibold">
           <span className="flex items-center gap-1">
-            <span className="font-black text-white text-sm">{current + 1} / {lesson.words.length}</span>
+            <span className="font-black text-white text-sm">
+              {current + 1} / {words.length}
+            </span>
           </span>
           <div className="w-px h-4 bg-white/20" />
           <span className="flex items-center gap-1">
@@ -186,7 +235,7 @@ function VocabStudyPage() {
       {/* ── Progress Dots ── */}
       <div className="relative z-10 px-4 pb-3">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-          {lesson.words.map((_, i) => {
+          {words.map((_: VocabularyWord, i: number) => {
             const isCurrent = i === current;
             const isLearned = wordStatuses[i] === "learned";
             return (
@@ -197,8 +246,8 @@ function VocabStudyPage() {
                   isCurrent
                     ? "bg-gradient-hero text-white shadow-lg shadow-primary/40 scale-110"
                     : isLearned
-                    ? "bg-green-500/30 text-green-300 border border-green-400/30"
-                    : "bg-white/15 text-white/70 border border-white/20 hover:bg-white/25"
+                      ? "bg-green-500/30 text-green-300 border border-green-400/30"
+                      : "bg-white/15 text-white/70 border border-white/20 hover:bg-white/25"
                 }`}
               >
                 {i + 1}
@@ -211,7 +260,7 @@ function VocabStudyPage() {
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-blue-400 to-pink-400"
             initial={{ width: 0 }}
-            animate={{ width: `${((current + 1) / lesson.words.length) * 100}%` }}
+            animate={{ width: `${((current + 1) / words.length) * 100}%` }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           />
         </div>
@@ -235,26 +284,42 @@ function VocabStudyPage() {
             >
               {/* Card header strip */}
               <div className="bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 px-5 py-2.5 flex items-center justify-between">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lesson.level]}`}>
-                  JLPT {lesson.level}
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[lessonLevel] ?? levelColors.N5}`}
+                >
+                  JLPT {lessonLevel}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={(e) => { e.stopPropagation(); toggleBookmark(); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleBookmark();
+                    }}
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                      isBook ? "bg-yellow-400/30 text-yellow-300" : "hover:bg-white/10 text-white/60"
+                      isBook
+                        ? "bg-yellow-400/30 text-yellow-300"
+                        : "hover:bg-white/10 text-white/60"
                     }`}
                   >
-                    {isBook
-                      ? <BookmarkCheck className="w-4 h-4 fill-yellow-400" />
-                      : <Bookmark className="w-4 h-4" />}
+                    {isBook ? (
+                      <BookmarkCheck className="w-4 h-4 fill-yellow-400" />
+                    ) : (
+                      <Bookmark className="w-4 h-4" />
+                    )}
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); }}
-                    className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition"
-                  >
-                    <Volume2 className="w-4 h-4 text-white" />
-                  </button>
+                  {word?.audioUrl ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(word.audioUrl!);
+                      }}
+                      className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition"
+                    >
+                      <Volume2 className="w-4 h-4 text-white" />
+                    </button>
+                  ) : (
+                    <div className="w-8 h-8" />
+                  )}
                 </div>
               </div>
 
@@ -266,20 +331,23 @@ function VocabStudyPage() {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.1 }}
                   className="font-display font-black text-white leading-none mb-3"
-                  style={{ fontSize: "clamp(2.5rem, 8vw, 4.5rem)", fontFamily: "var(--font-japanese, serif)" }}
+                  style={{
+                    fontSize: "clamp(2.5rem, 8vw, 4.5rem)",
+                    fontFamily: "var(--font-japanese, serif)",
+                  }}
                 >
                   {word.word}
                 </motion.div>
 
                 {/* Furigana */}
                 <div className="text-white/60 text-base font-medium mb-1">
-                  {word.furigana}
+                  {word.furigana ?? word.romaji}
                 </div>
 
                 {/* Romaji */}
-                <div className="text-white/40 text-sm font-medium italic mb-6">
-                  {word.romaji}
-                </div>
+                {word.romaji && (
+                  <div className="text-white/40 text-sm font-medium italic mb-6">{word.romaji}</div>
+                )}
 
                 {/* Tap to reveal / Meaning */}
                 <AnimatePresence mode="wait">
@@ -312,24 +380,44 @@ function VocabStudyPage() {
                     >
                       {/* Meaning */}
                       <div className="px-4 py-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15">
-                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Meaning</div>
-                        <div className="text-white font-bold text-lg leading-tight">{word.meaning}</div>
+                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">
+                          Meaning
+                        </div>
+                        <div className="text-white font-bold text-lg leading-tight">
+                          {word.meaning}
+                        </div>
                       </div>
 
                       {/* Example */}
-                      {word.example && (
+                      {(word.exampleJapanese || word.exampleMeaning) && (
                         <div className="px-4 py-3 rounded-2xl bg-purple-500/15 backdrop-blur-sm border border-purple-400/20">
-                          <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-1">Example</div>
-                          <div
-                            className="text-white font-bold text-base leading-tight mb-1"
-                            style={{ fontFamily: "var(--font-japanese, serif)" }}
-                          >
-                            {word.example}
+                          <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-1">
+                            Example
                           </div>
-                          {word.exampleRomaji && (
-                            <div className="text-white/40 text-xs italic mb-1">{word.exampleRomaji}</div>
+                          {word.exampleJapanese && (
+                            <div
+                              className="text-white font-bold text-base leading-tight mb-1"
+                              style={{ fontFamily: "var(--font-japanese, serif)" }}
+                            >
+                              {word.exampleJapanese}
+                            </div>
                           )}
-                          <div className="text-white/70 text-sm">{word.exampleMeaning}</div>
+                          <div className="text-white/70 text-sm">
+                            {word.exampleMeaning ?? word.exampleJapanese}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Audio Player */}
+                      {word.audioUrl && (
+                        <div className="px-4 py-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15">
+                          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
+                            Pronunciation
+                          </div>
+                          <audio controls className="w-full h-8">
+                            <source src={word.audioUrl} />
+                            Your browser does not support the audio element.
+                          </audio>
                         </div>
                       )}
                     </motion.div>
@@ -366,7 +454,7 @@ function VocabStudyPage() {
             </button>
             <button
               onClick={goNext}
-              disabled={current === lesson.words.length - 1}
+              disabled={current === words.length - 1}
               className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-hero text-white font-bold text-sm shadow-lg shadow-primary/40 hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Next
