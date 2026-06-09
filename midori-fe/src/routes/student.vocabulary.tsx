@@ -173,7 +173,7 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 mt-2 w-64 sm:w-72 z-50"
+            className="absolute top-full right-0 mt-2 w-64 sm:w-72 z-50 max-w-[calc(100vw-2rem)]"
           >
             <div className="bg-white/95 dark:bg-indigo-950/90 backdrop-blur-xl rounded-2xl border border-white/60 dark:border-indigo-400/20 shadow-xl shadow-black/10 p-2">
               {/* Header */}
@@ -405,7 +405,7 @@ function VocabularyPage() {
       <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950">
         <SakuraBg count={14} />
         <div className="relative z-10">
-          <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+          <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             {/* Lesson Header */}
             <div className="flex items-center gap-3">
               <button
@@ -678,7 +678,7 @@ function VocabularyPage() {
     <div className="dark:bg-linear-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 min-h-screen">
       <SakuraBg count={14} />
       <div className="relative z-10">
-        <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
+        <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6 space-y-5">
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -804,7 +804,7 @@ function VocabularyPage() {
                   <p className="text-sm text-muted-foreground/70 dark:text-slate-400 mt-1">Nothing to display at the moment. Try a different level or topic.</p>
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredLessons.map((lesson, i) => {
                     const lessonLearned = 0;
                     const lessonLearning = 0;
@@ -818,7 +818,7 @@ function VocabularyPage() {
                       >
                         <button
                           onClick={() => openLesson(lesson.id)}
-                          className="w-full text-left rounded-2xl bg-card/80 dark:bg-white/[0.035] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-cyan-300/25 hover:-translate-y-1 transition-all duration-200 overflow-hidden group"
+                          className="w-full text-left rounded-2xl bg-card/80 dark:bg-white/[0.035] backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-cyan-300/25 hover:-translate-y-1 transition-all duration-200 overflow-hidden group flex flex-col"
                         >
                           {/* Clean Header */}
                           <div className={`relative px-4 pt-4 pb-3 bg-linear-to-br ${getLevelGradient(lesson.level ?? "N5")} ${getLevelGradientDark(lesson.level ?? "N5")}`}>
@@ -845,8 +845,8 @@ function VocabularyPage() {
                           </div>
 
                           {/* Content */}
-                          <div className="p-4 space-y-2 dark:bg-white/2.5">
-                            <p className="text-xs text-muted-foreground dark:text-slate-300/85 line-clamp-2 leading-relaxed">{lesson.description || "No description"}</p>
+                          <div className="p-4 mt-auto space-y-2 dark:bg-white/2.5">
+                            <p className="text-xs text-muted-foreground dark:text-slate-300/85 line-clamp-2 min-h-[2.5rem] leading-relaxed">{lesson.description || "No description"}</p>
 
                             {/* Stats */}
                             <div className="flex items-center justify-between text-[10px] text-muted-foreground dark:text-indigo-200/70">
