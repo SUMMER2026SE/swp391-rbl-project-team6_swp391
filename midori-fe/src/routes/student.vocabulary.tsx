@@ -242,11 +242,12 @@ export const Route = createFileRoute("/student/vocabulary")({ component: Vocabul
 
 function VocabularyPage() {
   const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
+  const [allLessonsBase, setAllLessonsBase] = useState<VocabularyLessonResponse[]>([]);
   const [allTopics, setAllTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedLevel, setSelectedLevel] = useState<string>("All");
+  const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -265,13 +266,68 @@ function VocabularyPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
+  // ── Word-level progress (persisted in localStorage) ─────────────────────────
+  const LS_KEY = "midori_vocab_word_progress";
+  const LS_OLD_KEY = "midori_vocab_progress"; // backward compat
+
+  // Hydration guard: prevents save effect from overwriting localStorage on first render
+  const [progressHydrated, setProgressHydrated] = useState(false);
+
+  // Load persisted word statuses from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        const saved: Record<string, WordStatus> = JSON.parse(raw);
+        setWordStatuses(saved);
+      }
+      // Migrate completedLessons from old key if present
+      const oldRaw = localStorage.getItem(LS_OLD_KEY);
+      if (oldRaw) {
+        const old: Record<string, { completed: boolean }> = JSON.parse(oldRaw);
+        const migrated = new Set<string>();
+        for (const [id, data] of Object.entries(old)) {
+          if (data.completed) migrated.add(id);
+        }
+        setCompletedLessons(migrated);
+      }
+    } catch {
+      // ignore malformed data
+    } finally {
+      setProgressHydrated(true);
+    }
+  }, []);
+
+  // Persist wordStatuses to localStorage only after hydration
+  useEffect(() => {
+    if (!progressHydrated) return;
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(wordStatuses));
+    } catch {
+      // ignore quota errors
+    }
+  }, [wordStatuses, progressHydrated]);
+
+  // Persist old-style completedLessons for backward compat (set only, no load needed)
+  useEffect(() => {
+    try {
+      const record: Record<string, { progress: number; completed: boolean; completedAt: string }> = {};
+      completedLessons.forEach(id => {
+        record[id] = { progress: 100, completed: true, completedAt: new Date().toISOString() };
+      });
+      localStorage.setItem(LS_OLD_KEY, JSON.stringify(record));
+    } catch {
+      // ignore quota errors
+    }
+  }, [completedLessons]);
+
   // Fetch published lessons from API
   const fetchLessons = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const lessonParams = {
-        level: selectedLevel !== "All" ? selectedLevel : undefined,
+        level: selectedLevel !== "all" ? selectedLevel : undefined,
         topic: selectedTopic !== "All Topics" ? selectedTopic : undefined,
         search: appliedSearch.trim() || undefined,
       };
@@ -281,6 +337,7 @@ function VocabularyPage() {
         studentVocabularyApi.getPublishedLessons(lessonParams),
       ]);
 
+      setAllLessonsBase(sortLessonsByNumber(allData));
       setLessons(sortLessonsByNumber(filteredData));
 
       const topics = Array.from(new Set(allData.map(l => l.topic).filter(Boolean) as string[])).sort();
@@ -427,7 +484,7 @@ function VocabularyPage() {
                       {lessonDetail.topic}
                     </span>
                   )}
-                  {completedLessons.has(activeLesson) && (
+                  {progressPct === 100 && (
                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 text-[10px] font-bold">
                       <CheckCircle className="w-3 h-3" /> Done
                     </span>
@@ -621,12 +678,25 @@ function VocabularyPage() {
                 {/* Complete Lesson Button */}
                 {paginatedWords.length > 0 && (
                   <div className="flex justify-center pt-2">
-                    <button
-                      onClick={() => setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; })}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
-                    >
-                      <Trophy className="w-4 h-4" /> Complete Lesson
-                    </button>
+                    {progressPct === 100 ? (
+                      <div className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 text-sm font-bold border border-green-200 dark:border-green-800">
+                        <CheckCircle className="w-4 h-4" /> Completed
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const newStatuses: Record<string, WordStatus> = {};
+                          words.forEach(w => {
+                            newStatuses[`${activeLesson}-${w.word}`] = "mastered";
+                          });
+                          setWordStatuses(prev => ({ ...prev, ...newStatuses }));
+                          setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; });
+                        }}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
+                      >
+                        <Trophy className="w-4 h-4" /> Complete Lesson
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -725,29 +795,38 @@ function VocabularyPage() {
           {!loading && !error && (
             <>
               {/* JLPT Level Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {/* All button */}
+                <button
+                  onClick={() => { setSelectedLevel("all"); setSelectedTopic("All Topics"); }}
+                  className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
+                    selectedLevel === "all"
+                      ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                      : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:shadow-sm dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
+                  }`}
+                >
+                  <span className="font-display font-bold text-sm leading-none">All</span>
+                  <span className={`text-[10px] leading-none ${selectedLevel === "all" ? "text-white/70" : "text-muted-foreground/70 dark:text-indigo-300/60"}`}>
+                    {allLessonsBase.length} lessons
+                  </span>
+                </button>
                 {JLPT_LEVELS.map(level => {
-                  const lvlLessons = lessons.filter(l => l.level === level);
-                  const lvlTotal = lvlLessons.reduce((s, l) => s + (l.wordCount ?? l.word_count ?? 0), 0);
-                  const lvlLearned = lvlLessons.reduce((s, l) =>
-                    s + (l.words?.filter((w: any) => wordStatuses[`${l.id}-${w.word}`] === "mastered").length || 0), 0);
-                  const pct = lvlTotal > 0 ? Math.round((lvlLearned / lvlTotal) * 100) : 0;
+                  const lvlCount = allLessonsBase.filter(l => l.level === level).length;
                   const isSelected = level === selectedLevel;
                   return (
                     <button
                       key={level}
                       onClick={() => { setSelectedLevel(level); setSelectedTopic("All Topics"); }}
-                      className={`relative shrink-0 flex flex-col items-center gap-1 px-5 py-2.5 rounded-2xl transition-all ${
+                      className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
                         isSelected
-                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-blue-200/40 dark:shadow-none"
-                          : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 hover:shadow-md dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
+                          ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                          : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:shadow-sm dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
                       }`}
                     >
-                      <span className="font-display font-black text-base">{level}</span>
-                      <div className={`w-14 h-1 rounded-full overflow-hidden ${isSelected ? "bg-white/30" : "bg-slate-100 dark:bg-slate-700"}`}>
-                        <div className={`h-full rounded-full transition-all ${isSelected ? "bg-white" : "bg-pink-300"}`} style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-muted-foreground dark:text-indigo-300/70"}`}>{pct}%</span>
+                      <span className="font-display font-bold text-sm leading-none">{level}</span>
+                      <span className={`text-[10px] leading-none ${isSelected ? "text-white/70" : "text-muted-foreground/70 dark:text-indigo-300/60"}`}>
+                        {lvlCount} lessons
+                      </span>
                     </button>
                   );
                 })}
@@ -806,9 +885,11 @@ function VocabularyPage() {
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredLessons.map((lesson, i) => {
-                    const lessonLearned = 0;
-                    const lessonLearning = 0;
-                    const lessonPct = 0;
+                    const wordCount = lesson.wordCount ?? lesson.word_count ?? 0;
+                    const masteredCount = Object.entries(wordStatuses).filter(
+                      ([k]) => k.startsWith(`${lesson.id}-`) && wordStatuses[k as string] === "mastered"
+                    ).length;
+                    const lessonPct = wordCount > 0 ? Math.round((masteredCount / wordCount) * 100) : 0;
                     return (
                       <motion.div
                         key={lesson.id}
@@ -829,7 +910,7 @@ function VocabularyPage() {
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-white/80 backdrop-blur-sm border border-white/20 dark:bg-slate-900/50 dark:text-white/80 dark:border-white/15">{lesson.topic}</span>
                                 )}
                               </div>
-                              {completedLessons.has(lesson.id) && (
+                              {lessonPct === 100 && (
                                 <span className="w-6 h-6 rounded-full bg-green-100/70 dark:bg-green-900/50 backdrop-blur-sm flex items-center justify-center">
                                   <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-300" />
                                 </span>
@@ -861,11 +942,14 @@ function VocabularyPage() {
                             )}
 
                             {/* Progress */}
-                            <div className="h-1.5 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
-                                style={{ width: `${lessonPct}%` }}
-                              />
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1.5 rounded-full bg-white/10 dark:bg-white/10 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
+                                  style={{ width: `${lessonPct}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] font-semibold tabular-nums shrink-0 dark:text-indigo-200/70">{lessonPct}%</span>
                             </div>
                           </div>
                         </button>
