@@ -1,5 +1,7 @@
 package com.midori.dto.vocabulary;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -8,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Builder
@@ -28,8 +32,13 @@ public class VocabularyLessonCreateRequest {
     @Size(max = 100, message = "Topic must not exceed 100 characters")
     private String topic;
 
+    @JsonAlias("estimated_minutes")
     @Min(value = 1, message = "Estimated minutes must be at least 1")
     private Integer estimatedMinutes;
 
+    @JsonAlias("is_published")
     private Boolean isPublished;
+
+    @Valid
+    private List<VocabularyWordCreateRequest> words;
 }

@@ -15,6 +15,9 @@ public interface VocabularyWordRepository extends JpaRepository<VocabularyWord, 
 
     Optional<VocabularyWord> findById(UUID id);
 
+    @Query("SELECT vw FROM VocabularyWord vw JOIN FETCH vw.lesson l LEFT JOIN FETCH l.createdBy WHERE vw.id = :wordId")
+    Optional<VocabularyWord> findByLessonIdWithLesson(@Param("wordId") UUID wordId);
+
     @Query("SELECT vw FROM VocabularyWord vw WHERE vw.lesson.id = :lessonId ORDER BY vw.displayOrder ASC")
     List<VocabularyWord> findByLessonIdOrderByDisplayOrderAsc(@Param("lessonId") UUID lessonId);
 
