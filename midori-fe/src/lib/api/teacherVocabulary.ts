@@ -144,28 +144,6 @@ export const teacherVocabularyApi = {
   deleteLesson: (lessonId: string) =>
     api.delete<void>(`/teacher/vocabulary/lessons/${lessonId}`),
 
-  /**
-   * PATCH /api/teacher/vocabulary/lessons/{lessonId}/publish
-   * Publishes a lesson so students can access it.
-   */
-  publishLesson: async (lessonId: string) => {
-    const lesson = await api.patch<VocabularyLessonResponse>(
-      `/teacher/vocabulary/lessons/${lessonId}/publish`
-    );
-    return normalizeLesson(lesson);
-  },
-
-  /**
-   * PATCH /api/teacher/vocabulary/lessons/{lessonId}/unpublish
-   * Unpublishes a lesson.
-   */
-  unpublishLesson: async (lessonId: string) => {
-    const lesson = await api.patch<VocabularyLessonResponse>(
-      `/teacher/vocabulary/lessons/${lessonId}/unpublish`
-    );
-    return normalizeLesson(lesson);
-  },
-
   // ─── Word API ──────────────────────────────────────────────────────────────
 
   /**
