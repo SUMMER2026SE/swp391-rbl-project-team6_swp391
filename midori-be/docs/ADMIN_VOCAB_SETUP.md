@@ -29,6 +29,7 @@ Open [application-local.yml](../src/main/resources/application-local.yml) and co
 *   `spring.datasource.username`: Your database user (e.g. `postgres.<project-id>`).
 *   `spring.datasource.password`: Your database password.
 *   `spring.mail.username` / `spring.mail.password`: Your Gmail SMTP sender and 16-character Gmail App Password (required for email verification).
+*   `app.admin.password`: Custom local admin password (optional, e.g. `password: ${ADMIN_PASSWORD:ChangeMe123!}`).
 
 > [!WARNING]
 > Do not commit `application-local.yml` to Git. It contains database and SMTP passwords.
@@ -83,9 +84,13 @@ The frontend is hosted at: **http://localhost:8081**
 When the backend starts in the `local` profile, if no active administrator exists in the database, the system automatically bootstraps a default account using parameters in [AdminBootstrapProperties.java](../src/main/java/com/midori/config/AdminBootstrapProperties.java) and [AdminBootstrapConfig.java](../src/main/java/com/midori/config/AdminBootstrapConfig.java):
 
 *   **Email**: `admin@midori.local`
-*   **Password**: `MidoriAdmin2026!`
+*   **Password**: `ChangeMe123!`
 *   **Role**: `ADMIN`
 *   **Status**: `ACTIVE`
+
+> [!IMPORTANT]
+> *   If `ADMIN_PASSWORD` is set, the admin password will use that environment variable.
+> *   For shared Supabase/dev database credentials, ask the team leader. Do not commit real passwords.
 
 ---
 
