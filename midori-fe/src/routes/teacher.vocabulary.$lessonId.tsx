@@ -3,12 +3,22 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Edit3, Trash2, ArrowLeft, Search, X, Save,
-  BookOpen, Tag, Eye, Download, ChevronDown, ChevronUp,
-  BookText, Layers, Volume2
+  BookOpen, Tag, Eye, Download, Loader2,
+  BookText, Layers, Volume2,
 } from "lucide-react";
-import { type Lesson, type VocabWord } from "../data/lessons";
+import {
+  teacherVocabularyApi,
+  type VocabularyLessonDetailResponse,
+  type VocabularyWordResponse,
+  type VocabularyWordCreateRequest,
+  type VocabularyWordUpdateRequest,
+} from "@/lib/api/teacherVocabulary";
+import { ApiError } from "@/lib/api/client";
 
-const STORAGE_KEY = "midori_vocab_lessons";
+const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"];
+const TOPICS = ["General", "Nature", "Life", "Work", "Social", "Emotions", "Travel", "Food", "Health", "Technology", "Education", "Business", "Culture", "Sports", "Art", "Science", "Politics", "Entertainment"];
+const WORD_TYPES = ["noun", "verb", "adjective", "adverb", "expression"];
+const PAGE_SIZE = 10;
 
 function speakJapanese(text: string) {
   if (!text?.trim()) return;
@@ -20,23 +30,7 @@ function speakJapanese(text: string) {
   utterance.rate = 0.85;
   window.speechSynthesis.speak(utterance);
 }
-const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"];
-const TOPICS = ["General", "Nature", "Life", "Work", "Social", "Emotions", "Travel", "Food", "Health", "Technology", "Education", "Business", "Culture", "Sports", "Art", "Science", "Politics", "Entertainment"];
-const WORD_TYPES = ["noun", "verb", "adjective", "adverb", "expression"];
-const PAGE_SIZE = 10;
 
-function loadLessons(): Lesson[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Lesson[];
-  } catch { }
-  return [];
-}
-
-function saveLessons(lessons: Lesson[]) {
-  if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY, JSON.stringify(lessons));
-}
 
 export const Route = createFileRoute("/teacher/vocabulary/$lessonId")({
   component: VocabularyLessonDetailPage,
@@ -92,16 +86,18 @@ function PaginationUI({ current, total, onPage }: { current: number; total: numb
 // ─── Word Modal ───────────────────────────────────────────────────────────
 interface WordModalProps {
   title: string;
-  word: Omit<VocabWord, "id"> | VocabWord;
-  onChange: (w: Omit<VocabWord, "id"> | VocabWord) => void;
+  word: Partial<VocabularyWordResponse>;
+  onChange: (w: Partial<VocabularyWordResponse>) => void;
   onSave: () => void;
   onClose: () => void;
   saveLabel: string;
+  saving?: boolean;
+  error?: string | null;
 }
 
-function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordModalProps) {
-  const set = <K extends keyof Omit<VocabWord, "id">>(key: K, val: Omit<VocabWord, "id">[K]) =>
-    onChange({ ...word, [key]: val } as typeof word);
+function WordModal({ title, word, onChange, onSave, onClose, saveLabel, saving, error }: WordModalProps) {
+  const set = <K extends keyof VocabularyWordResponse>(key: K, val: VocabularyWordResponse[K]) =>
+    onChange({ ...word, [key]: val });
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
@@ -121,13 +117,19 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
           </button>
         </div>
 
+        {error && (
+          <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
+            {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
               Word (Kanji/Hiragana) <span className="text-red-400">*</span>
             </label>
             <input
-              value={word.word}
+              value={word.word ?? ""}
               onChange={e => set("word", e.target.value)}
               autoFocus
               placeholder="環境"
@@ -136,10 +138,10 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
           </div>
           <div>
             <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">
-              Furigana <span className="text-red-400">*</span>
+              Furigana
             </label>
             <input
-              value={word.furigana}
+              value={word.furigana ?? ""}
               onChange={e => set("furigana", e.target.value)}
               placeholder="かんきょう"
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
@@ -148,7 +150,7 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
           <div>
             <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Romaji</label>
             <input
-              value={word.romaji}
+              value={word.romaji ?? ""}
               onChange={e => set("romaji", e.target.value)}
               placeholder="kankyou"
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
@@ -159,7 +161,7 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
               Meaning <span className="text-red-400">*</span>
             </label>
             <input
-              value={word.meaning}
+              value={word.meaning ?? ""}
               onChange={e => set("meaning", e.target.value)}
               placeholder="e.g. Environment"
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
@@ -168,7 +170,7 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
           <div>
             <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Level</label>
             <select
-              value={word.level}
+              value={word.level ?? "N5"}
               onChange={e => set("level", e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
             >
@@ -178,34 +180,44 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel }: WordMo
           <div>
             <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Topic</label>
             <select
-              value={word.topic}
-              onChange={e => set("topic", e.target.value)}
+              value={word.level ?? "General"}
+              onChange={e => set("level", e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
             >
               {TOPICS.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Word type</label>
-            <select
-              value={word.type}
-              onChange={e => set("type", e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50 capitalize"
-            >
-              {WORD_TYPES.map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
-            </select>
+            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Example (Japanese)</label>
+            <input
+              value={word.exampleJapanese ?? ""}
+              onChange={e => set("exampleJapanese", e.target.value)}
+              placeholder="e.g. 環境に問題がある。"
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5 tracking-wide">Example (Meaning)</label>
+            <input
+              value={word.exampleMeaning ?? ""}
+              onChange={e => set("exampleMeaning", e.target.value)}
+              placeholder="e.g. There are problems with the environment."
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/50"
+            />
           </div>
         </div>
 
         <div className="flex gap-3 pt-1">
           <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            disabled={saving}
+            className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-40">
             Cancel
           </button>
           <button onClick={onSave}
-            disabled={!word.word.trim() || !word.meaning.trim()}
+            disabled={!word.word?.trim() || !word.meaning?.trim() || saving}
             className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow flex items-center justify-center gap-2 disabled:opacity-40 transition">
-            <Save className="w-4 h-4" /> {saveLabel}
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {saving ? "Saving..." : saveLabel}
           </button>
         </div>
       </motion.div>
@@ -218,10 +230,11 @@ function VocabularyLessonDetailPage() {
   const params = Route.useParams();
   const navigate = useNavigate();
 
-  const [lessons, setLessons] = useState<Lesson[]>(loadLessons);
-  const lesson = lessons.find(l => l.id === params.lessonId);
+  const [lesson, setLesson] = useState<VocabularyLessonDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [words, setWords] = useState<VocabWord[]>(lesson?.words ?? []);
+  const [words, setWords] = useState<VocabularyWordResponse[]>([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"default" | "alpha" | "level">("default");
   const [filterTopic, setFilterTopic] = useState("All");
@@ -229,60 +242,54 @@ function VocabularyLessonDetailPage() {
 
   // Modal states
   const [addNew, setAddNew] = useState(false);
-  const [editingWord, setEditingWord] = useState<VocabWord | null>(null);
-  const [deleteWord, setDeleteWord] = useState<VocabWord | null>(null);
-  const [viewWord, setViewWord] = useState<VocabWord | null>(null);
+  const [editingWord, setEditingWord] = useState<VocabularyWordResponse | null>(null);
+  const [deleteWord, setDeleteWord] = useState<VocabularyWordResponse | null>(null);
+  const [viewWord, setViewWord] = useState<VocabularyWordResponse | null>(null);
 
-  // Form state
-  const makeNew = (): Omit<VocabWord, "id"> => ({
-    word: "", furigana: "", romaji: "", meaning: "", level: lesson?.level ?? "N5",
-    topic: "General", type: "noun", audio: false, examples: 0, views: 0, favorites: 0,
+  // Word form state (partial — we only send non-empty fields to backend)
+  const makeNewWord = (): Partial<VocabularyWordResponse> => ({
+    word: "",
+    furigana: "",
+    romaji: "",
+    meaning: "",
+    level: lesson?.level ?? "N5",
   });
-  const [newWord, setNewWord] = useState<Omit<VocabWord, "id">>(makeNew());
-  const [editForm, setEditForm] = useState<VocabWord | null>(null);
+  const [newWord, setNewWord] = useState<Partial<VocabularyWordResponse>>(makeNewWord());
+  const [editForm, setEditForm] = useState<Partial<VocabularyWordResponse> | null>(null);
+
+  // Loading states for word operations
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
+
+  // Fetch lesson detail from backend
+  const fetchLesson = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await teacherVocabularyApi.getTeacherLessonDetail(params.lessonId);
+      setLesson(data);
+      setWords(data.words ?? []);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load lesson.");
+    } finally {
+      setLoading(false);
+    }
+  }, [params.lessonId]);
 
   useEffect(() => {
-    const found = lessons.find(l => l.id === params.lessonId);
-    setWords(found?.words ?? []);
-  }, [params.lessonId, lessons]);
+    fetchLesson();
+  }, [fetchLesson]);
+
+  useEffect(() => {
+    if (lesson) setWords(lesson.words ?? []);
+  }, [lesson]);
 
   useEffect(() => {
     if (editingWord) setEditForm(editingWord);
   }, [editingWord]);
-
-  const [pageLoading, setPageLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setPageLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const persist = useCallback((updated: Lesson[]) => {
-    saveLessons(updated);
-    setLessons(updated);
-  }, []);
-
-  if (pageLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-64 text-muted-foreground">
-        <BookOpen className="w-12 h-12 mb-3 opacity-30 animate-pulse" />
-        <p className="text-base font-bold">Loading vocabulary...</p>
-        <p className="text-sm text-muted-foreground/70 mt-1">Retrieving information...</p>
-      </div>
-    );
-  }
-
-  if (!lesson) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-64 text-muted-foreground">
-        <BookOpen className="w-12 h-12 mb-3 opacity-30" />
-        <p className="text-lg font-bold">Lesson not found.</p>
-        <p className="text-sm mt-1">Unable to load data. Please try again later.</p>
-        <Link to="/teacher/vocabulary" className="mt-3 text-primary underline text-sm">
-          ← Back to lesson list
-        </Link>
-      </div>
-    );
-  }
 
   const levelBadge = (l: string) => {
     const map: Record<string, string> = {
@@ -299,17 +306,17 @@ function VocabularyLessonDetailPage() {
   const filtered = [...words]
     .filter(w => {
       const matchSearch = !search ||
-        w.word.toLowerCase().includes(search.toLowerCase()) ||
-        w.meaning.toLowerCase().includes(search.toLowerCase()) ||
-        w.furigana.toLowerCase().includes(search.toLowerCase());
-      const matchTopic = filterTopic === "All" || w.topic === filterTopic;
+        w.word?.toLowerCase().includes(search.toLowerCase()) ||
+        w.meaning?.toLowerCase().includes(search.toLowerCase()) ||
+        w.furigana?.toLowerCase().includes(search.toLowerCase());
+      const matchTopic = filterTopic === "All";
       return matchSearch && matchTopic;
     })
     .sort((a, b) => {
-      if (sortBy === "alpha") return a.word.localeCompare(b.word);
+      if (sortBy === "alpha") return (a.word ?? "").localeCompare(b.word ?? "");
       if (sortBy === "level") {
         const order = ["N5", "N4", "N3", "N2", "N1"];
-        return order.indexOf(a.level) - order.indexOf(b.level);
+        return (order.indexOf(a.level ?? "") - order.indexOf(b.level ?? ""));
       }
       return 0;
     });
@@ -317,45 +324,96 @@ function VocabularyLessonDetailPage() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Topics from current words
+  const wordTopics = Array.from(new Set(words.map(w => w.level).filter(Boolean) as string[])).sort();
+
   // Handlers
-  const handleAddWord = () => {
-    if (!newWord.word.trim() || !newWord.meaning.trim()) return;
-    const w: VocabWord = { ...newWord, id: Date.now() };
-    const updated = lessons.map(l =>
-      l.id === params.lessonId ? { ...l, words: [...l.words, w] } : l
-    );
-    persist(updated);
-    setNewWord(makeNew());
-    setAddNew(false);
+  const handleAddWord = async () => {
+    if (!newWord.word?.trim() || !newWord.meaning?.trim()) return;
+    setAddSaving(true);
+    setAddError(null);
+    try {
+      const payload: VocabularyWordCreateRequest = {
+        word: newWord.word!.trim(),
+        furigana: newWord.furigana?.trim() || undefined,
+        romaji: newWord.romaji?.trim() || undefined,
+        meaning: newWord.meaning!.trim(),
+        exampleJapanese: newWord.exampleJapanese?.trim() || undefined,
+        exampleMeaning: newWord.exampleMeaning?.trim() || undefined,
+      };
+      await teacherVocabularyApi.addWord(params.lessonId, payload);
+      setNewWord(makeNewWord());
+      setAddNew(false);
+      await fetchLesson(); // refetch to get updated words
+    } catch (err) {
+      setAddError(err instanceof ApiError ? err.message : "Failed to add word.");
+    } finally {
+      setAddSaving(false);
+    }
   };
 
-  const handleSaveEdit = () => {
-    if (!editingWord || !editForm) return;
-    const updated = lessons.map(l =>
-      l.id === params.lessonId
-        ? { ...l, words: l.words.map(w => w.id === editingWord.id ? { ...editForm } : w) }
-        : l
-    );
-    persist(updated);
-    setEditingWord(null);
+  const handleSaveEdit = async () => {
+    if (!editingWord || !editForm?.word?.trim() || !editForm?.meaning?.trim()) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const payload: VocabularyWordUpdateRequest = {
+        word: editForm.word!.trim(),
+        furigana: editForm.furigana?.trim() || undefined,
+        romaji: editForm.romaji?.trim() || undefined,
+        meaning: editForm.meaning!.trim(),
+        exampleJapanese: editForm.exampleJapanese?.trim() || undefined,
+        exampleMeaning: editForm.exampleMeaning?.trim() || undefined,
+      };
+      await teacherVocabularyApi.updateWord(editingWord.id, payload);
+      setEditingWord(null);
+      await fetchLesson();
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : "Failed to update word.");
+    } finally {
+      setEditSaving(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDeleteWord = async () => {
     if (!deleteWord) return;
-    const updated = lessons.map(l =>
-      l.id === params.lessonId
-        ? { ...l, words: l.words.filter(w => w.id !== deleteWord.id) }
-        : l
-    );
-    persist(updated);
-    setDeleteWord(null);
+    setDeleteSaving(true);
+    try {
+      await teacherVocabularyApi.deleteWord(deleteWord.id);
+      setDeleteWord(null);
+      await fetchLesson();
+    } catch {
+      setDeleteWord(null); // close on error
+    } finally {
+      setDeleteSaving(false);
+    }
   };
 
   const handleSearch = (val: string) => { setSearch(val); setPage(1); };
   const handleTopicFilter = (val: string) => { setFilterTopic(val); setPage(1); };
 
-  // Topics from current words
-  const wordTopics = Array.from(new Set(words.map(w => w.topic))).sort();
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 text-muted-foreground">
+        <BookOpen className="w-12 h-12 mb-3 opacity-30 animate-pulse" />
+        <p className="text-base font-bold">Loading vocabulary...</p>
+        <p className="text-sm text-muted-foreground/70 mt-1">Retrieving information...</p>
+      </div>
+    );
+  }
+
+  if (error || !lesson) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 text-muted-foreground">
+        <BookOpen className="w-12 h-12 mb-3 opacity-30" />
+        <p className="text-lg font-bold text-red-500">{error ?? "Lesson not found."}</p>
+        <p className="text-sm mt-1">Unable to load data. Please try again later.</p>
+        <Link to="/teacher/vocabulary" className="mt-3 text-primary underline text-sm">
+          ← Back to lesson list
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -373,20 +431,22 @@ function VocabularyLessonDetailPage() {
             <h1 className="text-2xl font-display font-black text-foreground truncate">
               {lesson.title}
             </h1>
-            <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${levelBadge(lesson.level)}`}>
-              {lesson.level}
-            </span>
+            {lesson.level && (
+              <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${levelBadge(lesson.level)}`}>
+                {lesson.level}
+              </span>
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {words.length} words · Created {lesson.createdAt}
+            {words.length} words · Created {lesson.createdAt ? new Date(lesson.createdAt).toLocaleDateString() : "—"}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm hover:border-primary/40">
+          <button disabled className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm opacity-50 cursor-not-allowed" title="Coming soon">
             <Eye className="w-4 h-4" /> Preview
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm hover:border-primary/40">
+          <button disabled className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm opacity-50 cursor-not-allowed" title="Coming soon">
             <Download className="w-4 h-4" /> Export
           </button>
           <button
@@ -403,8 +463,8 @@ function VocabularyLessonDetailPage() {
         {[
           { label: "Total words", value: words.length, icon: BookText, color: "text-blue-500" },
           { label: "Topics", value: wordTopics.length, icon: Tag, color: "text-purple-500" },
-          { label: "N5–N3", value: words.filter(w => ["N5", "N4", "N3"].includes(w.level)).length, icon: Layers, color: "text-green-500" },
-          { label: "N2–N1", value: words.filter(w => ["N2", "N1"].includes(w.level)).length, icon: Layers, color: "text-orange-500" },
+          { label: "N5–N3", value: words.filter(w => ["N5","N4","N3"].includes(w.level ?? "")).length, icon: Layers, color: "text-green-500" },
+          { label: "N2–N1", value: words.filter(w => ["N2","N1"].includes(w.level ?? "")).length, icon: Layers, color: "text-orange-500" },
         ].map(stat => {
           const Icon = stat.icon;
           return (
@@ -459,20 +519,6 @@ function VocabularyLessonDetailPage() {
           <option value="alpha">A → Z</option>
           <option value="level">By level</option>
         </select>
-
-        {/* Topic filter */}
-        {wordTopics.length > 0 && (
-          <div className="relative" onClick={e => e.stopPropagation()}>
-            <select
-              value={filterTopic}
-              onChange={e => handleTopicFilter(e.target.value)}
-              className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none cursor-pointer min-w-[140px]"
-            >
-              <option value="All">All Topics</option>
-              {wordTopics.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-        )}
       </div>
 
       {/* ── Empty states ─────────────────────────────────────── */}
@@ -524,7 +570,7 @@ function VocabularyLessonDetailPage() {
               >
                 {/* Japanese */}
                 <div>
-                  <div className="font-display font-black text-lg text-foreground">{w.word || "—"}</div>
+                  <div className="font-display font-black text-lg text-foreground">{w.word ?? "—"}</div>
                   {w.romaji && (
                     <div className="text-[10px] text-muted-foreground mt-0.5">{w.romaji}</div>
                   )}
@@ -532,33 +578,32 @@ function VocabularyLessonDetailPage() {
 
                 {/* Reading */}
                 <div>
-                  <div className="text-sm text-sky-500 dark:text-sky-400 font-medium">{w.furigana || "—"}</div>
+                  <div className="text-sm text-sky-500 dark:text-sky-400 font-medium">{w.furigana ?? "—"}</div>
                 </div>
 
                 {/* Meaning */}
                 <div>
-                  <div className="text-sm font-semibold text-foreground">{w.meaning || "—"}</div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-muted text-muted-foreground capitalize">
-                      {w.type}
-                    </span>
-                  </div>
+                  <div className="text-sm font-semibold text-foreground">{w.meaning ?? "—"}</div>
                 </div>
 
                 {/* Tags */}
                 <div>
                   <div className="flex flex-wrap gap-1">
-                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 dark:bg-purple-950/30 text-purple-500">
-                      {w.topic}
-                    </span>
+                    {w.level && (
+                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black border ${levelBadge(w.level)}`}>
+                        {w.level}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 {/* Level */}
                 <div className="text-center">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(w.level)}`}>
-                    {w.level}
-                  </span>
+                  {w.level && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(w.level)}`}>
+                      {w.level}
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -571,7 +616,7 @@ function VocabularyLessonDetailPage() {
                     <Eye className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => { setEditForm(w); setEditingWord(w); }}
+                    onClick={() => { setEditForm(w); setEditingWord(w); setEditError(null); }}
                     title="Edit"
                     className="w-8 h-8 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-500 hover:text-blue-600 transition"
                   >
@@ -606,8 +651,10 @@ function VocabularyLessonDetailPage() {
             word={newWord}
             onChange={setNewWord}
             onSave={handleAddWord}
-            onClose={() => setAddNew(false)}
+            onClose={() => { setAddNew(false); setAddError(null); }}
             saveLabel="Add word"
+            saving={addSaving}
+            error={addError}
           />
         )}
       </AnimatePresence>
@@ -618,10 +665,12 @@ function VocabularyLessonDetailPage() {
           <WordModal
             title="Edit word"
             word={editForm}
-            onChange={(w) => setEditForm(w as VocabWord)}
+            onChange={setEditForm}
             onSave={handleSaveEdit}
-            onClose={() => setEditingWord(null)}
+            onClose={() => { setEditingWord(null); setEditError(null); }}
             saveLabel="Save changes"
+            saving={editSaving}
+            error={editError}
           />
         )}
       </AnimatePresence>
@@ -649,14 +698,14 @@ function VocabularyLessonDetailPage() {
               {/* Word display */}
               <div className="text-center p-5 rounded-2xl bg-gradient-hero/5 border border-primary/20">
                 <div className="flex items-center justify-center gap-3 mb-2">
-                  <div className="font-display font-black text-4xl text-foreground">{viewWord.word}</div>
-                  <button onClick={(e) => { e.stopPropagation(); speakJapanese(viewWord.furigana || viewWord.word); }}
+                  <div className="font-display font-black text-4xl text-foreground">{viewWord.word ?? "—"}</div>
+                  <button onClick={(e) => { e.stopPropagation(); speakJapanese(viewWord.furigana || viewWord.word || ""); }}
                     title="Play pronunciation"
                     className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0">
                     <Volume2 className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="text-lg text-sky-500 font-medium">{viewWord.furigana}</div>
+                <div className="text-lg text-sky-500 font-medium">{viewWord.furigana ?? "—"}</div>
                 {viewWord.romaji && (
                   <div className="text-sm text-muted-foreground mt-1">{viewWord.romaji}</div>
                 )}
@@ -665,25 +714,32 @@ function VocabularyLessonDetailPage() {
               {/* Meaning */}
               <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
                 <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Meaning</div>
-                <div className="text-base font-semibold text-foreground">{viewWord.meaning}</div>
+                <div className="text-base font-semibold text-foreground">{viewWord.meaning ?? "—"}</div>
               </div>
 
               {/* Tags */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`px-3 py-1 rounded-full text-xs font-black border ${levelBadge(viewWord.level)}`}>
-                  {viewWord.level}
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-50 dark:bg-purple-950/30 text-purple-500 border border-purple-200 dark:border-purple-800">
-                  {viewWord.topic}
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-muted text-muted-foreground capitalize">
-                  {viewWord.type}
-                </span>
+                {viewWord.level && (
+                  <span className={`px-3 py-1 rounded-full text-xs font-black border ${levelBadge(viewWord.level)}`}>
+                    {viewWord.level}
+                  </span>
+                )}
               </div>
+
+              {/* Example */}
+              {viewWord.exampleJapanese && (
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Example</div>
+                  <div className="text-sm text-foreground">{viewWord.exampleJapanese}</div>
+                  {viewWord.exampleMeaning && (
+                    <div className="text-sm text-muted-foreground mt-1">{viewWord.exampleMeaning}</div>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-1">
                 <button
-                  onClick={() => { setViewWord(null); setEditForm(viewWord); setEditingWord(viewWord); }}
+                  onClick={() => { setViewWord(null); setEditForm(viewWord); setEditingWord(viewWord); setEditError(null); }}
                   className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-600 transition"
                 >
                   <Edit3 className="w-4 h-4" /> Edit word
@@ -722,12 +778,15 @@ function VocabularyLessonDetailPage() {
               <p className="text-xs text-red-400 mb-5">This action cannot be undone.</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleteWord(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                  disabled={deleteSaving}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-40">
                   Cancel
                 </button>
-                <button onClick={handleDelete}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition">
-                  Delete
+                <button onClick={handleDeleteWord}
+                  disabled={deleteSaving}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                  {deleteSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {deleteSaving ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </motion.div>

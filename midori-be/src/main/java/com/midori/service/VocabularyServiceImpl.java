@@ -4,11 +4,12 @@ import com.midori.dto.vocabulary.*;
 import com.midori.entity.User;
 import com.midori.entity.VocabularyLesson;
 import com.midori.entity.VocabularyWord;
-import com.midori.exception.BadRequestException;
+import com.midori.exception.AccessDeniedException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.UserRepository;
 import com.midori.repository.VocabularyLessonRepository;
 import com.midori.repository.VocabularyWordRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,25 @@ public class VocabularyServiceImpl implements VocabularyService {
     private final VocabularyLessonRepository lessonRepository;
     private final VocabularyWordRepository wordRepository;
     private final UserRepository userRepository;
+    private final EntityManager entityManager;
+
+    // ============================================================
+    // Ownership Check Helper
+    // ============================================================
+
+    private boolean isOwner(VocabularyLesson lesson, UUID currentUserId) {
+        if (lesson == null || currentUserId == null) {
+            return false;
+        }
+        return lesson.getCreatedBy() != null &&
+               lesson.getCreatedBy().getId().equals(currentUserId);
+    }
+
+    private void checkLessonOwnership(VocabularyLesson lesson, UUID currentUserId) {
+        if (!isOwner(lesson, currentUserId)) {
+            throw new AccessDeniedException("You can only modify your own lessons");
+        }
+    }
 
     // ============================================================
     // Teacher / Admin Methods
@@ -47,39 +67,46 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .build();
 
         lesson = lessonRepository.save(lesson);
-        return toLessonResponse(lesson);
+        int savedWordCount = saveLessonWords(lesson, request.getWords());
+        syncLessonWordCountFromInt(lesson, savedWordCount);
+        return toLessonResponse(lesson, createdBy);
     }
 
     @Override
-    public VocabularyLessonResponse updateLesson(UUID lessonId, VocabularyLessonUpdateRequest request) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+    public VocabularyLessonResponse updateLesson(UUID lessonId, VocabularyLessonUpdateRequest request, UUID currentUserId) {
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
+
+        checkLessonOwnership(lesson, currentUserId);
 
         applyLessonUpdate(lesson, request);
         lesson = lessonRepository.save(lesson);
-        return toLessonResponse(lesson);
+        syncLessonWordCount(lesson);
+        return toLessonResponse(lesson, currentUserId);
     }
 
     @Override
-    public void deleteLesson(UUID lessonId) {
-        if (!lessonRepository.existsById(lessonId)) {
-            throw new ResourceNotFoundException("VocabularyLesson", "id", lessonId);
-        }
+    public void deleteLesson(UUID lessonId, UUID currentUserId) {
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
+
+        checkLessonOwnership(lesson, currentUserId);
+
         lessonRepository.deleteById(lessonId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public VocabularyLessonDetailResponse getLessonDetailForManagement(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+    public VocabularyLessonDetailResponse getLessonDetailForManagement(UUID lessonId, UUID currentUserId) {
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
-        return toLessonDetailResponse(lesson);
+        return toLessonDetailResponse(lesson, currentUserId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search) {
-        List<VocabularyLesson> lessons = lessonRepository.findAll();
+    public List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search, UUID currentUserId) {
+        List<VocabularyLesson> lessons = lessonRepository.findAllOrderedWithCreator();
 
         if (level != null && !level.isBlank()) {
             lessons = lessons.stream()
@@ -100,67 +127,72 @@ public class VocabularyServiceImpl implements VocabularyService {
         }
 
         return lessons.stream()
-                .map(this::toLessonResponse)
+                .map(lesson -> toLessonResponse(lesson, currentUserId))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public VocabularyWordResponse addWord(UUID lessonId, VocabularyWordCreateRequest request) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+    public VocabularyWordResponse addWord(UUID lessonId, VocabularyWordCreateRequest request, UUID currentUserId) {
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
-        VocabularyWord word = VocabularyWord.builder()
-                .lesson(lesson)
-                .word(request.getWord())
-                .furigana(request.getFurigana())
-                .romaji(request.getRomaji())
-                .meaning(request.getMeaning())
-                .exampleJapanese(request.getExampleJapanese())
-                .exampleMeaning(request.getExampleMeaning())
-                .audioUrl(request.getAudioUrl())
-                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
-                .build();
+        checkLessonOwnership(lesson, currentUserId);
 
+        VocabularyWord word = buildVocabularyWord(lesson, request, request.getDisplayOrder());
         word = wordRepository.save(word);
+        syncLessonWordCount(lesson);
         return toWordResponse(word);
     }
 
     @Override
-    public VocabularyWordResponse updateWord(UUID wordId, VocabularyWordUpdateRequest request) {
-        VocabularyWord word = wordRepository.findById(wordId)
+    public VocabularyWordResponse updateWord(UUID wordId, VocabularyWordUpdateRequest request, UUID currentUserId) {
+        VocabularyWord word = wordRepository.findByLessonIdWithLesson(wordId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyWord", "id", wordId));
+
+        checkLessonOwnership(word.getLesson(), currentUserId);
 
         applyWordUpdate(word, request);
         word = wordRepository.save(word);
+        syncLessonWordCount(word.getLesson());
         return toWordResponse(word);
     }
 
     @Override
-    public void deleteWord(UUID wordId) {
-        if (!wordRepository.existsById(wordId)) {
-            throw new ResourceNotFoundException("VocabularyWord", "id", wordId);
-        }
-        wordRepository.deleteById(wordId);
+    public void deleteWord(UUID wordId, UUID currentUserId) {
+        VocabularyWord word = wordRepository.findByLessonIdWithLesson(wordId)
+                .orElseThrow(() -> new ResourceNotFoundException("VocabularyWord", "id", wordId));
+
+        VocabularyLesson lesson = word.getLesson();
+        checkLessonOwnership(lesson, currentUserId);
+
+        wordRepository.delete(word);
+        syncLessonWordCount(lesson);
     }
 
     @Override
-    public VocabularyLessonResponse publishLesson(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+    public VocabularyLessonResponse publishLesson(UUID lessonId, UUID currentUserId) {
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
+
+        checkLessonOwnership(lesson, currentUserId);
 
         lesson.setIsPublished(true);
         lesson = lessonRepository.save(lesson);
-        return toLessonResponse(lesson);
+        syncLessonWordCount(lesson);
+        return toLessonResponse(lesson, currentUserId);
     }
 
     @Override
-    public VocabularyLessonResponse unpublishLesson(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+    public VocabularyLessonResponse unpublishLesson(UUID lessonId, UUID currentUserId) {
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
+
+        checkLessonOwnership(lesson, currentUserId);
 
         lesson.setIsPublished(false);
         lesson = lessonRepository.save(lesson);
-        return toLessonResponse(lesson);
+        syncLessonWordCount(lesson);
+        return toLessonResponse(lesson, currentUserId);
     }
 
     // ============================================================
@@ -191,7 +223,7 @@ public class VocabularyServiceImpl implements VocabularyService {
         } else if (hasTopic) {
             lessons = lessonRepository.findAllPublishedByTopic(topic);
         } else {
-            lessons = lessonRepository.findAllPublished();
+            lessons = lessonRepository.findAllPublishedWithCreator();
         }
 
         if (hasLevel && !hasSearch) {
@@ -206,28 +238,30 @@ public class VocabularyServiceImpl implements VocabularyService {
         }
 
         return lessons.stream()
-                .map(this::toLessonResponse)
+                .map(lesson -> toLessonResponse(lesson, null))
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public VocabularyLessonDetailResponse getPublishedLessonDetail(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findById(lessonId)
+        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         if (!Boolean.TRUE.equals(lesson.getIsPublished())) {
             throw new ResourceNotFoundException("VocabularyLesson", "id", lessonId);
         }
 
-        return toLessonDetailResponse(lesson);
+        return toLessonDetailResponse(lesson, null);
     }
 
     // ============================================================
     // Mapper Methods
     // ============================================================
 
-    private VocabularyLessonResponse toLessonResponse(VocabularyLesson lesson) {
+    private VocabularyLessonResponse toLessonResponse(VocabularyLesson lesson, UUID currentUserId) {
+        int wordCount = resolveWordCount(lesson);
+        boolean ownedByMe = isOwner(lesson, currentUserId);
         return VocabularyLessonResponse.builder()
                 .id(lesson.getId())
                 .title(lesson.getTitle())
@@ -235,21 +269,24 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .level(lesson.getLevel())
                 .topic(lesson.getTopic())
                 .estimatedMinutes(lesson.getEstimatedMinutes())
-                .wordCount(lesson.getWordCount())
+                .wordCount(wordCount)
                 .isPublished(lesson.getIsPublished())
                 .createdBy(lesson.getCreatedBy() != null ? lesson.getCreatedBy().getId() : null)
+                .teacherName(resolveTeacherName(lesson.getCreatedBy()))
+                .ownedByMe(ownedByMe)
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
                 .build();
     }
 
-    private VocabularyLessonDetailResponse toLessonDetailResponse(VocabularyLesson lesson) {
-        List<VocabularyWordResponse> words = wordRepository
-                .findByLessonIdOrderByDisplayOrderAsc(lesson.getId())
+    private VocabularyLessonDetailResponse toLessonDetailResponse(VocabularyLesson lesson, UUID currentUserId) {
+        List<VocabularyWord> wordEntities = wordRepository.findByLessonIdOrderByDisplayOrderAsc(lesson.getId());
+        List<VocabularyWordResponse> words = wordEntities
                 .stream()
                 .map(this::toWordResponse)
                 .collect(Collectors.toList());
 
+        boolean ownedByMe = isOwner(lesson, currentUserId);
         return VocabularyLessonDetailResponse.builder()
                 .id(lesson.getId())
                 .title(lesson.getTitle())
@@ -257,13 +294,28 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .level(lesson.getLevel())
                 .topic(lesson.getTopic())
                 .estimatedMinutes(lesson.getEstimatedMinutes())
-                .wordCount(lesson.getWordCount())
+                .wordCount(words.size())
                 .isPublished(lesson.getIsPublished())
                 .createdBy(lesson.getCreatedBy() != null ? lesson.getCreatedBy().getId() : null)
+                .teacherName(resolveTeacherName(lesson.getCreatedBy()))
+                .ownedByMe(ownedByMe)
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
                 .words(words)
                 .build();
+    }
+
+    private String resolveTeacherName(User createdBy) {
+        if (createdBy == null) {
+            return "MIDORI";
+        }
+        if (createdBy.getProfile() != null && createdBy.getProfile().getDisplayName() != null) {
+            return createdBy.getProfile().getDisplayName();
+        }
+        if (createdBy.getEmail() != null) {
+            return createdBy.getEmail();
+        }
+        return "System";
     }
 
     private VocabularyWordResponse toWordResponse(VocabularyWord word) {
@@ -329,5 +381,80 @@ public class VocabularyServiceImpl implements VocabularyService {
         if (request.getDisplayOrder() != null) {
             word.setDisplayOrder(request.getDisplayOrder());
         }
+    }
+
+    private int saveLessonWords(VocabularyLesson lesson, List<VocabularyWordCreateRequest> words) {
+        if (words == null || words.isEmpty()) {
+            return 0;
+        }
+
+        int savedWordCount = 0;
+        for (int index = 0; index < words.size(); index++) {
+            VocabularyWordCreateRequest wordRequest = words.get(index);
+            if (!wordRequest.isValidForCreate()) {
+                continue;
+            }
+
+            VocabularyWord word = buildVocabularyWord(lesson, wordRequest, index);
+            wordRepository.save(word);
+            savedWordCount++;
+        }
+        entityManager.flush();
+        entityManager.clear();
+        return savedWordCount;
+    }
+
+    private VocabularyWord buildVocabularyWord(VocabularyLesson lesson, VocabularyWordCreateRequest request, int fallbackDisplayOrder) {
+        String japanese = trimToNull(request.getJapanese());
+        String vietnamese = trimToNull(request.getVietnamese());
+        String romaji = trimToNull(request.getRomaji());
+        String wordValue = japanese;
+        String meaningValue = vietnamese;
+        if (wordValue == null && vietnamese != null) {
+            wordValue = vietnamese;
+        }
+        if (wordValue == null && romaji != null) {
+            wordValue = romaji;
+        }
+        if (meaningValue == null && wordValue != null) {
+            meaningValue = wordValue;
+        }
+        if (meaningValue == null && vietnamese != null) {
+            meaningValue = vietnamese;
+        }
+        return VocabularyWord.builder()
+                .lesson(lesson)
+                .word(wordValue)
+                .furigana(trimToNull(request.getReading()))
+                .romaji(romaji)
+                .meaning(meaningValue)
+                .exampleJapanese(trimToNull(request.getExampleJapanese()))
+                .exampleMeaning(trimToNull(request.getExampleVietnamese()))
+                .audioUrl(trimToNull(request.getAudioUrl()))
+                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : fallbackDisplayOrder)
+                .build();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private int resolveWordCount(VocabularyLesson lesson) {
+        return Math.toIntExact(wordRepository.countByLessonId(lesson.getId()));
+    }
+
+    private void syncLessonWordCount(VocabularyLesson lesson) {
+        int wordCount = resolveWordCount(lesson);
+        lesson.setWordCount(wordCount);
+        lessonRepository.save(lesson);
+    }
+
+    private void syncLessonWordCountFromInt(VocabularyLesson lesson, int wordCount) {
+        lesson.setWordCount(wordCount);
+        lessonRepository.save(lesson);
     }
 }

@@ -1,9 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { AuthShell, PrimaryBtn } from "@/components/auth-shell";
 import { useEffect, useRef, useState } from "react";
 import { authApi } from "@/lib/api/auth";
-import { ApiError } from "@/lib/api/client";
-import { useLocation } from "@tanstack/react-router";
+import { ApiError, api } from "@/lib/api/client";
+import { getDashboardPath, useAuth } from "@/lib/auth";
+
+type VerifyOtpLocationState = {
+  email?: string;
+  message?: string;
+  role?: "STUDENT" | "TEACHER";
+};
 
 export const Route = createFileRoute("/verify-otp")({
   component: VerifyOtpPage,
@@ -15,11 +21,14 @@ function VerifyOtpPage() {
   const [seconds, setSeconds] = useState(60);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
   const nav = useNavigate();
-  const location = useLocation<{ email?: string }>();
+  const { refreshCurrentUser } = useAuth();
+  const location = useLocation({ from: "/verify-otp" });
+  const state = (location.state as VerifyOtpLocationState | undefined) ?? {};
 
-  const email =
-    (location.state as { email?: string } | undefined)?.email ?? "";
+  const email = state.email ?? "";
+  const subtitle = state.message ?? "Enter the 6-digit code we just sent.";
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -40,9 +49,23 @@ function VerifyOtpPage() {
     const token = code.join("");
     if (token.length < 6) return;
     setErr("");
+    setInfo("");
     setLoading(true);
     try {
       await authApi.verifyEmail({ token });
+
+      if (api.getToken()) {
+        try {
+          const user = await refreshCurrentUser();
+          nav({ to: getDashboardPath(user) });
+          return;
+        } catch {
+          setInfo("Email verified. Please sign in to continue.");
+        }
+      } else {
+        setInfo("Email verified. Please sign in to continue.");
+      }
+
       nav({ to: "/login" });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -65,6 +88,8 @@ function VerifyOtpPage() {
       await authApi.resendVerification({ email });
       setSeconds(60);
       setCode(["", "", "", "", "", ""]);
+      setErr("");
+      setInfo("");
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);
@@ -81,7 +106,7 @@ function VerifyOtpPage() {
   return (
     <AuthShell
       title="Verify your email"
-      subtitle="Enter the 6-digit code we just sent."
+      subtitle={subtitle}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="flex justify-between gap-2">
@@ -102,6 +127,11 @@ function VerifyOtpPage() {
         {err && (
           <div className="px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
             {err}
+          </div>
+        )}
+        {info && (
+          <div className="px-4 py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
+            {info}
           </div>
         )}
         <div className="text-center text-xs text-muted-foreground">
@@ -126,11 +156,7 @@ function VerifyOtpPage() {
         <PrimaryBtn type="submit" disabled={!allFilled || loading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <svg
-                className="animate-spin w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle
                   className="opacity-25"
                   cx="12"
