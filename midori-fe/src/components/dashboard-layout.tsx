@@ -7,8 +7,8 @@ import { Logo } from "./logo";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Layers, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
-  Users, ShieldCheck, Settings, BookMarked, Megaphone, ChevronRight, Menu,
-  Bot, ChevronDown, Sun, Moon, BellRing, PanelLeftClose, PanelLeftOpen
+  Users, ShieldCheck, Settings, BookMarked, Megaphone,   ChevronRight, Menu,
+  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -112,25 +112,12 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
           isCollapsed ? "w-24 px-3" : "w-72"
         )}
       >
-        <button
-          type="button"
-          onClick={() => setIsCollapsed((prev) => !prev)}
-          className={cn(
-            "absolute -right-3 top-8 z-20 hidden lg:flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-slate-900/95 text-secondary-col shadow-lg backdrop-blur-sm transition-all duration-300 hover:text-primary",
-            isCollapsed ? "top-7" : "top-8"
-          )}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-        </button>
-
-        <div className={cn("mb-2", isCollapsed ? "flex justify-center pr-2" : "flex items-start justify-between gap-3 pr-8") }>
+        <div className={cn("mb-2 flex items-start justify-between gap-3", isCollapsed ? "flex-col items-center gap-1.5" : "") }>
           <Link
             to="/"
             className={cn(
               "flex min-w-0 px-3 py-3 transition-all duration-300",
-              isCollapsed ? "w-full justify-center" : "items-center gap-2.5"
+              isCollapsed ? "w-full justify-center px-2 py-2" : "items-center gap-2.5"
             )}
             title={isCollapsed ? "MIDORI" : undefined}
           >
@@ -147,9 +134,18 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
               <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold whitespace-nowrap">{role}</div>
             </div>
           </Link>
+          <button
+            type="button"
+            onClick={() => setIsCollapsed((prev) => !prev)}
+            className="hidden lg:flex items-center justify-center h-8 w-8 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm text-slate-500 transition-all duration-200 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-white/10 flex-shrink-0"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
         </div>
 
-        <nav className="flex-1 mt-2 overflow-y-auto overflow-x-hidden">
+        <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden", isCollapsed ? "mt-1" : "mt-2")}>
           {items.map((it) => {
             const isBaseRoute = it.to === `/${role}`;
             const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
