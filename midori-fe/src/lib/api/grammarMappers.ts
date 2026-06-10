@@ -56,6 +56,7 @@ export interface GrammarUpdateRequest {
 export interface GrammarListParams {
   level?: string;
   search?: string;
+  status?: string;
 }
 
 // ─── GrammarStatsResponse (backend GrammarStatsResponse.java) ───────────────────
@@ -75,6 +76,7 @@ export interface GrammarStatsResponse {
 export function normalizeGrammar(grammar: GrammarResponse): GrammarResponse {
   return {
     ...grammar,
+    status: (grammar.status?.toUpperCase() ?? "DRAFT") as GrammarStatus,
     rejectReason: grammar.rejectReason ?? null,
     teacherName: grammar.teacherName ?? "Unknown Teacher",
   };
