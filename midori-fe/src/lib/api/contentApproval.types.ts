@@ -80,6 +80,16 @@ export interface ContentRejectPayload {
   reason: string;
 }
 
+// ─── Grammar Approval Stats Response ───────────────────────────────────────────────
+
+export interface GrammarApprovalStatsResponse {
+  pendingReview: number;
+  totalGrammar: number;
+  approved: number;
+  rejected: number;
+  draft: number;
+}
+
 // ─── Status Configuration ──────────────────────────────────────────────────────
 
 export const CONTENT_STATUS_CONFIG: Record<
