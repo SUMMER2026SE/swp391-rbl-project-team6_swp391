@@ -98,6 +98,10 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         Grammar grammar = grammarRepository.findByIdWithCreator(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grammar", "id", contentId));
 
+        if (grammar.getStatus() != GrammarStatus.PENDING) {
+            throw new ResourceNotFoundException("Grammar", "id", contentId);
+        }
+
         return ContentApprovalDetailResponse.builder()
                 .contentType("GRAMMAR")
                 .contentId(grammar.getId())
@@ -108,6 +112,10 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
     private ContentApprovalDetailResponse getFlashcardSetDetail(UUID contentId) {
         FlashcardSet set = flashcardSetRepository.findByIdWithTeacher(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("FlashcardSet", "id", contentId));
+
+        if (set.getStatus() != FlashcardSetStatus.PENDING) {
+            throw new ResourceNotFoundException("FlashcardSet", "id", contentId);
+        }
 
         return ContentApprovalDetailResponse.builder()
                 .contentType("FLASHCARD")
