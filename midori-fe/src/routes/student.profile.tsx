@@ -466,28 +466,28 @@ function ProfilePage() {
 
         {/* Stats placeholder */}
         <div className="px-5 pb-5 grid grid-cols-3 gap-2 -mt-0.5">
-          <div className="text-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100/80 dark:border-white/5 transition-colors duration-300">
+          <div className="text-center p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 shadow-sm hover:shadow transition-colors duration-300">
             <div className="font-black text-lg text-indigo-500 dark:text-indigo-400">0</div>
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Total XP</div>
-            <div className="mt-1.5 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">Total XP</div>
+            <div className="mt-1.5 h-1 bg-slate-200/80 dark:bg-slate-700 rounded-full overflow-hidden">
               <div className="h-full w-0 rounded-full bg-gradient-to-r from-indigo-400 to-pink-400" />
             </div>
           </div>
-          <div className="text-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100/80 dark:border-white/5 transition-colors duration-300">
+          <div className="text-center p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 shadow-sm hover:shadow transition-colors duration-300">
             <div className="font-black text-lg text-orange-500">0d</div>
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Day Streak</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">Day Streak</div>
             <div className="flex justify-center gap-0.5 mt-1.5">
               {[...Array(7)].map((_, i) => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700" />
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-200/80 dark:bg-slate-700" />
               ))}
             </div>
           </div>
-          <div className="text-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100/80 dark:border-white/5 transition-colors duration-300">
+          <div className="text-center p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/50 border border-slate-200/70 dark:border-white/5 shadow-sm hover:shadow transition-colors duration-300">
             <div className="font-black text-lg text-pink-500">—</div>
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">JLPT Target</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">JLPT Target</div>
             <div className="flex justify-center gap-1 mt-1.5">
               {["N5","N4","N3","N2","N1"].map((l, i) => (
-                <div key={l} className="w-4 h-1.5 rounded-sm bg-slate-200 dark:bg-slate-700" />
+                <div key={l} className="w-4 h-1.5 rounded-sm bg-slate-200/80 dark:bg-slate-700" />
               ))}
             </div>
           </div>
