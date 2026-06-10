@@ -26,12 +26,13 @@ export const teacherGrammarApi = {
   /**
    * GET /api/teacher/grammar
    * Lists grammar lessons for the authenticated teacher.
-   * Supports optional query params: level, search.
+   * Supports optional query params: level, search, status.
    */
   getGrammarList: async (params?: GrammarListParams): Promise<GrammarResponse[]> => {
     const searchParams = new URLSearchParams();
     if (params?.level) searchParams.set("level", params.level);
     if (params?.search) searchParams.set("search", params.search);
+    if (params?.status) searchParams.set("status", params.status);
     const qs = searchParams.toString();
     const grammars = await api.get<GrammarResponse[]>(`/teacher/grammar${qs ? `?${qs}` : ""}`);
     return grammars.map(normalizeGrammar);
