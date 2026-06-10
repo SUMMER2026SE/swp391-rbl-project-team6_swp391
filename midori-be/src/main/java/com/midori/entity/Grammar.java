@@ -1,0 +1,69 @@
+package com.midori.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Entity
+@Table(name = "grammars")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Grammar {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
+
+    @Column(nullable = false, length = 255)
+    private String title;
+
+    @Column(name = "pattern", columnDefinition = "TEXT")
+    private String pattern;
+
+    @Column(name = "meaning", columnDefinition = "TEXT")
+    private String meaning;
+
+    @Column(name = "structure", columnDefinition = "TEXT")
+    private String structure;
+
+    @Column(name = "usage", columnDefinition = "TEXT")
+    private String usage;
+
+    @Column(name = "examples", columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
+    @Builder.Default
+    private List<String> examples = new java.util.ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private GrammarLevel level;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private GrammarStatus status = GrammarStatus.DRAFT;
+
+    @Column(name = "reject_reason", length = 1000)
+    private String rejectReason;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+}

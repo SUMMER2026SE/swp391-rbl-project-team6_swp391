@@ -37,21 +37,52 @@ class AdminUserServiceTest {
     private AdminUserService adminUserService;
 
     private User sampleTeacher;
+    private User sampleTeacherActive;
+    private User sampleTeacherSuspended;
     private User sampleStudent;
     private UUID teacherId;
+    private UUID teacherActiveId;
+    private UUID teacherSuspendedId;
     private UUID studentId;
 
     @BeforeEach
     void setUp() {
         teacherId = UUID.randomUUID();
+        teacherActiveId = UUID.randomUUID();
+        teacherSuspendedId = UUID.randomUUID();
         studentId = UUID.randomUUID();
 
+        // Teacher pending approval — for approve/reject tests
         sampleTeacher = User.builder()
                 .id(teacherId)
                 .email("teacher@example.com")
                 .passwordHash("hashedPassword")
                 .role(Role.TEACHER)
                 .status(UserStatus.PENDING_APPROVAL)
+                .emailVerified(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        // Teacher active — for suspend test
+        sampleTeacherActive = User.builder()
+                .id(teacherActiveId)
+                .email("teacher-active@example.com")
+                .passwordHash("hashedPassword")
+                .role(Role.TEACHER)
+                .status(UserStatus.ACTIVE)
+                .emailVerified(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        // Teacher suspended — for activate test
+        sampleTeacherSuspended = User.builder()
+                .id(teacherSuspendedId)
+                .email("teacher-suspended@example.com")
+                .passwordHash("hashedPassword")
+                .role(Role.TEACHER)
+                .status(UserStatus.SUSPENDED)
                 .emailVerified(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -140,7 +171,7 @@ class AdminUserServiceTest {
 
             assertThatThrownBy(() -> adminUserService.approveTeacher(studentId))
                     .isInstanceOf(BadRequestException.class)
-                    .hasMessage("Only teacher accounts can be approved");
+                    .hasMessage("Only teacher accounts can be managed here");
 
             verify(userRepository).findById(studentId);
             verify(userRepository, never()).save(any());
@@ -168,14 +199,14 @@ class AdminUserServiceTest {
         @Test
         @DisplayName("should suspend user successfully")
         void suspendUser_success() {
-            when(userRepository.findById(studentId)).thenReturn(Optional.of(sampleStudent));
+            when(userRepository.findById(teacherActiveId)).thenReturn(Optional.of(sampleTeacherActive));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            UserResponse result = adminUserService.suspendUser(studentId);
+            UserResponse result = adminUserService.suspendUser(teacherActiveId);
 
             assertThat(result.getStatus()).isEqualTo(UserStatus.SUSPENDED);
-            verify(userRepository).findById(studentId);
-            verify(userRepository).save(sampleStudent);
+            verify(userRepository).findById(teacherActiveId);
+            verify(userRepository).save(sampleTeacherActive);
         }
 
         @Test
