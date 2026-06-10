@@ -33,7 +33,7 @@ function getLevelBadge(level: string) {
 function getConvStatusBadge(status: ConvStatus): { label: string; cls: string } {
   if (status === "completed") return { label: "Completed", cls: "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300" };
   if (status === "in_progress") return { label: "In Progress", cls: "bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300" };
-  return { label: "Not Started", cls: "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400" };
+  return { label: "Not Started", cls: "bg-slate-200 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 border border-slate-300/50 dark:border-slate-600/50" };
 }
 
 export const Route = createFileRoute("/student/shadowing")({ component: ShadowingPage });
@@ -384,7 +384,7 @@ function ShadowingPage() {
                     placeholder="Search lessons, descriptions..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-card border border-border/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition"
+                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-card border border-slate-200/70 dark:border-white/10 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm hover:shadow-md transition"
                   />
                   {search && (
                     <button
@@ -508,7 +508,7 @@ function ShadowingPage() {
                       >
                         <button
                           onClick={() => handleSelectFromList(topic, conv)}
-                          className="w-full text-left rounded-2xl p-4 border bg-card hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200"
+                          className="w-full text-left rounded-2xl p-4 border bg-card border-slate-200/60 dark:border-white/10 hover:shadow-lg hover:border-primary/40 dark:hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200"
                         >
                           <div className="flex items-center gap-4">
                             {/* Icon */}
