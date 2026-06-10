@@ -362,9 +362,17 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
                   onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
                   className="flex items-center gap-2 p-1 pr-3 rounded-full nav-item ml-1"
                 >
-                  <div className="w-9 h-9 rounded-full bg-gradient-hero grid place-items-center text-white font-bold text-sm">
-                    {(user?.name?.[0] ?? "Y").toUpperCase()}
-                  </div>
+                  {getUserAvatar(user) ? (
+                    <img
+                      src={getUserAvatar(user)!}
+                      alt="Avatar"
+                      className="w-9 h-9 rounded-full object-cover border-2 border-white/30 dark:border-white/20"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gradient-hero grid place-items-center text-white font-bold text-sm">
+                      {(user?.name?.[0] ?? "Y").toUpperCase()}
+                    </div>
+                  )}
                   <div className="hidden sm:block text-left">
                     <div className="text-xs font-semibold leading-tight text-primary-col">{user?.name ?? "Yuki T."}</div>
                     <div className="text-[10px] text-muted-col leading-tight">{roleLabels[role]}</div>

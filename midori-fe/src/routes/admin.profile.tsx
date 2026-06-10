@@ -10,7 +10,7 @@ import {
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
-import { useAuth } from "@/lib/auth";
+import { useAuth, isAvatar } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 
 function ProfileCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -83,7 +83,11 @@ function AdminProfilePage() {
       setEditLocation(res.location || "");
       setEditPhone(res.phone || "");
       setEditDateOfBirth(res.dateOfBirth || "");
-      if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
+      if (isAvatar(res.avatarUrl)) {
+        setAvatarPreview(res.avatarUrl);
+      } else {
+        setAvatarPreview(user?.googleAvatar ?? null);
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setLoadError(err.message);
@@ -93,7 +97,7 @@ function AdminProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchProfile();
@@ -112,7 +116,11 @@ function AdminProfilePage() {
         dateOfBirth: editDateOfBirth || undefined,
       });
       setProfile(updated);
-      updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
+      updateCurrentUser({
+        name: updated.displayName,
+        avatar: isAvatar(updated.avatarUrl) ? updated.avatarUrl : (user?.avatar ?? null),
+        googleAvatar: user?.googleAvatar ?? null,
+      });
       setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -136,7 +144,7 @@ function AdminProfilePage() {
       const updated = await profileApi.updateMyProfile({ avatarUrl });
       setProfile(updated);
       setAvatarPreview(avatarUrl);
-      updateCurrentUser({ avatar: avatarUrl });
+      updateCurrentUser({ avatar: avatarUrl, googleAvatar: user.googleAvatar ?? null });
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
     } finally {
@@ -155,7 +163,7 @@ function AdminProfilePage() {
       const updated = await profileApi.updateMyProfile({ avatarUrl: "" });
       setProfile(updated);
       setAvatarPreview(null);
-      updateCurrentUser({ avatar: undefined });
+      updateCurrentUser({ avatar: null, googleAvatar: user.googleAvatar ?? null });
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
     } finally {
@@ -245,9 +253,7 @@ function AdminProfilePage() {
                     {avatarLetter}
                   </div>
                 )}
-                <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full glass-surface text-secondary-col text-[10px] font-black shadow-lg border border-glass-border flex items-center gap-0.5">
-                  <Shield className="w-3 h-3" /> Admin
-                </div>
+                {/* Camera button only — role badge is in the info section */}
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
                   <div className="relative">
                     <button
