@@ -3,7 +3,7 @@ package com.midori.service;
 import com.midori.dto.approval.ContentApprovalDetailResponse;
 import com.midori.dto.approval.ContentApprovalSummaryResponse;
 import com.midori.dto.approval.ContentRejectRequest;
-import com.midori.entity.ContentType;
+import com.midori.dto.approval.GrammarApprovalStatsResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,4 +17,6 @@ public interface ContentApprovalService {
     ContentApprovalSummaryResponse approveContent(String contentType, UUID contentId);
 
     ContentApprovalSummaryResponse rejectContent(String contentType, UUID contentId, ContentRejectRequest request);
+
+    GrammarApprovalStatsResponse getGrammarApprovalStats();
 }
