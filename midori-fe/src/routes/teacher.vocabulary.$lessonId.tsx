@@ -325,7 +325,7 @@ function VocabularyLessonDetailPage() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Topics from current words
-  const wordTopics = Array.from(new Set(words.map(w => w.level).filter(Boolean) as string[])).sort();
+  const wordTopics = Array.from(new Set(words.map(w => w.topic).filter(Boolean) as string[])).sort();
 
   // Handlers
   const handleAddWord = async () => {
