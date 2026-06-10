@@ -967,17 +967,17 @@ function TeacherProfilePage() {
 
         {/* Stats */}
         <div className="px-6 pb-6 grid grid-cols-3 gap-3">
-          <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-primary">—</div>
-            <div className="text-[10px] text-muted-foreground">Students taught</div>
+          <div className="text-center p-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200/70 dark:border-slate-600 shadow-sm">
+            <div className="font-display font-black text-2xl text-slate-900 dark:text-white">0</div>
+            <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Students taught</div>
           </div>
-          <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-purple-500">—</div>
-            <div className="text-[10px] text-muted-foreground">Lessons created</div>
+          <div className="text-center p-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200/70 dark:border-slate-600 shadow-sm">
+            <div className="font-display font-black text-2xl text-slate-900 dark:text-white">0</div>
+            <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Lessons created</div>
           </div>
-          <div className="text-center p-3 rounded-xl bg-muted/40">
-            <div className="font-display font-black text-xl text-green-500">—</div>
-            <div className="text-[10px] text-muted-foreground">Experience</div>
+          <div className="text-center p-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200/70 dark:border-slate-600 shadow-sm">
+            <div className="font-display font-black text-2xl text-slate-900 dark:text-white">—</div>
+            <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Experience</div>
           </div>
         </div>
       </motion.div>
