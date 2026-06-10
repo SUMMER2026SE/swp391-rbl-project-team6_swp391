@@ -1,0 +1,73 @@
+/**
+ * Grammar mappers and shared types for Teacher Grammar API.
+ * Contains TypeScript interfaces and normalize functions aligned with backend DTOs.
+ */
+
+// ─── Status ─────────────────────────────────────────────────────────────────────
+
+export type GrammarStatus = "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
+
+// ─── GrammarResponse (backend GrammarResponse.java) ──────────────────────────────
+
+export interface GrammarResponse {
+  id: string;
+  title: string;
+  pattern: string;
+  meaning: string;
+  structure: string;
+  usage: string;
+  examples: string[];
+  level: string;
+  status: GrammarStatus;
+  rejectReason: string | null;
+  createdBy: string;
+  teacherName: string;
+  ownedByMe: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── GrammarCreateRequest (backend GrammarCreateRequest.java) ────────────────────
+
+export interface GrammarCreateRequest {
+  title: string;
+  pattern: string;
+  meaning: string;
+  structure: string;
+  usage: string;
+  examples: string[];
+  level: string;
+}
+
+// ─── GrammarUpdateRequest (backend GrammarUpdateRequest.java) ────────────────────
+
+export interface GrammarUpdateRequest {
+  title?: string;
+  pattern?: string;
+  meaning?: string;
+  structure?: string;
+  usage?: string;
+  examples?: string[];
+  level?: string;
+}
+
+// ─── List Params ────────────────────────────────────────────────────────────────
+
+export interface GrammarListParams {
+  level?: string;
+  search?: string;
+}
+
+// ─── Normalize ────────────────────────────────────────────────────────────────
+
+/**
+ * Normalize a GrammarResponse to a consistent shape.
+ * Handles any field aliasing from the backend response.
+ */
+export function normalizeGrammar(grammar: GrammarResponse): GrammarResponse {
+  return {
+    ...grammar,
+    rejectReason: grammar.rejectReason ?? null,
+    teacherName: grammar.teacherName ?? "Unknown Teacher",
+  };
+}
