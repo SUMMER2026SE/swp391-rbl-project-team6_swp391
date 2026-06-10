@@ -30,8 +30,9 @@ public class GrammarTeacherController {
     public ResponseEntity<ApiResponse<List<GrammarResponse>>> listGrammars(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) String level,
-            @RequestParam(required = false) String search) {
-        List<GrammarResponse> grammars = grammarService.listGrammarsForManagement(userDetails.getId(), level, search);
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status) {
+        List<GrammarResponse> grammars = grammarService.listGrammarsForManagement(userDetails.getId(), level, search, status);
         return ResponseEntity.ok(ApiResponse.success(grammars));
     }
 
