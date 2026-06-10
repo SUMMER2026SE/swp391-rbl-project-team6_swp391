@@ -22,6 +22,8 @@ import {
   Loader2,
   X,
   AlertTriangle,
+  Send,
+  Clock,
 } from "lucide-react";
 import {
   teacherGrammarApi,
@@ -373,9 +375,10 @@ function GrammarPage() {
       if (showLoading) setLoading(true);
       setError(null);
       try {
-        const params: { level?: string; search?: string } = {};
+        const params: { level?: string; search?: string; status?: string } = {};
         if (levelFilter !== "All") params.level = levelFilter;
         if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+        if (statusFilter !== "ALL") params.status = statusFilter;
         const data = await teacherGrammarApi.getGrammarList(
           Object.keys(params).length > 0 ? params : undefined,
         );
@@ -388,7 +391,7 @@ function GrammarPage() {
         if (showLoading) setLoading(false);
       }
     },
-    [levelFilter, debouncedSearch],
+    [levelFilter, debouncedSearch, statusFilter],
   );
 
   useEffect(() => {
@@ -416,13 +419,9 @@ function GrammarPage() {
     }
   }, []);
 
-  // Filter + paginate
-  const filteredGrammars = grammars.filter((g) => {
-    if (statusFilter === "ALL") return true;
-    return g.status === statusFilter;
-  });
-  const totalPages = Math.ceil(filteredGrammars.length / PAGE_SIZE);
-  const paginated = filteredGrammars.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Paginate (no client-side status filter — done server-side via API)
+  const totalPages = Math.ceil(grammars.length / PAGE_SIZE);
+  const paginated = grammars.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Open preview
   const openPreview = (grammar: GrammarResponse) => {
@@ -468,16 +467,18 @@ function GrammarPage() {
     try {
       if (editMode === "create") {
         const payload = toCreatePayload(formData);
-        await teacherGrammarApi.createGrammar(payload);
+        const created = await teacherGrammarApi.createGrammar(payload);
         showToast("Grammar lesson created successfully!", "success");
+        openPreview(created);
+        await fetchGrammars(false);
       } else if (selectedGrammar) {
         const payload = toUpdatePayload(formData);
-        await teacherGrammarApi.updateGrammar(selectedGrammar.id, payload);
+        const updated = await teacherGrammarApi.updateGrammar(selectedGrammar.id, payload);
         showToast("Grammar lesson updated successfully!", "success");
+        setViewMode("list");
+        setSelectedGrammar(null);
+        await fetchGrammars(false);
       }
-      setViewMode("list");
-      setSelectedGrammar(null);
-      await fetchGrammars(false);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to save grammar lesson.";
       showToast(msg, "error");
@@ -506,16 +507,31 @@ function GrammarPage() {
     }
   };
 
+  // Submit from list view (refetch stays on list)
+  const handleListSubmit = async (grammar: GrammarResponse) => {
+    setSubmitting(true);
+    try {
+      await teacherGrammarApi.submitGrammar(grammar.id);
+      showToast("Grammar submitted for review!", "success");
+      await fetchGrammars(false);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to submit grammar.";
+      showToast(msg, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Submit for review
   const handleSubmit = async (grammar: GrammarResponse) => {
     setSubmitting(true);
     try {
       await teacherGrammarApi.submitGrammar(grammar.id);
       showToast("Grammar submitted for review!", "success");
+      // Navigate back to list and refresh
+      setViewMode("list");
+      setSelectedGrammar(null);
       await fetchGrammars(false);
-      // Update selected grammar if it's the one we just submitted
-      const updated = grammars.find((g) => g.id === grammar.id);
-      if (updated) setSelectedGrammar({ ...updated, status: "PENDING" });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to submit grammar.";
       showToast(msg, "error");
@@ -715,20 +731,53 @@ function GrammarPage() {
                   className="text-right flex justify-end gap-1.5"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button
-                    onClick={() => openEdit(grammar)}
-                    title="Edit"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-500 transition"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(grammar)}
-                    title="Delete"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-400 transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {grammar.status === "DRAFT" && (
+                    <button
+                      onClick={() => handleListSubmit(grammar)}
+                      title="Submit for Review"
+                      disabled={submitting}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 dark:hover:bg-green-950/30 text-green-500 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {grammar.status === "REJECTED" && (
+                    <button
+                      onClick={() => handleListSubmit(grammar)}
+                      title="Submit again"
+                      disabled={submitting}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-green-50 dark:hover:bg-green-950/30 text-green-500 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {grammar.status === "DRAFT" && (
+                    <button
+                      onClick={() => openEdit(grammar)}
+                      title="Edit"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-500 transition"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {grammar.status === "REJECTED" && (
+                    <button
+                      onClick={() => openEdit(grammar)}
+                      title="Edit"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-500 transition"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {grammar.status === "DRAFT" && (
+                    <button
+                      onClick={() => setDeleteTarget(grammar)}
+                      title="Delete"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-400 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <button
                     onClick={() => openPreview(grammar)}
                     title="View"
@@ -736,6 +785,15 @@ function GrammarPage() {
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
+                  {grammar.status === "PENDING" && (
+                    <span
+                      title="Waiting for admin approval"
+                      className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-500"
+                    >
+                      <Clock className="w-3 h-3" />
+                      Waiting
+                    </span>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -743,7 +801,7 @@ function GrammarPage() {
           {/* Pagination */}
           {totalPages > 1 && !loading && !error && (
             <div className="px-6 pb-5">
-              <Pagination current={page} total={filteredGrammars.length} onPage={setPage} />
+              <Pagination current={page} total={grammars.length} onPage={setPage} />
             </div>
           )}
         </div>
@@ -770,7 +828,8 @@ function GrammarPage() {
   if (viewMode === "preview" && selectedGrammar) {
     const g = selectedGrammar;
     const status = g.status as GrammarStatus;
-    const canSubmit = g.status === "DRAFT";
+    // Backend allows submit from DRAFT or REJECTED (re-submit after editing)
+    const canSubmit = g.status === "DRAFT" || g.status === "REJECTED";
     const canEdit = g.status === "DRAFT" || g.status === "REJECTED";
 
     return (
