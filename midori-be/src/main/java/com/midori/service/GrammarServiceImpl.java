@@ -2,7 +2,9 @@ package com.midori.service;
 
 import com.midori.dto.grammar.GrammarCreateRequest;
 import com.midori.dto.grammar.GrammarResponse;
+import com.midori.dto.grammar.GrammarStatsResponse;
 import com.midori.dto.grammar.GrammarUpdateRequest;
+import com.midori.entity.ContentType;
 import com.midori.entity.Grammar;
 import com.midori.entity.GrammarLevel;
 import com.midori.entity.GrammarStatus;
@@ -11,6 +13,7 @@ import com.midori.exception.AccessDeniedException;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.GrammarRepository;
+import com.midori.repository.UserLearningProgressRepository;
 import com.midori.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class GrammarServiceImpl implements GrammarService {
 
     private final GrammarRepository grammarRepository;
     private final UserRepository userRepository;
+    private final UserLearningProgressRepository progressRepository;
 
     // ============================================================
     // Ownership Check Helper
@@ -146,6 +150,27 @@ public class GrammarServiceImpl implements GrammarService {
         grammar.setRejectReason(null);
         grammar = grammarRepository.save(grammar);
         return toGrammarResponse(grammar, currentUserId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GrammarStatsResponse getGrammarStats(UUID grammarId, UUID currentUserId) {
+        Grammar grammar = grammarRepository.findByIdWithCreator(grammarId)
+                .orElseThrow(() -> new ResourceNotFoundException("Grammar", "id", grammarId));
+
+        if (!isOwner(grammar, currentUserId)) {
+            throw new AccessDeniedException("You can only view stats for your own grammar entries");
+        }
+
+        long completions = progressRepository.countByContentIdAndContentType(grammarId, ContentType.GRAMMAR);
+        long learned = progressRepository.countLearnedByGrammarId(grammarId, ContentType.GRAMMAR);
+        long views = learned; // views are tracked as 'learned' interactions
+
+        return GrammarStatsResponse.builder()
+                .views(views)
+                .completions(completions)
+                .learned(learned)
+                .build();
     }
 
     // ============================================================
