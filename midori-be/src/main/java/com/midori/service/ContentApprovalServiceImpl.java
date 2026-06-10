@@ -3,6 +3,7 @@ package com.midori.service;
 import com.midori.dto.approval.ContentApprovalDetailResponse;
 import com.midori.dto.approval.ContentApprovalSummaryResponse;
 import com.midori.dto.approval.ContentRejectRequest;
+import com.midori.dto.approval.GrammarApprovalStatsResponse;
 import com.midori.dto.flashcard.FlashcardCardResponse;
 import com.midori.entity.*;
 import com.midori.exception.BadRequestException;
@@ -316,5 +317,27 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    // ============================================================
+    // Grammar Stats
+    // ============================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public GrammarApprovalStatsResponse getGrammarApprovalStats() {
+        long pendingCount = grammarRepository.countByStatus(GrammarStatus.PENDING);
+        long approvedCount = grammarRepository.countByStatus(GrammarStatus.APPROVED);
+        long rejectedCount = grammarRepository.countByStatus(GrammarStatus.REJECTED);
+        long draftCount = grammarRepository.countByStatus(GrammarStatus.DRAFT);
+        long totalCount = grammarRepository.count();
+
+        return GrammarApprovalStatsResponse.builder()
+                .pendingReview(pendingCount)
+                .approved(approvedCount)
+                .rejected(rejectedCount)
+                .draft(draftCount)
+                .totalGrammar(totalCount)
+                .build();
     }
 }
