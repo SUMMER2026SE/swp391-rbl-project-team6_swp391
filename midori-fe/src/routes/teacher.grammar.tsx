@@ -25,11 +25,11 @@ import {
 } from "lucide-react";
 import {
   teacherGrammarApi,
-  normalizeGrammar,
   type GrammarResponse,
   type GrammarCreateRequest,
   type GrammarUpdateRequest,
   type GrammarStatus,
+  type GrammarStatsResponse,
 } from "@/lib/api/teacherGrammar";
 import { ApiError } from "@/lib/api/client";
 
@@ -353,6 +353,11 @@ function GrammarPage() {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
 
+  // Stats state (for preview view)
+  const [grammarStats, setGrammarStats] = useState<GrammarStatsResponse | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState(false);
+
   // Debounce search
   useEffect(() => {
     const t = setTimeout(() => {
@@ -396,6 +401,21 @@ function GrammarPage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
+  // Fetch stats for preview
+  const fetchGrammarStats = useCallback(async (grammarId: string) => {
+    setStatsLoading(true);
+    setStatsError(false);
+    try {
+      const data = await teacherGrammarApi.getGrammarStats(grammarId);
+      setGrammarStats(data);
+    } catch {
+      setStatsError(true);
+      setGrammarStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
   // Filter + paginate
   const filteredGrammars = grammars.filter((g) => {
     if (statusFilter === "ALL") return true;
@@ -407,7 +427,10 @@ function GrammarPage() {
   // Open preview
   const openPreview = (grammar: GrammarResponse) => {
     setSelectedGrammar(grammar);
+    setGrammarStats(null);
+    setStatsError(false);
     setViewMode("preview");
+    fetchGrammarStats(grammar.id);
   };
 
   // Open edit (create or update)
@@ -850,24 +873,60 @@ function GrammarPage() {
             </div>
           </div>
 
-          {/* Engagement — placeholder stats (backend doesn't provide these) */}
+          {/* Student Engagement */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
               Student Engagement
             </h3>
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30">
-                <div className="font-display font-black text-xl text-blue-500">—</div>
-                <div className="text-[10px] text-muted-foreground mt-1">Views</div>
+            {statsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
               </div>
-              <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30">
-                <div className="font-display font-black text-xl text-green-500">—</div>
-                <div className="text-[10px] text-muted-foreground mt-1">Completions</div>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Stats available after approval
-            </p>
+            ) : statsError ? (
+              <p className="text-xs text-muted-foreground text-center">Stats unavailable</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+                    <div className="font-display font-black text-xl text-blue-500">
+                      {grammarStats?.views ?? 0}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1">Views</div>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+                    <div className="font-display font-black text-xl text-green-500">
+                      {grammarStats?.completions ?? 0}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1">Completions</div>
+                  </div>
+                </div>
+                {grammarStats && grammarStats.views > 0 && (
+                  <div>
+                    <div className="flex justify-between text-[10px] text-muted-foreground mb-2">
+                      <span>Completion Rate</span>
+                      <span className="font-semibold">
+                        {Math.round((grammarStats.completions / grammarStats.views) * 100)}%
+                      </span>
+                    </div>
+                    <div className="h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${Math.min((grammarStats.completions / grammarStats.views) * 100, 100)}%`,
+                        }}
+                        className="h-full bg-gradient-hero rounded-full"
+                      />
+                    </div>
+                  </div>
+                )}
+                {(!grammarStats ||
+                  (grammarStats.views === 0 && grammarStats.completions === 0)) && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    No engagement data yet
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           {/* Quick Stats */}
