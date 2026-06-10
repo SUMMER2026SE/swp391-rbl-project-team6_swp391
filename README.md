@@ -241,8 +241,8 @@ See detailed guide: [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)
 These are in both `.example` files and are not secrets:
 
 - `VITE_API_BASE_URL=http://localhost:8080/api`
-- `VITE_GOOGLE_CLIENT_ID=65823123353-... .apps.googleusercontent.com`
-- `VITE_SUPABASE_URL=https://clyuyvdaoprxrpmrcyhd.supabase.co`
+- `VITE_GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID` (use the value from your team leader)
+- `VITE_SUPABASE_URL=https://YOUR_SUPABASE_PROJECT_REF.supabase.co`
 - `VITE_SUPABASE_AVATAR_BUCKET=avatars`
 - `spring.datasource.url`
 - `spring.datasource.username`

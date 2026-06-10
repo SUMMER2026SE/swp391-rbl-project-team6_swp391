@@ -60,8 +60,9 @@ cd midori-fe
 Copy-Item .env.example .env.local
 ```
 Open [.env.local](../../midori-fe/.env.local) and populate the values:
-*   `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth Client ID.
-*   `VITE_SUPABASE_URL`: Your Supabase project URL.
+
+*   `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth Client ID (`YOUR_GOOGLE_CLIENT_ID`).
+*   `VITE_SUPABASE_URL`: Your Supabase project URL (`https://YOUR_SUPABASE_PROJECT_REF.supabase.co`).
 *   `VITE_SUPABASE_PUBLISHABLE_KEY`: Your Supabase anon key (for upload services).
 
 ### Step 3.2: Install Dependencies & Run

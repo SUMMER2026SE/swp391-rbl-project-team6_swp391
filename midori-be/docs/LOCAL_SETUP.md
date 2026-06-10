@@ -44,12 +44,17 @@ copy-item "application-local.example.yml" "application-local.yml"
 
 Open `application-local.yml` and replace these placeholders:
 
-| Field | Replace With | Source |
-|-------|-------------|--------|
-| `datasource.password` | `SUPABASE_DB_PASSWORD` | Ask team leader |
-| `mail.username` | `GMAIL_SENDER` | Ask team leader |
-| `mail.password` | `GMAIL_APP_PASSWORD` | Ask team leader |
-| `mail.from` | Same as `mail.username` | |
+| Field | Replace With | Example |
+|-------|-------------|---------|
+| `spring.datasource.url` | Your Supabase connection URL | `jdbc:postgresql://YOUR_SUPABASE_HOST:5432/postgres?sslmode=require` |
+| `spring.datasource.username` | Your database username | `postgres.YOUR_PROJECT_REF` |
+| `spring.datasource.password` | Your database password | Ask team leader |
+| `spring.mail.username` | Gmail sender address | `your_email@gmail.com` |
+| `spring.mail.password` | Gmail App Password | Ask team leader |
+| `spring.mail.from` | Same as `spring.mail.username` | |
+| `app.jwt.secret` | JWT signing secret (≥32 chars) | `YOUR_JWT_SECRET_AT_LEAST_32_CHARS` |
+| `app.google.client-id` | Google OAuth Client ID | Ask team leader |
+| `app.admin.password` | Local admin password | `ChangeMe123!` (default) |
 
 > **Do not commit `application-local.yml`**. It is already in `.gitignore`.
 
@@ -162,8 +167,9 @@ The `VITE_GOOGLE_CLIENT_ID` in `.env.local` is incorrect or missing.
 
 1. Verify `.env.local` contains:
    ```
-   VITE_GOOGLE_CLIENT_ID=65823123353-je7nstqt77f1l4d0576vijjaklrnfum9.apps.googleusercontent.com
+   VITE_GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
    ```
+   Ask your team leader for the Google OAuth Client ID.
 2. Verify the frontend URL (`8081` or `8082`) is added as **Authorized JavaScript origin** in [Google Cloud Console](https://console.cloud.google.com) under **APIs & Services > Credentials > OAuth 2.0 Client IDs**.
 3. Restart the frontend after fixing `.env.local`.
 
@@ -173,8 +179,9 @@ Check your `.env.local`:
 
 1. `VITE_SUPABASE_URL` must be:
    ```
-   https://clyuyvdaoprxrpmrcyhd.supabase.co
+   https://YOUR_SUPABASE_PROJECT_REF.supabase.co
    ```
+   Ask your team leader for the Supabase project reference.
 2. `VITE_SUPABASE_PUBLISHABLE_KEY` must be the **anon/public key** (starts with `eyJ...`), not the service role key.
 3. The `avatars` bucket must exist in Supabase and have **public** read access.
 4. Restart the frontend after fixing `.env.local`.

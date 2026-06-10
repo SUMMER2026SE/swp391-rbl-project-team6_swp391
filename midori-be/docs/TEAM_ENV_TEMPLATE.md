@@ -56,7 +56,7 @@ Hi, I need the following secrets for local development:
 
 ## Supabase Anon Key
 
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard/project/clyuyvdaoprxrpmrcyhd)
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
 2. Navigate to **Settings > API**
 3. Copy the `anon` public key under **Project API keys**
 4. Paste into `.env.local` as `VITE_SUPABASE_PUBLISHABLE_KEY`

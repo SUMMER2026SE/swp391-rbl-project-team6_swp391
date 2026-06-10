@@ -16,10 +16,10 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
-  vocabularyApi,
-  type VocabularyLessonDetail,
-  type VocabularyWord,
-} from "@/lib/api/vocabulary";
+  studentVocabularyApi,
+  type VocabularyLessonDetailResponse,
+  type VocabularyWordResponse,
+} from "@/lib/api/studentVocabulary";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "not_learned" | "learned";
@@ -47,12 +47,12 @@ function VocabStudyPage() {
     error,
   } = useQuery({
     queryKey: ["vocabulary-lesson", lessonId],
-    queryFn: () => vocabularyApi.getVocabularyLesson(lessonId),
+    queryFn: () => studentVocabularyApi.getPublishedLessonDetail(lessonId),
     enabled: !!lessonId,
     staleTime: 5 * 60 * 1000,
   });
 
-  const words: VocabularyWord[] = lesson?.words ?? [];
+  const words: VocabularyWordResponse[] = lesson?.words ?? [];
 
   const errorMessage =
     error instanceof Error ? error.message : "Something went wrong. Please try again.";
@@ -254,7 +254,7 @@ function VocabStudyPage() {
       {/* ── Progress Dots ── */}
       <div className="relative z-10 px-4 pb-3">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-          {words.map((_: VocabularyWord, i: number) => {
+          {words.map((_: VocabularyWordResponse, i: number) => {
             const isCurrent = i === current;
             const isLearned = wordStatuses[i] === "learned";
             return (
