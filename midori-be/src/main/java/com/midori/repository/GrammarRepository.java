@@ -47,4 +47,20 @@ public interface GrammarRepository extends JpaRepository<Grammar, UUID> {
     @Query("SELECT g FROM Grammar g LEFT JOIN FETCH g.createdBy u LEFT JOIN FETCH u.profile " +
            "WHERE g.createdBy.id = :userId AND g.level = :level ORDER BY g.createdAt DESC")
     List<Grammar> findAllByCreatorIdAndLevelWithCreator(@Param("userId") UUID userId, @Param("level") GrammarLevel level);
+
+    // For teacher's own grammars filtered by status
+    @Query("SELECT g FROM Grammar g LEFT JOIN FETCH g.createdBy u LEFT JOIN FETCH u.profile " +
+           "WHERE g.createdBy.id = :userId AND g.status = :status ORDER BY g.createdAt DESC")
+    List<Grammar> findAllByCreatorIdAndStatusWithCreator(@Param("userId") UUID userId, @Param("status") GrammarStatus status);
+
+    // For teacher's own grammars filtered by status and level
+    @Query("SELECT g FROM Grammar g LEFT JOIN FETCH g.createdBy u LEFT JOIN FETCH u.profile " +
+           "WHERE g.createdBy.id = :userId AND g.status = :status AND g.level = :level ORDER BY g.createdAt DESC")
+    List<Grammar> findAllByCreatorIdAndStatusAndLevelWithCreator(@Param("userId") UUID userId, @Param("status") GrammarStatus status, @Param("level") GrammarLevel level);
+
+    // For teacher's own grammars filtered by status and search
+    @Query("SELECT g FROM Grammar g LEFT JOIN FETCH g.createdBy u LEFT JOIN FETCH u.profile " +
+           "WHERE g.createdBy.id = :userId AND g.status = :status AND " +
+           "(LOWER(g.title) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY g.createdAt DESC")
+    List<Grammar> searchByCreatorAndStatusWithCreator(@Param("userId") UUID userId, @Param("status") GrammarStatus status, @Param("search") String search);
 }
