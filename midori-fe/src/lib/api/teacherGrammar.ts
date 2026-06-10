@@ -5,6 +5,7 @@ import {
   type GrammarUpdateRequest,
   type GrammarListParams,
   type GrammarStatus,
+  type GrammarStatsResponse,
   normalizeGrammar,
 } from "./grammarMappers";
 
@@ -14,6 +15,7 @@ export type {
   GrammarUpdateRequest,
   GrammarListParams,
   GrammarStatus,
+  GrammarStatsResponse,
 };
 
 export { normalizeGrammar };
@@ -79,5 +81,14 @@ export const teacherGrammarApi = {
   submitGrammar: async (grammarId: string): Promise<GrammarResponse> => {
     const grammar = await api.post<GrammarResponse>(`/teacher/grammar/${grammarId}/submit`);
     return normalizeGrammar(grammar);
+  },
+
+  /**
+   * GET /api/teacher/grammar/{grammarId}/stats
+   * Returns student engagement statistics for a grammar lesson.
+   */
+  getGrammarStats: async (grammarId: string): Promise<GrammarStatsResponse> => {
+    const stats = await api.get<GrammarStatsResponse>(`/teacher/grammar/${grammarId}/stats`);
+    return stats;
   },
 };
