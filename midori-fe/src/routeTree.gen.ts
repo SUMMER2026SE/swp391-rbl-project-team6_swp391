@@ -50,6 +50,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminModerationRouteImport } from './routes/admin.moderation'
+import { Route as AdminGrammarApprovalRouteImport } from './routes/admin.grammar-approval'
 import { Route as AdminGrammarRouteImport } from './routes/admin.grammar'
 import { Route as AdminExamsRouteImport } from './routes/admin.exams'
 import { Route as AdminContentApprovalRouteImport } from './routes/admin.content-approval'
@@ -265,6 +266,11 @@ const AdminModerationRoute = AdminModerationRouteImport.update({
   path: '/moderation',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminGrammarApprovalRoute = AdminGrammarApprovalRouteImport.update({
+  id: '/grammar-approval',
+  path: '/grammar-approval',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminGrammarRoute = AdminGrammarRouteImport.update({
   id: '/grammar',
   path: '/grammar',
@@ -329,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
   '/admin/grammar': typeof AdminGrammarRoute
+  '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -377,6 +384,7 @@ export interface FileRoutesByTo {
   '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
   '/admin/grammar': typeof AdminGrammarRoute
+  '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -429,6 +437,7 @@ export interface FileRoutesById {
   '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
   '/admin/grammar': typeof AdminGrammarRoute
+  '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/profile': typeof AdminProfileRoute
@@ -483,6 +492,7 @@ export interface FileRouteTypes {
     | '/admin/content-approval'
     | '/admin/exams'
     | '/admin/grammar'
+    | '/admin/grammar-approval'
     | '/admin/moderation'
     | '/admin/notifications'
     | '/admin/profile'
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/admin/content-approval'
     | '/admin/exams'
     | '/admin/grammar'
+    | '/admin/grammar-approval'
     | '/admin/moderation'
     | '/admin/notifications'
     | '/admin/profile'
@@ -582,6 +593,7 @@ export interface FileRouteTypes {
     | '/admin/content-approval'
     | '/admin/exams'
     | '/admin/grammar'
+    | '/admin/grammar-approval'
     | '/admin/moderation'
     | '/admin/notifications'
     | '/admin/profile'
@@ -922,6 +934,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminModerationRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/grammar-approval': {
+      id: '/admin/grammar-approval'
+      path: '/grammar-approval'
+      fullPath: '/admin/grammar-approval'
+      preLoaderRoute: typeof AdminGrammarApprovalRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/grammar': {
       id: '/admin/grammar'
       path: '/grammar'
@@ -993,6 +1012,7 @@ interface AdminRouteChildren {
   AdminContentApprovalRoute: typeof AdminContentApprovalRoute
   AdminExamsRoute: typeof AdminExamsRoute
   AdminGrammarRoute: typeof AdminGrammarRoute
+  AdminGrammarApprovalRoute: typeof AdminGrammarApprovalRoute
   AdminModerationRoute: typeof AdminModerationRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminProfileRoute: typeof AdminProfileRoute
@@ -1007,6 +1027,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminContentApprovalRoute: AdminContentApprovalRoute,
   AdminExamsRoute: AdminExamsRoute,
   AdminGrammarRoute: AdminGrammarRoute,
+  AdminGrammarApprovalRoute: AdminGrammarApprovalRoute,
   AdminModerationRoute: AdminModerationRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminProfileRoute: AdminProfileRoute,
