@@ -52,6 +52,7 @@ import { Route as AdminNotificationsRouteImport } from './routes/admin.notificat
 import { Route as AdminModerationRouteImport } from './routes/admin.moderation'
 import { Route as AdminGrammarRouteImport } from './routes/admin.grammar'
 import { Route as AdminExamsRouteImport } from './routes/admin.exams'
+import { Route as AdminContentApprovalRouteImport } from './routes/admin.content-approval'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as TeacherVocabularyLessonIdRouteImport } from './routes/teacher.vocabulary.$lessonId'
 import { Route as StudentVocabularyLessonIdRouteImport } from './routes/student.vocabulary.$lessonId'
@@ -274,6 +275,11 @@ const AdminExamsRoute = AdminExamsRouteImport.update({
   path: '/exams',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminContentApprovalRoute = AdminContentApprovalRouteImport.update({
+  id: '/content-approval',
+  path: '/content-approval',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -320,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
   '/admin/grammar': typeof AdminGrammarRoute
   '/admin/moderation': typeof AdminModerationRoute
@@ -367,6 +374,7 @@ export interface FileRoutesByTo {
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
   '/admin/grammar': typeof AdminGrammarRoute
   '/admin/moderation': typeof AdminModerationRoute
@@ -418,6 +426,7 @@ export interface FileRoutesById {
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
   '/admin/grammar': typeof AdminGrammarRoute
   '/admin/moderation': typeof AdminModerationRoute
@@ -471,6 +480,7 @@ export interface FileRouteTypes {
     | '/teacher-pending'
     | '/verify-otp'
     | '/admin/analytics'
+    | '/admin/content-approval'
     | '/admin/exams'
     | '/admin/grammar'
     | '/admin/moderation'
@@ -518,6 +528,7 @@ export interface FileRouteTypes {
     | '/teacher-pending'
     | '/verify-otp'
     | '/admin/analytics'
+    | '/admin/content-approval'
     | '/admin/exams'
     | '/admin/grammar'
     | '/admin/moderation'
@@ -568,6 +579,7 @@ export interface FileRouteTypes {
     | '/teacher-pending'
     | '/verify-otp'
     | '/admin/analytics'
+    | '/admin/content-approval'
     | '/admin/exams'
     | '/admin/grammar'
     | '/admin/moderation'
@@ -924,6 +936,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExamsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/content-approval': {
+      id: '/admin/content-approval'
+      path: '/content-approval'
+      fullPath: '/admin/content-approval'
+      preLoaderRoute: typeof AdminContentApprovalRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/analytics': {
       id: '/admin/analytics'
       path: '/analytics'
@@ -971,6 +990,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminContentApprovalRoute: typeof AdminContentApprovalRoute
   AdminExamsRoute: typeof AdminExamsRoute
   AdminGrammarRoute: typeof AdminGrammarRoute
   AdminModerationRoute: typeof AdminModerationRoute
@@ -984,6 +1004,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminContentApprovalRoute: AdminContentApprovalRoute,
   AdminExamsRoute: AdminExamsRoute,
   AdminGrammarRoute: AdminGrammarRoute,
   AdminModerationRoute: AdminModerationRoute,
