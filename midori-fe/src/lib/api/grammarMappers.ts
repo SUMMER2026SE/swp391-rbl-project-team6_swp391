@@ -58,6 +58,14 @@ export interface GrammarListParams {
   search?: string;
 }
 
+// ─── GrammarStatsResponse (backend GrammarStatsResponse.java) ───────────────────
+
+export interface GrammarStatsResponse {
+  views: number;
+  completions: number;
+  learned: number;
+}
+
 // ─── Normalize ────────────────────────────────────────────────────────────────
 
 /**
