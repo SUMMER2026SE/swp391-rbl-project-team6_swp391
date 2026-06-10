@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
-import { useAuth } from "@/lib/auth";
+import { useAuth, isAvatar } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
 
 interface Certificate {
@@ -623,7 +623,11 @@ function TeacherProfilePage() {
       setEditLocation(res.location || "");
       setEditPhone(res.phone || "");
       setEditDateOfBirth(res.dateOfBirth || "");
-      if (res.avatarUrl) setAvatarPreview(res.avatarUrl);
+      if (isAvatar(res.avatarUrl)) {
+        setAvatarPreview(res.avatarUrl);
+      } else {
+        setAvatarPreview(user?.googleAvatar ?? null);
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setLoadError(err.message);
@@ -633,7 +637,7 @@ function TeacherProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
@@ -650,7 +654,11 @@ function TeacherProfilePage() {
         dateOfBirth: editDateOfBirth || undefined,
       });
       setProfile(updated);
-      updateCurrentUser({ name: updated.displayName, avatar: updated.avatarUrl });
+      updateCurrentUser({
+        name: updated.displayName,
+        avatar: isAvatar(updated.avatarUrl) ? updated.avatarUrl : (user?.avatar ?? null),
+        googleAvatar: user?.googleAvatar ?? null,
+      });
       setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -674,7 +682,7 @@ function TeacherProfilePage() {
       const updated = await profileApi.updateMyProfile({ avatarUrl });
       setProfile(updated);
       setAvatarPreview(avatarUrl);
-      updateCurrentUser({ avatar: avatarUrl });
+      updateCurrentUser({ avatar: avatarUrl, googleAvatar: user.googleAvatar ?? null });
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
     } finally {
@@ -693,7 +701,7 @@ function TeacherProfilePage() {
       const updated = await profileApi.updateMyProfile({ avatarUrl: "" });
       setProfile(updated);
       setAvatarPreview(null);
-      updateCurrentUser({ avatar: undefined });
+      updateCurrentUser({ avatar: null, googleAvatar: user.googleAvatar ?? null });
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
     } finally {
@@ -819,12 +827,7 @@ function TeacherProfilePage() {
                   </motion.div>
                 )}
 
-                {/* Level badge */}
-                <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full bg-gradient-hero text-white text-[10px] font-black shadow-lg border-2 border-white dark:border-slate-800 z-10">
-                  Teacher
-                </div>
-
-                {/* Avatar Action Button */}
+                {/* Camera button only — role badge is in the info section */}
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
                   <div className="relative">
                     <button
@@ -893,9 +896,15 @@ function TeacherProfilePage() {
                     className="text-2xl font-display font-black bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1 outline-none focus:ring-2 focus:ring-primary/40 w-full text-center sm:text-left mb-1"
                   />
                 ) : (
-                  <h2 className="text-2xl font-display font-black text-slate-900 dark:text-white">
-                    {profile?.displayName || "—"}
-                  </h2>
+                  <>
+                    <h2 className="text-2xl font-display font-black text-slate-900 dark:text-white">
+                      {profile?.displayName || "—"}
+                    </h2>
+                    {/* Role badge */}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gradient-hero text-white text-xs font-black shadow-sm mt-0.5">
+                      Teacher
+                    </span>
+                  </>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
                   {profile?.location && (
