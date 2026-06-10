@@ -63,4 +63,8 @@ public interface GrammarRepository extends JpaRepository<Grammar, UUID> {
            "WHERE g.createdBy.id = :userId AND g.status = :status AND " +
            "(LOWER(g.title) LIKE LOWER(CONCAT('%', :search, '%'))) ORDER BY g.createdAt DESC")
     List<Grammar> searchByCreatorAndStatusWithCreator(@Param("userId") UUID userId, @Param("status") GrammarStatus status, @Param("search") String search);
+
+    // Count queries for stats
+    long countByStatus(GrammarStatus status);
+    long count();
 }
