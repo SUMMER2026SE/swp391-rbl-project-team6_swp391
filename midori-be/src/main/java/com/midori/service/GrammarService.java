@@ -18,7 +18,7 @@ public interface GrammarService {
 
     void deleteGrammar(UUID grammarId, UUID currentUserId);
 
-    List<GrammarResponse> listGrammarsForManagement(UUID currentUserId, String level, String search);
+    List<GrammarResponse> listGrammarsForManagement(UUID currentUserId, String level, String search, String status);
 
     GrammarResponse getGrammarForManagement(UUID grammarId, UUID currentUserId);
 
