@@ -131,6 +131,27 @@ export const Route = createFileRoute("/student/leaderboard")({
 });
 
 function LeaderboardPage() {
+  const isLoading = false;
+  const error: string | null = null;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p className="text-muted-foreground text-sm">Loading leaderboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+        <div className="text-red-500 mb-3 text-2xl">⚠️</div>
+        <p className="text-red-500 font-medium text-sm">Unable to load leaderboard data.</p>
+      </div>
+    );
+  }
+
   const [filter, setFilter] = useState<"weekly" | "monthly" | "alltime">("weekly");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [rankPage, setRankPage] = useState(1);
@@ -150,6 +171,20 @@ function LeaderboardPage() {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-display font-black">Leaderboard</h1>
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
+              Demo
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            See your ranking and compete with other students.
+          </p>
+        </div>
+      </div>
 
       {/* Filter row */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -184,7 +219,14 @@ function LeaderboardPage() {
         </select>
       </div>
 
-      {/* ─── Top 3 Podium ─── */}
+      {leaderboardData.length === 0 ? (
+        <div className="text-center py-16 bg-white/40 dark:bg-white/[0.03] rounded-2xl border border-white/60 dark:border-white/10 backdrop-blur-xl">
+          <Trophy className="w-10 h-10 mx-auto text-muted-foreground/20 mb-3" />
+          <p className="text-muted-foreground font-medium text-sm">No ranking data available.</p>
+        </div>
+      ) : (
+        <>
+          {/* ─── Top 3 Podium ─── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -423,7 +465,8 @@ function LeaderboardPage() {
         )}
         </div>
       </motion.div>
-
+        </>
+      )}
     </div>
   );
 }
