@@ -135,7 +135,7 @@ The user profile pages support:
   3. Start the application:
      ```bash
      cd midori-be
-     ./mvnw spring-boot:run
+     mvn spring-boot:run "-Dspring-boot.run.profiles=local"
      ```
 - **Frontend Setup**:
   1. Initialize env parameters:
@@ -146,8 +146,36 @@ The user profile pages support:
      ```bash
      cd midori-fe
      npm install
-     npm run dev
+     npm run dev -- --port 8081
      ```
+
+---
+
+## Basic Test Commands
+
+Backend:
+
+```bash
+cd midori-be
+mvn test
+```
+
+Frontend build check:
+
+```bash
+cd midori-fe
+npm run build
+```
+
+---
+
+## Local Config Warning
+
+IMPORTANT: Never commit `midori-be/src/main/resources/application-local.yml` or `midori-fe/.env.local`.
+
+These files are local-only configuration files and may contain sensitive credentials such as database URL, Gmail app password, JWT secret, Google OAuth client ID, and Supabase keys.
+
+They must stay ignored by Git.
 
 ---
 
