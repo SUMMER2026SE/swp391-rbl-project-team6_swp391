@@ -330,7 +330,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         long approvedCount = grammarRepository.countByStatus(GrammarStatus.APPROVED);
         long rejectedCount = grammarRepository.countByStatus(GrammarStatus.REJECTED);
         long draftCount = grammarRepository.countByStatus(GrammarStatus.DRAFT);
-        long totalCount = grammarRepository.count();
+        long totalCount = pendingCount + approvedCount;
 
         return GrammarApprovalStatsResponse.builder()
                 .pendingReview(pendingCount)
