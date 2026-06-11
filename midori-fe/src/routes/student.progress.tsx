@@ -76,11 +76,12 @@ function ProgressPage() {
   }
 
   // Stats derived from API
-  const totalLearned = stats?.learnedCount ?? 0;
-  const totalMastered = stats?.masteredCount ?? 0;
-  const totalCompleted = stats?.completedCount ?? 0;
-  const totalFavorites = stats?.favoritesCount ?? 0;
-  const progressPercent = stats?.progressPercent ?? 0;
+  const totalLearned = stats?.learnedWords ?? 0;
+  const totalMastered = stats?.masteredWords ?? 0;
+  const totalCompleted = stats?.completedLessons ?? 0;
+  const totalFavorites = stats?.favoriteWords ?? 0;
+  const overallProgress = stats?.progressPercent ?? 0;
+  const learningStreak = stats?.learningStreak ?? 0;
 
   return (
     <div className="space-y-5">
@@ -94,7 +95,7 @@ function ProgressPage() {
         {[
           {
             label: "Overall Progress",
-            value: isLoading ? "..." : `${progressPercent}%`,
+            value: isLoading ? "..." : `${overallProgress}%`,
             delta: null,
             up: true,
             icon: Sparkles,

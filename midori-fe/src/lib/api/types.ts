@@ -60,6 +60,35 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+// ─── Grammar Types ─────────────────────────────────────────────────────────────────
+
+export type GrammarLevel = "N5" | "N4" | "N3" | "N2" | "N1";
+
+export type GrammarStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface GrammarResponse {
+  id: string;
+  title: string;
+  pattern: string;
+  meaning: string;
+  structure: string;
+  usage: string;
+  examples: string[];
+  level: GrammarLevel;
+  status: GrammarStatus;
+  rejectReason: string | null;
+  createdBy: string;
+  teacherName: string;
+  ownedByMe: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GrammarListParams {
+  level?: GrammarLevel;
+  search?: string;
+}
+
 // ─── Progress Types ─────────────────────────────────────────────────────────────────
 
 export type ProgressContentType = "VOCABULARY" | "GRAMMAR" | "FLASHCARD" | "LESSON";
@@ -87,17 +116,13 @@ export interface WeeklyStudyData {
 }
 
 export interface ProgressStatsResponse {
-  totalItems: number;
-  learnedCount: number;
-  masteredCount: number;
-  completedCount: number;
-  favoritesCount: number;
+  completedLessons: number;
+  learnedWords: number;
+  masteredWords: number;
+  favoriteWords: number;
+  progressPercent: number | null;
+  learningStreak: number | null;
   weeklyStudyData: WeeklyStudyData[];
-  vocabularyProgress: number;
-  grammarProgress: number;
-  flashcardProgress: number;
-  lessonProgress: number;
-  progressPercent: number;
 }
 
 export interface ProgressUpdateRequest {
