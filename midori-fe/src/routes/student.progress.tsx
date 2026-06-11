@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-ui";
 import { motion } from "framer-motion";
 import {
@@ -8,18 +9,7 @@ import {
 import {
   BarChart, Bar, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-
-// ─── Mock Data ─────────────────────────────────────────────────────────────
-
-const weeklyStudyData = [
-  { day: "Mon", vocab: 45, grammar: 30, listening: 25, shadow: 20 },
-  { day: "Tue", vocab: 30, grammar: 45, listening: 15, shadow: 30 },
-  { day: "Wed", vocab: 60, grammar: 20, listening: 40, shadow: 15 },
-  { day: "Thu", vocab: 25, grammar: 55, listening: 20, shadow: 35 },
-  { day: "Fri", vocab: 50, grammar: 25, listening: 30, shadow: 25 },
-  { day: "Sat", vocab: 70, grammar: 40, listening: 50, shadow: 40 },
-  { day: "Sun", vocab: 40, grammar: 35, listening: 25, shadow: 30 },
-];
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 // ─── Chart colors ────────────────────────────────────────────────────────────
 
@@ -54,6 +44,44 @@ export const Route = createFileRoute("/student/progress")({
 function ProgressPage() {
   const chartColors = getChartColors();
 
+  // ── Query: Progress Stats ────────────────────────────────────────────────
+  const { data: stats, isLoading, isError, error } = useQuery({
+    queryKey: ["progress-stats"],
+    queryFn: () => studentProgressApi.getStats(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  // Transform weeklyStudyData from API to chart format
+  const chartData = stats?.weeklyStudyData?.map((d) => ({
+    day: d.dayOfWeek.substring(0, 3),
+    vocab: d.count,
+    grammar: 0,
+    listening: 0,
+    shadow: 0,
+  })) ?? [];
+
+  if (isError) {
+    return (
+      <div className="space-y-5">
+        <PageHeader
+          title="Learning Progress"
+          subtitle="Track your Japanese learning journey"
+        />
+        <div className="text-center py-16 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+          <p className="text-red-500 font-semibold mb-2">Failed to load progress data</p>
+          <p className="text-sm text-muted-foreground">{(error as Error)?.message ?? "Something went wrong"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Stats derived from API
+  const totalLearned = stats?.learnedCount ?? 0;
+  const totalMastered = stats?.masteredCount ?? 0;
+  const totalCompleted = stats?.completedCount ?? 0;
+  const totalFavorites = stats?.favoritesCount ?? 0;
+  const totalItems = stats?.totalItems ?? 0;
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -65,9 +93,9 @@ function ProgressPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: "Total XP",
-            value: "9,840",
-            delta: "+18%",
+            label: "Total Items",
+            value: isLoading ? "..." : totalItems.toLocaleString(),
+            delta: null,
             up: true,
             icon: Sparkles,
             color: "primary",
@@ -75,9 +103,9 @@ function ProgressPage() {
             textLight: "text-primary dark:text-primary/90",
           },
           {
-            label: "Study Streak",
-            value: "32 days",
-            delta: "+4",
+            label: "Learned",
+            value: isLoading ? "..." : totalLearned.toLocaleString(),
+            delta: null,
             up: true,
             icon: Flame,
             color: "orange",
@@ -85,9 +113,9 @@ function ProgressPage() {
             textLight: "text-orange-500 dark:text-orange-300",
           },
           {
-            label: "This Month",
-            value: "48.2h",
-            delta: "+12%",
+            label: "Mastered",
+            value: isLoading ? "..." : totalMastered.toLocaleString(),
+            delta: null,
             up: true,
             icon: Clock,
             color: "sky",
@@ -95,9 +123,9 @@ function ProgressPage() {
             textLight: "text-sky-blue dark:text-sky-blue/90",
           },
           {
-            label: "Accuracy",
-            value: "83%",
-            delta: "+3%",
+            label: "Completed",
+            value: isLoading ? "..." : totalCompleted.toLocaleString(),
+            delta: null,
             up: true,
             icon: Target,
             color: "green",
@@ -121,11 +149,11 @@ function ProgressPage() {
                 <span className="text-xs text-muted-foreground">{kpi.label}</span>
               </div>
               <div className="font-display font-bold text-2xl text-foreground">
-                {kpi.value}
-              </div>
-              <div className={`flex items-center gap-1 text-xs font-semibold mt-1 ${kpi.up ? "text-green-500 dark:text-green-400" : "text-red-400"}`}>
-                <ArrowUpRight className="w-3 h-3" />
-                {kpi.delta}
+                {isLoading ? (
+                  <span className="opacity-50">—</span>
+                ) : (
+                  kpi.value
+                )}
               </div>
             </motion.div>
           );
@@ -144,28 +172,15 @@ function ProgressPage() {
             <BarChart3 className="w-4 h-4 text-primary" />
             Weekly Study Breakdown
           </h3>
-          <div className="flex gap-4 text-xs">
-            {[
-              { l: "Vocab" },
-              { l: "Grammar" },
-              { l: "Listening" },
-              { l: "Shadow" },
-            ].map((c, i) => (
-              <span key={i} className="flex items-center gap-1.5 text-xs" style={{ color: chartColors.legendText }}>
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: chartColors.legendColors[i] }}
-                />
-                {c.l}
-              </span>
-            ))}
-          </div>
+          {isLoading && (
+            <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground mb-4">Study time distribution by skill</p>
+        <p className="text-xs text-muted-foreground mb-4">Study activity by day</p>
         <div style={{ height: 235 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={weeklyStudyData}
+              data={chartData}
               barCategoryGap="28%"
               barGap={3}
               margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -192,7 +207,7 @@ function ProgressPage() {
                 }}
                 labelStyle={{ color: chartColors.tooltipLabel, fontWeight: 600, marginBottom: 4 }}
                 itemStyle={{ color: chartColors.tooltipText, paddingTop: 2 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   const itemColors: Record<string, string> = {
                     vocab: chartColors.barVocab,
                     grammar: chartColors.barGrammar,
@@ -200,16 +215,16 @@ function ProgressPage() {
                     shadow: chartColors.barShadow,
                   };
                   const labels: Record<string, string> = {
-                    vocab: "Vocab",
+                    vocab: "Study Activity",
                     grammar: "Grammar",
                     listening: "Listening",
                     shadow: "Shadow",
                   };
                   return [
-                    <span key="val" style={{ color: itemColors[name] ?? chartColors.tooltipText, fontWeight: 600 }}>
-                      {value} min
+                    <span key="val" style={{ color: itemColors[name as string] ?? chartColors.tooltipText, fontWeight: 600 }}>
+                      {String(value ?? 0)}
                     </span>,
-                    labels[name] ?? name,
+                    labels[name as string] ?? name,
                   ];
                 }}
               />

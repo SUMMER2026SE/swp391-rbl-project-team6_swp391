@@ -2,13 +2,14 @@ import { api } from "./client";
 import {
   type VocabularyLessonResponse,
   type VocabularyLessonDetailResponse,
+  type VocabularyWordResponse,
   type LessonListParams,
   normalizeLesson,
   normalizeLessonDetail,
 } from "./vocabularyMappers";
 
 // Re-export shared types and mappers for consumers
-export type { VocabularyLessonResponse, VocabularyLessonDetailResponse, LessonListParams };
+export type { VocabularyLessonResponse, VocabularyLessonDetailResponse, VocabularyWordResponse, LessonListParams };
 export { normalizeLesson, normalizeLessonDetail };
 
 // ─── Student Vocabulary API ───────────────────────────────────────────────────────

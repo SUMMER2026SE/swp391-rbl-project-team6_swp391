@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -20,6 +20,7 @@ import {
   type VocabularyLessonDetailResponse,
   type VocabularyWordResponse,
 } from "@/lib/api/studentVocabulary";
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "not_learned" | "learned";
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/student/vocabulary/$lessonId")({
 
 function VocabStudyPage() {
   const { lessonId } = Route.useParams();
+  const queryClient = useQueryClient();
 
   // ── Query: Lesson details (includes words) ─────────────────────────────────
   const {
@@ -52,6 +54,25 @@ function VocabStudyPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ── Query: Progress for this lesson ─────────────────────────────────────────
+  const {
+    data: lessonProgress,
+    isLoading: progressLoading,
+  } = useQuery({
+    queryKey: ["progress", "VOCABULARY", lessonId],
+    queryFn: () => studentProgressApi.getProgress({
+      contentType: "VOCABULARY",
+      contentId: lessonId,
+    }),
+    enabled: !!lessonId,
+    staleTime: 60 * 1000,
+  });
+
+  // Use first progress entry for this lesson
+  const progressEntry = Array.isArray(lessonProgress) && lessonProgress.length > 0
+    ? lessonProgress[0]
+    : undefined;
+
   const words: VocabularyWordResponse[] = lesson?.words ?? [];
 
   const errorMessage =
@@ -59,15 +80,29 @@ function VocabStudyPage() {
 
   const [current, setCurrent] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [wordStatuses, setWordStatuses] = useState<Record<number, WordStatus>>({});
-  const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
 
+  // ── Mutations ──────────────────────────────────────────────────────────
+  const markLearnedMutation = useMutation({
+    mutationFn: () => studentProgressApi.markAsLearned("VOCABULARY", lessonId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["progress-stats"] });
+    },
+  });
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: () => studentProgressApi.toggleFavorite("VOCABULARY", lessonId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["progress-stats"] });
+    },
+  });
 
   const word = words[current];
-  const status = wordStatuses[current] ?? "not_learned";
-  const isBook = bookmarked.has(current);
+  const status = progressEntry?.isMastered ? "learned" : progressEntry?.isLearned ? "learned" : "not_learned";
+  const isBook = progressEntry?.isFavorite ?? false;
 
-  const learnedCount = Object.values(wordStatuses).filter((s) => s === "learned").length;
+  const learnedCount = progressEntry?.isMastered ? words.length : progressEntry?.isLearned ? Math.ceil(words.length / 2) : 0;
   const notLearnedCount = words.length - learnedCount;
 
   const goNext = () => {
@@ -90,19 +125,11 @@ function VocabStudyPage() {
   };
 
   const toggleLearned = () => {
-    setWordStatuses((prev) => ({
-      ...prev,
-      [current]: prev[current] === "learned" ? "not_learned" : "learned",
-    }));
+    markLearnedMutation.mutate();
   };
 
   const toggleBookmark = () => {
-    setBookmarked((prev) => {
-      const next = new Set(prev);
-      if (next.has(current)) next.delete(current);
-      else next.add(current);
-      return next;
-    });
+    toggleFavoriteMutation.mutate();
   };
 
   const playAudio = (url: string) => {
@@ -256,7 +283,8 @@ function VocabStudyPage() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           {words.map((_: VocabularyWordResponse, i: number) => {
             const isCurrent = i === current;
-            const isLearned = wordStatuses[i] === "learned";
+            // All words in lesson share the same progress state (lesson-level)
+            const isLearned = !!progressEntry?.isMastered || !!progressEntry?.isLearned;
             return (
               <button
                 key={i}

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, Clock, ChevronRight, CheckCircle, X,
@@ -13,6 +14,8 @@ import {
   type VocabularyLessonResponse,
   type VocabularyLessonDetailResponse,
 } from "@/lib/api/studentVocabulary";
+import { studentProgressApi } from "@/lib/api/studentProgress";
+import type { ProgressResponse } from "@/lib/api/studentProgress";
 import { ApiError } from "@/lib/api/client";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
@@ -241,6 +244,7 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
 export const Route = createFileRoute("/student/vocabulary")({ component: VocabularyPage });
 
 function VocabularyPage() {
+  const queryClient = useQueryClient();
   const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
   const [allLessonsBase, setAllLessonsBase] = useState<VocabularyLessonResponse[]>([]);
   const [allTopics, setAllTopics] = useState<string[]>([]);
@@ -257,69 +261,65 @@ function VocabularyPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const WORDS_PER_PAGE = 10;
 
-  // Word status: "new" | "learning" | "mastered"
-  const [wordStatuses, setWordStatuses] = useState<Record<string, WordStatus>>({});
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   // Lesson detail state
   const [lessonDetail, setLessonDetail] = useState<VocabularyLessonDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  // ── Word-level progress (persisted in localStorage) ─────────────────────────
-  const LS_KEY = "midori_vocab_word_progress";
-  const LS_OLD_KEY = "midori_vocab_progress"; // backward compat
+  // ── Query: Fetch vocabulary progress for current user ─────────────────────
+  const { data: progressList } = useQuery({
+    queryKey: ["progress", "VOCABULARY"],
+    queryFn: () => studentProgressApi.getProgress({ contentType: "VOCABULARY" }),
+    staleTime: 60 * 1000,
+  });
 
-  // Hydration guard: prevents save effect from overwriting localStorage on first render
-  const [progressHydrated, setProgressHydrated] = useState(false);
-
-  // Load persisted word statuses from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const saved: Record<string, WordStatus> = JSON.parse(raw);
-        setWordStatuses(saved);
+  // Build lookup map from progress list
+  const progressMap = useMemo(() => {
+    const map: Record<string, ProgressResponse> = {};
+    if (progressList) {
+      for (const p of progressList) {
+        map[p.contentId] = p;
       }
-      // Migrate completedLessons from old key if present
-      const oldRaw = localStorage.getItem(LS_OLD_KEY);
-      if (oldRaw) {
-        const old: Record<string, { completed: boolean }> = JSON.parse(oldRaw);
-        const migrated = new Set<string>();
-        for (const [id, data] of Object.entries(old)) {
-          if (data.completed) migrated.add(id);
-        }
-        setCompletedLessons(migrated);
-      }
-    } catch {
-      // ignore malformed data
-    } finally {
-      setProgressHydrated(true);
     }
-  }, []);
+    return map;
+  }, [progressList]);
 
-  // Persist wordStatuses to localStorage only after hydration
-  useEffect(() => {
-    if (!progressHydrated) return;
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(wordStatuses));
-    } catch {
-      // ignore quota errors
-    }
-  }, [wordStatuses, progressHydrated]);
+  // ── Mutations ──────────────────────────────────────────────────────────
+  const markLearnedMutation = useMutation({
+    mutationFn: (contentId: string) =>
+      studentProgressApi.markAsLearned("VOCABULARY", contentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["progress-stats"] });
+    },
+  });
 
-  // Persist old-style completedLessons for backward compat (set only, no load needed)
-  useEffect(() => {
-    try {
-      const record: Record<string, { progress: number; completed: boolean; completedAt: string }> = {};
-      completedLessons.forEach(id => {
-        record[id] = { progress: 100, completed: true, completedAt: new Date().toISOString() };
-      });
-      localStorage.setItem(LS_OLD_KEY, JSON.stringify(record));
-    } catch {
-      // ignore quota errors
-    }
-  }, [completedLessons]);
+  const markMasteredMutation = useMutation({
+    mutationFn: (contentId: string) =>
+      studentProgressApi.markAsMastered("VOCABULARY", contentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["progress-stats"] });
+    },
+  });
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: (contentId: string) =>
+      studentProgressApi.toggleFavorite("VOCABULARY", contentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["progress-stats"] });
+    },
+  });
+
+  const markCompletedMutation = useMutation({
+    mutationFn: (contentId: string) =>
+      studentProgressApi.markAsCompleted("VOCABULARY", contentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["progress-stats"] });
+    },
+  });
 
   // Fetch published lessons from API
   const fetchLessons = useCallback(async () => {
@@ -380,11 +380,27 @@ function VocabularyPage() {
   }, [allTopics]);
 
   const totalWordsAll = allLessonsBase.reduce((sum, l) => sum + (l.wordCount ?? l.word_count ?? 0), 0);
-  const totalLearned = Object.values(wordStatuses).filter(s => s === "mastered").length;
-  const totalLearning = totalWordsAll - totalLearned;
-  const totalFavorites = favorites.size;
 
-  const getWordStatus = (wordKey: string): WordStatus => wordStatuses[wordKey] ?? "new";
+  // Count mastered/learned/favorites from progressMap
+  const progressValues = Object.values(progressMap) as ProgressResponse[];
+  const totalLearned = progressValues.filter((p) => p.isLearned || p.isMastered).length;
+  const totalLearning = totalWordsAll - totalLearned;
+  const totalFavorites = progressValues.filter((p) => p.isFavorite).length;
+
+  // Get word status from progress API (lesson-level progress for each word)
+  // For simplicity, treat each lesson as a progress entry keyed by lessonId
+  const getLessonProgress = (lessonId: string): ProgressResponse | undefined => progressMap[lessonId];
+
+  const getWordStatus = (wordKey: string): WordStatus => {
+    // Parse lessonId from wordKey (format: "lessonId-word")
+    const parts = wordKey.split(/-/);
+    if (parts.length < 2) return "new";
+    const lessonId = parts[0];
+    const lessonProgress = getLessonProgress(lessonId);
+    if (!lessonProgress) return "new";
+    return lessonProgress.isMastered ? "mastered" : lessonProgress.isLearned ? "learning" : "new";
+  };
+
   const getWordStatusDot = (wordKey: string): string => {
     const s = getWordStatus(wordKey);
     if (s === "mastered") return "bg-green-400";
@@ -393,24 +409,21 @@ function VocabularyPage() {
   };
 
   const setWordStatus = (wordKey: string, status: WordStatus) => {
-    setWordStatuses((prev) => {
-      const next = { ...prev };
-      if (prev[wordKey] === status) {
-        delete next[wordKey];
-      } else {
-        next[wordKey] = status;
-      }
-      return next;
-    });
+    const parts = wordKey.split(/-/);
+    if (parts.length < 2) return;
+    const lessonId = parts[0];
+    if (status === "mastered") {
+      markMasteredMutation.mutate(lessonId);
+    } else if (status === "learning") {
+      markLearnedMutation.mutate(lessonId);
+    }
   };
 
   const toggleFavoriteWord = (wordKey: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(wordKey)) next.delete(wordKey);
-      else next.add(wordKey);
-      return next;
-    });
+    const parts = wordKey.split(/-/);
+    if (parts.length < 2) return;
+    const lessonId = parts[0];
+    toggleFavoriteMutation.mutate(lessonId);
   };
 
   // ── Lesson Detail View ───────────────────────────────────────────
@@ -429,8 +442,10 @@ function VocabularyPage() {
 
   if (activeLesson && lessonDetail) {
     const words = lessonDetail.words ?? [];
-    const lessonProgress = words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "mastered").length;
-    const progressPct = words.length > 0 ? Math.round((lessonProgress / words.length) * 100) : 0;
+    const lessonProgress = getLessonProgress(activeLesson);
+    const isLessonMastered = lessonProgress?.isMastered ?? false;
+    const isLessonFavorite = lessonProgress?.isFavorite ?? false;
+    const lessonProgressPct = isLessonMastered ? 100 : (lessonProgress?.isLearned ? 50 : 0);
 
     // Build word list from lessonDetail
     const lessonWords = words.map(w => ({
@@ -447,7 +462,7 @@ function VocabularyPage() {
       const status = getWordStatus(wordKey);
       if (filterTab === "Mastered") return status === "mastered";
       if (filterTab === "Learning") return status !== "mastered";
-      if (filterTab === "Favorite") return favorites.has(wordKey);
+      if (filterTab === "Favorite") return isLessonFavorite;
       return true;
     });
 
@@ -484,7 +499,7 @@ function VocabularyPage() {
                       {lessonDetail.topic}
                     </span>
                   )}
-                  {progressPct === 100 && (
+                  {lessonProgressPct === 100 && (
                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 text-[10px] font-bold">
                       <CheckCircle className="w-3 h-3" /> Done
                     </span>
@@ -495,14 +510,14 @@ function VocabularyPage() {
 
             {/* Lesson Meta Bar */}
             <div className="flex items-center gap-3 flex-wrap px-4 py-3 rounded-2xl bg-card/60 dark:bg-indigo-950/40 backdrop-blur-sm border border-border/50 dark:border-white/10">
-              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5">
                 <div className="w-24 h-2 rounded-full bg-slate-300/70 dark:bg-white/10 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-linear-to-r from-blue-500 to-pink-500 transition-all"
-                    style={{ width: `${progressPct}%` }}
+                    style={{ width: `${lessonProgressPct}%` }}
                   />
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground dark:text-indigo-200/80">{progressPct}%</span>
+                <span className="text-xs font-semibold text-muted-foreground dark:text-indigo-200/80">{lessonProgressPct}%</span>
               </div>
               <div className="w-px h-4 bg-border dark:bg-white/10" />
               <div className="flex items-center gap-1 text-xs text-muted-foreground dark:text-indigo-200/70">
@@ -521,12 +536,12 @@ function VocabularyPage() {
               <div className="w-px h-4 bg-border" />
               <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                 <CheckCircle className="w-3 h-3" />
-                <span>{lessonProgress} mastered</span>
+                <span>{isLessonMastered ? words.length : 0} mastered</span>
               </div>
               <div className="w-px h-4 bg-border dark:bg-white/10" />
               <div className="flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400">
                 <Zap className="w-3 h-3" />
-                <span>{words.length - words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "mastered").length} learning</span>
+                <span>{isLessonMastered ? 0 : words.length} learning</span>
               </div>
             </div>
 
@@ -578,7 +593,7 @@ function VocabularyPage() {
                 {paginatedWords.map((word, i) => {
                   const wordKey = `${activeLesson}-${word.word}`;
                   const status = getWordStatus(wordKey);
-                  const isFav = favorites.has(wordKey);
+                  const isFav = isLessonFavorite;
 
                   return (
                     <motion.div
@@ -595,7 +610,7 @@ function VocabularyPage() {
                         {/* Japanese + Furigana */}
                         <div className="shrink-0 min-w-0">
                           <div className="font-display text-xl font-black text-foreground dark:text-white leading-tight">{word.word}</div>
-                          <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">{word.furigana || word.romaji}</div>
+                          <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">{word.furigana}</div>
                         </div>
 
                         {/* Divider */}
@@ -678,23 +693,22 @@ function VocabularyPage() {
                 {/* Complete Lesson Button */}
                 {paginatedWords.length > 0 && (
                   <div className="flex justify-center pt-2">
-                    {progressPct === 100 ? (
+                    {isLessonMastered ? (
                       <div className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 text-sm font-bold border border-green-200 dark:border-green-800">
                         <CheckCircle className="w-4 h-4" /> Completed
                       </div>
                     ) : (
                       <button
-                        onClick={() => {
-                          const newStatuses: Record<string, WordStatus> = {};
-                          words.forEach(w => {
-                            newStatuses[`${activeLesson}-${w.word}`] = "mastered";
-                          });
-                          setWordStatuses(prev => ({ ...prev, ...newStatuses }));
-                          setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; });
-                        }}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
+                        onClick={() => markCompletedMutation.mutate(activeLesson ?? "")}
+                        disabled={markCompletedMutation.isPending}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition disabled:opacity-50"
                       >
-                        <Trophy className="w-4 h-4" /> Complete Lesson
+                        {markCompletedMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trophy className="w-4 h-4" />
+                        )}{" "}
+                        Complete Lesson
                       </button>
                     )}
                   </div>
@@ -886,10 +900,9 @@ function VocabularyPage() {
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredLessons.map((lesson, i) => {
                     const wordCount = lesson.wordCount ?? lesson.word_count ?? 0;
-                    const masteredCount = Object.entries(wordStatuses).filter(
-                      ([k]) => k.startsWith(`${lesson.id}-`) && wordStatuses[k as string] === "mastered"
-                    ).length;
-                    const lessonPct = wordCount > 0 ? Math.round((masteredCount / wordCount) * 100) : 0;
+                    const lessonProg = getLessonProgress(lesson.id);
+                    const isLessonMastered = lessonProg?.isMastered ?? false;
+                    const lessonPct = isLessonMastered ? 100 : (lessonProg?.isLearned ? 50 : 0);
                     return (
                       <motion.div
                         key={lesson.id}

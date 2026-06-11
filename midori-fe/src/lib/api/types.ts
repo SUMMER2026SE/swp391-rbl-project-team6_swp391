@@ -59,3 +59,58 @@ export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
 }
+
+// ─── Progress Types ─────────────────────────────────────────────────────────────────
+
+export type ProgressContentType = "VOCABULARY" | "GRAMMAR" | "FLASHCARD" | "LESSON";
+
+export interface ProgressResponse {
+  id: string;
+  contentType: ProgressContentType;
+  contentId: string;
+  isLearned: boolean;
+  isMastered: boolean;
+  isFavorite: boolean;
+  isCompleted: boolean;
+  learnedAt: string | null;
+  masteredAt: string | null;
+  favoriteAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeeklyStudyData {
+  date: string;
+  dayOfWeek: string;
+  count: number;
+}
+
+export interface ProgressStatsResponse {
+  totalItems: number;
+  learnedCount: number;
+  masteredCount: number;
+  completedCount: number;
+  favoritesCount: number;
+  weeklyStudyData: WeeklyStudyData[];
+  vocabularyProgress: number;
+  grammarProgress: number;
+  flashcardProgress: number;
+  lessonProgress: number;
+}
+
+export interface ProgressUpdateRequest {
+  isLearned?: boolean;
+  isMastered?: boolean;
+  isFavorite?: boolean;
+  isCompleted?: boolean;
+}
+
+export interface ProgressListParams {
+  contentType?: ProgressContentType;
+  contentId?: string;
+  isLearned?: boolean;
+  isMastered?: boolean;
+  isFavorite?: boolean;
+  isCompleted?: boolean;
+}
