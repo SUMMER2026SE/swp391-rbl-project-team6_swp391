@@ -17,7 +17,7 @@ public interface FlashcardSetRepository extends JpaRepository<FlashcardSet, UUID
 
     Optional<FlashcardSet> findById(UUID id);
 
-    @Query("SELECT fs FROM FlashcardSet fs LEFT JOIN FETCH fs.teacher t LEFT JOIN FETCH t.profile WHERE fs.id = :id")
+    @Query("SELECT DISTINCT fs FROM FlashcardSet fs LEFT JOIN FETCH fs.teacher t LEFT JOIN FETCH t.profile LEFT JOIN FETCH fs.cards WHERE fs.id = :id")
     Optional<FlashcardSet> findByIdWithTeacher(@Param("id") UUID id);
 
     @Query("SELECT fs FROM FlashcardSet fs LEFT JOIN FETCH fs.teacher t LEFT JOIN FETCH t.profile WHERE fs.teacher.id = :teacherId ORDER BY fs.createdAt DESC")

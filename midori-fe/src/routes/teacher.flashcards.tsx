@@ -407,17 +407,43 @@ function TeacherFlashcardsPage() {
     setEditSaving(true);
     setEditError(null);
     try {
+      // Auto-add draft card if form is filled but not added yet
+      if (addCardForm.frontText.trim() && addCardForm.backText.trim()) {
+        console.log("[Flashcards] Auto-adding draft card before save:", addCardForm);
+        const draftPayload: FlashcardCardCreateRequest = {
+          frontText: addCardForm.frontText.trim(),
+          backText: addCardForm.backText.trim(),
+          example: addCardForm.example.trim() || undefined,
+          hint: addCardForm.hint.trim() || undefined,
+        };
+        const draftCreated = await teacherFlashcardApi.createCard(editSetId, draftPayload);
+        setEditCards((prev) => [...prev, draftCreated]);
+        setAddCardForm({ frontText: "", backText: "", example: "", hint: "" });
+        setShowAddCard(false);
+      }
+
+      console.log("[Flashcards] cards before save:", editCards);
       const payload: FlashcardSetUpdateRequest = {
         title: editSetInfo.title.trim(),
         description: editSetInfo.description.trim() || undefined,
         level: editSetInfo.level || undefined,
       };
+      console.log("[Flashcards] payload:", payload);
+      console.log("[Flashcards] editCards count:", editCards.length);
+
       const updated = await teacherFlashcardApi.updateFlashcardSet(editSetId, payload);
+      console.log("[Flashcards] updated set:", updated);
+
+      // Update local sets list
       setSets((prev) => prev.map((s) => (s.id === editSetId ? updated : s)));
-      if (editSet) {
-        setEditSet({ ...editSet, ...updated });
-      }
-      showToast("Flashcard set saved!", "success");
+
+      // Close modal
+      closeEditSet();
+
+      // Refetch the entire list to get accurate cardCount from backend
+      await loadSets();
+
+      showToast("Flashcard set saved successfully!", "success");
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to save flashcard set.";
       setEditError(msg);
@@ -438,7 +464,9 @@ function TeacherFlashcardsPage() {
         example: addCardForm.example.trim() || undefined,
         hint: addCardForm.hint.trim() || undefined,
       };
+      console.log("[Flashcards] Adding card with payload:", payload);
       const created = await teacherFlashcardApi.createCard(editSetId, payload);
+      console.log("[Flashcards] Card created:", created);
       setEditCards((prev) => [...prev, created]);
       setAddCardForm({ frontText: "", backText: "", example: "", hint: "" });
       setShowAddCard(false);
