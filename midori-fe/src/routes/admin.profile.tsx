@@ -70,6 +70,49 @@ function AdminProfilePage() {
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [isAvatarSaving, setIsAvatarSaving] = useState(false);
+
+  // ── Permissions state ─────────────────────────────────────────────────────
+  const [permissionsState, setPermissionsState] = useState<{
+    status: "idle" | "loading" | "success" | "error" | "empty";
+    data: Array<{ label: string; granted: boolean }> | null;
+    error: string | null;
+  }>({ status: "idle", data: null, error: null });
+
+  // ── Activity state ────────────────────────────────────────────────────────
+  const [activityState, setActivityState] = useState<{
+    status: "idle" | "loading" | "success" | "error" | "empty";
+    data: Array<{ action: string; time: string }> | null;
+    error: string | null;
+  }>({ status: "idle", data: null, error: null });
+
+  const fetchPermissions = useCallback(async () => {
+    // TODO: replace with real permissions API call when backend endpoint is available
+    setPermissionsState((s) => ({ ...s, status: "loading" }));
+    try {
+      await new Promise((r) => setTimeout(r, 100));
+      setPermissionsState({ status: "empty", data: null, error: null });
+    } catch {
+      setPermissionsState({ status: "error", data: null, error: "Failed to load permissions." });
+    }
+  }, []);
+
+  const fetchActivity = useCallback(async () => {
+    // TODO: replace with real activity log API call when backend endpoint is available
+    setActivityState((s) => ({ ...s, status: "loading" }));
+    try {
+      await new Promise((r) => setTimeout(r, 100));
+      setActivityState({ status: "empty", data: null, error: null });
+    } catch {
+      setActivityState({ status: "error", data: null, error: "Failed to load activity." });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPermissions();
+    fetchActivity();
+  }, []);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -174,18 +217,6 @@ function AdminProfilePage() {
   };
 
   const avatarLetter = (editName || profile?.displayName || "?").charAt(0).toUpperCase();
-
-  const permissions = [
-    { label: "User Management", granted: true },
-    { label: "Teacher Approval", granted: true },
-    { label: "Content Moderation", granted: true },
-    { label: "System Settings", granted: true },
-    { label: "Analytics Access", granted: true },
-    { label: "API Key Management", granted: true },
-  ];
-
-  const [isProfileSaving, setIsProfileSaving] = useState(false);
-  const [isAvatarSaving, setIsAvatarSaving] = useState(false);
 
   if (loading) {
     return (
@@ -354,7 +385,7 @@ function AdminProfilePage() {
                     className="text-2xl font-display font-black bg-transparent border-b-2 border-primary outline-none w-full text-center sm:text-left mb-1 text-primary-col"
                   />
                 ) : (
-                  <h1 className="text-2xl font-display font-black text-primary-col">{profile?.displayName || "—"}</h1>
+                  <h1 className="text-2xl font-display font-black text-primary-col">{profile?.displayName}</h1>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full glass-surface text-secondary-col text-xs font-bold border border-glass-border">
@@ -422,11 +453,12 @@ function AdminProfilePage() {
             </h3>
             <div className="space-y-3">
               {[
-                { icon: Mail, label: "Email", value: profile?.email || "—" },
+                { icon: Mail, label: "Email", value: profile?.email },
                 { icon: Shield, label: "Role", value: "Administrator" },
-                { icon: MapPin, label: "Location", value: profile?.location || "—" },
-                { icon: Calendar, label: "Member Since", value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "—" },
+                { icon: MapPin, label: "Location", value: profile?.location },
+                { icon: Calendar, label: "Member Since", value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : null },
               ].map(({ icon: Icon, label, value }) => (
+                value ? (
                 <div key={label} className="flex items-center gap-3 p-3 rounded-xl glass-surface">
                   <Icon className="w-4 h-4 text-secondary-col flex-shrink-0" />
                   <div className="min-w-0">
@@ -434,6 +466,7 @@ function AdminProfilePage() {
                     <div className="text-sm font-medium text-primary-col truncate">{value}</div>
                   </div>
                 </div>
+                ) : null
               ))}
             </div>
           </ProfileCard>
@@ -443,16 +476,24 @@ function AdminProfilePage() {
               <Shield className="w-4 h-4 text-[var(--status-pending)]" /> Permissions
             </h3>
             <div className="space-y-2">
-              {permissions.map(perm => (
-                <div key={perm.label} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
-                  <span className="text-sm text-secondary-col">{perm.label}</span>
-                  {perm.granted ? (
-                    <CheckCircle className="w-4 h-4 text-[var(--status-active)]" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full border-2 border-[var(--border)]" />
-                  )}
-                </div>
-              ))}
+              {permissionsState.status === "empty" && (
+                <p className="text-sm text-muted-col italic py-2">No permissions data available.</p>
+              )}
+              {permissionsState.status === "error" && (
+                <p className="text-sm text-red-500 py-2">{permissionsState.error}</p>
+              )}
+              {permissionsState.status === "success" && permissionsState.data && (
+                permissionsState.data.map(perm => (
+                  <div key={perm.label} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
+                    <span className="text-sm text-secondary-col">{perm.label}</span>
+                    {perm.granted ? (
+                      <CheckCircle className="w-4 h-4 text-[var(--status-active)]" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-[var(--border)]" />
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </ProfileCard>
 
@@ -461,20 +502,23 @@ function AdminProfilePage() {
               <Clock className="w-4 h-4 text-[var(--status-active)]" /> Recent Activity
             </h3>
             <div className="space-y-3">
-              {[
-                { action: "Updated system settings", time: "2 hours ago" },
-                { action: "Approved 3 new teachers", time: "5 hours ago" },
-                { action: "Reviewed flagged content", time: "1 day ago" },
-                { action: "Generated weekly report", time: "2 days ago" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[var(--status-active)] flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-primary-col truncate">{item.action}</div>
-                    <div className="text-[10px] text-muted-col">{item.time}</div>
+              {activityState.status === "empty" && (
+                <p className="text-sm text-muted-col italic py-2">No recent activity.</p>
+              )}
+              {activityState.status === "error" && (
+                <p className="text-sm text-red-500 py-2">{activityState.error}</p>
+              )}
+              {activityState.status === "success" && activityState.data && (
+                activityState.data.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[var(--status-active)] flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-primary-col truncate">{item.action}</div>
+                      <div className="text-[10px] text-muted-col">{item.time}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </ProfileCard>
         </div>
