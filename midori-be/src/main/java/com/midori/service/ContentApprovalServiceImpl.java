@@ -117,9 +117,9 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         Grammar grammar = grammarRepository.findByIdWithCreator(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grammar", "id", contentId));
 
-        if (grammar.getStatus() != GrammarStatus.PENDING) {
-            throw new ResourceNotFoundException("Grammar", "id", contentId);
-        }
+        // Allow viewing grammar details for any status (PENDING, APPROVED, REJECTED, DRAFT)
+        // Admin needs to see details regardless of current status
+        // (e.g., to review approved content or understand rejection reasons)
 
         return ContentApprovalDetailResponse.builder()
                 .contentType("GRAMMAR")
@@ -132,9 +132,8 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         FlashcardSet set = flashcardSetRepository.findByIdWithTeacher(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("FlashcardSet", "id", contentId));
 
-        if (set.getStatus() != FlashcardSetStatus.PENDING) {
-            throw new ResourceNotFoundException("FlashcardSet", "id", contentId);
-        }
+        // Allow viewing flashcard details for any status (PENDING, APPROVED, REJECTED, DRAFT)
+        // Admin needs to see details regardless of current status
 
         return ContentApprovalDetailResponse.builder()
                 .contentType("FLASHCARD")
