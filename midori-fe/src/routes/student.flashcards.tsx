@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Shuffle, CheckCircle, Volume2,
   FlipHorizontal, Zap, BrainCircuit, BookMarked, ArrowLeft, Sparkles, BookText, RotateCcw
 } from "lucide-react";
+import { toast } from "sonner";
 import { studentFlashcardsApi } from "../lib/api/studentFlashcards";
 
 export type Flashcard = {
@@ -28,7 +29,8 @@ export type FlashcardSet = {
   description: string;
   level: string;
   topic: string;
-  cards: Flashcard[];
+  cards?: Flashcard[];
+  cardCount: number;
   createdAt: string;
 };
 
@@ -119,35 +121,19 @@ function StudentFlashcardsPage() {
         if (!active) return;
         setMasteredCardIds(mastered);
 
-        const detailed = await Promise.all(
-          rawSets.map(async (s) => {
-            const detail = await studentFlashcardsApi.getFlashcardSet(s.id);
-            return {
-              id: detail.id,
-              title: detail.title,
-              description: detail.description ?? "",
-              level: detail.level ?? "N5",
-              topic: "Vocabulary",
-              createdAt: detail.createdAt ?? "",
-              cards: detail.cards.map(c => ({
-                id: c.id,
-                word: c.frontText,
-                furigana: c.hint ?? "",
-                romaji: "",
-                meaning: c.backText,
-                example: c.example ?? "",
-                image: "",
-                audio: "",
-                level: detail.level ?? "N5",
-                topic: "Vocabulary",
-                learned: false
-              }))
-            };
-          })
-        );
+        const mapped = rawSets.map((s) => ({
+          id: s.id,
+          title: s.title,
+          description: s.description ?? "",
+          level: s.level ?? "N5",
+          topic: "Vocabulary",
+          createdAt: s.createdAt ?? "",
+          cardCount: s.cardCount ?? 0,
+          cards: undefined,
+        }));
 
         if (active) {
-          setSets(detailed);
+          setSets(mapped);
         }
       } catch (err: any) {
         if (active) {
@@ -166,9 +152,20 @@ function StudentFlashcardsPage() {
     };
   }, []);
 
+  // Auto-return to list view if studySet cards are empty or undefined
+  useEffect(() => {
+    if (studySet) {
+      const activeCards = isReviewMode ? reviewCards : studySet.cards;
+      if (!activeCards || activeCards.length === 0) {
+        setStudySet(null);
+        setStudyMode("flashcard");
+      }
+    }
+  }, [studySet, isReviewMode, reviewCards]);
+
   // Generate quiz options when moving to a new card in quiz mode
   useEffect(() => {
-    if (studyMode === "quiz" && studySet) {
+    if (studyMode === "quiz" && studySet && studySet.cards) {
       const card = studySet.cards[currentIdx];
       if (card) {
         setQuizOptions(getQuizOptions(card, studySet.cards));
@@ -178,7 +175,7 @@ function StudentFlashcardsPage() {
 
   const learnedCount = (setId: string) => {
     const set = sets.find(s => s.id === setId);
-    if (!set) return 0;
+    if (!set || !set.cards) return 0;
     return set.cards.filter(c => masteredCardIds.has(c.id)).length;
   };
 
@@ -188,8 +185,56 @@ function StudentFlashcardsPage() {
     return mLvl && mSearch;
   });
 
-  const startStudy = (s: FlashcardSet, mode: StudyMode = "flashcard") => {
-    setStudySet(s);
+  const startStudy = async (s: FlashcardSet, mode: StudyMode = "flashcard") => {
+    if (s.cardCount === 0) {
+      toast.error("This flashcard set has no cards yet.");
+      return;
+    }
+
+    let fullSet = s;
+    if (!s.cards) {
+      setIsLoading(true);
+      try {
+        const detail = await studentFlashcardsApi.getFlashcardSet(s.id);
+        const mappedSet: FlashcardSet = {
+          id: detail.id,
+          title: detail.title,
+          description: detail.description ?? "",
+          level: detail.level ?? "N5",
+          topic: "Vocabulary",
+          createdAt: detail.createdAt ?? "",
+          cardCount: detail.cardCount ?? 0,
+          cards: detail.cards.map(c => ({
+            id: c.id,
+            word: c.frontText,
+            furigana: c.hint ?? "",
+            romaji: "",
+            meaning: c.backText,
+            example: c.example ?? "",
+            image: "",
+            audio: "",
+            level: detail.level ?? "N5",
+            topic: "Vocabulary",
+            learned: false
+          }))
+        };
+
+        setSets(prev => prev.map(item => item.id === s.id ? mappedSet : item));
+        fullSet = mappedSet;
+      } catch (err: any) {
+        toast.error("Failed to load flashcard details: " + (err?.message || err));
+        return;
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (!fullSet.cards || fullSet.cards.length === 0) {
+      toast.error("This flashcard set has no cards yet.");
+      return;
+    }
+
+    setStudySet(fullSet);
     setStudyMode(mode);
     setCurrentIdx(0);
     setFlipped(false);
@@ -206,6 +251,7 @@ function StudentFlashcardsPage() {
   };
 
   const markLearned = async (cardId: string) => {
+    if (!cardId) return;
     setMasteredCardIds(prev => {
       const next = new Set(prev);
       next.add(cardId);
@@ -213,8 +259,9 @@ function StudentFlashcardsPage() {
     });
     try {
       await studentFlashcardsApi.markCardMastered(cardId);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to mark card as mastered:", err);
+      toast.error("Failed to mark card as mastered: " + (err?.message || err));
       setMasteredCardIds(prev => {
         const next = new Set(prev);
         next.delete(cardId);
@@ -224,6 +271,7 @@ function StudentFlashcardsPage() {
   };
 
   const unmarkLearned = async (cardId: string) => {
+    if (!cardId) return;
     setMasteredCardIds(prev => {
       const next = new Set(prev);
       next.delete(cardId);
@@ -231,8 +279,9 @@ function StudentFlashcardsPage() {
     });
     try {
       await studentFlashcardsApi.unmarkCardMastered(cardId);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to unmark card as mastered:", err);
+      toast.error("Failed to unmark card as mastered: " + (err?.message || err));
       setMasteredCardIds(prev => {
         const next = new Set(prev);
         next.add(cardId);
@@ -241,18 +290,19 @@ function StudentFlashcardsPage() {
     }
   };
 
-  const isLearned = (cardId: string) => masteredCardIds.has(cardId);
+  const isLearned = (cardId: string) => cardId ? masteredCardIds.has(cardId) : false;
 
-  const isReviewCard = (cardId: string) => reviewCardIds.includes(cardId);
+  const isReviewCard = (cardId: string) => cardId ? reviewCardIds.includes(cardId) : false;
 
   const toggleReviewCard = (cardId: string) => {
+    if (!cardId) return;
     setReviewCardIds(prev =>
       prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]
     );
   };
 
   const shuffleCards = () => {
-    if (!studySet) return;
+    if (!studySet || !studySet.cards || studySet.cards.length === 0) return;
     const shuffled = [...studySet.cards].sort(() => Math.random() - 0.5);
     setStudySet({ ...studySet, cards: shuffled });
     setCurrentIdx(0);
@@ -268,16 +318,17 @@ function StudentFlashcardsPage() {
 
   const goNext = () => {
     if (!studySet) return;
-    const activeCards = isReviewMode ? reviewCards : studySet.cards;
+    const activeCards = (isReviewMode ? reviewCards : studySet.cards) || [];
+    if (activeCards.length === 0) return;
     if (studyMode === "flashcard" && currentIdx === activeCards.length - 1) {
       setIsFlashcardComplete(true);
       return;
     }
-    if (studyMode === "quiz" && currentIdx === studySet.cards.length - 1) {
+    if (studyMode === "quiz" && currentIdx === activeCards.length - 1) {
       setIsQuizComplete(true);
       return;
     }
-    if (studyMode === "random" && currentIdx === studySet.cards.length - 1) {
+    if (studyMode === "random" && currentIdx === activeCards.length - 1) {
       setIsRandomComplete(true);
       return;
     }
@@ -288,13 +339,16 @@ function StudentFlashcardsPage() {
   };
 
   const goPrev = () => {
+    if (!studySet) return;
+    const activeCards = (isReviewMode ? reviewCards : studySet.cards) || [];
+    if (activeCards.length === 0) return;
     setCurrentIdx(i => Math.max(i - 1, 0));
     setFlipped(false);
     setQuizAnswer(null);
     setQuizDone(false);
     if (studyMode === "quiz" && currentIdx > 0) {
-      const prevCard = studySet!.cards[currentIdx - 1];
-      const existing = quizResults.find(r => r.cardId === prevCard?.id);
+      const prevCard = activeCards[currentIdx - 1];
+      const existing = prevCard ? quizResults.find(r => r.cardId === prevCard.id) : undefined;
       setQuizAnswer(existing?.userAnswer ?? null);
     }
   };
@@ -311,13 +365,13 @@ function StudentFlashcardsPage() {
 
   // ── STUDY VIEW ────────────────────────────────────────────────────────
   if (studySet) {
-    const activeCards = isReviewMode ? reviewCards : studySet.cards;
-    const currentCard = activeCards[currentIdx]!;
-    const total = studySet.cards.length;
+    const activeCards = (isReviewMode ? reviewCards : studySet.cards) || [];
+    const currentCard = activeCards[currentIdx];
+    const total = studySet.cards?.length ?? 0;
     const learned = learnedCount(studySet.id);
     const remaining = total - learned;
     const progressPct = total > 0 ? Math.round((learned / total) * 100) : 0;
-    const needReviewCount = studySet.cards.filter(c => !isLearned(c.id) || reviewCardIds.includes(c.id)).length;
+    const needReviewCount = (studySet.cards || []).filter(c => !isLearned(c.id) || reviewCardIds.includes(c.id)).length;
 
     return (
       <div className="space-y-6">
@@ -536,7 +590,7 @@ function StudentFlashcardsPage() {
             <p className="font-semibold text-muted-foreground">This flashcard set has no cards yet.</p>
           </div>
         ) : studyMode === "flashcard" || studyMode === "random" ? (
-          !isFlashcardComplete && !isRandomComplete && (
+          !isFlashcardComplete && !isRandomComplete && currentCard && (
             <div className="flex flex-col items-center gap-6">
               {/* Flashcard */}
               <div className="w-full max-w-lg">
@@ -658,10 +712,11 @@ function StudentFlashcardsPage() {
                 <div className="flex-1 flex items-center justify-center gap-3">
                   <button
                     onClick={() => {
+                      if (!currentCard) return;
                       const alreadyLearned = isLearned(currentCard.id);
                       if (!alreadyLearned) markLearned(currentCard.id);
                       setFlipped(false);
-                      const activeCards = isReviewMode ? reviewCards : studySet.cards;
+                      const activeCards = (isReviewMode ? reviewCards : studySet.cards) || [];
                       if (currentIdx === activeCards.length - 1) {
                         if (studyMode === "random") {
                           setIsRandomComplete(true);
@@ -672,13 +727,13 @@ function StudentFlashcardsPage() {
                         setCurrentIdx(i => i + 1);
                       }
                     }}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all ${isLearned(currentCard.id)
+                    className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all ${currentCard && isLearned(currentCard.id)
                         ? "bg-green-500 text-white shadow-lg"
                         : "bg-white dark:bg-indigo-950/60 border border-slate-200 dark:border-indigo-400/20 text-muted-foreground dark:text-indigo-200/80 hover:text-green-400 dark:hover:text-green-400 hover:border-green-400/40 dark:hover:border-green-400/40 shadow dark:shadow-none"
                       }`}
                   >
                     <CheckCircle className="w-4 h-4" />
-                    {isLearned(currentCard.id) ? "Mastered" : "Mark as mastered"}
+                    {currentCard && isLearned(currentCard.id) ? "Mastered" : "Mark as mastered"}
                   </button>
                 </div>
 
@@ -701,7 +756,7 @@ function StudentFlashcardsPage() {
           )) : (
           /* QUIZ MODE */
           <div className="flex flex-col items-center gap-6 max-w-lg mx-auto">
-            {!isQuizComplete ? (
+            {!isQuizComplete && currentCard ? (
               <>
                 <div className="w-full">
                   {/* Quiz word */}
@@ -914,7 +969,7 @@ function StudentFlashcardsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Total sets", value: sets.length, icon: Layers, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
-          { label: "Total cards", value: sets.reduce((s, x) => s + x.cards.length, 0), icon: BookOpen, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
+          { label: "Total cards", value: sets.reduce((s, x) => s + (x.cards ? x.cards.length : x.cardCount), 0), icon: BookOpen, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
           { label: "Learned", value: masteredCardIds.size, icon: CheckCircle, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/30" },
           { label: "Levels", value: "N5–N1", icon: Star, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950/30", noNum: true },
         ].map(stat => {
@@ -1003,7 +1058,9 @@ function StudentFlashcardsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((s, i) => {
             const learned = learnedCount(s.id);
-            const pct = s.cards.length > 0 ? Math.round((learned / s.cards.length) * 100) : 0;
+            const totalCards = s.cards ? s.cards.length : s.cardCount;
+            const pct = totalCards > 0 ? Math.round((learned / totalCards) * 100) : 0;
+            const hasNoCards = s.cardCount === 0;
             return (
               <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
@@ -1022,14 +1079,14 @@ function StudentFlashcardsPage() {
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(s.level)}`}>{s.level}</span>
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          <span>{s.cards.length} cards</span>
+                          <span>{s.cardCount} cards</span>
                           <span className="px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/30 text-purple-500 text-[10px] font-semibold">{s.topic}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Progress */}
-                    {s.cards.length > 0 && (
+                    {s.cards && totalCards > 0 && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between text-xs mb-1.5">
                           <span className="text-muted-foreground font-semibold">Progress</span>
@@ -1040,23 +1097,26 @@ function StudentFlashcardsPage() {
                             transition={{ duration: 0.6, delay: i * 0.05 }}
                             className="h-full rounded-full bg-gradient-hero" />
                         </div>
-                        <div className="text-[10px] text-muted-foreground mt-1 font-medium">{learned}/{s.cards.length} learned</div>
+                        <div className="text-[10px] text-muted-foreground mt-1 font-medium">{learned}/{totalCards} learned</div>
                       </div>
                     )}
 
                     {/* Actions */}
                     <div className="flex items-center gap-2">
                       <button onClick={() => startStudy(s, "flashcard")}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-hero hover:opacity-90 text-white text-xs font-bold transition-all shadow group-hover:shadow-md">
+                        disabled={hasNoCards}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-hero hover:opacity-90 text-white text-xs font-bold transition-all shadow group-hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                         <FlipHorizontal className="w-3.5 h-3.5" /> Study now
                       </button>
                       <button onClick={() => startStudy(s, "quiz")}
-                        className="px-3.5 py-2.5 rounded-xl bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/20 text-primary/70 dark:text-primary/60 hover:text-primary text-xs font-bold transition-all border border-primary/10 hover:border-primary/20"
+                        disabled={hasNoCards}
+                        className="px-3.5 py-2.5 rounded-xl bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/20 text-primary/70 dark:text-primary/60 hover:text-primary text-xs font-bold transition-all border border-primary/10 hover:border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Quiz">
                         <BrainCircuit className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => startStudy(s, "random")}
-                        className="px-3.5 py-2.5 rounded-xl bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/20 text-primary/70 dark:text-primary/60 hover:text-primary text-xs font-bold transition-all border border-primary/10 hover:border-primary/20"
+                        disabled={hasNoCards}
+                        className="px-3.5 py-2.5 rounded-xl bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/20 text-primary/70 dark:text-primary/60 hover:text-primary text-xs font-bold transition-all border border-primary/10 hover:border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Random">
                         <Zap className="w-3.5 h-3.5" />
                       </button>
