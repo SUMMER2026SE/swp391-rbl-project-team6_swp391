@@ -6,9 +6,31 @@ import {
   ChevronLeft, ChevronRight, Shuffle, CheckCircle, Volume2,
   FlipHorizontal, Zap, BrainCircuit, BookMarked, ArrowLeft, Sparkles, BookText, RotateCcw
 } from "lucide-react";
-import { flashcardSetsData, type FlashcardSet, type Flashcard } from "../data/flashcards";
+import { studentFlashcardsApi } from "../lib/api/studentFlashcards";
 
-const STORAGE_KEY = "midori_flashcard_sets";
+export type Flashcard = {
+  id: string;
+  word: string;
+  furigana: string;
+  romaji: string;
+  meaning: string;
+  example: string;
+  image: string;
+  audio: string;
+  level: string;
+  topic: string;
+  learned: boolean;
+};
+
+export type FlashcardSet = {
+  id: string;
+  title: string;
+  description: string;
+  level: string;
+  topic: string;
+  cards: Flashcard[];
+  createdAt: string;
+};
 
 function speakJapanese(text: string) {
   if (!text?.trim()) return;
@@ -20,32 +42,7 @@ function speakJapanese(text: string) {
   utterance.rate = 0.85;
   window.speechSynthesis.speak(utterance);
 }
-const PROGRESS_KEY = "midori_flashcard_progress";
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
-
-function loadSets(): FlashcardSet[] {
-  if (typeof window === "undefined") return flashcardSetsData;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as FlashcardSet[];
-  } catch {}
-  return flashcardSetsData;
-}
-
-type Progress = Record<string, string[]>;
-
-function loadProgress(): Progress {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = localStorage.getItem(PROGRESS_KEY);
-    if (raw) return JSON.parse(raw) as Progress;
-  } catch {}
-  return {};
-}
-
-function saveProgress(p: Progress) {
-  if (typeof window !== "undefined") localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
-}
 
 export const Route = createFileRoute("/student/flashcards")({ component: StudentFlashcardsPage });
 
@@ -89,8 +86,10 @@ function QuizOption({ text, selected, correct, wrong, onClick }: {
 
 // ─── Main Page ───────────────────────────────────────────────────────────
 function StudentFlashcardsPage() {
-  const [sets, setSets] = useState<FlashcardSet[]>(loadSets);
-  const [progress, setProgress] = useState<Progress>(loadProgress);
+  const [sets, setSets] = useState<FlashcardSet[]>([]);
+  const [masteredCardIds, setMasteredCardIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All");
   const [studySet, setStudySet] = useState<FlashcardSet | null>(null);
@@ -108,7 +107,64 @@ function StudentFlashcardsPage() {
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [reviewCards, setReviewCards] = useState<Flashcard[]>([]);
 
-  useEffect(() => { saveProgress(progress); }, [progress]);
+  useEffect(() => {
+    let active = true;
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const rawSets = await studentFlashcardsApi.listFlashcardSets();
+        const progressList = await studentFlashcardsApi.getProgressList();
+        const mastered = new Set(progressList.filter(p => p.mastered).map(p => p.contentId));
+        if (!active) return;
+        setMasteredCardIds(mastered);
+
+        const detailed = await Promise.all(
+          rawSets.map(async (s) => {
+            const detail = await studentFlashcardsApi.getFlashcardSet(s.id);
+            return {
+              id: detail.id,
+              title: detail.title,
+              description: detail.description ?? "",
+              level: detail.level ?? "N5",
+              topic: "Vocabulary",
+              createdAt: detail.createdAt ?? "",
+              cards: detail.cards.map(c => ({
+                id: c.id,
+                word: c.frontText,
+                furigana: c.hint ?? "",
+                romaji: "",
+                meaning: c.backText,
+                example: c.example ?? "",
+                image: "",
+                audio: "",
+                level: detail.level ?? "N5",
+                topic: "Vocabulary",
+                learned: false
+              }))
+            };
+          })
+        );
+
+        if (active) {
+          setSets(detailed);
+        }
+      } catch (err: any) {
+        if (active) {
+          setError(err?.message || "Failed to load flashcard sets. Please try again.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Generate quiz options when moving to a new card in quiz mode
   useEffect(() => {
@@ -120,7 +176,11 @@ function StudentFlashcardsPage() {
     }
   }, [currentIdx, studyMode, studySet]);
 
-  const learnedCount = (setId: string) => progress[setId]?.length ?? 0;
+  const learnedCount = (setId: string) => {
+    const set = sets.find(s => s.id === setId);
+    if (!set) return 0;
+    return set.cards.filter(c => masteredCardIds.has(c.id)).length;
+  };
 
   const filtered = sets.filter(s => {
     const mLvl = levelFilter === "All" || s.level === levelFilter;
@@ -145,23 +205,43 @@ function StudentFlashcardsPage() {
     setReviewCards([]);
   };
 
-  const markLearned = (cardId: string) => {
-    if (!studySet) return;
-    const prev = progress[studySet.id] ?? [];
-    if (!prev.includes(cardId)) {
-      const next = { ...progress, [studySet.id]: [...prev, cardId] };
-      setProgress(next);
+  const markLearned = async (cardId: string) => {
+    setMasteredCardIds(prev => {
+      const next = new Set(prev);
+      next.add(cardId);
+      return next;
+    });
+    try {
+      await studentFlashcardsApi.markCardMastered(cardId);
+    } catch (err) {
+      console.error("Failed to mark card as mastered:", err);
+      setMasteredCardIds(prev => {
+        const next = new Set(prev);
+        next.delete(cardId);
+        return next;
+      });
     }
   };
 
-  const unmarkLearned = (cardId: string) => {
-    if (!studySet) return;
-    const prev = progress[studySet.id] ?? [];
-    const next = { ...progress, [studySet.id]: prev.filter(id => id !== cardId) };
-    setProgress(next);
+  const unmarkLearned = async (cardId: string) => {
+    setMasteredCardIds(prev => {
+      const next = new Set(prev);
+      next.delete(cardId);
+      return next;
+    });
+    try {
+      await studentFlashcardsApi.unmarkCardMastered(cardId);
+    } catch (err) {
+      console.error("Failed to unmark card as mastered:", err);
+      setMasteredCardIds(prev => {
+        const next = new Set(prev);
+        next.add(cardId);
+        return next;
+      });
+    }
   };
 
-  const isLearned = (cardId: string) => progress[studySet?.id ?? ""]?.includes(cardId) ?? false;
+  const isLearned = (cardId: string) => masteredCardIds.has(cardId);
 
   const isReviewCard = (cardId: string) => reviewCardIds.includes(cardId);
 
@@ -293,9 +373,8 @@ function StudentFlashcardsPage() {
           ].map(mode => (
             <button key={mode.id}
               onClick={() => { setStudyMode(mode.id); setCurrentIdx(0); setFlipped(false); setQuizAnswer(null); setQuizDone(false); setIsFlashcardComplete(false); setQuizResults([]); setIsQuizComplete(false); setQuizOptions([]); setIsRandomComplete(false); setReviewCardIds([]); setIsReviewMode(false); setReviewCards([]); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                studyMode === mode.id ? "bg-gradient-hero text-white shadow" : "text-muted-foreground dark:text-indigo-300 hover:text-foreground dark:hover:bg-indigo-400/15"
-              }`}>
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${studyMode === mode.id ? "bg-gradient-hero text-white shadow" : "text-muted-foreground dark:text-indigo-300 hover:text-foreground dark:hover:bg-indigo-400/15"
+                }`}>
               <mode.icon className="w-4 h-4" /> {mode.label}
             </button>
           ))}
@@ -455,174 +534,171 @@ function StudentFlashcardsPage() {
           <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
             <Layers className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
             <p className="font-semibold text-muted-foreground">This flashcard set has no cards yet.</p>
-        </div>
+          </div>
         ) : studyMode === "flashcard" || studyMode === "random" ? (
           !isFlashcardComplete && !isRandomComplete && (
-          <div className="flex flex-col items-center gap-6">
-            {/* Flashcard */}
-            <div className="w-full max-w-lg">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentCard.id + currentIdx}
-                  initial={{ opacity: 0, x: 60 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 60 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  onClick={() => setFlipped(f => !f)}
-                  className="cursor-pointer"
-                >
-                  <AnimatePresence mode="wait">
-                    {flipped ? (
-                      <motion.div
-                        key="back"
-                        initial={{ rotateY: -90, opacity: 0 }}
-                        animate={{ rotateY: 0, opacity: 1 }}
-                        exit={{ rotateY: -90, opacity: 0 }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
-                        className="rounded-3xl bg-gradient-hero p-8 text-white shadow-xl min-h-[280px] flex flex-col justify-between relative overflow-visible"
-                      >
-                        <div>
-                          <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest mb-4">Meaning</div>
-                          <div className="font-display font-black text-3xl sm:text-4xl text-white leading-tight mb-3 break-words">{currentCard.meaning}</div>
-                          {currentCard.furigana && (
-                            <div className="text-xl text-white/70 font-medium">{currentCard.furigana}</div>
-                          )}
-                          {currentCard.romaji && (
-                            <div className="text-sm text-white/50 italic mt-1">{currentCard.romaji}</div>
-                          )}
-                          {currentCard.example && (
-                            <div className="mt-4 pt-4 border-t border-white/20">
-                              <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Example</div>
-                              <div className="text-sm text-white/80 italic">"{currentCard.example}"</div>
-                            </div>
-                          )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleReviewCard(currentCard.id); }}
-                            title="Mark for review"
-                            className={`absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition ${
-                              isReviewCard(currentCard.id)
-                                ? "bg-yellow-400 text-yellow-900 shadow"
-                                : "bg-white/15 text-white/50 hover:text-yellow-300 hover:bg-yellow-500/15"
-                            }`}
-                          >
-                            <Star className={`w-4 h-4 ${isReviewCard(currentCard.id) ? "fill-yellow-400" : ""}`} />
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="flex gap-2">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 border border-white/30">{currentCard.level}</span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 border border-white/30">{currentCard.topic}</span>
-                    </div>
-                          <span className="text-[10px] text-white/70">← flip to see word</span>
-                  </div>
-                </motion.div>
-                    ) : (
-                <motion.div
-                        key="front"
-                        initial={{ rotateY: 90, opacity: 0 }}
-                        animate={{ rotateY: 0, opacity: 1 }}
-                        exit={{ rotateY: 90, opacity: 0 }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
-                        className="rounded-3xl bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950 dark:to-indigo-900 border-2 border-primary/30 dark:border-cyan-400/25 dark:shadow-2xl dark:shadow-indigo-500/20 p-8 min-h-[280px] flex flex-col justify-between relative">
-                        {/* Glow accents */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
-                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-violet-600/5 rounded-full blur-2xl pointer-events-none" />
-                        <div>
-                          <div className="text-[10px] font-bold uppercase text-muted-foreground dark:text-slate-300/70 tracking-widest mb-4">Word</div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="font-display font-black text-4xl sm:text-5xl text-foreground dark:text-white leading-tight flex-1 break-words">{currentCard.word}</div>
+            <div className="flex flex-col items-center gap-6">
+              {/* Flashcard */}
+              <div className="w-full max-w-lg">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentCard.id + currentIdx}
+                    initial={{ opacity: 0, x: 60 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 60 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    onClick={() => setFlipped(f => !f)}
+                    className="cursor-pointer"
+                  >
+                    <AnimatePresence mode="wait">
+                      {flipped ? (
+                        <motion.div
+                          key="back"
+                          initial={{ rotateY: -90, opacity: 0 }}
+                          animate={{ rotateY: 0, opacity: 1 }}
+                          exit={{ rotateY: -90, opacity: 0 }}
+                          transition={{ duration: 0.4, ease: "easeOut" }}
+                          className="rounded-3xl bg-gradient-hero p-8 text-white shadow-xl min-h-[280px] flex flex-col justify-between relative overflow-visible"
+                        >
+                          <div>
+                            <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest mb-4">Meaning</div>
+                            <div className="font-display font-black text-3xl sm:text-4xl text-white leading-tight mb-3 break-words">{currentCard.meaning}</div>
+                            {currentCard.furigana && (
+                              <div className="text-xl text-white/70 font-medium">{currentCard.furigana}</div>
+                            )}
+                            {currentCard.romaji && (
+                              <div className="text-sm text-white/50 italic mt-1">{currentCard.romaji}</div>
+                            )}
+                            {currentCard.example && (
+                              <div className="mt-4 pt-4 border-t border-white/20">
+                                <div className="text-[10px] font-bold uppercase opacity-60 mb-1">Example</div>
+                                <div className="text-sm text-white/80 italic">"{currentCard.example}"</div>
+                              </div>
+                            )}
                             <button
-                              onClick={(e) => { e.stopPropagation(); speakJapanese(currentCard.furigana || currentCard.word); }}
-                              title="Play pronunciation"
-                              className="flex-shrink-0 w-10 h-10 rounded-xl bg-sky-50 dark:bg-cyan-400/20 hover:bg-sky-100 dark:hover:bg-cyan-400/30 text-sky-500 dark:text-cyan-300 flex items-center justify-center transition shadow-sm dark:shadow-none"
+                              onClick={(e) => { e.stopPropagation(); toggleReviewCard(currentCard.id); }}
+                              title="Mark for review"
+                              className={`absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition ${isReviewCard(currentCard.id)
+                                  ? "bg-yellow-400 text-yellow-900 shadow"
+                                  : "bg-white/15 text-white/50 hover:text-yellow-300 hover:bg-yellow-500/15"
+                                }`}
                             >
-                              <Volume2 className="w-4 h-4" />
+                              <Star className={`w-4 h-4 ${isReviewCard(currentCard.id) ? "fill-yellow-400" : ""}`} />
                             </button>
                           </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleReviewCard(currentCard.id); }}
-                            title="Mark for review"
-                            className={`absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition ${
-                              isReviewCard(currentCard.id)
-                                ? "bg-yellow-400 text-yellow-900 shadow"
-                                : "bg-white/8 dark:bg-indigo-500/20 dark:text-indigo-300/80 dark:hover:text-yellow-400 dark:hover:bg-indigo-400/25"
-                            }`}
-                          >
-                            <Star className={`w-4 h-4 ${isReviewCard(currentCard.id) ? "fill-yellow-400" : "fill-none"}`} />
-                          </button>
-                          {currentCard.furigana && (
-                            <div className="text-2xl text-sky-500 dark:text-cyan-300 font-medium">{currentCard.furigana}</div>
-                          )}
-                          {currentCard.romaji && (
-                            <div className="text-sm text-muted-foreground dark:text-slate-300/80 italic mt-1">{currentCard.romaji}</div>
-                        )}
-                      </div>
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="flex gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(currentCard.level)}`}>{currentCard.level}</span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-violet-500/15 text-purple-500 dark:text-violet-300 border border-purple-100 dark:border-violet-400/20">{currentCard.topic}</span>
-                      </div>
-                          <span className="text-[10px] text-muted-foreground dark:text-slate-300/70">click to flip →</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              </AnimatePresence>
-        </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="flex gap-2">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 border border-white/30">{currentCard.level}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 border border-white/30">{currentCard.topic}</span>
+                            </div>
+                            <span className="text-[10px] text-white/70">← flip to see word</span>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="front"
+                          initial={{ rotateY: 90, opacity: 0 }}
+                          animate={{ rotateY: 0, opacity: 1 }}
+                          exit={{ rotateY: 90, opacity: 0 }}
+                          transition={{ duration: 0.4, ease: "easeOut" }}
+                          className="rounded-3xl bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950 dark:to-indigo-900 border-2 border-primary/30 dark:border-cyan-400/25 dark:shadow-2xl dark:shadow-indigo-500/20 p-8 min-h-[280px] flex flex-col justify-between relative">
+                          {/* Glow accents */}
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
+                          <div className="absolute bottom-0 left-0 w-32 h-32 bg-violet-600/5 rounded-full blur-2xl pointer-events-none" />
+                          <div>
+                            <div className="text-[10px] font-bold uppercase text-muted-foreground dark:text-slate-300/70 tracking-widest mb-4">Word</div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-display font-black text-4xl sm:text-5xl text-foreground dark:text-white leading-tight flex-1 break-words">{currentCard.word}</div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); speakJapanese(currentCard.furigana || currentCard.word); }}
+                                title="Play pronunciation"
+                                className="flex-shrink-0 w-10 h-10 rounded-xl bg-sky-50 dark:bg-cyan-400/20 hover:bg-sky-100 dark:hover:bg-cyan-400/30 text-sky-500 dark:text-cyan-300 flex items-center justify-center transition shadow-sm dark:shadow-none"
+                              >
+                                <Volume2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleReviewCard(currentCard.id); }}
+                              title="Mark for review"
+                              className={`absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center transition ${isReviewCard(currentCard.id)
+                                  ? "bg-yellow-400 text-yellow-900 shadow"
+                                  : "bg-white/8 dark:bg-indigo-500/20 dark:text-indigo-300/80 dark:hover:text-yellow-400 dark:hover:bg-indigo-400/25"
+                                }`}
+                            >
+                              <Star className={`w-4 h-4 ${isReviewCard(currentCard.id) ? "fill-yellow-400" : "fill-none"}`} />
+                            </button>
+                            {currentCard.furigana && (
+                              <div className="text-2xl text-sky-500 dark:text-cyan-300 font-medium">{currentCard.furigana}</div>
+                            )}
+                            {currentCard.romaji && (
+                              <div className="text-sm text-muted-foreground dark:text-slate-300/80 italic mt-1">{currentCard.romaji}</div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="flex gap-2">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(currentCard.level)}`}>{currentCard.level}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-violet-500/15 text-purple-500 dark:text-violet-300 border border-purple-100 dark:border-violet-400/20">{currentCard.topic}</span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground dark:text-slate-300/70">click to flip →</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
 
-            {/* Controls */}
-            <div className="flex items-center gap-2 sm:gap-4 w-full max-w-lg">
-              <button onClick={goPrev} disabled={currentIdx === 0}
-                className="w-12 h-12 rounded-2xl bg-white dark:bg-indigo-950/60 border border-slate-200 dark:border-indigo-400/20 flex items-center justify-center text-muted-foreground dark:text-indigo-300/70 hover:text-foreground dark:hover:text-white hover:border-primary/40 dark:hover:border-indigo-400/40 transition shadow dark:shadow-none disabled:opacity-25 dark:disabled:opacity-20">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
+              {/* Controls */}
+              <div className="flex items-center gap-2 sm:gap-4 w-full max-w-lg">
+                <button onClick={goPrev} disabled={currentIdx === 0}
+                  className="w-12 h-12 rounded-2xl bg-white dark:bg-indigo-950/60 border border-slate-200 dark:border-indigo-400/20 flex items-center justify-center text-muted-foreground dark:text-indigo-300/70 hover:text-foreground dark:hover:text-white hover:border-primary/40 dark:hover:border-indigo-400/40 transition shadow dark:shadow-none disabled:opacity-25 dark:disabled:opacity-20">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
 
-              <div className="flex-1 flex items-center justify-center gap-3">
-          <button
-                  onClick={() => {
-                    const alreadyLearned = isLearned(currentCard.id);
-                    if (!alreadyLearned) markLearned(currentCard.id);
-                    setFlipped(false);
-                    const activeCards = isReviewMode ? reviewCards : studySet.cards;
-                    if (currentIdx === activeCards.length - 1) {
-                      if (studyMode === "random") {
-                        setIsRandomComplete(true);
+                <div className="flex-1 flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => {
+                      const alreadyLearned = isLearned(currentCard.id);
+                      if (!alreadyLearned) markLearned(currentCard.id);
+                      setFlipped(false);
+                      const activeCards = isReviewMode ? reviewCards : studySet.cards;
+                      if (currentIdx === activeCards.length - 1) {
+                        if (studyMode === "random") {
+                          setIsRandomComplete(true);
+                        } else {
+                          setIsFlashcardComplete(true);
+                        }
                       } else {
-                        setIsFlashcardComplete(true);
+                        setCurrentIdx(i => i + 1);
                       }
-                    } else {
-                      setCurrentIdx(i => i + 1);
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all ${
-                    isLearned(currentCard.id)
-                      ? "bg-green-500 text-white shadow-lg"
-                      : "bg-white dark:bg-indigo-950/60 border border-slate-200 dark:border-indigo-400/20 text-muted-foreground dark:text-indigo-200/80 hover:text-green-400 dark:hover:text-green-400 hover:border-green-400/40 dark:hover:border-green-400/40 shadow dark:shadow-none"
-                  }`}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  {isLearned(currentCard.id) ? "Mastered" : "Mark as mastered"}
+                    }}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all ${isLearned(currentCard.id)
+                        ? "bg-green-500 text-white shadow-lg"
+                        : "bg-white dark:bg-indigo-950/60 border border-slate-200 dark:border-indigo-400/20 text-muted-foreground dark:text-indigo-200/80 hover:text-green-400 dark:hover:text-green-400 hover:border-green-400/40 dark:hover:border-green-400/40 shadow dark:shadow-none"
+                      }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {isLearned(currentCard.id) ? "Mastered" : "Mark as mastered"}
+                  </button>
+                </div>
+
+                <button onClick={goNext}
+                  className="w-12 h-12 rounded-2xl bg-gradient-hero text-white flex items-center justify-center hover:opacity-90 transition shadow-lg dark:shadow-indigo-500/20">
+                  <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
 
-              <button onClick={goNext}
-                className="w-12 h-12 rounded-2xl bg-gradient-hero text-white flex items-center justify-center hover:opacity-90 transition shadow-lg dark:shadow-indigo-500/20">
-                <ChevronRight className="w-5 h-5" />
-          </button>
+              {/* Counter */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-300 font-semibold">
+                <span className="w-7 h-7 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/80 flex items-center justify-center font-black">{currentIdx + 1}</span>
+                <span>/</span>
+                <span>{isReviewMode ? reviewCards.length : total}</span>
+                {isReviewMode && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 text-[10px] font-bold">review</span>
+                )}
+              </div>
             </div>
-
-            {/* Counter */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-300 font-semibold">
-              <span className="w-7 h-7 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary/80 flex items-center justify-center font-black">{currentIdx + 1}</span>
-              <span>/</span>
-              <span>{isReviewMode ? reviewCards.length : total}</span>
-              {isReviewMode && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 text-[10px] font-bold">review</span>
-              )}
-            </div>
-          </div>
-        )) : (
+          )) : (
           /* QUIZ MODE */
           <div className="flex flex-col items-center gap-6 max-w-lg mx-auto">
             {!isQuizComplete ? (
@@ -691,11 +767,10 @@ function StudentFlashcardsPage() {
                       const currentResult = quizResults.find(r => r.cardId === currentCard.id);
                       return (
                         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                          className={`p-4 rounded-2xl text-center font-bold text-sm ${
-                            currentResult?.isCorrect
+                          className={`p-4 rounded-2xl text-center font-bold text-sm ${currentResult?.isCorrect
                               ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-300 border border-green-300"
                               : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 border border-red-300"
-                          }`}>
+                            }`}>
                           {currentResult?.isCorrect ? "✓ Correct!" : "✗ Incorrect. Correct answer: " + currentCard.meaning}
                         </motion.div>
                       );
@@ -774,11 +849,10 @@ function StudentFlashcardsPage() {
                   <div className="w-full space-y-2 max-h-72 overflow-y-auto pr-1">
                     {quizResults.map((r) => (
                       <div key={r.cardId}
-                        className={`rounded-xl p-3 border ${
-                          r.isCorrect
+                        className={`rounded-xl p-3 border ${r.isCorrect
                             ? "bg-green-50 dark:bg-green-500/15 border-green-200 dark:border-green-500/30"
                             : "bg-red-50 dark:bg-red-500/15 border-red-200 dark:border-red-500/30"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -831,7 +905,7 @@ function StudentFlashcardsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-        <div>
+      <div>
         <h1 className="text-2xl font-display font-black text-foreground">Flashcards</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Learn vocabulary with flashcards</p>
       </div>
@@ -841,7 +915,7 @@ function StudentFlashcardsPage() {
         {[
           { label: "Total sets", value: sets.length, icon: Layers, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950/30" },
           { label: "Total cards", value: sets.reduce((s, x) => s + x.cards.length, 0), icon: BookOpen, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950/30" },
-          { label: "Learned", value: Object.values(progress).flat().length, icon: CheckCircle, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/30" },
+          { label: "Learned", value: masteredCardIds.size, icon: CheckCircle, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950/30" },
           { label: "Levels", value: "N5–N1", icon: Star, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950/30", noNum: true },
         ].map(stat => {
           const Icon = stat.icon;
@@ -880,7 +954,7 @@ function StudentFlashcardsPage() {
       </div>
 
       {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="flex-1 min-w-0 max-w-80">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -900,7 +974,27 @@ function StudentFlashcardsPage() {
       </div>
 
       {/* Set grid */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+          <BookOpen className="w-12 h-12 text-primary/50 animate-pulse" />
+          <p className="font-bold text-base text-foreground">Loading flashcards...</p>
+          <p className="text-muted-foreground text-sm">Please wait while information is being retrieved.</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-20 max-w-sm mx-auto px-4">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 border border-red-400/30 flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8 text-red-400" />
+          </div>
+          <h3 className="text-lg font-bold text-foreground mb-2">Failed to load flashcards</h3>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-hero text-white text-sm font-semibold hover:opacity-90 transition shadow"
+          >
+            Try Again
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <Layers className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
           <p className="font-semibold text-muted-foreground">No flashcard sets found</p>
@@ -912,7 +1006,7 @@ function StudentFlashcardsPage() {
             const pct = s.cards.length > 0 ? Math.round((learned / s.cards.length) * 100) : 0;
             return (
               <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
+                transition={{ delay: i * 0.04 }}
                 className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-primary/30 transition-all duration-200 overflow-hidden group">
                 <div className="flex">
                   {/* Left accent bar */}
@@ -969,7 +1063,7 @@ function StudentFlashcardsPage() {
                     </div>
                   </div>
                 </div>
-            </motion.div>
+              </motion.div>
             );
           })}
         </div>
