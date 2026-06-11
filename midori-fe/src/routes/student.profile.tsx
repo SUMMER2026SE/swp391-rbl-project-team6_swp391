@@ -90,21 +90,55 @@ function ProfilePage() {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
 
-  // Static mock data for gamification elements (not available in backend profile)
-  const mockStats = {
-    studyHours: 0,
-    wordsLearned: 0,
-    grammarCompleted: 0,
-    listeningAccuracy: 0,
-  };
-  const mockAchievements = [
-    { id: 1, name: "First Steps", progress: 100, earned: true },
-    { id: 2, name: "Vocab Voyager", progress: 100, earned: true },
-    { id: 3, name: "Grammar Guardian", progress: 89, earned: true },
-    { id: 4, name: "Night Scholar", progress: 100, earned: true },
-    { id: 5, name: "100-Day Streak", progress: 32, earned: false },
-    { id: 6, name: "N1 Ninja", progress: 0, earned: false },
-  ];
+  // ── Progress / Stats state ──────────────────────────────────────────────
+  // NOT connected to any backend API yet — placeholders until progress API exists
+  const [progressState, setProgressState] = useState<{
+    status: "idle" | "loading" | "success" | "error" | "empty";
+    data: {
+      studyHours: number;
+      wordsLearned: number;
+      grammarCompleted: number;
+      listeningAccuracy: number;
+    } | null;
+    error: string | null;
+  }>({ status: "idle", data: null, error: null });
+
+  // ── Achievements state ───────────────────────────────────────────────────
+  const [achievementsState, setAchievementsState] = useState<{
+    status: "idle" | "loading" | "success" | "error" | "empty";
+    data: Array<{ id: number; name: string; progress: number; earned: boolean }> | null;
+    error: string | null;
+  }>({ status: "idle", data: null, error: null });
+
+  const fetchProgress = useCallback(async () => {
+    // TODO: replace with real progress API call when backend endpoint is available
+    // e.g.: const res = await progressApi.getMyProgress();
+    setProgressState((s) => ({ ...s, status: "loading" }));
+    try {
+      // Simulate async call — replace body with real API call
+      await new Promise((r) => setTimeout(r, 100));
+      // No progress API yet → mark as empty (not error, not fake data)
+      setProgressState({ status: "empty", data: null, error: null });
+    } catch {
+      setProgressState({ status: "error", data: null, error: "Failed to load progress." });
+    }
+  }, []);
+
+  const fetchAchievements = useCallback(async () => {
+    // TODO: replace with real achievements API call when backend endpoint is available
+    setAchievementsState((s) => ({ ...s, status: "loading" }));
+    try {
+      await new Promise((r) => setTimeout(r, 100));
+      setAchievementsState({ status: "empty", data: null, error: null });
+    } catch {
+      setAchievementsState({ status: "error", data: null, error: "Failed to load achievements." });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProgress();
+    fetchAchievements();
+  }, []);
 
   const hasSyncedRef = useRef(false);
   const userIdRef = useRef<string | undefined>(undefined);
@@ -517,7 +551,7 @@ function ProfilePage() {
                   />
                 ) : (
                   <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                    {displayName || "—"}
+                    {displayName}
                   </h2>
                 )}
 
@@ -696,97 +730,109 @@ function ProfilePage() {
       {activeTab === "overview" && (
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                label: "Study Hours",
-                value: mockStats.studyHours,
-                subtext: `${mockStats.studyHours} hours logged`,
-                progressValue: Math.min(mockStats.studyHours, 100),
-                accent: "from-orange-500/18 via-amber-500/8 to-transparent",
-                iconWrap: "bg-orange-500/12 text-orange-400 ring-1 ring-orange-500/20",
-                progressClass: "bg-orange-500/18 [&>div]:bg-orange-400",
-                icon: Clock3,
-              },
-              {
-                label: "Words",
-                value: mockStats.wordsLearned.toLocaleString(),
-                subtext: `${mockStats.wordsLearned.toLocaleString()} learned words`,
-                progressValue: Math.min(mockStats.wordsLearned, 100),
-                accent: "from-blue-500/18 via-sky-500/8 to-transparent",
-                iconWrap: "bg-blue-500/12 text-blue-400 ring-1 ring-blue-500/20",
-                progressClass: "bg-blue-500/18 [&>div]:bg-blue-400",
-                icon: BookOpenText,
-              },
-              {
-                label: "Grammar",
-                value: mockStats.grammarCompleted,
-                subtext: `${mockStats.grammarCompleted} completed points`,
-                progressValue: Math.min(mockStats.grammarCompleted, 100),
-                accent: "from-emerald-500/18 via-green-500/8 to-transparent",
-                iconWrap: "bg-emerald-500/12 text-emerald-400 ring-1 ring-emerald-500/20",
-                progressClass: "bg-emerald-500/18 [&>div]:bg-emerald-400",
-                icon: Languages,
-              },
-              {
-                label: "Accuracy",
-                value: `${mockStats.listeningAccuracy}%`,
-                subtext: `${mockStats.listeningAccuracy}% listening accuracy`,
-                progressValue: mockStats.listeningAccuracy,
-                accent: "from-violet-500/18 via-fuchsia-500/8 to-transparent",
-                iconWrap: "bg-violet-500/12 text-violet-400 ring-1 ring-violet-500/20",
-                progressClass: "bg-violet-500/18 [&>div]:bg-violet-400",
-                icon: Activity,
-              },
-            ].map((stat, index) => {
-              const Icon = stat.icon;
+            {progressState.status === "empty" && (
+              <div className="col-span-full text-center py-6 text-sm text-slate-400 dark:text-slate-500 italic">
+                No progress data available yet.
+              </div>
+            )}
+            {progressState.status === "error" && (
+              <div className="col-span-full text-center py-6 text-sm text-red-500">
+                {progressState.error}
+              </div>
+            )}
+            {progressState.status === "success" && progressState.data && (() => {
+              const p = progressState.data;
+              return [
+                {
+                  label: "Study Hours",
+                  value: p.studyHours,
+                  subtext: `${p.studyHours} hours logged`,
+                  progressValue: Math.min(p.studyHours, 100),
+                  accent: "from-orange-500/18 via-amber-500/8 to-transparent",
+                  iconWrap: "bg-orange-500/12 text-orange-400 ring-1 ring-orange-500/20",
+                  progressClass: "bg-orange-500/18 [&>div]:bg-orange-400",
+                  icon: Clock3,
+                },
+                {
+                  label: "Words",
+                  value: p.wordsLearned.toLocaleString(),
+                  subtext: `${p.wordsLearned.toLocaleString()} learned words`,
+                  progressValue: Math.min(p.wordsLearned, 100),
+                  accent: "from-blue-500/18 via-sky-500/8 to-transparent",
+                  iconWrap: "bg-blue-500/12 text-blue-400 ring-1 ring-blue-500/20",
+                  progressClass: "bg-blue-500/18 [&>div]:bg-blue-400",
+                  icon: BookOpenText,
+                },
+                {
+                  label: "Grammar",
+                  value: p.grammarCompleted,
+                  subtext: `${p.grammarCompleted} completed points`,
+                  progressValue: Math.min(p.grammarCompleted, 100),
+                  accent: "from-emerald-500/18 via-green-500/8 to-transparent",
+                  iconWrap: "bg-emerald-500/12 text-emerald-400 ring-1 ring-emerald-500/20",
+                  progressClass: "bg-emerald-500/18 [&>div]:bg-emerald-400",
+                  icon: Languages,
+                },
+                {
+                  label: "Accuracy",
+                  value: `${p.listeningAccuracy}%`,
+                  subtext: `${p.listeningAccuracy}% listening accuracy`,
+                  progressValue: p.listeningAccuracy,
+                  accent: "from-violet-500/18 via-fuchsia-500/8 to-transparent",
+                  iconWrap: "bg-violet-500/12 text-violet-400 ring-1 ring-violet-500/20",
+                  progressClass: "bg-violet-500/18 [&>div]:bg-violet-400",
+                  icon: Activity,
+                },
+              ].map((stat, index) => {
+                const Icon = stat.icon;
+                return (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                    className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white/85 p-4 shadow-sm shadow-slate-200/40 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-300/30 dark:border-white/10 dark:bg-slate-900/75 dark:shadow-black/10"
+                  >
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${stat.accent} opacity-100`}
+                    />
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent dark:via-white/10" />
 
-              return (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                  className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white/85 p-4 shadow-sm shadow-slate-200/40 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-300/30 dark:border-white/10 dark:bg-slate-900/75 dark:shadow-black/10"
-                >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${stat.accent} opacity-100`}
-                  />
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent dark:via-white/10" />
+                    <div className="relative flex h-full flex-col gap-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                            {stat.label}
+                          </p>
+                          <div className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                            {stat.value}
+                          </div>
+                        </div>
 
-                  <div className="relative flex h-full flex-col gap-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-                          {stat.label}
-                        </p>
-                        <div className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                          {stat.value}
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.iconWrap}`}
+                        >
+                          <Icon className="h-4.5 w-4.5" />
                         </div>
                       </div>
 
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.iconWrap}`}
-                      >
-                        <Icon className="h-4.5 w-4.5" />
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{stat.subtext}</p>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+                          <span>Progress</span>
+                          <span>{stat.progressValue}%</span>
+                        </div>
+                        <Progress
+                          value={stat.progressValue}
+                          className={`h-1.5 ${stat.progressClass}`}
+                        />
                       </div>
                     </div>
-
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{stat.subtext}</p>
-
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
-                        <span>Progress</span>
-                        <span>{stat.progressValue}%</span>
-                      </div>
-                      <Progress
-                        value={stat.progressValue}
-                        className={`h-1.5 ${stat.progressClass}`}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+                  </motion.div>
+                );
+              });
+            })()}
           </div>
         </div>
       )}
@@ -794,51 +840,63 @@ function ProfilePage() {
       {/* ─── ACHIEVEMENTS ─── */}
       {activeTab === "achievements" && (
         <div className="grid grid-cols-3 gap-2">
-          {mockAchievements.map((ach, i) => (
-            <motion.div
-              key={ach.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.04 }}
-              className={`rounded-xl p-3 transition-all duration-200 hover:scale-[1.02] ${
-                ach.earned
-                  ? "bg-gradient-to-br from-indigo-50/90 to-pink-50/90 dark:from-indigo-500/15 dark:to-pink-500/15 border border-indigo-100/80 dark:border-indigo-500/20 shadow-sm shadow-indigo-500/10 hover:shadow-md hover:shadow-indigo-500/15"
-                  : "bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-white/60 dark:border-white/10 hover:border-white/20 dark:hover:border-white/15"
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div
-                  className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
-                    ach.earned
-                      ? "bg-gradient-to-br from-indigo-500 to-pink-500 shadow-sm shadow-indigo-500/30"
-                      : "bg-slate-100 dark:bg-slate-800"
-                  }`}
-                >
-                  {ach.earned ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-white" />
-                  ) : (
-                    <Star className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                  )}
+          {achievementsState.status === "empty" && (
+            <div className="col-span-full text-center py-8 text-sm text-slate-400 dark:text-slate-500 italic">
+              No achievements to show yet.
+            </div>
+          )}
+          {achievementsState.status === "error" && (
+            <div className="col-span-full text-center py-8 text-sm text-red-500">
+              {achievementsState.error}
+            </div>
+          )}
+          {achievementsState.status === "success" && achievementsState.data && (
+            achievementsState.data.map((ach, i) => (
+              <motion.div
+                key={ach.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.04 }}
+                className={`rounded-xl p-3 transition-all duration-200 hover:scale-[1.02] ${
+                  ach.earned
+                    ? "bg-gradient-to-br from-indigo-50/90 to-pink-50/90 dark:from-indigo-500/15 dark:to-pink-500/15 border border-indigo-100/80 dark:border-indigo-500/20 shadow-sm shadow-indigo-500/10 hover:shadow-md hover:shadow-indigo-500/15"
+                    : "bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border border-white/60 dark:border-white/10 hover:border-white/20 dark:hover:border-white/15"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div
+                    className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
+                      ach.earned
+                        ? "bg-gradient-to-br from-indigo-500 to-pink-500 shadow-sm shadow-indigo-500/30"
+                        : "bg-slate-100 dark:bg-slate-800"
+                    }`}
+                  >
+                    {ach.earned ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
+                    ) : (
+                      <Star className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                    )}
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold ${ach.earned ? "text-indigo-500 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"}`}
+                  >
+                    {Math.round(ach.progress)}%
+                  </span>
                 </div>
-                <span
-                  className={`text-[10px] font-bold ${ach.earned ? "text-indigo-500 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"}`}
-                >
-                  {Math.round(ach.progress)}%
-                </span>
-              </div>
-              <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight mb-1.5">
-                {ach.name}
-              </p>
-              <div className="h-1 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${ach.progress}%` }}
-                  transition={{ delay: 0.1 + i * 0.05, duration: 0.6 }}
-                  className={`h-full rounded-full ${ach.earned ? "bg-gradient-to-r from-indigo-400 to-pink-400" : "bg-slate-300 dark:bg-slate-600"}`}
-                />
-              </div>
-            </motion.div>
-          ))}
+                <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight mb-1.5">
+                  {ach.name}
+                </p>
+                <div className="h-1 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${ach.progress}%` }}
+                    transition={{ delay: 0.1 + i * 0.05, duration: 0.6 }}
+                    className={`h-full rounded-full ${ach.earned ? "bg-gradient-to-r from-indigo-400 to-pink-400" : "bg-slate-300 dark:bg-slate-600"}`}
+                  />
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       )}
 
