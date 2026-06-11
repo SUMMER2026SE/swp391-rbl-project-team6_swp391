@@ -95,6 +95,16 @@ export const getPendingContent = (contentType?: string): Promise<ContentApproval
   );
 
 /**
+ * Fetch approved content, optionally filtered by content type.
+ */
+export const getApprovedContent = (contentType?: string): Promise<ContentApprovalSummary[]> =>
+  api.get<ContentApprovalSummary[]>(
+    contentType
+      ? `/admin/content-approvals/approved?contentType=${encodeURIComponent(contentType)}`
+      : "/admin/content-approvals/approved",
+  );
+
+/**
  * Fetch detailed information about a specific content item pending approval.
  */
 export const getContentDetail = (
@@ -138,6 +148,15 @@ export const rejectContent = (
  */
 export const getPendingGrammar = (): Promise<ContentApprovalSummary[]> =>
   getPendingContent("GRAMMAR");
+
+/**
+ * Fetch approved grammar lessons.
+ * Uses existing backend endpoint: GET /api/admin/content-approvals/approved?contentType=GRAMMAR
+ */
+export const getApprovedGrammar = (): Promise<ContentApprovalSummary[]> =>
+  api.get<ContentApprovalSummary[]>(
+    "/admin/content-approvals/approved?contentType=GRAMMAR",
+  );
 
 /**
  * Fetch full grammar lesson details for admin review.
