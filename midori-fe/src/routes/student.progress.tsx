@@ -53,7 +53,7 @@ function ProgressPage() {
 
   // Transform weeklyStudyData from API to chart format
   const chartData = stats?.weeklyStudyData?.map((d) => ({
-    day: d.dayOfWeek.substring(0, 3),
+    day: d.day.substring(0, 3),
     vocab: d.count,
     grammar: 0,
     listening: 0,
@@ -80,7 +80,7 @@ function ProgressPage() {
   const totalMastered = stats?.masteredCount ?? 0;
   const totalCompleted = stats?.completedCount ?? 0;
   const totalFavorites = stats?.favoritesCount ?? 0;
-  const totalItems = stats?.totalItems ?? 0;
+  const progressPercent = stats?.progressPercent ?? 0;
 
   return (
     <div className="space-y-5">
@@ -93,8 +93,8 @@ function ProgressPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: "Total Items",
-            value: isLoading ? "..." : totalItems.toLocaleString(),
+            label: "Overall Progress",
+            value: isLoading ? "..." : `${progressPercent}%`,
             delta: null,
             up: true,
             icon: Sparkles,

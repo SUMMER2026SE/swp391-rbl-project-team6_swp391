@@ -82,7 +82,7 @@ export interface ProgressResponse {
 
 export interface WeeklyStudyData {
   date: string;
-  dayOfWeek: string;
+  day: string;
   count: number;
 }
 
@@ -97,6 +97,7 @@ export interface ProgressStatsResponse {
   grammarProgress: number;
   flashcardProgress: number;
   lessonProgress: number;
+  progressPercent: number;
 }
 
 export interface ProgressUpdateRequest {
