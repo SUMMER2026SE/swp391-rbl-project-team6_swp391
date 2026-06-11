@@ -59,3 +59,32 @@ export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
 }
+
+// ─── Grammar Types ─────────────────────────────────────────────────────────────────
+
+export type GrammarLevel = "N5" | "N4" | "N3" | "N2" | "N1";
+
+export type GrammarStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface GrammarResponse {
+  id: string;
+  title: string;
+  pattern: string;
+  meaning: string;
+  structure: string;
+  usage: string;
+  examples: string[];
+  level: GrammarLevel;
+  status: GrammarStatus;
+  rejectReason: string | null;
+  createdBy: string;
+  teacherName: string;
+  ownedByMe: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GrammarListParams {
+  level?: GrammarLevel;
+  search?: string;
+}

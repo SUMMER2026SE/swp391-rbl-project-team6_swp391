@@ -1,12 +1,27 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, Volume2, Bookmark, BookmarkCheck,
   CheckCircle2, X, Play, ArrowRight, ArrowLeft,
-  GraduationCap, AlertCircle, CheckCircle
+  GraduationCap, AlertCircle, CheckCircle, Loader2
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
+import {
+  studentGrammarApi,
+  type GrammarResponse,
+} from "@/lib/api/studentGrammar";
+
+const levelColors: Record<string, string> = {
+  N5: "bg-blue-500/20 text-blue-400 border-blue-400/30",
+  N4: "bg-green-500/20 text-green-400 border-green-400/30",
+  N3: "bg-yellow-500/20 text-yellow-400 border-yellow-400/30",
+  N2: "bg-orange-500/20 text-orange-400 border-orange-400/30",
+  N1: "bg-red-500/20 text-red-400 border-red-400/30",
+};
+
+type StructureStatus = "not_learned" | "learned";
 
 function speakJapanese(text: string) {
   if (!text?.trim()) return;
@@ -21,160 +36,128 @@ function speakJapanese(text: string) {
   window.speechSynthesis.speak(utterance);
 }
 
-// ─── Data ──────────────────────────────────────────────────────────────────────
+// ─── Loading Screen ─────────────────────────────────────────────────────────────
 
-interface GrammarExample {
-  japanese: string;
-  furigana: string;
-  translation: string;
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <Loader2 className="w-10 h-10 text-white animate-spin" />
+      <p className="text-white/60 text-sm font-medium">Loading grammar...</p>
+    </div>
+  );
 }
 
-interface StructureItem {
-  id: string;
-  grammarId: string;
-  title: string;
-  formation: string;
-  usage: string;
-  whenToUse: string;
-  whenNotToUse: string;
-  commonMistakes: string;
-  examples: GrammarExample[];
-  notes: string;
-  conversation?: { speaker: string; japanese: string; translation: string }[];
-}
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 
-interface GrammarItem {
-  id: string;
-  level: "N5" | "N4" | "N3" | "N2" | "N1";
-  title: string;
-  meaning: string;
-  structures: StructureItem[];
-}
-
-const GRAMMAR_DATA: GrammarItem[] = [
-  {
-    id: "g1", level: "N5", title: "〜です / だ", meaning: "to be (copula)",
-    structures: [
-      {
-        id: "s1-g1", grammarId: "g1", title: "Cấu trúc cơ bản", formation: "Noun + です / だ",
-        usage: "Dùng để khẳng định một danh từ, trạng thái hoặc sự tồn tại. だ dùng trong văn nói thông thường, です dùng khi nói lịch sự.",
-        whenToUse: "Khi giới thiệu bản thân, xác nhận danh tính, nói về nghề nghiệp, quốc tịch, trạng thái.",
-        whenNotToUse: "Không dùng だ sau tính từ (dùng い/な), không dùng khi phủ định (dùng ではありません).",
-        commonMistakes: "Dùng だ sau tính từ na để khẳng định → sai. VD: 高いです (đúng) / 高いだ (sai).",
-        examples: [
-          { japanese: "私は学生です。", furigana: "わ・た・し　は　がく・せい　です", translation: "Tôi là sinh viên." },
-          { japanese: "今日は晴れだ。", furigana: "きょう　は　は・れ　だ", translation: "Hôm nay trời nắng." },
-          { japanese: "これは本です。", furigana: "これ　は　ほ・ん　です", translation: "Đây là sách." },
-        ],
-        notes: "〜です: thể lịch sự\n〜だ: thể thông thường (văn nói)\nPhủ định: Noun + ではありません / じゃない",
-        conversation: [
-          { speaker: "A", japanese: "すみません、学生ですか。", translation: "Xin lỗi, bạn là sinh viên à?" },
-          { speaker: "B", japanese: "はい、学生です。", translation: "Vâng, tôi là sinh viên." },
-        ],
-      },
-      {
-        id: "s2-g1", grammarId: "g1", title: "Cách dùng lịch sự", formation: "Noun + です",
-        usage: "です là thể lịch sự của だ. Dùng khi nói chuyện với người lạ, trong công việc, hoặc khi cần thể hiện sự lịch sự.",
-        whenToUse: "Khi nói chuyện với người lạ, sếp, giáo viên, trong môi trường công sở.",
-        whenNotToUse: "Không dùng です khi nói chuyện thân mật với bạn bè cùng trang lứa.",
-        commonMistakes: "Dùng です quá nhiều khi nói chuyện thân mật → nghe giả tạo.",
-        examples: [
-          { japanese: "先生、学生です。", furigana: "せん・せい、がく・せい　です", translation: "Thưa thầy/cô, con là sinh viên." },
-          { japanese: "こちらは田中先生です。", furigana: "こちら　は　た・なか　せん・せい　です", translation: "Đây là Giáo sư Tanaka." },
-        ],
-        notes: "Luôn dùng です khi nói với người lớn tuổi hơn hoặc trong môi trường formal.",
-      },
-      {
-        id: "s3-g1", grammarId: "g1", title: "Phủ định", formation: "Noun + ではありません / じゃない",
-        usage: "Dùng để phủ định một danh từ. ではありません là thể lịch sự, じゃない là thể thông thường.",
-        whenToUse: "Khi muốn nói 'không phải là...' hoặc phủ định một sự thật.",
-        whenNotToUse: "Không dùng sau tính từ. Với tính từ dùng くない / ではない.",
-        commonMistakes: "Quên は trong ではありません → nói sai.",
-        examples: [
-          { japanese: "私は日本人ではありません。", furigana: "わ・た・し　は　に・ほん・じん　ではありません", translation: "Tôi không phải người Nhật." },
-          { japanese: "これは猫じゃない。", furigana: "これ　は　ね・こ　じゃない", translation: "Đây không phải mèo." },
-        ],
-        notes: "ではありません = lịch sự\nじゃない = thân mật",
-      },
-      {
-        id: "s4-g1", grammarId: "g1", title: "Quá khứ", formation: "Noun + でした / だった",
-        usage: "Dùng để nói về sự thật hoặc trạng thái trong quá khứ.",
-        whenToUse: "Khi kể về trạng thái hoặc sự thật trong quá khứ.",
-        whenNotToUse: "Dùng ました cho động từ, không dùng cho danh từ.",
-        commonMistakes: "Dùng ました sau danh từ → sai. Phải dùng でした.",
-        examples: [
-          { japanese: "子供の頃、私は学生でした。", furigana: "こ・ども　の　ころ、わ・た・し　は　がく・せい　でした", translation: "Khi còn nhỏ, tôi là sinh viên." },
-          { japanese: "前は先生だった。", furigana: "まえ　は　せん・せい　だった", translation: "Trước đây là giáo viên." },
-        ],
-        notes: "Quá khứ phủ định: ではありませんでした / じゃなかった",
-      },
-    ],
-  },
-  {
-    id: "g2", level: "N5", title: "〜があります / います", meaning: "there is / exists",
-    structures: [
-      {
-        id: "s1-g2", grammarId: "g2", title: "Tồn tại vật vô tri", formation: "Place + に + Noun + が あります",
-        usage: "Dùng あります để nói về sự tồn tại của vật vô tri (đồ vật, cây cối, tòa nhà...)",
-        whenToUse: "Khi nói 'có ... ở ...' với vật vô tri.",
-        whenNotToUse: "Không dùng あります cho người và động vật (dùng います).",
-        commonMistakes: "Dùng います cho đồ vật → sai.",
-        examples: [
-          { japanese: "机の上に本があります。", furigana: "つく・え　の　うえ　に　ほ・ん　が　あり・ます", translation: "Có một cuốn sách trên bàn." },
-          { japanese: "箱の中に何がありますか。", furigana: "はこ　の　なか　に　な・に　が　あり・ます　か", translation: "Có gì trong hộp?" },
-        ],
-        notes: "ありません = phủ định (không có)",
-      },
-      {
-        id: "s2-g2", grammarId: "g2", title: "Tồn tại sinh vật", formation: "Place + に + Noun + が います",
-        usage: "Dùng います để nói về sự tồn tại của người và động vật (có sinh khí).",
-        whenToUse: "Khi nói 'có ... ở ...' với người hoặc động vật.",
-        whenNotToUse: "Không dùng います cho đồ vật.",
-        commonMistakes: "Dùng あります cho người → sai.",
-        examples: [
-          { japanese: "部屋に猫がいます。", furigana: "へ・や　に　ね・こ　が　い・ます", translation: "Có một con mèo trong phòng." },
-          { japanese: "あそこに誰がいますか。", furigana: "あそこ　に　だ・れ　が　い・ます　か", translation: "Ai ở đằng kia?" },
-        ],
-        notes: "いません = phủ định (không có mặt)",
-      },
-    ],
-  },
-];
-
-const levelColors: Record<string, string> = {
-  N5: "bg-blue-500/20 text-blue-400 border-blue-400/30",
-  N4: "bg-green-500/20 text-green-400 border-green-400/30",
-  N3: "bg-yellow-500/20 text-yellow-400 border-yellow-400/30",
-  N2: "bg-orange-500/20 text-orange-400 border-orange-400/30",
-  N1: "bg-red-500/20 text-red-400 border-red-400/30",
-};
-
-type StructureStatus = "not_learned" | "learned";
-
-export const Route = createFileRoute("/student/grammar/$grammarId/$structureId")({ component: StructureStudyPage });
+export const Route = createFileRoute("/student/grammar/$grammarId/$structureId")({
+  component: StructureStudyPage,
+});
 
 function StructureStudyPage() {
-  const { grammarId, structureId } = Route.useParams();
-  const grammar = GRAMMAR_DATA.find(g => g.id === grammarId);
-  const allStructures = grammar?.structures ?? [];
-  const currentIndex = allStructures.findIndex(s => s.id === structureId);
-  const structure = allStructures[currentIndex];
-  const prevStructure = currentIndex > 0 ? allStructures[currentIndex - 1] : null;
-  const nextStructure = currentIndex < allStructures.length - 1 ? allStructures[currentIndex + 1] : null;
+  const { grammarId } = Route.useParams();
+  const navigate = useNavigate();
+
+  // ── API Query ─────────────────────────────────────────────────────────────
+  const { data: grammar, isLoading, isError, error } = useQuery({
+    queryKey: ["student-grammar", grammarId],
+    queryFn: () => studentGrammarApi.getGrammarById(grammarId),
+    enabled: !!grammarId,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [revealed, setRevealed] = useState(false);
   const [structureStatuses, setStructureStatuses] = useState<Record<string, StructureStatus>>({});
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
 
-  if (!grammar || !structure) {
+  const errorMessage =
+    error instanceof Error ? error.message : "Failed to load grammar. Please try again.";
+
+  // Build structure items from backend grammar
+
+  // Single "structure" page — treat grammar as the only item
+  const allStructures = grammar ? [{
+    id: grammar.id,
+    title: grammar.title,
+    formation: grammar.structure ?? grammar.pattern ?? "—",
+    usage: grammar.usage ?? "",
+    whenToUse: "—",
+    whenNotToUse: "—",
+    commonMistakes: "—",
+    examples: grammar.examples.map(ex => ({ japanese: ex, furigana: "—", translation: "—" })),
+    notes: "—",
+  }] : [];
+
+  const structureId = Route.useParams().structureId;
+  const currentIndex = allStructures.findIndex(s => s.id === structureId) >= 0
+    ? allStructures.findIndex(s => s.id === structureId)
+    : 0;
+  const structure = allStructures[currentIndex];
+  const prevStructure = currentIndex > 0 ? allStructures[currentIndex - 1] : null;
+  const nextStructure = currentIndex < allStructures.length - 1 ? allStructures[currentIndex + 1] : null;
+
+  const goNext = () => {
+    if (nextStructure) {
+      navigate({
+        to: "/student/grammar/$grammarId/$structureId",
+        params: { grammarId, structureId: nextStructure.id },
+      });
+    }
+  };
+
+  const goPrev = () => {
+    if (prevStructure) {
+      navigate({
+        to: "/student/grammar/$grammarId/$structureId",
+        params: { grammarId, structureId: prevStructure.id },
+      });
+    }
+  };
+
+  const status = structureStatuses[grammar?.id ?? ""] ?? "not_learned";
+  const isBook = bookmarked.has(grammar?.id ?? "");
+  const learnedCount = Object.values(structureStatuses).filter(s => s === "learned").length;
+  const notLearnedCount = allStructures.length - learnedCount;
+
+  const toggleLearned = () => {
+    if (!grammar) return;
+    setStructureStatuses(prev => ({
+      ...prev,
+      [grammar.id]: prev[grammar.id] === "learned" ? "not_learned" : "learned",
+    }));
+  };
+
+  const toggleBookmark = () => {
+    if (!grammar) return;
+    setBookmarked(prev => {
+      const next = new Set(prev);
+      if (next.has(grammar.id)) next.delete(grammar.id);
+      else next.add(grammar.id);
+      return next;
+    });
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Structure not found.</p>
+      <div className="min-h-screen relative flex flex-col">
+        <SakuraBg count={18} />
+        <div className="relative z-10 flex-1 flex items-center justify-center">
+          <LoadingScreen />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !grammar || !structure) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={18} />
+        <div className="relative z-10 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="text-white/60 text-sm mb-2">{errorMessage}</p>
           <Link
             to="/student/grammar/$grammarId"
-            params={{ grammarId: grammarId ?? "g1" }}
-            className="mt-4 inline-flex items-center gap-2 text-sm text-primary hover:underline"
+            params={{ grammarId: grammarId ?? "" }}
+            className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition"
           >
             <ChevronLeft className="w-4 h-4" /> Back
           </Link>
@@ -182,39 +165,6 @@ function StructureStudyPage() {
       </div>
     );
   }
-
-  const status = structureStatuses[structure.id] ?? "not_learned";
-  const isBook = bookmarked.has(structure.id);
-  const learnedCount = Object.values(structureStatuses).filter(s => s === "learned").length;
-  const notLearnedCount = allStructures.length - learnedCount;
-
-  const toggleLearned = () => {
-    setStructureStatuses(prev => ({
-      ...prev,
-      [structure.id]: prev[structure.id] === "learned" ? "not_learned" : "learned",
-    }));
-  };
-
-  const toggleBookmark = () => {
-    setBookmarked(prev => {
-      const next = new Set(prev);
-      if (next.has(structure.id)) next.delete(structure.id);
-      else next.add(structure.id);
-      return next;
-    });
-  };
-
-  const goNext = () => {
-    if (nextStructure) {
-      window.location.href = `/student/grammar/${grammar.id}/${nextStructure.id}`;
-    }
-  };
-
-  const goPrev = () => {
-    if (prevStructure) {
-      window.location.href = `/student/grammar/${grammar.id}/${prevStructure.id}`;
-    }
-  };
 
   return (
     <div className="min-h-screen relative flex flex-col">
@@ -358,7 +308,7 @@ function StructureStudyPage() {
                 </div>
               </div>
 
-              {/* Card body */}
+              {/* card body */}
               <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
                 {/* Structure title */}
                 <motion.div
@@ -415,10 +365,12 @@ function StructureStudyPage() {
                       className="w-full space-y-3 text-left"
                     >
                       {/* Usage */}
-                      <div className="px-4 py-3 rounded-2xl bg-white/10 border border-white/15">
-                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Usage</div>
-                        <div className="text-white/90 text-sm leading-relaxed">{structure.usage}</div>
-                      </div>
+                      {structure.usage && structure.usage !== "—" && (
+                        <div className="px-4 py-3 rounded-2xl bg-white/10 border border-white/15">
+                          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Usage</div>
+                          <div className="text-white/90 text-sm leading-relaxed">{structure.usage}</div>
+                        </div>
+                      )}
 
                       {/* When to use / Not to use */}
                       <div className="grid sm:grid-cols-2 gap-2">
@@ -439,7 +391,7 @@ function StructureStudyPage() {
                       </div>
 
                       {/* Common Mistakes */}
-                      {structure.commonMistakes && (
+                      {structure.commonMistakes && structure.commonMistakes !== "—" && (
                         <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-400/20">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
@@ -476,7 +428,7 @@ function StructureStudyPage() {
                       )}
 
                       {/* Notes */}
-                      {structure.notes && (
+                      {structure.notes && structure.notes !== "—" && (
                         <div className="px-4 py-3 rounded-2xl bg-sky-500/10 border border-sky-400/20">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <GraduationCap className="w-3.5 h-3.5 text-sky-400" />

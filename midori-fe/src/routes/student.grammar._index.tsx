@@ -1,39 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  Search, GraduationCap, Eye, CheckCircle2, Bookmark, BookmarkCheck,
+  Search, GraduationCap, CheckCircle2, Bookmark, BookmarkCheck,
   ChevronLeft, ChevronRight, BookOpen, X, ArrowRight,
-  Clock, Target
+  Clock, Target, Loader2, AlertCircle
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
+import {
+  studentGrammarApi,
+  type GrammarResponse,
+  type GrammarLevel,
+} from "@/lib/api/studentGrammar";
 
-// ─── Data ──────────────────────────────────────────────────────────────────────
-
-interface GrammarItem {
-  id: string;
-  level: "N5" | "N4" | "N3" | "N2" | "N1";
-  title: string;
-  meaning: string;
-  structureCount: number;
-  lastStudied?: string;
-}
-
-const GRAMMAR_DATA: GrammarItem[] = [
-  { id: "g1", level: "N5", title: "〜です / だ", meaning: "to be (copula)", structureCount: 6, lastStudied: "2 days ago" },
-  { id: "g2", level: "N5", title: "〜があります / います", meaning: "there is / exists", structureCount: 4, lastStudied: "5 days ago" },
-  { id: "g3", level: "N5", title: "〜ます / 〜ません", meaning: "polite affirmative / negative", structureCount: 5, lastStudied: "1 week ago" },
-  { id: "g4", level: "N4", title: "〜なければなりません", meaning: "must do / have to", structureCount: 4, lastStudied: "3 days ago" },
-  { id: "g5", level: "N4", title: "〜たことがあります", meaning: "have experience of doing", structureCount: 4, lastStudied: "Just now" },
-  { id: "g6", level: "N4", title: "〜たいです", meaning: "want to do", structureCount: 3 },
-  { id: "g7", level: "N3", title: "〜わけではない", meaning: "it doesn't mean that / not necessarily", structureCount: 5 },
-  { id: "g8", level: "N3", title: "〜ばかりでなく", meaning: "not only ... but also", structureCount: 4 },
-  { id: "g9", level: "N3", title: "〜そうだ (appearance)", meaning: "it seems / it looks like", structureCount: 5 },
-  { id: "g10", level: "N2", title: "〜にもかかわらず", meaning: "in spite of / despite", structureCount: 4 },
-  { id: "g11", level: "N2", title: "〜かわり (に)", meaning: "instead of / in place of", structureCount: 4 },
-  { id: "g12", level: "N1", title: "〜を余儀なくされる", meaning: "be forced to / have no choice but to", structureCount: 3 },
-  { id: "g13", level: "N1", title: "〜つつある", meaning: "in the process of (gradual change)", structureCount: 3 },
-];
+// ─── Constants ─────────────────────────────────────────────────────────────────
 
 const LEVEL_FILTERS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
 const PAGE_SIZE = 8;
@@ -106,6 +87,31 @@ function Pagination({
   );
 }
 
+// ─── Skeleton Row ─────────────────────────────────────────────────────────────
+
+function SkeletonRow() {
+  return (
+    <div className="grid grid-cols-[2fr_80px_1.5fr_120px_110px_120px_80px] gap-3 px-6 py-4 items-center animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-700" />
+        <div className="space-y-1.5">
+          <div className="h-3 w-28 bg-slate-200 dark:bg-slate-700 rounded" />
+          <div className="h-2 w-16 bg-slate-100 dark:bg-slate-600 rounded" />
+        </div>
+      </div>
+      <div className="h-5 w-8 bg-slate-200 dark:bg-slate-700 rounded-full" />
+      <div className="h-3 w-36 bg-slate-200 dark:bg-slate-700 rounded" />
+      <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-600 rounded-full" />
+      <div className="h-5 w-10 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto" />
+      <div className="h-3 w-16 bg-slate-100 dark:bg-slate-600 rounded mx-auto" />
+      <div className="flex justify-center gap-1">
+        <div className="w-8 h-8 bg-slate-100 dark:bg-slate-600 rounded-lg" />
+        <div className="w-8 h-8 bg-slate-100 dark:bg-slate-600 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/student/grammar/_index")({ component: GrammarListPage });
@@ -113,35 +119,37 @@ export const Route = createFileRoute("/student/grammar/_index")({ component: Gra
 function GrammarListPage() {
   const [levelFilter, setLevelFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [completed, setCompleted] = useState<Set<string>>(new Set(["g1"]));
-  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set(["g3"]));
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
+  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
 
-  const filtered = useMemo(() => {
-    return GRAMMAR_DATA.filter(g => {
-      const matchLevel = levelFilter === "All" || g.level === levelFilter;
-      if (!matchLevel) return false;
-      if (!search) return true;
-      const q = search.toLowerCase();
-      return (
-        g.title.toLowerCase().includes(q) ||
-        g.meaning.toLowerCase().includes(q) ||
-        g.level.toLowerCase().includes(q)
-      );
-    });
-  }, [levelFilter, search]);
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  // ── API Query ─────────────────────────────────────────────────────────────
+  const { data: grammars = [], isLoading, isError, error } = useQuery({
+    queryKey: ["student-grammars", levelFilter, debouncedSearch],
+    queryFn: () =>
+      studentGrammarApi.getGrammars({
+        level: levelFilter === "All" ? undefined : (levelFilter as GrammarLevel),
+        search: debouncedSearch || undefined,
+      }),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const totalPages = Math.ceil(grammars.length / PAGE_SIZE);
   const safePage = Math.min(page, Math.max(1, totalPages));
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const paginated = grammars.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleLevelFilter = (level: string) => {
     setLevelFilter(level);
-    setPage(1);
-  };
-
-  const handleSearch = (val: string) => {
-    setSearch(val);
     setPage(1);
   };
 
@@ -160,9 +168,12 @@ function GrammarListPage() {
 
   const totalCompleted = [...completed].length;
   const totalBookmarked = bookmarked.size;
-  const totalGrammar = filtered.length;
-  const completedCount = filtered.filter(g => completed.has(g.id)).length;
+  const totalGrammar = grammars.length;
+  const completedCount = grammars.filter(g => completed.has(g.id)).length;
   const progressPct = totalGrammar > 0 ? Math.round((completedCount / totalGrammar) * 100) : 0;
+
+  const errorMessage =
+    error instanceof Error ? error.message : "Failed to load grammars. Please try again.";
 
   return (
     <div>
@@ -176,20 +187,22 @@ function GrammarListPage() {
               Master JLPT grammar patterns from N5 to N1 with clear examples and explanations.
             </p>
           </div>
-          <div className="hidden md:flex items-center gap-3">
-            {[
-              { label: "Total", value: GRAMMAR_DATA.length, color: "text-blue-500", icon: <BookOpen className="w-4 h-4" /> },
-              { label: "Completed", value: totalCompleted, color: "text-green-500", icon: <CheckCircle2 className="w-4 h-4" /> },
-              { label: "Bookmarked", value: totalBookmarked, color: "text-yellow-500", icon: <BookmarkCheck className="w-4 h-4" /> },
-            ].map(stat => (
-              <div key={stat.label} className="text-center px-4 py-3 rounded-2xl bg-white dark:bg-slate-800 backdrop-blur-sm border border-slate-100 dark:border-slate-700 shadow-sm">
-                <div className={`text-xl font-black ${stat.color}`}>{stat.value}</div>
-                <div className="text-[10px] text-muted-foreground font-medium flex items-center justify-center gap-1 mt-0.5">
-                  {stat.icon} {stat.label}
+          {!isLoading && (
+            <div className="hidden md:flex items-center gap-3">
+              {[
+                { label: "Total", value: grammars.length, color: "text-blue-500", icon: <BookOpen className="w-4 h-4" /> },
+                { label: "Completed", value: totalCompleted, color: "text-green-500", icon: <CheckCircle2 className="w-4 h-4" /> },
+                { label: "Bookmarked", value: totalBookmarked, color: "text-yellow-500", icon: <BookmarkCheck className="w-4 h-4" /> },
+              ].map(stat => (
+                <div key={stat.label} className="text-center px-4 py-3 rounded-2xl bg-white dark:bg-slate-800 backdrop-blur-sm border border-slate-100 dark:border-slate-700 shadow-sm">
+                  <div className={`text-xl font-black ${stat.color}`}>{stat.value}</div>
+                  <div className="text-[10px] text-muted-foreground font-medium flex items-center justify-center gap-1 mt-0.5">
+                    {stat.icon} {stat.label}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Filters Row */}
@@ -199,13 +212,13 @@ function GrammarListPage() {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={search}
-                onChange={e => handleSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
                 placeholder="Search grammar patterns..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               />
               {search && (
                 <button
-                  onClick={() => handleSearch("")}
+                  onClick={() => setSearch("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
                 >
                   <X className="w-4 h-4" />
@@ -244,143 +257,174 @@ function GrammarListPage() {
 
             {/* Table Rows */}
             <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-              {paginated.length === 0 ? (
-                <div className="py-16 text-center text-sm text-muted-foreground">
-                  No grammar patterns found.
+              {/* Loading Skeletons */}
+              {isLoading && (
+                <>
+                  {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <div key={i} className="border-b border-slate-100 dark:border-slate-700/50">
+                      <SkeletonRow />
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Error State */}
+              {!isLoading && isError && (
+                <div className="py-16 text-center">
+                  <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground mb-1">Failed to load grammars</p>
+                  <p className="text-xs text-red-400">{errorMessage}</p>
                 </div>
-              ) : (
-                paginated.map((g, i) => {
-                  const isComp = completed.has(g.id);
-                  const isBook = bookmarked.has(g.id);
-                  return (
-                    <motion.div
-                      key={g.id}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="grid grid-cols-[2fr_80px_1.5fr_120px_110px_120px_80px] gap-3 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition cursor-pointer items-center"
+              )}
+
+              {/* Empty State */}
+              {!isLoading && !isError && grammars.length === 0 && (
+                <div className="py-16 text-center">
+                  <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Không có ngữ pháp phù hợp</p>
+                  {debouncedSearch && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="mt-2 text-xs text-primary hover:underline"
                     >
-                      {/* Title */}
+                      Clear search
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Data Rows */}
+              {!isLoading && !isError && paginated.map((g, i) => {
+                const isComp = completed.has(g.id);
+                const isBook = bookmarked.has(g.id);
+                return (
+                  <motion.div
+                    key={g.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="grid grid-cols-[2fr_80px_1.5fr_120px_110px_120px_80px] gap-3 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition items-center"
+                  >
+                    {/* Title */}
+                    <Link
+                      to="/student/grammar/$grammarId"
+                      params={{ grammarId: g.id }}
+                      className="flex items-center gap-3 min-w-0 hover:opacity-80 transition"
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${levelGradients[g.level]}`}>
+                        <GraduationCap className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-display font-black text-sm text-slate-800 dark:text-white truncate">{g.title}</div>
+                        <div className="text-[10px] text-muted-foreground">{g.level} JLPT</div>
+                      </div>
+                    </Link>
+
+                    {/* Level */}
+                    <div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${levelColors[g.level]}`}>
+                        {g.level}
+                      </span>
+                    </div>
+
+                    {/* Meaning */}
+                    <div className="text-sm text-muted-foreground truncate pr-2">{g.meaning}</div>
+
+                    {/* Progress */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: isComp ? "100%" : "0%" }}
+                          className={`h-full rounded-full transition-all ${isComp ? "bg-green-400" : "bg-gradient-to-r from-blue-400 to-pink-400"}`}
+                        />
+                      </div>
+                      <span className="text-[10px] font-semibold text-muted-foreground w-7 text-right">
+                        {isComp ? "100%" : "0%"}
+                      </span>
+                    </div>
+
+                    {/* Completed Status */}
+                    <div className="text-center">
+                      {isComp ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300 text-[10px] font-bold">
+                          <CheckCircle2 className="w-3 h-3" /> Yes
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-muted-foreground text-[10px] font-bold">
+                          <Clock className="w-3 h-3" /> No
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Last Studied */}
+                    <div className="text-center">
+                      <span className="text-xs text-muted-foreground">—</span>
+                    </div>
+
+                    {/* View Action */}
+                    <div className="text-center flex justify-center gap-1">
                       <Link
                         to="/student/grammar/$grammarId"
                         params={{ grammarId: g.id }}
-                        className="flex items-center gap-3 min-w-0 hover:opacity-80 transition"
+                        title="View structures"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition"
                       >
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${levelGradients[g.level]}`}>
-                          <GraduationCap className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-display font-black text-sm text-slate-800 dark:text-white truncate">{g.title}</div>
-                          <div className="text-[10px] text-muted-foreground">{g.level} JLPT</div>
-                        </div>
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
-
-                      {/* Level */}
-                      <div>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${levelColors[g.level]}`}>
-                          {g.level}
-                        </span>
-                      </div>
-
-                      {/* Meaning */}
-                      <div className="text-sm text-muted-foreground truncate pr-2">{g.meaning}</div>
-
-                      {/* Progress */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: isComp ? "100%" : "0%" }}
-                            className={`h-full rounded-full transition-all ${isComp ? "bg-green-400" : "bg-gradient-to-r from-blue-400 to-pink-400"}`}
-                          />
-                        </div>
-                        <span className="text-[10px] font-semibold text-muted-foreground w-7 text-right">
-                          {isComp ? "100%" : "0%"}
-                        </span>
-                      </div>
-
-                      {/* Completed Status */}
-                      <div className="text-center">
-                        {isComp ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300 text-[10px] font-bold">
-                            <CheckCircle2 className="w-3 h-3" /> Yes
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-muted-foreground text-[10px] font-bold">
-                            <Clock className="w-3 h-3" /> No
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Last Studied */}
-                      <div className="text-center">
-                        <span className="text-xs text-muted-foreground">
-                          {g.lastStudied ?? "—"}
-                        </span>
-                      </div>
-
-                      {/* View Action */}
-                      <div className="text-center flex justify-center gap-1">
-                        <Link
-                          to="/student/grammar/$grammarId"
-                          params={{ grammarId: g.id }}
-                          title="View structures"
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition"
-                        >
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleBookmark(g.id); }}
-                          title={isBook ? "Remove bookmark" : "Bookmark"}
-                          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
-                            isBook
-                              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-500"
-                              : "hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-slate-300 hover:text-yellow-500"
-                          }`}
-                        >
-                          {isBook
-                            ? <BookmarkCheck className="w-3.5 h-3.5 fill-yellow-400" />
-                            : <Bookmark className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              )}
+                      <button
+                        onClick={() => toggleBookmark(g.id)}
+                        title={isBook ? "Remove bookmark" : "Bookmark"}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                          isBook
+                            ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-500"
+                            : "hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-slate-300 hover:text-yellow-500"
+                        }`}
+                      >
+                        {isBook
+                          ? <BookmarkCheck className="w-3.5 h-3.5 fill-yellow-400" />
+                          : <Bookmark className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {!isLoading && !isError && totalPages > 1 && (
               <div className="px-6 pb-5">
-                <Pagination current={safePage} total={filtered.length} onPage={handlePageChange} />
+                <Pagination current={safePage} total={grammars.length} onPage={handlePageChange} />
               </div>
             )}
           </div>
 
           {/* Overall Progress Summary */}
-          <div className="mt-4 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Overall Progress</span>
+          {!isLoading && !isError && (
+            <div className="mt-4 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Overall Progress</span>
+                </div>
+                <span className="text-xs font-bold text-muted-foreground">
+                  {completedCount} / {totalGrammar} patterns mastered
+                </span>
               </div>
-              <span className="text-xs font-bold text-muted-foreground">
-                {completedCount} / {totalGrammar} patterns mastered
-              </span>
+              <div className="h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  className="h-full bg-gradient-to-r from-blue-400 to-pink-400 rounded-full"
+                />
+              </div>
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[10px] text-muted-foreground">0%</span>
+                <span className="text-[10px] font-bold text-primary">{progressPct}%</span>
+                <span className="text-[10px] text-muted-foreground">100%</span>
+              </div>
             </div>
-            <div className="h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPct}%` }}
-                className="h-full bg-gradient-to-r from-blue-400 to-pink-400 rounded-full"
-              />
-            </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-muted-foreground">0%</span>
-              <span className="text-[10px] font-bold text-primary">{progressPct}%</span>
-              <span className="text-[10px] text-muted-foreground">100%</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
