@@ -39,6 +39,27 @@ function getConvStatusBadge(status: ConvStatus): { label: string; cls: string } 
 export const Route = createFileRoute("/student/shadowing")({ component: ShadowingPage });
 
 function ShadowingPage() {
+  const isLoading = false;
+  const error: string | null = null;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p className="text-muted-foreground text-sm">Loading shadowing lessons...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+        <div className="text-red-500 mb-3 text-2xl">⚠️</div>
+        <p className="text-red-500 font-medium text-sm">Unable to load shadowing lessons.</p>
+      </div>
+    );
+  }
+
   const [selectedTopic, setSelectedTopic] = useState<ShadowingTopic | null>(null);
   const [selectedConv, setSelectedConv] = useState<ShadowingConversation | null>(null);
   const [idx, setIdx] = useState(0);
@@ -164,6 +185,11 @@ function ShadowingPage() {
           <PageHeader
             title="AI Shadowing 🎤"
             subtitle="Practice Japanese pronunciation with AI feedback"
+            action={
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
+                Demo
+              </span>
+            }
           />
 
           {/* ── PRACTICE AREA — shown when a conversation is selected ─────── */}
@@ -484,7 +510,7 @@ function ShadowingPage() {
               {filteredConvs.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground">
                   <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">No lessons found</p>
+                  <p className="text-sm font-medium">No shadowing lessons available.</p>
                   <p className="text-xs mt-1">Try adjusting your search or filters</p>
                 </div>
               ) : (
