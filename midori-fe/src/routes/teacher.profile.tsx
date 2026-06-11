@@ -603,7 +603,8 @@ function TeacherProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
-  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [isAvatarSaving, setIsAvatarSaving] = useState(false);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [certificates, setCertificates] = useState<Certificate[]>(defaultCerts);
   const [showAddCert, setShowAddCert] = useState(false);
@@ -644,7 +645,8 @@ function TeacherProfilePage() {
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(false);
-    if (!editName.trim()) { setSaveError("Display name is required."); return; }
+    setIsProfileSaving(true);
+    if (!editName.trim()) { setSaveError("Display name is required."); setIsProfileSaving(false); return; }
     try {
       const updated = await profileApi.updateMyProfile({
         displayName: editName.trim(),
@@ -668,6 +670,8 @@ function TeacherProfilePage() {
       } else {
         setSaveError("Failed to save profile.");
       }
+    } finally {
+      setIsProfileSaving(false);
     }
   };
 
@@ -675,7 +679,7 @@ function TeacherProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     setAvatarError(null);
-    setAvatarLoading(true);
+    setIsAvatarSaving(true);
     setShowAvatarMenu(false);
     try {
       const { avatarUrl } = await uploadAvatar(user.id, file);
@@ -686,14 +690,14 @@ function TeacherProfilePage() {
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Upload failed. Please try again.");
     } finally {
-      setAvatarLoading(false);
+      setIsAvatarSaving(false);
     }
   };
 
   const handleRemoveAvatar = async () => {
     if (!user) return;
     setAvatarError(null);
-    setAvatarLoading(true);
+    setIsAvatarSaving(true);
     setShowRemoveConfirm(false);
     try {
       const currentUrl = avatarPreview;
@@ -705,7 +709,7 @@ function TeacherProfilePage() {
     } catch (err: unknown) {
       setAvatarError((err as { message?: string }).message || "Failed to remove avatar.");
     } finally {
-      setAvatarLoading(false);
+      setIsAvatarSaving(false);
     }
   };
 
@@ -759,6 +763,24 @@ function TeacherProfilePage() {
     );
   }
 
+  // Empty state — profile data returned null or undefined
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3 max-w-sm">
+          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto">
+            <User className="w-6 h-6 text-slate-400" />
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">No profile data available.</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Please try refreshing the page.</p>
+          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Profile Header */}
@@ -782,15 +804,17 @@ function TeacherProfilePage() {
                     setEditPhone(profile?.phone || "");
                     setEditDateOfBirth(profile?.dateOfBirth || "");
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-white/20 text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition"
+                  disabled={isProfileSaving}
+                  className="px-3 py-1.5 rounded-lg bg-white/20 text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-3 py-1.5 rounded-lg bg-white text-purple-600 text-xs font-bold backdrop-blur-sm shadow hover:bg-white/90 transition"
+                  disabled={isProfileSaving}
+                  className="px-3 py-1.5 rounded-lg bg-white text-purple-600 text-xs font-bold backdrop-blur-sm shadow hover:bg-white/90 transition disabled:opacity-60 flex items-center gap-1"
                 >
-                  Save Changes
+                  {isProfileSaving ? <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</> : "Save Changes"}
                 </button>
               </>
             ) : (
@@ -832,10 +856,10 @@ function TeacherProfilePage() {
                   <div className="relative">
                     <button
                       onClick={() => setShowAvatarMenu(!showAvatarMenu)}
-                      disabled={avatarLoading}
+                      disabled={isAvatarSaving}
                       className="w-7 h-7 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-600 transition disabled:opacity-50"
                     >
-                      {avatarLoading ? (
+                      {isAvatarSaving ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-slate-300" />
                       ) : (
                         <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
@@ -853,23 +877,23 @@ function TeacherProfilePage() {
                           className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 min-w-[180px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
                         >
                           <label className="flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition">
-                            {avatarLoading ? (
+                            {isAvatarSaving ? (
                               <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin text-indigo-500" />
                             ) : (
                               <Upload className="w-4 h-4 flex-shrink-0 text-indigo-500" />
                             )}
-                            <span className="font-medium">{avatarLoading ? "Uploading..." : "Change Avatar"}</span>
+                            <span className="font-medium">{isAvatarSaving ? "Uploading..." : "Change Avatar"}</span>
                             <input
                               type="file"
                               accept="image/jpeg,image/png,image/webp"
-                              disabled={avatarLoading}
+                              disabled={isAvatarSaving}
                               onChange={handleAvatarChange}
                               className="hidden"
                             />
                           </label>
                           {hasCustomAvatar && (
                             <button
-                              disabled={avatarLoading}
+                              disabled={isAvatarSaving}
                               onClick={() => { setShowRemoveConfirm(true); setShowAvatarMenu(false); }}
                               className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition disabled:opacity-50"
                             >
@@ -1050,10 +1074,10 @@ function TeacherProfilePage() {
                 </button>
                 <button
                   onClick={handleRemoveAvatar}
-                  disabled={avatarLoading}
+                  disabled={isAvatarSaving}
                   className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1"
                 >
-                  {avatarLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Removing...</> : "Remove"}
+                  {isAvatarSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Removing...</> : "Remove"}
                 </button>
               </div>
             </motion.div>
