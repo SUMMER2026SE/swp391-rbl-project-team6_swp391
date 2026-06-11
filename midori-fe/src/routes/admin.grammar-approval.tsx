@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {
   getPendingGrammar,
+  getApprovedGrammar,
   getGrammarApprovalDetail,
   approveGrammar,
   rejectGrammar,
@@ -606,9 +607,12 @@ function DetailDrawer({
 type TabType = "pending" | "approved";
 
 function GrammarApprovalPage() {
-  const [items, setItems] = useState<ContentApprovalSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [pendingItems, setPendingItems] = useState<ContentApprovalSummary[]>([]);
+  const [approvedItems, setApprovedItems] = useState<ContentApprovalSummary[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [approvedLoading, setApprovedLoading] = useState(true);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+  const [approvedError, setApprovedError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
 
@@ -633,13 +637,15 @@ function GrammarApprovalPage() {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
 
-  // Filter items by status based on active tab
+  // Use current tab data directly from dedicated state
+  const items = activeTab === "pending" ? pendingItems : approvedItems;
+  const loading = activeTab === "pending" ? pendingLoading : approvedLoading;
+  const error = activeTab === "pending" ? pendingError : approvedError;
+
+  // Displayed items based on active tab and dedicated list data
   const displayedItems = useMemo(() => {
-    if (activeTab === "pending") {
-      return items.filter(item => item.status?.toUpperCase() === "PENDING");
-    }
-    return items.filter(item => item.status?.toUpperCase() === "APPROVED");
-  }, [items, activeTab]);
+    return items;
+  }, [items]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -647,37 +653,52 @@ function GrammarApprovalPage() {
     setStatsError(null);
     try {
       const data = await getGrammarApprovalStats();
-      console.log("[Grammar Approval] Stats fetched:", data);
       setStats(data);
     } catch (err) {
-      console.error("[Grammar Approval] Stats error:", err);
       setStatsError(err instanceof ApiError ? err.message : "Failed to load stats");
     } finally {
       setStatsLoading(false);
     }
   }, []);
 
-  // Fetch all grammar approvals
-  const fetchAllGrammar = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    setError(null);
+  // Fetch pending grammar approvals
+  const fetchPendingGrammar = useCallback(async (showLoading = true) => {
+    if (showLoading) setPendingLoading(true);
+    setPendingError(null);
     try {
       const data = await getPendingGrammar();
-      setItems(data);
+      setPendingItems(data);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Failed to load grammar approvals.";
-      setError(msg);
-      setItems([]);
+      const msg = err instanceof ApiError ? err.message : "Failed to load pending grammar approvals.";
+      setPendingError(msg);
+      setPendingItems([]);
     } finally {
-      if (showLoading) setLoading(false);
+      if (showLoading) setPendingLoading(false);
+    }
+  }, []);
+
+  // Fetch approved grammar approvals
+  const fetchApprovedGrammar = useCallback(async (showLoading = true) => {
+    if (showLoading) setApprovedLoading(true);
+    setApprovedError(null);
+    try {
+      const data = await getApprovedGrammar();
+      setApprovedItems(data);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to load approved grammar approvals.";
+      setApprovedError(msg);
+      setApprovedItems([]);
+    } finally {
+      if (showLoading) setApprovedLoading(false);
     }
   }, []);
 
   // Initial load
   useEffect(() => {
     fetchStats();
-    fetchAllGrammar();
-  }, [fetchStats, fetchAllGrammar]);
+    fetchPendingGrammar();
+    fetchApprovedGrammar();
+  }, [fetchStats, fetchPendingGrammar, fetchApprovedGrammar]);
 
   // Fetch detail
   const fetchDetail = useCallback(async (item: ContentApprovalSummary) => {
@@ -685,12 +706,9 @@ function GrammarApprovalPage() {
     setDetailError(null);
     setDetail(null);
     try {
-      console.log("[Grammar Approval] Fetching detail for grammar ID:", item.contentId, item);
       const data = await getGrammarApprovalDetail(item.contentId);
-      console.log("[Grammar Approval] Detail response:", data);
       setDetail(data);
     } catch (err) {
-      console.error("[Grammar Approval] Error fetching detail:", err);
       const msg = err instanceof ApiError ? err.message : "Failed to load grammar details.";
       setDetailError(msg);
     } finally {
@@ -728,7 +746,7 @@ function GrammarApprovalPage() {
         showToast(`"${item.title}" has been approved.`, "success");
         setApproveTarget(null);
         if (viewingItem?.contentId === item.contentId) handleCloseDetail();
-        await Promise.all([fetchAllGrammar(false), fetchStats()]);
+        await Promise.all([fetchPendingGrammar(false), fetchApprovedGrammar(false), fetchStats()]);
       } catch (err) {
         const msg = err instanceof ApiError ? err.message : "Failed to approve grammar.";
         showToast(msg, "error");
@@ -736,7 +754,7 @@ function GrammarApprovalPage() {
         setApprovingId(null);
       }
     },
-    [showToast, viewingItem, handleCloseDetail, fetchAllGrammar, fetchStats],
+    [showToast, viewingItem, handleCloseDetail, fetchPendingGrammar, fetchApprovedGrammar, fetchStats],
   );
 
   // Handle reject
@@ -748,7 +766,7 @@ function GrammarApprovalPage() {
         showToast(`"${item.title}" has been rejected.`, "success");
         setRejectTarget(null);
         if (viewingItem?.contentId === item.contentId) handleCloseDetail();
-        await Promise.all([fetchAllGrammar(false), fetchStats()]);
+        await Promise.all([fetchPendingGrammar(false), fetchApprovedGrammar(false), fetchStats()]);
       } catch (err) {
         const msg = err instanceof ApiError ? err.message : "Failed to reject grammar.";
         showToast(msg, "error");
@@ -756,14 +774,15 @@ function GrammarApprovalPage() {
         setRejectingId(null);
       }
     },
-    [showToast, viewingItem, handleCloseDetail, fetchAllGrammar, fetchStats],
+    [showToast, viewingItem, handleCloseDetail, fetchPendingGrammar, fetchApprovedGrammar, fetchStats],
   );
 
   // Refresh handler
   const handleRefresh = useCallback(() => {
     fetchStats();
-    fetchAllGrammar(true);
-  }, [fetchStats, fetchAllGrammar]);
+    fetchPendingGrammar(true);
+    fetchApprovedGrammar(true);
+  }, [fetchStats, fetchPendingGrammar, fetchApprovedGrammar]);
 
   // Get stats values — safe numbers with fallback 0
   const pendingReviewCount = stats?.pendingReview ?? 0;
@@ -872,7 +891,7 @@ function GrammarApprovalPage() {
             <XCircle className="w-10 h-10 text-[var(--status-rejected)]/60" />
             <p className="text-sm text-[var(--status-rejected)]">{error}</p>
             <button
-              onClick={() => fetchAllGrammar(true)}
+              onClick={handleRefresh}
               className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition"
             >
               Try Again
