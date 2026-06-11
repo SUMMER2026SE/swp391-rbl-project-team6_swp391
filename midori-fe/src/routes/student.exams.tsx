@@ -882,6 +882,27 @@ function ExamReview({
 export const Route = createFileRoute("/student/exams")({ component: ExamsPage });
 
 function ExamsPage() {
+  const isLoading = false;
+  const error: string | null = null;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p className="text-muted-foreground text-sm">Loading exams...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+        <div className="text-red-500 mb-3 text-2xl">⚠️</div>
+        <p className="text-red-500 font-medium text-sm">Unable to load exams.</p>
+      </div>
+    );
+  }
+
   const [phase, setPhase] = useState<ExamPhase>("list");
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
@@ -1141,11 +1162,18 @@ function ExamsPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-display font-black">Exams</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Practice with JLPT-aligned quizzes and track your progress.
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-display font-black">Exams</h1>
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
+              Demo
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Practice with JLPT-aligned quizzes and track your progress.
+          </p>
+        </div>
       </div>
 
       {/* Stats */}
@@ -1287,7 +1315,7 @@ function ExamsPage() {
       {filteredExams.length === 0 ? (
         <div className="text-center py-16">
           <Target className="w-10 h-10 mx-auto text-muted-foreground/20 mb-3" />
-          <p className="text-muted-foreground font-medium text-sm">No exams found</p>
+          <p className="text-muted-foreground font-medium text-sm">No exams available.</p>
         </div>
       ) : (
         <>
