@@ -213,10 +213,12 @@ export const getGrammarApprovalStats = async (): Promise<GrammarApprovalStatsRes
   console.log("[Grammar Approval] Stats response:", raw);
 
   // Normalize: ensure all fields are numbers with 0 fallback
+  const pendingReview = Number(raw.pendingReview ?? 0);
+  const approved = Number(raw.approved ?? 0);
   return {
-    pendingReview: Number(raw.pendingReview ?? 0),
-    totalGrammar: Number(raw.totalGrammar ?? 0),
-    approved: Number(raw.approved ?? 0),
+    pendingReview,
+    totalGrammar: pendingReview + approved,
+    approved,
     rejected: Number(raw.rejected ?? 0),
     draft: Number(raw.draft ?? 0),
   };
