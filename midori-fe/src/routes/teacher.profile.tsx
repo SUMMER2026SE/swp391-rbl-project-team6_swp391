@@ -35,6 +35,7 @@ const teacherProfile = {
   lessons: 87,
 };
 
+// TODO(PROF-02): Replace sample certificates with GET /api/teacher/certificates
 const defaultCerts: Certificate[] = [
   { id: "1", name: "JLPT N1 Certified", year: "2015" },
   { id: "2", name: "Japanese Teaching (Fukuoka)", year: "2017" },
@@ -1014,7 +1015,11 @@ function TeacherProfilePage() {
         className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700"
       >
         <h3 className="font-display font-bold text-base mb-4 flex items-center gap-2">
-          <Award className="w-4 h-4 text-amber-400" /> Certificates
+          <Award className="w-4 h-4 text-amber-400" />
+          Sample Certificates
+          <span className="ml-0.5 inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-semibold">
+            Demo
+          </span>
         </h3>
         <div className="space-y-2.5">
           {certificates.map(cert => (
