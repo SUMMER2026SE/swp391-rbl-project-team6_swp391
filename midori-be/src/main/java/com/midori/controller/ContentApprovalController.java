@@ -4,6 +4,7 @@ import com.midori.common.ApiResponse;
 import com.midori.dto.approval.ContentApprovalDetailResponse;
 import com.midori.dto.approval.ContentApprovalSummaryResponse;
 import com.midori.dto.approval.ContentRejectRequest;
+import com.midori.dto.approval.GrammarApprovalStatsResponse;
 import com.midori.service.ContentApprovalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,19 @@ public class ContentApprovalController {
             @RequestParam(required = false) String contentType) {
         List<ContentApprovalSummaryResponse> pending = contentApprovalService.listPendingContent(contentType);
         return ResponseEntity.ok(ApiResponse.success(pending));
+    }
+
+    @GetMapping("/approved")
+    public ResponseEntity<ApiResponse<List<ContentApprovalSummaryResponse>>> listApprovedContent(
+            @RequestParam(required = false) String contentType) {
+        List<ContentApprovalSummaryResponse> approved = contentApprovalService.listApprovedContent(contentType);
+        return ResponseEntity.ok(ApiResponse.success(approved));
+    }
+
+    @GetMapping("/grammar-statistics")
+    public ResponseEntity<ApiResponse<GrammarApprovalStatsResponse>> getGrammarApprovalStats() {
+        GrammarApprovalStatsResponse stats = contentApprovalService.getGrammarApprovalStats();
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
     @GetMapping("/{contentType}/{contentId}")

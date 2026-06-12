@@ -127,6 +127,9 @@ public class FlashcardServiceImpl implements FlashcardService {
             throw new AccessDeniedException("You can only view your own flashcard sets");
         }
 
+        System.out.println("[DEBUG] getFlashcardSetForManagement - setId: " + setId);
+        System.out.println("[DEBUG] getFlashcardSetForManagement - cards count: " + (set.getCards() != null ? set.getCards().size() : "null"));
+
         return toFlashcardSetDetailResponse(set, currentUserId);
     }
 
@@ -150,6 +153,9 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public FlashcardCardResponse addCard(UUID setId, FlashcardCardCreateRequest request, UUID currentUserId) {
+        System.out.println("[DEBUG] addCard - setId: " + setId);
+        System.out.println("[DEBUG] addCard - request: frontText=" + request.getFrontText() + ", backText=" + request.getBackText());
+
         FlashcardSet set = flashcardSetRepository.findByIdWithTeacher(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("FlashcardSet", "id", setId));
 
@@ -159,6 +165,7 @@ public class FlashcardServiceImpl implements FlashcardService {
         if (nextOrderIndex == null) {
             long count = flashcardCardRepository.countByFlashcardSetId(setId);
             nextOrderIndex = (int) count;
+            System.out.println("[DEBUG] addCard - nextOrderIndex: " + nextOrderIndex);
         }
 
         FlashcardCard card = FlashcardCard.builder()
@@ -171,6 +178,7 @@ public class FlashcardServiceImpl implements FlashcardService {
                 .build();
 
         card = flashcardCardRepository.save(card);
+        System.out.println("[DEBUG] addCard - saved card id: " + card.getId());
         return toFlashcardCardResponse(card);
     }
 
@@ -257,9 +265,12 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     private FlashcardSetDetailResponse toFlashcardSetDetailResponse(FlashcardSet set, UUID currentUserId) {
         boolean ownedByMe = isOwner(set, currentUserId);
-        List<FlashcardCardResponse> cards = set.getCards().stream()
-                .map(this::toFlashcardCardResponse)
-                .collect(Collectors.toList());
+        List<FlashcardCardResponse> cards = set.getCards() != null
+                ? set.getCards().stream()
+                    .map(this::toFlashcardCardResponse)
+                    .collect(Collectors.toList())
+                : List.of();
+        System.out.println("[DEBUG] toFlashcardSetDetailResponse - cards.size(): " + cards.size());
         return FlashcardSetDetailResponse.builder()
                 .id(set.getId())
                 .title(set.getTitle())

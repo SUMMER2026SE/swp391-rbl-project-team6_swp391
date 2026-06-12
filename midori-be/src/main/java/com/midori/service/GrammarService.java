@@ -2,6 +2,7 @@ package com.midori.service;
 
 import com.midori.dto.grammar.GrammarCreateRequest;
 import com.midori.dto.grammar.GrammarResponse;
+import com.midori.dto.grammar.GrammarStatsResponse;
 import com.midori.dto.grammar.GrammarUpdateRequest;
 
 import java.util.List;
@@ -17,11 +18,13 @@ public interface GrammarService {
 
     void deleteGrammar(UUID grammarId, UUID currentUserId);
 
-    List<GrammarResponse> listGrammarsForManagement(UUID currentUserId, String level, String search);
+    List<GrammarResponse> listGrammarsForManagement(UUID currentUserId, String level, String search, String status);
 
     GrammarResponse getGrammarForManagement(UUID grammarId, UUID currentUserId);
 
     GrammarResponse submitGrammar(UUID grammarId, UUID currentUserId);
+
+    GrammarStatsResponse getGrammarStats(UUID grammarId, UUID currentUserId);
 
     // ===== Student =====
 

@@ -7,8 +7,8 @@ import { Logo } from "./logo";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Layers, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
-  Users, ShieldCheck, Settings, BookMarked, Megaphone,   ChevronRight, Menu,
-  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft
+  Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
+  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -49,8 +49,8 @@ const adminNav: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck },
+  { to: "/admin/grammar-approval", label: "Grammar Approval", icon: GrammarIcon },
   { to: "/admin/exams", label: "Exam Approval", icon: ClipboardCheck },
-  { to: "/admin/moderation", label: "Content Moderation", icon: BookMarked },
   { to: "/admin/analytics", label: "Analytics", icon: LineChart },
   { to: "/admin/notifications", label: "Notifications", icon: Megaphone },
   { to: "/admin/settings", label: "System Settings", icon: Settings },

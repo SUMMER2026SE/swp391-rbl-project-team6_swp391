@@ -3,6 +3,7 @@ package com.midori.controller;
 import com.midori.common.ApiResponse;
 import com.midori.dto.grammar.GrammarCreateRequest;
 import com.midori.dto.grammar.GrammarResponse;
+import com.midori.dto.grammar.GrammarStatsResponse;
 import com.midori.dto.grammar.GrammarUpdateRequest;
 import com.midori.security.CustomUserDetails;
 import com.midori.service.GrammarService;
@@ -29,8 +30,9 @@ public class GrammarTeacherController {
     public ResponseEntity<ApiResponse<List<GrammarResponse>>> listGrammars(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) String level,
-            @RequestParam(required = false) String search) {
-        List<GrammarResponse> grammars = grammarService.listGrammarsForManagement(userDetails.getId(), level, search);
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status) {
+        List<GrammarResponse> grammars = grammarService.listGrammarsForManagement(userDetails.getId(), level, search, status);
         return ResponseEntity.ok(ApiResponse.success(grammars));
     }
 
@@ -75,5 +77,13 @@ public class GrammarTeacherController {
             @PathVariable UUID grammarId) {
         GrammarResponse grammar = grammarService.submitGrammar(grammarId, userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success("Grammar submitted for review", grammar));
+    }
+
+    @GetMapping("/{grammarId}/stats")
+    public ResponseEntity<ApiResponse<GrammarStatsResponse>> getGrammarStats(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID grammarId) {
+        GrammarStatsResponse stats = grammarService.getGrammarStats(grammarId, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 }

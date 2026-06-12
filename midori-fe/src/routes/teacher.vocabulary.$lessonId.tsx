@@ -14,6 +14,7 @@ import {
   type VocabularyWordUpdateRequest,
 } from "@/lib/api/teacherVocabulary";
 import { ApiError } from "@/lib/api/client";
+import { useAuth } from "@/lib/auth";
 
 const JLPT_LEVELS = ["N5", "N4", "N3", "N2", "N1"];
 const TOPICS = ["General", "Nature", "Life", "Work", "Social", "Emotions", "Travel", "Food", "Health", "Technology", "Education", "Business", "Culture", "Sports", "Art", "Science", "Politics", "Entertainment"];
@@ -229,6 +230,7 @@ function WordModal({ title, word, onChange, onSave, onClose, saveLabel, saving, 
 function VocabularyLessonDetailPage() {
   const params = Route.useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [lesson, setLesson] = useState<VocabularyLessonDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -290,6 +292,9 @@ function VocabularyLessonDetailPage() {
   useEffect(() => {
     if (editingWord) setEditForm(editingWord);
   }, [editingWord]);
+
+  // Check if current user owns this lesson
+  const isOwner = lesson?.ownedByMe === true;
 
   const levelBadge = (l: string) => {
     const map: Record<string, string> = {
@@ -449,12 +454,14 @@ function VocabularyLessonDetailPage() {
           <button disabled className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold transition-all shadow-sm opacity-50 cursor-not-allowed" title="Coming soon">
             <Download className="w-4 h-4" /> Export
           </button>
-          <button
-            onClick={() => setAddNew(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition active:scale-95"
-          >
-            <Plus className="w-4 h-4" /> Add word
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => setAddNew(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition active:scale-95"
+            >
+              <Plus className="w-4 h-4" /> Add word
+            </button>
+          )}
         </div>
       </div>
 
@@ -526,12 +533,18 @@ function VocabularyLessonDetailPage() {
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
           <p className="text-muted-foreground font-semibold text-base mb-1">No data available.</p>
-          <p className="text-sm text-muted-foreground/60 mb-5">Click "Add word" to get started.</p>
-          <button
-            onClick={() => setAddNew(true)}
-            className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition">
-            <Plus className="w-4 h-4 inline mr-1" /> Add your first word
-          </button>
+          {isOwner ? (
+            <>
+              <p className="text-sm text-muted-foreground/60 mb-5">Click "Add word" to get started.</p>
+              <button
+                onClick={() => setAddNew(true)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition">
+                <Plus className="w-4 h-4 inline mr-1" /> Add your first word
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground/60">This lesson has no vocabulary words.</p>
+          )}
         </div>
       )}
 
@@ -615,20 +628,24 @@ function VocabularyLessonDetailPage() {
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => { setEditForm(w); setEditingWord(w); setEditError(null); }}
-                    title="Edit"
-                    className="w-8 h-8 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-500 hover:text-blue-600 transition"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteWord(w)}
-                    title="Delete"
-                    className="w-8 h-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {isOwner && (
+                    <>
+                      <button
+                        onClick={() => { setEditForm(w); setEditingWord(w); setEditError(null); }}
+                        title="Edit"
+                        className="w-8 h-8 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-500 hover:text-blue-600 transition"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteWord(w)}
+                        title="Delete"
+                        className="w-8 h-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -738,18 +755,29 @@ function VocabularyLessonDetailPage() {
               )}
 
               <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => { setViewWord(null); setEditForm(viewWord); setEditingWord(viewWord); setEditError(null); }}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-600 transition"
-                >
-                  <Edit3 className="w-4 h-4" /> Edit word
-                </button>
-                <button
-                  onClick={() => setViewWord(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                >
-                  Close
-                </button>
+                {isOwner ? (
+                  <>
+                    <button
+                      onClick={() => { setViewWord(null); setEditForm(viewWord); setEditingWord(viewWord); setEditError(null); }}
+                      className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-600 transition"
+                    >
+                      <Edit3 className="w-4 h-4" /> Edit word
+                    </button>
+                    <button
+                      onClick={() => setViewWord(null)}
+                      className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                    >
+                      Close
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setViewWord(null)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                  >
+                    Close
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>

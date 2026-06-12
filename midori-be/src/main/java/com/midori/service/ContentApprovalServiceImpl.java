@@ -3,6 +3,7 @@ package com.midori.service;
 import com.midori.dto.approval.ContentApprovalDetailResponse;
 import com.midori.dto.approval.ContentApprovalSummaryResponse;
 import com.midori.dto.approval.ContentRejectRequest;
+import com.midori.dto.approval.GrammarApprovalStatsResponse;
 import com.midori.dto.flashcard.FlashcardCardResponse;
 import com.midori.entity.*;
 import com.midori.exception.BadRequestException;
@@ -12,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -26,27 +27,19 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
     private final FlashcardSetRepository flashcardSetRepository;
     private final FlashcardCardRepository flashcardCardRepository;
 
-    // ============================================================
-    // Helpers
-    // ============================================================
-
     private void validateContentType(String contentType) {
         if (contentType == null || contentType.isBlank()) {
             throw new BadRequestException("Content type is required");
         }
         String upper = contentType.toUpperCase().trim();
         if (!upper.equals("GRAMMAR") && !upper.equals("FLASHCARD")) {
-            throw new BadRequestException("Content type must be GRAMMAR or FLASHCARD. VOCABULARY approval requires additional setup.");
+            throw new BadRequestException("Content type must be GRAMMAR or FLASHCARD.");
         }
     }
 
     private String normalizeContentType(String contentType) {
         return contentType.toUpperCase().trim();
     }
-
-    // ============================================================
-    // List Pending
-    // ============================================================
 
     @Override
     @Transactional(readOnly = true)
@@ -60,7 +53,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 return listPendingFlashcardSets();
             }
         }
-        List<ContentApprovalSummaryResponse> result = new java.util.ArrayList<>();
+        List<ContentApprovalSummaryResponse> result = new ArrayList<>();
         result.addAll(listPendingGrammars());
         result.addAll(listPendingFlashcardSets());
         return result;
@@ -78,9 +71,35 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 .collect(Collectors.toList());
     }
 
-    // ============================================================
-    // Get Detail
-    // ============================================================
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContentApprovalSummaryResponse> listApprovedContent(String contentType) {
+        if (contentType != null && !contentType.isBlank()) {
+            validateContentType(contentType);
+            String normalized = normalizeContentType(contentType);
+            if ("GRAMMAR".equals(normalized)) {
+                return listApprovedGrammars();
+            } else if ("FLASHCARD".equals(normalized)) {
+                return listApprovedFlashcardSets();
+            }
+        }
+        List<ContentApprovalSummaryResponse> result = new ArrayList<>();
+        result.addAll(listApprovedGrammars());
+        result.addAll(listApprovedFlashcardSets());
+        return result;
+    }
+
+    private List<ContentApprovalSummaryResponse> listApprovedGrammars() {
+        return grammarRepository.findAllByStatusWithCreator(GrammarStatus.APPROVED).stream()
+                .map(this::toGrammarSummary)
+                .collect(Collectors.toList());
+    }
+
+    private List<ContentApprovalSummaryResponse> listApprovedFlashcardSets() {
+        return flashcardSetRepository.findAllByStatusWithTeacher(FlashcardSetStatus.APPROVED).stream()
+                .map(this::toFlashcardSetSummary)
+                .collect(Collectors.toList());
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -98,9 +117,9 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         Grammar grammar = grammarRepository.findByIdWithCreator(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grammar", "id", contentId));
 
-        if (grammar.getStatus() != GrammarStatus.PENDING) {
-            throw new ResourceNotFoundException("Grammar", "id", contentId);
-        }
+        // Allow viewing grammar details for any status (PENDING, APPROVED, REJECTED, DRAFT)
+        // Admin needs to see details regardless of current status
+        // (e.g., to review approved content or understand rejection reasons)
 
         return ContentApprovalDetailResponse.builder()
                 .contentType("GRAMMAR")
@@ -113,9 +132,8 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         FlashcardSet set = flashcardSetRepository.findByIdWithTeacher(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("FlashcardSet", "id", contentId));
 
-        if (set.getStatus() != FlashcardSetStatus.PENDING) {
-            throw new ResourceNotFoundException("FlashcardSet", "id", contentId);
-        }
+        // Allow viewing flashcard details for any status (PENDING, APPROVED, REJECTED, DRAFT)
+        // Admin needs to see details regardless of current status
 
         return ContentApprovalDetailResponse.builder()
                 .contentType("FLASHCARD")
@@ -123,10 +141,6 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 .flashcard(toFlashcardDetailContent(set))
                 .build();
     }
-
-    // ============================================================
-    // Approve
-    // ============================================================
 
     @Override
     public ContentApprovalSummaryResponse approveContent(String contentType, UUID contentId) {
@@ -167,10 +181,6 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         return toFlashcardSetSummary(set);
     }
 
-    // ============================================================
-    // Reject
-    // ============================================================
-
     @Override
     public ContentApprovalSummaryResponse rejectContent(String contentType, UUID contentId, ContentRejectRequest request) {
         validateContentType(contentType);
@@ -209,10 +219,6 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         set = flashcardSetRepository.save(set);
         return toFlashcardSetSummary(set);
     }
-
-    // ============================================================
-    // Mapper Methods
-    // ============================================================
 
     private ContentApprovalSummaryResponse toGrammarSummary(Grammar grammar) {
         return ContentApprovalSummaryResponse.builder()
@@ -316,5 +322,23 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GrammarApprovalStatsResponse getGrammarApprovalStats() {
+        long pendingCount = grammarRepository.countByStatus(GrammarStatus.PENDING);
+        long approvedCount = grammarRepository.countByStatus(GrammarStatus.APPROVED);
+        long rejectedCount = grammarRepository.countByStatus(GrammarStatus.REJECTED);
+        long draftCount = grammarRepository.countByStatus(GrammarStatus.DRAFT);
+        long totalCount = pendingCount + approvedCount;
+
+        return GrammarApprovalStatsResponse.builder()
+                .pendingReview(pendingCount)
+                .approved(approvedCount)
+                .rejected(rejectedCount)
+                .draft(draftCount)
+                .totalGrammar(totalCount)
+                .build();
     }
 }

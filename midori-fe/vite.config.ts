@@ -12,4 +12,8 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  server: {
+    port: 8081,
+    strictPort: true,
+  },
 });

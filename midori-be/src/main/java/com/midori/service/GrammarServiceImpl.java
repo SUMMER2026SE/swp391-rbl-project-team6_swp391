@@ -2,7 +2,9 @@ package com.midori.service;
 
 import com.midori.dto.grammar.GrammarCreateRequest;
 import com.midori.dto.grammar.GrammarResponse;
+import com.midori.dto.grammar.GrammarStatsResponse;
 import com.midori.dto.grammar.GrammarUpdateRequest;
+import com.midori.entity.ContentType;
 import com.midori.entity.Grammar;
 import com.midori.entity.GrammarLevel;
 import com.midori.entity.GrammarStatus;
@@ -11,6 +13,7 @@ import com.midori.exception.AccessDeniedException;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.GrammarRepository;
+import com.midori.repository.UserLearningProgressRepository;
 import com.midori.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class GrammarServiceImpl implements GrammarService {
 
     private final GrammarRepository grammarRepository;
     private final UserRepository userRepository;
+    private final UserLearningProgressRepository progressRepository;
 
     // ============================================================
     // Ownership Check Helper
@@ -100,12 +104,30 @@ public class GrammarServiceImpl implements GrammarService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<GrammarResponse> listGrammarsForManagement(UUID currentUserId, String level, String search) {
+    public List<GrammarResponse> listGrammarsForManagement(UUID currentUserId, String level, String search, String status) {
         List<Grammar> grammars;
 
-        if (search != null && !search.isBlank()) {
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasLevel = level != null && !level.isBlank();
+        boolean hasStatus = status != null && !status.isBlank();
+
+        if (hasSearch && hasStatus) {
+            GrammarStatus parsedStatus = parseStatus(status);
+            grammars = grammarRepository.searchByCreatorAndStatusWithCreator(currentUserId, parsedStatus, search.trim());
+        } else if (hasSearch && hasLevel) {
+            GrammarLevel parsedLevel = parseLevel(level);
             grammars = grammarRepository.searchByCreatorWithCreator(currentUserId, search.trim());
-        } else if (level != null && !level.isBlank()) {
+            grammars = grammars.stream().filter(g -> g.getLevel() == parsedLevel).collect(Collectors.toList());
+        } else if (hasSearch) {
+            grammars = grammarRepository.searchByCreatorWithCreator(currentUserId, search.trim());
+        } else if (hasStatus && hasLevel) {
+            GrammarStatus parsedStatus = parseStatus(status);
+            GrammarLevel parsedLevel = parseLevel(level);
+            grammars = grammarRepository.findAllByCreatorIdAndStatusAndLevelWithCreator(currentUserId, parsedStatus, parsedLevel);
+        } else if (hasStatus) {
+            GrammarStatus parsedStatus = parseStatus(status);
+            grammars = grammarRepository.findAllByCreatorIdAndStatusWithCreator(currentUserId, parsedStatus);
+        } else if (hasLevel) {
             GrammarLevel parsedLevel = parseLevel(level);
             grammars = grammarRepository.findAllByCreatorIdAndLevelWithCreator(currentUserId, parsedLevel);
         } else {
@@ -146,6 +168,27 @@ public class GrammarServiceImpl implements GrammarService {
         grammar.setRejectReason(null);
         grammar = grammarRepository.save(grammar);
         return toGrammarResponse(grammar, currentUserId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GrammarStatsResponse getGrammarStats(UUID grammarId, UUID currentUserId) {
+        Grammar grammar = grammarRepository.findByIdWithCreator(grammarId)
+                .orElseThrow(() -> new ResourceNotFoundException("Grammar", "id", grammarId));
+
+        if (!isOwner(grammar, currentUserId)) {
+            throw new AccessDeniedException("You can only view stats for your own grammar entries");
+        }
+
+        long completions = progressRepository.countByContentIdAndContentType(grammarId, ContentType.GRAMMAR);
+        long learned = progressRepository.countLearnedByGrammarId(grammarId, ContentType.GRAMMAR);
+        long views = learned; // views are tracked as 'learned' interactions
+
+        return GrammarStatsResponse.builder()
+                .views(views)
+                .completions(completions)
+                .learned(learned)
+                .build();
     }
 
     // ============================================================
@@ -254,6 +297,17 @@ public class GrammarServiceImpl implements GrammarService {
             return GrammarLevel.valueOf(level.toUpperCase().trim());
         } catch (IllegalArgumentException e) {
             throw new BadRequestException("Level must be one of: N5, N4, N3, N2, N1");
+        }
+    }
+
+    private GrammarStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return GrammarStatus.valueOf(status.toUpperCase().trim());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Status must be one of: DRAFT, PENDING, APPROVED, REJECTED");
         }
     }
 

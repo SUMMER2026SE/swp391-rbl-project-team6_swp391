@@ -1555,13 +1555,15 @@ function VocabularyManagementPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        Edit
-                      </button>
+                      {viewingLesson.ownedByMe && (
+                        <button
+                          onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                      )}
                       <button
                         onClick={() => setViewingLesson(null)}
                         className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
@@ -1578,12 +1580,14 @@ function VocabularyManagementPage() {
                         <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
                         <p className="font-semibold text-base text-foreground mb-1">No words yet</p>
                         <p className="text-sm text-muted-foreground">This lesson has no vocabulary added yet.</p>
-                        <button
-                          onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
-                          className="mt-4 px-4 py-2 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow hover:opacity-90 transition"
-                        >
-                          + Add vocabulary
-                        </button>
+                        {viewingLesson.ownedByMe && (
+                          <button
+                            onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
+                            className="mt-4 px-4 py-2 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow hover:opacity-90 transition"
+                          >
+                            + Add vocabulary
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-2">
