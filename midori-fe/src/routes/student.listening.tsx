@@ -53,6 +53,27 @@ function Listening() {
   const [levelFilter, setLevelFilter] = useState<JLPTLevel>("All");
   const [page, setPage] = useState(1);
 
+  const isLoading = false;
+  const error: string | null = null;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p className="text-muted-foreground text-sm">Loading listening exercises...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+        <div className="text-red-500 mb-3 text-2xl">⚠️</div>
+        <p className="text-red-500 font-medium text-sm">Unable to load listening data. Please try again later.</p>
+      </div>
+    );
+  }
+
   const correct = answer.replace(/\s/g, "") === (selectedEx?.transcript ?? "").replace(/\s/g, "");
 
   const filteredExercises = useMemo(() => {
@@ -96,6 +117,11 @@ function Listening() {
           <PageHeader
             title="Listening Dictation"
             subtitle="Choose a listening exercise, practice listening, and check your answer."
+            action={
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
+                Demo
+              </span>
+            }
           />
 
           {/* Tab Navigation */}
@@ -173,7 +199,7 @@ function Listening() {
                 {paginatedExercises.length === 0 ? (
                   <div className="text-center py-16 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50">
                     <Headphones className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-                    <p className="font-semibold text-sm text-slate-600 dark:text-slate-300">No listening exercises yet</p>
+                    <p className="font-semibold text-sm text-slate-600 dark:text-slate-300">No listening exercises available.</p>
                     <p className="text-xs text-muted-foreground mt-1">Listening exercises will appear here.</p>
                   </div>
                 ) : (

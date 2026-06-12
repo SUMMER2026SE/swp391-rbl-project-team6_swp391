@@ -479,7 +479,7 @@ function TypingIndicator() {
       <div className="flex-1 max-w-[70%]">
         <div className="text-[11px] text-muted-foreground mb-2 flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          AI Sensei is thinking
+          AI Sensei is preparing suggestions...
         </div>
         <div className="flex gap-1.5">
           {[0, 1, 2].map(i => (
@@ -545,6 +545,9 @@ function AIMascot() {
             {prompt}
           </motion.button>
         ))}
+      </div>
+      <div className="text-[11px] text-muted-foreground/60 italic mt-2">
+        No recommendations available.
       </div>
     </div>
   );
@@ -1117,6 +1120,9 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 // ═══════════════════════════════════════════════════════════════════
 
 export function AISenseiPage() {
+  const isLoadingSuggestions = false;
+  const suggestionError: string | null = null;
+
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1472,7 +1478,12 @@ Try: "Explain めながら", \`/quiz\`, or \`/roleplay\`.`,
                       🌸
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-display font-bold text-primary-col truncate">AI Sensei</div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-sm font-display font-bold text-primary-col truncate">AI Sensei</div>
+                        <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
+                          Demo
+                        </span>
+                      </div>
                       <div className="text-[10px] text-muted-col flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                         Online · {settings.jlptLevel}
@@ -1584,7 +1595,12 @@ Try: "Explain めながら", \`/quiz\`, or \`/roleplay\`.`,
               {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
             </button>
             <div className="flex-1">
-              <div className="text-sm font-display font-bold text-primary-col">AI Sensei</div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-display font-bold text-primary-col">AI Sensei</div>
+                <span className="px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
+                  Demo
+                </span>
+              </div>
               <div className="text-[10px] text-muted-col flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                 Online · {settings.jlptLevel} · {settings.language === "vietnamese" ? "Tiếng Việt" : settings.language === "japanese" ? "日本語" : "English"}
@@ -1634,7 +1650,15 @@ Try: "Explain めながら", \`/quiz\`, or \`/roleplay\`.`,
             </div>
 
             {/* Suggested Prompts */}
-            {messages.length <= 2 && !input && !isTyping && suggestedPrompts.length > 0 && (
+            {isLoadingSuggestions ? (
+              <div className="px-4 pb-4 text-center">
+                <p className="text-[11px] text-muted-foreground animate-pulse">AI Sensei is preparing suggestions...</p>
+              </div>
+            ) : suggestionError ? (
+              <div className="px-4 pb-4 text-center">
+                <p className="text-[11px] text-red-500 font-medium">Unable to generate suggestions.</p>
+              </div>
+            ) : messages.length <= 2 && !input && !isTyping && suggestedPrompts.length > 0 && (
               <div className="px-4 pb-2">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="text-[10px] uppercase tracking-widest text-muted-col font-bold">Quick prompts</div>
