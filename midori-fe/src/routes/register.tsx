@@ -221,13 +221,13 @@ function RegisterPage() {
       let hasErrors = false;
       certificates.forEach((cert, index) => {
         if (!cert.name.trim()) {
-          certErrors[index] = "Please enter a certificate name.";
+          certErrors[index] = "Please enter a certificate title.";
           hasErrors = true;
         }
       });
       if (hasErrors) {
         setCertificateErrors(certErrors);
-        setErr("Please fill in all certificate names.");
+        setErr("Please fill in all certificate titles.");
         return;
       }
     }
@@ -520,7 +520,7 @@ function RegisterPage() {
                         type="text"
                         value={cert.name}
                         onChange={(e) => updateCertificateName(index, e.target.value)}
-                        placeholder="Certificate name (e.g. JLPT N1, Japanese Teaching Certificate...)"
+                        placeholder="Certificate Title (e.g. JLPT N1, Japanese Teaching Certificate...)"
                         className="w-full px-3 py-2 rounded-lg bg-white/70 dark:bg-black/30 border border-input text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                       />
                       {certificateErrors[index] && (
@@ -530,7 +530,7 @@ function RegisterPage() {
                         type="text"
                         value={cert.issuer}
                         onChange={(e) => updateCertificateIssuer(index, e.target.value)}
-                        placeholder="Issuer / Organization (optional) (e.g. Japan Foundation...)"
+                        placeholder="Issuer (optional) (e.g. Japan Foundation...)"
                         className="w-full px-3 py-2 rounded-lg bg-white/70 dark:bg-black/30 border border-input text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
                       />
                     </div>
