@@ -88,3 +88,48 @@ export interface GrammarListParams {
   level?: GrammarLevel;
   search?: string;
 }
+
+// ─── Progress Types ─────────────────────────────────────────────────────────────────
+
+export type ContentType = "VOCABULARY" | "GRAMMAR" | "FLASHCARD" | "LESSON";
+
+export interface ProgressResponse {
+  id: string;
+  contentType: ContentType;
+  contentId: string;
+  learned: boolean;
+  mastered: boolean;
+  favorite: boolean;
+  completed: boolean;
+  progressPercent: number;
+  lastStudiedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeeklyStudyData {
+  day: string;
+  count: number;
+}
+
+export interface ProgressStatsResponse {
+  completedLessons: number;
+  learnedWords: number;
+  masteredWords: number;
+  favoriteWords: number;
+  progressPercent: number;
+  learningStreak: number;
+  weeklyStudyData: WeeklyStudyData[];
+}
+
+export interface ProgressUpdateRequest {
+  learned?: boolean;
+  mastered?: boolean;
+  favorite?: boolean;
+  completed?: boolean;
+  progressPercent?: number;
+}
+
+export interface ProgressListParams {
+  contentType?: ContentType;
+}
