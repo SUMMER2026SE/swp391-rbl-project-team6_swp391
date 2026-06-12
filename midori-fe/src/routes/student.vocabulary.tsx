@@ -13,6 +13,10 @@ import {
   type VocabularyLessonResponse,
   type VocabularyLessonDetailResponse,
 } from "@/lib/api/studentVocabulary";
+import {
+  studentProgressApi,
+  type ContentType,
+} from "@/lib/api/studentProgress";
 import { ApiError } from "@/lib/api/client";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
@@ -261,65 +265,70 @@ function VocabularyPage() {
   const [wordStatuses, setWordStatuses] = useState<Record<string, WordStatus>>({});
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+  const [progressLoading, setProgressLoading] = useState(false);
   // Lesson detail state
   const [lessonDetail, setLessonDetail] = useState<VocabularyLessonDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  // ── Word-level progress (persisted in localStorage) ─────────────────────────
-  const LS_KEY = "midori_vocab_word_progress";
-  const LS_OLD_KEY = "midori_vocab_progress"; // backward compat
-
-  // Hydration guard: prevents save effect from overwriting localStorage on first render
-  const [progressHydrated, setProgressHydrated] = useState(false);
-
-  // Load persisted word statuses from localStorage on mount
+  // ── Fetch progress from API on mount ────────────────────────────────────────
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const saved: Record<string, WordStatus> = JSON.parse(raw);
-        setWordStatuses(saved);
+    const fetchProgress = async () => {
+      setProgressLoading(true);
+      try {
+        const progressList = await studentProgressApi.getProgress({ contentType: "VOCABULARY" });
+
+        // Build word statuses from API data
+        const newStatuses: Record<string, WordStatus> = {};
+        const newFavorites = new Set<string>();
+        const newCompletedLessons = new Set<string>();
+
+        progressList.forEach((p) => {
+          const contentKey = `${p.contentId}`;
+          if (p.mastered) {
+            newStatuses[contentKey] = "mastered";
+          } else if (p.learned) {
+            newStatuses[contentKey] = "learning";
+          }
+          if (p.favorite) {
+            newFavorites.add(contentKey);
+          }
+          if (p.completed) {
+            newCompletedLessons.add(p.contentId);
+          }
+        });
+
+        setWordStatuses(newStatuses);
+        setFavorites(newFavorites);
+        setCompletedLessons(newCompletedLessons);
+      } catch (err) {
+        // Silently fail - use empty state on error
+        console.error("Failed to load progress:", err);
+      } finally {
+        setProgressLoading(false);
       }
-      // Migrate completedLessons from old key if present
-      const oldRaw = localStorage.getItem(LS_OLD_KEY);
-      if (oldRaw) {
-        const old: Record<string, { completed: boolean }> = JSON.parse(oldRaw);
-        const migrated = new Set<string>();
-        for (const [id, data] of Object.entries(old)) {
-          if (data.completed) migrated.add(id);
-        }
-        setCompletedLessons(migrated);
-      }
-    } catch {
-      // ignore malformed data
-    } finally {
-      setProgressHydrated(true);
-    }
+    };
+
+    fetchProgress();
   }, []);
 
-  // Persist wordStatuses to localStorage only after hydration
-  useEffect(() => {
-    if (!progressHydrated) return;
+  // Fetch lesson detail when opening a lesson
+  const openLesson = async (lessonId: string) => {
+    setActiveLesson(lessonId);
+    setDetailLoading(true);
+    setDetailError(null);
+    setLessonDetail(null);
+    setFilterTab("All");
+    setCurrentPage(1);
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify(wordStatuses));
-    } catch {
-      // ignore quota errors
+      const detail = await studentVocabularyApi.getPublishedLessonDetail(lessonId);
+      setLessonDetail(detail);
+    } catch (err) {
+      setDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details");
+    } finally {
+      setDetailLoading(false);
     }
-  }, [wordStatuses, progressHydrated]);
-
-  // Persist old-style completedLessons for backward compat (set only, no load needed)
-  useEffect(() => {
-    try {
-      const record: Record<string, { progress: number; completed: boolean; completedAt: string }> = {};
-      completedLessons.forEach(id => {
-        record[id] = { progress: 100, completed: true, completedAt: new Date().toISOString() };
-      });
-      localStorage.setItem(LS_OLD_KEY, JSON.stringify(record));
-    } catch {
-      // ignore quota errors
-    }
-  }, [completedLessons]);
+  };
 
   // Fetch published lessons from API
   const fetchLessons = useCallback(async () => {
@@ -353,24 +362,6 @@ function VocabularyPage() {
     fetchLessons();
   }, [fetchLessons]);
 
-  // Fetch lesson detail when opening a lesson
-  const openLesson = async (lessonId: string) => {
-    setActiveLesson(lessonId);
-    setDetailLoading(true);
-    setDetailError(null);
-    setLessonDetail(null);
-    setFilterTab("All");
-    setCurrentPage(1);
-    try {
-      const detail = await studentVocabularyApi.getPublishedLessonDetail(lessonId);
-      setLessonDetail(detail);
-    } catch (err) {
-      setDetailError(err instanceof ApiError ? err.message : "Failed to load lesson details");
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
   const filteredLessons = lessons;
 
   // ── Derived: topics available within the selected level ─────────────────────
@@ -393,24 +384,61 @@ function VocabularyPage() {
   };
 
   const setWordStatus = (wordKey: string, status: WordStatus) => {
+    // Find lesson ID from wordKey
+    const lessonId = activeLesson ?? wordKey.split("-")[0];
+    const word = wordKey.includes("-") ? wordKey.split("-").slice(1).join("-") : wordKey;
+
+    // Update local state immediately
     setWordStatuses((prev) => {
       const next = { ...prev };
-      if (prev[wordKey] === status) {
+      if (status === "new") {
         delete next[wordKey];
       } else {
         next[wordKey] = status;
       }
       return next;
     });
+
+    // Call API
+    const markAsMasteredFn = async () => {
+      try {
+        if (status === "mastered") {
+          await studentProgressApi.markAsMastered("VOCABULARY", lessonId);
+        } else if (status === "new") {
+          // Unmark as mastered
+          await studentProgressApi.markAsLearned("VOCABULARY", lessonId);
+        }
+      } catch (err) {
+        console.error("Failed to update progress:", err);
+      }
+    };
+    markAsMasteredFn();
   };
 
   const toggleFavoriteWord = (wordKey: string) => {
+    // Find lesson ID from wordKey
+    const lessonId = activeLesson ?? wordKey.split("-")[0];
+
+    // Update local state immediately
     setFavorites((prev) => {
       const next = new Set(prev);
-      if (next.has(wordKey)) next.delete(wordKey);
-      else next.add(wordKey);
+      if (next.has(wordKey)) {
+        next.delete(wordKey);
+      } else {
+        next.add(wordKey);
+      }
       return next;
     });
+
+    // Call API
+    const toggleFn = async () => {
+      try {
+        await studentProgressApi.toggleFavorite("VOCABULARY", lessonId);
+      } catch (err) {
+        console.error("Failed to toggle favorite:", err);
+      }
+    };
+    toggleFn();
   };
 
   // ── Lesson Detail View ───────────────────────────────────────────
@@ -684,13 +712,19 @@ function VocabularyPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
+                          if (!activeLesson) return;
                           const newStatuses: Record<string, WordStatus> = {};
                           words.forEach(w => {
                             newStatuses[`${activeLesson}-${w.word}`] = "mastered";
                           });
                           setWordStatuses(prev => ({ ...prev, ...newStatuses }));
-                          setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson ?? ""); return n; });
+                          setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson); return n; });
+                          try {
+                            await studentProgressApi.markAsMastered("VOCABULARY", activeLesson);
+                          } catch (err) {
+                            console.error("Failed to mark lesson as completed:", err);
+                          }
                         }}
                         className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
                       >

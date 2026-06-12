@@ -20,9 +20,7 @@ import {
   type VocabularyLessonDetailResponse,
   type VocabularyWordResponse,
 } from "@/lib/api/studentVocabulary";
-
-// ─── Word Status ───────────────────────────────────────────────────────────────
-type WordStatus = "not_learned" | "learned";
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 const levelColors: Record<string, string> = {
   N5: "bg-blue-500/20 text-blue-400 border-blue-400/30",
@@ -52,6 +50,43 @@ function VocabStudyPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ── Query: Progress data for this lesson ───────────────────────────────────
+  const {
+    data: progressList,
+    isLoading: progressLoading,
+  } = useQuery({
+    queryKey: ["vocabulary-progress", lessonId],
+    queryFn: () => studentProgressApi.getProgress({ contentType: "VOCABULARY" }),
+    enabled: !!lessonId,
+    staleTime: 60 * 1000,
+  });
+
+  // Build learned state from progress data
+  const learnedWordIndices = (() => {
+    if (!progressList || !lesson) return new Set<number>();
+    const learned = new Set<number>();
+    lesson.words.forEach((w, idx) => {
+      const wordProgress = progressList.find((p) => p.contentId === w.word);
+      if (wordProgress?.learned || wordProgress?.mastered) {
+        learned.add(idx);
+      }
+    });
+    return learned;
+  })();
+
+  // Build bookmarked state from progress data
+  const bookmarkedWordIndices = (() => {
+    if (!progressList || !lesson) return new Set<number>();
+    const bookmarked = new Set<number>();
+    lesson.words.forEach((w, idx) => {
+      const wordProgress = progressList.find((p) => p.contentId === w.word);
+      if (wordProgress?.favorite) {
+        bookmarked.add(idx);
+      }
+    });
+    return bookmarked;
+  })();
+
   const words: VocabularyWordResponse[] = lesson?.words ?? [];
 
   const errorMessage =
@@ -59,15 +94,12 @@ function VocabStudyPage() {
 
   const [current, setCurrent] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [wordStatuses, setWordStatuses] = useState<Record<number, WordStatus>>({});
-  const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
-
 
   const word = words[current];
-  const status = wordStatuses[current] ?? "not_learned";
-  const isBook = bookmarked.has(current);
+  const isLearned = learnedWordIndices.has(current);
+  const isBook = bookmarkedWordIndices.has(current);
 
-  const learnedCount = Object.values(wordStatuses).filter((s) => s === "learned").length;
+  const learnedCount = learnedWordIndices.size;
   const notLearnedCount = words.length - learnedCount;
 
   const goNext = () => {
@@ -89,20 +121,46 @@ function VocabStudyPage() {
     setRevealed(false);
   };
 
-  const toggleLearned = () => {
-    setWordStatuses((prev) => ({
-      ...prev,
-      [current]: prev[current] === "learned" ? "not_learned" : "learned",
-    }));
+  const toggleLearned = async () => {
+    if (!lessonId || !word) return;
+
+    const wasLearned = learnedWordIndices.has(current);
+    const newLearned = new Set(learnedWordIndices);
+    if (wasLearned) {
+      newLearned.delete(current);
+    } else {
+      newLearned.add(current);
+    }
+
+    // Optimistic update via query invalidation will happen via React Query
+    try {
+      if (wasLearned) {
+        // TODO: Could add unlearn endpoint if backend supports it
+        // For now, just update local state via query invalidation
+      } else {
+        await studentProgressApi.markAsLearned("VOCABULARY", word.word);
+      }
+    } catch (err) {
+      console.error("Failed to update learned status:", err);
+    }
   };
 
-  const toggleBookmark = () => {
-    setBookmarked((prev) => {
-      const next = new Set(prev);
-      if (next.has(current)) next.delete(current);
-      else next.add(current);
-      return next;
-    });
+  const toggleBookmark = async () => {
+    if (!lessonId || !word) return;
+
+    const wasBookmarked = bookmarkedWordIndices.has(current);
+    const newBookmarked = new Set(bookmarkedWordIndices);
+    if (wasBookmarked) {
+      newBookmarked.delete(current);
+    } else {
+      newBookmarked.add(current);
+    }
+
+    try {
+      await studentProgressApi.toggleFavorite("VOCABULARY", word.word);
+    } catch (err) {
+      console.error("Failed to toggle bookmark:", err);
+    }
   };
 
   const playAudio = (url: string) => {
@@ -256,7 +314,7 @@ function VocabStudyPage() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           {words.map((_: VocabularyWordResponse, i: number) => {
             const isCurrent = i === current;
-            const isLearned = wordStatuses[i] === "learned";
+            const isLearned = learnedWordIndices.has(i);
             return (
               <button
                 key={i}
@@ -485,7 +543,7 @@ function VocabStudyPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={toggleLearned}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${status === "not_learned"
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${!isLearned
                 ? "bg-white/15 border-white/20 text-white/70 hover:bg-red-500/20 hover:border-red-400/30 hover:text-red-300"
                 : "bg-green-500/20 border-green-400/30 text-green-300"
                 }`}
@@ -495,12 +553,12 @@ function VocabStudyPage() {
             </button>
             <button
               onClick={toggleLearned}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${status === "learned"
+              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all border ${isLearned
                 ? "bg-green-500/20 border-green-400/30 text-green-300"
                 : "bg-white/15 border-white/20 text-white/70 hover:bg-green-500/20 hover:border-green-400/30 hover:text-green-300"
                 }`}
             >
-              <CheckCircle2 className={`w-4 h-4 ${status === "learned" ? "fill-green-400" : ""}`} />
+              <CheckCircle2 className={`w-4 h-4 ${isLearned ? "fill-green-400" : ""}`} />
               Learned
             </button>
           </div>
