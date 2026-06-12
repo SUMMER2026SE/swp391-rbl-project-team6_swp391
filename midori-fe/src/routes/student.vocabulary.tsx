@@ -384,9 +384,13 @@ function VocabularyPage() {
   };
 
   const setWordStatus = (wordKey: string, status: WordStatus) => {
-    // Find lesson ID from wordKey
-    const lessonId = activeLesson ?? wordKey.split("-")[0];
-    const word = wordKey.includes("-") ? wordKey.split("-").slice(1).join("-") : wordKey;
+    // Resolve lessonId - prefer activeLesson, fallback from wordKey
+    const resolvedLessonId = activeLesson ?? wordKey.split("-")[0];
+
+    // Guard: don't call API if lessonId is invalid
+    if (!resolvedLessonId || resolvedLessonId.trim() === "") {
+      return;
+    }
 
     // Update local state immediately
     setWordStatuses((prev) => {
@@ -403,10 +407,9 @@ function VocabularyPage() {
     const markAsMasteredFn = async () => {
       try {
         if (status === "mastered") {
-          await studentProgressApi.markAsMastered("VOCABULARY", lessonId);
+          await studentProgressApi.markAsMastered("VOCABULARY", resolvedLessonId);
         } else if (status === "new") {
-          // Unmark as mastered
-          await studentProgressApi.markAsLearned("VOCABULARY", lessonId);
+          await studentProgressApi.markAsLearned("VOCABULARY", resolvedLessonId);
         }
       } catch (err) {
         console.error("Failed to update progress:", err);
@@ -416,8 +419,13 @@ function VocabularyPage() {
   };
 
   const toggleFavoriteWord = (wordKey: string) => {
-    // Find lesson ID from wordKey
-    const lessonId = activeLesson ?? wordKey.split("-")[0];
+    // Resolve lessonId - prefer activeLesson, fallback from wordKey
+    const resolvedLessonId = activeLesson ?? wordKey.split("-")[0];
+
+    // Guard: don't call API if lessonId is invalid
+    if (!resolvedLessonId || resolvedLessonId.trim() === "") {
+      return;
+    }
 
     // Update local state immediately
     setFavorites((prev) => {
@@ -433,7 +441,7 @@ function VocabularyPage() {
     // Call API
     const toggleFn = async () => {
       try {
-        await studentProgressApi.toggleFavorite("VOCABULARY", lessonId);
+        await studentProgressApi.toggleFavorite("VOCABULARY", resolvedLessonId);
       } catch (err) {
         console.error("Failed to toggle favorite:", err);
       }
@@ -720,10 +728,12 @@ function VocabularyPage() {
                           });
                           setWordStatuses(prev => ({ ...prev, ...newStatuses }));
                           setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson); return n; });
-                          try {
-                            await studentProgressApi.markAsMastered("VOCABULARY", activeLesson);
-                          } catch (err) {
-                            console.error("Failed to mark lesson as completed:", err);
+                          if (activeLesson) {
+                            try {
+                              await studentProgressApi.markAsMastered("VOCABULARY", activeLesson);
+                            } catch (err) {
+                              console.error("Failed to mark lesson as completed:", err);
+                            }
                           }
                         }}
                         className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-blue-400 to-pink-400 text-white text-sm font-bold shadow-lg shadow-purple-200/30 hover:opacity-90 transition"
