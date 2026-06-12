@@ -6,20 +6,19 @@ import {
   FileCheck, Eye, Calendar, MapPin, Globe, Mail, Edit, Save, X,
   ChevronRight, Users, TrendingUp, CheckCircle, Camera, Trash2,
   Image as ImageIcon, FileImage, Plus, Loader2, AlertCircle, CheckCheck,
-  Phone, Cake
+  Phone, Cake, FileText
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
+import {
+  teacherCertificatesApi,
+  type TeacherCertificate,
+} from "@/lib/api/teacherCertificates";
 import { ApiError } from "@/lib/api/client";
 import { useAuth, isAvatar } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
+import { uploadCertificateFile } from "@/lib/certificate";
 
-interface Certificate {
-  id: string;
-  name: string;
-  year: string;
-  description?: string;
-  imageUrl?: string;
-}
+type CertFormData = Omit<TeacherCertificate, "id" | "createdAt" | "updatedAt">;
 
 const teacherProfile = {
   name: "Taro Yamamoto",
@@ -35,93 +34,79 @@ const teacherProfile = {
   lessons: 87,
 };
 
-// TODO(PROF-02): Replace sample certificates with GET /api/teacher/certificates
-const defaultCerts: Certificate[] = [
-  { id: "1", name: "JLPT N1 Certified", year: "2015" },
-  { id: "2", name: "Japanese Teaching (Fukuoka)", year: "2017" },
-  { id: "3", name: "Business Japanese Prof.", year: "2019" },
-];
-
 export const Route = createFileRoute("/teacher/profile")({ component: TeacherProfilePage });
 
 // --- Sub-components ---
 
-function RemoveImageConfirmDialog({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onClick={onCancel}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-xs w-full mx-4"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-4">
-          <Trash2 className="w-6 h-6 text-red-500" />
-        </div>
-        <h3 className="text-lg font-display font-black text-center mb-2">Remove Image?</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
-          The certificate image will be removed. You can upload a new one anytime.
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition"
-          >
-            Remove
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
+// --- Certificate Modal components ---
 
 function EditCertModal({
   cert,
   onSave,
   onCancel,
+  teacherId,
 }: {
-  cert: Certificate;
-  onSave: (updated: Certificate) => void;
+  cert: TeacherCertificate;
+  onSave: (updated: TeacherCertificate) => void;
   onCancel: () => void;
+  teacherId?: string;
 }) {
-  const [name, setName] = useState(cert.name);
-  const [year, setYear] = useState(cert.year);
+  const [title, setTitle] = useState(cert.title);
+  const [issuer, setIssuer] = useState(cert.issuer);
   const [description, setDescription] = useState(cert.description ?? "");
-  const [imageUrl, setImageUrl] = useState<string | undefined>(cert.imageUrl);
-  const [showRemoveImg, setShowRemoveImg] = useState(false);
-  const [showImgMenu, setShowImgMenu] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(cert.imageUrl ?? null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const currentImageUrl = cert.imageUrl;
+  const currentCertUrl = cert.certificateUrl;
+  const isCurrentPdf = currentCertUrl && !currentImageUrl;
+  const isPdfFile = selectedFile?.type === "application/pdf";
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    setSelectedFile(file);
+    setUploadError(null);
+    if (file.type !== "application/pdf") {
       const reader = new FileReader();
-      reader.onloadend = () => setImageUrl(reader.result as string);
+      reader.onloadend = () => setFilePreview(reader.result as string);
       reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
     }
   };
 
-  const handleSave = () => {
-    onSave({ ...cert, name, year, description: description || undefined, imageUrl });
+  const handleSave = async () => {
+    if (!title.trim() || !issuer.trim()) return;
+    setUploadError(null);
+
+    let imageUrl: string | null = currentImageUrl ?? null;
+    let certificateUrl: string | null = currentCertUrl ?? null;
+
+    if (selectedFile) {
+      setIsUploading(true);
+      try {
+        const result = await uploadCertificateFile(selectedFile, teacherId);
+        if (result.imageUrl) imageUrl = result.imageUrl;
+        if (result.certificateUrl) certificateUrl = result.certificateUrl;
+      } catch (err: unknown) {
+        setUploadError((err as { message?: string }).message || "Upload failed. Please try again.");
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+
+    onSave({
+      ...cert,
+      title,
+      issuer,
+      certificateUrl,
+      imageUrl,
+      description: description.trim() || null,
+    });
   };
 
   return (
@@ -151,102 +136,81 @@ function EditCertModal({
             </button>
           </div>
 
-          {/* Image Upload Section */}
-          <div className="mb-5">
-            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 block">
-              Certificate Image
-            </label>
-            <div className="relative">
-              <div className="w-full h-36 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center">
-                {imageUrl ? (
-                  <div className="relative w-full h-full group">
-                    <img
-                      src={imageUrl}
-                      alt="Certificate"
-                      className="w-full h-full object-contain"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button
-                        onClick={() => setShowImgMenu(!showImgMenu)}
-                        className="px-3 py-1.5 rounded-lg bg-white text-xs font-semibold text-slate-700 shadow"
-                      >
-                        Change Image
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center gap-2 cursor-pointer p-4 w-full h-full justify-center hover:bg-slate-100 dark:hover:bg-slate-600/30 transition">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                      <FileImage className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center">
-                      Upload JPG, PNG or WEBP
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
-
-              {/* Image action menu */}
-              <AnimatePresence>
-                {showImgMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-2 right-2 bg-white dark:bg-slate-700 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 overflow-hidden z-10"
-                  >
-                    <label className="flex items-center gap-2 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer transition whitespace-nowrap">
-                      <Upload className="w-3.5 h-3.5 text-primary" />
-                      Change Image
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                    <button
-                      onClick={() => { setImageUrl(undefined); setShowImgMenu(false); setShowRemoveImg(true); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition whitespace-nowrap"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Remove Image
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
           <div className="space-y-3 mb-5">
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                Certificate Name *
+                Certificate Title *
               </label>
               <input
-                value={name}
-                onChange={e => setName(e.target.value)}
+                value={title}
+                onChange={e => setTitle(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
                 placeholder="e.g. JLPT N1 Certified"
               />
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                Year *
+                Issuer *
               </label>
               <input
-                value={year}
-                onChange={e => setYear(e.target.value)}
+                value={issuer}
+                onChange={e => setIssuer(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
-                placeholder="e.g. 2023"
+                placeholder="e.g. Japan Foundation"
               />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                Certificate Image/File (optional)
+              </label>
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-3 text-center hover:border-primary/50 transition cursor-pointer"
+                onClick={() => document.getElementById("edit-cert-file-input")?.click()}>
+                <input
+                  id="edit-cert-file-input"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {filePreview ? (
+                  <div className="relative">
+                    <img src={filePreview} alt="Preview" className="w-full h-32 object-contain rounded-lg mx-auto" />
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setSelectedFile(null); setFilePreview(null); }}
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : selectedFile ? (
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    {selectedFile.type === "application/pdf" ? (
+                      <FileText className="w-6 h-6 text-red-400" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-primary" />
+                    )}
+                    <span className="text-xs text-slate-600 dark:text-slate-300">{selectedFile.name}</span>
+                  </div>
+                ) : isCurrentPdf ? (
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <FileText className="w-6 h-6 text-red-400" />
+                    <span className="text-xs text-slate-600 dark:text-slate-300">Current: PDF file</span>
+                  </div>
+                ) : currentImageUrl ? (
+                  <div className="relative">
+                    <img src={currentImageUrl} alt="Current" className="w-full h-32 object-contain rounded-lg mx-auto" />
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    <Upload className="w-6 h-6 mx-auto text-slate-400 mb-1" />
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Click to select image or PDF (max 5MB)</span>
+                  </div>
+                )}
+              </div>
+              {uploadError && (
+                <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+              )}
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -265,30 +229,21 @@ function EditCertModal({
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+              disabled={isUploading}
+              className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              disabled={!name.trim() || !year.trim()}
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!title.trim() || !issuer.trim() || isUploading}
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
             >
-              Save Changes
+              {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : "Save Changes"}
             </button>
           </div>
         </motion.div>
       </motion.div>
-
-      {/* Remove Image Confirm */}
-      <AnimatePresence>
-        {showRemoveImg && (
-          <RemoveImageConfirmDialog
-            onConfirm={() => setShowRemoveImg(false)}
-            onCancel={() => setShowRemoveImg(false)}
-          />
-        )}
-      </AnimatePresence>
     </>
   );
 }
@@ -296,27 +251,62 @@ function EditCertModal({
 function AddCertModal({
   onAdd,
   onCancel,
+  teacherId,
 }: {
-  onAdd: (cert: Omit<Certificate, "id">) => void;
+  onAdd: (cert: CertFormData) => void;
   onCancel: () => void;
+  teacherId?: string;
 }) {
-  const [name, setName] = useState("");
-  const [year, setYear] = useState("");
+  const [title, setTitle] = useState("");
+  const [issuer, setIssuer] = useState("");
   const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | undefined>();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    setSelectedFile(file);
+    setUploadError(null);
+    if (file.type !== "application/pdf") {
       const reader = new FileReader();
-      reader.onloadend = () => setImageUrl(reader.result as string);
+      reader.onloadend = () => setFilePreview(reader.result as string);
       reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
     }
   };
 
-  const handleSubmit = () => {
-    if (!name.trim() || !year.trim()) return;
-    onAdd({ name: name.trim(), year: year.trim(), description: description.trim() || undefined, imageUrl });
+  const handleSubmit = async () => {
+    if (!title.trim() || !issuer.trim()) return;
+    setUploadError(null);
+
+    let imageUrl: string | null = null;
+    let certificateUrl: string | null = null;
+
+    if (selectedFile) {
+      setIsUploading(true);
+      try {
+        const result = await uploadCertificateFile(selectedFile, teacherId);
+        if (result.imageUrl) imageUrl = result.imageUrl;
+        if (result.certificateUrl) certificateUrl = result.certificateUrl;
+      } catch (err: unknown) {
+        setUploadError((err as { message?: string }).message || "Upload failed. Please try again.");
+        setIsUploading(false);
+        return;
+      }
+      setIsUploading(false);
+    }
+
+    onAdd({
+      title: title.trim(),
+      issuer: issuer.trim(),
+      certificateUrl,
+      imageUrl,
+      description: description.trim() || null,
+    });
   };
 
   return (
@@ -345,70 +335,74 @@ function AddCertModal({
           </button>
         </div>
 
-        {/* Image Upload */}
-        <div className="mb-5">
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 block">
-            Certificate Image
-          </label>
-          <div className="relative">
-            <div className="w-full h-36 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-50 dark:bg-slate-700/50 flex items-center justify-center">
-              {imageUrl ? (
-                <div className="relative w-full h-full group">
-                  <img src={imageUrl} alt="Certificate" className="w-full h-full object-contain" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <label className="px-3 py-1.5 rounded-lg bg-white text-xs font-semibold text-slate-700 shadow cursor-pointer">
-                      Change Image
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center gap-2 cursor-pointer p-4 w-full h-full justify-center hover:bg-slate-100 dark:hover:bg-slate-600/30 transition">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    <FileImage className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center">
-                    Upload JPG, PNG or WEBP
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-3 mb-5">
           <div>
             <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-              Certificate Name *
+              Certificate Title *
             </label>
             <input
-              value={name}
-              onChange={e => setName(e.target.value)}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
               placeholder="e.g. JLPT N1 Certified"
             />
           </div>
           <div>
             <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-              Year *
+              Issuer *
             </label>
             <input
-              value={year}
-              onChange={e => setYear(e.target.value)}
+              value={issuer}
+              onChange={e => setIssuer(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
-              placeholder="e.g. 2023"
+              placeholder="e.g. Japan Foundation"
             />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+              Certificate Image/File (optional)
+            </label>
+            <div
+              className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-3 text-center hover:border-primary/50 transition cursor-pointer"
+              onClick={() => document.getElementById("add-cert-file-input")?.click()}
+            >
+              <input
+                id="add-cert-file-input"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              {filePreview ? (
+                <div className="relative">
+                  <img src={filePreview} alt="Preview" className="w-full h-32 object-contain rounded-lg mx-auto" />
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setSelectedFile(null); setFilePreview(null); }}
+                    className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : selectedFile ? (
+                <div className="flex items-center justify-center gap-2 py-2">
+                  {selectedFile.type === "application/pdf" ? (
+                    <FileText className="w-6 h-6 text-red-400" />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-primary" />
+                  )}
+                  <span className="text-xs text-slate-600 dark:text-slate-300">{selectedFile.name}</span>
+                </div>
+              ) : (
+                <div className="py-2">
+                  <Upload className="w-6 h-6 mx-auto text-slate-400 mb-1" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Click to select image or PDF (max 5MB)</span>
+                </div>
+              )}
+            </div>
+            {uploadError && (
+              <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+            )}
           </div>
           <div>
             <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -427,16 +421,17 @@ function AddCertModal({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+            disabled={isUploading}
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!name.trim() || !year.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!title.trim() || !issuer.trim() || isUploading}
+            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
           >
-            Add Certificate
+            {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : "Add Certificate"}
           </button>
         </div>
       </motion.div>
@@ -450,138 +445,73 @@ function CertCard({
   onEdit,
   onRemove,
 }: {
-  cert: Certificate;
-  onEdit: (cert: Certificate) => void;
-  onRemove: (id: string) => void;
+  cert: TeacherCertificate;
+  onEdit: (cert: TeacherCertificate) => void;
+  onRemove: (id: number | string) => void;
 }) {
-  const [showImgMenu, setShowImgMenu] = useState(false);
-  const [showRemoveImg, setShowRemoveImg] = useState(false);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onEdit({ ...cert, imageUrl: reader.result as string });
-        setShowImgMenu(false);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    onEdit({ ...cert, imageUrl: undefined });
-    setShowRemoveImg(false);
-  };
-
   return (
-    <>
-      <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 group hover:bg-muted/50 transition">
-        {/* Image area */}
-        <div className="relative flex-shrink-0">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 relative">
-            {cert.imageUrl ? (
-              <img
-                src={cert.imageUrl}
-                alt={cert.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-400 flex items-center justify-center">
-                  <Award className="w-4 h-4" />
-                </div>
-                <span className="text-[9px] text-slate-400 font-medium text-center px-1 leading-tight">
-                  No image
-                </span>
+    <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 group hover:bg-muted/50 transition">
+      {/* Image area */}
+      <div className="relative flex-shrink-0">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 relative">
+          {cert.imageUrl ? (
+            <img
+              src={cert.imageUrl}
+              alt={cert.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-400 flex items-center justify-center">
+                <Award className="w-4 h-4" />
               </div>
-            )}
-
-            {/* Hover overlay with image actions */}
-            <div
-              className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-              onClick={() => setShowImgMenu(!showImgMenu)}
-            >
-              <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center cursor-pointer hover:bg-white/30 transition">
-                <Camera className="w-3.5 h-3.5 text-white" />
-              </div>
+              <span className="text-[9px] text-slate-400 font-medium text-center px-1 leading-tight">
+                No image
+              </span>
             </div>
-          </div>
-
-          {/* Image action menu */}
-          <AnimatePresence>
-            {showImgMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute top-1 right-1 bg-white dark:bg-slate-700 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 overflow-hidden z-20"
-              >
-                <label className="flex items-center gap-1.5 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 cursor-pointer transition whitespace-nowrap">
-                  <Upload className="w-3 h-3 text-primary" />
-                  Upload
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-                {cert.imageUrl && (
-                  <button
-                    onClick={() => { setShowImgMenu(false); setShowRemoveImg(true); }}
-                    className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition whitespace-nowrap"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Remove
-                  </button>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Text content */}
-        <div className="flex-1 min-w-0 pt-0.5">
-          <div className="font-semibold text-sm text-slate-900 dark:text-white leading-tight">
-            {cert.name}
-          </div>
-          <div className="text-[10px] text-amber-500 font-semibold mt-0.5">{cert.year}</div>
-          {cert.description && (
-            <p className="text-[10px] text-slate-400 mt-1 leading-relaxed line-clamp-2">
-              {cert.description}
-            </p>
           )}
-        </div>
-
-        {/* Edit & Delete actions */}
-        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <button
-            onClick={() => onEdit(cert)}
-            className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-primary/5 hover:border-primary/30 transition"
-          >
-            <Edit3 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
-          </button>
-          <button
-            onClick={() => onRemove(cert.id)}
-            className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950/20 transition"
-          >
-            <Trash2 className="w-3 h-3 text-red-400" />
-          </button>
         </div>
       </div>
 
-      {/* Remove Image Confirm */}
-      <AnimatePresence>
-        {showRemoveImg && (
-          <RemoveImageConfirmDialog
-            onConfirm={handleRemoveImage}
-            onCancel={() => setShowRemoveImg(false)}
-          />
+      {/* Text content */}
+      <div className="flex-1 min-w-0 pt-0.5">
+        <div className="font-semibold text-sm text-slate-900 dark:text-white leading-tight">
+          {cert.title}
+        </div>
+        <div className="text-[10px] text-amber-500 font-semibold mt-0.5">{cert.issuer}</div>
+        {cert.description && (
+          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed line-clamp-2">
+            {cert.description}
+          </p>
         )}
-      </AnimatePresence>
-    </>
+        {cert.certificateUrl && (
+          <a
+            href={cert.certificateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-primary hover:underline mt-1 block truncate max-w-[180px]"
+          >
+            View certificate
+          </a>
+        )}
+      </div>
+
+      {/* Edit & Delete actions */}
+      <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <button
+          onClick={() => onEdit(cert)}
+          className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-primary/5 hover:border-primary/30 transition"
+        >
+          <Edit3 className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+        </button>
+        <button
+          onClick={() => onRemove(cert.id)}
+          className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950/20 transition"
+        >
+          <Trash2 className="w-3 h-3 text-red-400" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -607,10 +537,15 @@ function TeacherProfilePage() {
   const [isAvatarSaving, setIsAvatarSaving] = useState(false);
   const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
-  const [certificates, setCertificates] = useState<Certificate[]>(defaultCerts);
+
+  // Certificates state
+  const [certificates, setCertificates] = useState<TeacherCertificate[]>([]);
+  const [certLoading, setCertLoading] = useState(false);
+  const [certError, setCertError] = useState<string | null>(null);
+  const [certSuccess, setCertSuccess] = useState<string | null>(null);
   const [showAddCert, setShowAddCert] = useState(false);
-  const [editingCert, setEditingCert] = useState<Certificate | null>(null);
-  const [showRemoveCertConfirm, setShowRemoveCertConfirm] = useState<string | null>(null);
+  const [editingCert, setEditingCert] = useState<TeacherCertificate | null>(null);
+  const [showRemoveCertConfirm, setShowRemoveCertConfirm] = useState<number | string | null>(null);
 
   const hasCustomAvatar = avatarPreview !== null;
 
@@ -642,6 +577,25 @@ function TeacherProfilePage() {
   }, [user]);
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  const fetchCertificates = useCallback(async () => {
+    setCertLoading(true);
+    setCertError(null);
+    try {
+      const res = await teacherCertificatesApi.listCertificates();
+      setCertificates(res);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setCertError(err.message);
+      } else {
+        setCertError("Failed to load certificates.");
+      }
+    } finally {
+      setCertLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCertificates(); }, [fetchCertificates]);
 
   const handleSave = async () => {
     setSaveError(null);
@@ -714,23 +668,73 @@ function TeacherProfilePage() {
     }
   };
 
-  const handleAddCert = (cert: Omit<Certificate, "id">) => {
-    const newCert: Certificate = {
-      ...cert,
-      id: Date.now().toString(),
-    };
-    setCertificates(prev => [...prev, newCert]);
-    setShowAddCert(false);
+  const handleAddCert = async (cert: CertFormData) => {
+    setCertLoading(true);
+    setCertError(null);
+    setCertSuccess(null);
+    try {
+      const created = await teacherCertificatesApi.createCertificate(cert);
+      setCertificates(prev => [...prev, created]);
+      setShowAddCert(false);
+      setCertSuccess("Certificate added successfully.");
+      setTimeout(() => setCertSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setCertError(err.message);
+      } else {
+        setCertError("Failed to add certificate.");
+      }
+    } finally {
+      setCertLoading(false);
+    }
   };
 
-  const handleEditCert = (updated: Certificate) => {
-    setCertificates(prev => prev.map(c => c.id === updated.id ? updated : c));
-    setEditingCert(null);
+  const handleEditCert = async (updated: TeacherCertificate) => {
+    setCertLoading(true);
+    setCertError(null);
+    setCertSuccess(null);
+    try {
+      const result = await teacherCertificatesApi.updateCertificate(updated.id, {
+        title: updated.title,
+        issuer: updated.issuer,
+        certificateUrl: updated.certificateUrl,
+        imageUrl: updated.imageUrl,
+        description: updated.description,
+      });
+      setCertificates(prev => prev.map(c => c.id === updated.id ? result : c));
+      setEditingCert(null);
+      setCertSuccess("Certificate updated successfully.");
+      setTimeout(() => setCertSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setCertError(err.message);
+      } else {
+        setCertError("Failed to update certificate.");
+      }
+    } finally {
+      setCertLoading(false);
+    }
   };
 
-  const handleRemoveCert = (id: string) => {
-    setCertificates(prev => prev.filter(c => c.id !== id));
-    setShowRemoveCertConfirm(null);
+  const handleRemoveCert = async (id: number | string) => {
+    setCertLoading(true);
+    setCertError(null);
+    setCertSuccess(null);
+    try {
+      await teacherCertificatesApi.deleteCertificate(id);
+      setCertificates(prev => prev.filter(c => c.id !== id));
+      setShowRemoveCertConfirm(null);
+      setCertSuccess("Certificate removed successfully.");
+      setTimeout(() => setCertSuccess(null), 3000);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setCertError(err.message);
+      } else {
+        setCertError("Failed to remove certificate.");
+      }
+    } finally {
+      setCertLoading(false);
+    }
   };
 
   const avatarLetter = (editName || profile?.displayName || "?").charAt(0).toUpperCase();
@@ -1016,30 +1020,69 @@ function TeacherProfilePage() {
       >
         <h3 className="font-display font-bold text-base mb-4 flex items-center gap-2">
           <Award className="w-4 h-4 text-amber-400" />
-          Sample Certificates
-          <span className="ml-0.5 inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-semibold">
-            Demo
-          </span>
+          My Certificates
         </h3>
-        <div className="space-y-2.5">
-          {certificates.map(cert => (
-            <CertCard
-              key={cert.id}
-              cert={cert}
-              onEdit={setEditingCert}
-              onRemove={id => setShowRemoveCertConfirm(id)}
-            />
-          ))}
-          {certificates.length === 0 && (
-            <div className="py-8 flex flex-col items-center gap-2 text-slate-400">
-              <Award className="w-8 h-8 opacity-40" />
-              <span className="text-sm">No certificates yet</span>
-            </div>
-          )}
-        </div>
+
+        {/* Certificates loading */}
+        {certLoading && certificates.length === 0 && (
+          <div className="py-6 flex flex-col items-center gap-2 text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="text-xs">Loading certificates...</span>
+          </div>
+        )}
+
+        {/* Certificates error */}
+        {certError && certificates.length === 0 && (
+          <div className="py-6 flex flex-col items-center gap-2 text-red-400">
+            <AlertCircle className="w-6 h-6" />
+            <span className="text-xs">{certError}</span>
+            <button
+              onClick={fetchCertificates}
+              className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:opacity-90 transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Certificate list */}
+        {!certLoading && !certError && (
+          <div className="space-y-2.5">
+            {certificates.map(cert => (
+              <CertCard
+                key={cert.id}
+                cert={cert}
+                onEdit={setEditingCert}
+                onRemove={id => setShowRemoveCertConfirm(id)}
+              />
+            ))}
+            {certificates.length === 0 && (
+              <div className="py-8 flex flex-col items-center gap-2 text-slate-400">
+                <Award className="w-8 h-8 opacity-40" />
+                <span className="text-sm">No certificates yet</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Certificate success message */}
+        {certSuccess && (
+          <div className="mt-3 py-2 px-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 text-xs font-medium text-center">
+            {certSuccess}
+          </div>
+        )}
+
+        {/* Certificate error message */}
+        {certError && certificates.length > 0 && (
+          <div className="mt-3 py-2 px-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-500 text-xs font-medium text-center">
+            {certError}
+          </div>
+        )}
+
         <button
           onClick={() => setShowAddCert(true)}
-          className="w-full mt-3 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-xs font-semibold text-muted-foreground hover:border-primary hover:text-primary transition flex items-center justify-center gap-1"
+          disabled={certLoading}
+          className="w-full mt-3 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-xs font-semibold text-muted-foreground hover:border-primary hover:text-primary transition flex items-center justify-center gap-1 disabled:opacity-50"
         >
           <Plus className="w-3.5 h-3.5" /> Add Certificate
         </button>
@@ -1140,6 +1183,7 @@ function TeacherProfilePage() {
           <AddCertModal
             onAdd={handleAddCert}
             onCancel={() => setShowAddCert(false)}
+            teacherId={user?.id}
           />
         )}
       </AnimatePresence>
@@ -1151,6 +1195,7 @@ function TeacherProfilePage() {
             cert={editingCert}
             onSave={handleEditCert}
             onCancel={() => setEditingCert(null)}
+            teacherId={user?.id}
           />
         )}
       </AnimatePresence>
