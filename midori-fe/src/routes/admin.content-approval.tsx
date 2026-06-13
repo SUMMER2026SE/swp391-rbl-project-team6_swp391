@@ -19,6 +19,7 @@ import {
 import {
   getPendingContent,
   getApprovedContent,
+  getRejectedContent,
   getContentDetail,
   approveContent,
   rejectContent,
@@ -671,19 +672,20 @@ function DetailDrawer({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-type TabType = "pending" | "approved";
+type TabType = "pending" | "approved" | "rejected";
 
 function AdminContentApprovalPage() {
   const [pendingItems, setPendingItems] = useState<ContentApprovalSummary[]>([]);
   const [approvedItems, setApprovedItems] = useState<ContentApprovalSummary[]>([]);
+  const [rejectedItems, setRejectedItems] = useState<ContentApprovalSummary[]>([]);
   const [pendingLoading, setPendingLoading] = useState(true);
   const [approvedLoading, setApprovedLoading] = useState(true);
+  const [rejectedLoading, setRejectedLoading] = useState(true);
   const [pendingError, setPendingError] = useState<string | null>(null);
   const [approvedError, setApprovedError] = useState<string | null>(null);
+  const [rejectedError, setRejectedError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
-
-  const [typeFilter, setTypeFilter] = useState<string>("ALL");
 
   const [viewingItem, setViewingItem] = useState<ContentApprovalSummary | null>(null);
   const [detail, setDetail] = useState<ContentApprovalDetail | null>(null);
@@ -696,25 +698,33 @@ function AdminContentApprovalPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
 
   // Use current tab data directly from dedicated state
-  const items = activeTab === "pending" ? pendingItems : approvedItems;
-  const loading = activeTab === "pending" ? pendingLoading : approvedLoading;
-  const error = activeTab === "pending" ? pendingError : approvedError;
+  const items =
+    activeTab === "pending"
+      ? pendingItems
+      : activeTab === "approved"
+        ? approvedItems
+        : rejectedItems;
+  const loading =
+    activeTab === "pending" ? pendingLoading : activeTab === "approved" ? approvedLoading : rejectedLoading;
+  const error =
+    activeTab === "pending" ? pendingError : activeTab === "approved" ? approvedError : rejectedError;
 
-  // Stats from actual data
-  const approvedCount = approvedItems.length;
-  const pendingGrammar = pendingItems.filter((i) => i.contentType === "GRAMMAR").length;
+  // Stats: only FLASHCARD
   const pendingFlashcard = pendingItems.filter((i) => i.contentType === "FLASHCARD").length;
+  const approvedFlashcard = approvedItems.filter((i) => i.contentType === "FLASHCARD").length;
+  const rejectedFlashcard = rejectedItems.filter((i) => i.contentType === "FLASHCARD").length;
+  const totalFlashcard = pendingFlashcard + approvedFlashcard;
 
-  // Fetch pending content
+  // Fetch pending content (FLASHCARD only)
   const fetchPending = useCallback(
     async (showLoading = true) => {
       if (showLoading) setPendingLoading(true);
       setPendingError(null);
       try {
-        const data = await getPendingContent();
+        const data = await getPendingContent("FLASHCARD");
         setPendingItems(data);
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : "Failed to load pending content.";
+        const msg = err instanceof ApiError ? err.message : "Failed to load pending flashcards.";
         setPendingError(msg);
         setPendingItems([]);
       } finally {
@@ -724,16 +734,16 @@ function AdminContentApprovalPage() {
     [],
   );
 
-  // Fetch approved content
+  // Fetch approved content (FLASHCARD only)
   const fetchApproved = useCallback(
     async (showLoading = true) => {
       if (showLoading) setApprovedLoading(true);
       setApprovedError(null);
       try {
-        const data = await getApprovedContent();
+        const data = await getApprovedContent("FLASHCARD");
         setApprovedItems(data);
       } catch (err) {
-        const msg = err instanceof ApiError ? err.message : "Failed to load approved content.";
+        const msg = err instanceof ApiError ? err.message : "Failed to load approved flashcards.";
         setApprovedError(msg);
         setApprovedItems([]);
       } finally {
@@ -743,10 +753,30 @@ function AdminContentApprovalPage() {
     [],
   );
 
+  // Fetch rejected content (FLASHCARD only)
+  const fetchRejected = useCallback(
+    async (showLoading = true) => {
+      if (showLoading) setRejectedLoading(true);
+      setRejectedError(null);
+      try {
+        const data = await getRejectedContent("FLASHCARD");
+        setRejectedItems(data);
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.message : "Failed to load rejected flashcards.";
+        setRejectedError(msg);
+        setRejectedItems([]);
+      } finally {
+        if (showLoading) setRejectedLoading(false);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     fetchPending();
     fetchApproved();
-  }, [fetchPending, fetchApproved]);
+    fetchRejected();
+  }, [fetchPending, fetchApproved, fetchRejected]);
 
   // Fetch detail
   const fetchDetail = useCallback(async (item: ContentApprovalSummary) => {
@@ -794,7 +824,7 @@ function AdminContentApprovalPage() {
         showToast(`"${item.title}" has been approved.`, "success");
         setApproveTarget(null);
         if (viewingItem?.contentId === item.contentId) handleCloseDetail();
-        await Promise.all([fetchPending(false), fetchApproved(false)]);
+        await Promise.all([fetchPending(false), fetchApproved(false), fetchRejected(false)]);
       } catch (err) {
         const msg = err instanceof ApiError ? err.message : "Failed to approve content.";
         showToast(msg, "error");
@@ -802,7 +832,7 @@ function AdminContentApprovalPage() {
         setApprovingId(null);
       }
     },
-    [showToast, viewingItem, handleCloseDetail, fetchPending, fetchApproved],
+    [showToast, viewingItem, handleCloseDetail, fetchPending, fetchApproved, fetchRejected],
   );
 
   // Handle reject
@@ -815,7 +845,7 @@ function AdminContentApprovalPage() {
         showToast(`"${item.title}" has been rejected.`, "success");
         setRejectTarget(null);
         if (viewingItem?.contentId === item.contentId) handleCloseDetail();
-        await Promise.all([fetchPending(false), fetchApproved(false)]);
+        await Promise.all([fetchPending(false), fetchApproved(false), fetchRejected(false)]);
       } catch (err) {
         const msg = err instanceof ApiError ? err.message : "Failed to reject content.";
         showToast(msg, "error");
@@ -823,31 +853,27 @@ function AdminContentApprovalPage() {
         setRejectingId(null);
       }
     },
-    [showToast, viewingItem, handleCloseDetail, fetchPending, fetchApproved],
+    [showToast, viewingItem, handleCloseDetail, fetchPending, fetchApproved, fetchRejected],
   );
 
-  // Filter items based on active tab and type filter
-  const tabItems = items;
-  const filteredItems =
-    typeFilter === "ALL" ? tabItems : tabItems.filter((item) => item.contentType === typeFilter);
-
-  const tabGrammar = tabItems.filter((i) => i.contentType === "GRAMMAR").length;
-  const tabFlashcard = tabItems.filter((i) => i.contentType === "FLASHCARD").length;
+  // All items are already FLASHCARD from API calls with contentType=FLASHCARD
+  const filteredItems = items;
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-black text-primary-col">Content Approvals</h1>
+          <h1 className="text-2xl font-display font-black text-primary-col">Flashcard Approval</h1>
           <p className="text-sm text-secondary-col mt-0.5">
-            Review and approve teacher-submitted content
+            Review and approve teacher-submitted flashcard sets
           </p>
         </div>
         <button
           onClick={() => {
             if (activeTab === "pending") fetchPending(true);
-            else fetchApproved(true);
+            else if (activeTab === "approved") fetchApproved(true);
+            else fetchRejected(true);
           }}
           disabled={loading}
           className="flex items-center gap-2 px-3 py-2 rounded-xl glass-surface text-sm font-bold text-secondary-col hover:text-primary-col transition disabled:opacity-50"
@@ -859,58 +885,94 @@ function AdminContentApprovalPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-        {[
-          {
-            label: activeTab === "pending" ? "Total Pending" : "Total Approved",
-            value: items.length,
-            icon: activeTab === "pending" ? Clock : CheckCircle,
-            color: activeTab === "pending" ? "text-[var(--status-pending)]" : "text-[var(--status-active)]",
-            bg: activeTab === "pending" ? "bg-[var(--status-pending)]/12" : "bg-[var(--status-active)]/12",
-          },
-          {
-            label: "Grammar",
-            value: tabGrammar,
-            icon: BookOpen,
-            color: "text-primary",
-            bg: "bg-primary/12",
-          },
-          {
-            label: "Flashcard",
-            value: tabFlashcard,
-            icon: Layers,
-            color: "text-[var(--status-teacher)]",
-            bg: "bg-[var(--status-teacher)]/12",
-          },
-          {
-            label: "Approved",
-            value: approvedCount,
-            icon: CheckCircle,
-            color: "text-[var(--status-active)]",
-            bg: "bg-[var(--status-active)]/12",
-          },
-        ].map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className="card-base p-3.5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <div className={`w-7 h-7 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                  <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
-                </div>
-                <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
-                  {stat.label}
-                </span>
-              </div>
-              <div className="font-display font-black text-xl text-primary-col">
-                {loading ? <span className="opacity-40">{stat.value}</span> : stat.value}
-              </div>
+        <button
+          onClick={() => setActiveTab("pending")}
+          className={`card-base p-3.5 text-left transition-all duration-150 ${
+            activeTab === "pending"
+              ? "ring-2 ring-[var(--status-pending)]/40"
+              : "hover:ring-2 hover:ring-[var(--border)]"
+          }`}
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--status-pending)]/12 flex items-center justify-center">
+              <Clock className="w-3.5 h-3.5 text-[var(--status-pending)]" />
             </div>
-          );
-        })}
+            <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Pending
+            </span>
+          </div>
+          <div className="font-display font-black text-xl text-primary-col">
+            {pendingLoading ? <span className="opacity-40">{pendingFlashcard}</span> : pendingFlashcard}
+          </div>
+        </button>
+
+        <button
+          className="card-base p-3.5 text-left opacity-70 cursor-default"
+          title="Total flashcards in approval pipeline"
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--status-teacher)]/12 flex items-center justify-center">
+              <Layers className="w-3.5 h-3.5 text-[var(--status-teacher)]" />
+            </div>
+            <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Total
+            </span>
+          </div>
+          <div className="font-display font-black text-xl text-primary-col">
+            {pendingLoading || approvedLoading || rejectedLoading ? (
+              <span className="opacity-40">{pendingFlashcard + approvedFlashcard + rejectedFlashcard}</span>
+            ) : (
+              totalFlashcard
+            )}
+          </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("approved")}
+          className={`card-base p-3.5 text-left transition-all duration-150 ${
+            activeTab === "approved"
+              ? "ring-2 ring-[var(--status-active)]/40"
+              : "hover:ring-2 hover:ring-[var(--border)]"
+          }`}
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--status-active)]/12 flex items-center justify-center">
+              <CheckCircle className="w-3.5 h-3.5 text-[var(--status-active)]" />
+            </div>
+            <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Approved
+            </span>
+          </div>
+          <div className="font-display font-black text-xl text-primary-col">
+            {approvedLoading ? <span className="opacity-40">{approvedFlashcard}</span> : approvedFlashcard}
+          </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("rejected")}
+          className={`card-base p-3.5 text-left transition-all duration-150 ${
+            activeTab === "rejected"
+              ? "ring-2 ring-[var(--status-rejected)]/40"
+              : "hover:ring-2 hover:ring-[var(--border)]"
+          }`}
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--status-rejected)]/12 flex items-center justify-center">
+              <XCircle className="w-3.5 h-3.5 text-[var(--status-rejected)]" />
+            </div>
+            <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Rejected
+            </span>
+          </div>
+          <div className="font-display font-black text-xl text-primary-col">
+            {rejectedLoading ? <span className="opacity-40">{rejectedFlashcard}</span> : rejectedFlashcard}
+          </div>
+        </button>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 glass-card p-1 w-fit">
-        {(["pending", "approved"] as const).map((t) => (
+        {(["pending", "approved", "rejected"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setActiveTab(t)}
@@ -921,29 +983,10 @@ function AdminContentApprovalPage() {
             }`}
           >
             {t === "pending"
-              ? `Pending Review (${pendingItems.length})`
-              : `Approved (${approvedItems.length})`}
-          </button>
-        ))}
-      </div>
-
-      {/* Type Filter Tabs */}
-      <div className="flex gap-1 glass-card p-1 w-fit">
-        {(["ALL", "GRAMMAR", "FLASHCARD"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTypeFilter(t)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${
-              typeFilter === t
-                ? "bg-gradient-hero text-white shadow-md"
-                : "text-secondary-col nav-item"
-            }`}
-          >
-            {t === "ALL"
-              ? `All (${tabItems.length})`
-              : t === "GRAMMAR"
-                ? `Grammar (${tabGrammar})`
-                : `Flashcard (${tabFlashcard})`}
+              ? `Pending Review (${pendingFlashcard})`
+              : t === "approved"
+                ? `Approved (${approvedFlashcard})`
+                : `Rejected (${rejectedFlashcard})`}
           </button>
         ))}
       </div>
@@ -955,8 +998,10 @@ function AdminContentApprovalPage() {
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
             <p className="text-sm text-muted-col">
               {activeTab === "pending"
-                ? "Loading pending content..."
-                : "Loading approved content..."}
+                ? "Loading pending flashcards..."
+                : activeTab === "approved"
+                  ? "Loading approved flashcards..."
+                  : "Loading rejected flashcards..."}
             </p>
           </div>
         )}
@@ -968,7 +1013,8 @@ function AdminContentApprovalPage() {
             <button
               onClick={() => {
                 if (activeTab === "pending") fetchPending(true);
-                else fetchApproved(true);
+                else if (activeTab === "approved") fetchApproved(true);
+                else fetchRejected(true);
               }}
               className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition"
             >
@@ -982,13 +1028,17 @@ function AdminContentApprovalPage() {
             <CheckCircle className="w-12 h-12 text-[var(--status-active)]/40 mb-3" />
             <p className="text-secondary-col font-semibold text-sm">
               {activeTab === "pending"
-                ? "All caught up — no pending content!"
-                : "No approved content yet."}
+                ? "All caught up — no pending flashcards!"
+                : activeTab === "approved"
+                  ? "No approved flashcards yet."
+                  : "No rejected flashcards yet."}
             </p>
             <p className="text-xs text-muted-col mt-1">
               {activeTab === "pending"
                 ? "Check back later for new submissions."
-                : "Approved content will appear here."}
+                : activeTab === "approved"
+                  ? "Approved flashcards will appear here."
+                  : "Rejected flashcards will appear here."}
             </p>
           </div>
         )}

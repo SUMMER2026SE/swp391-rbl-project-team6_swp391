@@ -14,6 +14,8 @@ public interface ContentApprovalService {
 
     List<ContentApprovalSummaryResponse> listApprovedContent(String contentType);
 
+    List<ContentApprovalSummaryResponse> listRejectedContent(String contentType);
+
     ContentApprovalDetailResponse getPendingContentDetail(String contentType, UUID contentId);
 
     ContentApprovalSummaryResponse approveContent(String contentType, UUID contentId);

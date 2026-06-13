@@ -37,6 +37,13 @@ public class ContentApprovalController {
         return ResponseEntity.ok(ApiResponse.success(approved));
     }
 
+    @GetMapping("/rejected")
+    public ResponseEntity<ApiResponse<List<ContentApprovalSummaryResponse>>> listRejectedContent(
+            @RequestParam(required = false) String contentType) {
+        List<ContentApprovalSummaryResponse> rejected = contentApprovalService.listRejectedContent(contentType);
+        return ResponseEntity.ok(ApiResponse.success(rejected));
+    }
+
     @GetMapping("/grammar-statistics")
     public ResponseEntity<ApiResponse<GrammarApprovalStatsResponse>> getGrammarApprovalStats() {
         GrammarApprovalStatsResponse stats = contentApprovalService.getGrammarApprovalStats();
