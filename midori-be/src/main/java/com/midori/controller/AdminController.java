@@ -1,7 +1,8 @@
 package com.midori.controller;
 
 import com.midori.common.ApiResponse;
-import com.midori.dto.response.UserResponse;
+import com.midori.dto.response.AdminTeacherCertificateResponse;
+import com.midori.dto.response.AdminTeacherResponse;
 import com.midori.service.AdminUserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -23,41 +24,48 @@ public class AdminController {
     private final AdminUserService adminUserService;
 
     @GetMapping("/teachers/pending")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getPendingTeachers() {
-        List<UserResponse> teachers = adminUserService.getPendingTeachers();
+    public ResponseEntity<ApiResponse<List<AdminTeacherResponse>>> getPendingTeachers() {
+        List<AdminTeacherResponse> teachers = adminUserService.getPendingTeachers();
         return ResponseEntity.ok(ApiResponse.success(teachers));
     }
 
     @GetMapping("/teachers/active")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getActiveTeachers() {
-        List<UserResponse> teachers = adminUserService.getActiveTeachers();
+    public ResponseEntity<ApiResponse<List<AdminTeacherResponse>>> getActiveTeachers() {
+        List<AdminTeacherResponse> teachers = adminUserService.getActiveTeachers();
         return ResponseEntity.ok(ApiResponse.success(teachers));
     }
 
     @PutMapping("/{userId}/approve")
-    public ResponseEntity<ApiResponse<UserResponse>> approveTeacher(@PathVariable UUID userId) {
-        UserResponse teacher = adminUserService.approveTeacher(userId);
+    public ResponseEntity<ApiResponse<AdminTeacherResponse>> approveTeacher(@PathVariable UUID userId) {
+        AdminTeacherResponse teacher = adminUserService.approveTeacher(userId);
         return ResponseEntity.ok(ApiResponse.success("Teacher approved successfully", teacher));
     }
 
     @PutMapping("/{userId}/reject")
-    public ResponseEntity<ApiResponse<UserResponse>> rejectTeacher(
+    public ResponseEntity<ApiResponse<AdminTeacherResponse>> rejectTeacher(
             @PathVariable UUID userId,
             @Valid @RequestBody RejectTeacherRequest request) {
-        UserResponse teacher = adminUserService.rejectTeacher(userId, request.reason().trim());
+        AdminTeacherResponse teacher = adminUserService.rejectTeacher(userId, request.reason().trim());
         return ResponseEntity.ok(ApiResponse.success("Teacher rejected successfully", teacher));
     }
 
     @PutMapping("/{userId}/suspend")
-    public ResponseEntity<ApiResponse<UserResponse>> suspendUser(@PathVariable UUID userId) {
-        UserResponse user = adminUserService.suspendUser(userId);
+    public ResponseEntity<ApiResponse<AdminTeacherResponse>> suspendUser(@PathVariable UUID userId) {
+        AdminTeacherResponse user = adminUserService.suspendUser(userId);
         return ResponseEntity.ok(ApiResponse.success("Teacher suspended successfully", user));
     }
 
     @PutMapping("/{userId}/activate")
-    public ResponseEntity<ApiResponse<UserResponse>> activateUser(@PathVariable UUID userId) {
-        UserResponse user = adminUserService.activateUser(userId);
+    public ResponseEntity<ApiResponse<AdminTeacherResponse>> activateUser(@PathVariable UUID userId) {
+        AdminTeacherResponse user = adminUserService.activateUser(userId);
         return ResponseEntity.ok(ApiResponse.success("User activated successfully", user));
+    }
+
+    @GetMapping("/{userId}/certificates")
+    public ResponseEntity<ApiResponse<List<AdminTeacherCertificateResponse>>> getTeacherCertificates(
+            @PathVariable UUID userId) {
+        List<AdminTeacherCertificateResponse> certificates = adminUserService.getTeacherCertificates(userId);
+        return ResponseEntity.ok(ApiResponse.success(certificates));
     }
 
     public record RejectTeacherRequest(

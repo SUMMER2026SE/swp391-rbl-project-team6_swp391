@@ -1,6 +1,6 @@
 package com.midori.service;
 
-import com.midori.dto.response.UserResponse;
+import com.midori.dto.response.AdminTeacherResponse;
 import com.midori.entity.Role;
 import com.midori.entity.User;
 import com.midori.entity.UserStatus;
@@ -108,29 +108,29 @@ class AdminUserServiceTest {
         @DisplayName("should return list of pending teachers when teachers exist")
         void getPendingTeachers_success() {
             List<User> pendingTeachers = List.of(sampleTeacher);
-            when(userRepository.findByRoleAndStatus(Role.TEACHER, UserStatus.PENDING_APPROVAL))
+            when(userRepository.findByRoleAndStatusWithProfile(Role.TEACHER, UserStatus.PENDING_APPROVAL))
                     .thenReturn(pendingTeachers);
 
-            List<UserResponse> result = adminUserService.getPendingTeachers();
+            List<AdminTeacherResponse> result = adminUserService.getPendingTeachers();
 
             assertThat(result).hasSize(1);
-            UserResponse response = result.get(0);
+            AdminTeacherResponse response = result.get(0);
             assertThat(response.getEmail()).isEqualTo("teacher@example.com");
             assertThat(response.getRole()).isEqualTo(Role.TEACHER);
             assertThat(response.getStatus()).isEqualTo(UserStatus.PENDING_APPROVAL);
-            verify(userRepository).findByRoleAndStatus(Role.TEACHER, UserStatus.PENDING_APPROVAL);
+            verify(userRepository).findByRoleAndStatusWithProfile(Role.TEACHER, UserStatus.PENDING_APPROVAL);
         }
 
         @Test
         @DisplayName("should return empty list when no pending teachers")
         void getPendingTeachers_empty() {
-            when(userRepository.findByRoleAndStatus(Role.TEACHER, UserStatus.PENDING_APPROVAL))
+            when(userRepository.findByRoleAndStatusWithProfile(Role.TEACHER, UserStatus.PENDING_APPROVAL))
                     .thenReturn(Collections.emptyList());
 
-            List<UserResponse> result = adminUserService.getPendingTeachers();
+            List<AdminTeacherResponse> result = adminUserService.getPendingTeachers();
 
             assertThat(result).isEmpty();
-            verify(userRepository).findByRoleAndStatus(Role.TEACHER, UserStatus.PENDING_APPROVAL);
+            verify(userRepository).findByRoleAndStatusWithProfile(Role.TEACHER, UserStatus.PENDING_APPROVAL);
         }
     }
 
@@ -144,7 +144,7 @@ class AdminUserServiceTest {
             when(userRepository.findById(teacherId)).thenReturn(Optional.of(sampleTeacher));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            UserResponse result = adminUserService.approveTeacher(teacherId);
+            AdminTeacherResponse result = adminUserService.approveTeacher(teacherId);
 
             assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
             verify(userRepository).findById(teacherId);
@@ -202,7 +202,7 @@ class AdminUserServiceTest {
             when(userRepository.findById(teacherActiveId)).thenReturn(Optional.of(sampleTeacherActive));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            UserResponse result = adminUserService.suspendUser(teacherActiveId);
+            AdminTeacherResponse result = adminUserService.suspendUser(teacherActiveId);
 
             assertThat(result.getStatus()).isEqualTo(UserStatus.SUSPENDED);
             verify(userRepository).findById(teacherActiveId);

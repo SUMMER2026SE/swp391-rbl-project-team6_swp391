@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
-import type { AdminUserResponse } from "@/lib/api/admin";
+import type { AdminTeacherResponse, AdminTeacherCertificateResponse } from "@/lib/api/admin";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -23,10 +23,13 @@ type Certificate = {
   thumbnailUrl?: string;
 };
 
+type CertificateFromApi = AdminTeacherCertificateResponse;
+
 type TeacherApplication = {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
   location: string;
   bio: string;
   experience: string;
@@ -37,26 +40,53 @@ type TeacherApplication = {
   certificates: Certificate[];
 };
 
-// Map backend AdminUserResponse to display-friendly TeacherApplication
-function mapToTeacherApplication(user: AdminUserResponse): TeacherApplication {
-  const emailName = user.email.split("@")[0];
-  const nameParts = emailName.split(/[._]/).map(p =>
-    p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
-  );
+// Map backend AdminTeacherResponse to display-friendly TeacherApplication
+function mapToTeacherApplication(teacher: AdminTeacherResponse): TeacherApplication {
+  const displayName = teacher.displayName;
+  const emailName = teacher.email.split("@")[0];
+  const nameParts = displayName
+    ? displayName.split(/[.\s_]+/).filter(Boolean).map(p =>
+        p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+      )
+    : emailName.split(/[._]/).map(p =>
+        p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+      );
   return {
-    id: user.id,
-    name: nameParts.join(" ") || emailName,
-    email: user.email,
-    location: "—",
-    bio: "—",
+    id: teacher.id,
+    name: nameParts.join(" ") || emailName || "Teacher",
+    email: teacher.email,
+    avatarUrl: teacher.avatarUrl,
+    location: teacher.location || "—",
+    bio: teacher.bio || "—",
     experience: "—",
     specialization: "—",
     jlptLevel: "—",
-    appliedDate: user.createdAt
-      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(user.createdAt))
+    appliedDate: teacher.createdAt
+      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(teacher.createdAt))
       : "—",
     status: "pending",
     certificates: [],
+  };
+}
+
+// Map backend AdminTeacherCertificateResponse to display Certificate
+function mapApiCertificate(apiCert: AdminTeacherCertificateResponse): Certificate {
+  const issuedYear = apiCert.issuedDate
+    ? new Date(apiCert.issuedDate).getFullYear()
+    : apiCert.createdAt
+      ? new Date(apiCert.createdAt).getFullYear()
+      : new Date().getFullYear();
+  const isPdf = apiCert.certificateUrl
+    && !apiCert.imageUrl
+    && (apiCert.certificateUrl.endsWith(".pdf") || !apiCert.certificateUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i));
+  return {
+    id: apiCert.id,
+    name: apiCert.title,
+    issuedYear,
+    issuedBy: apiCert.issuer,
+    type: isPdf ? "pdf" : "image",
+    url: apiCert.certificateUrl || apiCert.imageUrl || "",
+    thumbnailUrl: apiCert.imageUrl || undefined,
   };
 }
 
@@ -325,6 +355,7 @@ function TeacherViewDrawer({
   actionLoading = false,
   onSuspend,
   teacherStatus = "pending",
+  certificates = [],
 }: {
   teacher: TeacherApplication;
   onClose: () => void;
@@ -334,7 +365,9 @@ function TeacherViewDrawer({
   actionLoading?: boolean;
   onSuspend?: (id: string) => void;
   teacherStatus?: "pending" | "approved" | "rejected";
+  certificates?: Certificate[];
 }) {
+  const safeCerts: Certificate[] = Array.isArray(certificates) ? certificates : [];
   const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
   const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
 
@@ -378,8 +411,22 @@ function TeacherViewDrawer({
           <div className="relative px-6 pt-6 pb-5">
             <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-primary/20 to-transparent rounded-b-3xl" />
             <div className="relative flex items-end gap-4">
-              <div className={`w-20 h-20 rounded-2xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-black text-2xl shrink-0 shadow-lg ring-4 ring-glass-border`}>
-                {initials}
+              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-white font-black text-2xl shrink-0 shadow-lg ring-4 ring-glass-border overflow-hidden ${
+                teacher.avatarUrl
+                  ? "bg-transparent"
+                  : `bg-linear-to-br ${getAvatarColor(teacher.id)}`
+              }`}>
+                {teacher.avatarUrl ? (
+                  <img
+                    src={teacher.avatarUrl}
+                    alt={teacher.name}
+                    className="w-full h-full object-cover"
+                    onError={e => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                      (e.target as HTMLImageElement).parentElement!.classList.add(`bg-linear-to-br`, ...getAvatarColor(teacher.id).split(" "));
+                    }}
+                  />
+                ) : initials}
               </div>
               <div className="pb-1">
                 <h2 className="font-display font-black text-primary-col text-xl leading-tight">{teacher.name}</h2>
@@ -429,15 +476,15 @@ function TeacherViewDrawer({
               <Award className="w-4 h-4 text-primary" />
               <h4 className="text-xs font-bold text-secondary-col uppercase tracking-wider">Certificates</h4>
               <span className="ml-auto px-2 py-0.5 rounded-full bg-glass-surface text-muted-col text-[10px] font-bold border border-glass-border">
-                {teacher.certificates.length}
+                {safeCerts.length}
               </span>
             </div>
 
-            {teacher.certificates.length === 0 ? (
+            {safeCerts.length === 0 ? (
               <p className="text-muted-col text-xs italic">No certificates available</p>
             ) : (
               <div className="space-y-3">
-                {teacher.certificates.map(cert => (
+                {safeCerts.map(cert => (
                   <div
                     key={cert.id}
                     className="rounded-xl border border-glass-border overflow-hidden glass-surface hover:border-primary/25 transition"
@@ -602,7 +649,7 @@ function TeacherCard({
             <span className="px-2 py-0.5 rounded-full bg-(--status-teacher)/12 text-(--status-teacher) text-[10px] font-bold">{teacher.experience}</span>
             <span className="px-2 py-0.5 rounded-full bg-primary/12 text-primary text-[10px] font-bold">{teacher.jlptLevel}</span>
             <span className="px-2 py-0.5 rounded-full bg-(--status-pending)/10 text-(--status-pending) text-[10px] font-bold">
-              {teacher.certificates.length} cert{teacher.certificates.length !== 1 ? "s" : ""}
+              0 certs
             </span>
           </div>
 
@@ -685,7 +732,9 @@ function TeachersPage() {
   const [approvedError, setApprovedError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<TeacherApplication | null>(null);
+  const [viewingCertificates, setViewingCertificates] = useState<Certificate[]>([]);
   const [viewingApproved, setViewingApproved] = useState<TeacherApplication | null>(null);
+  const [viewingApprovedCertificates, setViewingApprovedCertificates] = useState<Certificate[]>([]);
   const [rejectTarget, setRejectTarget] = useState<TeacherApplication | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -698,7 +747,8 @@ function TeachersPage() {
     try {
       setError(null);
       const users = await adminApi.getPendingTeachers();
-      setPendingTeachers(users.map(mapToTeacherApplication));
+      const mapped = users.map(mapToTeacherApplication);
+      setPendingTeachers(mapped);
     } catch (err) {
       const message = err instanceof ApiError
         ? err.message
@@ -717,7 +767,8 @@ function TeachersPage() {
     setApprovedError(null);
     try {
       const users = await adminApi.getActiveTeachers();
-      setApprovedTeachers(users.map(mapToTeacherApplication));
+      const mapped = users.map(mapToTeacherApplication);
+      setApprovedTeachers(mapped);
     } catch (err) {
       const message = err instanceof ApiError
         ? err.message
@@ -803,6 +854,11 @@ function TeachersPage() {
     }
   }, [showToast, fetchApprovedTeachers]);
 
+  const fetchTeacherCertificates = useCallback(async (teacherId: string): Promise<Certificate[]> => {
+    const certs = await adminApi.getTeacherCertificates(teacherId);
+    return certs.map(mapApiCertificate);
+  }, []);
+
   const pendingCount = pendingTeachers.length;
 
 
@@ -883,7 +939,11 @@ function TeachersPage() {
                     const t = pendingTeachers.find(x => x.id === id);
                     if (t) setRejectTarget(t);
                   }}
-                  onView={setViewing}
+                  onView={async teacherArg => {
+                    setViewing(teacherArg);
+                    const certs = await fetchTeacherCertificates(teacherArg.id);
+                    setViewingCertificates(certs);
+                  }}
                   loadingId={actionLoadingId}
                 />
               ))}
@@ -961,8 +1021,13 @@ function TeachersPage() {
                       )}
                     </div>
                     <div className="col-span-2 text-right">
-                      <button
-                        onClick={() => setViewingApproved(teacher)}
+                    <button
+                      onClick={() => {
+                        setViewingApproved(teacher);
+                        fetchTeacherCertificates(teacher.id).then(certs => {
+                          setViewingApprovedCertificates(certs);
+                        });
+                      }}
                         className="px-3 py-1.5 rounded-xl glass-surface text-secondary-col text-xs font-bold border border-glass-border hover:border-primary/30 hover:text-primary transition"
                       >
                         View
@@ -993,6 +1058,7 @@ function TeachersPage() {
             }}
             showActions
             actionLoading={actionLoadingId !== null}
+            certificates={viewingCertificates}
           />
         )}
       </AnimatePresence>
@@ -1021,6 +1087,7 @@ function TeachersPage() {
             actionLoading={actionLoadingId !== null}
             onSuspend={handleSuspend}
             teacherStatus="approved"
+            certificates={viewingApprovedCertificates}
           />
         )}
       </AnimatePresence>
