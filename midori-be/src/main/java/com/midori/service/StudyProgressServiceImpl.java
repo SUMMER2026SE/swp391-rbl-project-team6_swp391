@@ -35,7 +35,7 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     // Upsert Helper
     // ============================================================
 
-    private UserLearningProgress getOrCreate(UUID userId, ContentType contentType, UUID contentId) {
+    private UserLearningProgress getOrCreate(UUID userId, ContentType contentType, String contentId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
@@ -115,7 +115,7 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     // ============================================================
 
     @Override
-    public ProgressResponse updateProgress(UUID userId, ContentType contentType, UUID contentId, ProgressUpdateRequest request) {
+    public ProgressResponse updateProgress(UUID userId, ContentType contentType, String contentId, ProgressUpdateRequest request) {
         UserLearningProgress progress = getOrCreate(userId, contentType, contentId);
         applyUpdate(progress, request);
         progress = progressRepository.save(progress);
@@ -127,7 +127,7 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     // ============================================================
 
     @Override
-    public ProgressResponse markAsLearned(UUID userId, ContentType contentType, UUID contentId) {
+    public ProgressResponse markAsLearned(UUID userId, ContentType contentType, String contentId) {
         UserLearningProgress progress = getOrCreate(userId, contentType, contentId);
         progress.setLearned(true);
         progress.setProgressPercent(Math.max(progress.getProgressPercent(), 50));
@@ -137,7 +137,22 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     }
 
     @Override
-    public ProgressResponse markAsMastered(UUID userId, ContentType contentType, UUID contentId) {
+    public ProgressResponse unmarkAsLearned(UUID userId, ContentType contentType, String contentId) {
+        UserLearningProgress progress = progressRepository.findByUserIdAndContentTypeAndContentId(userId, contentType, contentId)
+                .orElse(null);
+        if (progress == null) {
+            return null;
+        }
+        progress.setLearned(false);
+        progress.setMastered(false);
+        progress.setProgressPercent(0);
+        progress.setLastStudiedAt(Instant.now());
+        progress = progressRepository.save(progress);
+        return toResponse(progress);
+    }
+
+    @Override
+    public ProgressResponse markAsMastered(UUID userId, ContentType contentType, String contentId) {
         UserLearningProgress progress = getOrCreate(userId, contentType, contentId);
         progress.setLearned(true);
         progress.setMastered(true);
@@ -148,7 +163,22 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     }
 
     @Override
-    public ProgressResponse markAsFavorite(UUID userId, ContentType contentType, UUID contentId) {
+    public ProgressResponse unmarkAsMastered(UUID userId, ContentType contentType, String contentId) {
+        UserLearningProgress progress = progressRepository.findByUserIdAndContentTypeAndContentId(userId, contentType, contentId)
+                .orElse(null);
+        if (progress == null) {
+            return null;
+        }
+        progress.setMastered(false);
+        progress.setLearned(true);
+        progress.setProgressPercent(50);
+        progress.setLastStudiedAt(Instant.now());
+        progress = progressRepository.save(progress);
+        return toResponse(progress);
+    }
+
+    @Override
+    public ProgressResponse markAsFavorite(UUID userId, ContentType contentType, String contentId) {
         UserLearningProgress progress = getOrCreate(userId, contentType, contentId);
         boolean newValue = !Boolean.TRUE.equals(progress.getFavorite());
         progress.setFavorite(newValue);
@@ -158,7 +188,7 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     }
 
     @Override
-    public ProgressResponse markAsCompleted(UUID userId, ContentType contentType, UUID contentId) {
+    public ProgressResponse markAsCompleted(UUID userId, ContentType contentType, String contentId) {
         UserLearningProgress progress = getOrCreate(userId, contentType, contentId);
         progress.setCompleted(true);
         progress.setProgressPercent(Math.max(progress.getProgressPercent(), 100));

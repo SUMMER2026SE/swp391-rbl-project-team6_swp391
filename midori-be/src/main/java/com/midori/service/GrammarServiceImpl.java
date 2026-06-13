@@ -180,8 +180,8 @@ public class GrammarServiceImpl implements GrammarService {
             throw new AccessDeniedException("You can only view stats for your own grammar entries");
         }
 
-        long completions = progressRepository.countByContentIdAndContentType(grammarId, ContentType.GRAMMAR);
-        long learned = progressRepository.countLearnedByGrammarId(grammarId, ContentType.GRAMMAR);
+        long completions = progressRepository.countByContentIdAndContentType(grammarId.toString(), ContentType.GRAMMAR);
+        long learned = progressRepository.countLearnedByGrammarId(grammarId.toString(), ContentType.GRAMMAR);
         long views = learned; // views are tracked as 'learned' interactions
 
         return GrammarStatsResponse.builder()

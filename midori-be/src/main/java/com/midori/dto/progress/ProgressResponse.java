@@ -16,7 +16,7 @@ public class ProgressResponse {
 
     private UUID id;
     private String contentType;
-    private UUID contentId;
+    private String contentId;
     private Boolean learned;
     private Boolean mastered;
     private Boolean favorite;

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -36,6 +36,7 @@ export const Route = createFileRoute("/student/vocabulary/$lessonId")({
 
 function VocabStudyPage() {
   const { lessonId } = Route.useParams();
+  const queryClient = useQueryClient();
 
   // ── Query: Lesson details (includes words) ─────────────────────────────────
   const {
@@ -66,7 +67,8 @@ function VocabStudyPage() {
     if (!progressList || !lesson) return new Set<number>();
     const learned = new Set<number>();
     lesson.words.forEach((w, idx) => {
-      const wordProgress = progressList.find((p) => p.contentId === w.word);
+      const contentKey = `${lessonId}::${w.word}`;
+      const wordProgress = progressList.find((p) => p.contentId === contentKey);
       if (wordProgress?.learned || wordProgress?.mastered) {
         learned.add(idx);
       }
@@ -79,7 +81,8 @@ function VocabStudyPage() {
     if (!progressList || !lesson) return new Set<number>();
     const bookmarked = new Set<number>();
     lesson.words.forEach((w, idx) => {
-      const wordProgress = progressList.find((p) => p.contentId === w.word);
+      const contentKey = `${lessonId}::${w.word}`;
+      const wordProgress = progressList.find((p) => p.contentId === contentKey);
       if (wordProgress?.favorite) {
         bookmarked.add(idx);
       }
@@ -132,14 +135,15 @@ function VocabStudyPage() {
       newLearned.add(current);
     }
 
-    // Optimistic update via query invalidation will happen via React Query
+    const contentId = `${lessonId}::${word.word}`;
     try {
       if (wasLearned) {
         // TODO: Could add unlearn endpoint if backend supports it
         // For now, just update local state via query invalidation
       } else {
-        await studentProgressApi.markAsLearned("VOCABULARY", word.word);
+        await studentProgressApi.markAsLearned("VOCABULARY", contentId);
       }
+      queryClient.invalidateQueries({ queryKey: ["vocabulary-progress", lessonId] });
     } catch (err) {
       console.error("Failed to update learned status:", err);
     }
@@ -156,8 +160,10 @@ function VocabStudyPage() {
       newBookmarked.add(current);
     }
 
+    const contentId = `${lessonId}::${word.word}`;
     try {
-      await studentProgressApi.toggleFavorite("VOCABULARY", word.word);
+      await studentProgressApi.toggleFavorite("VOCABULARY", contentId);
+      queryClient.invalidateQueries({ queryKey: ["vocabulary-progress", lessonId] });
     } catch (err) {
       console.error("Failed to toggle bookmark:", err);
     }

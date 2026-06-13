@@ -279,19 +279,43 @@ function VocabularyPage() {
         const progressList = await studentProgressApi.getProgress({ contentType: "VOCABULARY" });
 
         // Build word statuses from API data
+        // Only process word-level contentId (format: lessonId::word)
+        // Filter out lesson-level contentId (no ::) and test/old data
+        const lessonIds = new Set(allLessonsBase.map(l => l.id));
+        const progressByContentId = new Map<string, typeof progressList[0]>();
+
+        // Deduplicate: keep the latest record for each contentId
+        progressList.forEach((p) => {
+          progressByContentId.set(p.contentId, p);
+        });
+
         const newStatuses: Record<string, WordStatus> = {};
         const newFavorites = new Set<string>();
         const newCompletedLessons = new Set<string>();
 
-        progressList.forEach((p) => {
-          const contentKey = `${p.contentId}`;
+        progressByContentId.forEach((p) => {
+          // Only process word-level contentId
+          if (!p.contentId.includes("::")) {
+            // Lesson-level: only track completed
+            if (p.completed) {
+              newCompletedLessons.add(p.contentId);
+            }
+            return;
+          }
+
+          // Parse word-level contentId
+          const [lessonId, word] = p.contentId.split("::");
+          if (!lessonId || !word) return;
+          // Only count if lesson still exists
+          if (!lessonIds.has(lessonId)) return;
+
           if (p.mastered) {
-            newStatuses[contentKey] = "mastered";
+            newStatuses[p.contentId] = "mastered";
           } else if (p.learned) {
-            newStatuses[contentKey] = "learning";
+            newStatuses[p.contentId] = "learning";
           }
           if (p.favorite) {
-            newFavorites.add(contentKey);
+            newFavorites.add(p.contentId);
           }
           if (p.completed) {
             newCompletedLessons.add(p.contentId);
@@ -309,8 +333,11 @@ function VocabularyPage() {
       }
     };
 
-    fetchProgress();
-  }, []);
+    // Only fetch when lessons are loaded
+    if (allLessonsBase.length > 0) {
+      fetchProgress();
+    }
+  }, [allLessonsBase]);
 
   // Fetch lesson detail when opening a lesson
   const openLesson = async (lessonId: string) => {
@@ -371,8 +398,9 @@ function VocabularyPage() {
   }, [allTopics]);
 
   const totalWordsAll = allLessonsBase.reduce((sum, l) => sum + (l.wordCount ?? l.word_count ?? 0), 0);
-  const totalLearned = Object.values(wordStatuses).filter(s => s === "mastered").length;
-  const totalLearning = totalWordsAll - totalLearned;
+  const totalMastered = Object.values(wordStatuses).filter(s => s === "mastered").length;
+  // Learning = Total words - Mastered words (per user request)
+  const totalLearning = Math.max(0, totalWordsAll - totalMastered);
   const totalFavorites = favorites.size;
 
   const getWordStatus = (wordKey: string): WordStatus => wordStatuses[wordKey] ?? "new";
@@ -384,13 +412,13 @@ function VocabularyPage() {
   };
 
   const setWordStatus = (wordKey: string, status: WordStatus) => {
-    // Resolve lessonId - prefer activeLesson, fallback from wordKey
-    const resolvedLessonId = activeLesson ?? wordKey.split("-")[0];
-
-    // Guard: don't call API if lessonId is invalid
-    if (!resolvedLessonId || resolvedLessonId.trim() === "") {
+    // Guard: need activeLesson and valid wordKey
+    if (!activeLesson || !wordKey || wordKey.trim() === "") {
       return;
     }
+
+    // Capture current status BEFORE state update for API call
+    const currentStatus = wordStatuses[wordKey];
 
     // Update local state immediately
     setWordStatuses((prev) => {
@@ -403,27 +431,30 @@ function VocabularyPage() {
       return next;
     });
 
-    // Call API
-    const markAsMasteredFn = async () => {
+    // Call API with word-level contentId
+    const contentId = wordKey;
+    const updateFn = async () => {
       try {
         if (status === "mastered") {
-          await studentProgressApi.markAsMastered("VOCABULARY", resolvedLessonId);
+          await studentProgressApi.markAsMastered("VOCABULARY", contentId);
         } else if (status === "new") {
-          await studentProgressApi.markAsLearned("VOCABULARY", resolvedLessonId);
+          // Toggle based on captured current status (not the new state)
+          if (currentStatus === "mastered") {
+            await studentProgressApi.unmarkAsMastered("VOCABULARY", contentId);
+          } else {
+            await studentProgressApi.unmarkAsLearned("VOCABULARY", contentId);
+          }
         }
       } catch (err) {
         console.error("Failed to update progress:", err);
       }
     };
-    markAsMasteredFn();
+    updateFn();
   };
 
   const toggleFavoriteWord = (wordKey: string) => {
-    // Resolve lessonId - prefer activeLesson, fallback from wordKey
-    const resolvedLessonId = activeLesson ?? wordKey.split("-")[0];
-
-    // Guard: don't call API if lessonId is invalid
-    if (!resolvedLessonId || resolvedLessonId.trim() === "") {
+    // Guard: need activeLesson and valid wordKey
+    if (!activeLesson || !wordKey || wordKey.trim() === "") {
       return;
     }
 
@@ -438,10 +469,11 @@ function VocabularyPage() {
       return next;
     });
 
-    // Call API
+    // Call API with word-level contentId
+    const contentId = wordKey;
     const toggleFn = async () => {
       try {
-        await studentProgressApi.toggleFavorite("VOCABULARY", resolvedLessonId);
+        await studentProgressApi.toggleFavorite("VOCABULARY", contentId);
       } catch (err) {
         console.error("Failed to toggle favorite:", err);
       }
@@ -465,7 +497,7 @@ function VocabularyPage() {
 
   if (activeLesson && lessonDetail) {
     const words = lessonDetail.words ?? [];
-    const lessonProgress = words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "mastered").length;
+    const lessonProgress = words.filter(w => wordStatuses[`${activeLesson}::${w.word}`] === "mastered").length;
     const progressPct = words.length > 0 ? Math.round((lessonProgress / words.length) * 100) : 0;
 
     // Build word list from lessonDetail
@@ -479,10 +511,10 @@ function VocabularyPage() {
     }));
 
     const filteredWords = lessonWords.filter((_, idx) => {
-      const wordKey = `${activeLesson}-${words[idx]?.word}`;
+      const wordKey = `${activeLesson}::${words[idx]?.word}`;
       const status = getWordStatus(wordKey);
       if (filterTab === "Mastered") return status === "mastered";
-      if (filterTab === "Learning") return status !== "mastered";
+      if (filterTab === "Learning") return status === "learning";
       if (filterTab === "Favorite") return favorites.has(wordKey);
       return true;
     });
@@ -562,7 +594,7 @@ function VocabularyPage() {
               <div className="w-px h-4 bg-border dark:bg-white/10" />
               <div className="flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400">
                 <Zap className="w-3 h-3" />
-                <span>{words.length - words.filter(w => wordStatuses[`${activeLesson}-${w.word}`] === "mastered").length} learning</span>
+                <span>{words.length - words.filter(w => wordStatuses[`${activeLesson}::${w.word}`] === "mastered").length} learning</span>
               </div>
             </div>
 
@@ -612,7 +644,7 @@ function VocabularyPage() {
             ) : !detailLoading && !detailError && (
               <div className="space-y-2">
                 {paginatedWords.map((word, i) => {
-                  const wordKey = `${activeLesson}-${word.word}`;
+                  const wordKey = `${activeLesson}::${word.word}`;
                   const status = getWordStatus(wordKey);
                   const isFav = favorites.has(wordKey);
 
@@ -724,13 +756,16 @@ function VocabularyPage() {
                           if (!activeLesson) return;
                           const newStatuses: Record<string, WordStatus> = {};
                           words.forEach(w => {
-                            newStatuses[`${activeLesson}-${w.word}`] = "mastered";
+                            newStatuses[`${activeLesson}::${w.word}`] = "mastered";
                           });
                           setWordStatuses(prev => ({ ...prev, ...newStatuses }));
                           setCompletedLessons(prev => { const n = new Set(prev); n.add(activeLesson); return n; });
                           if (activeLesson) {
                             try {
-                              await studentProgressApi.markAsMastered("VOCABULARY", activeLesson);
+                              await Promise.all([
+                                studentProgressApi.markAsCompleted("VOCABULARY", activeLesson),
+                                ...words.map(w => studentProgressApi.markAsMastered("VOCABULARY", `${activeLesson}::${w.word}`)),
+                              ]);
                             } catch (err) {
                               console.error("Failed to mark lesson as completed:", err);
                             }
@@ -803,7 +838,7 @@ function VocabularyPage() {
             </div>
             <div className="hidden sm:flex items-center gap-2">
               {[
-                { label: "Mastered", value: totalLearned, color: "text-green-500" },
+                { label: "Mastered", value: totalMastered, color: "text-green-500" },
                 { label: "Learning", value: totalLearning, color: "text-amber-500" },
                 { label: "Total", value: totalWordsAll, color: "text-blue-500" },
               ].map((stat) => (
@@ -931,7 +966,7 @@ function VocabularyPage() {
                   {filteredLessons.map((lesson, i) => {
                     const wordCount = lesson.wordCount ?? lesson.word_count ?? 0;
                     const masteredCount = Object.entries(wordStatuses).filter(
-                      ([k]) => k.startsWith(`${lesson.id}-`) && wordStatuses[k as string] === "mastered"
+                      ([k]) => k.startsWith(`${lesson.id}::`) && wordStatuses[k as string] === "mastered"
                     ).length;
                     const lessonPct = wordCount > 0 ? Math.round((masteredCount / wordCount) * 100) : 0;
                     return (
