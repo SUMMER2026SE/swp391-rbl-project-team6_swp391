@@ -18,14 +18,18 @@ public interface StudyProgressService {
     ProgressStatsResponse getProgressStats(UUID userId);
 
     // ===== Student: Upsert progress (create or update) =====
-    ProgressResponse updateProgress(UUID userId, ContentType contentType, UUID contentId, ProgressUpdateRequest request);
+    ProgressResponse updateProgress(UUID userId, ContentType contentType, String contentId, ProgressUpdateRequest request);
 
     // ===== Student: Action shortcuts =====
-    ProgressResponse markAsLearned(UUID userId, ContentType contentType, UUID contentId);
+    ProgressResponse markAsLearned(UUID userId, ContentType contentType, String contentId);
 
-    ProgressResponse markAsMastered(UUID userId, ContentType contentType, UUID contentId);
+    ProgressResponse unmarkAsLearned(UUID userId, ContentType contentType, String contentId);
 
-    ProgressResponse markAsFavorite(UUID userId, ContentType contentType, UUID contentId);
+    ProgressResponse markAsMastered(UUID userId, ContentType contentType, String contentId);
 
-    ProgressResponse markAsCompleted(UUID userId, ContentType contentType, UUID contentId);
+    ProgressResponse unmarkAsMastered(UUID userId, ContentType contentType, String contentId);
+
+    ProgressResponse markAsFavorite(UUID userId, ContentType contentType, String contentId);
+
+    ProgressResponse markAsCompleted(UUID userId, ContentType contentType, String contentId);
 }

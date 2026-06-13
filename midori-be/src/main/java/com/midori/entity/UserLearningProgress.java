@@ -40,8 +40,8 @@ public class UserLearningProgress {
     @Column(name = "content_type", nullable = false, length = 20)
     private ContentType contentType;
 
-    @Column(name = "content_id", nullable = false)
-    private UUID contentId;
+    @Column(name = "content_id", nullable = false, length = 500)
+    private String contentId;
 
     @Column(name = "learned", nullable = false)
     @Builder.Default

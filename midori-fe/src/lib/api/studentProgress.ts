@@ -40,7 +40,17 @@ export const studentProgressApi = {
    */
   markAsLearned: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${contentId}/learned`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/learned`
+    );
+  },
+
+  /**
+   * DELETE /api/student/progress/{contentType}/{contentId}/learned
+   * Unmarks content as learned (sets learned=false, mastered=false).
+   */
+  unmarkAsLearned: async (contentType: ContentType, contentId: string) => {
+    return api.delete<ProgressResponse>(
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/learned`
     );
   },
 
@@ -50,7 +60,17 @@ export const studentProgressApi = {
    */
   markAsMastered: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${contentId}/mastered`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/mastered`
+    );
+  },
+
+  /**
+   * DELETE /api/student/progress/{contentType}/{contentId}/mastered
+   * Unmarks content as mastered (sets mastered=false, learned=true).
+   */
+  unmarkAsMastered: async (contentType: ContentType, contentId: string) => {
+    return api.delete<ProgressResponse>(
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/mastered`
     );
   },
 
@@ -60,7 +80,17 @@ export const studentProgressApi = {
    */
   toggleFavorite: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${contentId}/favorite`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/favorite`
+    );
+  },
+
+  /**
+   * POST /api/student/progress/{contentType}/{contentId}/complete
+   * Marks lesson as completed.
+   */
+  markAsCompleted: async (contentType: ContentType, contentId: string) => {
+    return api.post<ProgressResponse>(
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`
     );
   },
 };

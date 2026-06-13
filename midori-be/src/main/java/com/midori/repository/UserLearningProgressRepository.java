@@ -28,7 +28,7 @@ public interface UserLearningProgressRepository extends JpaRepository<UserLearni
     Optional<UserLearningProgress> findByUserIdAndContentTypeAndContentId(
             @Param("userId") UUID userId,
             @Param("contentType") ContentType contentType,
-            @Param("contentId") UUID contentId);
+            @Param("contentId") String contentId);
 
     @Query("SELECT COUNT(p) FROM UserLearningProgress p WHERE p.user.id = :userId AND p.completed = true AND p.contentType = :contentType")
     long countCompletedByUserIdAndContentType(@Param("userId") UUID userId, @Param("contentType") ContentType contentType);
@@ -58,8 +58,8 @@ public interface UserLearningProgressRepository extends JpaRepository<UserLearni
     long countByUserIdAndContentType(@Param("userId") UUID userId, @Param("contentType") ContentType contentType);
 
     @Query("SELECT COUNT(p) FROM UserLearningProgress p WHERE p.contentId = :contentId AND p.contentType = :contentType")
-    long countByContentIdAndContentType(@Param("contentId") UUID contentId, @Param("contentType") ContentType contentType);
+    long countByContentIdAndContentType(@Param("contentId") String contentId, @Param("contentType") ContentType contentType);
 
     @Query("SELECT COUNT(p) FROM UserLearningProgress p WHERE p.contentId = :grammarId AND p.contentType = :contentType AND p.learned = true")
-    long countLearnedByGrammarId(@Param("grammarId") UUID grammarId, @Param("contentType") ContentType contentType);
+    long countLearnedByGrammarId(@Param("grammarId") String grammarId, @Param("contentType") ContentType contentType);
 }

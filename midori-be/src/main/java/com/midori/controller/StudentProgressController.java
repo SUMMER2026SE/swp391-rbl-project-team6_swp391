@@ -52,7 +52,7 @@ public class StudentProgressController {
     public ResponseEntity<ApiResponse<ProgressResponse>> updateProgress(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String contentType,
-            @PathVariable UUID contentId,
+            @PathVariable String contentId,
             @Valid @RequestBody ProgressUpdateRequest request) {
         ContentType type = parseContentType(contentType);
         ProgressResponse result = studyProgressService.updateProgress(
@@ -64,10 +64,24 @@ public class StudentProgressController {
     public ResponseEntity<ApiResponse<ProgressResponse>> markAsLearned(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String contentType,
-            @PathVariable UUID contentId) {
+            @PathVariable String contentId) {
         ContentType type = parseContentType(contentType);
         ProgressResponse result = studyProgressService.markAsLearned(
                 userDetails.getId(), type, contentId);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @DeleteMapping("/{contentType}/{contentId}/learned")
+    public ResponseEntity<ApiResponse<ProgressResponse>> unmarkAsLearned(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String contentType,
+            @PathVariable String contentId) {
+        ContentType type = parseContentType(contentType);
+        ProgressResponse result = studyProgressService.unmarkAsLearned(
+                userDetails.getId(), type, contentId);
+        if (result == null) {
+            return ResponseEntity.ok(ApiResponse.success(null));
+        }
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -75,10 +89,24 @@ public class StudentProgressController {
     public ResponseEntity<ApiResponse<ProgressResponse>> markAsMastered(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String contentType,
-            @PathVariable UUID contentId) {
+            @PathVariable String contentId) {
         ContentType type = parseContentType(contentType);
         ProgressResponse result = studyProgressService.markAsMastered(
                 userDetails.getId(), type, contentId);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @DeleteMapping("/{contentType}/{contentId}/mastered")
+    public ResponseEntity<ApiResponse<ProgressResponse>> unmarkAsMastered(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String contentType,
+            @PathVariable String contentId) {
+        ContentType type = parseContentType(contentType);
+        ProgressResponse result = studyProgressService.unmarkAsMastered(
+                userDetails.getId(), type, contentId);
+        if (result == null) {
+            return ResponseEntity.ok(ApiResponse.success(null));
+        }
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -86,7 +114,7 @@ public class StudentProgressController {
     public ResponseEntity<ApiResponse<ProgressResponse>> toggleFavorite(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String contentType,
-            @PathVariable UUID contentId) {
+            @PathVariable String contentId) {
         ContentType type = parseContentType(contentType);
         ProgressResponse result = studyProgressService.markAsFavorite(
                 userDetails.getId(), type, contentId);
@@ -97,7 +125,7 @@ public class StudentProgressController {
     public ResponseEntity<ApiResponse<ProgressResponse>> markAsCompleted(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String contentType,
-            @PathVariable UUID contentId) {
+            @PathVariable String contentId) {
         ContentType type = parseContentType(contentType);
         ProgressResponse result = studyProgressService.markAsCompleted(
                 userDetails.getId(), type, contentId);
