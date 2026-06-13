@@ -32,4 +32,6 @@ public interface StudyProgressService {
     ProgressResponse markAsFavorite(UUID userId, ContentType contentType, String contentId);
 
     ProgressResponse markAsCompleted(UUID userId, ContentType contentType, String contentId);
+
+    ProgressResponse unmarkAsCompleted(UUID userId, ContentType contentType, String contentId);
 }

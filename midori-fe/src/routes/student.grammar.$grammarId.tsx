@@ -12,6 +12,7 @@ import {
   studentGrammarApi,
   type GrammarResponse,
 } from "@/lib/api/studentGrammar";
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 const levelColors: Record<string, string> = {
   N5: "bg-blue-50 text-blue-500 dark:bg-blue-950/30",
@@ -76,6 +77,30 @@ function StructureListPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ── Progress Query ───────────────────────────────────────────────────────
+  const { data: progressList = [], refetch: refetchProgress } = useQuery({
+    queryKey: ["grammar-progress", grammarId],
+    queryFn: () => studentProgressApi.getProgress({ contentType: "GRAMMAR" }),
+    enabled: !!grammarId,
+    staleTime: 30 * 1000,
+  });
+
+  // Load progress into state after grammar loads
+  useEffect(() => {
+    if (!grammar) return;
+    const completedSet = new Set<string>();
+    const bookmarkedSet = new Set<string>();
+    progressList.forEach(p => {
+      if (p.contentType === "GRAMMAR" && p.contentId === grammar.id) {
+        if (p.completed) completedSet.add(p.contentId);
+        if (p.favorite) bookmarkedSet.add(p.contentId);
+      }
+    });
+    setCompleted(completedSet);
+    setBookmarked(bookmarkedSet);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressList, grammar?.id]);
+
   const errorMessage =
     error instanceof Error ? error.message : "Failed to load grammar. Please try again.";
 
@@ -95,22 +120,54 @@ function StructureListPage() {
     examples,
   }] : [];
 
-  const toggleComplete = (id: string) => {
+  const toggleComplete = async (id: string) => {
+    const isCurrentlyCompleted = completed.has(id);
+    // Optimistic update
     setCompleted(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    try {
+      if (isCurrentlyCompleted) {
+        await studentProgressApi.unmarkAsCompleted("GRAMMAR", id);
+      } else {
+        await studentProgressApi.markAsCompleted("GRAMMAR", id);
+      }
+      await refetchProgress();
+    } catch {
+      // Revert on error
+      setCompleted(prev => {
+        const next = new Set(prev);
+        if (isCurrentlyCompleted) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
   };
 
-  const toggleBookmark = (id: string) => {
+  const toggleBookmark = async (id: string) => {
+    const isCurrentlyBookmarked = bookmarked.has(id);
+    // Optimistic update
     setBookmarked(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    try {
+      await studentProgressApi.toggleFavorite("GRAMMAR", id);
+      await refetchProgress();
+    } catch {
+      // Revert on error
+      setBookmarked(prev => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
   };
 
   const completedCount = structureItems.filter(s => completed.has(s.id)).length;

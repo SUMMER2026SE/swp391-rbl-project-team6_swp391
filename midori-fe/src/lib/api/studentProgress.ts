@@ -93,4 +93,14 @@ export const studentProgressApi = {
       `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`
     );
   },
+
+  /**
+   * DELETE /api/student/progress/{contentType}/{contentId}/complete
+   * Unmarks lesson as completed (sets completed=false).
+   */
+  unmarkAsCompleted: async (contentType: ContentType, contentId: string) => {
+    return api.delete<ProgressResponse>(
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`
+    );
+  },
 };
