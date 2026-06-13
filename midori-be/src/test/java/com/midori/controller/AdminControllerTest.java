@@ -1,6 +1,6 @@
 package com.midori.controller;
 
-import com.midori.dto.response.UserResponse;
+import com.midori.dto.response.AdminTeacherResponse;
 import com.midori.entity.Role;
 import com.midori.entity.UserStatus;
 import com.midori.exception.ResourceNotFoundException;
@@ -44,18 +44,17 @@ class AdminControllerTest {
     @MockBean
     private AdminUserService adminUserService;
 
-    private UserResponse sampleTeacher;
+    private AdminTeacherResponse sampleTeacher;
     private UUID teacherId;
 
     @BeforeEach
     void setUp() {
         teacherId = UUID.randomUUID();
-        sampleTeacher = UserResponse.builder()
+        sampleTeacher = AdminTeacherResponse.builder()
                 .id(teacherId)
                 .email("teacher@example.com")
                 .role(Role.TEACHER)
                 .status(UserStatus.PENDING_APPROVAL)
-                .emailVerified(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -68,7 +67,7 @@ class AdminControllerTest {
         @Test
         @DisplayName("should return pending teachers successfully")
         void getPendingTeachers_success() throws Exception {
-            List<UserResponse> teachers = List.of(sampleTeacher);
+            List<AdminTeacherResponse> teachers = List.of(sampleTeacher);
             when(adminUserService.getPendingTeachers()).thenReturn(teachers);
 
             mockMvc.perform(get("/api/admin/users/teachers/pending"))
@@ -102,12 +101,11 @@ class AdminControllerTest {
         @Test
         @DisplayName("should approve teacher successfully")
         void approveTeacher_success() throws Exception {
-            UserResponse approvedTeacher = UserResponse.builder()
+            AdminTeacherResponse approvedTeacher = AdminTeacherResponse.builder()
                     .id(teacherId)
                     .email("teacher@example.com")
                     .role(Role.TEACHER)
                     .status(UserStatus.ACTIVE)
-                    .emailVerified(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -144,13 +142,12 @@ class AdminControllerTest {
         @Test
         @DisplayName("should reject pending teacher successfully")
         void rejectTeacher_success() throws Exception {
-            UserResponse rejectedTeacher = UserResponse.builder()
+            AdminTeacherResponse rejectedTeacher = AdminTeacherResponse.builder()
                     .id(teacherId)
                     .email("teacher@example.com")
                     .role(Role.TEACHER)
                     .status(UserStatus.REJECTED)
                     .rejectionReason("Certificate not valid")
-                    .emailVerified(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -197,12 +194,11 @@ class AdminControllerTest {
         @DisplayName("should suspend user successfully")
         void suspendUser_success() throws Exception {
             UUID userId = UUID.randomUUID();
-            UserResponse suspendedUser = UserResponse.builder()
+            AdminTeacherResponse suspendedUser = AdminTeacherResponse.builder()
                     .id(userId)
                     .email("user@example.com")
                     .role(Role.STUDENT)
                     .status(UserStatus.SUSPENDED)
-                    .emailVerified(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();

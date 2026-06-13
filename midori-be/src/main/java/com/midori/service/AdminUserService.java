@@ -1,11 +1,14 @@
 package com.midori.service;
 
-import com.midori.dto.response.UserResponse;
+import com.midori.dto.response.AdminTeacherCertificateResponse;
+import com.midori.dto.response.AdminTeacherResponse;
 import com.midori.entity.Role;
+import com.midori.entity.TeacherCertificate;
 import com.midori.entity.User;
 import com.midori.entity.UserStatus;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
+import com.midori.repository.TeacherCertificateRepository;
 import com.midori.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,25 +25,26 @@ import java.util.stream.Collectors;
 public class AdminUserService {
 
     private final UserRepository userRepository;
+    private final TeacherCertificateRepository teacherCertificateRepository;
 
     @Transactional(readOnly = true)
-    public List<UserResponse> getPendingTeachers() {
-        List<User> pendingTeachers = userRepository.findByRoleAndStatus(Role.TEACHER, UserStatus.PENDING_APPROVAL);
+    public List<AdminTeacherResponse> getPendingTeachers() {
+        List<User> pendingTeachers = userRepository.findByRoleAndStatusWithProfile(Role.TEACHER, UserStatus.PENDING_APPROVAL);
         return pendingTeachers.stream()
-                .map(this::toUserResponse)
+                .map(this::toAdminTeacherResponse)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponse> getActiveTeachers() {
-        List<User> activeTeachers = userRepository.findByRoleAndStatus(Role.TEACHER, UserStatus.ACTIVE);
+    public List<AdminTeacherResponse> getActiveTeachers() {
+        List<User> activeTeachers = userRepository.findByRoleAndStatusWithProfile(Role.TEACHER, UserStatus.ACTIVE);
         return activeTeachers.stream()
-                .map(this::toUserResponse)
+                .map(this::toAdminTeacherResponse)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public UserResponse approveTeacher(UUID userId) {
+    public AdminTeacherResponse approveTeacher(UUID userId) {
         User user = getTeacherById(userId);
 
         if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
@@ -52,11 +56,11 @@ public class AdminUserService {
         User savedUser = userRepository.save(user);
 
         log.info("Approved teacher: {} ({})", savedUser.getEmail(), userId);
-        return toUserResponse(savedUser);
+        return toAdminTeacherResponse(savedUser);
     }
 
     @Transactional
-    public UserResponse rejectTeacher(UUID userId, String reason) {
+    public AdminTeacherResponse rejectTeacher(UUID userId, String reason) {
         User user = getTeacherById(userId);
 
         if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
@@ -68,11 +72,11 @@ public class AdminUserService {
         User savedUser = userRepository.save(user);
 
         log.info("Rejected teacher application: {} ({})", savedUser.getEmail(), userId);
-        return toUserResponse(savedUser);
+        return toAdminTeacherResponse(savedUser);
     }
 
     @Transactional
-    public UserResponse suspendUser(UUID userId) {
+    public AdminTeacherResponse suspendUser(UUID userId) {
         User user = getTeacherById(userId);
 
         if (user.getStatus() != UserStatus.ACTIVE) {
@@ -83,11 +87,11 @@ public class AdminUserService {
         User savedUser = userRepository.save(user);
 
         log.info("Suspended teacher: {} ({})", savedUser.getEmail(), userId);
-        return toUserResponse(savedUser);
+        return toAdminTeacherResponse(savedUser);
     }
 
     @Transactional
-    public UserResponse activateUser(UUID userId) {
+    public AdminTeacherResponse activateUser(UUID userId) {
         User user = getTeacherById(userId);
 
         if (user.getStatus() != UserStatus.SUSPENDED) {
@@ -99,7 +103,59 @@ public class AdminUserService {
         User savedUser = userRepository.save(user);
 
         log.info("Activated teacher: {} ({})", savedUser.getEmail(), userId);
-        return toUserResponse(savedUser);
+        return toAdminTeacherResponse(savedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminTeacherCertificateResponse> getTeacherCertificates(UUID userId) {
+        getTeacherById(userId);
+        List<TeacherCertificate> certs = teacherCertificateRepository.findByTeacherIdOrderByCreatedAtDesc(userId);
+        return certs.stream()
+                .map(this::toAdminCertificateResponse)
+                .collect(Collectors.toList());
+    }
+
+    private AdminTeacherCertificateResponse toAdminCertificateResponse(TeacherCertificate cert) {
+        return AdminTeacherCertificateResponse.builder()
+                .id(cert.getId())
+                .title(cert.getTitle())
+                .issuer(cert.getIssuer())
+                .issuedDate(cert.getIssuedDate())
+                .certificateUrl(cert.getCertificateUrl())
+                .imageUrl(cert.getImageUrl())
+                .description(cert.getDescription())
+                .createdAt(cert.getCreatedAt())
+                .updatedAt(cert.getUpdatedAt())
+                .build();
+    }
+
+    private AdminTeacherResponse toAdminTeacherResponse(User user) {
+        if (user.getProfile() != null) {
+            return AdminTeacherResponse.builder()
+                    .id(user.getId())
+                    .email(user.getEmail())
+                    .role(user.getRole())
+                    .status(user.getStatus())
+                    .displayName(user.getProfile().getDisplayName())
+                    .avatarUrl(user.getProfile().getAvatarUrl())
+                    .bio(user.getProfile().getBio())
+                    .phone(user.getProfile().getPhone())
+                    .location(user.getProfile().getLocation())
+                    .dateOfBirth(user.getProfile().getDateOfBirth())
+                    .rejectionReason(user.getRejectionReason())
+                    .createdAt(user.getCreatedAt())
+                    .updatedAt(user.getUpdatedAt())
+                    .build();
+        }
+        return AdminTeacherResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .rejectionReason(user.getRejectionReason())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 
     private User getTeacherById(UUID userId) {
@@ -110,19 +166,10 @@ public class AdminUserService {
             throw new BadRequestException("Only teacher accounts can be managed here");
         }
 
+        // Force initialize lazy associations
+        if (user.getProfile() != null) {
+            user.getProfile().getAvatarUrl();
+        }
         return user;
-    }
-
-    private UserResponse toUserResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .status(user.getStatus())
-                .rejectionReason(user.getRejectionReason())
-                .emailVerified(user.getEmailVerified())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
     }
 }

@@ -18,4 +18,6 @@ public interface TeacherCertificateRepository extends JpaRepository<TeacherCerti
 
     @Query("SELECT tc FROM TeacherCertificate tc LEFT JOIN FETCH tc.teacher t LEFT JOIN FETCH t.profile WHERE tc.id = :id")
     Optional<TeacherCertificate> findByIdWithTeacher(@Param("id") UUID id);
+
+    List<TeacherCertificate> findByTeacherIdOrderByCreatedAtDesc(UUID teacherId);
 }
