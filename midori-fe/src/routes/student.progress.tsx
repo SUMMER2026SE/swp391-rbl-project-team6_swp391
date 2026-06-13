@@ -58,8 +58,8 @@ function ProgressPage() {
   // Convert weeklyStudyData from API to chart format
   const weeklyStudyData = (stats?.weeklyStudyData ?? []).map((item) => ({
     day: item.day,
-    vocab: item.count,
-    grammar: 0,
+    vocab: item.vocabCount ?? 0,
+    grammar: item.grammarCount ?? 0,
     listening: 0,
     shadow: 0,
   }));
