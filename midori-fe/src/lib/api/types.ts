@@ -109,7 +109,9 @@ export interface ProgressResponse {
 
 export interface WeeklyStudyData {
   day: string;
-  count: number;
+  count?: number;
+  vocabCount?: number;
+  grammarCount?: number;
 }
 
 export interface ProgressStatsResponse {
@@ -120,6 +122,14 @@ export interface ProgressStatsResponse {
   progressPercent: number;
   learningStreak: number;
   weeklyStudyData: WeeklyStudyData[];
+  vocabularyLearned?: number;
+  vocabularyMastered?: number;
+  vocabularyCompleted?: number;
+  vocabularyFavorite?: number;
+  grammarLearned?: number;
+  grammarMastered?: number;
+  grammarCompleted?: number;
+  grammarFavorite?: number;
 }
 
 export interface ProgressUpdateRequest {

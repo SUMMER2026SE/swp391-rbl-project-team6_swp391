@@ -13,4 +13,6 @@ public class WeeklyStudyData {
 
     private String day;
     private Integer count;
+    private Integer vocabCount;
+    private Integer grammarCount;
 }

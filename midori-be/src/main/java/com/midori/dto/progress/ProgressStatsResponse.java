@@ -13,11 +13,21 @@ import java.util.List;
 @AllArgsConstructor
 public class ProgressStatsResponse {
 
-    private long completedLessons;
-    private long learnedWords;
-    private long masteredWords;
-    private long favoriteWords;
+    private Long completedLessons;
+    private Long learnedWords;
+    private Long masteredWords;
+    private Long favoriteWords;
     private Integer progressPercent;
     private Integer learningStreak;
     private List<WeeklyStudyData> weeklyStudyData;
+
+    private Long vocabularyLearned;
+    private Long vocabularyMastered;
+    private Long vocabularyCompleted;
+    private Long vocabularyFavorite;
+
+    private Long grammarLearned;
+    private Long grammarMastered;
+    private Long grammarCompleted;
+    private Long grammarFavorite;
 }

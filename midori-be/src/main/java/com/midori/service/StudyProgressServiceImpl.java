@@ -20,6 +20,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -223,11 +224,20 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         long favoriteWords = progressRepository.countFavoriteByUserId(userId);
         long completedLessons = progressRepository.countCompletedByUserId(userId);
 
+        long vocabularyLearned = progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.VOCABULARY);
+        long vocabularyMastered = progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.VOCABULARY);
+        long vocabularyCompleted = progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.VOCABULARY);
+        long vocabularyFavorite = progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.VOCABULARY);
+
+        long grammarLearned = progressRepository.countLearnedByUserIdAndContentType(userId, ContentType.GRAMMAR);
+        long grammarMastered = progressRepository.countMasteredByUserIdAndContentType(userId, ContentType.GRAMMAR);
+        long grammarCompleted = progressRepository.countCompletedByUserIdAndContentType(userId, ContentType.GRAMMAR);
+        long grammarFavorite = progressRepository.countFavoriteByUserIdAndContentType(userId, ContentType.GRAMMAR);
+
         int overallPercent = 0;
         long totalItems = learnedWords;
         if (totalItems > 0) {
-            long masteredCount = progressRepository.countMasteredByUserId(userId);
-            overallPercent = (int) ((masteredCount * 100) / totalItems);
+            overallPercent = (int) ((masteredWords * 100) / totalItems);
             overallPercent = Math.min(100, overallPercent);
         }
 
@@ -244,6 +254,14 @@ public class StudyProgressServiceImpl implements StudyProgressService {
                 .progressPercent(overallPercent)
                 .learningStreak(learningStreak)
                 .weeklyStudyData(weeklyStudyData)
+                .vocabularyLearned(vocabularyLearned)
+                .vocabularyMastered(vocabularyMastered)
+                .vocabularyCompleted(vocabularyCompleted)
+                .vocabularyFavorite(vocabularyFavorite)
+                .grammarLearned(grammarLearned)
+                .grammarMastered(grammarMastered)
+                .grammarCompleted(grammarCompleted)
+                .grammarFavorite(grammarFavorite)
                 .build();
     }
 
@@ -255,8 +273,12 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         LocalDate today = now.atZone(ZoneOffset.UTC).toLocalDate();
 
         List<LocalDate> studyDates = allProgress.stream()
-                .filter(p -> p.getLastStudiedAt() != null)
-                .map(p -> p.getLastStudiedAt().atZone(ZoneOffset.UTC).toLocalDate())
+                .map(p -> {
+                    Instant studiedAt = p.getLastStudiedAt();
+                    return studiedAt != null ? studiedAt : p.getUpdatedAt();
+                })
+                .filter(Objects::nonNull)
+                .map(a -> a.atZone(ZoneOffset.UTC).toLocalDate())
                 .distinct()
                 .sorted()
                 .collect(Collectors.toList());
@@ -293,16 +315,28 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         List<WeeklyStudyData> result = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
             LocalDate date = today.minus(i, ChronoUnit.DAYS);
-            final LocalDate targetDate = date;
 
-            long count = allProgress.stream()
-                    .filter(p -> p.getLastStudiedAt() != null)
-                    .filter(p -> p.getLastStudiedAt().atZone(ZoneOffset.UTC).toLocalDate().equals(targetDate))
+            List<UserLearningProgress> entriesOnDay = allProgress.stream()
+                    .filter(p -> {
+                        Instant studiedAt = p.getLastStudiedAt();
+                        Instant effectiveAt = studiedAt != null ? studiedAt : p.getUpdatedAt();
+                        return effectiveAt != null && effectiveAt.atZone(ZoneOffset.UTC).toLocalDate().equals(date);
+                    })
+                    .collect(Collectors.toList());
+
+            int totalCount = entriesOnDay.size();
+            int vocabCount = (int) entriesOnDay.stream()
+                    .filter(p -> p.getContentType() == ContentType.VOCABULARY)
+                    .count();
+            int grammarCount = (int) entriesOnDay.stream()
+                    .filter(p -> p.getContentType() == ContentType.GRAMMAR)
                     .count();
 
             result.add(WeeklyStudyData.builder()
                     .day(dayNames[date.getDayOfWeek().getValue() % 7])
-                    .count((int) count)
+                    .count(totalCount)
+                    .vocabCount(vocabCount)
+                    .grammarCount(grammarCount)
                     .build());
         }
         return result;
