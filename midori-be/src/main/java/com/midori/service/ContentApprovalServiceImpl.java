@@ -103,6 +103,36 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ContentApprovalSummaryResponse> listRejectedContent(String contentType) {
+        if (contentType != null && !contentType.isBlank()) {
+            validateContentType(contentType);
+            String normalized = normalizeContentType(contentType);
+            if ("GRAMMAR".equals(normalized)) {
+                return listRejectedGrammars();
+            } else if ("FLASHCARD".equals(normalized)) {
+                return listRejectedFlashcardSets();
+            }
+        }
+        List<ContentApprovalSummaryResponse> result = new ArrayList<>();
+        result.addAll(listRejectedGrammars());
+        result.addAll(listRejectedFlashcardSets());
+        return result;
+    }
+
+    private List<ContentApprovalSummaryResponse> listRejectedGrammars() {
+        return grammarRepository.findAllByStatusWithCreator(GrammarStatus.REJECTED).stream()
+                .map(this::toGrammarSummary)
+                .collect(Collectors.toList());
+    }
+
+    private List<ContentApprovalSummaryResponse> listRejectedFlashcardSets() {
+        return flashcardSetRepository.findAllByStatusWithTeacher(FlashcardSetStatus.REJECTED).stream()
+                .map(this::toFlashcardSetSummary)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ContentApprovalDetailResponse getPendingContentDetail(String contentType, UUID contentId) {
         validateContentType(contentType);
         String normalized = normalizeContentType(contentType);

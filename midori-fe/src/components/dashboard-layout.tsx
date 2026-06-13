@@ -49,6 +49,7 @@ const adminNav: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck },
+  { to: "/admin/content-approval", label: "Flashcard Approval", icon: Layers },
   { to: "/admin/grammar-approval", label: "Grammar Approval", icon: GrammarIcon },
   { to: "/admin/exams", label: "Exam Approval", icon: ClipboardCheck },
   { to: "/admin/analytics", label: "Analytics", icon: LineChart },

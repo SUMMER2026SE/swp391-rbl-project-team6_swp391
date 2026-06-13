@@ -105,6 +105,17 @@ export const getApprovedContent = (contentType?: string): Promise<ContentApprova
   );
 
 /**
+ * Fetch rejected content, optionally filtered by content type.
+ * Backend endpoint: GET /api/admin/content-approvals/rejected?contentType=FLASHCARD
+ */
+export const getRejectedContent = (contentType?: string): Promise<ContentApprovalSummary[]> =>
+  api.get<ContentApprovalSummary[]>(
+    contentType
+      ? `/admin/content-approvals/rejected?contentType=${encodeURIComponent(contentType)}`
+      : "/admin/content-approvals/rejected",
+  );
+
+/**
  * Fetch detailed information about a specific content item pending approval.
  */
 export const getContentDetail = (
