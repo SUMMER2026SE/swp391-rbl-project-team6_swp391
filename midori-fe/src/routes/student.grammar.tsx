@@ -13,6 +13,7 @@ import {
   type GrammarResponse,
   type GrammarLevel,
 } from "@/lib/api/studentGrammar";
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -333,6 +334,7 @@ function GrammarPage() {
   const [selectedGrammar, setSelectedGrammar] = useState<GrammarResponse | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "bookmarked">("all");
 
   // Debounce search input
   useEffect(() => {
@@ -342,6 +344,11 @@ function GrammarPage() {
     }, 400);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Reset page when status filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   // ── API Query ─────────────────────────────────────────────────────────────
   const { data: grammars = [], isLoading, isError, error } = useQuery({
@@ -354,10 +361,40 @@ function GrammarPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ── Progress Query ───────────────────────────────────────────────────────
+  const { data: progressList = [], refetch: refetchProgress } = useQuery({
+    queryKey: ["grammar-progress"],
+    queryFn: () => studentProgressApi.getProgress({ contentType: "GRAMMAR" }),
+    staleTime: 30 * 1000,
+  });
+
+  // Load progress into state after grammar list loads
+  useEffect(() => {
+    if (grammars.length === 0) return;
+    const completedSet = new Set<string>();
+    const bookmarkedSet = new Set<string>();
+    progressList.forEach(p => {
+      if (p.contentType === "GRAMMAR") {
+        if (p.completed) completedSet.add(p.contentId);
+        if (p.favorite) bookmarkedSet.add(p.contentId);
+      }
+    });
+    setCompleted(completedSet);
+    setBookmarked(bookmarkedSet);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressList, grammars.length]);
+
+  // Apply status filter
+  const filteredGrammars = grammars.filter(g => {
+    if (statusFilter === "completed") return completed.has(g.id);
+    if (statusFilter === "bookmarked") return bookmarked.has(g.id);
+    return true;
+  });
+
   // Pagination
-  const totalPages = Math.ceil(grammars.length / PAGE_SIZE);
+  const totalPages = Math.ceil(filteredGrammars.length / PAGE_SIZE);
   const safePage = Math.min(page, Math.max(1, totalPages));
-  const paginated = grammars.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const paginated = filteredGrammars.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleLevelFilter = (level: string) => {
     setLevelFilter(level);
@@ -369,22 +406,61 @@ function GrammarPage() {
     setSelectedGrammar(null);
   };
 
-  const toggleComplete = (id: string) => {
+  const toggleComplete = async (id: string) => {
+    const isCurrentlyCompleted = completed.has(id);
+    // Optimistic update
     setCompleted(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    console.log("[GrammarProgress] toggleComplete clicked", id, "currentlyCompleted:", isCurrentlyCompleted);
+    try {
+      if (isCurrentlyCompleted) {
+        await studentProgressApi.unmarkAsCompleted("GRAMMAR", id);
+        console.log("[GrammarProgress] unmarkAsCompleted success");
+      } else {
+        await studentProgressApi.markAsCompleted("GRAMMAR", id);
+        console.log("[GrammarProgress] markAsCompleted success");
+      }
+      await refetchProgress();
+    } catch (err) {
+      console.error("[GrammarProgress] toggleComplete error:", err);
+      // Revert on error
+      setCompleted(prev => {
+        const next = new Set(prev);
+        if (isCurrentlyCompleted) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
   };
 
-  const toggleBookmark = (id: string) => {
+  const toggleBookmark = async (id: string) => {
+    const isCurrentlyBookmarked = bookmarked.has(id);
+    // Optimistic update
     setBookmarked(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    console.log("[GrammarProgress] toggleBookmark clicked", id);
+    try {
+      await studentProgressApi.toggleFavorite("GRAMMAR", id);
+      await refetchProgress();
+      console.log("[GrammarProgress] toggleFavorite success");
+    } catch (err) {
+      console.error("[GrammarProgress] toggleFavorite error:", err);
+      // Revert on error
+      setBookmarked(prev => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
   };
 
   const totalCompleted = [...completed].length;
@@ -409,12 +485,20 @@ function GrammarPage() {
           </div>
           {!isLoading && (
             <div className="hidden md:flex items-center gap-3">
-              {[
-                { label: "Total", value: grammars.length, color: "text-blue-500", icon: <BookOpen className="w-4 h-4" /> },
-                { label: "Completed", value: totalCompleted, color: "text-green-500", icon: <CheckCircle2 className="w-4 h-4" /> },
-                { label: "Bookmarked", value: totalBookmarked, color: "text-yellow-500", icon: <BookmarkCheck className="w-4 h-4" /> },
-              ].map(stat => (
-                <div key={stat.label} className="text-center px-4 py-3 rounded-2xl bg-white dark:bg-slate-800 backdrop-blur-sm border border-slate-100 dark:border-slate-700 shadow-sm">
+              {([
+                { label: "Total", value: grammars.length, color: "text-blue-500", icon: <BookOpen className="w-4 h-4" />, filter: "all" as const },
+                { label: "Completed", value: totalCompleted, color: "text-green-500", icon: <CheckCircle2 className="w-4 h-4" />, filter: "completed" as const },
+                { label: "Bookmarked", value: totalBookmarked, color: "text-yellow-500", icon: <BookmarkCheck className="w-4 h-4" />, filter: "bookmarked" as const },
+              ]).map(stat => (
+                <div
+                  key={stat.label}
+                  onClick={() => setStatusFilter(stat.filter)}
+                  className={`text-center px-4 py-3 rounded-2xl bg-white dark:bg-slate-800 backdrop-blur-sm border transition-all cursor-pointer select-none ${
+                    statusFilter === stat.filter
+                      ? "border-primary/50 shadow-md ring-2 ring-primary/20"
+                      : "border-slate-100 dark:border-slate-700 shadow-sm hover:border-slate-200 dark:hover:border-slate-600"
+                  }`}
+                >
                   <div className={`text-xl font-black ${stat.color}`}>{stat.value}</div>
                   <div className="text-[10px] text-muted-foreground font-medium flex items-center justify-center gap-1 mt-0.5">
                     {stat.icon} {stat.label}
@@ -502,15 +586,37 @@ function GrammarPage() {
               {!isLoading && !isError && grammars.length === 0 && (
                 <div className="py-16 text-center">
                   <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Không có ngữ pháp phù hợp</p>
-                  {debouncedSearch && (
+                  <p className="text-sm text-muted-foreground">
+                    {statusFilter === "bookmarked" ? "No bookmarked grammar found." :
+                     statusFilter === "completed" ? "No completed grammar found." :
+                     "Không có ngữ pháp phù hợp"}
+                  </p>
+                  {(debouncedSearch || statusFilter !== "all") && (
                     <button
-                      onClick={() => setSearch("")}
+                      onClick={() => { setSearch(""); setStatusFilter("all"); }}
                       className="mt-2 text-xs text-primary hover:underline"
                     >
-                      Clear search
+                      Clear filters
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Filtered empty state */}
+              {!isLoading && !isError && grammars.length > 0 && filteredGrammars.length === 0 && (
+                <div className="py-16 text-center">
+                  <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    {statusFilter === "bookmarked" ? "No bookmarked grammar found." :
+                     statusFilter === "completed" ? "No completed grammar found." :
+                     "Không có ngữ pháp phù hợp"}
+                  </p>
+                  <button
+                    onClick={() => setStatusFilter("all")}
+                    className="mt-2 text-xs text-primary hover:underline"
+                  >
+                    Show all grammars
+                  </button>
                 </div>
               )}
 
@@ -623,14 +729,14 @@ function GrammarPage() {
             {/* Pagination */}
             {!isLoading && !isError && totalPages > 1 && (
               <div className="px-6 pb-5">
-                <Pagination current={safePage} total={grammars.length} onPage={handlePageChange} />
+                <Pagination current={safePage} total={filteredGrammars.length} onPage={handlePageChange} />
               </div>
             )}
           </div>
         </div>
 
-        {/* Overall Progress Summary */}
-        {!isLoading && !isError && (
+        {/* Overall Progress Summary — hidden when status filter is active */}
+        {!isLoading && !isError && statusFilter === "all" && (
           <div className="mt-4 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">

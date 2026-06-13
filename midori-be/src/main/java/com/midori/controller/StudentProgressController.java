@@ -132,6 +132,20 @@ public class StudentProgressController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @DeleteMapping("/{contentType}/{contentId}/complete")
+    public ResponseEntity<ApiResponse<ProgressResponse>> unmarkAsCompleted(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String contentType,
+            @PathVariable String contentId) {
+        ContentType type = parseContentType(contentType);
+        ProgressResponse result = studyProgressService.unmarkAsCompleted(
+                userDetails.getId(), type, contentId);
+        if (result == null) {
+            return ResponseEntity.ok(ApiResponse.success(null));
+        }
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     private ContentType parseContentType(String contentType) {
         try {
             return ContentType.valueOf(contentType.toUpperCase().trim());

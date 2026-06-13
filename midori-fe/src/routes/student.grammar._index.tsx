@@ -13,6 +13,7 @@ import {
   type GrammarResponse,
   type GrammarLevel,
 } from "@/lib/api/studentGrammar";
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -144,6 +145,29 @@ function GrammarListPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ── Progress Query ───────────────────────────────────────────────────────
+  const { data: progressList = [], refetch: refetchProgress } = useQuery({
+    queryKey: ["grammar-progress"],
+    queryFn: () => studentProgressApi.getProgress({ contentType: "GRAMMAR" }),
+    staleTime: 30 * 1000,
+  });
+
+  // Load progress into state after grammar list loads
+  useEffect(() => {
+    if (grammars.length === 0) return;
+    const completedSet = new Set<string>();
+    const bookmarkedSet = new Set<string>();
+    progressList.forEach(p => {
+      if (p.contentType === "GRAMMAR") {
+        if (p.completed) completedSet.add(p.contentId);
+        if (p.favorite) bookmarkedSet.add(p.contentId);
+      }
+    });
+    setCompleted(completedSet);
+    setBookmarked(bookmarkedSet);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressList, grammars.length]);
+
   const totalPages = Math.ceil(grammars.length / PAGE_SIZE);
   const safePage = Math.min(page, Math.max(1, totalPages));
   const paginated = grammars.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -157,13 +181,30 @@ function GrammarListPage() {
     setPage(p);
   };
 
-  const toggleBookmark = (id: string) => {
+  const toggleBookmark = async (id: string) => {
+    const isCurrentlyBookmarked = bookmarked.has(id);
+    // Optimistic update
     setBookmarked(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    console.log("[GrammarProgress] toggleBookmark clicked", id);
+    try {
+      await studentProgressApi.toggleFavorite("GRAMMAR", id);
+      await refetchProgress();
+      console.log("[GrammarProgress] toggleFavorite success");
+    } catch (err) {
+      console.error("[GrammarProgress] toggleFavorite error:", err);
+      // Revert on error
+      setBookmarked(prev => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
   };
 
   const totalCompleted = [...completed].length;

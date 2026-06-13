@@ -12,6 +12,7 @@ import {
   studentGrammarApi,
   type GrammarResponse,
 } from "@/lib/api/studentGrammar";
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 const levelColors: Record<string, string> = {
   N5: "bg-blue-500/20 text-blue-400 border-blue-400/30",
@@ -64,6 +65,40 @@ function StructureStudyPage() {
     enabled: !!grammarId,
     staleTime: 5 * 60 * 1000,
   });
+
+  // ── Progress Query ───────────────────────────────────────────────────────
+  const { data: progressList = [], refetch: refetchProgress } = useQuery({
+    queryKey: ["grammar-progress", grammarId],
+    queryFn: () => studentProgressApi.getProgress({ contentType: "GRAMMAR" }),
+    enabled: !!grammarId,
+    staleTime: 30 * 1000,
+  });
+
+  // Load progress into state after grammar loads
+  useEffect(() => {
+    if (!grammar) return;
+    const newStatuses: Record<string, "learned" | "not_learned"> = {};
+    const newBookmarked = new Set<string>();
+    progressList.forEach(p => {
+      if (p.contentType === "GRAMMAR" && p.contentId === grammar.id) {
+        newStatuses[grammar.id] = p.learned ? "learned" : "not_learned";
+        if (p.favorite) newBookmarked.add(p.contentId);
+      }
+    });
+    setStructureStatuses(prev => {
+      const next = { ...prev };
+      Object.entries(newStatuses).forEach(([id, status]) => {
+        next[id] = status;
+      });
+      return next;
+    });
+    setBookmarked(prev => {
+      const next = new Set(prev);
+      newBookmarked.forEach(id => next.add(id));
+      return next;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressList, grammar?.id]);
 
   const [revealed, setRevealed] = useState(false);
   const [structureStatuses, setStructureStatuses] = useState<Record<string, StructureStatus>>({});
@@ -118,22 +153,53 @@ function StructureStudyPage() {
   const learnedCount = Object.values(structureStatuses).filter(s => s === "learned").length;
   const notLearnedCount = allStructures.length - learnedCount;
 
-  const toggleLearned = () => {
+  const toggleLearned = async () => {
     if (!grammar) return;
+    const currentStatus = structureStatuses[grammar.id] ?? "not_learned";
+    const isCurrentlyLearned = currentStatus === "learned";
+    // Optimistic update
     setStructureStatuses(prev => ({
       ...prev,
-      [grammar.id]: prev[grammar.id] === "learned" ? "not_learned" : "learned",
+      [grammar.id]: isCurrentlyLearned ? "not_learned" : "learned",
     }));
+    try {
+      if (isCurrentlyLearned) {
+        await studentProgressApi.unmarkAsLearned("GRAMMAR", grammar.id);
+      } else {
+        await studentProgressApi.markAsLearned("GRAMMAR", grammar.id);
+      }
+      await refetchProgress();
+    } catch {
+      // Revert on error
+      setStructureStatuses(prev => ({
+        ...prev,
+        [grammar.id]: currentStatus,
+      }));
+    }
   };
 
-  const toggleBookmark = () => {
+  const toggleBookmark = async () => {
     if (!grammar) return;
+    const isCurrentlyBookmarked = bookmarked.has(grammar.id);
+    // Optimistic update
     setBookmarked(prev => {
       const next = new Set(prev);
       if (next.has(grammar.id)) next.delete(grammar.id);
       else next.add(grammar.id);
       return next;
     });
+    try {
+      await studentProgressApi.toggleFavorite("GRAMMAR", grammar.id);
+      await refetchProgress();
+    } catch {
+      // Revert on error
+      setBookmarked(prev => {
+        const next = new Set(prev);
+        if (isCurrentlyBookmarked) next.add(grammar.id);
+        else next.delete(grammar.id);
+        return next;
+      });
+    }
   };
 
   if (isLoading) {

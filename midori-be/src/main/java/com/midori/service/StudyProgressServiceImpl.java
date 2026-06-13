@@ -197,6 +197,20 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         return toResponse(progress);
     }
 
+    @Override
+    public ProgressResponse unmarkAsCompleted(UUID userId, ContentType contentType, String contentId) {
+        UserLearningProgress progress = progressRepository.findByUserIdAndContentTypeAndContentId(userId, contentType, contentId)
+                .orElse(null);
+        if (progress == null) {
+            return null;
+        }
+        progress.setCompleted(false);
+        progress.setProgressPercent(Math.max(progress.getProgressPercent(), 50));
+        progress.setLastStudiedAt(Instant.now());
+        progress = progressRepository.save(progress);
+        return toResponse(progress);
+    }
+
     // ============================================================
     // Stats
     // ============================================================
