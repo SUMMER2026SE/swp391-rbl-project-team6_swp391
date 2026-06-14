@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Users, Shield, AlertTriangle, CheckCircle, XCircle,
@@ -7,181 +7,47 @@ import {
   Clock, RotateCcw, Check, AlertOctagon, Info,
   Loader2,
 } from "lucide-react";
+import {
+  adminApi,
+  type AdminTeacherResponse,
+  type Page,
+  type UiRole,
+  type UiStatus,
+} from "../lib/api/admin";
+import { ApiError } from "../lib/api/client";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
+// ─── Local types ─────────────────────────────────────────────────────────────
 
-type UserStatus = "active" | "suspended" | "banned";
-type UserRole = "student" | "teacher";
 type Severity = "low" | "medium" | "high";
 type ToastType = "success" | "error" | "warning" | "info";
 
-type Warning = {
-  id: string;
-  reason: string;
-  severity: Severity;
-  note: string;
-  date: string;
-  admin: string;
-};
+// ─── Normalization helpers ────────────────────────────────────────────────────
 
-type ModAction = {
-  id: string;
-  type: "suspend" | "ban" | "restore";
-  duration?: string;
-  reason: string;
-  date: string;
-  admin: string;
-};
+function normalizeStatus(raw: string | undefined | null): UiStatus {
+  if (!raw) return "active";
+  switch (raw.toUpperCase()) {
+    case "ACTIVE": return "active";
+    case "SUSPENDED": return "suspended";
+    case "BANNED": return "banned";
+    case "PENDING": return "pending";
+    case "PENDING_APPROVAL": return "pending_approval";
+    case "REJECTED": return "rejected";
+    default: return "active";
+  }
+}
 
-type Activity = {
-  id: string;
-  title: string;
-  desc: string;
-  time: string;
-  xp?: number;
-  icon: string;
-  type: "lesson" | "exam" | "warning" | "login" | "suspend" | "restore";
-};
+function normalizeRole(raw: string | undefined | null): UiRole {
+  if (!raw) return "student";
+  switch (raw.toUpperCase()) {
+    case "STUDENT": return "student";
+    case "TEACHER": return "teacher";
+    case "ADMIN": return "admin";
+    default: return "student";
+  }
+}
 
-type UserData = {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  status: UserStatus;
-  xp: number;
-  joined: string;
-  lastActive: string;
-  lessons: number;
-  streak: number;
-  examsCompleted: number;
-  warnings: Warning[];
-  modHistory: ModAction[];
-  activities: Activity[];
-  adminNotes: string;
-  suspendedUntil?: string;
-};
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const initialUsers: UserData[] = [
-  {
-    id: "u1", name: "Yuki Tanaka", email: "yuki.t@mail.com", role: "student",
-    status: "active", xp: 9840, joined: "Mar 2024", lastActive: "2h ago",
-    lessons: 45, streak: 32, examsCompleted: 12,
-    warnings: [
-      { id: "w1", reason: "Spam activity", severity: "low", note: "Repeatedly posted the same content.", date: "Jan 2025", admin: "Admin" }
-    ],
-    modHistory: [],
-    activities: [
-      { id: "a1", title: "JLPT N3 Grammar", desc: "Completed りながら pattern", time: "2h ago", xp: 120, icon: "📖", type: "lesson" },
-      { id: "a2", title: "N3 Vocab — 30 cards", desc: "Flashcard session", time: "4h ago", xp: 80, icon: "📚", type: "lesson" },
-      { id: "a3", title: "Login", desc: "Web app", time: "5h ago", icon: "🔓", type: "login" },
-    ],
-    adminNotes: "",
-  },
-  {
-    id: "u2", name: "Taro Yamamoto", email: "taro.y@midori.jp", role: "teacher",
-    status: "active", xp: 12400, joined: "Jan 2023", lastActive: "1h ago",
-    lessons: 87, streak: 210, examsCompleted: 0,
-    warnings: [],
-    modHistory: [
-      { id: "m1", type: "restore", reason: "Appealed successfully — content verified safe.", date: "Nov 2024", admin: "Admin" }
-    ],
-    activities: [
-      { id: "a1", title: "Content upload", desc: "Uploaded 5 grammar cards", time: "1h ago", icon: "📝", type: "lesson" },
-      { id: "a2", title: "Student feedback", desc: "Reviewed 12 submissions", time: "3h ago", icon: "💬", type: "lesson" },
-    ],
-    adminNotes: "Trusted teacher. Previously suspended for impersonation claim — resolved.",
-  },
-  {
-    id: "u3", name: "Sakura Hayashi", email: "sakura.h@mail.com", role: "student",
-    status: "active", xp: 18420, joined: "Nov 2023", lastActive: "30m ago",
-    lessons: 120, streak: 89, examsCompleted: 28,
-    warnings: [
-      { id: "w2", reason: "Harassment", severity: "high", note: "Targeted another student in chat.", date: "Dec 2024", admin: "Admin" }
-    ],
-    modHistory: [],
-    activities: [
-      { id: "a1", title: "Exam passed", desc: "N3 Mock Exam — Score: 78%", time: "30m ago", xp: 200, icon: "🏆", type: "exam" },
-      { id: "a2", title: "Shadowing session", desc: "Dialogue 14 completed", time: "2h ago", xp: 150, icon: "🎤", type: "lesson" },
-    ],
-    adminNotes: "High-value user. Active contributor.",
-  },
-  {
-    id: "u4", name: "Kenji Yamamoto", email: "kenji.y@mail.com", role: "teacher",
-    status: "active", xp: 17250, joined: "Feb 2023", lastActive: "3h ago",
-    lessons: 94, streak: 0, examsCompleted: 0,
-    warnings: [], modHistory: [],
-    activities: [{ id: "a1", title: "Vocabulary set", desc: "Created N2 vocab set", time: "3h ago", icon: "📝", type: "lesson" }],
-    adminNotes: "",
-  },
-  {
-    id: "u5", name: "Mei Lin Chen", email: "mei.lin@mail.com", role: "student",
-    status: "suspended", xp: 16580, joined: "Dec 2023", lastActive: "2d ago",
-    lessons: 78, streak: 65, examsCompleted: 18,
-    suspendedUntil: "Jun 2025",
-    warnings: [
-      { id: "w3", reason: "Cheating", severity: "medium", note: "Screen-sharing during exam.", date: "May 2025", admin: "Admin" }
-    ],
-    modHistory: [
-      { id: "m2", type: "suspend", duration: "30 days", reason: "Caught using screen-share during N3 mock exam.", date: "May 2025", admin: "Admin" }
-    ],
-    activities: [
-      { id: "a1", title: "Suspension applied", desc: "30-day suspension", time: "2d ago", icon: "⏸", type: "suspend" },
-    ],
-    adminNotes: "Appeal pending — investigating.",
-  },
-  {
-    id: "u6", name: "Alex Kim", email: "alex.k@mail.com", role: "student",
-    status: "active", xp: 8750, joined: "Jun 2024", lastActive: "5h ago",
-    lessons: 28, streak: 18, examsCompleted: 6,
-    warnings: [], modHistory: [],
-    activities: [{ id: "a1", title: "Grammar lesson", desc: "N4 Grammar — て form", time: "5h ago", xp: 80, icon: "📖", type: "lesson" }],
-    adminNotes: "",
-  },
-  {
-    id: "u7", name: "Sofia Martinez", email: "sofia.m@mail.com", role: "student",
-    status: "active", xp: 7620, joined: "Apr 2024", lastActive: "1h ago",
-    lessons: 38, streak: 22, examsCompleted: 8,
-    warnings: [
-      { id: "w4", reason: "Inappropriate content", severity: "low", note: "Shared off-topic media in discussion.", date: "Feb 2025", admin: "Admin" }
-    ],
-    modHistory: [],
-    activities: [{ id: "a1", title: "Flashcard session", desc: "N4 Vocabulary 50 cards", time: "1h ago", xp: 100, icon: "📚", type: "lesson" }],
-    adminNotes: "",
-  },
-  {
-    id: "u8", name: "Ravi Sharma", email: "ravi.s@mail.com", role: "student",
-    status: "banned", xp: 0, joined: "Jul 2024", lastActive: "1w ago",
-    lessons: 5, streak: 0, examsCompleted: 0,
-    warnings: [
-      { id: "w5", reason: "Fake account", severity: "high", note: "Confirmed fake identity.", date: "Aug 2024", admin: "Admin" },
-      { id: "w6", reason: "Spam activity", severity: "medium", note: "Bulk unsolicited messages.", date: "Aug 2024", admin: "Admin" }
-    ],
-    modHistory: [
-      { id: "m3", type: "ban", reason: "Fake account with intent to spam.", date: "Aug 2024", admin: "Admin" }
-    ],
-    activities: [{ id: "a1", title: "Account banned", desc: "Permanent ban", time: "1w ago", icon: "🚫", type: "suspend" }],
-    adminNotes: "Permanent ban — multiple fake accounts detected.",
-  },
-  {
-    id: "u9", name: "Park Joon-ho", email: "joonho.p@midori.jp", role: "teacher",
-    status: "active", xp: 14890, joined: "Mar 2023", lastActive: "2h ago",
-    lessons: 112, streak: 0, examsCompleted: 0,
-    warnings: [], modHistory: [],
-    activities: [{ id: "a1", title: "Content review", desc: "Approved 8 grammar entries", time: "2h ago", icon: "✅", type: "lesson" }],
-    adminNotes: "",
-  },
-  {
-    id: "u10", name: "Anna Kowalski", email: "anna.k@mail.com", role: "student",
-    status: "active", xp: 5820, joined: "Feb 2024", lastActive: "3h ago",
-    lessons: 52, streak: 28, examsCompleted: 10,
-    warnings: [], modHistory: [],
-    activities: [{ id: "a1", title: "Listening practice", desc: "Business Japanese", time: "3h ago", xp: 60, icon: "🎧", type: "lesson" }],
-    adminNotes: "",
-  },
-];
+// Re-export AdminTeacherResponse as the primary user type used throughout this page
+type UserData = AdminTeacherResponse;
 
 export const Route = createFileRoute("/admin/users")({ component: UsersPage });
 
@@ -247,23 +113,27 @@ function SeverityBadge({ severity }: { severity: Severity }) {
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: UserStatus }) {
-  const cfg = {
-    active:    { label: "Active",    dot: "bg-[var(--status-active)]" },
-    suspended: { label: "Suspended", dot: "bg-[var(--status-suspended)]" },
-    banned:    { label: "Banned",    dot: "bg-[var(--status-rejected)]" },
-  }[status];
+function StatusBadge({ status }: { status: UiStatus }) {
+  const cfg: Record<UiStatus, { label: string; dot: string }> = {
+    active:           { label: "Active",           dot: "bg-[var(--status-active)]" },
+    suspended:        { label: "Suspended",         dot: "bg-[var(--status-suspended)]" },
+    banned:          { label: "Banned",           dot: "bg-[var(--status-rejected)]" },
+    pending:          { label: "Pending",          dot: "bg-[var(--status-pending)]" },
+    pending_approval: { label: "Pending Approval",  dot: "bg-[var(--status-pending)]" },
+    rejected:         { label: "Rejected",          dot: "bg-[var(--status-rejected)]" },
+  };
+  const { label, dot } = cfg[status] ?? { label: status, dot: "bg-muted" };
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-bold capitalize border rounded-full px-2.5 py-1 badge-${status}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      {label}
     </span>
   );
 }
 
 // ─── Role Badge ───────────────────────────────────────────────────────────────
 
-function RoleBadge({ role }: { role: UserRole }) {
+function RoleBadge({ role }: { role: UiRole }) {
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold capitalize border badge-${role}`}>
       {role}
@@ -274,9 +144,9 @@ function RoleBadge({ role }: { role: UserRole }) {
 // ─── Warning Modal ────────────────────────────────────────────────────────────
 
 function WarningModal({ user, onClose, onSend }: {
-  user: UserData;
+  user: AdminTeacherResponse;
   onClose: () => void;
-  onSend: (user: UserData, reason: string, severity: Severity, note: string) => void;
+  onSend: (user: AdminTeacherResponse, reason: string, severity: Severity, note: string) => void;
 }) {
   const [reason, setReason] = useState("");
   const [severity, setSeverity] = useState<Severity>("medium");
@@ -296,6 +166,10 @@ function WarningModal({ user, onClose, onSend }: {
     onSend(user, reason.trim(), severity, note.trim());
     setLoading(false);
   };
+
+  const displayName = user.displayName ?? user.email;
+  const uiStatus = normalizeStatus(user.status);
+  const uiRole = normalizeRole(user.role);
 
   return (
     <motion.div
@@ -329,15 +203,15 @@ function WarningModal({ user, onClose, onSend }: {
         {/* User chip */}
         <div className="mx-6 mt-4 p-3 rounded-xl glass-surface flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-            user.role === "teacher" ? "avatar-teacher" : "avatar-student"
+            uiRole === "teacher" ? "avatar-teacher" : "avatar-student"
           }`}>
-            {user.name[0]}
+            {displayName[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary-col truncate">{user.name}</p>
+            <p className="text-sm font-semibold text-primary-col truncate">{displayName}</p>
             <p className="text-xs text-muted-col truncate">{user.email}</p>
           </div>
-          <StatusBadge status={user.status} />
+          <StatusBadge status={uiStatus} />
         </div>
 
         <div className="flex-1 overflow-auto p-6 space-y-5">
@@ -450,11 +324,10 @@ const DURATIONS = [
 ];
 
 function SuspendModal({ user, onClose, onConfirm }: {
-  user: UserData;
+  user: AdminTeacherResponse;
   onClose: () => void;
-  onConfirm: (user: UserData, duration: string, reason: string) => void;
+  onConfirm: (user: AdminTeacherResponse, reason: string) => void;
 }) {
-  const [duration, setDuration] = useState("7 days");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -462,7 +335,7 @@ function SuspendModal({ user, onClose, onConfirm }: {
     if (!reason.trim()) return;
     setLoading(true);
     await new Promise(r => setTimeout(r, 600));
-    onConfirm(user, duration, reason.trim());
+    onConfirm(user, reason.trim());
     setLoading(false);
   };
 
@@ -496,38 +369,24 @@ function SuspendModal({ user, onClose, onConfirm }: {
 
         <div className="mx-6 mt-4 p-3 rounded-xl glass-surface flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-            user.role === "teacher" ? "avatar-teacher" : "avatar-student"
+            normalizeRole(user.role) === "teacher" ? "avatar-teacher" : "avatar-student"
           }`}>
-            {user.name[0]}
+            {(user.displayName ?? user.email)[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary-col truncate">{user.name}</p>
+            <p className="text-sm font-semibold text-primary-col truncate">{user.displayName ?? user.email}</p>
             <p className="text-xs text-muted-col truncate">{user.email}</p>
           </div>
-          <StatusBadge status={user.status} />
+          <StatusBadge status={normalizeStatus(user.status)} />
         </div>
 
         <div className="flex-1 overflow-auto p-6 space-y-5">
-          {/* Duration */}
-          <div>
-            <label className="block text-[10px] font-bold text-muted-col uppercase tracking-wider mb-2.5">
-              Duration
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {DURATIONS.map(d => (
-                <button
-                  key={d.label}
-                  onClick={() => setDuration(d.label)}
-                  className={`py-2.5 rounded-xl text-xs font-bold capitalize transition-all duration-200 border ${
-                    duration === d.label
-                      ? "bg-[var(--status-pending)]/15 text-[var(--status-pending)] border-[var(--status-pending)]/40 shadow-sm"
-                      : "glass-surface text-secondary-col"
-                  }`}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
+          {/* Info box — backend suspend is indefinite */}
+          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--status-pending)]/10 border border-[var(--status-pending)]/20">
+            <AlertTriangle className="w-4 h-4 text-[var(--status-pending)] flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-[var(--status-pending)] leading-relaxed">
+              User will lose access indefinitely until an admin restores their account.
+            </p>
           </div>
 
           {/* Reason */}
@@ -538,18 +397,10 @@ function SuspendModal({ user, onClose, onConfirm }: {
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
-              rows={3}
+              rows={4}
               placeholder="Describe the reason for suspension…"
               className="w-full px-4 py-3 rounded-xl input-glass text-sm placeholder:text-muted-col resize-none"
             />
-          </div>
-
-          {/* Info box */}
-          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--status-pending)]/10 border border-[var(--status-pending)]/20">
-            <AlertTriangle className="w-4 h-4 text-[var(--status-pending)] flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-[var(--status-pending)] leading-relaxed">
-              User will lose access for <strong>{duration}</strong>. Can be restored at any time from the Users panel.
-            </p>
           </div>
         </div>
 
@@ -576,9 +427,9 @@ function SuspendModal({ user, onClose, onConfirm }: {
 // ─── Ban Modal ────────────────────────────────────────────────────────────────
 
 function BanModal({ user, onClose, onConfirm }: {
-  user: UserData;
+  user: AdminTeacherResponse;
   onClose: () => void;
-  onConfirm: (user: UserData, reason: string) => void;
+  onConfirm: (user: AdminTeacherResponse, reason: string) => void;
 }) {
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -621,15 +472,15 @@ function BanModal({ user, onClose, onConfirm }: {
 
         <div className="mx-6 mt-4 p-3 rounded-xl glass-surface flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-            user.role === "teacher" ? "avatar-teacher" : "avatar-student"
+            normalizeRole(user.role) === "teacher" ? "avatar-teacher" : "avatar-student"
           }`}>
-            {user.name[0]}
+            {(user.displayName ?? user.email)[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary-col truncate">{user.name}</p>
+            <p className="text-sm font-semibold text-primary-col truncate">{user.displayName ?? user.email}</p>
             <p className="text-xs text-muted-col truncate">{user.email}</p>
           </div>
-          <StatusBadge status={user.status} />
+          <StatusBadge status={normalizeStatus(user.status)} />
         </div>
 
         <div className="flex-1 overflow-auto p-6 space-y-5">
@@ -677,9 +528,9 @@ function BanModal({ user, onClose, onConfirm }: {
 // ─── Restore Modal ────────────────────────────────────────────────────────────
 
 function RestoreModal({ user, onClose, onConfirm }: {
-  user: UserData;
+  user: AdminTeacherResponse;
   onClose: () => void;
-  onConfirm: (user: UserData) => void;
+  onConfirm: (user: AdminTeacherResponse) => void;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -690,7 +541,8 @@ function RestoreModal({ user, onClose, onConfirm }: {
     setLoading(false);
   };
 
-  const wasBanned = user.status === "banned";
+  const uiStatus = normalizeStatus(user.status);
+  const wasBanned = uiStatus === "banned";
 
   return (
     <motion.div
@@ -722,15 +574,15 @@ function RestoreModal({ user, onClose, onConfirm }: {
 
         <div className="mx-6 mt-4 p-3 rounded-xl glass-surface flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-            user.role === "teacher" ? "avatar-teacher" : "avatar-student"
+            normalizeRole(user.role) === "teacher" ? "avatar-teacher" : "avatar-student"
           }`}>
-            {user.name[0]}
+            {(user.displayName ?? user.email)[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary-col truncate">{user.name}</p>
+            <p className="text-sm font-semibold text-primary-col truncate">{user.displayName ?? user.email}</p>
             <p className="text-xs text-muted-col truncate">{user.email}</p>
           </div>
-          <StatusBadge status={user.status} />
+          <StatusBadge status={normalizeStatus(user.status)} />
         </div>
 
         <div className="flex-1 overflow-auto p-6 space-y-4">
@@ -746,13 +598,12 @@ function RestoreModal({ user, onClose, onConfirm }: {
 
           <div className="p-3 rounded-xl glass-surface space-y-1.5">
             {[
-              { label: "Status change", value: `${user.status} → active` },
-              { label: "XP", value: user.xp.toLocaleString() },
-              { label: "Warnings", value: `${user.warnings.length} on record` },
+              { label: "Status change", value: `${normalizeStatus(user.status)} → active` },
+              { label: "Role", value: normalizeRole(user.role) },
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between">
                 <span className="text-xs text-muted-col">{row.label}</span>
-                <span className="text-xs font-semibold text-primary-col">{row.value}</span>
+                <span className="text-xs font-semibold text-primary-col capitalize">{row.value}</span>
               </div>
             ))}
           </div>
@@ -781,7 +632,7 @@ function RestoreModal({ user, onClose, onConfirm }: {
 // ─── User Detail Drawer ───────────────────────────────────────────────────────
 
 function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSaveNote, notes, setNotes }: {
-  user: UserData;
+  user: AdminTeacherResponse;
   onClose: () => void;
   onWarning: () => void;
   onSuspend: () => void;
@@ -790,17 +641,11 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
   notes: Record<string, string>;
   setNotes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
-  const noteVal = notes[user.id] ?? user.adminNotes;
+  const uiStatus = normalizeStatus(user.status);
+  const uiRole = normalizeRole(user.role);
+  const displayName = user.displayName ?? user.email;
+  const noteVal = notes[user.id] ?? "";
   const [activeSection, setActiveSection] = useState<"overview" | "activity" | "moderation">("overview");
-
-  const actCfg: Record<Activity["type"], string> = {
-    lesson:   "bg-primary/15 text-primary",
-    exam:     "bg-[var(--status-active)]/15 text-[var(--status-active)]",
-    warning:  "bg-[var(--status-pending)]/15 text-[var(--status-pending)]",
-    login:    "bg-muted text-muted-col",
-    suspend:  "bg-[var(--status-rejected)]/15 text-[var(--status-rejected)]",
-    restore:  "bg-[var(--status-active)]/15 text-[var(--status-active)]",
-  };
 
   return (
     <>
@@ -826,30 +671,28 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
 
           <div className="flex items-start gap-3">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-2xl flex-shrink-0 ${
-              user.role === "teacher" ? "avatar-teacher" : "avatar-student"
+              uiRole === "teacher" ? "avatar-teacher" : "avatar-student"
             }`}>
-              {user.name[0]}
+              {displayName[0]}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h2 className="font-display font-black text-primary-col text-lg">{user.name}</h2>
-                <RoleBadge role={user.role} />
+                <h2 className="font-display font-black text-primary-col text-lg">{displayName}</h2>
+                <RoleBadge role={uiRole} />
               </div>
               <p className="text-xs text-muted-col mb-2">{user.email}</p>
-              <StatusBadge status={user.status} />
+              <StatusBadge status={uiStatus} />
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-2 mt-4">
+          {/* Stats — XP/Lessons/Streak/Exams not available from backend */}
+          <div className="grid grid-cols-2 gap-2 mt-4">
             {[
-              { label: "XP", value: user.xp.toLocaleString() },
-              { label: "Lessons", value: user.lessons },
-              { label: "Streak", value: `${user.streak}d` },
-              { label: "Exams", value: user.examsCompleted },
+              { label: "Joined", value: new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) },
+              { label: "Email Verified", value: user.emailVerified ? "Yes" : "No" },
             ].map(s => (
               <div key={s.label} className="glass-surface rounded-xl p-2.5 text-center">
-                <div className="font-display font-black text-base text-primary-col">{s.value}</div>
+                <div className="font-display font-black text-sm text-primary-col">{s.value}</div>
                 <div className="text-[9px] text-muted-col uppercase tracking-wider font-bold mt-0.5">{s.label}</div>
               </div>
             ))}
@@ -861,7 +704,7 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
               className="flex-1 py-2.5 rounded-xl bg-[var(--status-pending)]/12 text-[var(--status-pending)] text-xs font-bold border border-[var(--status-pending)]/20 hover:bg-[var(--status-pending)]/20 transition flex items-center justify-center gap-1.5">
               <AlertTriangle className="w-4 h-4" /> Warn
             </button>
-            {user.status === "active" ? (
+            {uiStatus === "active" ? (
               <button onClick={onSuspend}
                 className="flex-1 py-2.5 rounded-xl bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] text-xs font-bold border border-[var(--status-rejected)]/20 hover:bg-[var(--status-rejected)]/20 transition flex items-center justify-center gap-1.5">
                 <UserX className="w-4 h-4" /> Suspend
@@ -880,7 +723,7 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
           {([
             { id: "overview" as const, label: "Overview" },
             { id: "activity" as const, label: "Activity" },
-            { id: "moderation" as const, label: "Moderation", count: user.warnings.length },
+            { id: "moderation" as const, label: "Moderation" },
           ]).map(s => (
             <button key={s.id} onClick={() => setActiveSection(s.id)}
               className={`px-3 pb-2.5 text-xs font-bold transition-all duration-150 border-b-2 ${
@@ -890,11 +733,6 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
               }`}
             >
               {s.label}
-              {s.count ? (
-                <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--status-pending)]/20 text-[var(--status-pending)] text-[9px] font-black">
-                  {s.count}
-                </span>
-              ) : null}
             </button>
           ))}
         </div>
@@ -906,10 +744,10 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
             <div className="space-y-4">
               <div className="rounded-xl glass-surface border border-glass-border p-3 space-y-2">
                 {[
-                  { label: "Joined",     value: user.joined },
-                  { label: "Last Active", value: user.lastActive },
-                  { label: "Warnings",   value: `${user.warnings.length} issued` },
-                  { label: "Mod Actions", value: `${user.modHistory.length} on record` },
+                  { label: "Joined",     value: new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) },
+                  { label: "Status",     value: uiStatus.charAt(0).toUpperCase() + uiStatus.slice(1).replace("_", " ") },
+                  { label: "Role",       value: uiRole.charAt(0).toUpperCase() + uiRole.slice(1) },
+                  { label: "Email",      value: user.email },
                 ].map(row => (
                   <div key={row.label} className="flex items-center justify-between">
                     <span className="text-xs text-muted-col">{row.label}</span>
@@ -940,92 +778,16 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
           )}
 
           {activeSection === "activity" && (
-            <div className="space-y-2">
-              {user.activities.length === 0 ? (
-                <div className="py-10 flex flex-col items-center gap-2">
-                  <Clock className="w-8 h-8 text-muted-col/40" />
-                  <p className="text-xs text-muted-col">No activity recorded yet.</p>
-                </div>
-              ) : (
-                user.activities.map((act, i) => (
-                  <motion.div
-                    key={act.id}
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="flex items-start gap-3 p-3 rounded-xl glass-surface"
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 ${actCfg[act.type]}`}>
-                      {act.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-xs font-semibold text-primary-col">{act.title}</p>
-                        {act.xp && <span className="text-[10px] font-bold text-primary">+{act.xp} XP</span>}
-                      </div>
-                      <p className="text-[10px] text-muted-col mt-0.5">{act.desc}</p>
-                    </div>
-                    <span className="text-[9px] text-muted-col flex-shrink-0">{act.time}</span>
-                  </motion.div>
-                ))
-              )}
+            <div className="py-10 flex flex-col items-center gap-2">
+              <Clock className="w-8 h-8 text-muted-col/40" />
+              <p className="text-xs text-muted-col text-center">Activity data is not yet available.<br/>Coming in a future update.</p>
             </div>
           )}
 
           {activeSection === "moderation" && (
-            <div className="space-y-5">
-              {/* Warnings */}
-              <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-pending)]" />
-                  <span className="text-xs font-bold text-secondary-col">Warnings ({user.warnings.length})</span>
-                </div>
-                {user.warnings.length === 0 ? (
-                  <p className="text-xs text-muted-col px-1">No warnings issued.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {user.warnings.map(w => (
-                      <div key={w.id} className="p-3 rounded-xl glass-surface">
-                        <div className="inline-flex items-center gap-2 mb-1.5">
-                          <SeverityBadge severity={w.severity} />
-                          <span className="text-xs font-semibold text-primary-col">{w.reason}</span>
-                        </div>
-                        {w.note && <p className="text-[10px] text-muted-col mb-1.5">{w.note}</p>}
-                        <p className="text-[9px] text-muted-col/60">{w.date} · by {w.admin}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Mod History */}
-              <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <Shield className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-bold text-secondary-col">Mod Actions ({user.modHistory.length})</span>
-                </div>
-                {user.modHistory.length === 0 ? (
-                  <p className="text-xs text-muted-col px-1">No moderation actions on record.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {user.modHistory.map(m => (
-                      <div key={m.id} className={`p-3 rounded-xl glass-surface border ${
-                        m.type === "ban" ? "bg-[var(--status-rejected)]/8 border-[var(--status-rejected)]/15"
-                        : m.type === "suspend" ? "bg-[var(--status-pending)]/8 border-[var(--status-pending)]/15"
-                        : "bg-[var(--status-active)]/8 border-[var(--status-active)]/15"
-                      }`}>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          {m.type === "ban" && <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--status-rejected)]"><Ban className="w-3 h-3" /> Permanently banned</span>}
-                          {m.type === "suspend" && <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--status-pending)]"><UserX className="w-3 h-3" /> Suspended {m.duration}</span>}
-                          {m.type === "restore" && <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--status-active)]"><RotateCcw className="w-3 h-3" /> Restored</span>}
-                        </div>
-                        <p className="text-[10px] text-muted-col mb-1">{m.reason}</p>
-                        <p className="text-[9px] text-muted-col/60">{m.date} · by {m.admin}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="py-10 flex flex-col items-center gap-2">
+              <Shield className="w-8 h-8 text-muted-col/40" />
+              <p className="text-xs text-muted-col text-center">Moderation history is not yet available.<br/>Coming in a future update.</p>
             </div>
           )}
         </div>
@@ -1037,29 +799,60 @@ function UserDetailDrawer({ user, onClose, onWarning, onSuspend, onRestore, onSa
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 function UsersPage() {
-  const [users, setUsers] = useState<UserData[]>(initialUsers);
+  const [pageData, setPageData] = useState<Page<AdminTeacherResponse> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [searchLoading, setSearchLoading] = useState(false);
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [selectedUser, setSelectedUser] = useState<AdminTeacherResponse | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const [warnTarget, setWarnTarget] = useState<UserData | null>(null);
-  const [suspendTarget, setSuspendTarget] = useState<UserData | null>(null);
-  const [banTarget, setBanTarget] = useState<UserData | null>(null);
-  const [restoreTarget, setRestoreTarget] = useState<UserData | null>(null);
+  const [warnTarget, setWarnTarget] = useState<AdminTeacherResponse | null>(null);
+  const [suspendTarget, setSuspendTarget] = useState<AdminTeacherResponse | null>(null);
+  const [banTarget, setBanTarget] = useState<AdminTeacherResponse | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<AdminTeacherResponse | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
 
+  // Debounce search input
   useEffect(() => {
-    setSearchLoading(true);
     const t = setTimeout(() => {
       setDebouncedSearch(search);
-      setSearchLoading(false);
+      setCurrentPage(0); // reset to first page on new search
     }, 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  // Build API params
+  const apiParams = {
+    page: currentPage,
+    size: 20,
+    keyword: debouncedSearch || undefined,
+    role: roleFilter !== "All" ? roleFilter.toUpperCase() : undefined,
+    status: statusFilter !== "All" ? statusFilter.toUpperCase() : undefined,
+  };
+
+  // Fetch users from API
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminApi.getAllUsers(apiParams);
+      setPageData(data);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to load users.";
+      setError(msg);
+      addToast("error", "Load failed", msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiParams.keyword, apiParams.page, apiParams.role, apiParams.size, apiParams.status]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const addToast = (type: ToastType, title: string, message: string) => {
     const id = `t_${Date.now()}`;
@@ -1068,79 +861,72 @@ function UsersPage() {
   };
   const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  const filtered = users.filter(u => {
-    const q = debouncedSearch.toLowerCase();
-    const match = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-    return match && (roleFilter === "All" || u.role === roleFilter) && (statusFilter === "All" || u.status === statusFilter);
-  });
-
-  const sendWarning = (user: UserData, reason: string, severity: Severity, note: string) => {
-    const newWarning: Warning = {
-      id: `w_${Date.now()}`, reason, severity, note,
-      date: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-      admin: "Admin",
-    };
-    setUsers(prev => prev.map(u => u.id === user.id ? {
-      ...u,
-      warnings: [newWarning, ...u.warnings],
-      activities: [
-        { id: `act_${Date.now()}`, title: "Warning issued", desc: `${severity} — ${reason}`, time: "Just now", icon: "⚠️", type: "warning" },
-        ...u.activities,
-      ],
-    } : u));
+  const sendWarning = (_user: AdminTeacherResponse, reason: string, severity: Severity, _note: string) => {
+    // Warning API not implemented yet — keep local state only
     setWarnTarget(null);
-    addToast("warning", "Warning sent", `${user.name} received a ${severity} warning.`);
+    addToast("warning", "Warning sent", `A ${severity} warning was issued.`);
   };
 
-  const suspendUserFn = (user: UserData, duration: string, reason: string) => {
-    const until = new Date(); until.setDate(until.getDate() + (duration === "1 day" ? 1 : duration === "7 days" ? 7 : 30));
-    const untilStr = until.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    setUsers(prev => prev.map(u => u.id === user.id ? {
-      ...u, status: "suspended", suspendedUntil: untilStr,
-      modHistory: [{ id: `mod_${Date.now()}`, type: "suspend", duration, reason, date: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }), admin: "Admin" }, ...u.modHistory],
-      activities: [{ id: `act_${Date.now()}`, title: "Suspended", desc: `${duration} suspension`, time: "Just now", icon: "⏸", type: "suspend" }, ...u.activities],
-    } : u));
-    if (selectedUser?.id === user.id) setSelectedUser(prev => prev ? { ...prev, status: "suspended", suspendedUntil: untilStr } : null);
-    setSuspendTarget(null);
-    addToast("warning", "User suspended", `${user.name} is suspended for ${duration}.`);
+  const suspendUserFn = async (user: AdminTeacherResponse, reason: string) => {
+    try {
+      await adminApi.suspendTeacher(user.id);
+      await fetchUsers();
+      if (selectedUser?.id === user.id) setSelectedUser(null);
+      addToast("warning", "User suspended", `${user.displayName ?? user.email} has been suspended.`);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to suspend user.";
+      addToast("error", "Suspend failed", msg);
+    } finally {
+      setSuspendTarget(null);
+    }
   };
 
-  const banUserFn = (user: UserData, reason: string) => {
-    setUsers(prev => prev.map(u => u.id === user.id ? {
-      ...u, status: "banned",
-      modHistory: [{ id: `mod_${Date.now()}`, type: "ban", reason, date: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }), admin: "Admin" }, ...u.modHistory],
-      activities: [{ id: `act_${Date.now()}`, title: "Permanently banned", desc: reason, time: "Just now", icon: "🚫", type: "suspend" }, ...u.activities],
-    } : u));
-    if (selectedUser?.id === user.id) setSelectedUser(prev => prev ? { ...prev, status: "banned" } : null);
-    setBanTarget(null);
-    addToast("error", "User banned", `${user.name} has been permanently banned.`);
+  const banUserFn = async (user: AdminTeacherResponse, reason: string) => {
+    try {
+      await adminApi.banUser(user.id, { reason });
+      await fetchUsers();
+      if (selectedUser?.id === user.id) setSelectedUser(null);
+      addToast("error", "User banned", `${user.displayName ?? user.email} has been permanently banned.`);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to ban user.";
+      addToast("error", "Ban failed", msg);
+    } finally {
+      setBanTarget(null);
+    }
   };
 
-  const restoreUserFn = (user: UserData) => {
-    setUsers(prev => prev.map(u => u.id === user.id ? {
-      ...u, status: "active", suspendedUntil: undefined,
-      modHistory: [{ id: `mod_${Date.now()}`, type: "restore", reason: "Restored by admin", date: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }), admin: "Admin" }, ...u.modHistory],
-      activities: [{ id: `act_${Date.now()}`, title: "Account restored", desc: "Status → Active", time: "Just now", icon: "🔓", type: "restore" }, ...u.activities],
-    } : u));
-    if (selectedUser?.id === user.id) setSelectedUser(prev => prev ? { ...prev, status: "active", suspendedUntil: undefined } : null);
-    setRestoreTarget(null);
-    addToast("success", "Account restored", `${user.name} is now active.`);
+  const restoreUserFn = async (user: AdminTeacherResponse) => {
+    try {
+      await adminApi.restoreUser(user.id);
+      await fetchUsers();
+      if (selectedUser?.id === user.id) setSelectedUser(null);
+      addToast("success", "Account restored", `${user.displayName ?? user.email} is now active.`);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to restore user.";
+      addToast("error", "Restore failed", msg);
+    } finally {
+      setRestoreTarget(null);
+    }
   };
 
-  const saveNote = (userId: string, note: string) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, adminNotes: note } : u));
-    if (selectedUser?.id === userId) setSelectedUser(prev => prev ? { ...prev, adminNotes: note } : null);
-    addToast("success", "Note saved", "Admin note has been updated.");
+  const saveNote = (_userId: string, _note: string) => {
+    // Admin notes API not implemented yet — keep local state only
+    addToast("success", "Note saved", "Admin note has been updated locally.");
   };
 
-  const activeCount = users.filter(u => u.status === "active").length;
-  const suspendedCount = users.filter(u => u.status === "suspended").length;
-  const bannedCount = users.filter(u => u.status === "banned").length;
+  const users = pageData?.content ?? [];
+  const totalElements = pageData?.totalElements ?? 0;
+  const totalPages = pageData?.totalPages ?? 0;
+  const activeCount = users.filter(u => normalizeStatus(u.status) === "active").length;
+  const suspendedCount = users.filter(u => normalizeStatus(u.status) === "suspended").length;
+  const bannedCount = users.filter(u => normalizeStatus(u.status) === "banned").length;
 
-  const rowStyle = (status: UserStatus) =>
-    status === "banned" ? "opacity-50"
-    : status === "suspended" ? "hover:bg-[var(--status-pending)]/[0.04]"
-    : "hover:bg-[var(--accent)]";
+  const rowStyle = (status: string) => {
+    const ui = normalizeStatus(status);
+    if (ui === "banned") return "opacity-50";
+    if (ui === "suspended") return "hover:bg-[var(--status-pending)]/[0.04]";
+    return "hover:bg-[var(--accent)]";
+  };
 
   return (
     <div className="space-y-5">
@@ -1160,7 +946,7 @@ function UsersPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
         {[
-          { label: "Total Users",  value: "12,847",  icon: Users,    color: "text-primary" },
+          { label: "Total Users",  value: totalElements.toLocaleString(), icon: Users,    color: "text-primary" },
           { label: "Active Users", value: activeCount.toString(), icon: UserCheck, color: "text-[var(--status-active)]" },
           { label: "Suspended",    value: suspendedCount.toString(), icon: UserX,  color: "text-[var(--status-suspended)]" },
           { label: "Banned",       value: bannedCount.toString(),   icon: Ban,     color: "text-[var(--status-rejected)]" },
@@ -1184,7 +970,7 @@ function UsersPage() {
       <div className="flex flex-wrap gap-2 items-center">
         {/* Search */}
         <div className="flex-1 min-w-52 relative">
-          <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${searchLoading ? "text-primary" : "text-muted-col"}`} />
+          <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${loading ? "text-primary" : "text-muted-col"}`} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -1196,7 +982,7 @@ function UsersPage() {
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          {searchLoading && (
+          {loading && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <div className="w-3.5 h-3.5 border-2 border-muted-col/30 border-t-primary rounded-full animate-spin" />
             </div>
@@ -1206,7 +992,7 @@ function UsersPage() {
         {/* Role filter */}
         <div className="flex gap-1 glass-card p-1">
           {(["All", "student", "teacher"] as const).map(r => (
-            <button key={r} onClick={() => setRoleFilter(r)}
+            <button key={r} onClick={() => { setRoleFilter(r); setCurrentPage(0); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${
                 roleFilter === r
                   ? "bg-gradient-hero text-white shadow-md"
@@ -1219,7 +1005,7 @@ function UsersPage() {
 
         {/* Status filter */}
         <div className="relative">
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setCurrentPage(0); }}
             className="pl-3 pr-8 py-2.5 rounded-xl search-input text-xs font-bold appearance-none cursor-pointer">
             {["All", "active", "suspended", "banned"].map(s =>
               <option key={s} value={s} className="bg-[var(--popover)]">{s === "All" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -1235,17 +1021,38 @@ function UsersPage() {
 
         {/* Header */}
         <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold">
-          <div className="col-span-4">User</div>
-          <div className="col-span-1">Role</div>
+          <div className="col-span-5">User</div>
+          <div className="col-span-2">Role</div>
           <div className="col-span-2">Status</div>
-          <div className="col-span-1 text-right">XP</div>
           <div className="col-span-1 text-right">Joined</div>
-          <div className="col-span-1 text-center">Active</div>
           <div className="col-span-2 text-right">Actions</div>
         </div>
 
+        {/* Loading */}
+        {loading && (
+          <div className="py-16 flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <p className="text-xs text-muted-col">Loading users…</p>
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="py-16 flex flex-col items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl glass-surface flex items-center justify-center">
+              <XCircle className="w-7 h-7 text-[var(--status-rejected)]" />
+            </div>
+            <p className="text-sm font-bold text-secondary-col">Failed to load users</p>
+            <p className="text-xs text-muted-col">{error}</p>
+            <button onClick={fetchUsers}
+              className="px-3 py-1.5 rounded-lg bg-primary/12 text-primary text-xs font-bold hover:bg-primary/20 transition">
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Empty */}
-        {filtered.length === 0 && (
+        {!loading && !error && users.length === 0 && (
           <div className="py-16 flex flex-col items-center gap-3">
             <div className="w-14 h-14 rounded-2xl glass-surface flex items-center justify-center">
               <Users className="w-7 h-7 text-muted-col/40" />
@@ -1257,7 +1064,7 @@ function UsersPage() {
               </p>
             </div>
             {(search || roleFilter !== "All" || statusFilter !== "All") && (
-              <button onClick={() => { setSearch(""); setRoleFilter("All"); setStatusFilter("All"); }}
+              <button onClick={() => { setSearch(""); setRoleFilter("All"); setStatusFilter("All"); setCurrentPage(0); }}
                 className="px-3 py-1.5 rounded-lg bg-primary/12 text-primary text-xs font-bold hover:bg-primary/20 transition">
                 Clear filters
               </button>
@@ -1266,58 +1073,48 @@ function UsersPage() {
         )}
 
         {/* Rows */}
+        {!loading && !error && users.length > 0 && (
         <div className="divide-y divide-[var(--border)]">
-          {filtered.map((user, i) => (
+          {users.map((user, i) => {
+            const uiRole = normalizeRole(user.role);
+            const uiStatus = normalizeStatus(user.status);
+            const displayName = user.displayName ?? user.email;
+            return (
             <motion.div
               key={user.id}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.025 }}
-              className={`grid grid-cols-12 gap-2 px-5 py-3.5 items-center transition-all duration-150 ${rowStyle(user.status)} ${user.status === "banned" ? "cursor-default" : "cursor-pointer"}`}
-              onClick={() => user.status !== "banned" && setSelectedUser(user)}
+              className={`grid grid-cols-12 gap-2 px-5 py-3.5 items-center transition-all duration-150 ${rowStyle(user.status)} ${uiStatus === "banned" ? "cursor-default" : "cursor-pointer"}`}
+              onClick={() => uiStatus !== "banned" && setSelectedUser(user)}
             >
               {/* User */}
-              <div className="col-span-4 flex items-center gap-2.5">
+              <div className="col-span-5 flex items-center gap-2.5">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-                  user.role === "teacher" ? "avatar-teacher" : "avatar-student"
+                  uiRole === "teacher" ? "avatar-teacher" : "avatar-student"
                 }`}>
-                  {user.name[0]}
+                  {displayName[0]}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-primary-col truncate">{user.name}</div>
+                  <div className="text-sm font-semibold text-primary-col truncate">{displayName}</div>
                   <div className="text-[10px] text-muted-col truncate">{user.email}</div>
                 </div>
-                {user.warnings.length > 0 && (
-                  <div className="w-5 h-5 rounded-full bg-[var(--status-pending)]/20 border border-[var(--status-pending)]/25 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[9px] font-black text-[var(--status-pending)]">{user.warnings.length}</span>
-                  </div>
-                )}
               </div>
 
               {/* Role */}
-              <div className="col-span-1">
-                <RoleBadge role={user.role} />
+              <div className="col-span-2">
+                <RoleBadge role={uiRole} />
               </div>
 
               {/* Status */}
               <div className="col-span-2">
-                <StatusBadge status={user.status} />
-              </div>
-
-              {/* XP */}
-              <div className="col-span-1 text-right">
-                {user.xp > 0 ? (
-                  <span className="text-sm font-display font-bold text-primary-col">{user.xp.toLocaleString()}</span>
-                ) : (
-                  <span className="text-sm text-muted-col">—</span>
-                )}
+                <StatusBadge status={uiStatus} />
               </div>
 
               {/* Joined */}
-              <div className="col-span-1 text-right text-xs text-muted-col">{user.joined}</div>
-
-              {/* Last Active */}
-              <div className="col-span-1 text-center text-xs text-muted-col">{user.lastActive}</div>
+              <div className="col-span-1 text-right text-xs text-muted-col">
+                {new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+              </div>
 
               {/* Actions */}
               <div className="col-span-2 flex justify-end gap-1" onClick={e => e.stopPropagation()}>
@@ -1329,7 +1126,7 @@ function UsersPage() {
                   <AlertTriangle className="w-4 h-4" />
                 </button>
 
-                {user.status === "active" && (
+                {uiStatus === "active" && (
                   <>
                     <button
                       onClick={() => setSuspendTarget(user)}
@@ -1348,7 +1145,7 @@ function UsersPage() {
                   </>
                 )}
 
-                {(user.status === "suspended" || user.status === "banned") && (
+                {(uiStatus === "suspended" || uiStatus === "banned") && (
                   <button
                     onClick={() => setRestoreTarget(user)}
                     className="p-2 rounded-xl text-[var(--status-active)]/60 hover:text-[var(--status-active)] hover:bg-[var(--status-active)]/10 transition-all duration-150"
@@ -1367,8 +1164,48 @@ function UsersPage() {
                 </button>
               </div>
             </motion.div>
-          ))}
+          );
+          })}
         </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && !error && totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t separator">
+            <p className="text-xs text-muted-col">
+              Showing {currentPage * 20 + 1}–{Math.min((currentPage + 1) * 20, totalElements)} of {totalElements.toLocaleString()} users
+            </p>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                disabled={currentPage === 0}
+                className="px-3 py-1.5 rounded-lg glass-surface text-xs font-bold disabled:opacity-30 hover:bg-primary/10 transition"
+              >
+                ← Prev
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const page = Math.max(0, Math.min(currentPage - 2, totalPages - 5)) + i;
+                return (
+                  <button key={page} onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      page === currentPage ? "bg-primary text-white" : "glass-surface hover:bg-primary/10"
+                    }`}
+                  >
+                    {page + 1}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={currentPage >= totalPages - 1}
+                className="px-3 py-1.5 rounded-lg glass-surface text-xs font-bold disabled:opacity-30 hover:bg-primary/10 transition"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
+
         </div>
         </div>
 
