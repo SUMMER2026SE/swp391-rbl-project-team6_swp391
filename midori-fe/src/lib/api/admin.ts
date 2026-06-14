@@ -10,6 +10,12 @@ export type RejectTeacherPayload = {
 // Align with backend Role enum
 export type AdminRole = "STUDENT" | "TEACHER" | "ADMIN";
 
+// Lowercase display type used in UI components
+export type UiRole = "student" | "teacher" | "admin";
+
+// Lowercase display type used in UI components
+export type UiStatus = "active" | "suspended" | "banned" | "pending" | "pending_approval" | "rejected";
+
 export interface AdminUserResponse {
   id: string;
   email: string;
@@ -42,14 +48,40 @@ export interface AdminTeacherResponse {
   email: string;
   role: AdminRole;
   status: AdminUserStatus;
+  emailVerified: boolean;
   displayName?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
   phone?: string | null;
   location?: string | null;
   dateOfBirth?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// Pagination wrapper returned by Spring Data Page
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+export interface BanUserPayload {
+  reason: string;
+}
+
+export interface GetAllUsersParams {
+  role?: string;
+  status?: string;
+  keyword?: string;
+  page?: number;
+  size?: number;
 }
 
 export const adminApi = {
@@ -82,4 +114,32 @@ export const adminApi = {
 
   getTeacherCertificates: (userId: string) =>
     api.get<AdminTeacherCertificateResponse[]>(`/admin/users/${userId}/certificates`),
+
+  /**
+   * Get all users with pagination and optional filters.
+   * Query params are built manually because client.ts does not support them natively.
+   */
+  getAllUsers: (params: GetAllUsersParams = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.role) searchParams.set("role", params.role);
+    if (params.status) searchParams.set("status", params.status);
+    if (params.keyword) searchParams.set("keyword", params.keyword);
+    if (params.page !== undefined) searchParams.set("page", String(params.page));
+    if (params.size !== undefined) searchParams.set("size", String(params.size));
+    const query = searchParams.toString();
+    const path = "/admin/users" + (query ? `?${query}` : "");
+    return api.get<Page<AdminTeacherResponse>>(path);
+  },
+
+  /**
+   * Permanently ban a user.
+   */
+  banUser: (userId: string, payload: BanUserPayload) =>
+    api.put<AdminTeacherResponse>(`/admin/users/${userId}/ban`, payload),
+
+  /**
+   * Restore a banned or suspended user.
+   */
+  restoreUser: (userId: string) =>
+    api.put<AdminTeacherResponse>(`/admin/users/${userId}/restore`),
 };
