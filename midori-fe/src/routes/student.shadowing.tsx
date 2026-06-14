@@ -15,6 +15,8 @@ interface SentenceResult {
   flu: number;
   into: number;
   conf: number;
+  // When true, these scores are demo placeholders (not real AI feedback)
+  isDemo?: boolean;
 }
 
 type ConvStatus = "not_started" | "in_progress" | "completed";
@@ -87,20 +89,24 @@ function ShadowingPage() {
 
   const stopRecording = () => {
     setRecording(false);
-    const pron = 50 + Math.floor(Math.random() * 50);
-    const passed = pron >= 80;
-    setResult({ passed, pron, flu: 60 + Math.floor(Math.random() * 35), into: 55 + Math.floor(Math.random() * 40), conf: 50 + Math.floor(Math.random() * 45) });
-    if (passed && convKey) {
-      setConvProgress(prev => {
-        const next = new Set(prev[convKey] ?? []);
-        next.add(sentences[idx].id);
-        return { ...prev, [convKey]: next };
-      });
-    }
+    // Demo mode: speech scoring is not wired to a real backend yet.
+    // Use fixed placeholder scores and an explicit "demo" flag so the UI
+    // never presents these numbers as real pronunciation feedback.
+    setResult({
+      passed: false,
+      pron: 0,
+      flu: 0,
+      into: 0,
+      conf: 0,
+      isDemo: true,
+    });
   };
 
   const handleNext = () => {
-    if (!result?.passed) return;
+    // In demo mode there is no real pass/fail, so allow advancing to keep
+    // the flow usable. Once real speech scoring is wired in, remove the
+    // isDemo branch.
+    if (!result?.passed && !result?.isDemo) return;
     if (idx < sentences.length - 1) {
       setIdx(i => i + 1);
       setResult(null);
@@ -300,11 +306,11 @@ function ShadowingPage() {
                         Previous
                       </button>
                       <button
-                        disabled={!result?.passed}
+                        disabled={!result?.passed && !result?.isDemo}
                         onClick={handleNext}
                         className="px-4 py-3 rounded-xl bg-gradient-hero text-white font-semibold text-sm shadow hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        {!result?.passed && <Lock className="w-4 h-4" />}
+                        {!result?.passed && !result?.isDemo && <Lock className="w-4 h-4" />}
                         Next sentence
                       </button>
                     </div>
@@ -324,6 +330,15 @@ function ShadowingPage() {
                       </div>
                     ) : (
                       <div className="space-y-3">
+                        {/* Demo banner */}
+                        {result.isDemo && (
+                          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 text-[11px] font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                            <Sparkles className="w-3 h-3 shrink-0" />
+                            Demo feedback only — scores are placeholders. Real speech
+                            scoring is not wired to a backend yet.
+                          </div>
+                        )}
+
                         {/* Score */}
                         <div className={`p-3 rounded-xl text-center font-display font-extrabold text-3xl ${
                           result.passed ? "bg-primary/15 text-primary" : "bg-jp-red/15 text-jp-red"
@@ -331,7 +346,7 @@ function ShadowingPage() {
                           {result.pron}
                           <span className="text-base text-muted-foreground">/100</span>
                           <div className="text-xs font-normal mt-1">
-                            {result.passed ? "Passed ✓" : "Try again — aim for 80+"}
+                            {result.passed ? "Passed ✓" : result.isDemo ? "Demo — no real scoring" : "Try again — aim for 80+"}
                           </div>
                         </div>
 
@@ -354,7 +369,7 @@ function ShadowingPage() {
                         ))}
 
                         {/* Error hint */}
-                        {!result.passed && (
+                        {!result.passed && !result.isDemo && (
                           <div className="p-3 rounded-xl bg-primary/10 text-xs flex gap-2">
                             <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                             <span>AI: Your pitch dropped on the final syllable. Try keeping a slight rising tone on です.</span>

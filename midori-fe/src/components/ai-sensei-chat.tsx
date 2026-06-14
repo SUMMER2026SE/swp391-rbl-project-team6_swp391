@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useAuth } from "@/lib/auth";
 import {
   Send, Sparkles, Trash2, Settings, BookOpen,
   GraduationCap, Target, Copy, CheckCheck,
@@ -153,7 +154,11 @@ const KANJI_DB: Record<string, { level: string; onyomi: string[]; kunyomi: strin
 
 const STUDENT_CONTEXT = {
   level: "N3",
-  name: "Yuki",
+  // Demo name placeholder. This component is a local rule-based engine
+  // (no LLM backend yet) and never connects to a real user identity here.
+  // The chat UI uses auth context for display when available, otherwise
+  // "Student" is used.
+  name: "Student",
 };
 
 function autoTitle(userMessage: string): string {
@@ -639,7 +644,7 @@ function MessageBubble({
         </div>
       ) : (
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-lg">
-          {STUDENT_CONTEXT.name[0]}
+          {displayUserName[0]}
         </div>
       )}
 
@@ -1122,6 +1127,11 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
 export function AISenseiPage() {
   const isLoadingSuggestions = false;
   const suggestionError: string | null = null;
+  // Demo mode: this page runs a local rule-based engine. We still read
+  // the auth user for display purposes (avatar, greeting) but never call
+  // a real LLM backend from here.
+  const { user } = useAuth();
+  const displayUserName = user?.name?.trim() || user?.email?.split("@")[0] || "Student";
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -1485,8 +1495,8 @@ Try: "Explain めながら", \`/quiz\`, or \`/roleplay\`.`,
                         </span>
                       </div>
                       <div className="text-[10px] text-muted-col flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                        Online · {settings.jlptLevel}
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        Local demo · {settings.jlptLevel}
                       </div>
                     </div>
                   </div>
@@ -1564,10 +1574,10 @@ Try: "Explain めながら", \`/quiz\`, or \`/roleplay\`.`,
                 <div className="p-3 border-t border-glass-border">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                      {STUDENT_CONTEXT.name[0]}
+                      {displayUserName[0]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold truncate">{STUDENT_CONTEXT.name}</div>
+                      <div className="text-xs font-bold truncate">{displayUserName}</div>
                     </div>
                     <button
                       onClick={() => setShowSettings(true)}
@@ -1602,8 +1612,8 @@ Try: "Explain めながら", \`/quiz\`, or \`/roleplay\`.`,
                 </span>
               </div>
               <div className="text-[10px] text-muted-col flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                Online · {settings.jlptLevel} · {settings.language === "vietnamese" ? "Tiếng Việt" : settings.language === "japanese" ? "日本語" : "English"}
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Local demo · {settings.jlptLevel} · {settings.language === "vietnamese" ? "Tiếng Việt" : settings.language === "japanese" ? "日本語" : "English"}
               </div>
             </div>
             <button onClick={handleNewChat} className="p-2 rounded-xl hover:bg-muted transition" title="New chat">

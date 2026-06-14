@@ -991,12 +991,11 @@ function ExamsPage() {
     if (history) {
       setAnswers(history);
     } else {
-      // Generate random answers for demo
-      const randomAnswers: Record<string, number | null> = {};
-      SAMPLE_QUESTIONS.forEach(q => {
-        randomAnswers[q.id] = Math.random() > 0.5 ? Math.floor(Math.random() * 4) : null;
-      });
-      setAnswers(randomAnswers);
+      // No prior attempt recorded for this exam in this session. In demo
+      // mode we do NOT fabricate a random answer set — that would mislead
+      // students into thinking they had taken the exam. Leave answers
+      // empty so the review screen shows "Not answered" for every question.
+      setAnswers({});
     }
     setPhase("review");
   }, [examHistory]);

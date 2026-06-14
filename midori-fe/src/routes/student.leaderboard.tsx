@@ -7,6 +7,7 @@ import {
   GraduationCap, Mic, Sparkles, Clock, Calendar, Globe,
   ChevronLeft, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 // ─── Mock Leaderboard Data ────────────────────────────────────────────────────
 
@@ -28,9 +29,11 @@ const leaderboardData = [
   { rank: 15, name: "Nina Petrov", avatar: "N", xp: 1200, streak: 3, level: 2, jlpt: "N5", country: "RU", badges: 1, change: 1 },
 ];
 
-const currentUser = leaderboardData.find(p => p.name === "Yuki Tanaka")!;
-const currentUserRank = 5;
-const nextRank = leaderboardData[currentUserRank]; // rank 6
+// Note: `currentUser`/`currentUserRank`/`nextRank` are intentionally NOT
+// hardcoded here. In demo mode we use a generic "Demo User" identity and
+// derive a sample rank from the existing demo list. The real user identity
+// (from useAuth) is read inside LeaderboardPage so different students see
+// their own name instead of a single hardcoded "Yuki Tanaka".
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -133,6 +136,7 @@ export const Route = createFileRoute("/student/leaderboard")({
 function LeaderboardPage() {
   const isLoading = false;
   const error: string | null = null;
+  const { user } = useAuth();
 
   if (isLoading) {
     return (
@@ -161,7 +165,22 @@ function LeaderboardPage() {
   const rest = leaderboardData.slice(3);
   const totalRankPages = Math.max(1, Math.ceil(rest.length / RANKS_PER_PAGE));
   const pagedRanks = rest.slice((rankPage - 1) * RANKS_PER_PAGE, rankPage * RANKS_PER_PAGE);
-  const xpToNextRank = nextRank.xp - currentUser.xp;
+
+  // Demo current user: prefer the real auth user's display name, otherwise
+  // show a neutral "Demo User" label so we never display a hardcoded
+  // "Yuki Tanaka" to every visitor. Stats are placeholders only.
+  const authDisplayName = user?.name?.trim() || user?.email?.split("@")[0] || "";
+  const demoDisplayName = authDisplayName || "Demo User";
+  const demoInitial = (demoDisplayName[0] ?? "?").toUpperCase();
+  const demoCurrentUser = {
+    name: demoDisplayName,
+    avatar: demoInitial,
+    xp: 0,
+    streak: 0,
+    level: 1,
+  };
+  const demoCurrentUserRank = leaderboardData.length + 1; // always last in demo
+  const xpToNextRank = Math.max(0, 1000 - demoCurrentUser.xp);
 
   const filterLabels: Record<string, string> = {
     weekly: "This Week",
@@ -296,19 +315,22 @@ function LeaderboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-[11px] opacity-70 uppercase tracking-widest">Your Rank</div>
-                <div className="font-display font-black text-3xl">#{currentUserRank}</div>
+                <div className="font-display font-black text-3xl">
+                  {authDisplayName ? `#${demoCurrentUserRank}` : "Demo"}
+                </div>
+                <div className="text-[11px] opacity-80 mt-1 font-semibold">{demoCurrentUser.name}</div>
               </div>
               <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-black">
-                {currentUser.avatar}
+                {demoCurrentUser.avatar}
               </div>
             </div>
           </div>
           <div className="glass border-t-0 rounded-b-2xl p-3 border border-t-0">
             <div className="flex gap-3">
               {[
-                { label: "XP", value: currentUser.xp.toLocaleString() },
-                { label: "Streak", value: `${currentUser.streak}d` },
-                { label: "Level", value: currentUser.level.toString() },
+                { label: "XP", value: demoCurrentUser.xp.toLocaleString() },
+                { label: "Streak", value: `${demoCurrentUser.streak}d` },
+                { label: "Level", value: demoCurrentUser.level.toString() },
               ].map(s => (
                 <div key={s.label} className="flex-1 text-center">
                   <div className="font-black text-sm text-foreground">{s.value}</div>
@@ -328,7 +350,7 @@ function LeaderboardPage() {
         >
           <h4 className="font-bold text-sm mb-3 flex items-center gap-2 text-foreground">
             <TrendingUp className="w-4 h-4 text-blue-500" />
-            XP to Rank #{currentUserRank + 1}
+            {authDisplayName ? `XP to Rank #${demoCurrentUserRank + 1}` : "Demo XP progress"}
           </h4>
           <div className="flex items-end gap-3">
             <div className="flex-1">
@@ -336,17 +358,19 @@ function LeaderboardPage() {
               <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: "0%" }}
-                  animate={{ width: `${Math.min(80, (currentUser.xp / (currentUser.xp + xpToNextRank)) * 100)}%` }}
+                  animate={{ width: `${authDisplayName ? Math.min(80, (demoCurrentUser.xp / (demoCurrentUser.xp + xpToNextRank || 1)) * 100) : 0}%` }}
                   transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-pink-500"
                 />
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                {xpToNextRank.toLocaleString()} XP needed
+                {authDisplayName
+                  ? `${xpToNextRank.toLocaleString()} XP needed`
+                  : "Demo data — connect a backend to track real XP"}
               </div>
             </div>
             <div className="font-black text-2xl gradient-text leading-none">
-              {xpToNextRank.toLocaleString()}
+              {authDisplayName ? xpToNextRank.toLocaleString() : "—"}
             </div>
           </div>
         </motion.div>
@@ -373,7 +397,11 @@ function LeaderboardPage() {
         <div className="divide-y divide-border/30">
           {pagedRanks.map((player, idx) => {
             const actualRank = (rankPage - 1) * RANKS_PER_PAGE + idx + 4;
-            const isCurrentUser = player.name === "Yuki Tanaka";
+            // In demo mode no leaderboard row represents the real current
+            // user (we don't have a backend), so never highlight a row as
+            // "you" using a hardcoded name. Keep the visual hook for future
+            // use once a real leaderboard is wired up.
+            const isCurrentUser = false;
             return (
               <motion.div
                 key={player.rank}

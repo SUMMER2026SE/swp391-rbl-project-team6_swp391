@@ -1130,10 +1130,26 @@ function ListeningPage() {
         {renderEditExerciseModal()}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-display font-black">Listening Management</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Upload audio, create dictation exercises, and preview playback</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-display font-black">Listening Management</h1>
+              <span
+                data-testid="teacher-listening-demo-badge"
+                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm"
+                title="This module is currently using demo data. Created exercises are not saved after refresh."
+              >
+                Demo
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Upload audio, create dictation exercises, and preview playback.
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 max-w-2xl">
+              Demo mode: this module uses sample data only. New, edited, or deleted
+              exercises are kept in memory and will be lost after refresh — they are
+              not sent to a backend yet.
+            </p>
           </div>
           <button onClick={() => setShowNewModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition">
