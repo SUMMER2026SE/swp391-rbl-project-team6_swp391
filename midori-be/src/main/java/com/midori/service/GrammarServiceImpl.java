@@ -8,6 +8,7 @@ import com.midori.entity.ContentType;
 import com.midori.entity.Grammar;
 import com.midori.entity.GrammarLevel;
 import com.midori.entity.GrammarStatus;
+import com.midori.entity.NotificationType;
 import com.midori.entity.User;
 import com.midori.exception.AccessDeniedException;
 import com.midori.exception.BadRequestException;
@@ -31,6 +32,7 @@ public class GrammarServiceImpl implements GrammarService {
     private final GrammarRepository grammarRepository;
     private final UserRepository userRepository;
     private final UserLearningProgressRepository progressRepository;
+    private final NotificationHelperService notificationHelper;
 
     // ============================================================
     // Ownership Check Helper
@@ -167,6 +169,15 @@ public class GrammarServiceImpl implements GrammarService {
         grammar.setStatus(GrammarStatus.PENDING);
         grammar.setRejectReason(null);
         grammar = grammarRepository.save(grammar);
+
+        // Confirm submission to the teacher
+        notificationHelper.createNotification(
+                grammar.getCreatedBy(),
+                "Submission Received",
+                "Your grammar submission has been received and is awaiting review.",
+                NotificationType.SYSTEM
+        );
+
         return toGrammarResponse(grammar, currentUserId);
     }
 
