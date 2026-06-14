@@ -5,7 +5,7 @@ import {
   Plus, Search, Edit3, Trash2, Eye, BookOpen, Layers,
   X, Save, BookText, Tag, Star, FlipHorizontal,
   GripVertical, AlertTriangle, EyeOff, ListChecks, Volume2,
-  Loader2, Send
+  Loader2, Send, Upload
 } from "lucide-react";
 import { teacherFlashcardApi } from "../lib/api/teacherFlashcard";
 import {
@@ -254,6 +254,354 @@ function Toast({ toasts }: { toasts: ToastState[] }) {
   );
 }
 
+// ─── Bulk Import Modal ─────────────────────────────────────────────────────────
+type BulkDelimiter = "\t" | " " | "|" | "," | ";";
+
+interface ParsedCard {
+  frontText: string;
+  backText: string;
+  example: string;
+}
+
+interface ParsedResult {
+  cards: ParsedCard[];
+  totalRows: number;
+  invalidRows: number;
+}
+
+interface BulkImportModalProps {
+  onClose: () => void;
+  onImport: (cards: ParsedCard[]) => Promise<void>;
+  currentCards: FlashcardCardResponse[];
+}
+
+const DELIMITER_CONFIGS: { key: BulkDelimiter; label: string; hint: string }[] = [
+  { key: "\t", label: "Auto-detect", hint: "Best for PDFs, websites, Word" },
+  { key: " ", label: "Multiple spaces", hint: "2+ spaces (JLPT docs, plain text)" },
+  { key: "|", label: "Pipe (|)", hint: "Quizlet pipe exports" },
+  { key: ",", label: "Comma (,)", hint: "CSV / Excel exports" },
+  { key: ";", label: "Semicolon (;)", hint: "European CSV format" },
+];
+
+const DELIMITER_PATTERN: Record<Exclude<BulkDelimiter, "\t">, RegExp> = {
+  " ": /\s{2,}/,
+  "|": /\s*\|\s*/,
+  ",": /\s*,\s*/,
+  ";": /\s*;\s*/,
+};
+
+function parseLines(text: string, delimiter: BulkDelimiter): ParsedResult {
+  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  const cards: ParsedCard[] = [];
+  let invalidRows = 0;
+
+  for (const line of lines) {
+    const parts =
+      delimiter === "\t"
+        ? autoSplit(line)
+        : line.split(DELIMITER_PATTERN[delimiter as Exclude<BulkDelimiter, "\t">]).map((p) => p.trim());
+
+    const front = parts[0]?.trim();
+    const back = parts[1]?.trim();
+
+    if (!front || !back) {
+      invalidRows++;
+      continue;
+    }
+
+    cards.push({ frontText: front, backText: back, example: parts[2]?.trim() || "" });
+  }
+
+  return { cards, totalRows: lines.length, invalidRows };
+}
+
+function autoSplit(line: string): string[] {
+  if (line.includes("\t")) return line.split("\t").map((p) => p.trim());
+  if (/\s{2,}/.test(line)) return line.split(/\s{2,}/).map((p) => p.trim());
+  if (/\|/.test(line)) return line.split(/\s*\|\s*/).map((p) => p.trim());
+  if (/,/.test(line)) return line.split(/\s*,\s*/).map((p) => p.trim());
+  if (/;/.test(line)) return line.split(/\s*;\s*/).map((p) => p.trim());
+  return line.split(/\s{2,}/).map((p) => p.trim());
+}
+
+function detectDelimiter(text: string): BulkDelimiter {
+  const sample = text.split("\n").slice(0, 10).join("\n");
+  if (/\t/.test(sample)) return "\t";
+  if (/\s{2,}/.test(sample)) return " ";
+  if (/\|/.test(sample)) return "|";
+  if (/,/.test(sample)) return ",";
+  if (/;/.test(sample)) return ";";
+  return " ";
+}
+
+function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalProps) {
+  const [text, setText] = useState("");
+  const [delimiter, setDelimiter] = useState<BulkDelimiter>("\t");
+  const [parsedResult, setParsedResult] = useState<ParsedResult | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleTextChange = (val: string) => {
+    setText(val);
+    setParsedResult(null);
+    setImportError(null);
+    if (val.trim()) {
+      const detected = detectDelimiter(val);
+      setDelimiter(detected);
+    }
+  };
+
+  const handlePreview = () => {
+    const result = parseLines(text, delimiter);
+    setParsedResult(result);
+    if (result.invalidRows > 0) {
+      setImportError(`${result.invalidRows} row(s) could not be parsed and will be skipped.`);
+    } else {
+      setImportError(null);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!parsedResult || parsedResult.cards.length === 0) return;
+    setImporting(true);
+    try {
+      await onImport(parsedResult.cards);
+      onClose();
+    } catch {
+      setImportError("Import failed. Please try again.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const alreadyExists = (front: string, back: string) =>
+    currentCards.some(
+      (c) =>
+        c.frontText.trim().toLowerCase() === front.trim().toLowerCase() &&
+        c.backText.trim().toLowerCase() === back.trim().toLowerCase()
+    );
+
+  const newCount = parsedResult ? parsedResult.cards.filter((p) => !alreadyExists(p.frontText, p.backText)).length : 0;
+  const dupCount = parsedResult ? parsedResult.cards.filter((p) => alreadyExists(p.frontText, p.backText)).length : 0;
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full overflow-hidden"
+        style={{ maxWidth: 760, maxHeight: "90vh" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-hero text-white flex items-center justify-center">
+              <Upload className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-foreground">Bulk Import Flashcards</h2>
+              <p className="text-xs text-muted-foreground">Paste vocabulary from PDFs, websites, Quizlet, Excel</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition text-muted-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(90vh - 130px)" }}>
+          <div className="p-5 space-y-4">
+            {/* Delimiter selector */}
+            <div>
+              <label className="block text-[11px] font-bold text-muted-foreground uppercase mb-2 tracking-wide">
+                Separator
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {DELIMITER_CONFIGS.map(({ key, label, hint }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setDelimiter(key); setParsedResult(null); }}
+                    title={hint}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                      delimiter === key
+                        ? "bg-gradient-hero text-white border-transparent shadow"
+                        : "bg-slate-50 dark:bg-slate-800 text-muted-foreground border-slate-200 dark:border-slate-700 hover:border-primary/40"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {delimiter === "\t" && (
+                <p className="mt-1.5 text-[11px] text-primary font-medium">
+                  Auto-detect: TAB, multiple spaces, pipe, comma, or semicolon
+                </p>
+              )}
+            </div>
+
+            {/* Textarea */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
+                  Flashcard data
+                </label>
+                {text.trim() && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Detected:{" "}
+                    <span className="font-semibold text-primary">
+                      {delimiter === "\t" ? "Auto-detect" : DELIMITER_CONFIGS.find((d) => d.key === delimiter)?.label}
+                    </span>
+                  </span>
+                )}
+              </div>
+              <textarea
+                value={text}
+                onChange={(e) => handleTextChange(e.target.value)}
+                placeholder={`Paste your vocabulary list here, one card per line.\n\nExamples of supported formats:\n\n食べる  ăn\n飲む    uống    毎日飲みます。\n環境    môi trường  自然環境を保つ。\n\n食べる | ăn\n飲む | uống\n\n食べる, ăn\n飲む, uống`}
+                className="w-full h-52 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-mono outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              />
+            </div>
+
+            {/* Error / warning */}
+            {importError && (
+              <div className="px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700">
+                {importError}
+              </div>
+            )}
+
+            {/* Preview button */}
+            <button
+              onClick={handlePreview}
+              disabled={!text.trim()}
+              className="w-full py-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-primary transition disabled:opacity-40"
+            >
+              Preview parsed cards
+            </button>
+
+            {/* Stats bar */}
+            {parsedResult !== null && (
+              <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-blue-400" />
+                  <span className="text-xs text-muted-foreground">
+                    Total: <span className="font-bold text-foreground">{parsedResult.totalRows}</span>
+                  </span>
+                </div>
+                <div className="w-px h-3 bg-slate-300 dark:bg-slate-600" />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-green-400" />
+                  <span className="text-xs text-muted-foreground">
+                    Valid: <span className="font-bold text-green-600">{parsedResult.cards.length}</span>
+                  </span>
+                </div>
+                <div className="w-px h-3 bg-slate-300 dark:bg-slate-600" />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-red-400" />
+                  <span className="text-xs text-muted-foreground">
+                    Invalid: <span className="font-bold text-red-500">{parsedResult.invalidRows}</span>
+                  </span>
+                </div>
+                {dupCount > 0 && (
+                  <>
+                    <div className="w-px h-3 bg-slate-300 dark:bg-slate-600" />
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-amber-400" />
+                      <span className="text-xs text-muted-foreground">
+                        Duplicates in set: <span className="font-bold text-amber-600">{dupCount}</span>
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Preview table */}
+            {parsedResult !== null && (
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-bold text-foreground">
+                    Preview — {parsedResult.cards.length} card{parsedResult.cards.length !== 1 ? "s" : ""} to import
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
+                      <tr className="text-[10px] uppercase text-muted-foreground font-bold">
+                        <th className="px-3 py-2 text-left w-8">#</th>
+                        <th className="px-3 py-2 text-left min-w-[120px]">Term</th>
+                        <th className="px-3 py-2 text-left min-w-[120px]">Meaning</th>
+                        <th className="px-3 py-2 text-left">Example</th>
+                        <th className="px-3 py-2 text-left w-16">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedResult.cards.map((card, i) => {
+                        const isDup = alreadyExists(card.frontText, card.backText);
+                        return (
+                          <tr
+                            key={i}
+                            className={`border-t border-slate-100 dark:border-slate-800 ${
+                              isDup ? "opacity-50 bg-amber-50/30 dark:bg-amber-950/10" : ""
+                            }`}
+                          >
+                            <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                            <td className="px-3 py-2 font-semibold text-foreground leading-relaxed">{card.frontText}</td>
+                            <td className="px-3 py-2 text-foreground leading-relaxed">{card.backText}</td>
+                            <td className="px-3 py-2 italic text-muted-foreground leading-relaxed">{card.example || "—"}</td>
+                            <td className="px-3 py-2">
+                              {isDup ? (
+                                <span className="text-[10px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 rounded-full">
+                                  Duplicate
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-green-600 bg-green-100 dark:bg-green-950 px-1.5 py-0.5 rounded-full">
+                                  New
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          {parsedResult !== null && (
+            <div className="px-5 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {newCount > 0
+                  ? `${newCount} new card${newCount !== 1 ? "s" : ""} will be added to the set.`
+                  : "No new cards to add."}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setParsedResult(null); setText(""); setImportError(null); }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 transition"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleImport}
+                  disabled={importing || newCount === 0}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition disabled:opacity-40"
+                >
+                  {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {importing ? "Importing..." : `Import ${newCount} card${newCount !== 1 ? "s" : ""}`}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 function TeacherFlashcardsPage() {
   // ── Data state ───────────────────────────────────────────────────────────────
@@ -296,6 +644,13 @@ function TeacherFlashcardsPage() {
   const [savingCard, setSavingCard] = useState(false);
   const [deletingCard, setDeletingCard] = useState<FlashcardCardResponse | null>(null);
   const [deletingCardLoading, setDeletingCardLoading] = useState(false);
+
+  // ── Bulk import modal ──────────────────────────────────────────────────────────
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkDelimiter, setBulkDelimiter] = useState<"\t" | "|" | "," | ";">("\t");
+  const [bulkPreview, setBulkPreview] = useState<{ frontText: string; backText: string; example: string }[] | null>(null);
+  const [bulkImporting, setBulkImporting] = useState(false);
 
   // ── Delete set ──────────────────────────────────────────────────────────────
   const [deleting, setDeleting] = useState<FlashcardSetResponse | null>(null);
@@ -476,6 +831,52 @@ function TeacherFlashcardsPage() {
       showToast(msg, "error");
     } finally {
       setAddingCard(false);
+    }
+  };
+
+  // Bulk import cards
+  const handleBulkImport = async (parsedCards: { frontText: string; backText: string; example: string }[]) => {
+    if (!editSetId) return;
+    const existing = editCards.map((c) =>
+      `${c.frontText.trim().toLowerCase()}||${c.backText.trim().toLowerCase()}`
+    );
+    const seen = new Set<string>(existing);
+    const toCreate = parsedCards.filter((p) => {
+      const key = `${p.frontText.trim().toLowerCase()}||${p.backText.trim().toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    if (toCreate.length === 0) {
+      showToast("No new cards to import (all duplicates).", "error");
+      return;
+    }
+
+    setBulkImporting(true);
+    let imported = 0;
+    let failed = 0;
+
+    try {
+      for (const card of toCreate) {
+        const payload: FlashcardCardCreateRequest = {
+          frontText: card.frontText.trim(),
+          backText: card.backText.trim(),
+          example: card.example.trim() || undefined,
+        };
+        const created = await teacherFlashcardApi.createCard(editSetId, payload);
+        setEditCards((prev) => [...prev, created]);
+        imported++;
+      }
+      showToast(
+        `Imported ${imported} card${imported !== 1 ? "s" : ""} successfully!${failed > 0 ? ` ${failed} failed.` : ""}`,
+        "success"
+      );
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Bulk import failed.";
+      showToast(msg, "error");
+    } finally {
+      setBulkImporting(false);
     }
   };
 
@@ -1248,6 +1649,14 @@ function TeacherFlashcardsPage() {
                       >
                         <Plus className="w-4 h-4" /> Add card
                       </button>
+                      <button
+                        onClick={() => setShowBulkImport(true)}
+                        disabled={editSaving}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition flex-shrink-0"
+                        title="Import multiple flashcards at once"
+                      >
+                        <Upload className="w-4 h-4" /> Import Multiple
+                      </button>
                     </div>
 
                     {/* ── Add/Edit card form ── */}
@@ -1393,6 +1802,23 @@ function TeacherFlashcardsPage() {
               )}
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═════════════════════════════════════════════════════════════════════
+          BULK IMPORT MODAL
+      ═════════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showBulkImport && (
+          <BulkImportModal
+            onClose={() => {
+              setShowBulkImport(false);
+              setBulkText("");
+              setBulkPreview(null);
+            }}
+            onImport={handleBulkImport}
+            currentCards={editCards}
+          />
         )}
       </AnimatePresence>
 
