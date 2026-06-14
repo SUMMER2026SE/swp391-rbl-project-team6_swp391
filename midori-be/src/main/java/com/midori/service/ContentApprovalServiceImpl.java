@@ -26,6 +26,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
     private final GrammarRepository grammarRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final FlashcardCardRepository flashcardCardRepository;
+    private final NotificationHelperService notificationHelper;
 
     private void validateContentType(String contentType) {
         if (contentType == null || contentType.isBlank()) {
@@ -194,6 +195,15 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         grammar.setStatus(GrammarStatus.APPROVED);
         grammar.setRejectReason(null);
         grammar = grammarRepository.save(grammar);
+
+        // Notify teacher about content approval
+        notificationHelper.createNotification(
+                grammar.getCreatedBy(),
+                "Content Approved",
+                "Your content has been approved.",
+                NotificationType.CONTENT_APPROVED
+        );
+
         return toGrammarSummary(grammar);
     }
 
@@ -208,6 +218,15 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         set.setStatus(FlashcardSetStatus.APPROVED);
         set.setRejectReason(null);
         set = flashcardSetRepository.save(set);
+
+        // Notify teacher about content approval
+        notificationHelper.createNotification(
+                set.getTeacher(),
+                "Content Approved",
+                "Your content has been approved.",
+                NotificationType.CONTENT_APPROVED
+        );
+
         return toFlashcardSetSummary(set);
     }
 
@@ -233,6 +252,18 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         grammar.setStatus(GrammarStatus.REJECTED);
         grammar.setRejectReason(trimToNull(request.getReason()));
         grammar = grammarRepository.save(grammar);
+
+        // Notify teacher about content rejection (include the reason)
+        String content = request.getReason() != null && !request.getReason().isBlank()
+                ? "Your content was rejected. Reason: " + request.getReason().trim()
+                : "Your content was rejected.";
+        notificationHelper.createNotification(
+                grammar.getCreatedBy(),
+                "Content Rejected",
+                content,
+                NotificationType.CONTENT_REJECTED
+        );
+
         return toGrammarSummary(grammar);
     }
 
@@ -247,6 +278,18 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         set.setStatus(FlashcardSetStatus.REJECTED);
         set.setRejectReason(trimToNull(request.getReason()));
         set = flashcardSetRepository.save(set);
+
+        // Notify teacher about content rejection (include the reason)
+        String content = request.getReason() != null && !request.getReason().isBlank()
+                ? "Your content was rejected. Reason: " + request.getReason().trim()
+                : "Your content was rejected.";
+        notificationHelper.createNotification(
+                set.getTeacher(),
+                "Content Rejected",
+                content,
+                NotificationType.CONTENT_REJECTED
+        );
+
         return toFlashcardSetSummary(set);
     }
 
