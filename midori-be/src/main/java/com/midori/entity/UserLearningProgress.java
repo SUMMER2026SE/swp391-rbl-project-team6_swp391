@@ -66,6 +66,10 @@ public class UserLearningProgress {
     @Column(name = "last_studied_at")
     private Instant lastStudiedAt;
 
+    @Column(name = "view_count")
+    @Builder.Default
+    private Integer viewCount = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
