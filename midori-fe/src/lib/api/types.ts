@@ -15,6 +15,7 @@ export interface UserResponse {
   status: UserStatus;
   avatarUrl?: string;
   bio?: string;
+  rejectionReason?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -102,6 +103,7 @@ export interface ProgressResponse {
   favorite: boolean;
   completed: boolean;
   progressPercent: number;
+  viewCount?: number;
   lastStudiedAt: string;
   createdAt: string;
   updatedAt: string;
