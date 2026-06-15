@@ -20,8 +20,8 @@ public class StudentListeningController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ListeningResponse>>> getListeningList(
-            @RequestParam(required = false) UUID levelId) {
-        List<ListeningResponse> response = listeningService.getListeningListForStudent(levelId);
+            @RequestParam(required = false) String level) {
+        List<ListeningResponse> response = listeningService.getListeningListForStudent(level);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
