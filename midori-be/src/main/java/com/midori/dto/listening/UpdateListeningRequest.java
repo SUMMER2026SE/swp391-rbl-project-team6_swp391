@@ -1,10 +1,9 @@
 package com.midori.dto.listening;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Builder
@@ -12,11 +11,17 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UpdateListeningRequest {
 
-    @NotNull(message = "Level ID is required")
-    private UUID levelId;
+    /**
+     * JLPT level name (e.g. "N5", "N4", "N3", "N2", "N1").
+     * The service resolves this to the corresponding UUID from the levels table.
+     */
+    @NotBlank(message = "Level is required")
+    private String level;
 
     @NotBlank(message = "Title is required")
     private String title;
+
+    private MultipartFile audioFile;
 
     private String audioUrl;
 
@@ -29,4 +34,6 @@ public class UpdateListeningRequest {
     private String transcript;
 
     private String status;
+
+    private String topic;
 }

@@ -12,7 +12,7 @@ import java.util.UUID;
 public class ListeningDetailResponse {
 
     private UUID id;
-    private UUID levelId;
+    private String level;
     private UUID teacherId;
     private String teacherName;
     private String title;
@@ -26,4 +26,5 @@ public class ListeningDetailResponse {
     private Instant approvedAt;
     private Instant createdAt;
     private Instant updatedAt;
+    private String topic;
 }
