@@ -8,6 +8,8 @@ import {
   SkipBack, SkipForward, Rewind, FastForward, Repeat, Volume1,
   PlusCircle, Trash, Save, EyeOff, ChevronLeft, ChevronRight as ChevronRightIcon, FileText, Loader2, AlertCircle, List, Inbox
 } from "lucide-react";
+import { teacherListeningApi } from "@/lib/api/teacherListening";
+import { ApiError } from "@/lib/api/client";
 
 type ExerciseType = "Dictation" | "Blank Fill" | "Multiple Choice";
 type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
@@ -26,6 +28,8 @@ interface ListeningExercise {
   status: ExerciseStatus;
   topic: string;
   audio: boolean;
+  audioUrl?: string;
+  audioFileName?: string;
   transcript: string;
   answerKey: string;
   description: string;
@@ -39,6 +43,7 @@ interface FormErrors {
   title?: string;
   transcript?: string;
   topic?: string;
+  general?: string;  // server / API-level errors (not field-specific)
 }
 
 const initialExercises: ListeningExercise[] = [
@@ -75,6 +80,9 @@ const typeColors: Record<ExerciseType, string> = {
 };
 
 type ViewMode = "list" | "detail";
+
+/** Static JLPT levels — no API call needed */
+const JLPT_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 
 const ITEMS_PER_PAGE = 5;
 
@@ -123,8 +131,281 @@ function getUniqueTopics(exercises: ListeningExercise[]): string[] {
 
 export const Route = createFileRoute("/teacher/listening")({ component: ListeningPage });
 
+const SuccessToast = ({ message }: { message: string | null }) => {
+  if (!message) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="fixed top-4 right-4 z-[100] bg-green-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2"
+    >
+      <CheckCircle className="w-5 h-5" />
+      <span className="text-sm font-semibold">{message}</span>
+    </motion.div>
+  );
+};
+
+const ErrorMessage = ({ message }: { message?: string }) => {
+  if (!message) return null;
+  return (
+    <div className="flex items-center gap-1.5 text-red-500 text-xs mt-1">
+      <AlertCircle className="w-3.5 h-3.5" />
+      <span>{message}</span>
+    </div>
+  );
+};
+
+interface TopicSelectorProps {
+  value: string;
+  onChange: (v: string) => void;
+  onCustomChange: (v: string) => void;
+  customValue: string;
+  showDropdown: boolean;
+  onToggleDropdown: () => void;
+  dataAttr: string;
+  errors?: FormErrors;
+  uniqueTopics: string[];
+}
+
+const TopicSelector = ({
+  value,
+  onChange,
+  onCustomChange,
+  customValue,
+  showDropdown,
+  onToggleDropdown,
+  dataAttr,
+  errors,
+  uniqueTopics
+}: TopicSelectorProps) => (
+  <div>
+    <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Topic / Category</label>
+    <div className="relative" data-topic-dropdown={dataAttr}>
+      <div
+        className={`w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border ${
+          errors?.topic ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'
+        } text-sm outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer flex items-center justify-between`}
+        onClick={onToggleDropdown}
+      >
+        <span className={value ? "text-slate-700 dark:text-slate-200" : "text-muted-foreground"}>
+          {value === "__custom__" ? (customValue || "Custom topic...") : (value || "Select a topic...")}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+      </div>
+      {showDropdown && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg max-h-48 overflow-y-auto"
+        >
+          {uniqueTopics.length > 0 ? (
+            <>
+              {uniqueTopics.map(topic => (
+                <button
+                  key={topic}
+                  type="button"
+                  onClick={() => { onChange(topic); onToggleDropdown(); }}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-muted transition ${
+                    value === topic ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200'
+                  }`}
+                >
+                  {topic}
+                </button>
+              ))}
+              <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
+            </>
+          ) : (
+            <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+              No existing topics
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => { onChange("__custom__"); onToggleDropdown(); }}
+            className={`w-full px-3 py-2 text-left text-sm hover:bg-muted transition ${
+              value === "__custom__" ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200'
+            }`}
+          >
+            + Add custom topic
+          </button>
+        </motion.div>
+      )}
+    </div>
+    {value === "__custom__" && (
+      <input
+        value={customValue}
+        onChange={e => onCustomChange(e.target.value)}
+        placeholder="Enter custom topic..."
+        className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 mt-2"
+      />
+    )}
+  </div>
+);
+
+interface BlankWordEditorProps {
+  blankWords: BlankWord[];
+  setBlankWords: (w: BlankWord[]) => void;
+  preview: string;
+  inputRef: React.RefObject<HTMLInputElement>;
+  inputValue: string;
+  setInputValue: (v: string) => void;
+  type: "new" | "edit";
+  onAddBlankWord: (text: string, setter: (w: BlankWord[]) => void, blanks: BlankWord[]) => void;
+  onRemoveBlankWord: (id: number, setter: (w: BlankWord[]) => void, blanks: BlankWord[]) => void;
+}
+
+const BlankWordEditor = ({
+  blankWords,
+  setBlankWords,
+  preview,
+  inputRef,
+  inputValue,
+  setInputValue,
+  type,
+  onAddBlankWord,
+  onRemoveBlankWord
+}: BlankWordEditorProps) => (
+  <div className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-800/30 space-y-3">
+    <div className="flex items-center gap-2 mb-1">
+      <EyeOff className="w-4 h-4 text-amber-500" />
+      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">Blank Fill Configuration</span>
+    </div>
+    <p className="text-xs text-amber-600 dark:text-amber-300">Add words/phrases to hide in the exercise. These will appear as blanks for students.</p>
+
+    <div className="flex gap-2">
+      <input
+        ref={inputRef}
+        value={inputValue}
+        onChange={e => setInputValue(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onAddBlankWord(inputValue, setBlankWords, blankWords);
+            setInputValue("");
+          }
+        }}
+        placeholder="Type a word/phrase to hide..."
+        className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700 text-sm outline-none focus:ring-2 focus:ring-amber-400/40"
+      />
+      <button
+        type="button"
+        onClick={() => {
+          onAddBlankWord(inputValue, setBlankWords, blankWords);
+          setInputValue("");
+          inputRef.current?.focus();
+        }}
+        className="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition"
+      >
+        Add
+      </button>
+    </div>
+
+    {blankWords.length > 0 ? (
+      <div className="space-y-1.5">
+        <p className="text-[10px] text-amber-500 font-semibold">{blankWords.length} word(s) configured</p>
+        {blankWords.map(b => (
+          <div key={b.id} className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl px-3 py-2">
+            <EyeOff className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+            <span className="flex-1 text-sm font-semibold text-slate-700 dark:text-slate-200">{b.answer}</span>
+            <span className="text-[10px] text-muted-foreground">→ _____</span>
+            <button
+              type="button"
+              onClick={() => onRemoveBlankWord(b.id, setBlankWords, blankWords)}
+              className="p-1 rounded-lg hover:bg-red-50 text-red-400 transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
+        <p className="text-xs text-muted-foreground">No blank words added yet</p>
+      </div>
+    )}
+
+    {preview && (
+      <div>
+        <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1.5">Preview:</p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
+          <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">{preview}</p>
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+const DeleteConfirmation = ({ id, onConfirm, onCancel, deleteLoading }: { id: number; onConfirm: () => void; onCancel: () => void; deleteLoading: boolean }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="absolute inset-0 bg-white/90 dark:bg-slate-800/90 rounded-2xl flex flex-col items-center justify-center z-10 backdrop-blur-sm"
+    onClick={(e) => e.stopPropagation()}
+  >
+    <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">Delete this exercise?</p>
+    <p className="text-xs text-muted-foreground mb-4">This action cannot be undone.</p>
+    <div className="flex gap-2">
+      <button type="button" onClick={onCancel} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition">
+        Cancel
+      </button>
+      <button type="button" onClick={onConfirm} disabled={deleteLoading} className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-1">
+        {deleteLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+        Delete
+      </button>
+    </div>
+  </motion.div>
+);
+
+const AudioDuration = ({ src, fallback }: { src?: string; fallback: string }) => {
+  const [durationStr, setDurationStr] = useState(fallback);
+
+  useEffect(() => {
+    if (!src) {
+      setDurationStr(fallback);
+      return;
+    }
+    
+    const cacheKey = `audio_duration_${src}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      setDurationStr(cached);
+      return;
+    }
+
+    const audio = new Audio(src);
+    audio.preload = "metadata";
+    
+    const handleLoadedMetadata = () => {
+      if (isNaN(audio.duration) || !isFinite(audio.duration)) return;
+      const minutes = Math.floor(audio.duration / 60);
+      const seconds = Math.floor(audio.duration % 60);
+      const formatted = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+      setDurationStr(formatted);
+      sessionStorage.setItem(cacheKey, formatted);
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    // Trigger load in case browser does not trigger loadedmetadata automatically for preloaded
+    audio.load();
+
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.src = "";
+    };
+  }, [src, fallback]);
+
+  return <>{durationStr}</>;
+};
+
 function ListeningPage() {
-  const [exercises, setExercises] = useState<ListeningExercise[]>(initialExercises);
+  const [exercises, setExercises] = useState<ListeningExercise[]>([]);
+  const [newAudioFile, setNewAudioFile] = useState<File | null>(null);
+  const [editAudioFile, setEditAudioFile] = useState<File | null>(null);
+  const newFileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("All");
@@ -141,6 +422,42 @@ function ListeningPage() {
   const [segments, setSegments] = useState<Array<{ id: number; start: string; end: string; text: string }>>([]);
   const [blankMode, setBlankMode] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const fetchAllData = useCallback(async () => {
+    try {
+      const list = await teacherListeningApi.getListeningList();
+      const mapped = list.map(item => {
+        const detail = item as any;
+        return {
+          id: item.id as any,
+          title: item.title,
+          level: (item.level || "N5") as JLPTLevel,
+          type: "Dictation" as ExerciseType,
+          status: (item.status?.toLowerCase() || "draft") as ExerciseStatus,
+          topic: detail.topic || "General",
+          audio: !!item.audioUrl,
+          audioUrl: item.audioUrl ? (item.audioUrl.startsWith("http") ? item.audioUrl : `http://localhost:8080${item.audioUrl}`) : undefined,
+          audioFileName: item.audioFileName ?? undefined,
+          transcript: (detail.transcript as string | undefined) || "",
+          answerKey: (detail.answerKey as string | undefined) || "",
+          description: "",
+          duration: "0:00",
+          completions: 0,
+          accuracy: 0,
+          date: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "Just now"
+        };
+      });
+      setExercises(mapped);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
 
   // Loading states
   const [isCreating, setIsCreating] = useState(false);
@@ -215,27 +532,57 @@ function ListeningPage() {
     }
   }, [deleteError]);
 
-  // Audio progress simulation
+  // Update audio element properties (speed, volume, loop) when state changes
   useEffect(() => {
-    if (isPlaying) {
-      const totalDuration = 270;
-      progressRef.current = setInterval(() => {
-        setCurrentTime(prev => {
-          const next = prev + playbackSpeed;
-          if (next >= totalDuration) {
-            if (isLooping && loopStart !== null && loopEnd !== null) return loopStart;
-            setIsPlaying(false);
-            return 0;
-          }
-          if (isLooping && loopEnd !== null && next >= loopEnd) return loopStart ?? 0;
-          return next;
-        });
-      }, 1000);
-    } else {
-      if (progressRef.current) clearInterval(progressRef.current);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackSpeed;
     }
-    return () => { if (progressRef.current) clearInterval(progressRef.current); };
-  }, [isPlaying, playbackSpeed, isLooping, loopStart, loopEnd]);
+  }, [playbackSpeed]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
+  }, [volume]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.loop = isLooping;
+    }
+  }, [isLooping]);
+
+  // Handle play/pause commands based on isPlaying state
+  useEffect(() => {
+    if (audioRef.current && selectedExercise?.audioUrl) {
+      if (isPlaying) {
+        audioRef.current.play().catch(err => {
+          console.error("Audio play failed:", err);
+          setIsPlaying(false);
+        });
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isPlaying, selectedExercise]);
+
+  // Reset audio playback state when selected exercise changes
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.load();
+    }
+  }, [selectedExercise]);
+
+  const handleSeek = (newTime: number) => {
+    const targetTime = Math.max(0, Math.min(duration || 270, newTime));
+    setCurrentTime(targetTime);
+    if (audioRef.current) {
+      audioRef.current.currentTime = targetTime;
+    }
+  };
 
   // Update preview when transcript or blank words change (Create)
   useEffect(() => {
@@ -286,7 +633,7 @@ function ListeningPage() {
     setNewTitle(""); setNewLevel("N5"); setNewType("Dictation"); setNewTopic("");
     setNewTopicCustom(""); setNewTranscript(""); setNewAnswerKey(""); setNewDescription("");
     setNewStatus("draft"); setNewAudio(false); setBlankWords([]); setPreviewText("");
-    setBlankWordInput(""); setCreateErrors({});
+    setBlankWordInput(""); setCreateErrors({}); setNewAudioFile(null);
   };
 
   const validateCreateForm = (): boolean => {
@@ -323,47 +670,42 @@ function ListeningPage() {
       return;
     }
     setIsCreating(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const finalTopic = newTopic === "__custom__" ? newTopicCustom.trim() : newTopic;
-    const newExercise: ListeningExercise = {
-      id: Date.now(),
-      title: newTitle.trim(),
-      level: newLevel,
-      type: newType,
-      status: newStatus,
-      topic: finalTopic,
-      audio: newAudio,
-      transcript: newTranscript,
-      answerKey: newAnswerKey,
-      description: newDescription,
-      duration: "0:00",
-      completions: 0,
-      accuracy: 0,
-      date: "Just now",
-    };
-    setExercises(prev => [newExercise, ...prev]);
-    setShowNewModal(false);
-    resetNewForm();
-    setCurrentPage(1);
-    setIsCreating(false);
-    showSuccess("Exercise created successfully!");
+    try {
+      await teacherListeningApi.createListening({
+        level: newLevel,          // send static JLPT level name directly
+        title: newTitle.trim(),
+        audioFile: newAudioFile,
+        answerKey: newAnswerKey,
+        transcript: newTranscript,
+        topic: (newTopic === "__custom__" ? newTopicCustom.trim() : newTopic.trim()) || "General"
+      });
+      await fetchAllData();
+      setShowNewModal(false);
+      resetNewForm();
+      setCurrentPage(1);
+      showSuccess("Exercise created successfully!");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to create exercise. Please try again.";
+      setCreateErrors({ general: msg });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleDeleteExercise = async (id: number) => {
     setDeleteLoading(true);
     setDeleteError(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setExercises(prev => prev.filter(e => e.id !== id));
+      await teacherListeningApi.deleteListening(String(id));
+      await fetchAllData();
       if (selectedExercise?.id === id) {
         setSelectedExercise(null);
         setViewMode("list");
       }
       showSuccess("Exercise deleted successfully");
-    } catch {
-      setDeleteError("Failed to delete exercise. Please try again.");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to delete exercise";
+      setDeleteError(msg);
     } finally {
       setDeleteLoading(false);
       setIsDeleting(null);
@@ -396,28 +738,21 @@ function ListeningPage() {
     if (!selectedExercise) return;
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const finalTopic = editFormTopic === "__custom__" ? editFormTopicCustom.trim() : editFormTopic;
-      const updated: ListeningExercise = {
-        ...selectedExercise,
+      await teacherListeningApi.updateListening(String(selectedExercise.id), {
+        level: editFormLevel,     // send static JLPT level name directly
         title: editFormTitle.trim(),
-        level: editFormLevel,
-        type: editFormType,
-        status: editFormStatus,
-        topic: finalTopic,
-        audio: editFormAudio,
-        transcript: editFormTranscript,
+        audioFile: editAudioFile,
         answerKey: editFormAnswerKey,
-        description: editFormDescription,
-      };
-      setExercises(prev => prev.map(e => e.id === updated.id ? updated : e));
-      setSelectedExercise(updated);
-      setSegments(parseTranscriptToSegments(updated.transcript));
+        transcript: editFormTranscript,
+        status: editFormStatus.toUpperCase(),
+        topic: (editFormTopic === "__custom__" ? editFormTopicCustom.trim() : editFormTopic.trim()) || "General"
+      });
+      await fetchAllData();
       setShowEditModal(false);
       showSuccess("Exercise updated successfully!");
-    } catch {
-      setEditErrors({ title: "Failed to save changes. Please try again." });
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to save changes. Please try again.";
+      setEditErrors({ general: msg });
     } finally {
       setIsSaving(false);
     }
@@ -466,207 +801,7 @@ function ListeningPage() {
   }, [showNewModal]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // SUCCESS TOAST
-  // ─────────────────────────────────────────────────────────────────────────
-  const SuccessToast = () => {
-    if (!successMessage) return null;
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="fixed top-4 right-4 z-[100] bg-green-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2"
-      >
-        <CheckCircle className="w-5 h-5" />
-        <span className="text-sm font-semibold">{successMessage}</span>
-      </motion.div>
-    );
-  };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // ERROR MESSAGE COMPONENT
-  // ─────────────────────────────────────────────────────────────────────────
-  const ErrorMessage = ({ message }: { message?: string }) => {
-    if (!message) return null;
-    return (
-      <div className="flex items-center gap-1.5 text-red-500 text-xs mt-1">
-        <AlertCircle className="w-3.5 h-3.5" />
-        <span>{message}</span>
-      </div>
-    );
-  };
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // TOPIC SELECTOR COMPONENT
-  // ─────────────────────────────────────────────────────────────────────────
-  const TopicSelector = ({
-    value,
-    onChange,
-    onCustomChange,
-    customValue,
-    showDropdown,
-    onToggleDropdown,
-    dataAttr,
-    errors
-  }: {
-    value: string;
-    onChange: (v: string) => void;
-    onCustomChange: (v: string) => void;
-    customValue: string;
-    showDropdown: boolean;
-    onToggleDropdown: () => void;
-    dataAttr: string;
-    errors?: FormErrors;
-  }) => (
-    <div>
-      <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Topic / Category</label>
-      <div className="relative" data-topic-dropdown={dataAttr}>
-        <div
-          className={`w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border ${
-            errors?.topic ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'
-          } text-sm outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer flex items-center justify-between`}
-          onClick={onToggleDropdown}
-        >
-          <span className={value ? "text-slate-700 dark:text-slate-200" : "text-muted-foreground"}>
-            {value === "__custom__" ? (customValue || "Custom topic...") : (value || "Select a topic...")}
-          </span>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-        </div>
-        {showDropdown && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg max-h-48 overflow-y-auto"
-          >
-            {uniqueTopics.length > 0 ? (
-              <>
-                {uniqueTopics.map(topic => (
-                  <button
-                    key={topic}
-                    onClick={() => { onChange(topic); onToggleDropdown(); }}
-                    className={`w-full px-3 py-2 text-left text-sm hover:bg-muted transition ${
-                      value === topic ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    {topic}
-                  </button>
-                ))}
-                <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
-              </>
-            ) : (
-              <div className="px-3 py-3 text-xs text-muted-foreground text-center">
-                No existing topics
-              </div>
-            )}
-            <button
-              onClick={() => { onChange("__custom__"); }}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-muted transition ${
-                value === "__custom__" ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200'
-              }`}
-            >
-              + Add custom topic
-            </button>
-          </motion.div>
-        )}
-      </div>
-      {value === "__custom__" && (
-        <input
-          value={customValue}
-          onChange={e => onCustomChange(e.target.value)}
-          placeholder="Enter custom topic..."
-          className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 mt-2"
-        />
-      )}
-    </div>
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // BLANK WORD EDITOR COMPONENT
-  // ─────────────────────────────────────────────────────────────────────────
-  const BlankWordEditor = ({
-    blankWords,
-    setBlankWords,
-    preview,
-    inputRef,
-    inputValue,
-    setInputValue,
-    type
-  }: {
-    blankWords: BlankWord[];
-    setBlankWords: (w: BlankWord[]) => void;
-    preview: string;
-    inputRef: React.RefObject<HTMLInputElement>;
-    inputValue: string;
-    setInputValue: (v: string) => void;
-    type: "new" | "edit";
-  }) => (
-    <div className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-800/30 space-y-3">
-      <div className="flex items-center gap-2 mb-1">
-        <EyeOff className="w-4 h-4 text-amber-500" />
-        <span className="text-sm font-bold text-amber-600 dark:text-amber-400">Blank Fill Configuration</span>
-      </div>
-      <p className="text-xs text-amber-600 dark:text-amber-300">Add words/phrases to hide in the exercise. These will appear as blanks for students.</p>
-
-      <div className="flex gap-2">
-        <input
-          ref={inputRef}
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              handleAddBlankWord(inputValue, setBlankWords, blankWords);
-              setInputValue("");
-            }
-          }}
-          placeholder="Type a word/phrase to hide..."
-          className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700 text-sm outline-none focus:ring-2 focus:ring-amber-400/40"
-        />
-        <button
-          onClick={() => {
-            handleAddBlankWord(inputValue, setBlankWords, blankWords);
-            setInputValue("");
-            inputRef.current?.focus();
-          }}
-          className="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition"
-        >
-          Add
-        </button>
-      </div>
-
-      {blankWords.length > 0 ? (
-        <div className="space-y-1.5">
-          <p className="text-[10px] text-amber-500 font-semibold">{blankWords.length} word(s) configured</p>
-          {blankWords.map(b => (
-            <div key={b.id} className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl px-3 py-2">
-              <EyeOff className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="flex-1 text-sm font-semibold text-slate-700 dark:text-slate-200">{b.answer}</span>
-              <span className="text-[10px] text-muted-foreground">→ _____</span>
-              <button
-                onClick={() => handleRemoveBlankWord(b.id, setBlankWords, blankWords)}
-                className="p-1 rounded-lg hover:bg-red-50 text-red-400 transition"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 text-center">
-          <p className="text-xs text-muted-foreground">No blank words added yet</p>
-        </div>
-      )}
-
-      {preview && (
-        <div>
-          <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1.5">Preview:</p>
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-            <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">{preview}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // NEW EXERCISE MODAL
@@ -717,7 +852,7 @@ function ListeningPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">JLPT Level</label>
                 <div className="flex gap-1 flex-wrap">
-                  {(["N5", "N4", "N3", "N2", "N1"] as JLPTLevel[]).map(l => (
+                  {JLPT_LEVELS.map(l => (
                     <button key={l} onClick={() => setNewLevel(l)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${newLevel === l ? "bg-gradient-hero text-white shadow" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"}`}>
                       {l}
@@ -748,18 +883,30 @@ function ListeningPage() {
               onToggleDropdown={() => setShowTopicDropdown(!showTopicDropdown)}
               dataAttr="new-topic"
               errors={createErrors}
+              uniqueTopics={uniqueTopics}
             />
 
             {/* Audio Upload */}
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Audio Upload</label>
+              <input
+                type="file"
+                ref={newFileInputRef}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setNewAudioFile(file);
+                  setNewAudio(!!file);
+                }}
+                accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/x-m4a,audio/x-wav"
+                className="hidden"
+              />
               <div className={`border-2 border-dashed rounded-xl p-4 text-center transition cursor-pointer ${newAudio ? "border-green-400 bg-green-50/50 dark:bg-green-950/20" : "border-slate-200 dark:border-slate-600 hover:border-primary/40"}`}
-                onClick={() => setNewAudio(v => !v)}>
+                onClick={() => newFileInputRef.current?.click()}>
                 <Upload className={`w-6 h-6 mx-auto mb-1.5 ${newAudio ? "text-green-500" : "text-muted-foreground"}`} />
                 <p className={`text-sm font-semibold ${newAudio ? "text-green-600" : "text-muted-foreground"}`}>
-                  {newAudio ? "Audio file attached" : "Click to attach audio file"}
+                  {newAudioFile ? `Attached: ${newAudioFile.name}` : "Click to attach audio file"}
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">MP3, WAV, M4A — max 50MB</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">MP3, WAV, M4A — max 20MB</p>
               </div>
             </div>
 
@@ -795,6 +942,8 @@ function ListeningPage() {
                 inputValue={blankWordInput}
                 setInputValue={setBlankWordInput}
                 type="new"
+                onAddBlankWord={handleAddBlankWord}
+                onRemoveBlankWord={handleRemoveBlankWord}
               />
             )}
 
@@ -841,30 +990,39 @@ function ListeningPage() {
           </div>
 
           {/* Modal Footer */}
-          <div className="sticky bottom-0 bg-white dark:bg-slate-800 px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-3 rounded-b-3xl">
-            <button
-              onClick={() => setShowNewModal(false)}
-              disabled={isCreating}
-              className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateExercise}
-              disabled={isCreating || !newTitle.trim()}
-              className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isCreating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" /> Create Exercise
-                </>
-              )}
-            </button>
+          <div className="sticky bottom-0 bg-white dark:bg-slate-800 px-6 py-4 border-t border-slate-100 dark:border-slate-700 rounded-b-3xl">
+            {/* General / API error banner */}
+            {createErrors.general && (
+              <div className="flex items-start gap-2 mb-3 px-3 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-600 dark:text-red-400">{createErrors.general}</p>
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowNewModal(false)}
+                disabled={isCreating}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateExercise}
+                disabled={isCreating || !newTitle.trim()}
+                className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" /> Create Exercise
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -916,7 +1074,7 @@ function ListeningPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">JLPT Level</label>
                 <div className="flex gap-1 flex-wrap">
-                  {(["N5", "N4", "N3", "N2", "N1"] as JLPTLevel[]).map(l => (
+                  {JLPT_LEVELS.map(l => (
                     <button key={l} onClick={() => setEditFormLevel(l)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${editFormLevel === l ? "bg-gradient-hero text-white shadow" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"}`}>
                       {l}
@@ -947,17 +1105,30 @@ function ListeningPage() {
               onToggleDropdown={() => setShowEditTopicDropdown(!showEditTopicDropdown)}
               dataAttr="edit-topic"
               errors={editErrors}
+              uniqueTopics={uniqueTopics}
             />
 
             {/* Audio Upload */}
             <div>
               <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Audio Upload</label>
+              <input
+                type="file"
+                ref={editFileInputRef}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setEditAudioFile(file);
+                  setEditFormAudio(!!file);
+                }}
+                accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/x-m4a,audio/x-wav"
+                className="hidden"
+              />
               <div className={`border-2 border-dashed rounded-xl p-4 text-center transition cursor-pointer ${editFormAudio ? "border-green-400 bg-green-50/50 dark:bg-green-950/20" : "border-slate-200 dark:border-slate-600 hover:border-primary/40"}`}
-                onClick={() => setEditFormAudio(v => !v)}>
+                onClick={() => editFileInputRef.current?.click()}>
                 <Upload className={`w-6 h-6 mx-auto mb-1.5 ${editFormAudio ? "text-green-500" : "text-muted-foreground"}`} />
                 <p className={`text-sm font-semibold ${editFormAudio ? "text-green-600" : "text-muted-foreground"}`}>
-                  {editFormAudio ? "Audio file attached" : "Click to attach audio file"}
+                  {editAudioFile ? `Attached: ${editAudioFile.name}` : selectedExercise?.audioUrl ? `Current audio attached` : "Click to attach audio file"}
                 </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">MP3, WAV, M4A — max 20MB</p>
               </div>
             </div>
 
@@ -991,6 +1162,8 @@ function ListeningPage() {
                 inputValue={editBlankWordInput}
                 setInputValue={setEditBlankWordInput}
                 type="edit"
+                onAddBlankWord={handleAddBlankWord}
+                onRemoveBlankWord={handleRemoveBlankWord}
               />
             )}
 
@@ -1034,30 +1207,39 @@ function ListeningPage() {
             </div>
           </div>
 
-          <div className="sticky bottom-0 bg-white dark:bg-slate-800 px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-3 rounded-b-3xl">
-            <button
-              onClick={() => setShowEditModal(false)}
-              disabled={isSaving}
-              className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveEdit}
-              disabled={isSaving || !editFormTitle.trim()}
-              className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" /> Save Changes
-                </>
-              )}
-            </button>
+          <div className="sticky bottom-0 bg-white dark:bg-slate-800 px-6 py-4 border-t border-slate-100 dark:border-slate-700 rounded-b-3xl">
+            {/* General / API error banner */}
+            {editErrors.general && (
+              <div className="flex items-start gap-2 mb-3 px-3 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-600 dark:text-red-400">{editErrors.general}</p>
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                disabled={isSaving}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isSaving || !editFormTitle.trim()}
+                className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" /> Save Changes
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -1097,30 +1279,7 @@ function ListeningPage() {
     </div>
   );
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // DELETE CONFIRMATION
-  // ─────────────────────────────────────────────────────────────────────────
-  const DeleteConfirmation = ({ id, onConfirm, onCancel }: { id: number; onConfirm: () => void; onCancel: () => void }) => (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="absolute inset-0 bg-white/90 dark:bg-slate-800/90 rounded-2xl flex flex-col items-center justify-center z-10 backdrop-blur-sm"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
-      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">Delete this exercise?</p>
-      <p className="text-xs text-muted-foreground mb-4">This action cannot be undone.</p>
-      <div className="flex gap-2">
-        <button onClick={onCancel} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition">
-          Cancel
-        </button>
-        <button onClick={onConfirm} disabled={deleteLoading} className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-1">
-          {deleteLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-          Delete
-        </button>
-      </div>
-    </motion.div>
-  );
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // LIST VIEW
@@ -1128,7 +1287,7 @@ function ListeningPage() {
   if (viewMode === "list") {
     return (
       <div className="space-y-5">
-        <SuccessToast />
+        <SuccessToast message={successMessage} />
         {renderNewExerciseModal()}
         {renderEditExerciseModal()}
 
@@ -1222,6 +1381,7 @@ function ListeningPage() {
                     id={ex.id}
                     onConfirm={() => handleDeleteExercise(ex.id)}
                     onCancel={() => setIsDeleting(null)}
+                    deleteLoading={deleteLoading}
                   />
                 )}
 
@@ -1261,7 +1421,10 @@ function ListeningPage() {
                     </div>
 
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {ex.duration}</span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <AudioDuration src={ex.audioUrl} fallback={ex.duration} />
+                      </span>
                       {ex.audio ? (
                         <span className="flex items-center gap-1 text-green-500"><Volume2 className="w-3 h-3" /> Audio</span>
                       ) : (
@@ -1346,12 +1509,30 @@ function ListeningPage() {
   // DETAIL VIEW
   // ─────────────────────────────────────────────────────────────────────────
   if (viewMode === "detail" && selectedExercise) {
-    const progress = (currentTime / 270) * 100;
+    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
       <div className="space-y-5">
-        <SuccessToast />
+        <SuccessToast message={successMessage} />
         {renderEditExerciseModal()}
+
+        {/* Hidden Audio Element */}
+        {selectedExercise.audioUrl && (
+          <audio
+            ref={audioRef}
+            src={selectedExercise.audioUrl}
+            onTimeUpdate={(e) => {
+              setCurrentTime(e.currentTarget.currentTime);
+            }}
+            onLoadedMetadata={(e) => {
+              setDuration(e.currentTarget.duration);
+            }}
+            onEnded={() => {
+              setIsPlaying(false);
+              setCurrentTime(0);
+            }}
+          />
+        )}
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -1461,21 +1642,21 @@ function ListeningPage() {
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{formatTime(currentTime)}</span>
-                <span>{selectedExercise.duration}</span>
+                <span>{formatTime(duration)}</span>
               </div>
             </div>
 
             {/* Controls */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><Rewind className="w-4 h-4" /></button>
-                <button onClick={() => setCurrentTime(Math.max(0, currentTime - 5))} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><SkipBack className="w-4 h-4" /></button>
+                <button onClick={() => handleSeek(currentTime - 10)} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><Rewind className="w-4 h-4" /></button>
+                <button onClick={() => handleSeek(currentTime - 5)} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><SkipBack className="w-4 h-4" /></button>
                 <button onClick={() => setIsPlaying(!isPlaying)}
                   className="w-14 h-14 rounded-full bg-gradient-hero text-white flex items-center justify-center shadow-lg hover:opacity-90 transition">
                   {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
                 </button>
-                <button onClick={() => setCurrentTime(Math.min(270, currentTime + 5))} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><SkipForward className="w-4 h-4" /></button>
-                <button onClick={() => setCurrentTime(Math.min(270, currentTime + 10))} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><FastForward className="w-4 h-4" /></button>
+                <button onClick={() => handleSeek(currentTime + 5)} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><SkipForward className="w-4 h-4" /></button>
+                <button onClick={() => handleSeek(currentTime + 10)} className="p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/10 transition"><FastForward className="w-4 h-4" /></button>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Speed:</span>
@@ -1584,7 +1765,13 @@ function ListeningPage() {
                 {[
                   { label: "Plays", value: selectedExercise.completions > 0 ? selectedExercise.completions.toLocaleString() : "—", color: "text-blue-500" },
                   { label: "Accuracy", value: selectedExercise.accuracy > 0 ? `${selectedExercise.accuracy}%` : "—", color: "text-green-500" },
-                  { label: "Duration", value: selectedExercise.duration, color: "text-purple-500" },
+                  { 
+                    label: "Duration", 
+                    value: duration > 0 
+                      ? formatTime(duration) 
+                      : (selectedExercise.audioUrl ? <AudioDuration src={selectedExercise.audioUrl} fallback={selectedExercise.duration} /> : selectedExercise.duration), 
+                    color: "text-purple-500" 
+                  },
                 ].map(stat => (
                   <div key={stat.label} className="text-center p-3 rounded-xl bg-muted/50">
                     <div className={`font-display font-black text-lg ${stat.color}`}>{stat.value}</div>

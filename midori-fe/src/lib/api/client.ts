@@ -20,10 +20,11 @@ function removeToken(): void {
   }
 }
 
-function buildHeaders(): HeadersInit {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
+function buildHeaders(isFormData = false): HeadersInit {
+  const headers: HeadersInit = {};
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
   const token = getToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -48,13 +49,18 @@ async function request<T>(
   body?: unknown
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
+  const isFormData = body instanceof FormData;
   const options: RequestInit = {
     method,
-    headers: buildHeaders(),
+    headers: buildHeaders(isFormData),
   };
 
   if (body !== undefined) {
-    options.body = JSON.stringify(body);
+    if (isFormData) {
+      options.body = body as FormData;
+    } else {
+      options.body = JSON.stringify(body);
+    }
   }
 
   const res = await fetch(url, options);
