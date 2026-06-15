@@ -21,8 +21,8 @@ public class ListeningLesson {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "level_id", nullable = false)
-    private UUID levelId;
+    @Column(name = "level", nullable = false, length = 10)
+    private String level;
 
     @Column(name = "teacher_id", nullable = false)
     private UUID teacherId;
@@ -44,6 +44,9 @@ public class ListeningLesson {
 
     @Column(columnDefinition = "TEXT")
     private String transcript;
+
+    @Column(name = "topic", length = 100)
+    private String topic;
 
     @Column(nullable = false, length = 50)
     @Builder.Default
