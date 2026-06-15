@@ -592,6 +592,24 @@ function ListeningPage() {
     }
   }, [editFormTranscript, editBlankWords, editFormType]);
 
+  // Recalculate segments dynamically based on actual loaded audio duration
+  useEffect(() => {
+    if (selectedExercise?.transcript) {
+      const lines = selectedExercise.transcript.split("\n").filter(line => line.trim());
+      const totalDur = duration > 0 ? duration : 60;
+      const avgDuration = totalDur / Math.max(lines.length, 1);
+      const newSegments = lines.map((text, index) => ({
+        id: index + 1,
+        start: formatTimeStatic(index * avgDuration),
+        end: formatTimeStatic((index + 1) * avgDuration),
+        text: text.trim(),
+      }));
+      setSegments(newSegments);
+    } else {
+      setSegments([]);
+    }
+  }, [duration, selectedExercise?.transcript]);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
@@ -725,6 +743,16 @@ function ListeningPage() {
     setError(null);
     try {
       const detail = await listeningApi.getListeningById(exercise.id);
+      const mappedDetail: ListeningExercise = {
+        ...exercise,
+        transcript: detail.transcript || "",
+        answerKey: detail.answerKey || "",
+        topic: detail.topic || "General",
+        audioUrl: detail.audioUrl ? (detail.audioUrl.startsWith("http") ? detail.audioUrl : `http://localhost:8080${detail.audioUrl}`) : undefined,
+        audioFileName: detail.audioFileName ?? undefined,
+      };
+      setSelectedExercise(mappedDetail);
+      setEditAudioFile(null);
       setEditFormTitle(detail.title);
       setEditFormLevel((detail.level || "N3") as JLPTLevel);
       setEditFormType("Dictation");
@@ -903,7 +931,7 @@ function ListeningPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Exercise Type</label>
                 <div className="flex flex-wrap gap-1">
-                  {(["Dictation", "Blank Fill", "Multiple Choice"] as ExerciseType[]).map(t => (
+                  {(["Dictation", "Blank Fill"] as ExerciseType[]).map(t => (
                     <button key={t} onClick={() => setNewType(t)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${newType === t ? "bg-gradient-hero text-white shadow" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"}`}>
                       {t}
@@ -937,7 +965,7 @@ function ListeningPage() {
                   setNewAudioFile(file);
                   setNewAudio(!!file);
                 }}
-                accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/x-m4a,audio/x-wav"
+                accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/mpeg,audio/x-m4a,audio/x-wav"
                 className="hidden"
               />
               <div className={`border-2 border-dashed rounded-xl p-4 text-center transition cursor-pointer ${newAudio ? "border-green-400 bg-green-50/50 dark:bg-green-950/20" : "border-slate-200 dark:border-slate-600 hover:border-primary/40"}`}
@@ -1125,7 +1153,7 @@ function ListeningPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Exercise Type</label>
                 <div className="flex flex-wrap gap-1">
-                  {(["Dictation", "Blank Fill", "Multiple Choice"] as ExerciseType[]).map(t => (
+                  {(["Dictation", "Blank Fill"] as ExerciseType[]).map(t => (
                     <button key={t} onClick={() => setEditFormType(t)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${editFormType === t ? "bg-gradient-hero text-white shadow" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"}`}>
                       {t}
@@ -1159,7 +1187,7 @@ function ListeningPage() {
                   setEditAudioFile(file);
                   setEditFormAudio(!!file);
                 }}
-                accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/x-m4a,audio/x-wav"
+                accept="audio/mp3,audio/wav,audio/m4a,audio/mpeg,audio/mpeg,audio/x-m4a,audio/x-wav"
                 className="hidden"
               />
               <div className={`border-2 border-dashed rounded-xl p-4 text-center transition cursor-pointer ${editFormAudio ? "border-green-400 bg-green-50/50 dark:bg-green-950/20" : "border-slate-200 dark:border-slate-600 hover:border-primary/40"}`}
@@ -1348,10 +1376,12 @@ function ListeningPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: "Total Exercises", value: exercises.length.toString(), icon: Headphones, color: "bg-blue-50 text-blue-500" },
             { label: "With Audio", value: exercises.filter(e => e.audio).length.toString(), icon: Volume2, color: "bg-green-50 text-green-500" },
+            { label: "Avg. Accuracy", value: "—", icon: CheckCircle, color: "bg-purple-50 text-purple-500" },
+            { label: "Total Plays", value: "0", icon: Play, color: "bg-orange-50 text-orange-500" },
           ].map(stat => {
             const Icon = stat.icon;
             return (
@@ -1385,7 +1415,7 @@ function ListeningPage() {
           </div>
           <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
             className="px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold outline-none">
-            {["All Types", "Dictation", "Blank Fill", "Multiple Choice"].map(t => <option key={t}>{t}</option>)}
+            {["All Types", "Dictation", "Blank Fill"].map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
 
@@ -1815,14 +1845,24 @@ function ListeningPage() {
           <div className="space-y-4">
             {/* Engagement Stats */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-              <h3 className="font-display font-bold text-sm mb-4">Exercise Duration</h3>
-              <div className="text-center p-3 rounded-xl bg-muted/50">
-                <div className="font-display font-black text-lg text-purple-500">
-                  {duration > 0 
-                    ? formatTime(duration) 
-                    : (selectedExercise.audioUrl ? <AudioDuration src={selectedExercise.audioUrl} fallback={selectedExercise.duration} /> : selectedExercise.duration)}
-                </div>
-                <div className="text-[10px] text-muted-foreground">Duration</div>
+              <h3 className="font-display font-bold text-sm mb-4">Student Engagement</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Plays", value: "—", color: "text-blue-500" },
+                  { label: "Accuracy", value: "—", color: "text-green-500" },
+                  { 
+                    label: "Duration", 
+                    value: duration > 0 
+                      ? formatTime(duration) 
+                      : (selectedExercise.audioUrl ? <AudioDuration src={selectedExercise.audioUrl} fallback={selectedExercise.duration} /> : selectedExercise.duration), 
+                    color: "text-purple-500 font-bold" 
+                  },
+                ].map(stat => (
+                  <div key={stat.label} className="text-center p-3 rounded-xl bg-muted/50">
+                    <div className={`font-display font-black text-lg ${stat.color}`}>{stat.value}</div>
+                    <div className="text-[10px] text-muted-foreground">{stat.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
