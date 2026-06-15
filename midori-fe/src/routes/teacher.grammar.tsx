@@ -116,7 +116,10 @@ function toFormGrammar(grammar: GrammarResponse): {
     usage: grammar.usage,
     examples:
       grammar.examples?.length > 0
-        ? grammar.examples.map((ex) => ({ japanese: ex, english: "" }))
+        ? grammar.examples.map((ex, i) => ({
+            japanese: ex,
+            english: grammar.exampleMeanings?.[i] ?? "",
+          }))
         : [
             { japanese: "", english: "" },
             { japanese: "", english: "" },
@@ -133,6 +136,7 @@ function toCreatePayload(form: ReturnType<typeof toFormGrammar>): GrammarCreateR
     structure: form.formation.trim(),
     usage: form.usage.trim(),
     examples: form.examples.map((e) => e.japanese.trim()).filter(Boolean),
+    exampleMeanings: form.examples.map((e) => e.english.trim()).filter(Boolean),
     pattern: form.title.trim(),
   };
 }
@@ -146,6 +150,8 @@ function toUpdatePayload(form: ReturnType<typeof toFormGrammar>): GrammarUpdateR
   if (form.usage.trim()) payload.usage = form.usage.trim();
   const examples = form.examples.map((e) => e.japanese.trim()).filter(Boolean);
   if (examples.length > 0) payload.examples = examples;
+  const exampleMeanings = form.examples.map((e) => e.english.trim()).filter(Boolean);
+  if (exampleMeanings.length > 0) payload.exampleMeanings = exampleMeanings;
   if (form.title.trim()) payload.pattern = form.title.trim();
   return payload;
 }
@@ -1071,6 +1077,11 @@ function GrammarPage() {
                         <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                           {ex}
                         </div>
+                        {g.exampleMeanings?.[i] && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {g.exampleMeanings[i]}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => speakJapanese(ex)}
