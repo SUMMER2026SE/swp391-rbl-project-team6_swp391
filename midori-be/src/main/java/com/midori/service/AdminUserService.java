@@ -1,17 +1,21 @@
 package com.midori.service;
 
+import com.midori.dto.request.BanUserRequest;
 import com.midori.dto.response.AdminTeacherCertificateResponse;
 import com.midori.dto.response.AdminTeacherResponse;
 import com.midori.entity.Role;
 import com.midori.entity.TeacherCertificate;
 import com.midori.entity.User;
 import com.midori.entity.UserStatus;
+import com.midori.exception.AccessDeniedException;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.TeacherCertificateRepository;
 import com.midori.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -107,6 +111,52 @@ public class AdminUserService {
     }
 
     @Transactional(readOnly = true)
+    public Page<AdminTeacherResponse> getAllUsers(Role role, UserStatus status, String keyword, Pageable pageable) {
+        Page<User> userPage = userRepository.findAllWithFilters(role, status, keyword, pageable);
+        return userPage.map(this::toAdminTeacherResponse);
+    }
+
+    @Transactional
+    public AdminTeacherResponse banUser(UUID userId, BanUserRequest request, UUID adminId) {
+        User user = getUserById(userId);
+
+        if (user.getId().equals(adminId)) {
+            throw new AccessDeniedException("You cannot ban your own account");
+        }
+
+        if (user.getRole() == Role.ADMIN) {
+            throw new AccessDeniedException("Cannot ban another admin account");
+        }
+
+        if (user.getStatus() == UserStatus.BANNED) {
+            throw new BadRequestException("User is already banned");
+        }
+
+        user.setStatus(UserStatus.BANNED);
+        user.setRejectionReason(request.getReason().trim());
+        User savedUser = userRepository.save(user);
+
+        log.info("Admin ({}) banned user: {} ({})", adminId, savedUser.getEmail(), userId);
+        return toAdminTeacherResponse(savedUser);
+    }
+
+    @Transactional
+    public AdminTeacherResponse restoreUser(UUID userId) {
+        User user = getUserById(userId);
+
+        if (user.getStatus() != UserStatus.BANNED && user.getStatus() != UserStatus.SUSPENDED) {
+            throw new BadRequestException("Only banned or suspended users can be restored");
+        }
+
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRejectionReason(null);
+        User savedUser = userRepository.save(user);
+
+        log.info("Admin restored user: {} ({})", savedUser.getEmail(), userId);
+        return toAdminTeacherResponse(savedUser);
+    }
+
+    @Transactional(readOnly = true)
     public List<AdminTeacherCertificateResponse> getTeacherCertificates(UUID userId) {
         getTeacherById(userId);
         List<TeacherCertificate> certs = teacherCertificateRepository.findByTeacherIdOrderByCreatedAtDesc(userId);
@@ -165,6 +215,17 @@ public class AdminUserService {
         if (user.getRole() != Role.TEACHER) {
             throw new BadRequestException("Only teacher accounts can be managed here");
         }
+
+        // Force initialize lazy associations
+        if (user.getProfile() != null) {
+            user.getProfile().getAvatarUrl();
+        }
+        return user;
+    }
+
+    private User getUserById(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         // Force initialize lazy associations
         if (user.getProfile() != null) {
