@@ -134,7 +134,6 @@ function ExampleCard({
         >
           {ex.japanese}
         </div>
-        <div className="text-xs text-sky-500 dark:text-sky-400 italic mt-0.5">{ex.romaji}</div>
         <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{ex.translation}</div>
       </div>
       <button
@@ -634,7 +633,10 @@ function GrammarPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
                     className="grid grid-cols-[2fr_80px_1.5fr_120px_110px_120px_80px] gap-3 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition cursor-pointer items-center"
-                    onClick={() => setSelectedGrammar(g)}
+                    onClick={() => {
+                      setSelectedGrammar(g);
+                      studentProgressApi.recordView("GRAMMAR", g.id).catch(console.error);
+                    }}
                   >
                     {/* Title */}
                     <div className="flex items-center gap-3 min-w-0">
@@ -692,7 +694,10 @@ function GrammarPage() {
                     {/* View Action */}
                     <div className="text-center flex justify-center" onClick={e => e.stopPropagation()}>
                       <button
-                        onClick={() => setSelectedGrammar(g)}
+                        onClick={() => {
+                          setSelectedGrammar(g);
+                          studentProgressApi.recordView("GRAMMAR", g.id).catch(console.error);
+                        }}
                         title="View detail"
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition"
                       >
