@@ -194,7 +194,7 @@ public class GrammarServiceImpl implements GrammarService {
 
         long completions = progressRepository.countByContentIdAndContentType(grammarId.toString(), ContentType.GRAMMAR);
         long learned = progressRepository.countLearnedByGrammarId(grammarId.toString(), ContentType.GRAMMAR);
-        long views = learned; // views are tracked as 'learned' interactions
+        long views = progressRepository.sumViewCountByContentIdAndContentType(grammarId.toString(), ContentType.GRAMMAR);
 
         return GrammarStatsResponse.builder()
                 .views(views)
