@@ -47,6 +47,11 @@ public class Grammar {
     @Builder.Default
     private List<String> examples = new java.util.ArrayList<>();
 
+    @Column(name = "example_meanings", columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
+    @Builder.Default
+    private List<String> exampleMeanings = new java.util.ArrayList<>();
+
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     private GrammarLevel level;
