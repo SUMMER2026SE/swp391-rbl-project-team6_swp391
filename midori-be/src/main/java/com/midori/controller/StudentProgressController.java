@@ -146,6 +146,17 @@ public class StudentProgressController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    @PostMapping("/{contentType}/{contentId}/view")
+    public ResponseEntity<ApiResponse<ProgressResponse>> recordView(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable String contentType,
+            @PathVariable String contentId) {
+        ContentType type = parseContentType(contentType);
+        ProgressResponse result = studyProgressService.recordView(
+                userDetails.getId(), type, contentId);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     private ContentType parseContentType(String contentType) {
         try {
             return ContentType.valueOf(contentType.toUpperCase().trim());
