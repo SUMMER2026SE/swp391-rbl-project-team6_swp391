@@ -19,6 +19,7 @@ import {
   type FlashcardSetStatus,
 } from "../lib/api/flashcardMappers";
 import { ApiError } from "../lib/api/client";
+import { RejectReasonBox } from "@/components/reject-reason-box";
 
 const JLPT_LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"];
 const PAGE_SIZE = 9;
@@ -1396,6 +1397,9 @@ function TeacherFlashcardsPage() {
                   {viewing.description && (
                     <p className="text-sm text-muted-foreground">{viewing.description}</p>
                   )}
+                  {viewing.status === "REJECTED" && (
+                    <RejectReasonBox reason={viewing.rejectReason} className="mt-2" />
+                  )}
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {(viewing.cards ?? []).length} cards · Created{" "}
                     {new Date(viewing.createdAt).toLocaleDateString()}
@@ -1575,6 +1579,9 @@ function TeacherFlashcardsPage() {
                       <span className="text-xs text-muted-foreground">
                         {editCards.length} cards
                       </span>
+                      {editSet.status === "REJECTED" && (
+                        <RejectReasonBox reason={editSet.rejectReason} className="w-full mt-2" />
+                      )}
                     </div>
                   )}
                 </div>
@@ -1780,6 +1787,33 @@ function TeacherFlashcardsPage() {
                             <Send className="w-4 h-4" />
                           )}
                           Submit for review
+                        </button>
+                      )}
+                      {editSet?.status === "REJECTED" && (
+                        <button
+                          onClick={() => {
+                            const nextTitle = editSetInfo.title.trim();
+                            if (!nextTitle || !editSetId) {
+                              showToast("Please enter a set name before resubmitting.", "error");
+                              return;
+                            }
+                            if (editCards.length === 0) {
+                              showToast("Please add at least one card before resubmitting.", "error");
+                              return;
+                            }
+                            handleSaveEditSet().then(() => {
+                              if (editSetId) handleSubmitSet(editSetId);
+                            });
+                          }}
+                          disabled={submitting.has(editSetId!)}
+                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition-all disabled:opacity-50"
+                        >
+                          {submitting.has(editSetId!) ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
+                          Resubmit for Review
                         </button>
                       )}
                       <button
