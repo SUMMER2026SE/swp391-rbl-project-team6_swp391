@@ -36,6 +36,9 @@ public class GrammarCreateRequest {
     @JsonProperty("examples")
     private List<String> examples;
 
+    @JsonProperty("exampleMeanings")
+    private List<String> exampleMeanings;
+
     @JsonProperty("level")
     @NotBlank(message = "Level is required")
     @Pattern(regexp = "^(N[1-5])$", message = "Level must be N5, N4, N3, N2, or N1")

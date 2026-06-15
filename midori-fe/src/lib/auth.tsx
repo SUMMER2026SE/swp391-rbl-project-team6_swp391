@@ -124,7 +124,7 @@ export function rolePath(role: FrontendRole) {
 }
 
 export function getDashboardPath(user: Pick<User, "role" | "status">) {
-  if (user.role === "teacher" && user.status === "PENDING_APPROVAL") {
+  if (user.role === "teacher" && (user.status === "PENDING_APPROVAL" || user.status === "REJECTED")) {
     return "/teacher-pending";
   }
 
@@ -141,7 +141,7 @@ export function getRouteGuardRedirect(user: Pick<User, "role" | "status"> | null
       return getDashboardPath(user);
     }
 
-    if (user.status === "PENDING_APPROVAL") {
+    if (user.status === "PENDING_APPROVAL" || user.status === "REJECTED") {
       return "/teacher-pending";
     }
 

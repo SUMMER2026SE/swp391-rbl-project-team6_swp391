@@ -3,6 +3,7 @@ package com.midori.service;
 import com.midori.dto.request.BanUserRequest;
 import com.midori.dto.response.AdminTeacherCertificateResponse;
 import com.midori.dto.response.AdminTeacherResponse;
+import com.midori.entity.NotificationType;
 import com.midori.entity.Role;
 import com.midori.entity.TeacherCertificate;
 import com.midori.entity.User;
@@ -30,6 +31,7 @@ public class AdminUserService {
 
     private final UserRepository userRepository;
     private final TeacherCertificateRepository teacherCertificateRepository;
+    private final NotificationHelperService notificationHelper;
 
     @Transactional(readOnly = true)
     public List<AdminTeacherResponse> getPendingTeachers() {
@@ -59,6 +61,14 @@ public class AdminUserService {
         user.setRejectionReason(null);
         User savedUser = userRepository.save(user);
 
+        // Notify teacher about account approval
+        notificationHelper.createNotification(
+                savedUser,
+                "Teacher Approved",
+                "Your teacher account has been approved.",
+                NotificationType.TEACHER_APPROVED
+        );
+
         log.info("Approved teacher: {} ({})", savedUser.getEmail(), userId);
         return toAdminTeacherResponse(savedUser);
     }
@@ -74,6 +84,17 @@ public class AdminUserService {
         user.setStatus(UserStatus.REJECTED);
         user.setRejectionReason(reason.trim());
         User savedUser = userRepository.save(user);
+
+        // Notify teacher about account rejection (include the reason)
+        String content = reason != null && !reason.isBlank()
+                ? "Your teacher account application was rejected. Reason: " + reason.trim()
+                : "Your teacher account application was rejected.";
+        notificationHelper.createNotification(
+                savedUser,
+                "Teacher Rejected",
+                content,
+                NotificationType.CONTENT_REJECTED
+        );
 
         log.info("Rejected teacher application: {} ({})", savedUser.getEmail(), userId);
         return toAdminTeacherResponse(savedUser);

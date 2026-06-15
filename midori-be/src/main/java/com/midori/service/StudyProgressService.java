@@ -34,4 +34,6 @@ public interface StudyProgressService {
     ProgressResponse markAsCompleted(UUID userId, ContentType contentType, String contentId);
 
     ProgressResponse unmarkAsCompleted(UUID userId, ContentType contentType, String contentId);
+
+    ProgressResponse recordView(UUID userId, ContentType contentType, String contentId);
 }

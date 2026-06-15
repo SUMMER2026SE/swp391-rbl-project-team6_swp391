@@ -22,6 +22,7 @@ public class FlashcardServiceImpl implements FlashcardService {
     private final FlashcardSetRepository flashcardSetRepository;
     private final FlashcardCardRepository flashcardCardRepository;
     private final UserRepository userRepository;
+    private final NotificationHelperService notificationHelper;
 
     // ============================================================
     // Ownership Check Helper
@@ -148,6 +149,15 @@ public class FlashcardServiceImpl implements FlashcardService {
         set.setStatus(FlashcardSetStatus.PENDING);
         set.setRejectReason(null);
         set = flashcardSetRepository.save(set);
+
+        // Confirm submission to the teacher
+        notificationHelper.createNotification(
+                set.getTeacher(),
+                "Submission Received",
+                "Your flashcard set submission has been received and is awaiting review.",
+                NotificationType.SYSTEM
+        );
+
         return toFlashcardSetResponse(set, currentUserId);
     }
 

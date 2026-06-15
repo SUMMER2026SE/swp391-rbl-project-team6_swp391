@@ -8,6 +8,7 @@ import com.midori.entity.ContentType;
 import com.midori.entity.Grammar;
 import com.midori.entity.GrammarLevel;
 import com.midori.entity.GrammarStatus;
+import com.midori.entity.NotificationType;
 import com.midori.entity.User;
 import com.midori.exception.AccessDeniedException;
 import com.midori.exception.BadRequestException;
@@ -31,6 +32,7 @@ public class GrammarServiceImpl implements GrammarService {
     private final GrammarRepository grammarRepository;
     private final UserRepository userRepository;
     private final UserLearningProgressRepository progressRepository;
+    private final NotificationHelperService notificationHelper;
 
     // ============================================================
     // Ownership Check Helper
@@ -66,6 +68,7 @@ public class GrammarServiceImpl implements GrammarService {
                 .structure(trimToNull(request.getStructure()))
                 .usage(trimToNull(request.getUsage()))
                 .examples(request.getExamples())
+                .exampleMeanings(request.getExampleMeanings())
                 .level(parseLevel(request.getLevel()))
                 .status(GrammarStatus.DRAFT)
                 .createdBy(creator)
@@ -167,6 +170,15 @@ public class GrammarServiceImpl implements GrammarService {
         grammar.setStatus(GrammarStatus.PENDING);
         grammar.setRejectReason(null);
         grammar = grammarRepository.save(grammar);
+
+        // Confirm submission to the teacher
+        notificationHelper.createNotification(
+                grammar.getCreatedBy(),
+                "Submission Received",
+                "Your grammar submission has been received and is awaiting review.",
+                NotificationType.SYSTEM
+        );
+
         return toGrammarResponse(grammar, currentUserId);
     }
 
@@ -182,7 +194,7 @@ public class GrammarServiceImpl implements GrammarService {
 
         long completions = progressRepository.countByContentIdAndContentType(grammarId.toString(), ContentType.GRAMMAR);
         long learned = progressRepository.countLearnedByGrammarId(grammarId.toString(), ContentType.GRAMMAR);
-        long views = learned; // views are tracked as 'learned' interactions
+        long views = progressRepository.sumViewCountByContentIdAndContentType(grammarId.toString(), ContentType.GRAMMAR);
 
         return GrammarStatsResponse.builder()
                 .views(views)
@@ -241,6 +253,7 @@ public class GrammarServiceImpl implements GrammarService {
                 .structure(grammar.getStructure())
                 .usage(grammar.getUsage())
                 .examples(grammar.getExamples())
+                .exampleMeanings(grammar.getExampleMeanings())
                 .level(grammar.getLevel() != null ? grammar.getLevel().name() : null)
                 .status(grammar.getStatus().name())
                 .rejectReason(grammar.getRejectReason())
@@ -283,6 +296,9 @@ public class GrammarServiceImpl implements GrammarService {
         }
         if (request.getExamples() != null) {
             grammar.setExamples(request.getExamples());
+        }
+        if (request.getExampleMeanings() != null) {
+            grammar.setExampleMeanings(request.getExampleMeanings());
         }
         if (request.getLevel() != null) {
             grammar.setLevel(parseLevel(request.getLevel()));

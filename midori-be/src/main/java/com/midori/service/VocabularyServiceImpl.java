@@ -1,7 +1,10 @@
 package com.midori.service;
 
 import com.midori.dto.vocabulary.*;
+import com.midori.entity.NotificationType;
+import com.midori.entity.Role;
 import com.midori.entity.User;
+import com.midori.entity.UserStatus;
 import com.midori.entity.VocabularyLesson;
 import com.midori.entity.VocabularyWord;
 import com.midori.exception.AccessDeniedException;
@@ -27,6 +30,7 @@ public class VocabularyServiceImpl implements VocabularyService {
     private final VocabularyWordRepository wordRepository;
     private final UserRepository userRepository;
     private final EntityManager entityManager;
+    private final NotificationHelperService notificationHelper;
 
     // ============================================================
     // Ownership Check Helper
@@ -179,6 +183,16 @@ public class VocabularyServiceImpl implements VocabularyService {
         lesson.setIsPublished(true);
         lesson = lessonRepository.save(lesson);
         syncLessonWordCount(lesson);
+
+        // Notify all active students about the new lesson
+        notificationHelper.notifyAllByRole(
+                Role.STUDENT,
+                UserStatus.ACTIVE,
+                "New Lesson",
+                "A new lesson has been published.",
+                NotificationType.LESSON
+        );
+
         return toLessonResponse(lesson, currentUserId);
     }
 

@@ -22,6 +22,7 @@ public class GrammarResponse {
     private String structure;
     private String usage;
     private List<String> examples;
+    private List<String> exampleMeanings;
     private String level;
     private String status;
     private String rejectReason;

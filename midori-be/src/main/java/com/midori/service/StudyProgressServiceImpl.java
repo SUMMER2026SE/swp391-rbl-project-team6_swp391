@@ -64,6 +64,7 @@ public class StudyProgressServiceImpl implements StudyProgressService {
                 .favorite(progress.getFavorite())
                 .completed(progress.getCompleted())
                 .progressPercent(progress.getProgressPercent())
+                .viewCount(progress.getViewCount())
                 .lastStudiedAt(progress.getLastStudiedAt())
                 .createdAt(progress.getCreatedAt())
                 .updatedAt(progress.getUpdatedAt())
@@ -207,6 +208,15 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         }
         progress.setCompleted(false);
         progress.setProgressPercent(Math.max(progress.getProgressPercent(), 50));
+        progress.setLastStudiedAt(Instant.now());
+        progress = progressRepository.save(progress);
+        return toResponse(progress);
+    }
+
+    @Override
+    public ProgressResponse recordView(UUID userId, ContentType contentType, String contentId) {
+        UserLearningProgress progress = getOrCreate(userId, contentType, contentId);
+        progress.setViewCount(progress.getViewCount() + 1);
         progress.setLastStudiedAt(Instant.now());
         progress = progressRepository.save(progress);
         return toResponse(progress);

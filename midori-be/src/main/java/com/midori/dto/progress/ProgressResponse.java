@@ -22,6 +22,7 @@ public class ProgressResponse {
     private Boolean favorite;
     private Boolean completed;
     private Integer progressPercent;
+    private Integer viewCount;
     private Instant lastStudiedAt;
     private Instant createdAt;
     private Instant updatedAt;

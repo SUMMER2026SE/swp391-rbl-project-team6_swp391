@@ -1,11 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  GraduationCap, Flame, Trophy, Bot, Sparkles,
-  CheckCheck, Bell, ArrowLeft
+  GraduationCap,
+  CheckCircle,
+  XCircle,
+  UserCheck,
+  Bell,
+  CheckCheck,
+  ArrowLeft,
+  AlertCircle,
 } from "lucide-react";
+import {
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
+  NotificationResponse,
+} from "@/lib/api/notifications";
 
-type Notification = {
+type NotificationItem = {
   id: number;
   title: string;
   desc: string;
@@ -14,61 +26,107 @@ type Notification = {
   icon: React.ElementType;
 };
 
-const INITIAL_NOTIFICATIONS: Notification[] = [
-  {
-    id: 1,
-    title: "New grammar lesson available",
-    desc: "~なければならない pattern is ready. This essential grammar pattern expresses obligation and necessity in Japanese.",
-    time: "2 min ago",
-    unread: true,
-    icon: GraduationCap,
-  },
-  {
-    id: 2,
-    title: "Daily streak reminder",
-    desc: "Complete today's lesson to keep your 32-day streak going strong!",
-    time: "1 hour ago",
-    unread: true,
-    icon: Flame,
-  },
-  {
-    id: 3,
-    title: "Weekly leaderboard update",
-    desc: "You're now #4 — just 80 XP behind #3! Keep pushing!",
-    time: "3 hours ago",
-    unread: false,
-    icon: Trophy,
-  },
-  {
-    id: 4,
-    title: "AI Sensei feedback",
-    desc: "Sensei reviewed your shadowing session and left detailed feedback on your pronunciation.",
-    time: "Yesterday",
-    unread: false,
-    icon: Bot,
-  },
-  {
-    id: 5,
-    title: "New badge earned",
-    desc: "You unlocked the 'Week Warrior' badge for completing lessons 7 days in a row!",
-    time: "2 days ago",
-    unread: false,
-    icon: Sparkles,
-  },
-];
+// Map notification type to icon
+function getIconForType(type: string): React.ElementType {
+  switch (type) {
+    case "LESSON":
+      return GraduationCap;
+    case "CONTENT_APPROVED":
+      return CheckCircle;
+    case "CONTENT_REJECTED":
+      return XCircle;
+    case "TEACHER_APPROVED":
+      return UserCheck;
+    case "SYSTEM":
+    default:
+      return Bell;
+  }
+}
+
+// Format relative time
+function formatTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+}
+
+// Map API response to UI format
+function mapNotification(apiNotification: NotificationResponse): NotificationItem {
+  return {
+    id: apiNotification.id,
+    title: apiNotification.title,
+    desc: apiNotification.content || "",
+    time: formatTime(apiNotification.createdAt),
+    unread: !apiNotification.isRead,
+    icon: getIconForType(apiNotification.type),
+  };
+}
 
 export const Route = createFileRoute("/student/notifications")({
   component: StudentNotificationsPage,
 });
 
 function StudentNotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await getNotifications();
+      const mapped = response.notifications.map(mapNotification);
+      setNotifications(mapped);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load notifications";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
-  const markAllRead = () => {
+  const handleMarkAsRead = async (id: number) => {
+    // Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+    );
+    try {
+      await markAsRead(id);
+    } catch (err) {
+      // Revert on error
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, unread: true } : n))
+      );
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    // Optimistic update
+    const previousNotifications = [...notifications];
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    try {
+      await markAllAsRead();
+    } catch (err) {
+      // Revert on error
+      setNotifications(previousNotifications);
+    }
   };
 
   const toggleExpanded = (id: number) => {
@@ -105,9 +163,9 @@ function StudentNotificationsPage() {
             </p>
           </div>
 
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !loading && (
             <button
-              onClick={markAllRead}
+              onClick={handleMarkAllRead}
               className="flex-shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition mb-0.5"
             >
               <CheckCheck className="w-3.5 h-3.5" />
@@ -117,20 +175,53 @@ function StudentNotificationsPage() {
         </div>
       </div>
 
-      {/* Notification list */}
-      {notifications.length === 0 ? (
+      {/* Loading state */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+            <Bell className="w-8 h-8 text-gray-300 dark:text-gray-600 animate-pulse" />
+          </div>
+          <p className="text-base font-medium text-gray-500 dark:text-gray-400">
+            Loading notifications...
+          </p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8 text-red-400" />
+          </div>
+          <p className="text-base font-medium text-red-600 dark:text-red-400">
+            {error}
+          </p>
+          <button
+            onClick={fetchNotifications}
+            className="mt-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && !error && notifications.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
             <Bell className="w-8 h-8 text-gray-300 dark:text-gray-600" />
           </div>
           <p className="text-base font-medium text-gray-500 dark:text-gray-400">
-            No notifications yet
+            No notifications
           </p>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
             You're all caught up!
           </p>
         </div>
-      ) : (
+      )}
+
+      {/* Notification list */}
+      {!loading && !error && notifications.length > 0 && (
         <div className="space-y-3">
           {notifications.map((n) => {
             const Icon = n.icon;
@@ -140,9 +231,10 @@ function StudentNotificationsPage() {
             return (
               <div
                 key={n.id}
+                onClick={() => n.unread && handleMarkAsRead(n.id)}
                 className={`
                   relative flex items-start gap-4 p-4 rounded-xl border transition-all duration-200
-                  hover:-translate-y-px hover:shadow-lg
+                  ${n.unread ? "cursor-pointer hover:-translate-y-px hover:shadow-lg" : ""}
                   ${
                     n.unread
                       ? // Unread — indigo tint + left accent border
@@ -194,7 +286,10 @@ function StudentNotificationsPage() {
                     </span>
                     {showToggle && (
                       <button
-                        onClick={() => toggleExpanded(n.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpanded(n.id);
+                        }}
                         className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition"
                       >
                         {isExpanded ? "Less" : "More"}

@@ -347,7 +347,6 @@ function StructureListPage() {
                                 >
                                   {ex.japanese}
                                 </div>
-                                <div className="text-xs text-sky-500 dark:text-sky-400 italic mt-0.5">{ex.romaji}</div>
                                 <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{ex.translation}</div>
                               </div>
                             </div>
