@@ -16,6 +16,7 @@ import {
   Info,
   RefreshCw,
   Loader2,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
@@ -81,11 +82,12 @@ function TeacherPendingPage() {
     staleTime: 0,
   });
 
+  const isRejected = profile?.status === "REJECTED";
+  const rejectionReason = profile?.rejectionReason?.trim();
+
   // ── Detect approval and redirect ──────────────────────────────────────
   if (profile && user) {
-    const normalizedStatus = profile.status === "ACTIVE" ? "active" : "pending";
-
-    if (normalizedStatus === "active" && user.status !== "active") {
+    if (profile.status === "ACTIVE" && user.status !== "active") {
       toast.success("Your teacher account has been approved.");
       updateCurrentUser({ status: "active" });
       navigate({ to: "/teacher" });
@@ -133,36 +135,78 @@ function TeacherPendingPage() {
         {/* ── Main Status Card ─────────────────────────────────────────── */}
         <Card className="bg-card/80 backdrop-blur-xl border border-border shadow-xl">
           <CardHeader className="text-center pb-2">
-            {/* Animated hourglass icon */}
-            <div className="flex justify-center mb-4">
-              <motion.div
-                animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-xl shadow-amber-500/25"
-                aria-hidden="true"
-              >
-                <Hourglass className="w-10 h-10 text-white" />
-              </motion.div>
-            </div>
+            {isRejected ? (
+              <>
+                <div className="flex justify-center mb-4">
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4 }}
+                    className="w-20 h-20 rounded-full bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-xl shadow-red-500/25"
+                    aria-hidden="true"
+                  >
+                    <XCircle className="w-10 h-10 text-white" />
+                  </motion.div>
+                </div>
 
-            {/* Status badge */}
-            <Badge
-              variant="warning"
-              className="mx-auto mb-3 text-xs font-bold tracking-wide uppercase px-3 py-1"
-            >
-              Pending Approval
-            </Badge>
+                <Badge
+                  variant="destructive"
+                  className="mx-auto mb-3 text-xs font-bold tracking-wide uppercase px-3 py-1"
+                >
+                  Application Rejected
+                </Badge>
 
-            <CardTitle className="text-2xl font-extrabold text-foreground font-display">
-              Your teacher application is under review
-            </CardTitle>
-            <CardDescription className="text-muted-foreground text-base pt-1">
-              Your teacher account has been created successfully and is currently awaiting
-              administrator approval.
-            </CardDescription>
+                <CardTitle className="text-2xl font-extrabold text-foreground font-display">
+                  Your teacher application was not approved
+                </CardTitle>
+                <CardDescription className="text-muted-foreground text-base pt-1">
+                  Unfortunately, your teacher account application has been rejected.
+                </CardDescription>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-center mb-4">
+                  <motion.div
+                    animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-xl shadow-amber-500/25"
+                    aria-hidden="true"
+                  >
+                    <Hourglass className="w-10 h-10 text-white" />
+                  </motion.div>
+                </div>
+
+                <Badge
+                  variant="warning"
+                  className="mx-auto mb-3 text-xs font-bold tracking-wide uppercase px-3 py-1"
+                >
+                  Pending Approval
+                </Badge>
+
+                <CardTitle className="text-2xl font-extrabold text-foreground font-display">
+                  Your teacher application is under review
+                </CardTitle>
+                <CardDescription className="text-muted-foreground text-base pt-1">
+                  Your teacher account has been created successfully and is currently awaiting
+                  administrator approval.
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {isRejected && rejectionReason ? (
+              <Alert variant="destructive" className="py-3">
+                <XCircle className="w-4 h-4" aria-hidden="true" />
+                <AlertDescription className="text-foreground text-sm">
+                  <span className="font-semibold">Reason: </span>
+                  <span className="text-red-700 dark:text-red-300 break-words">
+                    {rejectionReason}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             {/* ── Application Information ───────────────────────────────── */}
             <section aria-labelledby="app-info-heading">
               <h2
@@ -257,36 +301,40 @@ function TeacherPendingPage() {
             </section>
 
             {/* ── Estimated Review Time ────────────────────────────────── */}
-            <Alert variant="warning" className="py-3">
-              <Info className="w-4 h-4" aria-hidden="true" />
-              <AlertDescription className="text-foreground text-sm">
-                Teacher applications are typically reviewed within{" "}
-                <span className="font-semibold">1–3 business days</span>.
-              </AlertDescription>
-            </Alert>
+            {!isRejected && (
+              <Alert variant="warning" className="py-3">
+                <Info className="w-4 h-4" aria-hidden="true" />
+                <AlertDescription className="text-foreground text-sm">
+                  Teacher applications are typically reviewed within{" "}
+                  <span className="font-semibold">1–3 business days</span>.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* ── What Happens Next ────────────────────────────────────── */}
-            <section aria-labelledby="next-steps-heading">
-              <Card className="bg-muted/50 border border-border">
-                <CardHeader className="pb-3 pt-4 px-5">
-                  <CardTitle className="text-base font-bold text-foreground">
-                    What happens next?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-5 pb-4">
-                  <ol className="space-y-2.5" aria-label="Next steps">
-                    {nextSteps.map((label, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 text-primary text-xs font-black flex items-center justify-center">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm text-muted-foreground pt-0.5">{label}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </CardContent>
-              </Card>
-            </section>
+            {!isRejected && (
+              <section aria-labelledby="next-steps-heading">
+                <Card className="bg-muted/50 border border-border">
+                  <CardHeader className="pb-3 pt-4 px-5">
+                    <CardTitle className="text-base font-bold text-foreground">
+                      What happens next?
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-5 pb-4">
+                    <ol className="space-y-2.5" aria-label="Next steps">
+                      {nextSteps.map((label, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 text-primary text-xs font-black flex items-center justify-center">
+                            {i + 1}
+                          </span>
+                          <span className="text-sm text-muted-foreground pt-0.5">{label}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </CardContent>
+                </Card>
+              </section>
+            )}
 
             {/* ── Action Buttons ───────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
