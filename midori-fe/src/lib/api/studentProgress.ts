@@ -103,4 +103,14 @@ export const studentProgressApi = {
       `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`
     );
   },
+
+  /**
+   * POST /api/student/progress/{contentType}/{contentId}/view
+   * Records a view for the content (increments view count).
+   */
+  recordView: async (contentType: ContentType, contentId: string) => {
+    return api.post<ProgressResponse>(
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/view`
+    );
+  },
 };
