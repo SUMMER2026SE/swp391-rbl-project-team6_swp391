@@ -38,11 +38,14 @@ const levelGradients: Record<string, string> = {
 
 // ─── Mock example data for display (backend examples are strings) ─────────────────
 
-function buildMockExamples(examples: string[]): { japanese: string; romaji: string; translation: string }[] {
+function buildMockExamples(
+  examples: string[],
+  exampleMeanings?: string[],
+): { japanese: string; romaji: string; translation: string }[] {
   return examples.map((ex, i) => ({
     japanese: ex,
     romaji: `Romaji ${i + 1}`,
-    translation: `Translation ${i + 1}`,
+    translation: exampleMeanings?.[i] ?? `Translation ${i + 1}`,
   }));
 }
 
@@ -160,7 +163,7 @@ function GrammarDetailModal({
   onToggleComplete: () => void;
   onToggleBookmark: () => void;
 }) {
-  const examples = buildMockExamples(item.examples ?? []);
+  const examples = buildMockExamples(item.examples ?? [], item.exampleMeanings);
 
   return (
     <motion.div
