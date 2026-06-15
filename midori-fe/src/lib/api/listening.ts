@@ -14,6 +14,7 @@ export interface ListeningResponse {
   approvedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  topic?: string | null;
 }
 
 export interface ListeningDetailResponse extends ListeningResponse {
@@ -22,7 +23,6 @@ export interface ListeningDetailResponse extends ListeningResponse {
 }
 
 export interface CreateListeningPayload {
-  /** JLPT level name: "N5" | "N4" | "N3" | "N2" | "N1" */
   level: string;
   title: string;
   audioFile?: File | null;
@@ -32,7 +32,6 @@ export interface CreateListeningPayload {
 }
 
 export interface UpdateListeningPayload {
-  /** JLPT level name: "N5" | "N4" | "N3" | "N2" | "N1" */
   level?: string;
   title?: string;
   audioFile?: File | null;
@@ -50,10 +49,9 @@ export interface LevelResponse {
   name: string;
 }
 
-export const teacherListeningApi = {
-  getLevels: () => api.get<LevelResponse[]>("/levels"),
-
-  getListeningList: (params?: { level?: string; status?: string }) => {
+export const listeningApi = {
+  // Teacher APIs
+  getTeacherListenings: (params?: { level?: string; status?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.level) searchParams.set("level", params.level);
     if (params?.status) searchParams.set("status", params.status);
@@ -61,7 +59,7 @@ export const teacherListeningApi = {
     return api.get<ListeningResponse[]>(`/teacher/listenings${qs ? `?${qs}` : ""}`);
   },
 
-  getListeningDetail: (id: string) =>
+  getListeningById: (id: string) =>
     api.get<ListeningDetailResponse>(`/teacher/listenings/${id}`),
 
   createListening: (payload: CreateListeningPayload) => {
@@ -104,10 +102,20 @@ export const teacherListeningApi = {
     if (payload.topic !== undefined) {
       formData.append("topic", payload.topic);
     }
-
     return api.put<ListeningDetailResponse>(`/teacher/listenings/${id}`, formData);
   },
 
   deleteListening: (id: string) =>
     api.delete<void>(`/teacher/listenings/${id}`),
+
+  // Student APIs (prepare for API-12)
+  getStudentListenings: (params?: { level?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.level) searchParams.set("level", params.level);
+    const qs = searchParams.toString();
+    return api.get<ListeningResponse[]>(`/student/listenings${qs ? `?${qs}` : ""}`);
+  },
+
+  getStudentListeningById: (id: string) =>
+    api.get<ListeningDetailResponse>(`/student/listenings/${id}`),
 };

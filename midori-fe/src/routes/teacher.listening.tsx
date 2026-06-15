@@ -8,7 +8,7 @@ import {
   SkipBack, SkipForward, Rewind, FastForward, Repeat, Volume1,
   PlusCircle, Trash, Save, EyeOff, ChevronLeft, ChevronRight as ChevronRightIcon, FileText, Loader2, AlertCircle, List, Inbox
 } from "lucide-react";
-import { teacherListeningApi } from "@/lib/api/teacherListening";
+import { listeningApi } from "@/lib/api/listening";
 import { ApiError } from "@/lib/api/client";
 
 type ExerciseType = "Dictation" | "Blank Fill" | "Multiple Choice";
@@ -21,7 +21,7 @@ interface BlankWord {
 }
 
 interface ListeningExercise {
-  id: number;
+  id: string;
   title: string;
   level: JLPTLevel;
   type: ExerciseType;
@@ -34,8 +34,6 @@ interface ListeningExercise {
   answerKey: string;
   description: string;
   duration: string;
-  completions: number;
-  accuracy: number;
   date: string;
 }
 
@@ -45,19 +43,6 @@ interface FormErrors {
   topic?: string;
   general?: string;  // server / API-level errors (not field-specific)
 }
-
-const initialExercises: ListeningExercise[] = [
-  { id: 1, title: "Business Phone Manners", level: "N3", duration: "4:30", type: "Dictation", status: "published", topic: "Business", audio: true, transcript: "もしもし、ABC株式会社ですが、田中さんお願いします。\nはい、田中ですが。\nいつもお世話になっております。", answerKey: "もしもし|ABC株式会社|田中さん|お願いします|田中|お世話になっております", description: "Practice formal business phone etiquette in Japanese.", completions: 1204, accuracy: 72, date: "1 week ago" },
-  { id: 2, title: "Job Interview — Self Introduction", level: "N2", duration: "6:15", type: "Multiple Choice", status: "published", topic: "Career", audio: true, transcript: "面接官: まず、自己紹介をお願いします。\n応募者: はい、田中太郎と申します...", answerKey: "選択肢1: 正しい|選択肢2: 正しくない|選択肢3: 不明", description: "Common self-introduction phrases for job interviews.", completions: 890, accuracy: 68, date: "2 weeks ago" },
-  { id: 3, title: "Weather Report — Casual", level: "N5", duration: "2:45", type: "Dictation", status: "published", topic: "Daily Life", audio: true, transcript: "今日の天気は晴れです。\n明日は雨が降るかもしれません。", answerKey: "天気|晴れ|明日|雨|降る|かもしれない", description: "Simple weather-related vocabulary and sentences.", completions: 2340, accuracy: 85, date: "3 weeks ago" },
-  { id: 4, title: "Restaurant Ordering", level: "N4", duration: "3:20", type: "Blank Fill", status: "pending", topic: "Food & Dining", audio: true, transcript: "店員: いらっしゃいませ。\n客: メニューをください。\n店員: ご注文はお決まりですか。", answerKey: "いらっしゃいませ|メニュー|ご注文|お決まり", description: "Practice ordering food at a Japanese restaurant.", completions: 0, accuracy: 0, date: "3 days ago" },
-  { id: 5, title: "Train Announcement Practice", level: "N4", duration: "3:50", type: "Dictation", status: "published", topic: "Transportation", audio: true, transcript: "次は新宿駅です。\nお出口は右側です。\n降りる方はお間違いのないようご注意ください。", answerKey: "新宿駅|お出口|右側|ご注意", description: "Train station announcements commonly heard in Japan.", completions: 1560, accuracy: 79, date: "1 month ago" },
-  { id: 6, title: "Doctor Visit — Symptoms", level: "N3", duration: "5:10", type: "Multiple Choice", status: "draft", topic: "Health", audio: false, transcript: "医者: どうされましたか。\n患者: 頭が痛いです。\n医者: 熱はありますか。", answerKey: "選択肢1: 正しい|選択肢2: 正しくない", description: "Vocabulary and phrases for visiting a doctor.", completions: 0, accuracy: 0, date: "Just now" },
-  { id: 7, title: "At the Airport", level: "N3", duration: "4:00", type: "Dictation", status: "published", topic: "Travel", audio: true, transcript: "乘客: この荷物検査場はどちらですか。\n職員: あちらです。\n乘客: ありがとうございます。", answerKey: "荷物検査場|どちら|あちら|ありがとうございます", description: "Common airport phrases for travelers.", completions: 980, accuracy: 74, date: "2 weeks ago" },
-  { id: 8, title: "Bank Transactions", level: "N2", duration: "5:30", type: "Blank Fill", status: "pending", topic: "Finance", audio: true, transcript: "銀行員: いらっしゃいませ。\n客: お金を下ろしたいです。\n銀行員: いくら下ろしますか。", answerKey: "いらっしゃいませ|下ろしたい|いくら", description: "Vocabulary for banking transactions in Japanese.", completions: 0, accuracy: 0, date: "1 week ago" },
-  { id: 9, title: "Asking for Directions", level: "N5", duration: "2:00", type: "Dictation", status: "published", topic: "Daily Life", audio: true, transcript: "客: 駅はどこですか。\n地元: あそこです。\n客: ありがとう。", answerKey: "駅|哪里|あそこ|ありがとう", description: "Basic directional phrases for beginners.", completions: 3200, accuracy: 91, date: "3 weeks ago" },
-  { id: 10, title: "Shopping Discounts", level: "N4", duration: "3:45", type: "Multiple Choice", status: "draft", topic: "Shopping", audio: true, transcript: "店員: 今月は割引中です。\n客: それはいいですね。", answerKey: "選択肢1: 正しい|選択肢2: 正しくない", description: "Common shopping expressions and discount phrases.", completions: 0, accuracy: 0, date: "4 days ago" },
-];
 
 const levelColors: Record<JLPTLevel, string> = {
   N5: "bg-blue-50 text-blue-500 dark:bg-blue-950/30",
@@ -336,7 +321,7 @@ const BlankWordEditor = ({
   </div>
 );
 
-const DeleteConfirmation = ({ id, onConfirm, onCancel, deleteLoading }: { id: number; onConfirm: () => void; onCancel: () => void; deleteLoading: boolean }) => (
+const DeleteConfirmation = ({ id, onConfirm, onCancel, deleteLoading }: { id: string; onConfirm: () => void; onCancel: () => void; deleteLoading: boolean }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -401,6 +386,8 @@ const AudioDuration = ({ src, fallback }: { src?: string; fallback: string }) =>
 
 function ListeningPage() {
   const [exercises, setExercises] = useState<ListeningExercise[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [newAudioFile, setNewAudioFile] = useState<File | null>(null);
   const [editAudioFile, setEditAudioFile] = useState<File | null>(null);
   const newFileInputRef = useRef<HTMLInputElement>(null);
@@ -426,12 +413,14 @@ function ListeningPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const fetchAllData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const list = await teacherListeningApi.getListeningList();
+      const list = await listeningApi.getTeacherListenings();
       const mapped = list.map(item => {
         const detail = item as any;
         return {
-          id: item.id as any,
+          id: item.id,
           title: item.title,
           level: (item.level || "N5") as JLPTLevel,
           type: "Dictation" as ExerciseType,
@@ -444,14 +433,15 @@ function ListeningPage() {
           answerKey: (detail.answerKey as string | undefined) || "",
           description: "",
           duration: "0:00",
-          completions: 0,
-          accuracy: 0,
           date: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "Just now"
         };
       });
       setExercises(mapped);
     } catch (err) {
       console.error(err);
+      setError(err instanceof ApiError ? err.message : "Failed to load listening exercises.");
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -462,7 +452,7 @@ function ListeningPage() {
   // Loading states
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Error states
@@ -608,14 +598,32 @@ function ListeningPage() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const openDetail = (exercise: ListeningExercise) => {
-    setSelectedExercise(exercise);
-    setViewMode("detail");
-    setIsEditing(false);
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setBlankMode(false);
-    setSegments(parseTranscriptToSegments(exercise.transcript));
+  const openDetail = async (exercise: ListeningExercise) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const detail = await listeningApi.getListeningById(exercise.id);
+      const mappedDetail: ListeningExercise = {
+        ...exercise,
+        transcript: detail.transcript || "",
+        answerKey: detail.answerKey || "",
+        topic: detail.topic || "General",
+        audioUrl: detail.audioUrl ? (detail.audioUrl.startsWith("http") ? detail.audioUrl : `http://localhost:8080${detail.audioUrl}`) : undefined,
+        audioFileName: detail.audioFileName ?? undefined,
+      };
+      setSelectedExercise(mappedDetail);
+      setViewMode("detail");
+      setIsEditing(false);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setBlankMode(false);
+      setSegments(parseTranscriptToSegments(mappedDetail.transcript));
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof ApiError ? err.message : "Failed to load exercise details.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filtered = exercises.filter(e => {
@@ -671,7 +679,7 @@ function ListeningPage() {
     }
     setIsCreating(true);
     try {
-      await teacherListeningApi.createListening({
+      await listeningApi.createListening({
         level: newLevel,          // send static JLPT level name directly
         title: newTitle.trim(),
         audioFile: newAudioFile,
@@ -692,11 +700,11 @@ function ListeningPage() {
     }
   };
 
-  const handleDeleteExercise = async (id: number) => {
+  const handleDeleteExercise = async (id: string) => {
     setDeleteLoading(true);
     setDeleteError(null);
     try {
-      await teacherListeningApi.deleteListening(String(id));
+      await listeningApi.deleteListening(id);
       await fetchAllData();
       if (selectedExercise?.id === id) {
         setSelectedExercise(null);
@@ -712,22 +720,32 @@ function ListeningPage() {
     }
   };
 
-  const openEditModal = (exercise: ListeningExercise) => {
-    setEditFormTitle(exercise.title);
-    setEditFormLevel(exercise.level);
-    setEditFormType(exercise.type);
-    setEditFormTopic(exercise.topic || "");
-    setEditFormTopicCustom("");
-    setEditFormTranscript(exercise.transcript);
-    setEditFormAnswerKey(exercise.answerKey);
-    setEditFormDescription(exercise.description);
-    setEditFormStatus(exercise.status);
-    setEditFormAudio(exercise.audio);
-    setEditBlankWords([]);
-    setEditPreviewText("");
-    setEditBlankWordInput("");
-    setEditErrors({});
-    setShowEditModal(true);
+  const openEditModal = async (exercise: ListeningExercise) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const detail = await listeningApi.getListeningById(exercise.id);
+      setEditFormTitle(detail.title);
+      setEditFormLevel((detail.level || "N3") as JLPTLevel);
+      setEditFormType("Dictation");
+      setEditFormTopic(detail.topic || "");
+      setEditFormTopicCustom("");
+      setEditFormTranscript(detail.transcript || "");
+      setEditFormAnswerKey(detail.answerKey || "");
+      setEditFormDescription("");
+      setEditFormStatus((detail.status?.toLowerCase() || "draft") as ExerciseStatus);
+      setEditFormAudio(!!detail.audioUrl);
+      setEditBlankWords([]);
+      setEditPreviewText("");
+      setEditBlankWordInput("");
+      setEditErrors({});
+      setShowEditModal(true);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof ApiError ? err.message : "Failed to load exercise for editing.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -738,7 +756,7 @@ function ListeningPage() {
     if (!selectedExercise) return;
     setIsSaving(true);
     try {
-      await teacherListeningApi.updateListening(String(selectedExercise.id), {
+      await listeningApi.updateListening(selectedExercise.id, {
         level: editFormLevel,     // send static JLPT level name directly
         title: editFormTitle.trim(),
         audioFile: editAudioFile,
@@ -748,6 +766,28 @@ function ListeningPage() {
         topic: (editFormTopic === "__custom__" ? editFormTopicCustom.trim() : editFormTopic.trim()) || "General"
       });
       await fetchAllData();
+      
+      // Update selected exercise with fresh data
+      const updatedDetail = await listeningApi.getListeningById(selectedExercise.id);
+      const mappedDetail: ListeningExercise = {
+        id: updatedDetail.id,
+        title: updatedDetail.title,
+        level: (updatedDetail.level || "N5") as JLPTLevel,
+        type: "Dictation" as ExerciseType,
+        status: (updatedDetail.status?.toLowerCase() || "draft") as ExerciseStatus,
+        topic: updatedDetail.topic || "General",
+        audio: !!updatedDetail.audioUrl,
+        audioUrl: updatedDetail.audioUrl ? (updatedDetail.audioUrl.startsWith("http") ? updatedDetail.audioUrl : `http://localhost:8080${updatedDetail.audioUrl}`) : undefined,
+        audioFileName: updatedDetail.audioFileName ?? undefined,
+        transcript: updatedDetail.transcript || "",
+        answerKey: updatedDetail.answerKey || "",
+        description: "",
+        duration: "0:00",
+        date: updatedDetail.createdAt ? new Date(updatedDetail.createdAt).toLocaleDateString() : "Just now"
+      };
+      setSelectedExercise(mappedDetail);
+      setSegments(parseTranscriptToSegments(mappedDetail.transcript));
+
       setShowEditModal(false);
       showSuccess("Exercise updated successfully!");
     } catch (err) {
@@ -1308,12 +1348,10 @@ function ListeningPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {[
             { label: "Total Exercises", value: exercises.length.toString(), icon: Headphones, color: "bg-blue-50 text-blue-500" },
             { label: "With Audio", value: exercises.filter(e => e.audio).length.toString(), icon: Volume2, color: "bg-green-50 text-green-500" },
-            { label: "Avg. Accuracy", value: exercises.filter(e => e.accuracy > 0).length > 0 ? `${Math.round(exercises.filter(e => e.accuracy > 0).reduce((acc, e) => acc + e.accuracy, 0) / exercises.filter(e => e.accuracy > 0).length)}%` : "—", icon: CheckCircle, color: "bg-purple-50 text-purple-500" },
-            { label: "Total Plays", value: exercises.reduce((acc, e) => acc + e.completions, 0).toLocaleString(), icon: Play, color: "bg-orange-50 text-orange-500" },
           ].map(stat => {
             const Icon = stat.icon;
             return (
@@ -1351,155 +1389,172 @@ function ListeningPage() {
           </select>
         </div>
 
-        {/* Exercise list */}
-        <div className="space-y-3">
-          {paged.length === 0 ? (
-            <EmptyState
-              icon={Headphones}
-              title={search || levelFilter !== "All" || typeFilter !== "All Types" ? "No matching exercises" : "No exercises yet"}
-              description={
-                search || levelFilter !== "All" || typeFilter !== "All Types"
-                  ? "Try adjusting your search or filters"
-                  : "Create your first listening exercise to get started"
-              }
-              action={search || levelFilter !== "All" || typeFilter !== "All Types" ? undefined : () => setShowNewModal(true)}
-              actionLabel={search || levelFilter !== "All" || typeFilter !== "All Types" ? undefined : "New Exercise"}
-            />
-          ) : (
-            paged.map((ex, i) => (
-              <motion.div
-                key={ex.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition cursor-pointer relative"
-                onClick={() => openDetail(ex)}
-              >
-                {/* Delete Confirmation Overlay */}
-                {isDeleting === ex.id && (
-                  <DeleteConfirmation
-                    id={ex.id}
-                    onConfirm={() => handleDeleteExercise(ex.id)}
-                    onCancel={() => setIsDeleting(null)}
-                    deleteLoading={deleteLoading}
-                  />
-                )}
-
-                <div className="flex items-center gap-4">
-                  {/* Play button */}
-                  <button
-                    onClick={e => { e.stopPropagation(); openDetail(ex); setIsPlaying(p => !p); }}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition shadow-lg ${
-                      isPlaying ? "bg-gradient-hero text-white" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                    }`}
-                  >
-                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                  </button>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className="font-bold text-sm">{ex.title}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${levelColors[ex.level]}`}>{ex.level}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeColors[ex.type]}`}>{ex.type}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[ex.status]}`}>{ex.status}</span>
-                    </div>
-
-                    {/* Waveform */}
-                    <div className="flex items-center gap-0.5 h-7 mb-1.5">
-                      {Array.from({ length: 40 }).map((_, wi) => (
-                        <div
-                          key={wi}
-                          className={`flex-1 rounded-full transition-all ${isPlaying ? "bg-gradient-hero" : "bg-slate-200 dark:bg-slate-600"}`}
-                          style={{
-                            height: `${Math.random() * 100}%`,
-                            minHeight: "3px",
-                            opacity: wi / 40 > 0.5 ? 1 : 0.3
-                          }}
-                        />
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <AudioDuration src={ex.audioUrl} fallback={ex.duration} />
-                      </span>
-                      {ex.audio ? (
-                        <span className="flex items-center gap-1 text-green-500"><Volume2 className="w-3 h-3" /> Audio</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-slate-400"><Volume2 className="w-3 h-3" /> No Audio</span>
-                      )}
-                      {ex.transcript ? (
-                        <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> Transcript</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-slate-400"><FileText className="w-3 h-3" /> No Transcript</span>
-                      )}
-                      {ex.topic ? (
-                        <span className="flex items-center gap-1"><Headphones className="w-3 h-3" /> {ex.topic}</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-slate-400"><List className="w-3 h-3" /> No Topic</span>
-                      )}
-                      {ex.completions > 0 && <span>{ex.completions.toLocaleString()} plays</span>}
-                      {ex.accuracy > 0 && <span className="text-green-500 font-bold">{ex.accuracy}% accuracy</span>}
-                      <span>{ex.date}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => openEditModal(ex)}
-                      disabled={isDeleting !== null}
-                      className="p-2 rounded-xl hover:bg-blue-50 text-blue-500 transition disabled:opacity-50"
-                      title="Edit"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setIsDeleting(ex.id)}
-                      disabled={isDeleting !== null}
-                      className="p-2 rounded-xl hover:bg-red-50 text-red-400 transition disabled:opacity-50"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          )}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700">
-            <p className="text-xs text-muted-foreground pl-1">
-              Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
-            </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={safePage === 1}
-                className="p-2 rounded-xl hover:bg-muted transition disabled:opacity-30 disabled:cursor-not-allowed">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button key={page} onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-xl text-xs font-bold transition ${
-                    page === safePage
-                      ? "bg-gradient-hero text-white shadow"
-                      : "hover:bg-muted text-muted-foreground"
-                  }`}>
-                  {page}
-                </button>
-              ))}
-              <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={safePage === totalPages}
-                className="p-2 rounded-xl hover:bg-muted transition disabled:opacity-30 disabled:cursor-not-allowed">
-                <ChevronRightIcon className="w-4 h-4" />
-              </button>
-            </div>
+        {/* Loading and Error States */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+            <Loader2 className="w-8 h-8 text-primary animate-spin mr-2" />
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Loading exercises...</span>
           </div>
+        )}
+
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-2xl">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+          </div>
+        )}
+
+        {/* Exercise list */}
+        {!isLoading && !error && (
+          <>
+            <div className="space-y-3">
+              {paged.length === 0 ? (
+                <EmptyState
+                  icon={Headphones}
+                  title={search || levelFilter !== "All" || typeFilter !== "All Types" ? "No matching exercises" : "No exercises yet"}
+                  description={
+                    search || levelFilter !== "All" || typeFilter !== "All Types"
+                      ? "Try adjusting your search or filters"
+                      : "Create your first listening exercise to get started"
+                  }
+                  action={search || levelFilter !== "All" || typeFilter !== "All Types" ? undefined : () => setShowNewModal(true)}
+                  actionLabel={search || levelFilter !== "All" || typeFilter !== "All Types" ? undefined : "New Exercise"}
+                />
+              ) : (
+                paged.map((ex, i) => (
+                  <motion.div
+                    key={ex.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition cursor-pointer relative"
+                    onClick={() => openDetail(ex)}
+                  >
+                    {/* Delete Confirmation Overlay */}
+                    {isDeleting === ex.id && (
+                      <DeleteConfirmation
+                        id={ex.id}
+                        onConfirm={() => handleDeleteExercise(ex.id)}
+                        onCancel={() => setIsDeleting(null)}
+                        deleteLoading={deleteLoading}
+                      />
+                    )}
+
+                    <div className="flex items-center gap-4">
+                      {/* Play button */}
+                      <button
+                        onClick={e => { e.stopPropagation(); openDetail(ex); setIsPlaying(p => !p); }}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition shadow-lg ${
+                          isPlaying ? "bg-gradient-hero text-white" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                        }`}
+                      >
+                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                      </button>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="font-bold text-sm">{ex.title}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${levelColors[ex.level]}`}>{ex.level}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeColors[ex.type]}`}>{ex.type}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[ex.status]}`}>{ex.status}</span>
+                        </div>
+
+                        {/* Waveform */}
+                        <div className="flex items-center gap-0.5 h-7 mb-1.5">
+                          {Array.from({ length: 40 }).map((_, wi) => (
+                            <div
+                              key={wi}
+                              className={`flex-1 rounded-full transition-all ${isPlaying ? "bg-gradient-hero" : "bg-slate-200 dark:bg-slate-600"}`}
+                              style={{
+                                height: `${Math.random() * 100}%`,
+                                minHeight: "3px",
+                                opacity: wi / 40 > 0.5 ? 1 : 0.3
+                              }}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <AudioDuration src={ex.audioUrl} fallback={ex.duration} />
+                          </span>
+                          {ex.audio ? (
+                            <span className="flex items-center gap-1 text-green-500"><Volume2 className="w-3 h-3" /> Audio</span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-slate-400"><Volume2 className="w-3 h-3" /> No Audio</span>
+                          )}
+                          {ex.transcript ? (
+                            <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> Transcript</span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-slate-400"><FileText className="w-3 h-3" /> No Transcript</span>
+                          )}
+                          {ex.topic ? (
+                            <span className="flex items-center gap-1"><Headphones className="w-3 h-3" /> {ex.topic}</span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-slate-400"><List className="w-3 h-3" /> No Topic</span>
+                          )}
+                          <span>{ex.date}</span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => openEditModal(ex)}
+                          disabled={isDeleting !== null}
+                          className="p-2 rounded-xl hover:bg-blue-50 text-blue-500 transition disabled:opacity-50"
+                          title="Edit"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setIsDeleting(ex.id)}
+                          disabled={isDeleting !== null}
+                          className="p-2 rounded-xl hover:bg-red-50 text-red-400 transition disabled:opacity-50"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-2xl p-3 shadow-sm border border-slate-100 dark:border-slate-700 mt-5">
+                <p className="text-xs text-muted-foreground pl-1">
+                  Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    className="p-2 rounded-xl hover:bg-muted transition disabled:opacity-30 disabled:cursor-not-allowed">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button key={page} onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded-xl text-xs font-bold transition ${
+                        page === safePage
+                          ? "bg-gradient-hero text-white shadow"
+                          : "hover:bg-muted text-muted-foreground"
+                      }`}>
+                      {page}
+                    </button>
+                  ))}
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    className="p-2 rounded-xl hover:bg-muted transition disabled:opacity-30 disabled:cursor-not-allowed">
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -1760,37 +1815,15 @@ function ListeningPage() {
           <div className="space-y-4">
             {/* Engagement Stats */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-              <h3 className="font-display font-bold text-sm mb-4">Student Engagement</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Plays", value: selectedExercise.completions > 0 ? selectedExercise.completions.toLocaleString() : "—", color: "text-blue-500" },
-                  { label: "Accuracy", value: selectedExercise.accuracy > 0 ? `${selectedExercise.accuracy}%` : "—", color: "text-green-500" },
-                  { 
-                    label: "Duration", 
-                    value: duration > 0 
-                      ? formatTime(duration) 
-                      : (selectedExercise.audioUrl ? <AudioDuration src={selectedExercise.audioUrl} fallback={selectedExercise.duration} /> : selectedExercise.duration), 
-                    color: "text-purple-500" 
-                  },
-                ].map(stat => (
-                  <div key={stat.label} className="text-center p-3 rounded-xl bg-muted/50">
-                    <div className={`font-display font-black text-lg ${stat.color}`}>{stat.value}</div>
-                    <div className="text-[10px] text-muted-foreground">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-              {selectedExercise.accuracy > 0 && (
-                <div className="mt-4">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Average Accuracy</span>
-                    <span className="font-bold text-green-500">{selectedExercise.accuracy}%</span>
-                  </div>
-                  <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${selectedExercise.accuracy}%` }}
-                      className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" />
-                  </div>
+              <h3 className="font-display font-bold text-sm mb-4">Exercise Duration</h3>
+              <div className="text-center p-3 rounded-xl bg-muted/50">
+                <div className="font-display font-black text-lg text-purple-500">
+                  {duration > 0 
+                    ? formatTime(duration) 
+                    : (selectedExercise.audioUrl ? <AudioDuration src={selectedExercise.audioUrl} fallback={selectedExercise.duration} /> : selectedExercise.duration)}
                 </div>
-              )}
+                <div className="text-[10px] text-muted-foreground">Duration</div>
+              </div>
             </div>
 
             {/* Student Preview */}
