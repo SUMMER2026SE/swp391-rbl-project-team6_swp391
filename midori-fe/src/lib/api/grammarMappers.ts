@@ -17,6 +17,7 @@ export interface GrammarResponse {
   structure: string;
   usage: string;
   examples: string[];
+  exampleMeanings: string[];
   level: string;
   status: GrammarStatus;
   rejectReason: string | null;
@@ -36,6 +37,7 @@ export interface GrammarCreateRequest {
   structure: string;
   usage: string;
   examples: string[];
+  exampleMeanings: string[];
   level: string;
 }
 
@@ -48,6 +50,7 @@ export interface GrammarUpdateRequest {
   structure?: string;
   usage?: string;
   examples?: string[];
+  exampleMeanings?: string[];
   level?: string;
 }
 
