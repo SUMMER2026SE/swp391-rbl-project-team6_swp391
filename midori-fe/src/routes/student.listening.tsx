@@ -117,11 +117,6 @@ function Listening() {
           <PageHeader
             title="Listening Dictation"
             subtitle="Choose a listening exercise, practice listening, and check your answer."
-            action={
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
-                Demo
-              </span>
-            }
           />
 
           {/* Tab Navigation */}

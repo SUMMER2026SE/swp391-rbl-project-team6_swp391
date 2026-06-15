@@ -146,6 +146,7 @@ function ListeningPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Error states
   const [createErrors, setCreateErrors] = useState<FormErrors>({});
@@ -350,7 +351,7 @@ function ListeningPage() {
   };
 
   const handleDeleteExercise = async (id: number) => {
-    setIsDeleting(id);
+    setDeleteLoading(true);
     setDeleteError(null);
     try {
       // Simulate API call
@@ -364,6 +365,7 @@ function ListeningPage() {
     } catch {
       setDeleteError("Failed to delete exercise. Please try again.");
     } finally {
+      setDeleteLoading(false);
       setIsDeleting(null);
     }
   };
@@ -1103,6 +1105,7 @@ function ListeningPage() {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       className="absolute inset-0 bg-white/90 dark:bg-slate-800/90 rounded-2xl flex flex-col items-center justify-center z-10 backdrop-blur-sm"
+      onClick={(e) => e.stopPropagation()}
     >
       <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
       <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">Delete this exercise?</p>
@@ -1111,8 +1114,8 @@ function ListeningPage() {
         <button onClick={onCancel} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition">
           Cancel
         </button>
-        <button onClick={onConfirm} disabled={isDeleting === id} className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-1">
-          {isDeleting === id && <Loader2 className="w-3 h-3 animate-spin" />}
+        <button onClick={onConfirm} disabled={deleteLoading} className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-1">
+          {deleteLoading && <Loader2 className="w-3 h-3 animate-spin" />}
           Delete
         </button>
       </div>
@@ -1134,21 +1137,9 @@ function ListeningPage() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-display font-black">Listening Management</h1>
-              <span
-                data-testid="teacher-listening-demo-badge"
-                className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm"
-                title="This module is currently using demo data. Created exercises are not saved after refresh."
-              >
-                Demo
-              </span>
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               Upload audio, create dictation exercises, and preview playback.
-            </p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 max-w-2xl">
-              Demo mode: this module uses sample data only. New, edited, or deleted
-              exercises are kept in memory and will be lost after refresh — they are
-              not sent to a backend yet.
             </p>
           </div>
           <button onClick={() => setShowNewModal(true)}
@@ -1416,10 +1407,10 @@ function ListeningPage() {
                   </button>
                   <button
                     onClick={() => handleDeleteExercise(selectedExercise.id)}
-                    disabled={isDeleting !== null}
+                    disabled={deleteLoading}
                     className="px-5 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center gap-2"
                   >
-                    {isDeleting !== null && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {deleteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                     Delete
                   </button>
                 </div>
