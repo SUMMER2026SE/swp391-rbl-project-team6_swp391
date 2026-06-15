@@ -48,6 +48,7 @@ export interface AdminTeacherResponse {
   phone?: string | null;
   location?: string | null;
   dateOfBirth?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }
