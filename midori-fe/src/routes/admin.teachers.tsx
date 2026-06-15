@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, Clock, Eye, AlertTriangle,
   MapPin, Mail, Calendar, Briefcase, BookOpen, Award,
   Download, X, ChevronLeft, ZoomIn, Loader2, UserCheck,
-  InboxIcon, AlertCircle, Ban
+  InboxIcon, AlertCircle, Ban, AlertOctagon
 } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
@@ -38,6 +38,7 @@ type TeacherApplication = {
   appliedDate: string;
   status: "pending" | "approved" | "rejected";
   certificates: Certificate[];
+  rejectionReason?: string | null;
 };
 
 // Map backend AdminTeacherResponse to display-friendly TeacherApplication
@@ -66,6 +67,7 @@ function mapToTeacherApplication(teacher: AdminTeacherResponse): TeacherApplicat
       : "—",
     status: "pending",
     certificates: [],
+    rejectionReason: teacher.rejectionReason ?? null,
   };
 }
 
@@ -356,6 +358,7 @@ function TeacherViewDrawer({
   onSuspend,
   teacherStatus = "pending",
   certificates = [],
+  rejectionReason,
 }: {
   teacher: TeacherApplication;
   onClose: () => void;
@@ -366,6 +369,7 @@ function TeacherViewDrawer({
   onSuspend?: (id: string) => void;
   teacherStatus?: "pending" | "approved" | "rejected";
   certificates?: Certificate[];
+  rejectionReason?: string | null;
 }) {
   const safeCerts: Certificate[] = Array.isArray(certificates) ? certificates : [];
   const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
@@ -469,6 +473,21 @@ function TeacherViewDrawer({
             <h4 className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-2">Bio / Introduction</h4>
             <p className="text-secondary-col text-sm leading-relaxed">{teacher.bio}</p>
           </div>
+
+          {/* Rejection Reason */}
+          {(teacherStatus === "rejected" || teacher.status === "rejected") && (rejectionReason ?? teacher.rejectionReason) ? (
+            <div className="px-6 pb-5">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-(--status-rejected)/10 border border-(--status-rejected)/20">
+                <AlertOctagon className="w-5 h-5 text-(--status-rejected) shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-bold text-(--status-rejected) mb-1">Rejection Reason</h4>
+                  <p className="text-sm text-secondary-col leading-relaxed wrap-break-word">
+                    {rejectionReason ?? teacher.rejectionReason}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* Certificates */}
           <div className="px-6 pb-6">
