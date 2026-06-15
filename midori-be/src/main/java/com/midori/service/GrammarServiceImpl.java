@@ -68,6 +68,7 @@ public class GrammarServiceImpl implements GrammarService {
                 .structure(trimToNull(request.getStructure()))
                 .usage(trimToNull(request.getUsage()))
                 .examples(request.getExamples())
+                .exampleMeanings(request.getExampleMeanings())
                 .level(parseLevel(request.getLevel()))
                 .status(GrammarStatus.DRAFT)
                 .createdBy(creator)
@@ -252,6 +253,7 @@ public class GrammarServiceImpl implements GrammarService {
                 .structure(grammar.getStructure())
                 .usage(grammar.getUsage())
                 .examples(grammar.getExamples())
+                .exampleMeanings(grammar.getExampleMeanings())
                 .level(grammar.getLevel() != null ? grammar.getLevel().name() : null)
                 .status(grammar.getStatus().name())
                 .rejectReason(grammar.getRejectReason())
@@ -294,6 +296,9 @@ public class GrammarServiceImpl implements GrammarService {
         }
         if (request.getExamples() != null) {
             grammar.setExamples(request.getExamples());
+        }
+        if (request.getExampleMeanings() != null) {
+            grammar.setExampleMeanings(request.getExampleMeanings());
         }
         if (request.getLevel() != null) {
             grammar.setLevel(parseLevel(request.getLevel()));
