@@ -533,6 +533,12 @@ function DetailDrawer({
                       {detail.examples.map((ex, i) => (
                         <div key={i} className="p-3 rounded-xl glass-surface">
                           <p className="text-sm text-primary-col font-medium mb-1">{ex}</p>
+                          {detail.exampleMeanings && detail.exampleMeanings[i] && (
+                            <p className="text-xs text-muted-col italic mt-1">
+                              <span className="font-semibold not-italic">Translation:</span>{" "}
+                              {detail.exampleMeanings[i]}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>

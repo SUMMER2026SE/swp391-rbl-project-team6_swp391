@@ -34,6 +34,7 @@ export function mapGrammarApprovalDetail(raw: {
   structure?: string;
   usage?: string;
   examples?: string[];
+  exampleMeanings?: string[];
   level?: string;
   status?: string;
   rejectReason?: string | null;
@@ -53,6 +54,7 @@ export function mapGrammarApprovalDetail(raw: {
       structure: raw.grammar.structure ?? "",
       usage: raw.grammar.usage ?? "",
       examples: raw.grammar.examples ?? [],
+      exampleMeanings: raw.grammar.exampleMeanings ?? [],
       level: raw.grammar.level ?? "",
       status: raw.grammar.status ?? "PENDING",
       rejectReason: raw.grammar.rejectReason ?? null,
@@ -73,6 +75,7 @@ export function mapGrammarApprovalDetail(raw: {
     structure: raw.structure ?? "",
     usage: raw.usage ?? "",
     examples: raw.examples ?? [],
+    exampleMeanings: raw.exampleMeanings ?? [],
     level: raw.level ?? "",
     status: raw.status ?? "PENDING",
     rejectReason: raw.rejectReason ?? null,

@@ -33,6 +33,7 @@ public class ContentApprovalDetailResponse {
         private String structure;
         private String usage;
         private java.util.List<String> examples;
+        private java.util.List<String> exampleMeanings;
         private String level;
         private String status;
         private String rejectReason;
