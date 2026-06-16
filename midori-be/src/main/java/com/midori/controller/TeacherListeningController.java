@@ -23,21 +23,22 @@ public class TeacherListeningController {
 
     private final ListeningService listeningService;
 
-    @PostMapping
+    @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<ListeningDetailResponse>> createListening(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody CreateListeningRequest request) {
+            @Valid @ModelAttribute CreateListeningRequest request) {
         ListeningDetailResponse response = listeningService.createListening(request, userDetails.getId());
         return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Listening lesson created successfully", response));
+            .status(HttpStatus.CREATED)
+            .body(ApiResponse.success("Listening lesson created successfully", response));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ListeningResponse>>> getAllListenings(
-            @RequestParam(required = false) UUID levelId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String level,
             @RequestParam(required = false) String status) {
-        List<ListeningResponse> response = listeningService.getAllListenings(levelId, status);
+        List<ListeningResponse> response = listeningService.getAllListenings(level, status, userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -47,11 +48,11 @@ public class TeacherListeningController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<ListeningDetailResponse>> updateListening(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateListeningRequest request) {
+            @Valid @ModelAttribute UpdateListeningRequest request) {
         ListeningDetailResponse response = listeningService.updateListening(id, request, userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success("Listening lesson updated successfully", response));
     }
