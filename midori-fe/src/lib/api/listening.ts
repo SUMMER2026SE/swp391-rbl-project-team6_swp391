@@ -40,7 +40,6 @@ export interface UpdateListeningPayload {
   audioType?: string;
   answerKey?: string;
   transcript?: string;
-  status?: string;
   topic?: string;
 }
 
@@ -51,10 +50,9 @@ export interface LevelResponse {
 
 export const listeningApi = {
   // Teacher APIs
-  getTeacherListenings: (params?: { level?: string; status?: string }) => {
+  getTeacherListenings: (params?: { level?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.level) searchParams.set("level", params.level);
-    if (params?.status) searchParams.set("status", params.status);
     const qs = searchParams.toString();
     return api.get<ListeningResponse[]>(`/teacher/listenings${qs ? `?${qs}` : ""}`);
   },
@@ -98,7 +96,6 @@ export const listeningApi = {
     if (payload.transcript !== undefined) {
       formData.append("transcript", payload.transcript);
     }
-    if (payload.status) formData.append("status", payload.status);
     if (payload.topic !== undefined) {
       formData.append("topic", payload.topic);
     }

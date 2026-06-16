@@ -13,7 +13,6 @@ import { ApiError } from "@/lib/api/client";
 
 type ExerciseType = "Dictation" | "Blank Fill" | "Multiple Choice";
 type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
-type ExerciseStatus = "draft" | "published" | "pending";
 
 interface BlankWord {
   id: number;
@@ -25,7 +24,6 @@ interface ListeningExercise {
   title: string;
   level: JLPTLevel;
   type: ExerciseType;
-  status: ExerciseStatus;
   topic: string;
   audio: boolean;
   audioUrl?: string;
@@ -50,12 +48,6 @@ const levelColors: Record<JLPTLevel, string> = {
   N3: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/30",
   N2: "bg-orange-50 text-orange-500 dark:bg-orange-950/30",
   N1: "bg-red-50 text-red-500 dark:bg-red-950/30",
-};
-
-const statusColors: Record<ExerciseStatus, string> = {
-  published: "bg-green-50 text-green-600 dark:bg-green-950/30",
-  pending: "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/30",
-  draft: "bg-slate-50 text-slate-500 dark:bg-slate-800",
 };
 
 const typeColors: Record<ExerciseType, string> = {
@@ -424,7 +416,6 @@ function ListeningPage() {
           title: item.title,
           level: (item.level || "N5") as JLPTLevel,
           type: "Dictation" as ExerciseType,
-          status: (item.status?.toLowerCase() || "draft") as ExerciseStatus,
           topic: detail.topic || "General",
           audio: !!item.audioUrl,
           audioUrl: item.audioUrl ? (item.audioUrl.startsWith("http") ? item.audioUrl : `http://localhost:8080${item.audioUrl}`) : undefined,
@@ -471,7 +462,6 @@ function ListeningPage() {
   const [newTranscript, setNewTranscript] = useState("");
   const [newAnswerKey, setNewAnswerKey] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newStatus, setNewStatus] = useState<ExerciseStatus>("draft");
   const [newAudio, setNewAudio] = useState(false);
   const [blankWords, setBlankWords] = useState<BlankWord[]>([]);
   const [previewText, setPreviewText] = useState("");
@@ -487,7 +477,6 @@ function ListeningPage() {
   const [editFormTranscript, setEditFormTranscript] = useState("");
   const [editFormAnswerKey, setEditFormAnswerKey] = useState("");
   const [editFormDescription, setEditFormDescription] = useState("");
-  const [editFormStatus, setEditFormStatus] = useState<ExerciseStatus>("draft");
   const [editFormAudio, setEditFormAudio] = useState(false);
   const [editBlankWords, setEditBlankWords] = useState<BlankWord[]>([]);
   const [editPreviewText, setEditPreviewText] = useState("");
@@ -658,7 +647,7 @@ function ListeningPage() {
   const resetNewForm = () => {
     setNewTitle(""); setNewLevel("N5"); setNewType("Dictation"); setNewTopic("");
     setNewTopicCustom(""); setNewTranscript(""); setNewAnswerKey(""); setNewDescription("");
-    setNewStatus("draft"); setNewAudio(false); setBlankWords([]); setPreviewText("");
+    setNewAudio(false); setBlankWords([]); setPreviewText("");
     setBlankWordInput(""); setCreateErrors({}); setNewAudioFile(null);
   };
 
@@ -761,7 +750,6 @@ function ListeningPage() {
       setEditFormTranscript(detail.transcript || "");
       setEditFormAnswerKey(detail.answerKey || "");
       setEditFormDescription("");
-      setEditFormStatus((detail.status?.toLowerCase() || "draft") as ExerciseStatus);
       setEditFormAudio(!!detail.audioUrl);
       setEditBlankWords([]);
       setEditPreviewText("");
@@ -790,7 +778,6 @@ function ListeningPage() {
         audioFile: editAudioFile,
         answerKey: editFormAnswerKey,
         transcript: editFormTranscript,
-        status: editFormStatus.toUpperCase(),
         topic: (editFormTopic === "__custom__" ? editFormTopicCustom.trim() : editFormTopic.trim()) || "General"
       });
       await fetchAllData();
@@ -802,7 +789,6 @@ function ListeningPage() {
         title: updatedDetail.title,
         level: (updatedDetail.level || "N5") as JLPTLevel,
         type: "Dictation" as ExerciseType,
-        status: (updatedDetail.status?.toLowerCase() || "draft") as ExerciseStatus,
         topic: updatedDetail.topic || "General",
         audio: !!updatedDetail.audioUrl,
         audioUrl: updatedDetail.audioUrl ? (updatedDetail.audioUrl.startsWith("http") ? updatedDetail.audioUrl : `http://localhost:8080${updatedDetail.audioUrl}`) : undefined,
@@ -1039,22 +1025,6 @@ function ListeningPage() {
               />
             </div>
 
-            {/* Status */}
-            <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Status</label>
-              <div className="flex gap-2">
-                {(["draft", "published"] as ExerciseStatus[]).map(s => (
-                  <button key={s} onClick={() => setNewStatus(s)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold capitalize transition ${
-                      newStatus === s
-                        ? s === "published" ? "bg-green-500 text-white shadow" : "bg-gradient-hero text-white shadow"
-                        : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"
-                    }`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Modal Footer */}
@@ -1257,22 +1227,6 @@ function ListeningPage() {
               />
             </div>
 
-            {/* Status */}
-            <div>
-              <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Status</label>
-              <div className="flex gap-2">
-                {(["draft", "published"] as ExerciseStatus[]).map(s => (
-                  <button key={s} onClick={() => setEditFormStatus(s)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold capitalize transition ${
-                      editFormStatus === s
-                        ? s === "published" ? "bg-green-500 text-white shadow" : "bg-gradient-hero text-white shadow"
-                        : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"
-                    }`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="sticky bottom-0 bg-white dark:bg-slate-800 px-6 py-4 border-t border-slate-100 dark:border-slate-700 rounded-b-3xl">
@@ -1292,7 +1246,9 @@ function ListeningPage() {
                 Cancel
               </button>
               <button
-                onClick={handleSaveEdit}
+                onClick={() => {
+                  handleSaveEdit();
+                }}
                 disabled={isSaving || !editFormTitle.trim()}
                 className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
@@ -1487,7 +1443,6 @@ function ListeningPage() {
                           <span className="font-bold text-sm">{ex.title}</span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${levelColors[ex.level]}`}>{ex.level}</span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeColors[ex.type]}`}>{ex.type}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[ex.status]}`}>{ex.status}</span>
                         </div>
 
                         {/* Waveform */}
@@ -1691,7 +1646,6 @@ function ListeningPage() {
             <h2 className="font-display font-bold text-xl">{selectedExercise.title}</h2>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${levelColors[selectedExercise.level]}`}>{selectedExercise.level}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${typeColors[selectedExercise.type]}`}>{selectedExercise.type}</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[selectedExercise.status]}`}>{selectedExercise.status}</span>
             {selectedExercise.topic ? (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-muted-foreground">{selectedExercise.topic}</span>
             ) : (

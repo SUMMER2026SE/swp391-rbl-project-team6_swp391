@@ -52,7 +52,7 @@ public class ListeningServiceImpl implements ListeningService {
                 .answerKey(request.getAnswerKey())
                 .transcript(request.getTranscript())
                 .topic(request.getTopic())
-                .status("PENDING")
+                .status("ACTIVE")
                 .build();
 
         lesson = listeningLessonRepository.save(lesson);
@@ -123,11 +123,12 @@ public class ListeningServiceImpl implements ListeningService {
         lesson.setTopic(request.getTopic());
 
         if (request.getStatus() != null) {
-            if ("APPROVED".equalsIgnoreCase(request.getStatus()) && !"APPROVED".equalsIgnoreCase(lesson.getStatus())) {
-                lesson.setApprovedBy(currentUserId);
-                lesson.setApprovedAt(Instant.now());
+            String newStatus = request.getStatus().trim().toUpperCase();
+            if ("APPROVED".equals(newStatus) || "PUBLISHED".equals(newStatus)) {
+                lesson.setStatus("ACTIVE");
+            } else {
+                lesson.setStatus(newStatus);
             }
-            lesson.setStatus(request.getStatus().toUpperCase());
         }
 
         lesson = listeningLessonRepository.save(lesson);
@@ -153,11 +154,13 @@ public class ListeningServiceImpl implements ListeningService {
     @Override
     @Transactional(readOnly = true)
     public List<ListeningResponse> getListeningListForStudent(String level) {
-        List<ListeningLesson> lessons;
+        List<ListeningLesson> lessons = new java.util.ArrayList<>();
         if (level != null) {
-            lessons = listeningLessonRepository.findAllByLevelAndStatus(level.trim().toUpperCase(), "APPROVED");
+            lessons.addAll(listeningLessonRepository.findAllByLevelAndStatus(level.trim().toUpperCase(), "ACTIVE"));
+            lessons.addAll(listeningLessonRepository.findAllByLevelAndStatus(level.trim().toUpperCase(), "APPROVED"));
         } else {
-            lessons = listeningLessonRepository.findByStatus("APPROVED");
+            lessons.addAll(listeningLessonRepository.findByStatus("ACTIVE"));
+            lessons.addAll(listeningLessonRepository.findByStatus("APPROVED"));
         }
 
         return lessons.stream()
@@ -171,7 +174,7 @@ public class ListeningServiceImpl implements ListeningService {
         ListeningLesson lesson = listeningLessonRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ListeningLesson", "id", id));
 
-        if (!"APPROVED".equalsIgnoreCase(lesson.getStatus())) {
+        if (!"ACTIVE".equalsIgnoreCase(lesson.getStatus()) && !"APPROVED".equalsIgnoreCase(lesson.getStatus())) {
             throw new ResourceNotFoundException("ListeningLesson", "id", id);
         }
 
