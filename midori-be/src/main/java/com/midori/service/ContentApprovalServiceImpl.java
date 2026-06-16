@@ -61,9 +61,15 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
     }
 
     private List<ContentApprovalSummaryResponse> listPendingGrammars() {
-        return grammarRepository.findAllByStatusWithCreator(GrammarStatus.PENDING).stream()
+        // Get both PENDING (new submissions) and APPROVED with pending updates
+        List<ContentApprovalSummaryResponse> result = new ArrayList<>();
+        result.addAll(grammarRepository.findAllByStatusWithCreator(GrammarStatus.PENDING).stream()
                 .map(this::toGrammarSummary)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
+        result.addAll(grammarRepository.findAllApprovedWithPendingUpdate().stream()
+                .map(this::toGrammarSummary)
+                .collect(Collectors.toList()));
+        return result;
     }
 
     private List<ContentApprovalSummaryResponse> listPendingFlashcardSets() {
@@ -188,23 +194,50 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         Grammar grammar = grammarRepository.findByIdWithCreator(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grammar", "id", contentId));
 
-        if (grammar.getStatus() != GrammarStatus.PENDING) {
-            throw new BadRequestException("Only PENDING grammar can be approved. Current status: " + grammar.getStatus());
+        // Case 1: New grammar submission (PENDING) - standard workflow
+        if (grammar.getStatus() == GrammarStatus.PENDING) {
+            grammar.setStatus(GrammarStatus.APPROVED);
+            grammar.setRejectReason(null);
+            grammar = grammarRepository.save(grammar);
+
+            notificationHelper.createNotification(
+                    grammar.getCreatedBy(),
+                    "Content Approved",
+                    "Your grammar submission has been approved.",
+                    NotificationType.CONTENT_APPROVED
+            );
+
+            return toGrammarSummary(grammar);
         }
 
-        grammar.setStatus(GrammarStatus.APPROVED);
-        grammar.setRejectReason(null);
-        grammar = grammarRepository.save(grammar);
+        // Case 2: APPROVED grammar with pending update - apply the update
+        if (grammar.getStatus() == GrammarStatus.APPROVED && Boolean.TRUE.equals(grammar.getHasPendingUpdate())) {
+            // Copy pending fields to main fields
+            grammar.setTitle(grammar.getPendingTitle() != null ? grammar.getPendingTitle() : grammar.getTitle());
+            grammar.setPattern(grammar.getPendingPattern() != null ? grammar.getPendingPattern() : grammar.getPattern());
+            grammar.setMeaning(grammar.getPendingMeaning() != null ? grammar.getPendingMeaning() : grammar.getMeaning());
+            grammar.setStructure(grammar.getPendingStructure() != null ? grammar.getPendingStructure() : grammar.getStructure());
+            grammar.setUsage(grammar.getPendingUsage() != null ? grammar.getPendingUsage() : grammar.getUsage());
+            grammar.setExamples(grammar.getPendingExamples() != null && !grammar.getPendingExamples().isEmpty() ? grammar.getPendingExamples() : grammar.getExamples());
+            grammar.setExampleMeanings(grammar.getPendingExampleMeanings() != null && !grammar.getPendingExampleMeanings().isEmpty() ? grammar.getPendingExampleMeanings() : grammar.getExampleMeanings());
+            grammar.setLevel(grammar.getPendingLevel() != null ? grammar.getPendingLevel() : grammar.getLevel());
 
-        // Notify teacher about content approval
-        notificationHelper.createNotification(
-                grammar.getCreatedBy(),
-                "Content Approved",
-                "Your content has been approved.",
-                NotificationType.CONTENT_APPROVED
-        );
+            // Clear pending fields
+            clearPendingFields(grammar);
 
-        return toGrammarSummary(grammar);
+            grammar = grammarRepository.save(grammar);
+
+            notificationHelper.createNotification(
+                    grammar.getCreatedBy(),
+                    "Content Update Approved",
+                    "Your grammar update has been approved and is now live for students.",
+                    NotificationType.CONTENT_APPROVED
+            );
+
+            return toGrammarSummary(grammar);
+        }
+
+        throw new BadRequestException("Grammar cannot be approved. Current status: " + grammar.getStatus());
     }
 
     private ContentApprovalSummaryResponse approveFlashcardSet(UUID contentId) {
@@ -245,26 +278,46 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         Grammar grammar = grammarRepository.findByIdWithCreator(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Grammar", "id", contentId));
 
-        if (grammar.getStatus() != GrammarStatus.PENDING) {
-            throw new BadRequestException("Only PENDING grammar can be rejected. Current status: " + grammar.getStatus());
+        // Case 1: New grammar submission (PENDING) - standard workflow
+        if (grammar.getStatus() == GrammarStatus.PENDING) {
+            grammar.setStatus(GrammarStatus.REJECTED);
+            grammar.setRejectReason(trimToNull(request.getReason()));
+            grammar = grammarRepository.save(grammar);
+
+            String content = request.getReason() != null && !request.getReason().isBlank()
+                    ? "Your grammar submission was rejected. Reason: " + request.getReason().trim()
+                    : "Your grammar submission was rejected.";
+            notificationHelper.createNotification(
+                    grammar.getCreatedBy(),
+                    "Content Rejected",
+                    content,
+                    NotificationType.CONTENT_REJECTED
+            );
+
+            return toGrammarSummary(grammar);
         }
 
-        grammar.setStatus(GrammarStatus.REJECTED);
-        grammar.setRejectReason(trimToNull(request.getReason()));
-        grammar = grammarRepository.save(grammar);
+        // Case 2: APPROVED grammar with pending update - reject only the update
+        if (grammar.getStatus() == GrammarStatus.APPROVED && Boolean.TRUE.equals(grammar.getHasPendingUpdate())) {
+            // Keep main fields, just clear pending
+            grammar.setPendingUpdateRejectReason(trimToNull(request.getReason()));
+            clearPendingFields(grammar);
+            grammar = grammarRepository.save(grammar);
 
-        // Notify teacher about content rejection (include the reason)
-        String content = request.getReason() != null && !request.getReason().isBlank()
-                ? "Your content was rejected. Reason: " + request.getReason().trim()
-                : "Your content was rejected.";
-        notificationHelper.createNotification(
-                grammar.getCreatedBy(),
-                "Content Rejected",
-                content,
-                NotificationType.CONTENT_REJECTED
-        );
+            String content = request.getReason() != null && !request.getReason().isBlank()
+                    ? "Your grammar update was rejected. Reason: " + request.getReason().trim()
+                    : "Your grammar update was rejected. The previous approved version is still visible to students.";
+            notificationHelper.createNotification(
+                    grammar.getCreatedBy(),
+                    "Update Rejected",
+                    content,
+                    NotificationType.CONTENT_REJECTED
+            );
 
-        return toGrammarSummary(grammar);
+            return toGrammarSummary(grammar);
+        }
+
+        throw new BadRequestException("Grammar cannot be rejected. Current status: " + grammar.getStatus());
     }
 
     private ContentApprovalSummaryResponse rejectFlashcardSet(UUID contentId, ContentRejectRequest request) {
@@ -305,6 +358,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 .rejectReason(grammar.getRejectReason())
                 .submittedAt(grammar.getUpdatedAt())
                 .updatedAt(grammar.getUpdatedAt())
+                .hasPendingUpdate(Boolean.TRUE.equals(grammar.getHasPendingUpdate()))
                 .build();
     }
 
@@ -341,6 +395,16 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 .teacherName(resolveTeacherName(grammar.getCreatedBy()))
                 .createdAt(grammar.getCreatedAt())
                 .updatedAt(grammar.getUpdatedAt())
+                .hasPendingUpdate(grammar.getHasPendingUpdate())
+                .pendingTitle(grammar.getPendingTitle())
+                .pendingPattern(grammar.getPendingPattern())
+                .pendingMeaning(grammar.getPendingMeaning())
+                .pendingStructure(grammar.getPendingStructure())
+                .pendingUsage(grammar.getPendingUsage())
+                .pendingExamples(grammar.getPendingExamples())
+                .pendingExampleMeanings(grammar.getPendingExampleMeanings())
+                .pendingLevel(grammar.getPendingLevel() != null ? grammar.getPendingLevel().name() : null)
+                .pendingUpdateRejectReason(grammar.getPendingUpdateRejectReason())
                 .build();
     }
 
@@ -396,6 +460,19 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void clearPendingFields(Grammar grammar) {
+        grammar.setHasPendingUpdate(false);
+        grammar.setPendingTitle(null);
+        grammar.setPendingPattern(null);
+        grammar.setPendingMeaning(null);
+        grammar.setPendingStructure(null);
+        grammar.setPendingUsage(null);
+        grammar.setPendingExamples(null);
+        grammar.setPendingExampleMeanings(null);
+        grammar.setPendingLevel(null);
+        grammar.setPendingUpdateRejectReason(null);
     }
 
     @Override

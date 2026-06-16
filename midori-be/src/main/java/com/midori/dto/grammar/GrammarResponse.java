@@ -31,4 +31,16 @@ public class GrammarResponse {
     private Boolean ownedByMe;
     private Instant createdAt;
     private Instant updatedAt;
+
+    // Pending update fields
+    private Boolean hasPendingUpdate;
+    private String pendingTitle;
+    private String pendingPattern;
+    private String pendingMeaning;
+    private String pendingStructure;
+    private String pendingUsage;
+    private List<String> pendingExamples;
+    private List<String> pendingExampleMeanings;
+    private String pendingLevel;
+    private String pendingUpdateRejectReason;
 }

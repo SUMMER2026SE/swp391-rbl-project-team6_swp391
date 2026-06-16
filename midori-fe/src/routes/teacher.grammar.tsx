@@ -23,6 +23,7 @@ import {
   X,
   Send,
   Clock,
+  RefreshCw,
 } from "lucide-react";
 import {
   teacherGrammarApi,
@@ -730,6 +731,13 @@ function GrammarPage() {
                   >
                     {STATUS_LABELS[grammar.status as GrammarStatus] ?? grammar.status}
                   </span>
+                  {grammar.status === "APPROVED" && grammar.hasPendingUpdate && (
+                    <div className="mt-1">
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-50 text-purple-500 dark:bg-purple-950/30">
+                        Update Pending
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -740,15 +748,19 @@ function GrammarPage() {
                   <button
                     onClick={() => openEdit(grammar)}
                     title={
-                      grammar.status === "APPROVED"
-                        ? "Approved content cannot be modified."
-                        : grammar.status === "PENDING"
-                          ? "This content is currently under review."
+                      grammar.status === "PENDING"
+                        ? "This content is currently under review."
+                        : grammar.status === "APPROVED" && grammar.hasPendingUpdate
+                          ? "An update is already pending review."
                           : "Edit"
                     }
-                    disabled={grammar.status === "APPROVED" || grammar.status === "PENDING"}
+                    disabled={
+                      grammar.status === "PENDING" ||
+                      (grammar.status === "APPROVED" && grammar.hasPendingUpdate)
+                    }
                     className={`w-8 h-8 flex items-center justify-center rounded-lg transition ${
-                      grammar.status === "APPROVED" || grammar.status === "PENDING"
+                      grammar.status === "PENDING" ||
+                      (grammar.status === "APPROVED" && grammar.hasPendingUpdate)
                         ? "opacity-40 cursor-not-allowed text-blue-300"
                         : "hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-500"
                     }`}
@@ -758,15 +770,13 @@ function GrammarPage() {
                   <button
                     onClick={() => setDeleteTarget(grammar)}
                     title={
-                      grammar.status === "APPROVED"
-                        ? "Approved content cannot be modified."
-                        : grammar.status === "PENDING"
-                          ? "This content is currently under review."
-                          : "Delete"
+                      grammar.status === "PENDING"
+                        ? "This content is currently under review."
+                        : "Delete"
                     }
-                    disabled={grammar.status === "APPROVED" || grammar.status === "PENDING"}
+                    disabled={grammar.status === "PENDING"}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg transition ${
-                      grammar.status === "APPROVED" || grammar.status === "PENDING"
+                      grammar.status === "PENDING"
                         ? "opacity-40 cursor-not-allowed text-red-300"
                         : "hover:bg-red-50 dark:hover:bg-red-950/30 text-red-400"
                     }`}
@@ -816,7 +826,8 @@ function GrammarPage() {
     const status = g.status as GrammarStatus;
     // Backend allows submit from DRAFT or REJECTED (re-submit after editing)
     const canSubmit = g.status === "DRAFT" || g.status === "REJECTED";
-    const canEdit = g.status === "DRAFT" || g.status === "REJECTED";
+    // Teacher can edit APPROVED grammar, but cannot if already has pending update
+    const canEdit = g.status !== "PENDING" && !(g.status === "APPROVED" && g.hasPendingUpdate);
 
     return (
       <div className="space-y-6">
@@ -859,10 +870,10 @@ function GrammarPage() {
               onClick={() => openEdit(g)}
               disabled={!canEdit}
               title={
-                g.status === "APPROVED"
-                  ? "Approved content cannot be modified."
-                  : g.status === "PENDING"
-                    ? "This content is currently under review."
+                g.status === "PENDING"
+                  ? "This content is currently under review."
+                  : g.status === "APPROVED" && g.hasPendingUpdate
+                    ? "An update is already pending review."
                     : "Edit"
               }
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition ${
@@ -1090,6 +1101,83 @@ function GrammarPage() {
                 </div>
               </div>
             )}
+
+            {/* Pending Update Preview */}
+            {g.hasPendingUpdate && (
+              <div className="border-t-2 border-purple-200 dark:border-purple-800 pt-5 mt-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <RefreshCw className="w-4 h-4 text-purple-500" />
+                  <span className="text-xs font-bold text-purple-500 uppercase tracking-wider">
+                    Pending Update Preview
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    (Waiting for admin approval)
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {g.pendingTitle && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Title</div>
+                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">{g.pendingTitle}</div>
+                    </div>
+                  )}
+                  {g.pendingPattern && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Pattern</div>
+                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">{g.pendingPattern}</div>
+                    </div>
+                  )}
+                  {g.pendingMeaning && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Meaning</div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300">{g.pendingMeaning}</div>
+                    </div>
+                  )}
+                  {g.pendingStructure && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Structure</div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300 font-mono">{g.pendingStructure}</div>
+                    </div>
+                  )}
+                  {g.pendingUsage && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Usage</div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300">{g.pendingUsage}</div>
+                    </div>
+                  )}
+                  {g.pendingLevel && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Level</div>
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                        {g.pendingLevel}
+                      </span>
+                    </div>
+                  )}
+                  {g.pendingExamples && g.pendingExamples.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-2">Example Sentences</div>
+                      <div className="space-y-2">
+                        {g.pendingExamples.map((ex, i) => (
+                          <div key={i} className="flex gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-500 flex items-center justify-center flex-shrink-0 font-bold text-sm">
+                              {i + 1}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">{ex}</div>
+                              {g.pendingExampleMeanings?.[i] && (
+                                <div className="text-xs text-purple-500 dark:text-purple-400 mt-0.5">
+                                  {g.pendingExampleMeanings[i]}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1135,6 +1223,23 @@ function GrammarPage() {
                 Please fix the issues above and resubmit for review.
               </p>
             </>
+          )}
+
+          {/* Approved edit warning */}
+          {editMode === "edit" && selectedGrammar?.status === "APPROVED" && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800/30">
+              <div className="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+                  Editing an approved lesson
+                </p>
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-0.5">
+                  Your changes will be saved as a pending update and sent for admin review. Students will continue seeing the current approved version until the update is approved.
+                </p>
+              </div>
+            </div>
           )}
         </div>
 

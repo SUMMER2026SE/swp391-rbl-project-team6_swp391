@@ -344,6 +344,8 @@ function DetailDrawer({
 }) {
   const exampleCount = detail?.examples?.length ?? detail?.cardCount ?? 0;
   const isPending = detail?.status?.toUpperCase() === "PENDING";
+  const hasPendingUpdate = detail?.hasPendingUpdate === true;
+  const showActions = isPending || hasPendingUpdate;
 
   return (
     <>
@@ -376,6 +378,11 @@ function DetailDrawer({
           {detail && (
             <div className="flex items-center gap-2">
               <StatusBadge status={detail.status ?? "PENDING"} />
+              {detail.hasPendingUpdate && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-500 dark:bg-purple-950/30">
+                  Pending Update
+                </span>
+              )}
               <GrammarBadge />
             </div>
           )}
@@ -406,7 +413,9 @@ function DetailDrawer({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="font-display font-black text-primary-col text-xl leading-tight">
-                    {detail.title || "—"}
+                    {detail.hasPendingUpdate && detail.pendingTitle
+                      ? detail.pendingTitle
+                      : (detail.title || "—")}
                   </h2>
                   <p className="text-xs text-muted-col mt-0.5">Grammar Pattern</p>
                 </div>
@@ -433,7 +442,9 @@ function DetailDrawer({
                     </span>
                   </div>
                   <p className="text-sm font-semibold text-primary-col">
-                    {detail.level || "—"}
+                    {detail.hasPendingUpdate && detail.pendingLevel
+                      ? detail.pendingLevel
+                      : (detail.level || "—")}
                   </p>
                 </div>
                 <div className="p-3 rounded-xl glass-surface">
@@ -481,9 +492,28 @@ function DetailDrawer({
                 </div>
               )}
 
-              {/* Grammar-specific content */}
+              {/* Pending Update Notice */}
+              {hasPendingUpdate && (
+                <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                      <RefreshCw className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                        Pending Update
+                      </p>
+                      <p className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">
+                        This lesson has been updated by the teacher. Review the changes below and approve or reject.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Grammar-specific content — use pending fields if hasPendingUpdate */}
               <div className="space-y-4">
-                {detail.pattern && (
+                {(hasPendingUpdate ? (detail.pendingPattern || detail.pattern) : detail.pattern) && (
                   <div className="p-4 rounded-xl bg-primary/8 border border-primary/20">
                     <div className="flex items-center gap-2 mb-1">
                       <BookOpen className="w-4 h-4 text-primary" />
@@ -492,55 +522,134 @@ function DetailDrawer({
                       </span>
                     </div>
                     <p className="font-display font-black text-lg text-primary">
-                      {detail.pattern}
+                      {hasPendingUpdate
+                        ? (detail.pendingPattern || detail.pattern)
+                        : detail.pattern}
                     </p>
                   </div>
                 )}
 
-                {detail.meaning && (
+                {(hasPendingUpdate ? (detail.pendingMeaning || detail.meaning) : detail.meaning) && (
                   <div className="p-3 rounded-xl glass-surface">
                     <p className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-1">
                       Meaning
                     </p>
-                    <p className="text-sm text-secondary-col">{detail.meaning}</p>
+                    <p className="text-sm text-secondary-col">
+                      {hasPendingUpdate
+                        ? (detail.pendingMeaning || detail.meaning)
+                        : detail.meaning}
+                    </p>
                   </div>
                 )}
 
-                {detail.structure && (
+                {(hasPendingUpdate ? (detail.pendingStructure || detail.structure) : detail.structure) && (
                   <div className="p-3 rounded-xl glass-surface">
                     <p className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-1">
                       Structure
                     </p>
-                    <p className="text-sm text-secondary-col font-mono">{detail.structure}</p>
+                    <p className="text-sm text-secondary-col font-mono">
+                      {hasPendingUpdate
+                        ? (detail.pendingStructure || detail.structure)
+                        : detail.structure}
+                    </p>
                   </div>
                 )}
 
-                {detail.usage && (
+                {(hasPendingUpdate ? (detail.pendingUsage || detail.usage) : detail.usage) && (
                   <div className="p-3 rounded-xl glass-surface">
                     <p className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-1">
                       Usage
                     </p>
-                    <p className="text-sm text-secondary-col leading-relaxed">{detail.usage}</p>
+                    <p className="text-sm text-secondary-col leading-relaxed">
+                      {hasPendingUpdate
+                        ? (detail.pendingUsage || detail.usage)
+                        : detail.usage}
+                    </p>
                   </div>
                 )}
 
-                {detail.examples && detail.examples.length > 0 && (
+                {(hasPendingUpdate
+                  ? (detail.pendingExamples?.length ?? 0) > 0
+                  : (detail.examples?.length ?? 0) > 0) && (
                   <div>
                     <p className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-2">
                       Example Sentences
                     </p>
                     <div className="space-y-2">
-                      {detail.examples.map((ex, i) => (
+                      {(hasPendingUpdate ? detail.pendingExamples : detail.examples || []).map((ex, i) => (
                         <div key={i} className="p-3 rounded-xl glass-surface">
                           <p className="text-sm text-primary-col font-medium mb-1">{ex}</p>
-                          {detail.exampleMeanings && detail.exampleMeanings[i] && (
+                          {(hasPendingUpdate ? detail.pendingExampleMeanings : detail.exampleMeanings)?.[i] && (
                             <p className="text-xs text-muted-col italic mt-1">
                               <span className="font-semibold not-italic">Translation:</span>{" "}
-                              {detail.exampleMeanings[i]}
+                              {(hasPendingUpdate ? detail.pendingExampleMeanings : detail.exampleMeanings)?.[i]}
                             </p>
                           )}
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Current Approved Version — shown for comparison when there's a pending update */}
+                {hasPendingUpdate && (
+                  <div className="border-t-2 border-purple-200 dark:border-purple-800 pt-4 mt-4">
+                    <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-3">
+                      Current Approved Version (Still Live)
+                    </p>
+                    <div className="p-3 rounded-xl bg-purple-50/30 dark:bg-purple-950/10 border border-purple-200/30 dark:border-purple-800/20 mb-3">
+                      <p className="text-xs text-purple-600 dark:text-purple-400 leading-relaxed">
+                        Students are still seeing this version until you approve the update.
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      {detail.title && (
+                        <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/30 dark:border-purple-800/20">
+                          <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Title</p>
+                          <p className="text-sm text-purple-700 dark:text-purple-300 font-semibold">{detail.title}</p>
+                        </div>
+                      )}
+                      {detail.pattern && (
+                        <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/30 dark:border-purple-800/20">
+                          <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Pattern</p>
+                          <p className="text-sm text-purple-700 dark:text-purple-300 font-mono">{detail.pattern}</p>
+                        </div>
+                      )}
+                      {detail.meaning && (
+                        <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/30 dark:border-purple-800/20">
+                          <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Meaning</p>
+                          <p className="text-sm text-purple-700 dark:text-purple-300">{detail.meaning}</p>
+                        </div>
+                      )}
+                      {detail.structure && (
+                        <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/30 dark:border-purple-800/20">
+                          <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Structure</p>
+                          <p className="text-sm text-purple-700 dark:text-purple-300 font-mono">{detail.structure}</p>
+                        </div>
+                      )}
+                      {detail.usage && (
+                        <div className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/30 dark:border-purple-800/20">
+                          <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Usage</p>
+                          <p className="text-sm text-purple-700 dark:text-purple-300">{detail.usage}</p>
+                        </div>
+                      )}
+                      {detail.examples && detail.examples.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-2">Examples</p>
+                          <div className="space-y-2">
+                            {detail.examples.map((ex, i) => (
+                              <div key={i} className="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/10 border border-purple-200/30 dark:border-purple-800/20">
+                                <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-1">{ex}</p>
+                                {detail.exampleMeanings && detail.exampleMeanings[i] && (
+                                  <p className="text-xs text-purple-500 dark:text-purple-400 italic mt-1">
+                                    {detail.exampleMeanings[i]}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -550,7 +659,7 @@ function DetailDrawer({
         </div>
 
         {/* Action Bar */}
-        {detail && !loading && !error && isPending && (
+        {detail && !loading && !error && showActions && (
           <div className="px-6 py-4 border-t separator bg-[var(--glass-bg)]">
             <div className="flex gap-3">
               <button
@@ -593,7 +702,7 @@ function DetailDrawer({
           </div>
         )}
 
-        {detail && !loading && !error && !isPending && (
+        {detail && !loading && !error && !showActions && (
           <div className="px-6 py-4 border-t separator bg-[var(--glass-bg)]">
             <button
               onClick={onClose}
@@ -649,9 +758,15 @@ function GrammarApprovalPage() {
   const error = activeTab === "pending" ? pendingError : approvedError;
 
   // Displayed items based on active tab and dedicated list data
+  // Pending tab: PENDING items + APPROVED items with pending updates
+  // Approved tab: APPROVED items WITHOUT pending updates
   const displayedItems = useMemo(() => {
-    return items;
-  }, [items]);
+    if (activeTab === "pending") {
+      return pendingItems;
+    }
+    // Approved tab: only show items that are truly approved (no pending updates)
+    return approvedItems.filter((item) => !item.hasPendingUpdate);
+  }, [activeTab, pendingItems, approvedItems]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -791,9 +906,13 @@ function GrammarApprovalPage() {
   }, [fetchStats, fetchPendingGrammar, fetchApprovedGrammar]);
 
   // Get stats values — safe numbers with fallback 0
-  const pendingReviewCount = stats?.pendingReview ?? 0;
   const totalGrammarCount = stats?.totalGrammar ?? 0;
   const approvedCount = stats?.approved ?? 0;
+
+  // Calculate pending review count: items that need admin action (PENDING status OR APPROVED with pending update)
+  const pendingReviewCount = pendingItems.filter(
+    (item) => item.status?.toUpperCase() === "PENDING" || item.hasPendingUpdate
+  ).length;
 
   return (
     <div className="space-y-5">
@@ -951,6 +1070,11 @@ function GrammarApprovalPage() {
                         {item.title}
                       </span>
                       <StatusBadge status={item.status} />
+                      {item.hasPendingUpdate && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-500 dark:bg-purple-950/30">
+                          Pending Update
+                        </span>
+                      )}
                       <GrammarBadge />
                       {item.level && <LevelBadge level={item.level} />}
                     </div>
@@ -984,7 +1108,7 @@ function GrammarApprovalPage() {
 
                   {/* Action buttons */}
                   <div className="flex gap-1 flex-shrink-0">
-                    {isPending && (
+                    {(isPending || item.hasPendingUpdate) && (
                       <>
                         <button
                           onClick={() => setApproveTarget(item)}

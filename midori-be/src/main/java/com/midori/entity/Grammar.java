@@ -64,6 +64,43 @@ public class Grammar {
     @Column(name = "reject_reason", length = 1000)
     private String rejectReason;
 
+    // Pending update fields - lưu nội dung mới khi teacher edit bài APPROVED
+    @Column(name = "has_pending_update")
+    @Builder.Default
+    private Boolean hasPendingUpdate = false;
+
+    @Column(name = "pending_title", length = 255)
+    private String pendingTitle;
+
+    @Column(name = "pending_pattern", columnDefinition = "TEXT")
+    private String pendingPattern;
+
+    @Column(name = "pending_meaning", columnDefinition = "TEXT")
+    private String pendingMeaning;
+
+    @Column(name = "pending_structure", columnDefinition = "TEXT")
+    private String pendingStructure;
+
+    @Column(name = "pending_usage", columnDefinition = "TEXT")
+    private String pendingUsage;
+
+    @Column(name = "pending_examples", columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
+    @Builder.Default
+    private List<String> pendingExamples = new java.util.ArrayList<>();
+
+    @Column(name = "pending_example_meanings", columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
+    @Builder.Default
+    private List<String> pendingExampleMeanings = new java.util.ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pending_level", length = 10)
+    private GrammarLevel pendingLevel;
+
+    @Column(name = "pending_update_reject_reason", length = 1000)
+    private String pendingUpdateRejectReason;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
