@@ -124,6 +124,7 @@ function GrammarListPage() {
   const [page, setPage] = useState(1);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
+  const [localLastStudiedMap, setLocalLastStudiedMap] = useState<Record<string, string>>({});
 
   // Debounce search input
   useEffect(() => {
@@ -152,7 +153,8 @@ function GrammarListPage() {
     staleTime: 30 * 1000,
   });
 
-  // Load progress into state after grammar list loads
+  // ── Derived state: completed, bookmarked, lastStudied ───────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (grammars.length === 0) return;
     const completedSet = new Set<string>();
@@ -165,8 +167,37 @@ function GrammarListPage() {
     });
     setCompleted(completedSet);
     setBookmarked(bookmarkedSet);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progressList, grammars.length]);
+
+  // Map contentId -> lastStudiedAt for grammar items
+  // localLastStudiedMap overrides API values to show "Just now" immediately after viewing
+  const lastStudiedMap = new Map<string, string>();
+  progressList.forEach(p => {
+    if (p.contentType === "GRAMMAR" && p.lastStudiedAt) {
+      lastStudiedMap.set(p.contentId, p.lastStudiedAt);
+    }
+  });
+  // Local overrides take priority over API data
+  Object.entries(localLastStudiedMap).forEach(([id, ts]) => {
+    lastStudiedMap.set(id, ts);
+  });
+
+  // Format last studied date (e.g. "2h ago", "3d ago", "Jan 5")
+  function formatLastStudied(isoDate: string | undefined): string {
+    if (!isoDate) return "—";
+    const date = new Date(isoDate);
+    if (isNaN(date.getTime())) return "—";
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
 
   const totalPages = Math.ceil(grammars.length / PAGE_SIZE);
   const safePage = Math.min(page, Math.max(1, totalPages));
@@ -207,10 +238,12 @@ function GrammarListPage() {
     }
   };
 
-  const totalCompleted = [...completed].length;
-  const totalBookmarked = bookmarked.size;
-  const totalGrammar = grammars.length;
+  // Count completed/bookmarked within the visible grammar list (respects level+search filter)
   const completedCount = grammars.filter(g => completed.has(g.id)).length;
+  const bookmarkedCount = grammars.filter(g => bookmarked.has(g.id)).length;
+  const totalCompleted = completedCount;
+  const totalBookmarked = bookmarkedCount;
+  const totalGrammar = grammars.length;
   const progressPct = totalGrammar > 0 ? Math.round((completedCount / totalGrammar) * 100) : 0;
 
   const errorMessage =
@@ -351,6 +384,22 @@ function GrammarListPage() {
                       to="/student/grammar/$grammarId"
                       params={{ grammarId: g.id }}
                       className="flex items-center gap-3 min-w-0 hover:opacity-80 transition"
+                      onClick={() => {
+                        if (!localLastStudiedMap[g.id]) {
+                          const nowIso = new Date().toISOString();
+                          setLocalLastStudiedMap(prev => ({ ...prev, [g.id]: nowIso }));
+                          studentProgressApi.recordView("GRAMMAR", g.id)
+                            .then(() => refetchProgress())
+                            .catch(err => {
+                              console.error("[GrammarProgress] recordView error:", err);
+                              setLocalLastStudiedMap(prev => {
+                                const next = { ...prev };
+                                delete next[g.id];
+                                return next;
+                              });
+                            });
+                        }
+                      }}
                     >
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${levelGradients[g.level]}`}>
                         <GraduationCap className="w-4 h-4 text-white" />
@@ -400,7 +449,13 @@ function GrammarListPage() {
 
                     {/* Last Studied */}
                     <div className="text-center">
-                      <span className="text-xs text-muted-foreground">—</span>
+                      {lastStudiedMap.has(g.id) ? (
+                        <span className="text-xs text-muted-foreground" title={lastStudiedMap.get(g.id)}>
+                          {formatLastStudied(lastStudiedMap.get(g.id))}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50">—</span>
+                      )}
                     </div>
 
                     {/* View Action */}

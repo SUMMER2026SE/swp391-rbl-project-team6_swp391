@@ -337,6 +337,7 @@ function GrammarPage() {
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "bookmarked">("all");
+  const [localLastStudiedMap, setLocalLastStudiedMap] = useState<Record<string, string>>({});
 
   // Debounce search input
   useEffect(() => {
@@ -370,7 +371,8 @@ function GrammarPage() {
     staleTime: 30 * 1000,
   });
 
-  // Load progress into state after grammar list loads
+  // ── Derived state: completed, bookmarked, lastStudied ───────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (grammars.length === 0) return;
     const completedSet = new Set<string>();
@@ -383,8 +385,37 @@ function GrammarPage() {
     });
     setCompleted(completedSet);
     setBookmarked(bookmarkedSet);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progressList, grammars.length]);
+
+  // Map contentId -> lastStudiedAt for grammar items
+  // localLastStudiedMap overrides API values to show "Just now" immediately after viewing
+  const lastStudiedMap = new Map<string, string>();
+  progressList.forEach(p => {
+    if (p.contentType === "GRAMMAR" && p.lastStudiedAt) {
+      lastStudiedMap.set(p.contentId, p.lastStudiedAt);
+    }
+  });
+  // Local overrides take priority over API data
+  Object.entries(localLastStudiedMap).forEach(([id, ts]) => {
+    lastStudiedMap.set(id, ts);
+  });
+
+  // Format last studied date (e.g. "2h ago", "3d ago", "Jan 5")
+  function formatLastStudied(isoDate: string | undefined): string {
+    if (!isoDate) return "—";
+    const date = new Date(isoDate);
+    if (isNaN(date.getTime())) return "—";
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
 
   // Apply status filter
   const filteredGrammars = grammars.filter(g => {
@@ -465,9 +496,11 @@ function GrammarPage() {
     }
   };
 
-  const totalCompleted = [...completed].length;
-  const totalBookmarked = bookmarked.size;
+  // Count completed/bookmarked within the visible grammar list (respects level+search filter)
   const completedCount = grammars.filter(g => completed.has(g.id)).length;
+  const bookmarkedCount = grammars.filter(g => bookmarked.has(g.id)).length;
+  const totalCompleted = completedCount;
+  const totalBookmarked = bookmarkedCount;
   const progressPct = grammars.length > 0 ? Math.round((completedCount / grammars.length) * 100) : 0;
 
   const errorMessage =
@@ -634,8 +667,21 @@ function GrammarPage() {
                     transition={{ delay: i * 0.04 }}
                     className="grid grid-cols-[2fr_80px_1.5fr_120px_110px_120px_80px] gap-3 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition cursor-pointer items-center"
                     onClick={() => {
+                      if (!localLastStudiedMap[g.id]) {
+                        const nowIso = new Date().toISOString();
+                        setLocalLastStudiedMap(prev => ({ ...prev, [g.id]: nowIso }));
+                        studentProgressApi.recordView("GRAMMAR", g.id)
+                          .then(() => refetchProgress())
+                          .catch(err => {
+                            console.error("[GrammarProgress] recordView error:", err);
+                            setLocalLastStudiedMap(prev => {
+                              const next = { ...prev };
+                              delete next[g.id];
+                              return next;
+                            });
+                          });
+                      }
                       setSelectedGrammar(g);
-                      studentProgressApi.recordView("GRAMMAR", g.id).catch(console.error);
                     }}
                   >
                     {/* Title */}
@@ -688,15 +734,35 @@ function GrammarPage() {
 
                     {/* Last Studied */}
                     <div className="text-center">
-                      <span className="text-xs text-muted-foreground">—</span>
+                      {lastStudiedMap.has(g.id) ? (
+                        <span className="text-xs text-muted-foreground" title={lastStudiedMap.get(g.id)}>
+                          {formatLastStudied(lastStudiedMap.get(g.id))}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50">—</span>
+                      )}
                     </div>
 
                     {/* View Action */}
                     <div className="text-center flex justify-center" onClick={e => e.stopPropagation()}>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!localLastStudiedMap[g.id]) {
+                            const nowIso = new Date().toISOString();
+                            setLocalLastStudiedMap(prev => ({ ...prev, [g.id]: nowIso }));
+                            studentProgressApi.recordView("GRAMMAR", g.id)
+                              .then(() => refetchProgress())
+                              .catch(err => {
+                                console.error("[GrammarProgress] recordView error:", err);
+                                setLocalLastStudiedMap(prev => {
+                                  const next = { ...prev };
+                                  delete next[g.id];
+                                  return next;
+                                });
+                              });
+                          }
                           setSelectedGrammar(g);
-                          studentProgressApi.recordView("GRAMMAR", g.id).catch(console.error);
                         }}
                         title="View detail"
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition"
