@@ -16,4 +16,5 @@ public interface ListeningLessonRepository extends JpaRepository<ListeningLesson
     List<ListeningLesson> findAllByTeacherIdAndLevel(UUID teacherId, String level);
     List<ListeningLesson> findAllByTeacherIdAndStatus(UUID teacherId, String status);
     List<ListeningLesson> findAllByTeacherIdAndLevelAndStatus(UUID teacherId, String level, String status);
+    long countByStatus(String status);
 }

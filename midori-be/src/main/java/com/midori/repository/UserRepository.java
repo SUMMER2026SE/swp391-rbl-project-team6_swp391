@@ -23,6 +23,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findByRoleAndStatus(Role role, UserStatus status);
 
+    long countByRole(Role role);
+
+    long countByRoleAndStatus(Role role, UserStatus status);
+
+    long countByStatus(UserStatus status);
+
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.profile WHERE u.role = :role AND u.status = :status ORDER BY u.createdAt DESC")
     List<User> findByRoleAndStatusWithProfile(@Param("role") Role role, @Param("status") UserStatus status);
 
