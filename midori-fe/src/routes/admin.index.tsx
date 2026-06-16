@@ -8,6 +8,9 @@ import {
   AreaChart, Area, BarChart, Bar, Tooltip, ResponsiveContainer,
   XAxis, YAxis, CartesianGrid
 } from "recharts";
+import { useState, useEffect } from "react";
+import { adminApi, type AdminDashboardSummaryResponse } from "@/lib/api/admin";
+import { ApiError } from "@/lib/api/client";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -55,15 +58,13 @@ function MetricCard({ label, value, icon }: {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="card-base p-3.5"
+      className="card-base p-3.5 flex flex-col items-center text-center min-h-[5.5rem] min-w-0"
     >
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <div className="w-7 h-7 rounded-lg glass-surface flex items-center justify-center">
-          <Icon className={`w-3.5 h-3.5 text-primary`} />
-        </div>
-        <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold">{label}</span>
+      <div className="w-7 h-7 rounded-lg glass-surface flex items-center justify-center">
+        <Icon className={`w-3.5 h-3.5 text-primary`} />
       </div>
-      <div className="font-display font-black text-xl text-primary-col">{value}</div>
+      <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold mt-1.5 leading-tight">{label}</span>
+      <div className="font-display font-black text-xl text-primary-col mt-auto pt-1">{value}</div>
     </motion.div>
   );
 }
@@ -73,6 +74,70 @@ function MetricCard({ label, value, icon }: {
 export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 
 function AdminDashboard() {
+  const [summary, setSummary] = useState<AdminDashboardSummaryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+
+    adminApi
+      .getDashboardSummary()
+      .then((data) => {
+        if (isMounted) {
+          setSummary(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err instanceof ApiError ? err.message : "Unable to load dashboard summary");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const totalContent =
+    (summary?.totalVocabularyLessons ?? 0) +
+    (summary?.totalGrammar ?? 0) +
+    (summary?.totalFlashcardSets ?? 0) +
+    (summary?.totalListeningLessons ?? 0);
+
+  const renderKPICards = () => {
+    if (loading) {
+      return Array.from({ length: 5 }).map((_, idx) => (
+        <div key={idx} className="card-base p-3.5 animate-pulse flex flex-col items-center text-center min-h-[5.5rem] space-y-2">
+          <div className="h-7 w-7 rounded-lg bg-[var(--accent)]" />
+          <div className="h-3 w-20 rounded-full bg-[var(--accent)]" />
+          <div className="h-6 w-16 rounded-full bg-[var(--accent)]" />
+        </div>
+      ));
+    }
+
+    if (error || !summary) {
+      return (
+        <div className="card-base p-5 text-sm text-[var(--status-pending)] col-span-full">
+          {error ?? "Unable to load dashboard summary"}
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <MetricCard label="Total Users" value={summary.totalUsers.toLocaleString()} icon={Users} />
+        <MetricCard label="Active Users" value={summary.totalActiveUsers.toLocaleString()} icon={Activity} />
+        <MetricCard label="Teachers" value={summary.totalTeachers.toLocaleString()} icon={GraduationCap} />
+        <MetricCard label="Students" value={summary.totalStudents.toLocaleString()} icon={Users} />
+        <MetricCard label="Total Content" value={totalContent.toLocaleString()} icon={BookOpen} />
+      </>
+    );
+  };
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -89,11 +154,7 @@ function AdminDashboard() {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MetricCard label="Total Users" value={platformStats.totalUsers.toLocaleString()} icon={Users} />
-        <MetricCard label="Active Today" value={platformStats.activeUsers.toLocaleString()} icon={Activity} />
-        <MetricCard label="Teachers" value={platformStats.teachers} icon={GraduationCap} />
-        <MetricCard label="Total Lessons" value={platformStats.totalContent.toLocaleString()} icon={BookOpen} />
-        <MetricCard label="Total Exams" value={platformStats.totalExams} icon={ClipboardCheck} />
+        {renderKPICards()}
       </div>
 
       {/* Main grid */}
@@ -155,17 +216,39 @@ function AdminDashboard() {
             Content Breakdown
           </h2>
           <div className="space-y-3">
-            {platformStats.contentBreakdown.map(item => (
-              <div key={item.type}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-secondary-col">{item.type}</span>
-                  <span className="text-primary-col font-bold">{item.count.toLocaleString()}</span>
+            {summary ? (
+              Object.entries({
+                Grammar: summary.totalGrammar,
+                Vocabulary: summary.totalVocabularyLessons,
+                Flashcard: summary.totalFlashcardSets,
+                Listening: summary.totalListeningLessons,
+              }).map(([type, count]) => (
+                <div key={type}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-secondary-col">{type}</span>
+                    <span className="text-primary-col font-bold">{count.toLocaleString()}</span>
+                  </div>
+                  <div className="h-1.5 glass-surface rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${Math.min((count / Math.max(summary.totalGrammar, 1)) * 100, 100)}%`,
+                        backgroundColor: "oklch(0.62 0.18 270)",
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 glass-surface rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(item.count / 2000) * 100}%`, backgroundColor: item.color }} />
-                </div>
+              ))
+            ) : (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div key={idx} className="animate-pulse space-y-2">
+                    <div className="h-3 w-24 rounded-full bg-[var(--accent)]" />
+                    <div className="h-1.5 w-full rounded-full bg-[var(--accent)]" />
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -176,15 +259,27 @@ function AdminDashboard() {
             Pending Approvals
           </h2>
           <div className="space-y-2">
-            {Object.entries(platformStats.pendingApprovals).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 rounded-xl glass-surface">
-                <span className="text-xs font-semibold text-secondary-col capitalize">{key}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-[var(--status-pending)]">{value}</span>
-                  <button className="px-2 py-1 rounded-lg bg-[var(--status-pending)]/10 text-[var(--status-pending)] text-[10px] font-bold hover:bg-[var(--status-pending)]/20 transition">Review</button>
+            {summary ? (
+              Object.entries({
+                Teachers: summary.pendingTeachers,
+                Grammar: summary.pendingGrammar,
+                Flashcards: summary.pendingFlashcardSets,
+                Listening: summary.pendingListeningLessons,
+                Content: summary.pendingContent,
+              }).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between p-3 rounded-xl glass-surface">
+                  <span className="text-xs font-semibold text-secondary-col">{key}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-[var(--status-pending)]">{value.toLocaleString()}</span>
+                    <button className="px-2 py-1 rounded-lg bg-[var(--status-pending)]/10 text-[var(--status-pending)] text-[10px] font-bold hover:bg-[var(--status-pending)]/20 transition">Review</button>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-3 rounded-xl glass-surface text-xs text-secondary-col">
+                {error ?? "Loading pending approvals..."}
               </div>
-            ))}
+            )}
           </div>
         </div>
 
