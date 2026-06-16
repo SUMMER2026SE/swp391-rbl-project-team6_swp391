@@ -333,6 +333,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 .structure(grammar.getStructure())
                 .usage(grammar.getUsage())
                 .examples(grammar.getExamples())
+                .exampleMeanings(grammar.getExampleMeanings())
                 .level(grammar.getLevel() != null ? grammar.getLevel().name() : null)
                 .status(grammar.getStatus().name())
                 .rejectReason(grammar.getRejectReason())

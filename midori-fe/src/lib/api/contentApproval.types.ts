@@ -42,6 +42,7 @@ export interface GrammarDetailContent {
   structure: string;
   usage: string;
   examples: string[];
+  exampleMeanings: string[];
   level: string;
   status: ContentApprovalStatus;
   rejectReason: string | null;
