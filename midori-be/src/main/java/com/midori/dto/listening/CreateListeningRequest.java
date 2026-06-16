@@ -29,7 +29,7 @@ public class CreateListeningRequest {
 
     private String audioType;
 
-    private String answerKey;
+    private String meaning;
 
     private String transcript;
 

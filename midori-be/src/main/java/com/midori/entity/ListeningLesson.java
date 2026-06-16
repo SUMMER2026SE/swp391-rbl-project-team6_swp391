@@ -40,7 +40,7 @@ public class ListeningLesson {
     private String audioType;
 
     @Column(name = "answer_key", columnDefinition = "TEXT")
-    private String answerKey;
+    private String meaning;
 
     @Column(columnDefinition = "TEXT")
     private String transcript;

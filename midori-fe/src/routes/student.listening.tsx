@@ -1,30 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-ui";
-import { listeningExercises } from "@/lib/mock-data";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Play, Pause, RotateCcw, Sparkles, CheckCircle2, XCircle,
   Headphones, ListChecks, PenLine, Check, ChevronRight, ChevronLeft,
+  Volume2, Loader2, AlertCircle, RefreshCw
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
+import { listeningApi } from "@/lib/api/listening";
+import { ApiError } from "@/lib/api/client";
 
 type Tab = "select" | "practice";
 type JLPTLevel = "All" | "N5" | "N4" | "N3" | "N2" | "N1";
 
 const JLPT_LEVELS: JLPTLevel[] = ["All", "N5", "N4", "N3", "N2", "N1"];
-
 const ITEMS_PER_PAGE = 5;
 
-function getLevelBadge(level: string) {
-  const c: Record<string, string> = {
-    N5: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300",
-    N4: "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300",
-    N3: "bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-300",
-    N2: "bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-300",
-    N1: "bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300",
-  };
-  return c[level] ?? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300";
+interface StudentListeningExercise {
+  id: string;
+  title: string;
+  level: string;
+  type: string;
+  topic: string;
+  audioUrl?: string;
+  transcript: string;
+  meaning: string;
+  hiddenWords: string[];
+  duration: string;
 }
 
 function getLevelBoxStyle(level: string, isSelected: boolean) {
@@ -39,13 +42,23 @@ function getLevelBoxStyle(level: string, isSelected: boolean) {
   return styles[level] ?? "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300";
 }
 
+function getBlankedText(text: string, hiddenWords: string[]): string {
+  if (!text || !hiddenWords || hiddenWords.length === 0) return text;
+  let result = text;
+  hiddenWords.forEach(word => {
+    if (word && word.trim()) {
+      result = result.split(word).join(" ____ ");
+    }
+  });
+  return result;
+}
+
 export const Route = createFileRoute("/student/listening")({ component: Listening });
 
 function Listening() {
   const [activeTab, setActiveTab] = useState<Tab>("select");
-  const [selectedEx, setSelectedEx] = useState<typeof listeningExercises[0] | null>(
-    listeningExercises.length > 0 ? listeningExercises[0] : null
-  );
+  const [exercises, setExercises] = useState<StudentListeningExercise[]>([]);
+  const [selectedEx, setSelectedEx] = useState<StudentListeningExercise | null>(null);
   const [answer, setAnswer] = useState("");
   const [checked, setChecked] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -53,33 +66,108 @@ function Listening() {
   const [levelFilter, setLevelFilter] = useState<JLPTLevel>("All");
   const [page, setPage] = useState(1);
 
-  const isLoading = false;
-  const error: string | null = null;
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-        <p className="text-muted-foreground text-sm">Loading listening exercises...</p>
-      </div>
-    );
-  }
+  // Audio player references
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-        <div className="text-red-500 mb-3 text-2xl">⚠️</div>
-        <p className="text-red-500 font-medium text-sm">Unable to load listening data. Please try again later.</p>
-      </div>
-    );
-  }
+  const fetchExercises = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const list = await listeningApi.getStudentListenings(
+        levelFilter === "All" ? undefined : { level: levelFilter }
+      );
+      const mapped = list.map(item => {
+        const detail = item as any;
+        const parsedMeaning = (() => {
+          try {
+            const parsed = JSON.parse(detail.meaning || "");
+            if (parsed && typeof parsed === "object") {
+              return {
+                text: parsed.text || "",
+                type: parsed.type || "Dictation",
+                blankWords: parsed.blankWords || []
+              };
+            }
+          } catch (e) {}
+          return {
+            text: detail.meaning || "",
+            type: "Dictation",
+            blankWords: []
+          };
+        })();
 
-  const correct = answer.replace(/\s/g, "") === (selectedEx?.transcript ?? "").replace(/\s/g, "");
+        return {
+          id: item.id,
+          title: item.title,
+          level: item.level || "N5",
+          type: parsedMeaning.type,
+          topic: detail.topic || "General",
+          audioUrl: item.audioUrl ? (item.audioUrl.startsWith("http") ? item.audioUrl : `http://localhost:8080${item.audioUrl}`) : undefined,
+          transcript: detail.transcript || "",
+          meaning: parsedMeaning.text,
+          hiddenWords: parsedMeaning.blankWords,
+          duration: "0:00"
+        };
+      });
+      setExercises(mapped);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load listening exercises.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const filteredExercises = useMemo(() => {
-    if (levelFilter === "All") return listeningExercises;
-    return listeningExercises.filter(ex => ex.level === levelFilter);
+  useEffect(() => {
+    fetchExercises();
   }, [levelFilter]);
+
+  // Handle play/pause commands based on playing state
+  useEffect(() => {
+    if (audioRef.current && selectedEx?.audioUrl) {
+      if (playing) {
+        audioRef.current.play().catch(err => {
+          console.error("Audio play failed:", err);
+          setPlaying(false);
+        });
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [playing, selectedEx]);
+
+  // Reset audio playback state when selected exercise changes
+  useEffect(() => {
+    setPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.load();
+    }
+  }, [selectedEx]);
+
+  const correct = useMemo(() => {
+    if (!selectedEx) return false;
+    const cleanAnswer = answer.replace(/\s/g, "").toLowerCase();
+    if (selectedEx.type === "Blank Fill") {
+      const cleanHidden = (selectedEx.hiddenWords || []).map(w => w.replace(/\s/g, "").toLowerCase());
+      if (cleanHidden.length === 0) return false;
+      if (cleanHidden.length === 1) {
+        return cleanAnswer === cleanHidden[0];
+      }
+      return cleanHidden.every(word => cleanAnswer.includes(word)) || cleanHidden.join(",") === cleanAnswer || cleanHidden.join("|") === cleanAnswer;
+    } else {
+      return cleanAnswer === (selectedEx.transcript || "").replace(/\s/g, "").toLowerCase();
+    }
+  }, [answer, selectedEx]);
+
+  const filteredExercises = exercises;
 
   const totalPages = Math.max(1, Math.ceil(filteredExercises.length / ITEMS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
@@ -90,22 +178,63 @@ function Listening() {
     setPage(1);
   };
 
-  const handleSelectExercise = (ex: typeof listeningExercises[0]) => {
-    setSelectedEx(ex);
-    setAnswer("");
-    setChecked(false);
-    setActiveTab("practice");
+  const handleSelectExercise = async (ex: StudentListeningExercise) => {
+    setIsLoading(true);
+    try {
+      const detail = await listeningApi.getStudentListeningById(ex.id);
+      const parsedMeaning = (() => {
+        try {
+          const parsed = JSON.parse(detail.meaning || "");
+          if (parsed && typeof parsed === "object") {
+            return {
+              text: parsed.text || "",
+              type: parsed.type || "Dictation",
+              blankWords: parsed.blankWords || []
+            };
+          }
+        } catch (e) {}
+        return {
+          text: detail.meaning || "",
+          type: "Dictation",
+          blankWords: []
+        };
+      })();
+
+      setSelectedEx({
+        ...ex,
+        transcript: detail.transcript || "",
+        meaning: parsedMeaning.text,
+        hiddenWords: parsedMeaning.blankWords,
+        audioUrl: detail.audioUrl ? (detail.audioUrl.startsWith("http") ? detail.audioUrl : `http://localhost:8080${detail.audioUrl}`) : undefined,
+      });
+      setAnswer("");
+      setChecked(false);
+      setActiveTab("practice");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load exercise details.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRetry = () => {
     setAnswer("");
     setChecked(false);
     setPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
   };
 
-  const statsTotal = filteredExercises.length;
-  const statsPracticed = 3;
-  const statsAvg = "82%";
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <div>
@@ -118,6 +247,20 @@ function Listening() {
             title="Listening Dictation"
             subtitle="Choose a listening exercise, practice listening, and check your answer."
           />
+
+          {/* Hidden Audio Element */}
+          {selectedEx?.audioUrl && (
+            <audio
+              ref={audioRef}
+              src={selectedEx.audioUrl}
+              onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+              onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+              onEnded={() => {
+                setPlaying(false);
+                setCurrentTime(0);
+              }}
+            />
+          )}
 
           {/* Tab Navigation */}
           <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/55 dark:bg-white/[0.04] backdrop-blur-md border border-white/70 dark:border-white/10 w-fit shadow-sm">
@@ -146,9 +289,9 @@ function Listening() {
               {/* Stats Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
                 {[
-                  { label: "Total exercises", value: statsTotal, icon: ListChecks, color: "text-blue-500", gradient: "from-blue-50/90 to-white/80 dark:from-blue-950/30 dark:to-slate-900/70", iconBg: "bg-blue-500/10 text-blue-500" },
-                  { label: "Practiced", value: statsPracticed, icon: CheckCircle2, color: "text-emerald-500", gradient: "from-emerald-50/90 to-white/80 dark:from-emerald-950/30 dark:to-slate-900/70", iconBg: "bg-emerald-500/10 text-emerald-500" },
-                  { label: "Avg score", value: statsAvg, icon: Sparkles, color: "text-violet-500", gradient: "from-violet-50/90 to-pink-50/60 dark:from-violet-950/30 dark:to-slate-900/70", iconBg: "bg-violet-500/10 text-violet-500" },
+                  { label: "Total exercises", value: exercises.length, icon: ListChecks, color: "text-blue-500", gradient: "from-blue-50/90 to-white/80 dark:from-blue-950/30 dark:to-slate-900/70", iconBg: "bg-blue-500/10 text-blue-500" },
+                  { label: "Dictation Mode", value: exercises.filter(e => e.type !== "Blank Fill").length, icon: Headphones, color: "text-emerald-500", gradient: "from-emerald-50/90 to-white/80 dark:from-emerald-950/30 dark:to-slate-900/70", iconBg: "bg-emerald-500/10 text-emerald-500" },
+                  { label: "Blank Fill Mode", value: exercises.filter(e => e.type === "Blank Fill").length, icon: Sparkles, color: "text-violet-500", gradient: "from-violet-50/90 to-pink-50/60 dark:from-violet-950/30 dark:to-slate-900/70", iconBg: "bg-violet-500/10 text-violet-500" },
                 ].map(stat => {
                   const Icon = stat.icon;
                   return (
@@ -190,89 +333,105 @@ function Listening() {
                 <div className="px-4 pt-4 pb-1">
                   <p className="text-sm font-semibold text-foreground/70">Choose a listening exercise</p>
                 </div>
-                <div className="p-3 sm:p-4 space-y-2">
-                {paginatedExercises.length === 0 ? (
-                  <div className="text-center py-16 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50">
-                    <Headphones className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-                    <p className="font-semibold text-sm text-slate-600 dark:text-slate-300">No listening exercises available.</p>
-                    <p className="text-xs text-muted-foreground mt-1">Listening exercises will appear here.</p>
+
+                {isLoading && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <Loader2 className="animate-spin h-8 w-8 text-primary mb-3" />
+                    <p className="text-muted-foreground text-sm">Loading listening exercises...</p>
                   </div>
-                ) : (
-                  paginatedExercises.map((ex, i) => {
-                    const isSelected = selectedEx?.id === ex.id;
-                    return (
-                      <motion.div
-                        key={ex.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                      >
-                        <button
-                          onClick={() => handleSelectExercise(ex)}
-                          className={`w-full text-left rounded-2xl p-3 sm:p-4 transition-all duration-200 border ${
-                            isSelected
-                              ? "bg-gradient-to-r from-blue-50/95 via-white/90 to-pink-50/90 dark:from-blue-950/35 dark:via-slate-900/80 dark:to-pink-950/30 border-primary/25 dark:border-primary/30 shadow-lg shadow-primary/10 ring-1 ring-primary/15 dark:ring-primary/20"
-                              : "bg-white/85 dark:bg-slate-800/85 backdrop-blur-sm border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-white/98 dark:hover:bg-slate-800/98 dark:hover:border-white/15 hover:border-primary/25 dark:hover:border-primary/30"
-                          }`}
-                        >
-                          <div className="flex items-center gap-4">
-                            {/* Level badge */}
-                            <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex flex-col items-center justify-center ${isSelected ? "bg-gradient-hero text-white shadow-md shadow-primary/25" : `${getLevelBoxStyle(ex.level, false)} shadow-sm ring-1 ring-white/60 dark:ring-white/10`}`}>
-                              <span className="font-display font-black text-sm">{ex.level}</span>
-                              <span className="text-[7px] font-semibold opacity-60">JLPT</span>
-                            </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-display font-bold text-base text-foreground dark:text-white truncate pr-2">
-                                  {ex.title}
-                                </h3>
-                                {isSelected && (
-                                  <span className="px-2 py-0.5 rounded-full bg-primary/10 dark:bg-primary/20 text-primary text-[10px] font-bold flex-shrink-0">
-                                    Selected
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/[0.07] dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 font-medium">
-                                  <Headphones className="w-3 h-3" />
-                                  {ex.duration}
-                                </span>
-                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/[0.07] dark:bg-purple-500/15 text-purple-600 dark:text-purple-300 font-medium">
-                                  <ListChecks className="w-3 h-3" />
-                                  Dictation
-                                </span>
-                                {ex.transcript && (
-                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/[0.07] dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 font-medium">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    Transcript
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Arrow */}
-                            <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition ${
-                              isSelected ? "bg-primary text-white shadow-sm" : "bg-slate-100/80 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 text-muted-foreground"
-                            }`}>
-                              <ChevronRight className="w-4 h-4" />
-                            </div>
-                          </div>
-
-                          {/* Selected indicator bar */}
-                          {isSelected && (
-                            <motion.div
-                              layoutId="selectedBar"
-                              className="h-1 mt-3 rounded-full bg-gradient-hero"
-                            />
-                          )}
-                        </button>
-                      </motion.div>
-                    );
-                  })
                 )}
-                </div>
+
+                {error && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+                    <AlertCircle className="text-red-500 mb-3 w-8 h-8" />
+                    <p className="text-red-500 font-medium text-sm">{error}</p>
+                    <button onClick={fetchExercises} className="mt-4 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3" /> Retry
+                    </button>
+                  </div>
+                )}
+
+                {!isLoading && !error && (
+                  <div className="p-3 sm:p-4 space-y-2">
+                    {paginatedExercises.length === 0 ? (
+                      <div className="text-center py-16 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50">
+                        <Headphones className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                        <p className="font-semibold text-sm text-slate-600 dark:text-slate-300">No listening exercises available.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Exercises will appear here once created by a teacher.</p>
+                      </div>
+                    ) : (
+                      paginatedExercises.map((ex, i) => {
+                        const isSelected = selectedEx?.id === ex.id;
+                        return (
+                          <motion.div
+                            key={ex.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.04 }}
+                          >
+                            <button
+                              onClick={() => handleSelectExercise(ex)}
+                              className={`w-full text-left rounded-2xl p-3 sm:p-4 transition-all duration-200 border ${
+                                isSelected
+                                  ? "bg-gradient-to-r from-blue-50/95 via-white/90 to-pink-50/90 dark:from-blue-950/35 dark:via-slate-900/80 dark:to-pink-950/30 border-primary/25 dark:border-primary/30 shadow-lg shadow-primary/10 ring-1 ring-primary/15 dark:ring-primary/20"
+                                  : "bg-white/85 dark:bg-slate-800/85 backdrop-blur-sm border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-white/98 dark:hover:bg-slate-800/98 dark:hover:border-white/15 hover:border-primary/25 dark:hover:border-primary/30"
+                              }`}
+                            >
+                              <div className="flex items-center gap-4">
+                                {/* Level badge */}
+                                <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex flex-col items-center justify-center ${isSelected ? "bg-gradient-hero text-white shadow-md shadow-primary/25" : `${getLevelBoxStyle(ex.level, false)} shadow-sm ring-1 ring-white/60 dark:ring-white/10`}`}>
+                                  <span className="font-display font-black text-sm">{ex.level}</span>
+                                  <span className="text-[7px] font-semibold opacity-60">JLPT</span>
+                                </div>
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-display font-bold text-base text-foreground dark:text-white truncate pr-2">
+                                      {ex.title}
+                                    </h3>
+                                    {isSelected && (
+                                      <span className="px-2 py-0.5 rounded-full bg-primary/10 dark:bg-primary/20 text-primary text-[10px] font-bold flex-shrink-0">
+                                        Selected
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                                    {ex.topic && (
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/[0.07] dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 font-medium">
+                                        <Headphones className="w-3 h-3" />
+                                        {ex.topic}
+                                      </span>
+                                    )}
+                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/[0.07] dark:bg-purple-500/15 text-purple-600 dark:text-purple-300 font-medium">
+                                      <ListChecks className="w-3 h-3" />
+                                      {ex.type}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Arrow */}
+                                <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition ${
+                                  isSelected ? "bg-primary text-white shadow-sm" : "bg-slate-100/80 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 text-muted-foreground"
+                                }`}>
+                                  <ChevronRight className="w-4 h-4" />
+                                </div>
+                              </div>
+
+                              {/* Selected indicator bar */}
+                              {isSelected && (
+                                <motion.div
+                                  layoutId="selectedBar"
+                                  className="h-1 mt-3 rounded-full bg-gradient-hero"
+                                />
+                              )}
+                            </button>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Pagination */}
@@ -363,7 +522,7 @@ function Listening() {
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 backdrop-blur-sm`}>
                             {selectedEx.level}
                           </span>
-                          <span className="text-xs text-white/70">Dictation</span>
+                          <span className="text-xs text-white/70">{selectedEx.type}</span>
                         </div>
                         <div className="font-display font-bold text-xl leading-tight mb-3">{selectedEx.title}</div>
 
@@ -380,15 +539,24 @@ function Listening() {
                             );
                           })}
                         </div>
+                        <div className="h-1 bg-white/20 rounded-full overflow-hidden relative mb-2">
+                          <div className="h-full bg-white rounded-full" style={{ width: `${progress}%` }} />
+                        </div>
                         <div className="flex justify-between text-[10px] text-white/75">
-                          <span>0:00</span>
-                          <span>{selectedEx.duration}</span>
+                          <span>{formatTime(currentTime)}</span>
+                          <span>{formatTime(duration)}</span>
                         </div>
                       </div>
 
                       {/* Replay */}
                       <button
-                        onClick={() => { setPlaying(false); setTimeout(() => setPlaying(true), 100); }}
+                        onClick={() => {
+                          setPlaying(false);
+                          if (audioRef.current) {
+                            audioRef.current.currentTime = 0;
+                          }
+                          setTimeout(() => setPlaying(true), 100);
+                        }}
                         className="p-3 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-sm transition flex-shrink-0"
                         title="Replay"
                       >
@@ -397,27 +565,53 @@ function Listening() {
                     </div>
                   </div>
 
-                  {/* Transcription Card */}
+                  {/* Transcription / Blank Fill Card */}
                   <div className="rounded-2xl border border-border/60 bg-card/80 dark:bg-slate-800/90 shadow-sm overflow-hidden backdrop-blur-sm">
                     {/* Card Header */}
                     <div className="px-5 py-3 border-b border-border/60 dark:border-slate-700">
-                      <h3 className="font-display font-bold text-sm text-foreground">Transcription</h3>
-                      <p className="text-[10px] text-muted-foreground">Listen and type the sentence in Japanese</p>
+                      <h3 className="font-display font-bold text-sm text-foreground">
+                        {selectedEx.type === "Blank Fill" ? "Blank Fill Practice" : "Transcription Practice"}
+                      </h3>
+                      <p className="text-[10px] text-muted-foreground">
+                        {selectedEx.type === "Blank Fill"
+                          ? "Listen and type the missing word(s)"
+                          : "Listen and type the complete sentence in Japanese"}
+                      </p>
                     </div>
 
                     <div className="p-5 space-y-4">
+                      {/* Blank Fill Sentence Prompt */}
+                      {selectedEx.type === "Blank Fill" && (
+                        <div>
+                          <p className="text-xs font-bold text-muted-foreground mb-1.5">Fill in the blank:</p>
+                          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                            <p className="text-lg font-display text-foreground dark:text-white leading-relaxed">
+                              {getBlankedText(selectedEx.transcript, selectedEx.hiddenWords)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Optional Meaning / Note Hint */}
+                      {selectedEx.meaning && (
+                        <div>
+                          <p className="text-xs font-bold text-muted-foreground mb-1">Meaning (Note):</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 italic">{selectedEx.meaning}</p>
+                        </div>
+                      )}
+
                       {/* Textarea */}
                       <div>
                         <textarea
                           value={answer}
                           onChange={e => { setAnswer(e.target.value); setChecked(false); }}
-                          rows={4}
-                          placeholder="日本語でタイプしてください..."
+                          rows={3}
+                          placeholder={selectedEx.type === "Blank Fill" ? "Type the missing word(s) here..." : "日本語でタイプしてください..."}
                           className="w-full p-4 rounded-2xl bg-card/70 dark:bg-slate-700/50 border border-border/60 dark:border-slate-600/60 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 text-lg font-display text-foreground dark:text-white resize-none placeholder:text-muted-foreground/70 transition-colors"
                         />
                       </div>
 
-                      {/* Result feedback — no answer reveal */}
+                      {/* Result feedback */}
                       {checked && (
                         <motion.div
                           initial={{ opacity: 0, y: -8 }}
@@ -440,7 +634,9 @@ function Listening() {
                               <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                               <div>
                                 <span className="font-bold text-primary">AI Tip: </span>
-                                Pay attention to particles like を, は, が. Try listening sentence by sentence.
+                                {selectedEx.type === "Blank Fill"
+                                  ? "Check spelling or check the sentence structure to identify the exact hidden word."
+                                  : "Pay attention to particles like を, は, が. Try listening sentence by sentence."}
                               </div>
                             </div>
                           )}

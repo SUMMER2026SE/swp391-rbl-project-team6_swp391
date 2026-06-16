@@ -49,7 +49,7 @@ public class ListeningServiceImpl implements ListeningService {
                 .audioUrl(audioUrl)
                 .audioFileName(audioFileName)
                 .audioType(audioType)
-                .answerKey(request.getAnswerKey())
+                .meaning(request.getMeaning())
                 .transcript(request.getTranscript())
                 .topic(request.getTopic())
                 .status("ACTIVE")
@@ -118,7 +118,7 @@ public class ListeningServiceImpl implements ListeningService {
         lesson.setAudioUrl(audioUrl);
         lesson.setAudioFileName(audioFileName);
         lesson.setAudioType(audioType);
-        lesson.setAnswerKey(request.getAnswerKey());
+        lesson.setMeaning(request.getMeaning());
         lesson.setTranscript(request.getTranscript());
         lesson.setTopic(request.getTopic());
 
@@ -198,6 +198,8 @@ public class ListeningServiceImpl implements ListeningService {
                 .approvedAt(lesson.getApprovedAt())
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
+                .meaning(lesson.getMeaning())
+                .transcript(lesson.getTranscript())
                 .topic(lesson.getTopic())
                 .build();
     }
@@ -212,7 +214,7 @@ public class ListeningServiceImpl implements ListeningService {
                 .audioUrl(lesson.getAudioUrl())
                 .audioFileName(lesson.getAudioFileName())
                 .audioType(lesson.getAudioType())
-                .answerKey(lesson.getAnswerKey())
+                .meaning(lesson.getMeaning())
                 .transcript(lesson.getTranscript())
                 .status(lesson.getStatus())
                 .approvedBy(lesson.getApprovedBy())
