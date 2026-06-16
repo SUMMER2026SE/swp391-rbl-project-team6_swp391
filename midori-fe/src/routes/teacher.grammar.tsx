@@ -739,15 +739,37 @@ function GrammarPage() {
                 >
                   <button
                     onClick={() => openEdit(grammar)}
-                    title="Edit"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-500 transition"
+                    title={
+                      grammar.status === "APPROVED"
+                        ? "Approved content cannot be modified."
+                        : grammar.status === "PENDING"
+                          ? "This content is currently under review."
+                          : "Edit"
+                    }
+                    disabled={grammar.status === "APPROVED" || grammar.status === "PENDING"}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition ${
+                      grammar.status === "APPROVED" || grammar.status === "PENDING"
+                        ? "opacity-40 cursor-not-allowed text-blue-300"
+                        : "hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-500"
+                    }`}
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => setDeleteTarget(grammar)}
-                    title="Delete"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-400 transition"
+                    title={
+                      grammar.status === "APPROVED"
+                        ? "Approved content cannot be modified."
+                        : grammar.status === "PENDING"
+                          ? "This content is currently under review."
+                          : "Delete"
+                    }
+                    disabled={grammar.status === "APPROVED" || grammar.status === "PENDING"}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition ${
+                      grammar.status === "APPROVED" || grammar.status === "PENDING"
+                        ? "opacity-40 cursor-not-allowed text-red-300"
+                        : "hover:bg-red-50 dark:hover:bg-red-950/30 text-red-400"
+                    }`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -816,9 +838,38 @@ function GrammarPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {canSubmit && (
+              <button
+                onClick={() => handleSubmit(g)}
+                disabled={submitting}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition disabled:opacity-40"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" /> Send for Review
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={() => openEdit(g)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-500 text-sm font-bold transition"
+              disabled={!canEdit}
+              title={
+                g.status === "APPROVED"
+                  ? "Approved content cannot be modified."
+                  : g.status === "PENDING"
+                    ? "This content is currently under review."
+                    : "Edit"
+              }
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition ${
+                canEdit
+                  ? "bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-500"
+                  : "opacity-40 cursor-not-allowed bg-blue-50/60 text-blue-300"
+              }`}
             >
               <Edit3 className="w-4 h-4" /> Edit
             </button>

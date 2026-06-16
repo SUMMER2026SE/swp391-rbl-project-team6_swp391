@@ -1176,18 +1176,46 @@ function TeacherFlashcardsPage() {
                       >
                         <Eye className="w-3.5 h-3.5" /> View
                       </button>
-                      <button
-                        onClick={() => openEditSet(s.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" /> Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleting(s)}
-                        className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {s.status === "DRAFT" || s.status === "REJECTED" ? (
+                        <button
+                          onClick={() => openEditSet(s.id)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          title={
+                            s.status === "APPROVED"
+                              ? "Approved content cannot be modified."
+                              : "This content is currently under review."
+                          }
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-50/60 text-blue-300 text-xs font-bold transition-all opacity-40 cursor-not-allowed"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                      )}
+                      {s.status === "DRAFT" || s.status === "REJECTED" ? (
+                        <button
+                          onClick={() => setDeleting(s)}
+                          className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          title={
+                            s.status === "APPROVED"
+                              ? "Approved content cannot be modified."
+                              : "This content is currently under review."
+                          }
+                          className="px-3.5 py-2.5 rounded-xl bg-red-50/60 text-red-300 text-xs font-bold transition-all opacity-40 cursor-not-allowed"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -1498,11 +1526,23 @@ function TeacherFlashcardsPage() {
                       setViewing(null);
                       openEditSet(viewing.id);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-500 text-sm font-bold transition-all"
+                    disabled={viewing.status === "APPROVED" || viewing.status === "PENDING"}
+                    title={
+                      viewing.status === "APPROVED"
+                        ? "Approved content cannot be modified."
+                        : viewing.status === "PENDING"
+                          ? "This content is currently under review."
+                          : "Edit"
+                    }
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                      viewing.status === "APPROVED" || viewing.status === "PENDING"
+                        ? "opacity-40 cursor-not-allowed bg-blue-50/60 text-blue-300"
+                        : "bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-500"
+                    }`}
                   >
                     <Edit3 className="w-3.5 h-3.5" /> Edit
                   </button>
-                  {viewing.status === "DRAFT" && (
+                  {viewing.status === "DRAFT" || viewing.status === "REJECTED" ? (
                     <button
                       onClick={() => {
                         setViewing(null);
@@ -1516,9 +1556,9 @@ function TeacherFlashcardsPage() {
                       ) : (
                         <Send className="w-3.5 h-3.5" />
                       )}
-                      Submit for review
+                      {viewing.status === "REJECTED" ? "Resubmit for review" : "Submit for review"}
                     </button>
-                  )}
+                  ) : null}
                   <button
                     onClick={() => setViewing(null)}
                     className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 transition"
