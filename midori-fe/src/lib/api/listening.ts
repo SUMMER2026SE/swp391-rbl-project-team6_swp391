@@ -14,11 +14,13 @@ export interface ListeningResponse {
   approvedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  meaning?: string | null;
+  transcript?: string | null;
   topic?: string | null;
 }
 
 export interface ListeningDetailResponse extends ListeningResponse {
-  answerKey?: string | null;
+  meaning?: string | null;
   transcript?: string | null;
 }
 
@@ -26,7 +28,7 @@ export interface CreateListeningPayload {
   level: string;
   title: string;
   audioFile?: File | null;
-  answerKey?: string;
+  meaning?: string;
   transcript?: string;
   topic?: string;
 }
@@ -38,9 +40,8 @@ export interface UpdateListeningPayload {
   audioUrl?: string;
   audioFileName?: string;
   audioType?: string;
-  answerKey?: string;
+  meaning?: string;
   transcript?: string;
-  status?: string;
   topic?: string;
 }
 
@@ -51,10 +52,9 @@ export interface LevelResponse {
 
 export const listeningApi = {
   // Teacher APIs
-  getTeacherListenings: (params?: { level?: string; status?: string }) => {
+  getTeacherListenings: (params?: { level?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.level) searchParams.set("level", params.level);
-    if (params?.status) searchParams.set("status", params.status);
     const qs = searchParams.toString();
     return api.get<ListeningResponse[]>(`/teacher/listenings${qs ? `?${qs}` : ""}`);
   },
@@ -69,8 +69,8 @@ export const listeningApi = {
     if (payload.audioFile) {
       formData.append("audioFile", payload.audioFile);
     }
-    if (payload.answerKey !== undefined) {
-      formData.append("answerKey", payload.answerKey);
+    if (payload.meaning !== undefined) {
+      formData.append("meaning", payload.meaning);
     }
     if (payload.transcript !== undefined) {
       formData.append("transcript", payload.transcript);
@@ -92,13 +92,12 @@ export const listeningApi = {
       if (payload.audioFileName) formData.append("audioFileName", payload.audioFileName);
       if (payload.audioType) formData.append("audioType", payload.audioType);
     }
-    if (payload.answerKey !== undefined) {
-      formData.append("answerKey", payload.answerKey);
+    if (payload.meaning !== undefined) {
+      formData.append("meaning", payload.meaning);
     }
     if (payload.transcript !== undefined) {
       formData.append("transcript", payload.transcript);
     }
-    if (payload.status) formData.append("status", payload.status);
     if (payload.topic !== undefined) {
       formData.append("topic", payload.topic);
     }

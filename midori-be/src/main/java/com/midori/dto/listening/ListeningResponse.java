@@ -24,5 +24,7 @@ public class ListeningResponse {
     private Instant approvedAt;
     private Instant createdAt;
     private Instant updatedAt;
+    private String meaning;
+    private String transcript;
     private String topic;
 }

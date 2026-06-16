@@ -19,7 +19,7 @@ public class ListeningDetailResponse {
     private String audioUrl;
     private String audioFileName;
     private String audioType;
-    private String answerKey;
+    private String meaning;
     private String transcript;
     private String status;
     private UUID approvedBy;
