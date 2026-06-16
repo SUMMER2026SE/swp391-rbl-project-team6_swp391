@@ -1,37 +1,77 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, Card } from "@/components/page-ui";
-import { Flame, Sparkles, Trophy, Clock, ArrowRight } from "lucide-react";
+import { Flame, Sparkles, Trophy, Clock, ArrowRight, Loader2 } from "lucide-react";
 import { leaderboard, weeklyXp } from "@/lib/mock-data";
 import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { studentProgressApi } from "@/lib/api/studentProgress";
+import { ApiError } from "@/lib/api/client";
 
 export const Route = createFileRoute("/student/")({ component: StudentHome });
 
 function StudentHome() {
+  const DAILY_GOAL_XP = 250;
+
+  const { data: stats, isLoading, error } = useQuery({
+    queryKey: ["progress-stats"],
+    queryFn: () => studentProgressApi.getProgressStats(),
+    staleTime: 60 * 1000,
+  });
+
+  const errorMessage = error instanceof ApiError ? error.message : "Failed to load dashboard progress.";
+
+  const dailyGoalPercent = Math.min(100, Math.max(0, stats?.progressPercent ?? 0));
+  const dailyGoalXp = Math.round((dailyGoalPercent / 100) * DAILY_GOAL_XP);
+  const streak = stats?.learningStreak ?? 0;
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Good morning, Yuki"
-        subtitle="Keep your 32-day streak alive — finish today's lesson to earn +120 XP."
+        subtitle={isLoading ? "Loading your progress..." : error ? errorMessage : streak > 0 ? `Keep your ${streak}-day streak alive — finish today's lesson to earn +120 XP.` : "Start today's lesson to build your streak."}
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Daily Goal", value: "180 / 250 XP", hint: "72% complete", icon: <Sparkles className="w-5 h-5 text-amber-400" />, accent: "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50" },
-          { label: "Streak", value: "32 days", hint: "Best: 47", icon: <Flame className="w-5 h-5 text-orange-400" />, accent: "bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50" },
-          { label: "Rank", value: "#4", hint: "Top 2% this week", icon: <Trophy className="w-5 h-5 text-pink-400" />, accent: "bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-800/50" },
-          { label: "Today", value: "1h 42m", hint: "Study time", icon: <Clock className="w-5 h-5 text-blue-400" />, accent: "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50" },
-        ].map((s, i) => (
-          <div key={i} className={`rounded-2xl p-4 ${s.accent}`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground font-medium">{s.label}</span>
-              {s.icon}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      )}
+
+      {!isLoading && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Daily Goal", value: `${dailyGoalXp} / ${DAILY_GOAL_XP} XP`, hint: `${dailyGoalPercent}% complete`, icon: <Sparkles className="w-5 h-5 text-amber-400" />, accent: "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50" },
+            { label: "Streak", value: `${streak} days`, hint: `Best: ${streak}`, icon: <Flame className="w-5 h-5 text-orange-400" />, accent: "bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-amber-800/50" },
+            { label: "Rank", value: "#4", hint: "Top 2% this week", icon: <Trophy className="w-5 h-5 text-pink-400" />, accent: "bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-800/50" },
+            { label: "Today", value: "1h 42m", hint: "Study time", icon: <Clock className="w-5 h-5 text-blue-400" />, accent: "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50" },
+          ].map((s, i) => (
+            <div key={i} className={`rounded-2xl p-4 ${s.accent}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground font-medium">{s.label}</span>
+                {s.icon}
+              </div>
+              <div className="font-black text-xl text-foreground">{s.value}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">{s.hint}</div>
             </div>
-            <div className="font-black text-xl text-foreground">{s.value}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">{s.hint}</div>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && error && (
+        <div className="text-center py-12 px-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mb-4">
+            <Sparkles className="w-8 h-8 text-red-500" />
           </div>
-        ))}
-      </div>
+          <p className="text-red-500 mb-2 font-semibold">{errorMessage}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm text-primary underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       {/* Row 1: Continue learning + Leaderboard */}
       <div className="grid lg:grid-cols-3 gap-4">
@@ -81,9 +121,9 @@ function StudentHome() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-xs text-foreground truncate">{p.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{p.streak}d streak</div>
+                  <div className="text-[10px] text-muted-foreground">{p.name === "You" ? `${streak}d streak` : `${p.streak}d streak`}</div>
                 </div>
-                <div className="text-sm font-black text-primary">{p.xp.toLocaleString()}</div>
+                <div className="text-sm font-black text-primary">{p.name === "You" ? `${dailyGoalXp.toLocaleString()}` : `${p.xp.toLocaleString()}`}</div>
               </div>
             ))}
           </div>
