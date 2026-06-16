@@ -84,9 +84,33 @@ export interface GetAllUsersParams {
   size?: number;
 }
 
+export interface AdminDashboardSummaryResponse {
+  totalUsers: number;
+  totalStudents: number;
+  totalTeachers: number;
+  totalActiveUsers: number;
+  pendingTeachers: number;
+  pendingContent: number;
+  totalVocabularyLessons: number;
+  totalGrammar: number;
+  pendingGrammar: number;
+  approvedGrammar: number;
+  totalFlashcardSets: number;
+  totalListeningLessons: number;
+  pendingFlashcardSets: number;
+  approvedFlashcardSets: number;
+  pendingListeningLessons: number;
+  approvedListeningLessons: number;
+  publishedVocabularyLessons: number;
+  totalProgressRecords: number;
+}
+
 export const adminApi = {
   getPendingTeachers: () =>
     api.get<AdminTeacherResponse[]>("/admin/users/teachers/pending"),
+
+  getDashboardSummary: () =>
+    api.get<AdminDashboardSummaryResponse>("/admin/dashboard/summary"),
 
   approveTeacher: (userId: string) =>
     api.put<AdminTeacherResponse>(`/admin/users/${userId}/approve`),

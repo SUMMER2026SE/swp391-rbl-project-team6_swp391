@@ -48,4 +48,6 @@ public interface VocabularyLessonRepository extends JpaRepository<VocabularyLess
            "(LOWER(vl.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(vl.description) LIKE LOWER(CONCAT('%', :search, '%')))")
     List<VocabularyLesson> searchPublished(@Param("search") String search);
+
+    long countByIsPublished(Boolean isPublished);
 }
