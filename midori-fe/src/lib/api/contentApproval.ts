@@ -43,6 +43,16 @@ export function mapGrammarApprovalDetail(raw: {
   cardCount?: number;
   createdAt?: string;
   updatedAt?: string;
+  hasPendingUpdate?: boolean | null;
+  pendingTitle?: string | null;
+  pendingPattern?: string | null;
+  pendingMeaning?: string | null;
+  pendingStructure?: string | null;
+  pendingUsage?: string | null;
+  pendingExamples?: string[] | null;
+  pendingExampleMeanings?: string[] | null;
+  pendingLevel?: string | null;
+  pendingUpdateRejectReason?: string | null;
 }): GrammarDetailContent {
   // If backend returns wrapped format with grammar field
   if (raw.grammar) {
@@ -63,6 +73,16 @@ export function mapGrammarApprovalDetail(raw: {
       cardCount: raw.grammar.cardCount ?? raw.grammar.examples?.length ?? 0,
       createdAt: raw.grammar.createdAt ?? "",
       updatedAt: raw.grammar.updatedAt ?? "",
+      hasPendingUpdate: raw.grammar.hasPendingUpdate ?? false,
+      pendingTitle: raw.grammar.pendingTitle ?? null,
+      pendingPattern: raw.grammar.pendingPattern ?? null,
+      pendingMeaning: raw.grammar.pendingMeaning ?? null,
+      pendingStructure: raw.grammar.pendingStructure ?? null,
+      pendingUsage: raw.grammar.pendingUsage ?? null,
+      pendingExamples: raw.grammar.pendingExamples ?? null,
+      pendingExampleMeanings: raw.grammar.pendingExampleMeanings ?? null,
+      pendingLevel: raw.grammar.pendingLevel ?? null,
+      pendingUpdateRejectReason: raw.grammar.pendingUpdateRejectReason ?? null,
     };
   }
 
@@ -84,6 +104,16 @@ export function mapGrammarApprovalDetail(raw: {
     cardCount: raw.cardCount ?? raw.examples?.length ?? 0,
     createdAt: raw.createdAt ?? "",
     updatedAt: raw.updatedAt ?? "",
+    hasPendingUpdate: raw.hasPendingUpdate ?? false,
+    pendingTitle: raw.pendingTitle ?? null,
+    pendingPattern: raw.pendingPattern ?? null,
+    pendingMeaning: raw.pendingMeaning ?? null,
+    pendingStructure: raw.pendingStructure ?? null,
+    pendingUsage: raw.pendingUsage ?? null,
+    pendingExamples: raw.pendingExamples ?? null,
+    pendingExampleMeanings: raw.pendingExampleMeanings ?? null,
+    pendingLevel: raw.pendingLevel ?? null,
+    pendingUpdateRejectReason: raw.pendingUpdateRejectReason ?? null,
   };
 }
 

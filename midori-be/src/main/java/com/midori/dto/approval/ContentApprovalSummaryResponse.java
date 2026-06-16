@@ -24,4 +24,7 @@ public class ContentApprovalSummaryResponse {
     private String rejectReason;
     private Instant submittedAt;
     private Instant updatedAt;
+
+    // Indicates if this is a pending update to an already approved grammar
+    private Boolean hasPendingUpdate;
 }

@@ -42,6 +42,18 @@ public class ContentApprovalDetailResponse {
         private Long cardCount;
         private java.time.Instant createdAt;
         private java.time.Instant updatedAt;
+
+        // Pending update fields (when hasPendingUpdate = true)
+        private Boolean hasPendingUpdate;
+        private String pendingTitle;
+        private String pendingPattern;
+        private String pendingMeaning;
+        private String pendingStructure;
+        private String pendingUsage;
+        private java.util.List<String> pendingExamples;
+        private java.util.List<String> pendingExampleMeanings;
+        private String pendingLevel;
+        private String pendingUpdateRejectReason;
     }
 
     @Data

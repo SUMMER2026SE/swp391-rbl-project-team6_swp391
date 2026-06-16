@@ -26,6 +26,17 @@ export interface GrammarResponse {
   ownedByMe: boolean;
   createdAt: string;
   updatedAt: string;
+  // Pending update fields
+  hasPendingUpdate?: boolean;
+  pendingTitle?: string | null;
+  pendingPattern?: string | null;
+  pendingMeaning?: string | null;
+  pendingStructure?: string | null;
+  pendingUsage?: string | null;
+  pendingExamples?: string[] | null;
+  pendingExampleMeanings?: string[] | null;
+  pendingLevel?: string | null;
+  pendingUpdateRejectReason?: string | null;
 }
 
 // ─── GrammarCreateRequest (backend GrammarCreateRequest.java) ────────────────────

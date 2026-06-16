@@ -85,11 +85,24 @@ public class GrammarServiceImpl implements GrammarService {
 
         checkGrammarOwnership(grammar, currentUserId);
 
-        if (grammar.getStatus() == GrammarStatus.PENDING ||
-            grammar.getStatus() == GrammarStatus.APPROVED) {
-            throw new BadRequestException("Cannot edit grammar with status " + grammar.getStatus() + ". Only DRAFT or REJECTED grammar can be edited.");
+        if (grammar.getStatus() == GrammarStatus.PENDING) {
+            throw new BadRequestException("Cannot edit grammar with status PENDING. This grammar is under admin review.");
         }
 
+        // If editing an APPROVED grammar, save to pending fields (not main fields)
+        // This preserves current approved content for students
+        if (grammar.getStatus() == GrammarStatus.APPROVED) {
+            if (Boolean.TRUE.equals(grammar.getHasPendingUpdate())) {
+                throw new BadRequestException("This grammar already has a pending update waiting for review. Please wait for the admin to approve or reject it before submitting another update.");
+            }
+            applyPendingUpdate(grammar, request);
+            grammar.setHasPendingUpdate(true);
+            grammar.setPendingUpdateRejectReason(null);
+            grammar = grammarRepository.save(grammar);
+            return toGrammarResponse(grammar, currentUserId);
+        }
+
+        // For DRAFT or REJECTED, update main fields directly
         applyGrammarUpdate(grammar, request);
         grammar = grammarRepository.save(grammar);
         return toGrammarResponse(grammar, currentUserId);
@@ -102,6 +115,11 @@ public class GrammarServiceImpl implements GrammarService {
 
         checkGrammarOwnership(grammar, currentUserId);
 
+        if (grammar.getStatus() == GrammarStatus.PENDING) {
+            throw new BadRequestException("Cannot delete grammar with status PENDING. Please wait for the review to complete or cancel your submission first.");
+        }
+
+        // Delete the grammar (including any pending updates)
         grammarRepository.deleteById(grammarId);
     }
 
@@ -262,6 +280,16 @@ public class GrammarServiceImpl implements GrammarService {
                 .ownedByMe(ownedByMe)
                 .createdAt(grammar.getCreatedAt())
                 .updatedAt(grammar.getUpdatedAt())
+                .hasPendingUpdate(grammar.getHasPendingUpdate())
+                .pendingTitle(grammar.getPendingTitle())
+                .pendingPattern(grammar.getPendingPattern())
+                .pendingMeaning(grammar.getPendingMeaning())
+                .pendingStructure(grammar.getPendingStructure())
+                .pendingUsage(grammar.getPendingUsage())
+                .pendingExamples(grammar.getPendingExamples())
+                .pendingExampleMeanings(grammar.getPendingExampleMeanings())
+                .pendingLevel(grammar.getPendingLevel() != null ? grammar.getPendingLevel().name() : null)
+                .pendingUpdateRejectReason(grammar.getPendingUpdateRejectReason())
                 .build();
     }
 
@@ -302,6 +330,33 @@ public class GrammarServiceImpl implements GrammarService {
         }
         if (request.getLevel() != null) {
             grammar.setLevel(parseLevel(request.getLevel()));
+        }
+    }
+
+    private void applyPendingUpdate(Grammar grammar, GrammarUpdateRequest request) {
+        if (request.getTitle() != null) {
+            grammar.setPendingTitle(trimToNull(request.getTitle()));
+        }
+        if (request.getPattern() != null) {
+            grammar.setPendingPattern(trimToNull(request.getPattern()));
+        }
+        if (request.getMeaning() != null) {
+            grammar.setPendingMeaning(trimToNull(request.getMeaning()));
+        }
+        if (request.getStructure() != null) {
+            grammar.setPendingStructure(trimToNull(request.getStructure()));
+        }
+        if (request.getUsage() != null) {
+            grammar.setPendingUsage(trimToNull(request.getUsage()));
+        }
+        if (request.getExamples() != null) {
+            grammar.setPendingExamples(request.getExamples());
+        }
+        if (request.getExampleMeanings() != null) {
+            grammar.setPendingExampleMeanings(request.getExampleMeanings());
+        }
+        if (request.getLevel() != null) {
+            grammar.setPendingLevel(parseLevel(request.getLevel()));
         }
     }
 

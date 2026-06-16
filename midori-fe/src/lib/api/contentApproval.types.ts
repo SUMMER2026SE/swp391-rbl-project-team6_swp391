@@ -19,6 +19,8 @@ export interface ContentApprovalSummary {
   rejectReason: string | null;
   submittedAt: string;
   updatedAt: string;
+  // Indicates if this is a pending update to an already approved grammar
+  hasPendingUpdate?: boolean;
 }
 
 // ─── ContentApprovalDetailResponse ─────────────────────────────────────────────
@@ -51,6 +53,17 @@ export interface GrammarDetailContent {
   cardCount: number;
   createdAt: string;
   updatedAt: string;
+  // Pending update fields (when hasPendingUpdate = true)
+  hasPendingUpdate?: boolean;
+  pendingTitle?: string | null;
+  pendingPattern?: string | null;
+  pendingMeaning?: string | null;
+  pendingStructure?: string | null;
+  pendingUsage?: string | null;
+  pendingExamples?: string[] | null;
+  pendingExampleMeanings?: string[] | null;
+  pendingLevel?: string | null;
+  pendingUpdateRejectReason?: string | null;
 }
 
 export interface FlashcardDetailContent {
