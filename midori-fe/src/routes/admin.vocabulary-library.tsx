@@ -1,16 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, Search, Plus, Eye, Edit3, Trash2,
   X, Loader2, CheckCircle, ChevronRight, ChevronDown,
   Copy, Tag, Calendar, Save, Volume2, Upload, FileText,
-  FolderOpen, Mic, Download, MoreVertical, BookMarked, Settings
+  FolderOpen, Mic, Download, MoreVertical, BookMarked, Settings,
+  Layers
 } from "lucide-react";
-import { mockVocabulary } from "../mock/vocabulary";
+import { getVocabulary, subscribeVocabulary } from "../stores/vocabulary-store";
 import type {
   VocabularyItem,
   JLPTLevel,
+  Flashcard,
 } from "../types/content-library";
 
 const JLPT_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/admin/vocabulary-library")({
 });
 
 function VocabularyLibraryPage() {
-  const [vocabItems, setVocabItems] = useState<VocabularyItem[]>(mockVocabulary);
+  const [vocabItems, setVocabItems] = useState<VocabularyItem[]>(getVocabulary());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<JLPTLevel | "all">("all");
   const [viewingItem, setViewingItem] = useState<VocabularyItem | null>(null);
@@ -40,6 +42,13 @@ function VocabularyLibraryPage() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [expandedLessons, setExpandedLessons] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [showFlashcardModal, setShowFlashcardModal] = useState(false);
+  const [selectedForFlashcard, setSelectedForFlashcard] = useState<Set<string>>(new Set());
+
+  // Subscribe to vocabulary changes from other pages
+  useEffect(() => {
+    return subscribeVocabulary(setVocabItems);
+  }, []);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -130,6 +139,25 @@ function VocabularyLibraryPage() {
   const getAllLessonIds = () => {
     const ids = new Set(vocabItems.map((v) => v.lessonId));
     return Array.from(ids).sort();
+  };
+
+  // Create flashcard from selected vocabulary
+  const handleCreateFlashcard = (vocab: VocabularyItem, showToastFn?: (msg: string) => void) => {
+    const flashcard: Flashcard = {
+      id: `fc-${Date.now()}-${vocab.id}`,
+      front: vocab.word,
+      back: vocab.meaning,
+      jlptLevel: vocab.jlptLevel,
+      lessonId: vocab.lessonId,
+      tags: vocab.tags,
+      difficulty: "medium",
+      exampleSentence: vocab.exampleSentence,
+      createdAt: new Date().toISOString().split("T")[0],
+      updatedAt: new Date().toISOString().split("T")[0],
+    };
+    addFlashcard(flashcard);
+    const message = `Created flashcard for "${vocab.word}"!`;
+    showToastFn ? showToastFn(message) : showToast(message, "success");
   };
 
   return (
@@ -345,6 +373,7 @@ function VocabularyLibraryPage() {
               setEditingItem(viewingItem);
               setViewingItem(null);
             }}
+            onCreateFlashcard={handleCreateFlashcard}
           />
         )}
       </AnimatePresence>
@@ -460,46 +489,46 @@ function NewLessonModal({
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        className="relative z-10 w-full max-w-md glass-modal rounded-2xl shadow-2xl overflow-hidden"
+        className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
         initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b separator">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
               <FolderOpen className="w-5 h-5" />
             </div>
-            <h2 className="font-display font-bold text-primary-col text-lg">Create New Lesson</h2>
+            <h2 className="font-display font-bold text-gray-900 text-lg">Create New Lesson</h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 bg-white">
           <div>
-            <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Lesson ID</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Lesson ID</label>
             <input
               type="text"
               value={lessonId}
               readOnly
-              className="w-full px-4 py-3 rounded-xl input-glass text-sm bg-muted/20"
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900"
             />
-            <p className="text-muted-col text-xs mt-1">This will be used to group vocabulary</p>
+            <p className="text-gray-400 text-xs mt-1">This will be used to group vocabulary</p>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Lesson Title</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Lesson Title</label>
             <input
               type="text"
               value={lessonTitle}
               onChange={(e) => setLessonTitle(e.target.value)}
               placeholder="e.g., Basic Greetings"
-              className="w-full px-4 py-3 rounded-xl input-glass text-sm"
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">JLPT Level</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">JLPT Level</label>
             <div className="flex gap-2">
               {JLPT_LEVELS.map((level) => (
                 <button
@@ -507,8 +536,8 @@ function NewLessonModal({
                   onClick={() => setJlptLevel(level)}
                   className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
                     jlptLevel === level
-                      ? "bg-gradient-hero text-white"
-                      : "glass-surface text-secondary-col"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   {level}
@@ -517,19 +546,19 @@ function NewLessonModal({
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
-            <p className="text-primary-col text-sm font-medium">Preview</p>
-            <p className="text-muted-col text-xs mt-1">
+          <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
+            <p className="text-gray-900 text-sm font-medium">Preview</p>
+            <p className="text-gray-500 text-xs mt-1">
               {lessonTitle || `Lesson ${lessonNumber}`} · {jlptLevel}
             </p>
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t separator flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold">
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-200 transition">
             Cancel
           </button>
-          <button onClick={handleCreate} className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold flex items-center justify-center gap-2">
+          <button onClick={handleCreate} className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition">
             <Save className="w-4 h-4" /> Create & Add Words
           </button>
         </div>
@@ -627,31 +656,31 @@ function UploadVocabModal({
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        className="relative z-10 w-full max-w-2xl glass-modal rounded-2xl shadow-2xl overflow-hidden"
+        className="relative z-10 w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
         initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b separator">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
               <Upload className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-display font-bold text-primary-col text-lg">Import Vocabulary</h2>
-              <p className="text-muted-col text-xs">Upload file to batch import vocabulary</p>
+              <h2 className="font-display font-bold text-gray-900 text-lg">Import Vocabulary</h2>
+              <p className="text-gray-400 text-xs">Upload file to batch import vocabulary</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 bg-white">
           {/* File Upload */}
           <div>
-            <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Upload File</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Upload File</label>
             <div
               className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition ${
-                file ? "border-[var(--status-active)]/30 bg-[var(--status-active)]/5" : "border-[var(--border)] hover:border-primary/30"
+                file ? "border-green-500/50 bg-green-50" : "border-gray-300 hover:border-blue-400"
               }`}
             >
               <input
@@ -664,17 +693,17 @@ function UploadVocabModal({
               <label htmlFor="vocab-file" className="cursor-pointer">
                 {file ? (
                   <div className="flex items-center justify-center gap-3">
-                    <FileText className="w-8 h-8 text-[var(--status-active)]" />
+                    <FileText className="w-8 h-8 text-green-600" />
                     <div className="text-left">
-                      <p className="text-primary-col font-semibold">{file.name}</p>
-                      <p className="text-muted-col text-xs">{(file.size / 1024).toFixed(1)} KB</p>
+                      <p className="text-gray-900 font-semibold">{file.name}</p>
+                      <p className="text-gray-400 text-xs">{(file.size / 1024).toFixed(1)} KB</p>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-10 h-10 text-muted-col/50 mx-auto mb-3" />
-                    <p className="text-secondary-col font-medium">Click to upload file</p>
-                    <p className="text-muted-col text-xs mt-1">.txt or .csv file</p>
+                    <Upload className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600 font-medium">Click to upload file</p>
+                    <p className="text-gray-400 text-xs mt-1">.txt or .csv file</p>
                   </>
                 )}
               </label>
@@ -684,11 +713,11 @@ function UploadVocabModal({
           {/* Lesson & Level Selection */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Add to Lesson</label>
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Add to Lesson</label>
               <select
                 value={selectedLesson}
                 onChange={(e) => setSelectedLesson(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl input-glass text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 focus:border-blue-500 outline-none"
               >
                 {existingLessons.map((id) => (
                   <option key={id} value={id}>{getLessonTitle(id)}</option>
@@ -697,11 +726,11 @@ function UploadVocabModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">JLPT Level</label>
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">JLPT Level</label>
               <select
                 value={jlptLevel}
                 onChange={(e) => setJlptLevel(e.target.value as JLPTLevel)}
-                className="w-full px-4 py-3 rounded-xl input-glass text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-900 focus:border-blue-500 outline-none"
               >
                 {JLPT_LEVELS.map((level) => (
                   <option key={level} value={level}>{level}</option>
@@ -712,47 +741,47 @@ function UploadVocabModal({
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 rounded-xl bg-[var(--status-rejected)]/10 border border-[var(--status-rejected)]/20 text-[var(--status-rejected)] text-sm">
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
               {error}
             </div>
           )}
 
           {/* File Format Help */}
-          <div className="p-4 rounded-xl bg-muted/5 border border-[var(--border)]">
-            <p className="text-muted-col text-xs font-bold mb-2">File Format (one word per line):</p>
-            <code className="text-primary-col text-xs block">
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+            <p className="text-gray-600 text-xs font-bold mb-2">File Format (one word per line):</p>
+            <code className="text-gray-900 text-xs block">
               日本|にほん|Nhật Bản|私は日本に行きたい。|Tôi muốn đi Nhật Bản。
             </code>
-            <p className="text-muted-col text-xs mt-2">Format: word|hiragana|meaning|[example sentence]|[example meaning]</p>
+            <p className="text-gray-400 text-xs mt-2">Format: word|hiragana|meaning|[example sentence]|[example meaning]</p>
           </div>
 
           {/* Preview */}
           {previewData.length > 0 && (
             <div>
-              <p className="text-muted-col text-xs font-bold mb-2">
+              <p className="text-gray-600 text-xs font-bold mb-2">
                 Preview ({previewData.length} words found)
               </p>
-              <div className="max-h-40 overflow-auto rounded-xl border border-[var(--border)]">
+              <div className="max-h-40 overflow-auto rounded-xl border border-gray-200 bg-white">
                 <table className="w-full text-xs">
-                  <thead className="bg-muted/10 sticky top-0">
+                  <thead className="bg-gray-50 sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left font-bold text-muted-col">Word</th>
-                      <th className="px-3 py-2 text-left font-bold text-muted-col">Kana</th>
-                      <th className="px-3 py-2 text-left font-bold text-muted-col">Meaning</th>
+                      <th className="px-3 py-2 text-left font-bold text-gray-500">Word</th>
+                      <th className="px-3 py-2 text-left font-bold text-gray-500">Kana</th>
+                      <th className="px-3 py-2 text-left font-bold text-gray-500">Meaning</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
+                  <tbody className="divide-y divide-gray-100">
                     {previewData.slice(0, 10).map((item, i) => (
                       <tr key={i}>
-                        <td className="px-3 py-2 text-primary-col">{item.word}</td>
-                        <td className="px-3 py-2 text-secondary-col">{item.hiragana}</td>
-                        <td className="px-3 py-2 text-muted-col">{item.meaning}</td>
+                        <td className="px-3 py-2 text-gray-900">{item.word}</td>
+                        <td className="px-3 py-2 text-gray-600">{item.hiragana}</td>
+                        <td className="px-3 py-2 text-gray-400">{item.meaning}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {previewData.length > 10 && (
-                  <p className="px-3 py-2 text-muted-col text-xs text-center border-t border-[var(--border)]">
+                  <p className="px-3 py-2 text-gray-400 text-xs text-center border-t border-gray-200">
                     + {previewData.length - 10} more words...
                   </p>
                 )}
@@ -761,14 +790,14 @@ function UploadVocabModal({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t separator flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold">
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-200 transition">
             Cancel
           </button>
           <button
             onClick={handleImport}
             disabled={previewData.length === 0}
-            className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition disabled:opacity-50"
           >
             <Download className="w-4 h-4" /> Import {previewData.length} Words
           </button>
@@ -783,11 +812,22 @@ function VocabDetailModal({
   item,
   onClose,
   onEdit,
+  onCreateFlashcard,
 }: {
   item: VocabularyItem;
   onClose: () => void;
   onEdit: () => void;
+  onCreateFlashcard: (vocab: VocabularyItem, showToast: (msg: string) => void) => void;
 }) {
+  const [toast, setToast] = useState<{ message: string } | null>(null);
+
+  const handleCreateFlashcard = () => {
+    onCreateFlashcard(item, (msg) => {
+      setToast({ message: msg });
+      setTimeout(() => setToast(null), 2500);
+    });
+    onClose();
+  };
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -795,69 +835,83 @@ function VocabDetailModal({
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        className="relative z-10 w-full max-w-lg glass-modal rounded-2xl shadow-2xl overflow-hidden"
+        className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
         initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b separator">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">
                 {item.jlptLevel}
               </span>
-              <h2 className="font-display font-bold text-primary-col text-lg">
+              <h2 className="font-display font-bold text-gray-900 text-lg">
                 {item.word}
               </h2>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
-          <div className="text-center p-6 rounded-xl bg-primary/5">
-            <p className="font-bold text-primary-col text-3xl mb-2">{item.word}</p>
-            <p className="text-primary/60 text-xl">{item.hiragana}</p>
+        <div className="p-6 space-y-5 bg-white">
+          <div className="text-center p-6 rounded-xl bg-blue-50 border border-blue-100 shadow-sm">
+            <p className="font-bold text-gray-900 text-3xl mb-2">{item.word}</p>
+            <p className="text-blue-600 text-xl">{item.hiragana}</p>
           </div>
 
           <div>
-            <h3 className="text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Meaning</h3>
-            <p className="text-primary-col text-lg">{item.meaning}</p>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Meaning</h3>
+            <p className="text-gray-900 text-lg">{item.meaning}</p>
           </div>
 
           <div>
-            <h3 className="text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Example</h3>
-            <div className="p-4 rounded-xl bg-primary/5">
-              <p className="text-primary-col font-medium mb-1">{item.exampleSentence.sentence}</p>
-              <p className="text-secondary-col text-sm">{item.exampleSentence.meaning}</p>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Example</h3>
+            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+              <p className="text-gray-900 font-medium mb-1">{item.exampleSentence.sentence}</p>
+              <p className="text-gray-600 text-sm">{item.exampleSentence.meaning}</p>
             </div>
           </div>
 
           <div className="flex gap-2 flex-wrap">
             {item.tags.map((tag) => (
-              <span key={tag} className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+              <span key={tag} className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                 {tag}
               </span>
             ))}
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-muted-col pt-4 border-t separator">
+          <div className="flex items-center gap-4 text-xs text-gray-400 pt-4 border-t border-gray-200">
             <span>Lesson: {item.lessonId}</span>
             <span>Created: {item.createdAt}</span>
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t separator flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold">
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-200 transition">
             Close
           </button>
-          <button onClick={onEdit} className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold flex items-center justify-center gap-2">
+          <button onClick={handleCreateFlashcard} className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-purple-700 transition">
+            <Layers className="w-4 h-4" /> Create Flashcard
+          </button>
+          <button onClick={onEdit} className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition">
             <Edit3 className="w-4 h-4" /> Edit
           </button>
         </div>
+
+        {/* Toast */}
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-2 rounded-xl text-sm font-bold bg-purple-600 text-white shadow-lg whitespace-nowrap"
+          >
+            {toast.message}
+          </motion.div>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -883,7 +937,6 @@ function VocabFormModal({
   const [tags, setTags] = useState(item?.tags.join(", ") || "");
   const [exSentence, setExSentence] = useState(item?.exampleSentence.sentence || "");
   const [exMeaning, setExMeaning] = useState(item?.exampleSentence.meaning || "");
-  const [activeTab, setActiveTab] = useState<"basic" | "example" | "advanced">("basic");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -930,272 +983,166 @@ function VocabFormModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        className="relative z-10 w-full max-w-xl bg-[var(--bg-secondary)] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border)]"
-        initial={{ scale: 0.95, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="relative z-10 w-full max-w-xl glass-modal rounded-2xl shadow-2xl overflow-hidden"
+        initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--bg-tertiary)]">
+        <div className="flex items-center justify-between px-6 py-4 border-b separator">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
               <Plus className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="font-bold text-primary-col text-lg">
-                {item ? "Edit Vocabulary" : "Add New Vocabulary"}
-              </h2>
-              <p className="text-muted-col text-xs">Fill in the word details below</p>
-            </div>
+            <h2 className="font-display font-bold text-primary-col text-lg">
+              {item ? "Edit Vocabulary" : "Add New Vocabulary"}
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] text-muted-col hover:text-primary-col transition"
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-[var(--border)]">
-          {[
-            { id: "basic", label: "Basic Info", icon: BookOpen },
-            { id: "example", label: "Example", icon: FileText },
-            { id: "advanced", label: "Advanced", icon: Settings },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition ${
-                  activeTab === tab.id
-                    ? "text-primary border-b-2 border-primary bg-primary/5"
-                    : "text-muted-col hover:text-primary-col hover:bg-[var(--bg-hover)]"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
         </div>
 
         {/* Form Content */}
         <div className="p-6 max-h-[60vh] overflow-auto">
-          {/* Basic Tab */}
-          {activeTab === "basic" && (
-            <div className="space-y-5">
-              {/* Word Preview Card */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                <p className="text-xs text-muted-col mb-1">Preview</p>
-                <p className="font-bold text-primary-col text-2xl">{word || "新しい言葉"}</p>
-                <p className="text-muted-col">{hiragana || "あたらしいことばあ"}</p>
-              </div>
-
-              {/* Word & Hiragana */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-primary-col">
-                    <span>Kanji / Word</span>
-                    <span className="text-[var(--status-rejected)]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={word}
-                    onChange={(e) => setWord(e.target.value)}
-                    placeholder="日本"
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-base"
-                    autoFocus
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary-col">
-                    Hiragana / Reading
-                  </label>
-                  <input
-                    type="text"
-                    value={hiragana}
-                    onChange={(e) => setHiragana(e.target.value)}
-                    placeholder="にほん"
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-base"
-                  />
-                </div>
-              </div>
-
-              {/* Meaning */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-primary-col">
-                  <span>Meaning / Translation</span>
-                  <span className="text-[var(--status-rejected)]">*</span>
+          <div className="space-y-5">
+            {/* Word & Hiragana */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                  Word / Kanji *
                 </label>
                 <input
                   type="text"
-                  value={meaning}
-                  onChange={(e) => setMeaning(e.target.value)}
-                  placeholder="Nhật Bản, Japan"
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-base"
+                  value={word}
+                  onChange={(e) => setWord(e.target.value)}
+                  placeholder="新しい"
+                  className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                 />
               </div>
-
-              {/* Level & Lesson */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary-col">JLPT Level</label>
-                  <select
-                    value={jlptLevel}
-                    onChange={(e) => setJlptLevel(e.target.value as JLPTLevel)}
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                  >
-                    {JLPT_LEVELS.map((l) => (
-                      <option key={l} value={l}>{l} - {getJLPTLevelName(l)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary-col">Lesson</label>
-                  <input
-                    type="text"
-                    value={lessonId}
-                    onChange={(e) => setLessonId(e.target.value)}
-                    placeholder="lesson-01"
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Example Tab */}
-          {activeTab === "example" && (
-            <div className="space-y-5">
-              <div className="p-4 rounded-xl bg-muted/10 border border-[var(--border)]">
-                <p className="text-sm text-muted-col mb-3">Add example sentences to help learners understand usage</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary-col">Example Sentence (Japanese)</label>
-                  <input
-                    type="text"
-                    value={exSentence}
-                    onChange={(e) => setExSentence(e.target.value)}
-                    placeholder="私は日本に行きたいです。"
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-base"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary-col">Translation</label>
-                  <input
-                    type="text"
-                    value={exMeaning}
-                    onChange={(e) => setExMeaning(e.target.value)}
-                    placeholder="Tôi muốn đi Nhật Bản."
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {/* Quick Examples */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-primary-col">Quick Add Example</label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setExSentence(`${word}は${word}です。`);
-                      setExMeaning(`${word} là...`);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] text-xs hover:bg-[var(--bg-hover)] transition"
-                  >
-                    Pattern: ～は～です
-                  </button>
-                  <button
-                    onClick={() => {
-                      setExSentence(`${word}を${word}ます。`);
-                      setExMeaning(`Tôi ${word ? "..." : "..."}`);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] text-xs hover:bg-[var(--bg-hover)] transition"
-                  >
-                    Pattern: ～を～ます
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Advanced Tab */}
-          {activeTab === "advanced" && (
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-primary-col">Tags</label>
-                <div className="flex flex-wrap gap-2">
-                  {commonTags.map((tag) => {
-                    const currentTags = tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
-                    const isSelected = currentTags.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        onClick={() => toggleTag(tag)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                          isSelected
-                            ? "bg-primary text-white"
-                            : "bg-[var(--bg-input)] border border-[var(--border)] text-muted-col hover:border-primary hover:text-primary"
-                        }`}
-                      >
-                        {isSelected && <CheckCircle className="w-3 h-3 inline mr-1" />}
-                        {tag}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                  Hiragana
+                </label>
                 <input
                   type="text"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="Custom tags (comma separated)"
-                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border)] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition mt-2"
+                  value={hiragana}
+                  onChange={(e) => setHiragana(e.target.value)}
+                  placeholder="あたらしい"
+                  className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                 />
               </div>
+            </div>
 
-              {/* Metadata */}
-              <div className="p-4 rounded-xl bg-muted/10 border border-[var(--border)] space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-col">ID</span>
-                  <span className="text-primary-col font-mono">{item?.id || "auto-generated"}</span>
+            {/* Meaning */}
+            <div>
+              <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                Meaning *
+              </label>
+              <textarea
+                value={meaning}
+                onChange={(e) => setMeaning(e.target.value)}
+                placeholder="Explain the meaning..."
+                rows={2}
+                className="w-full px-4 py-3 rounded-xl input-glass text-sm resize-none"
+              />
+            </div>
+
+            {/* Level & Lesson */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                  JLPT Level
+                </label>
+                <div className="flex gap-2">
+                  {JLPT_LEVELS.map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => setJlptLevel(l)}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
+                        jlptLevel === l
+                          ? "bg-gradient-hero text-white"
+                          : "glass-surface text-secondary-col"
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
                 </div>
-                {item && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-col">Created</span>
-                      <span className="text-primary-col">{item.createdAt}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-col">Last Updated</span>
-                      <span className="text-primary-col">{item.updatedAt}</span>
-                    </div>
-                  </>
-                )}
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                  Lesson ID
+                </label>
+                <input
+                  type="text"
+                  value={lessonId}
+                  onChange={(e) => setLessonId(e.target.value)}
+                  placeholder="lesson-01"
+                  className="w-full px-4 py-3 rounded-xl input-glass text-sm"
+                />
               </div>
             </div>
-          )}
+
+            {/* Example Sentence */}
+            <div>
+              <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                Example Sentence
+              </label>
+              <input
+                type="text"
+                value={exSentence}
+                onChange={(e) => setExSentence(e.target.value)}
+                placeholder="私は新しい車を買いました。"
+                className="w-full px-4 py-3 rounded-xl input-glass text-sm"
+              />
+            </div>
+
+            {/* Translation */}
+            <div>
+              <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                Translation
+              </label>
+              <input
+                type="text"
+                value={exMeaning}
+                onChange={(e) => setExMeaning(e.target.value)}
+                placeholder="I bought a new car."
+                className="w-full px-4 py-3 rounded-xl input-glass text-sm"
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+                Tags (comma-separated)
+              </label>
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="noun, daily-life, beginner"
+                className="w-full px-4 py-3 rounded-xl input-glass text-sm"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-tertiary)] flex items-center justify-between">
+        <div className="px-6 py-4 border-t separator flex gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-muted-col hover:text-primary-col hover:bg-[var(--bg-hover)] transition"
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !word || !meaning}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
@@ -1205,7 +1152,7 @@ function VocabFormModal({
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                {item ? "Update" : "Save Vocabulary"}
+                {item ? "Update" : "Save"}
               </>
             )}
           </button>
