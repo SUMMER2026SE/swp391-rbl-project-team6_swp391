@@ -52,6 +52,7 @@ public class ListeningServiceImpl implements ListeningService {
                 .meaning(request.getMeaning())
                 .transcript(request.getTranscript())
                 .topic(request.getTopic())
+                .exerciseType(request.getExerciseType())
                 .status("ACTIVE")
                 .build();
 
@@ -121,6 +122,7 @@ public class ListeningServiceImpl implements ListeningService {
         lesson.setMeaning(request.getMeaning());
         lesson.setTranscript(request.getTranscript());
         lesson.setTopic(request.getTopic());
+        lesson.setExerciseType(request.getExerciseType());
 
         if (request.getStatus() != null) {
             String newStatus = request.getStatus().trim().toUpperCase();
@@ -201,6 +203,7 @@ public class ListeningServiceImpl implements ListeningService {
                 .meaning(lesson.getMeaning())
                 .transcript(lesson.getTranscript())
                 .topic(lesson.getTopic())
+                .exerciseType(lesson.getExerciseType())
                 .build();
     }
 
@@ -222,6 +225,7 @@ public class ListeningServiceImpl implements ListeningService {
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
                 .topic(lesson.getTopic())
+                .exerciseType(lesson.getExerciseType())
                 .build();
     }
 

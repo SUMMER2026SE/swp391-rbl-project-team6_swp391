@@ -200,8 +200,11 @@ function Listening() {
         };
       })();
 
+      const selectedType = ((detail.exerciseType as string) || parsedMeaning.type || "Dictation");
+
       setSelectedEx({
         ...ex,
+        type: selectedType,
         transcript: detail.transcript || "",
         meaning: parsedMeaning.text,
         hiddenWords: parsedMeaning.blankWords,

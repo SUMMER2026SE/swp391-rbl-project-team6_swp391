@@ -36,4 +36,6 @@ public class UpdateListeningRequest {
     private String status;
 
     private String topic;
+
+    private String exerciseType;
 }

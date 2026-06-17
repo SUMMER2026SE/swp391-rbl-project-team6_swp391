@@ -27,4 +27,6 @@ public class ListeningDetailResponse {
     private Instant createdAt;
     private Instant updatedAt;
     private String topic;
+
+    private String exerciseType;
 }
