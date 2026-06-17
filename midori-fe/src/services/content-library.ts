@@ -55,39 +55,36 @@ async function apiFetch<T>(
 export const grammarService = {
   async getAll(level?: JLPTLevel): Promise<GrammarItem[]> {
     if (!isApiEnabled) {
-      const { mockGrammar } = await import("../mock/grammar");
-      return level ? mockGrammar.filter((g) => g.jlptLevel === level) : mockGrammar;
+      throw new Error("API not configured. Please set VITE_API_BASE_URL environment variable.");
     }
 
     try {
       const params = level ? `?level=${level}` : "";
       const response = await apiFetch<GrammarItem[]>(`/grammar${params}`);
       return response.data;
-    } catch {
-      const { mockGrammar } = await import("../mock/grammar");
-      return level ? mockGrammar.filter((g) => g.jlptLevel === level) : mockGrammar;
+    } catch (error) {
+      console.error("Failed to fetch grammar items:", error);
+      throw error;
     }
   },
 
   async getById(id: string): Promise<GrammarItem | null> {
     if (!isApiEnabled) {
-      const { getGrammarById } = await import("../mock/grammar");
-      return getGrammarById(id) || null;
+      throw new Error("API not configured. Please set VITE_API_BASE_URL environment variable.");
     }
 
     try {
       const response = await apiFetch<GrammarItem>(`/grammar/${id}`);
       return response.data;
-    } catch {
-      const { getGrammarById } = await import("../mock/grammar");
-      return getGrammarById(id) || null;
+    } catch (error) {
+      console.error("Failed to fetch grammar item:", error);
+      throw error;
     }
   },
 
   async search(query: string): Promise<GrammarItem[]> {
     if (!isApiEnabled) {
-      const { searchGrammar } = await import("../mock/grammar");
-      return searchGrammar(query);
+      throw new Error("API not configured. Please set VITE_API_BASE_URL environment variable.");
     }
 
     try {
@@ -95,9 +92,9 @@ export const grammarService = {
         `/grammar/search?q=${encodeURIComponent(query)}`
       );
       return response.data;
-    } catch {
-      const { searchGrammar } = await import("../mock/grammar");
-      return searchGrammar(query);
+    } catch (error) {
+      console.error("Failed to search grammar items:", error);
+      throw error;
     }
   },
 
@@ -105,15 +102,7 @@ export const grammarService = {
     item: Omit<GrammarItem, "id" | "createdAt" | "updatedAt">
   ): Promise<GrammarItem> {
     if (!isApiEnabled) {
-      const { mockGrammar } = await import("../mock/grammar");
-      const newItem: GrammarItem = {
-        ...item,
-        id: `gram-${Date.now()}`,
-        createdAt: new Date().toISOString().split("T")[0],
-        updatedAt: new Date().toISOString().split("T")[0],
-      };
-      mockGrammar.unshift(newItem);
-      return newItem;
+      throw new Error("API not configured. Please set VITE_API_BASE_URL environment variable.");
     }
 
     const response = await apiFetch<GrammarItem>("/grammar", {
@@ -128,17 +117,7 @@ export const grammarService = {
     updates: Partial<GrammarItem>
   ): Promise<GrammarItem> {
     if (!isApiEnabled) {
-      const { mockGrammar } = await import("../mock/grammar");
-      const index = mockGrammar.findIndex((g) => g.id === id);
-      if (index !== -1) {
-        mockGrammar[index] = {
-          ...mockGrammar[index],
-          ...updates,
-          updatedAt: new Date().toISOString().split("T")[0],
-        };
-        return mockGrammar[index];
-      }
-      throw new Error("Grammar item not found");
+      throw new Error("API not configured. Please set VITE_API_BASE_URL environment variable.");
     }
 
     const response = await apiFetch<GrammarItem>(`/grammar/${id}`, {
@@ -150,12 +129,7 @@ export const grammarService = {
 
   async delete(id: string): Promise<void> {
     if (!isApiEnabled) {
-      const { mockGrammar } = await import("../mock/grammar");
-      const index = mockGrammar.findIndex((g) => g.id === id);
-      if (index !== -1) {
-        mockGrammar.splice(index, 1);
-      }
-      return;
+      throw new Error("API not configured. Please set VITE_API_BASE_URL environment variable.");
     }
 
     await apiFetch(`/grammar/${id}`, { method: "DELETE" });
