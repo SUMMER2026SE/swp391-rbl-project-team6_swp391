@@ -27,4 +27,6 @@ public class ListeningResponse {
     private String meaning;
     private String transcript;
     private String topic;
+
+    private String exerciseType;
 }

@@ -65,4 +65,7 @@ public class ListeningLesson {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "exercise_type", length = 50)
+    private String exerciseType;
 }

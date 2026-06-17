@@ -17,6 +17,7 @@ export interface ListeningResponse {
   meaning?: string | null;
   transcript?: string | null;
   topic?: string | null;
+  exerciseType?: "DICTATION" | "BLANK_FILL" | "MULTIPLE_CHOICE" | string;
 }
 
 export interface ListeningDetailResponse extends ListeningResponse {
@@ -27,6 +28,8 @@ export interface ListeningDetailResponse extends ListeningResponse {
 export interface CreateListeningPayload {
   level: string;
   title: string;
+  type: string;
+  exerciseType?: "DICTATION" | "BLANK_FILL" | string;
   audioFile?: File | null;
   meaning?: string;
   transcript?: string;
@@ -36,6 +39,8 @@ export interface CreateListeningPayload {
 export interface UpdateListeningPayload {
   level?: string;
   title?: string;
+  type?: string;
+  exerciseType?: "DICTATION" | "BLANK_FILL" | string;
   audioFile?: File | null;
   audioUrl?: string;
   audioFileName?: string;
@@ -49,6 +54,14 @@ export interface LevelResponse {
   id: string;
   name: string;
 }
+
+const mapTypeToBackend = (type?: string): string => {
+  if (!type) return "DICTATION";
+  const upper = type.trim().toUpperCase();
+  if (upper === "BLANK FILL" || upper === "BLANK_FILL") return "BLANK_FILL";
+  if (upper === "MULTIPLE CHOICE" || upper === "MULTIPLE_CHOICE") return "MULTIPLE_CHOICE";
+  return "DICTATION";
+};
 
 export const listeningApi = {
   // Teacher APIs
@@ -66,6 +79,7 @@ export const listeningApi = {
     const formData = new FormData();
     formData.append("level", payload.level);
     formData.append("title", payload.title);
+    formData.append("exerciseType", payload.exerciseType ?? mapTypeToBackend(payload.type));
     if (payload.audioFile) {
       formData.append("audioFile", payload.audioFile);
     }
@@ -85,6 +99,9 @@ export const listeningApi = {
     const formData = new FormData();
     if (payload.level) formData.append("level", payload.level);
     if (payload.title) formData.append("title", payload.title);
+    if (payload.type || payload.exerciseType) {
+      formData.append("exerciseType", payload.exerciseType ?? mapTypeToBackend(payload.type));
+    }
     if (payload.audioFile) {
       formData.append("audioFile", payload.audioFile);
     } else {

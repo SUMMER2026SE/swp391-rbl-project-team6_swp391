@@ -417,14 +417,12 @@ function ListeningPage() {
             if (parsed && typeof parsed === "object") {
               return {
                 text: parsed.text || "",
-                type: (parsed.type || "Dictation") as ExerciseType,
                 blankWords: parsed.blankWords || []
               };
             }
           } catch (e) {}
           return {
             text: detail.meaning || "",
-            type: "Dictation" as ExerciseType,
             blankWords: [] as string[]
           };
         })();
@@ -433,7 +431,7 @@ function ListeningPage() {
           id: item.id,
           title: item.title,
           level: (item.level || "N5") as JLPTLevel,
-          type: parsedMeaning.type,
+          type: ((detail.exerciseType as ExerciseType) || "Dictation"),
           topic: detail.topic || "General",
           audio: !!item.audioUrl,
           audioUrl: item.audioUrl ? (item.audioUrl.startsWith("http") ? item.audioUrl : `http://localhost:8080${item.audioUrl}`) : undefined,
@@ -632,21 +630,19 @@ function ListeningPage() {
           if (parsed && typeof parsed === "object") {
             return {
               text: parsed.text || "",
-              type: (parsed.type || "Dictation") as ExerciseType,
               blankWords: parsed.blankWords || []
             };
           }
         } catch (e) {}
         return {
           text: detail.meaning || "",
-          type: "Dictation" as ExerciseType,
           blankWords: [] as string[]
         };
       })();
 
       const mappedDetail: ListeningExercise = {
         ...exercise,
-        type: parsedMeaning.type,
+        type: ((detail.exerciseType as ExerciseType) || "Dictation"),
         transcript: detail.transcript || "",
         meaning: parsedMeaning.text,
         hiddenWords: parsedMeaning.blankWords,
@@ -734,8 +730,9 @@ function ListeningPage() {
       });
 
       await listeningApi.createListening({
-        level: newLevel,          // send static JLPT level name directly
+        level: newLevel,
         title: newTitle.trim(),
+        type: newType,
         audioFile: newAudioFile,
         meaning: meaningPayload,
         transcript: newTranscript.trim(),
@@ -797,9 +794,11 @@ function ListeningPage() {
         };
       })();
 
+      const exerciseTypeFromApi = ((detail.exerciseType as ExerciseType) || parsedMeaning.type || "Dictation");
+
       const mappedDetail: ListeningExercise = {
         ...exercise,
-        type: parsedMeaning.type,
+        type: exerciseTypeFromApi,
         transcript: detail.transcript || "",
         meaning: parsedMeaning.text,
         topic: detail.topic || "General",
@@ -810,7 +809,7 @@ function ListeningPage() {
       setEditAudioFile(null);
       setEditFormTitle(detail.title);
       setEditFormLevel((detail.level || "N3") as JLPTLevel);
-      setEditFormType(parsedMeaning.type);
+      setEditFormType(exerciseTypeFromApi);
       setEditFormTopic(detail.topic || "");
       setEditFormTopicCustom("");
       setEditFormTranscript(detail.transcript || "");
@@ -844,8 +843,9 @@ function ListeningPage() {
       });
 
       await listeningApi.updateListening(selectedExercise.id, {
-        level: editFormLevel,     // send static JLPT level name directly
+        level: editFormLevel,
         title: editFormTitle.trim(),
+        type: editFormType,
         audioFile: editAudioFile,
         meaning: meaningPayload,
         transcript: editFormTranscript.trim(),

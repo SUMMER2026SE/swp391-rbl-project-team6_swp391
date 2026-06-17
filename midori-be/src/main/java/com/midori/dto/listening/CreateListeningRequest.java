@@ -34,4 +34,6 @@ public class CreateListeningRequest {
     private String transcript;
 
     private String topic;
+
+    private String exerciseType;
 }
