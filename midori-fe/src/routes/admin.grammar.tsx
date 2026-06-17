@@ -1,23 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap, Search, Filter, Plus, Eye, Edit3, Trash2,
   X, ChevronLeft, BookOpen, Clock, List, Loader2,
   CheckCircle, FileText, FolderOpen, Settings, ChevronRight,
-  Copy, Tag, Calendar, ArrowUpDown, Save
+  Copy, Tag, Calendar, ArrowUpDown, Save, RefreshCw, XCircle, Globe, EyeOff
 } from "lucide-react";
 import {
   grammarService,
-  flashcardService,
   isUsingMockData,
 } from "../services/content-library";
+import { adminGrammarApi, type AdminGrammarItem } from "../lib/api/adminGrammar";
 import type {
   GrammarItem,
-  Flashcard,
   JLPTLevel,
 } from "../types/content-library";
-import { mockGrammar } from "../mock/grammar";
 
 const JLPT_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 
@@ -26,13 +24,35 @@ export const Route = createFileRoute("/admin/grammar")({
 });
 
 function GrammarLibraryPage() {
-  const [grammarItems, setGrammarItems] = useState<GrammarItem[]>(mockGrammar);
+  const [grammarItems, setGrammarItems] = useState<AdminGrammarItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<JLPTLevel | "all">("all");
-  const [viewingItem, setViewingItem] = useState<GrammarItem | null>(null);
-  const [editingItem, setEditingItem] = useState<GrammarItem | null>(null);
+  const [viewingItem, setViewingItem] = useState<AdminGrammarItem | null>(null);
+  const [editingItem, setEditingItem] = useState<AdminGrammarItem | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch grammar items from API
+  const fetchGrammarItems = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const items = await adminGrammarApi.getAll();
+      setGrammarItems(items);
+    } catch (err) {
+      console.error("Failed to fetch grammar items:", err);
+      setError("Failed to load grammar items. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchGrammarItems();
+  }, [fetchGrammarItems]);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -46,7 +66,7 @@ function GrammarLibraryPage() {
         !searchQuery ||
         item.grammarStructure.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.meaning.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesLevel = selectedLevel === "all" || item.jlptLevel === selectedLevel;
       return matchesSearch && matchesLevel;
     });
@@ -54,7 +74,7 @@ function GrammarLibraryPage() {
 
   // Group by level
   const itemsByLevel = useMemo(() => {
-    const grouped: Record<JLPTLevel, GrammarItem[]> = {
+    const grouped: Record<JLPTLevel, AdminGrammarItem[]> = {
       N5: [],
       N4: [],
       N3: [],
@@ -76,25 +96,82 @@ function GrammarLibraryPage() {
     }, {} as Record<JLPTLevel, number>);
   }, [grammarItems]);
 
-  const handleCreateGrammar = (newItem: GrammarItem) => {
-    setGrammarItems((prev) => [newItem, ...prev]);
-    showToast("Grammar item created successfully!", "success");
-    setShowCreateModal(false);
+  // Handle create grammar - call API
+  const handleCreateGrammar = async (newItem: {
+    grammarStructure: string;
+    meaning: string;
+    jlptLevel: JLPTLevel;
+    tags: string[];
+    exampleSentences: { sentence: string; meaning: string }[];
+    isPublished: boolean;
+  }) => {
+    try {
+      const createdItem = await adminGrammarApi.create(newItem);
+      // Auto publish if requested
+      if (newItem.isPublished) {
+        try {
+          await adminGrammarApi.publish(createdItem.id);
+        } catch (pubErr) {
+          console.warn("Auto publish failed:", pubErr);
+        }
+      }
+      fetchGrammarItems();
+      showToast("Grammar item created successfully!", "success");
+      setShowCreateModal(false);
+    } catch (err) {
+      console.error("Failed to create grammar:", err);
+      showToast("Failed to create grammar item. Please try again.", "error");
+    }
   };
 
-  const handleUpdateGrammar = (updatedItem: GrammarItem) => {
-    setGrammarItems((prev) =>
-      prev.map((item) => (item.id === updatedItem.id ? updatedItem : item))
-    );
-    showToast("Grammar item updated successfully!", "success");
-    setEditingItem(null);
+  // Handle update grammar - call API
+  const handleUpdateGrammar = async (updatedItem: AdminGrammarItem) => {
+    try {
+      const result = await adminGrammarApi.update(updatedItem.id, updatedItem);
+      // Handle publish/unpublish toggle
+      if (updatedItem.isPublished && !result.isPublished) {
+        await adminGrammarApi.publish(updatedItem.id);
+      } else if (!updatedItem.isPublished && result.isPublished) {
+        await adminGrammarApi.unpublish(updatedItem.id);
+      }
+      fetchGrammarItems();
+      showToast("Grammar item updated successfully!", "success");
+      setEditingItem(null);
+    } catch (err) {
+      console.error("Failed to update grammar:", err);
+      showToast("Failed to update grammar item. Please try again.", "error");
+    }
   };
 
-  const handleDeleteGrammar = (id: string) => {
-    setGrammarItems((prev) => prev.filter((item) => item.id !== id));
-    showToast("Grammar item deleted!", "success");
-    if (viewingItem?.id === id) setViewingItem(null);
-    if (editingItem?.id === id) setEditingItem(null);
+  // Toggle publish status
+  const handleTogglePublish = async (id: string, currentStatus: boolean) => {
+    try {
+      if (currentStatus) {
+        await adminGrammarApi.unpublish(id);
+        showToast("Grammar is now private", "success");
+      } else {
+        await adminGrammarApi.publish(id);
+        showToast("Grammar is now public", "success");
+      }
+      fetchGrammarItems();
+    } catch (err) {
+      console.error("Failed to toggle publish:", err);
+      showToast("Failed to update grammar visibility", "error");
+    }
+  };
+
+  // Handle delete grammar - call API
+  const handleDeleteGrammar = async (id: string) => {
+    try {
+      await adminGrammarApi.delete(id);
+      setGrammarItems((prev) => prev.filter((item) => item.id !== id));
+      showToast("Grammar item deleted!", "success");
+      if (viewingItem?.id === id) setViewingItem(null);
+      if (editingItem?.id === id) setEditingItem(null);
+    } catch (err) {
+      console.error("Failed to delete grammar:", err);
+      showToast("Failed to delete grammar item. Please try again.", "error");
+    }
   };
 
   return (
@@ -115,12 +192,12 @@ function GrammarLibraryPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-4 px-4 py-2 rounded-xl glass-surface text-xs">
             <div className="text-center">
-              <p className="text-primary font-bold text-lg">{totalCount}</p>
+              <p className="text-primary font-bold text-lg">{loading ? "..." : totalCount}</p>
               <p className="text-muted-col">Total</p>
             </div>
             {JLPT_LEVELS.slice(0, 3).map((level) => (
               <div key={level} className="text-center">
-                <p className="text-primary font-bold">{levelCounts[level]}</p>
+                <p className="text-primary font-bold">{loading ? "..." : levelCounts[level]}</p>
                 <p className="text-muted-col">{level}</p>
               </div>
             ))}
@@ -173,8 +250,32 @@ function GrammarLibraryPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="card-base p-12 text-center">
+          <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-secondary-col text-sm">Loading grammar items...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="card-base p-12 text-center">
+          <XCircle className="w-10 h-10 text-[var(--status-rejected)] mx-auto mb-4" />
+          <h3 className="font-display font-bold text-primary-col text-lg mb-2">Error Loading Data</h3>
+          <p className="text-secondary-col text-sm mb-4">{error}</p>
+          <button
+            onClick={fetchGrammarItems}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" /> Try Again
+          </button>
+        </div>
+      )}
+
       {/* Content by Level */}
-      {selectedLevel === "all" ? (
+      {!loading && !error && (
+        selectedLevel === "all" ? (
         <div className="space-y-6">
           {JLPT_LEVELS.map((level) =>
             itemsByLevel[level].length > 0 ? (
@@ -195,6 +296,7 @@ function GrammarLibraryPage() {
                       onView={() => setViewingItem(item)}
                       onEdit={() => setEditingItem(item)}
                       onDelete={() => handleDeleteGrammar(item.id)}
+                      onTogglePublish={handleTogglePublish}
                     />
                   ))}
                 </div>
@@ -211,13 +313,15 @@ function GrammarLibraryPage() {
               onView={() => setViewingItem(item)}
               onEdit={() => setEditingItem(item)}
               onDelete={() => handleDeleteGrammar(item.id)}
+              onTogglePublish={handleTogglePublish}
             />
           ))}
         </div>
+      )
       )}
 
       {/* Empty State */}
-      {filteredItems.length === 0 && (
+      {!loading && !error && filteredItems.length === 0 && (
         <div className="card-base p-12 text-center">
           <GraduationCap className="w-12 h-12 text-muted-col/40 mx-auto mb-4" />
           <h3 className="font-display font-bold text-primary-col text-lg mb-2">
@@ -289,11 +393,13 @@ function GrammarCard({
   onView,
   onEdit,
   onDelete,
+  onTogglePublish,
 }: {
-  item: GrammarItem;
+  item: AdminGrammarItem;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onTogglePublish: (id: string, currentStatus: boolean) => void;
 }) {
   return (
     <motion.div
@@ -311,21 +417,33 @@ function GrammarCard({
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
               {item.jlptLevel}
             </span>
-            {item.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded text-[10px] font-medium bg-muted/10 text-muted-col"
-              >
-                {tag}
-              </span>
-            ))}
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+              item.isPublished 
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                : "bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-400"
+            }`}>
+              {item.isPublished ? "Public" : "Private"}
+            </span>
           </div>
           <h3 className="font-display font-bold text-primary-col text-base mb-1">
-            {item.grammarStructure}
+            {item.grammarStructure || item.title}
           </h3>
           <p className="text-secondary-col text-sm line-clamp-2">{item.meaning}</p>
+          {item.teacherName && item.teacherName !== "Unknown" && (
+            <p className="text-xs text-muted-col mt-1">by {item.teacherName}</p>
+          )}
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePublish(item.id, item.isPublished);
+            }}
+            className="p-2 rounded-lg glass-surface text-secondary-col hover:text-green-600 transition"
+            title={item.isPublished ? "Make Private" : "Make Public"}
+          >
+            {item.isPublished ? <EyeOff className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -356,7 +474,7 @@ function GrammarDetailModal({
   onClose,
   onEdit,
 }: {
-  item: GrammarItem;
+  item: AdminGrammarItem;
   onClose: () => void;
   onEdit: () => void;
 }) {
@@ -405,20 +523,23 @@ function GrammarDetailModal({
             <p className="text-primary-col">{item.meaning}</p>
           </div>
 
-          {/* Tags */}
+          {/* Tags / Status */}
           <div>
             <h3 className="text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
-              Tags
+              Visibility
             </h3>
             <div className="flex gap-2 flex-wrap">
-              {item.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                >
-                  {tag}
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                item.isPublished ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                "bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-400"
+              }`}>
+                {item.isPublished ? "Public" : "Private"}
+              </span>
+              {item.teacherName && item.teacherName !== "Unknown" && (
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                  by {item.teacherName}
                 </span>
-              ))}
+              )}
             </div>
           </div>
 
@@ -475,17 +596,25 @@ function GrammarFormModal({
   onClose,
   onSubmit,
 }: {
-  item: GrammarItem | null;
+  item: AdminGrammarItem | null;
   onClose: () => void;
-  onSubmit: (item: GrammarItem) => void;
+  onSubmit: (item: {
+    grammarStructure: string;
+    meaning: string;
+    jlptLevel: JLPTLevel;
+    tags: string[];
+    exampleSentences: { sentence: string; meaning: string }[];
+    isPublished: boolean;
+  }) => void;
 }) {
-  const [grammarStructure, setGrammarStructure] = useState(item?.grammarStructure || "");
+  const [grammarStructure, setGrammarStructure] = useState(item?.grammarStructure || item?.title || "");
   const [meaning, setMeaning] = useState(item?.meaning || "");
   const [jlptLevel, setJlptLevel] = useState<JLPTLevel>(item?.jlptLevel || "N5");
-  const [tags, setTags] = useState(item?.tags.join(", ") || "");
-  const [examples, setExamples] = useState(item?.exampleSentences || [
-    { sentence: "", meaning: "" },
-  ]);
+  const [tags, setTags] = useState(item?.tags?.join(", ") || "");
+  const [examples, setExamples] = useState<{ sentence: string; meaning: string }[]>(
+    item?.exampleSentences?.length ? item.exampleSentences : [{ sentence: "", meaning: "" }]
+  );
+  const [isPublished, setIsPublished] = useState(item?.isPublished ?? true); // Default to public
 
   const addExample = () => {
     setExamples([...examples, { sentence: "", meaning: "" }]);
@@ -509,15 +638,13 @@ function GrammarFormModal({
       return;
     }
 
-    const newItem: GrammarItem = {
-      id: item?.id || `gram-${Date.now()}`,
+    const newItem = {
       grammarStructure,
       meaning,
       jlptLevel,
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       exampleSentences: examples.filter((e) => e.sentence && e.meaning),
-      createdAt: item?.createdAt || new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
+      isPublished,
     };
 
     onSubmit(newItem);
@@ -612,6 +739,38 @@ function GrammarFormModal({
               placeholder="e.g., basic, copula, declarative"
               className="w-full px-4 py-3 rounded-xl input-glass text-sm"
             />
+          </div>
+
+          {/* Public Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl glass-surface">
+            <div className="flex items-center gap-3">
+              {isPublished ? (
+                <Globe className="w-5 h-5 text-green-600" />
+              ) : (
+                <EyeOff className="w-5 h-5 text-gray-400" />
+              )}
+              <div>
+                <p className="font-medium text-primary-col">
+                  {isPublished ? "Public" : "Private"}
+                </p>
+                <p className="text-xs text-muted-col">
+                  {isPublished ? "Visible to all users" : "Only visible to you"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPublished(!isPublished)}
+              className={`relative w-12 h-6 rounded-full transition-colors ${
+                isPublished ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  isPublished ? "translate-x-7" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
 
           {/* Example Sentences */}
