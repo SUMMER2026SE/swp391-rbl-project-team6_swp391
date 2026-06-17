@@ -1,3 +1,9 @@
 spring:
   profiles:
     active: local
+
+supabase:
+  url: ${SUPABASE_URL:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  storage:
+    bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
