@@ -1,16 +1,20 @@
 // ─── Shared Vocabulary Store ─────────────────────────────────────────────────────
 // Module-level state for sharing vocabulary between pages
 
-import { VocabularyItem } from "../types/content-library";
-import { mockVocabulary } from "../mock/vocabulary";
+import type { VocabularyItem } from "../types/content-library";
 
-// Shared vocabulary state
-let sharedVocabulary: VocabularyItem[] = [...mockVocabulary];
+// Shared vocabulary state (will be populated from API)
+let sharedVocabulary: VocabularyItem[] = [];
 type VocabularyListener = (vocab: VocabularyItem[]) => void;
 const listeners: Set<VocabularyListener> = new Set();
 
 export function getVocabulary(): VocabularyItem[] {
   return [...sharedVocabulary];
+}
+
+export function setVocabulary(vocab: VocabularyItem[]): void {
+  sharedVocabulary = vocab;
+  notifyListeners();
 }
 
 export function addVocabularyItem(item: VocabularyItem): void {
