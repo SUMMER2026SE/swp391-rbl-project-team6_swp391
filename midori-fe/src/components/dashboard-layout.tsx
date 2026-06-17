@@ -8,14 +8,18 @@ import {
   LayoutDashboard, BookOpen, GraduationCap, Layers, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
-  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon
+  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
+  Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
 import type { Notification } from "@/types/notification";
 
-type NavItem = { to: string; label: string; icon: React.ElementType };
+// Hierarchical navigation types
+type NavItemBase = { to: string; label: string; icon: React.ElementType; badge?: number };
+type NavSubItem = { to: string; label: string; icon?: React.ElementType; badge?: number };
+type NavItem = NavItemBase & { children?: NavSubItem[] };
 
 const studentNav: NavItem[] = [
   { to: "/student", label: "Dashboard", icon: LayoutDashboard },
@@ -45,17 +49,65 @@ const teacherNav: NavItem[] = [
   { to: "/teacher/settings", label: "Settings", icon: Settings },
 ];
 
+// New Academic Actor Admin Navigation
 const adminNav: NavItem[] = [
+  // 1. Dashboard
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/users", label: "User Management", icon: Users },
-  { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck },
-  { to: "/admin/content-approval", label: "Flashcard Approval", icon: Layers },
-  { to: "/admin/grammar-approval", label: "Grammar Approval", icon: GrammarIcon },
-  { to: "/admin/exams", label: "Exam Approval", icon: ClipboardCheck },
-  { to: "/admin/analytics", label: "Analytics", icon: LineChart },
-  { to: "/admin/notifications", label: "Notifications", icon: Megaphone },
-  { to: "/admin/settings", label: "System Settings", icon: Settings },
-  { to: "/admin/profile", label: "Profile", icon: User },
+  
+  // 2. User Management
+  { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck, 
+    children: [
+      { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck },
+      { to: "/admin/users", label: "Teacher List", icon: Users },
+      { to: "/admin/students", label: "Student Management", icon: GraduationCap },
+      { to: "/admin/roles", label: "Roles & Permissions", icon: Shield },
+    ]
+  },
+  
+  // 3. JLPT Exam Bank
+  { to: "/admin/exams", label: "Exam Bank", icon: ClipboardCheck,
+    children: [
+      { to: "/admin/exams?level=n5", label: "N5 Exams", icon: FileText },
+      { to: "/admin/exams?level=n4", label: "N4 Exams", icon: FileText },
+      { to: "/admin/exams?level=n3", label: "N3 Exams", icon: FileText },
+      { to: "/admin/exams?level=n2", label: "N2 Exams", icon: FileText },
+      { to: "/admin/exams?level=n1", label: "N1 Exams", icon: FileText },
+      { to: "/admin/ai-generator", label: "AI Generator", icon: Sparkles },
+    ]
+  },
+  
+  // 4. Content Library
+  { to: "/admin/grammar", label: "Content Library", icon: FolderOpen,
+    children: [
+      { to: "/admin/grammar", label: "Grammar Library", icon: GraduationCap },
+      { to: "/admin/vocabulary-library", label: "Vocabulary Library", icon: BookOpen },
+      { to: "/admin/listening-library", label: "Listening Library", icon: Headphones },
+      { to: "/admin/reading-library", label: "Reading Library", icon: ScrollText },
+      { to: "/admin/shadowing-library", label: "Shadowing Library", icon: Mic2 },
+      { to: "/admin/flashcard-library", label: "Flashcard Library", icon: Layers },
+    ]
+  },
+  
+  // 5. Content Management
+  { to: "/admin/content-approval", label: "Content Management", icon: Layers,
+    children: [
+      { to: "/admin/content-approval", label: "Flashcard Approval", icon: Layers },
+      { to: "/admin/grammar-approval", label: "Grammar Approval", icon: GraduationCap },
+    ]
+  },
+  
+  // 6. System Analytics
+  { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
+  
+  // 7. System Settings
+  { to: "/admin/settings", label: "System Settings", icon: Settings,
+    children: [
+      { to: "/admin/settings", label: "Settings", icon: Settings },
+      { to: "/admin/moderation", label: "Reports Center", icon: Eye },
+      { to: "/admin/notifications", label: "Notifications", icon: Megaphone },
+      { to: "/admin/profile", label: "Profile", icon: User },
+    ]
+  },
 ];
 
 function getNav(role: FrontendRole): NavItem[] {
@@ -103,6 +155,161 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
     admin: "Administrator",
   };
 
+  // Expandable menu state for admin
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  // Toggle expanded state for submenu
+  const toggleExpanded = useCallback((key: string) => {
+    setExpandedMenus(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // Check if item or any child is active
+  const isItemOrChildActive = useCallback((item: NavItem): boolean => {
+    if (item.children) {
+      return item.children.some(child => pathname === child.to || pathname.startsWith(child.to + '/'));
+    }
+    const isBaseRoute = item.to === `/${role}`;
+    return pathname === item.to || (!isBaseRoute && pathname.startsWith(item.to));
+  }, [pathname, role]);
+
+  // Get active child for a parent item
+  const getActiveChild = useCallback((item: NavItem): string | null => {
+    if (!item.children) return null;
+    const activeChild = item.children.find(child => 
+      pathname === child.to || pathname.startsWith(child.to + '/')
+    );
+    return activeChild?.to || null;
+  }, [pathname]);
+
+  // Render navigation item (flat or with children)
+  const renderNavItem = (item: NavItem, isChild = false, parentKey = '') => {
+    const key = parentKey ? `${parentKey}-${item.to}` : item.to;
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedMenus[key] || false;
+    const isActive = isItemOrChildActive(item);
+    const activeChild = getActiveChild(item);
+    const Icon = item.icon;
+
+    if (isChild) {
+      // Render child item (flat list style)
+      return (
+        <Link
+          key={item.to}
+          to={item.to}
+          title={isCollapsed ? item.label : undefined}
+          className={cn(
+            "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
+            pathname === item.to ? "nav-active" : "nav-item child-nav-item",
+            isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6"
+          )}
+        >
+          {item.icon && (
+            <item.icon
+              className={cn(
+                "w-4 h-4 flex-shrink-0 transition-all duration-300",
+                pathname === item.to ? "text-white" : "text-muted-foreground group-hover:text-primary"
+              )}
+            />
+          )}
+          <span
+            className={cn(
+              "transition-all duration-300 whitespace-nowrap overflow-hidden",
+              pathname === item.to ? "text-white font-semibold" : "text-secondary-col",
+              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+            )}
+          >
+            {item.label}
+          </span>
+        </Link>
+      );
+    }
+
+    // Render parent item with expandable children
+    if (hasChildren) {
+      return (
+        <div key={item.to} className="relative">
+          <button
+            onClick={() => toggleExpanded(key)}
+            title={isCollapsed ? item.label : undefined}
+            className={cn(
+              "w-full group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
+              isActive ? "nav-active" : "nav-item",
+              isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+            )}
+          >
+            <Icon
+              className={cn(
+                "w-4 h-4 flex-shrink-0 transition-all duration-300",
+                isActive ? "text-white" : "text-muted-foreground group-hover:text-primary"
+              )}
+            />
+            <span
+              className={cn(
+                "transition-all duration-300 whitespace-nowrap overflow-hidden flex-1 text-left",
+                isActive ? "text-white font-semibold" : "text-secondary-col",
+                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+              )}
+            >
+              {item.label}
+            </span>
+            {!isCollapsed && (
+              <ChevronRight
+                className={cn(
+                  "w-4 h-4 flex-shrink-0 transition-transform duration-200",
+                  isExpanded && "rotate-90"
+                )}
+              />
+            )}
+          </button>
+          
+          {/* Children */}
+          {!isCollapsed && isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              {item.children!.map(child => renderNavItem(child, true, key))}
+            </motion.div>
+          )}
+        </div>
+      );
+    }
+
+    // Render simple item without children
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        title={isCollapsed ? item.label : undefined}
+        className={cn(
+          "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
+          isActive ? "nav-active" : "nav-item",
+          isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+        )}
+      >
+        <Icon
+          className={cn(
+            "w-4 h-4 flex-shrink-0 transition-all duration-300",
+            isActive ? "text-white" : "text-muted-foreground group-hover:text-primary"
+          )}
+        />
+        <span
+          className={cn(
+            "transition-all duration-300 whitespace-nowrap overflow-hidden",
+            isActive ? "text-white font-semibold" : "text-secondary-col",
+            isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+          )}
+        >
+          {item.label}
+        </span>
+        {!isCollapsed && isActive && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
+      </Link>
+    );
+  };
+
   return (
     <div className="min-h-screen flex">
       <SakuraBg count={14} />
@@ -147,41 +354,47 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
         </div>
 
         <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden", isCollapsed ? "mt-1" : "mt-2")}>
-          {items.map((it) => {
-            const isBaseRoute = it.to === `/${role}`;
-            const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-            const Icon = it.icon;
-            return (
-              <Link
-                key={it.to}
-                to={it.to}
-                title={isCollapsed ? it.label : undefined}
-                className={cn(
-                  "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
-                  active ? "nav-active" : "nav-item",
-                  isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
-                )}
-              >
-                <Icon
+          {role === "admin" ? (
+            // Admin uses hierarchical navigation
+            items.map(item => renderNavItem(item))
+          ) : (
+            // Student/Teacher use flat navigation
+            items.map((it) => {
+              const isBaseRoute = it.to === `/${role}`;
+              const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+              const Icon = it.icon;
+              return (
+                <Link
+                  key={it.to}
+                  to={it.to}
+                  title={isCollapsed ? it.label : undefined}
                   className={cn(
-                    "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                    active ? "text-white" : "text-muted-foreground group-hover:text-primary",
-                    isCollapsed ? "mx-auto" : ""
-                  )}
-                />
-                <span
-                  className={cn(
-                    "transition-all duration-300 whitespace-nowrap overflow-hidden",
-                    active ? "text-white font-semibold" : "text-secondary-col",
-                    isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                    "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
+                    active ? "nav-active" : "nav-item",
+                    isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
                   )}
                 >
-                  {it.label}
-                </span>
-                {!isCollapsed && active && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
-              </Link>
-            );
-          })}
+                  <Icon
+                    className={cn(
+                      "w-4 h-4 flex-shrink-0 transition-all duration-300",
+                      active ? "text-white" : "text-muted-foreground group-hover:text-primary",
+                      isCollapsed ? "mx-auto" : ""
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "transition-all duration-300 whitespace-nowrap overflow-hidden",
+                      active ? "text-white font-semibold" : "text-secondary-col",
+                      isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                    )}
+                  >
+                    {it.label}
+                  </span>
+                  {!isCollapsed && active && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
+                </Link>
+              );
+            })
+          )}
         </nav>
 
         <button
@@ -207,20 +420,79 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
       {/* Mobile drawer */}
       {open && (
         <div className="md:hidden fixed inset-0 z-50 overlay-dark" onClick={() => setOpen(false)}>
-          <aside className="absolute left-0 top-0 bottom-0 w-72 glass-sidebar p-4 rounded-r-3xl" onClick={(e) => e.stopPropagation()}>
+          <aside className="absolute left-0 top-0 bottom-0 w-72 glass-sidebar p-4 rounded-r-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="font-display font-extrabold text-xl tracking-[0.2em] text-primary-col mb-6">MIDORI</div>
             <nav className="space-y-1">
-              {items.map((it) => {
-                const isBaseRoute = it.to === `/${role}`;
-                const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-                const Icon = it.icon;
-                return (
-                  <Link key={it.to} to={it.to} onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}>
-                    <Icon className="w-4 h-4" /> {it.label}
-                  </Link>
-                );
-              })}
+              {role === "admin" ? (
+                // Admin hierarchical mobile nav
+                items.map(item => {
+                  const hasChildren = item.children && item.children.length > 0;
+                  const isActive = isItemOrChildActive(item);
+                  const isExpanded = expandedMenus[item.to] || false;
+                  
+                  if (hasChildren) {
+                    return (
+                      <div key={item.to}>
+                        <button
+                          onClick={() => toggleExpanded(item.to)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
+                            isActive ? "nav-active" : "nav-item"
+                          }`}
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span className="flex-1 text-left">{item.label}</span>
+                          <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                        </button>
+                        {isExpanded && (
+                          <div className="ml-4 space-y-1">
+                            {item.children!.map(child => (
+                              <Link
+                                key={child.to}
+                                to={child.to}
+                                onClick={() => setOpen(false)}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${
+                                  pathname === child.to ? "nav-active" : "nav-item"
+                                }`}
+                              >
+                                <span className="w-4 h-4" />
+                                {child.icon && <child.icon className="w-4 h-4" />}
+                                {child.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
+                        isActive ? "nav-active" : "nav-item"
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })
+              ) : (
+                // Student/Teacher flat mobile nav
+                items.map((it) => {
+                  const isBaseRoute = it.to === `/${role}`;
+                  const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+                  const Icon = it.icon;
+                  return (
+                    <Link key={it.to} to={it.to} onClick={() => setOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}>
+                      <Icon className="w-4 h-4" /> {it.label}
+                    </Link>
+                  );
+                })
+              )}
             </nav>
           </aside>
         </div>

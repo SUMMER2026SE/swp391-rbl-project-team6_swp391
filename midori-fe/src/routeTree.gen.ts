@@ -44,17 +44,25 @@ import { Route as StudentGrammarRouteImport } from './routes/student.grammar'
 import { Route as StudentFlashcardsRouteImport } from './routes/student.flashcards'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
 import { Route as StudentAiSenseiRouteImport } from './routes/student.ai-sensei'
+import { Route as AdminVocabularyLibraryRouteImport } from './routes/admin.vocabulary-library'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTeachersRouteImport } from './routes/admin.teachers'
+import { Route as AdminStudentsRouteImport } from './routes/admin.students'
+import { Route as AdminShadowingLibraryRouteImport } from './routes/admin.shadowing-library'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminRolesRouteImport } from './routes/admin.roles'
+import { Route as AdminReadingLibraryRouteImport } from './routes/admin.reading-library'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminModerationRouteImport } from './routes/admin.moderation'
+import { Route as AdminListeningLibraryRouteImport } from './routes/admin.listening-library'
 import { Route as AdminGrammarApprovalRouteImport } from './routes/admin.grammar-approval'
 import { Route as AdminGrammarRouteImport } from './routes/admin.grammar'
+import { Route as AdminFlashcardLibraryRouteImport } from './routes/admin.flashcard-library'
 import { Route as AdminExamsRouteImport } from './routes/admin.exams'
 import { Route as AdminContentApprovalRouteImport } from './routes/admin.content-approval'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as AdminAiGeneratorRouteImport } from './routes/admin.ai-generator'
 import { Route as TeacherVocabularyLessonIdRouteImport } from './routes/teacher.vocabulary.$lessonId'
 import { Route as StudentVocabularyLessonIdRouteImport } from './routes/student.vocabulary.$lessonId'
 import { Route as StudentGrammarIndexRouteImport } from './routes/student.grammar._index'
@@ -236,6 +244,11 @@ const StudentAiSenseiRoute = StudentAiSenseiRouteImport.update({
   path: '/ai-sensei',
   getParentRoute: () => StudentRoute,
 } as any)
+const AdminVocabularyLibraryRoute = AdminVocabularyLibraryRouteImport.update({
+  id: '/vocabulary-library',
+  path: '/vocabulary-library',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -246,9 +259,29 @@ const AdminTeachersRoute = AdminTeachersRouteImport.update({
   path: '/teachers',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminStudentsRoute = AdminStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminShadowingLibraryRoute = AdminShadowingLibraryRouteImport.update({
+  id: '/shadowing-library',
+  path: '/shadowing-library',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRolesRoute = AdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReadingLibraryRoute = AdminReadingLibraryRouteImport.update({
+  id: '/reading-library',
+  path: '/reading-library',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProfileRoute = AdminProfileRouteImport.update({
@@ -266,6 +299,11 @@ const AdminModerationRoute = AdminModerationRouteImport.update({
   path: '/moderation',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminListeningLibraryRoute = AdminListeningLibraryRouteImport.update({
+  id: '/listening-library',
+  path: '/listening-library',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminGrammarApprovalRoute = AdminGrammarApprovalRouteImport.update({
   id: '/grammar-approval',
   path: '/grammar-approval',
@@ -274,6 +312,11 @@ const AdminGrammarApprovalRoute = AdminGrammarApprovalRouteImport.update({
 const AdminGrammarRoute = AdminGrammarRouteImport.update({
   id: '/grammar',
   path: '/grammar',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFlashcardLibraryRoute = AdminFlashcardLibraryRouteImport.update({
+  id: '/flashcard-library',
+  path: '/flashcard-library',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminExamsRoute = AdminExamsRouteImport.update({
@@ -289,6 +332,11 @@ const AdminContentApprovalRoute = AdminContentApprovalRouteImport.update({
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAiGeneratorRoute = AdminAiGeneratorRouteImport.update({
+  id: '/ai-generator',
+  path: '/ai-generator',
   getParentRoute: () => AdminRoute,
 } as any)
 const TeacherVocabularyLessonIdRoute =
@@ -331,17 +379,25 @@ export interface FileRoutesByFullPath {
   '/teacher': typeof TeacherRouteWithChildren
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
+  '/admin/ai-generator': typeof AdminAiGeneratorRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
+  '/admin/flashcard-library': typeof AdminFlashcardLibraryRoute
   '/admin/grammar': typeof AdminGrammarRoute
   '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
+  '/admin/listening-library': typeof AdminListeningLibraryRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/reading-library': typeof AdminReadingLibraryRoute
+  '/admin/roles': typeof AdminRolesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/shadowing-library': typeof AdminShadowingLibraryRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/admin/teachers': typeof AdminTeachersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
   '/student/ai-sensei': typeof StudentAiSenseiRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
@@ -380,17 +436,25 @@ export interface FileRoutesByTo {
   '/reset-success': typeof ResetSuccessRoute
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
+  '/admin/ai-generator': typeof AdminAiGeneratorRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
+  '/admin/flashcard-library': typeof AdminFlashcardLibraryRoute
   '/admin/grammar': typeof AdminGrammarRoute
   '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
+  '/admin/listening-library': typeof AdminListeningLibraryRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/reading-library': typeof AdminReadingLibraryRoute
+  '/admin/roles': typeof AdminRolesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/shadowing-library': typeof AdminShadowingLibraryRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/admin/teachers': typeof AdminTeachersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
   '/student/ai-sensei': typeof StudentAiSenseiRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
@@ -433,17 +497,25 @@ export interface FileRoutesById {
   '/teacher': typeof TeacherRouteWithChildren
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
+  '/admin/ai-generator': typeof AdminAiGeneratorRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/content-approval': typeof AdminContentApprovalRoute
   '/admin/exams': typeof AdminExamsRoute
+  '/admin/flashcard-library': typeof AdminFlashcardLibraryRoute
   '/admin/grammar': typeof AdminGrammarRoute
   '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
+  '/admin/listening-library': typeof AdminListeningLibraryRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/profile': typeof AdminProfileRoute
+  '/admin/reading-library': typeof AdminReadingLibraryRoute
+  '/admin/roles': typeof AdminRolesRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/shadowing-library': typeof AdminShadowingLibraryRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/admin/teachers': typeof AdminTeachersRoute
   '/admin/users': typeof AdminUsersRoute
+  '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
   '/student/ai-sensei': typeof StudentAiSenseiRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
@@ -488,17 +560,25 @@ export interface FileRouteTypes {
     | '/teacher'
     | '/teacher-pending'
     | '/verify-otp'
+    | '/admin/ai-generator'
     | '/admin/analytics'
     | '/admin/content-approval'
     | '/admin/exams'
+    | '/admin/flashcard-library'
     | '/admin/grammar'
     | '/admin/grammar-approval'
+    | '/admin/listening-library'
     | '/admin/moderation'
     | '/admin/notifications'
     | '/admin/profile'
+    | '/admin/reading-library'
+    | '/admin/roles'
     | '/admin/settings'
+    | '/admin/shadowing-library'
+    | '/admin/students'
     | '/admin/teachers'
     | '/admin/users'
+    | '/admin/vocabulary-library'
     | '/student/ai-sensei'
     | '/student/exams'
     | '/student/flashcards'
@@ -537,17 +617,25 @@ export interface FileRouteTypes {
     | '/reset-success'
     | '/teacher-pending'
     | '/verify-otp'
+    | '/admin/ai-generator'
     | '/admin/analytics'
     | '/admin/content-approval'
     | '/admin/exams'
+    | '/admin/flashcard-library'
     | '/admin/grammar'
     | '/admin/grammar-approval'
+    | '/admin/listening-library'
     | '/admin/moderation'
     | '/admin/notifications'
     | '/admin/profile'
+    | '/admin/reading-library'
+    | '/admin/roles'
     | '/admin/settings'
+    | '/admin/shadowing-library'
+    | '/admin/students'
     | '/admin/teachers'
     | '/admin/users'
+    | '/admin/vocabulary-library'
     | '/student/ai-sensei'
     | '/student/exams'
     | '/student/flashcards'
@@ -589,17 +677,25 @@ export interface FileRouteTypes {
     | '/teacher'
     | '/teacher-pending'
     | '/verify-otp'
+    | '/admin/ai-generator'
     | '/admin/analytics'
     | '/admin/content-approval'
     | '/admin/exams'
+    | '/admin/flashcard-library'
     | '/admin/grammar'
     | '/admin/grammar-approval'
+    | '/admin/listening-library'
     | '/admin/moderation'
     | '/admin/notifications'
     | '/admin/profile'
+    | '/admin/reading-library'
+    | '/admin/roles'
     | '/admin/settings'
+    | '/admin/shadowing-library'
+    | '/admin/students'
     | '/admin/teachers'
     | '/admin/users'
+    | '/admin/vocabulary-library'
     | '/student/ai-sensei'
     | '/student/exams'
     | '/student/flashcards'
@@ -892,6 +988,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentAiSenseiRouteImport
       parentRoute: typeof StudentRoute
     }
+    '/admin/vocabulary-library': {
+      id: '/admin/vocabulary-library'
+      path: '/vocabulary-library'
+      fullPath: '/admin/vocabulary-library'
+      preLoaderRoute: typeof AdminVocabularyLibraryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/users': {
       id: '/admin/users'
       path: '/users'
@@ -906,11 +1009,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTeachersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/students': {
+      id: '/admin/students'
+      path: '/students'
+      fullPath: '/admin/students'
+      preLoaderRoute: typeof AdminStudentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/shadowing-library': {
+      id: '/admin/shadowing-library'
+      path: '/shadowing-library'
+      fullPath: '/admin/shadowing-library'
+      preLoaderRoute: typeof AdminShadowingLibraryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
       fullPath: '/admin/settings'
       preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/roles': {
+      id: '/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AdminRolesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reading-library': {
+      id: '/admin/reading-library'
+      path: '/reading-library'
+      fullPath: '/admin/reading-library'
+      preLoaderRoute: typeof AdminReadingLibraryRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/profile': {
@@ -934,6 +1065,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminModerationRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/listening-library': {
+      id: '/admin/listening-library'
+      path: '/listening-library'
+      fullPath: '/admin/listening-library'
+      preLoaderRoute: typeof AdminListeningLibraryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/grammar-approval': {
       id: '/admin/grammar-approval'
       path: '/grammar-approval'
@@ -946,6 +1084,13 @@ declare module '@tanstack/react-router' {
       path: '/grammar'
       fullPath: '/admin/grammar'
       preLoaderRoute: typeof AdminGrammarRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/flashcard-library': {
+      id: '/admin/flashcard-library'
+      path: '/flashcard-library'
+      fullPath: '/admin/flashcard-library'
+      preLoaderRoute: typeof AdminFlashcardLibraryRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/exams': {
@@ -967,6 +1112,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/admin/analytics'
       preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ai-generator': {
+      id: '/admin/ai-generator'
+      path: '/ai-generator'
+      fullPath: '/admin/ai-generator'
+      preLoaderRoute: typeof AdminAiGeneratorRouteImport
       parentRoute: typeof AdminRoute
     }
     '/teacher/vocabulary/$lessonId': {
@@ -1008,32 +1160,48 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAiGeneratorRoute: typeof AdminAiGeneratorRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminContentApprovalRoute: typeof AdminContentApprovalRoute
   AdminExamsRoute: typeof AdminExamsRoute
+  AdminFlashcardLibraryRoute: typeof AdminFlashcardLibraryRoute
   AdminGrammarRoute: typeof AdminGrammarRoute
   AdminGrammarApprovalRoute: typeof AdminGrammarApprovalRoute
+  AdminListeningLibraryRoute: typeof AdminListeningLibraryRoute
   AdminModerationRoute: typeof AdminModerationRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminProfileRoute: typeof AdminProfileRoute
+  AdminReadingLibraryRoute: typeof AdminReadingLibraryRoute
+  AdminRolesRoute: typeof AdminRolesRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminShadowingLibraryRoute: typeof AdminShadowingLibraryRoute
+  AdminStudentsRoute: typeof AdminStudentsRoute
   AdminTeachersRoute: typeof AdminTeachersRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  AdminVocabularyLibraryRoute: typeof AdminVocabularyLibraryRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAiGeneratorRoute: AdminAiGeneratorRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminContentApprovalRoute: AdminContentApprovalRoute,
   AdminExamsRoute: AdminExamsRoute,
+  AdminFlashcardLibraryRoute: AdminFlashcardLibraryRoute,
   AdminGrammarRoute: AdminGrammarRoute,
   AdminGrammarApprovalRoute: AdminGrammarApprovalRoute,
+  AdminListeningLibraryRoute: AdminListeningLibraryRoute,
   AdminModerationRoute: AdminModerationRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminProfileRoute: AdminProfileRoute,
+  AdminReadingLibraryRoute: AdminReadingLibraryRoute,
+  AdminRolesRoute: AdminRolesRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminShadowingLibraryRoute: AdminShadowingLibraryRoute,
+  AdminStudentsRoute: AdminStudentsRoute,
   AdminTeachersRoute: AdminTeachersRoute,
   AdminUsersRoute: AdminUsersRoute,
+  AdminVocabularyLibraryRoute: AdminVocabularyLibraryRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
