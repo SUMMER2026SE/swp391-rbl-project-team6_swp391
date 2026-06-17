@@ -42,3 +42,6 @@ logs/
 
 # Maven
 .mvn/wrapper/maven-wrapper.jar
+
+# Local uploads (Supabase Storage now used)
+uploads/

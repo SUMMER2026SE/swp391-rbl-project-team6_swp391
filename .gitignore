@@ -35,6 +35,11 @@ midori-be/src/main/resources/application-local.yml
 **/application-local.yml
 
 # =============================================
+# Backend local uploads
+# =============================================
+midori-be/uploads/
+
+# =============================================
 # Cloudflare / Wrangler
 # =============================================
 .wrangler/
