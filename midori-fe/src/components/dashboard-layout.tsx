@@ -88,22 +88,13 @@ const adminNav: NavItem[] = [
     ]
   },
   
-  // 5. Content Management
-  { to: "/admin/content-approval", label: "Content Management", icon: Layers,
-    children: [
-      { to: "/admin/content-approval", label: "Flashcard Approval", icon: Layers },
-      { to: "/admin/grammar-approval", label: "Grammar Approval", icon: GraduationCap },
-    ]
-  },
-  
-  // 6. System Analytics
+  // 5. System Analytics
   { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
   
   // 7. System Settings
   { to: "/admin/settings", label: "System Settings", icon: Settings,
     children: [
       { to: "/admin/settings", label: "Settings", icon: Settings },
-      { to: "/admin/moderation", label: "Reports Center", icon: Eye },
       { to: "/admin/notifications", label: "Notifications", icon: Megaphone },
       { to: "/admin/profile", label: "Profile", icon: User },
     ]

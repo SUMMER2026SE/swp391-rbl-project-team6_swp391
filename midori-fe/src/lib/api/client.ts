@@ -128,6 +128,59 @@ export const api = {
     return request<T>("DELETE", path);
   },
 
+  /**
+   * Upload file with progress tracking
+   */
+  uploadFile<T>(
+    path: string,
+    formData: FormData,
+    onProgress?: (progress: number) => void
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const url = `${BASE_URL}${path}`;
+
+      xhr.open("POST", url);
+
+      // Set headers
+      const token = getToken();
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          onProgress(progress);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response.data as T);
+          } catch {
+            resolve(xhr.responseText as T);
+          }
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText);
+            reject(new ApiError(error.message || "Upload failed", xhr.status));
+          } catch {
+            reject(new ApiError(`Upload failed: ${xhr.status}`, xhr.status));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new ApiError("Network error during upload", 0));
+      };
+
+      xhr.send(formData);
+    });
+  },
+
   setToken,
   getToken,
   removeToken,

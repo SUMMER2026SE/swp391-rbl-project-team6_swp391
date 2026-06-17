@@ -3,12 +3,13 @@
 import { Flashcard } from "../types/content-library";
 
 export const mockFlashcards: Flashcard[] = [
-  // N5 Grammar Flashcards
+  // N5 Grammar Flashcards - Lesson 01
   {
     id: "fc-001",
     front: "～は～です",
     back: "A là B (mệnh đề khẳng định)\nVí dụ: 私は学生です。 (Tôi là sinh viên)",
     jlptLevel: "N5",
+    lessonId: "lesson-01",
     tags: ["grammar", "basic", "copula"],
     exampleSentence: {
       sentence: "私は学生です。",
@@ -23,6 +24,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "～は～ではありません",
     back: "A không phải là B (phủ định)\nVí dụ: 私は先生ではありません。 (Tôi không phải là giáo viên)",
     jlptLevel: "N5",
+    lessonId: "lesson-01",
     tags: ["grammar", "basic", "copula", "negative"],
     exampleSentence: {
       sentence: "私は先生ではありません。",
@@ -37,6 +39,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "～は～ですか？",
     back: "A có phải là B không? (câu hỏi)\nVí dụ: あなたは学生ですか？ (Bạn có phải là sinh viên không?)",
     jlptLevel: "N5",
+    lessonId: "lesson-01",
     tags: ["grammar", "basic", "question"],
     exampleSentence: {
       sentence: "あなたは学生ですか？",
@@ -51,6 +54,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "～があります／います",
     back: "Có A (vật/người ở đâu đó)\n～があります = có vật thể\n～います = có sinh vật sống",
     jlptLevel: "N5",
+    lessonId: "lesson-02",
     tags: ["grammar", "basic", "existence"],
     exampleSentence: {
       sentence: "部屋に猫がいます。",
@@ -60,12 +64,13 @@ export const mockFlashcards: Flashcard[] = [
     createdAt: "2024-01-17",
     updatedAt: "2024-01-17",
   },
-  // N5 Vocabulary Flashcards
+  // N5 Vocabulary Flashcards - Lesson 01
   {
     id: "fc-005",
     front: "日本（にほん）",
     back: "Nhật Bản",
     jlptLevel: "N5",
+    lessonId: "lesson-01",
     tags: ["vocabulary", "country", "basic"],
     exampleSentence: {
       sentence: "私は日本に行きたいです。",
@@ -80,6 +85,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "食べる（たべる）",
     back: "ăn (động từ)",
     jlptLevel: "N5",
+    lessonId: "lesson-02",
     tags: ["vocabulary", "verb", "basic"],
     exampleSentence: {
       sentence: "朝ごはんを食べました。",
@@ -94,6 +100,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "大きい（おおきい）",
     back: "to, lớn (tính từ -i)",
     jlptLevel: "N5",
+    lessonId: "lesson-02",
     tags: ["vocabulary", "adjective", "basic"],
     exampleSentence: {
       sentence: "この家は大きいです。",
@@ -103,12 +110,13 @@ export const mockFlashcards: Flashcard[] = [
     createdAt: "2024-01-14",
     updatedAt: "2024-01-14",
   },
-  // N4 Flashcards
+  // N4 Flashcards - Lesson 03
   {
     id: "fc-008",
     front: "～ために",
     back: "Vì để... / Nhằm mục đích\n用法: Động từ (dictionary form/rau) + ために + mục đích",
     jlptLevel: "N4",
+    lessonId: "lesson-03",
     tags: ["grammar", "purpose", "ために"],
     exampleSentence: {
       sentence: "健康のために運動する。",
@@ -123,6 +131,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "経験（けいけん）",
     back: "kinh nghiệm",
     jlptLevel: "N4",
+    lessonId: "lesson-03",
     tags: ["vocabulary", "noun", "intermediate"],
     exampleSentence: {
       sentence: "彼は经验丰富です。",
@@ -137,6 +146,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "～なければならない",
     back: "Phải làm gì (bắt buộc)\n= ～なければらない = なきゃ",
     jlptLevel: "N4",
+    lessonId: "lesson-03",
     tags: ["grammar", "obligation", "necessity"],
     exampleSentence: {
       sentence: "明日提出しなければならない。",
@@ -146,12 +156,13 @@ export const mockFlashcards: Flashcard[] = [
     createdAt: "2024-02-03",
     updatedAt: "2024-02-03",
   },
-  // N3 Flashcards
+  // N3 Flashcards - Lesson 04
   {
     id: "fc-011",
     front: "～に関して",
     back: "Liên quan đến... / Về...\nThường dùng trong văn viết và hội thoại formal",
     jlptLevel: "N3",
+    lessonId: "lesson-04",
     tags: ["grammar", "topic", "formal"],
     exampleSentence: {
       sentence: "環境問題に関して議論した。",
@@ -166,6 +177,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "深刻（しんこく）",
     back: "nghiêm trọng (tính từ na)",
     jlptLevel: "N3",
+    lessonId: "lesson-04",
     tags: ["vocabulary", "adjective", "intermediate-high"],
     exampleSentence: {
       sentence: "環境問題は深刻です。",
@@ -175,12 +187,13 @@ export const mockFlashcards: Flashcard[] = [
     createdAt: "2024-03-02",
     updatedAt: "2024-03-02",
   },
-  // N2 Flashcards
+  // N2 Flashcards - Lesson 05
   {
     id: "fc-013",
     front: "～にもかかわらず",
     back: "Mặc dù... / Dù... (có sự đối lập)\nTương đương: ～のに",
     jlptLevel: "N2",
+    lessonId: "lesson-05",
     tags: ["grammar", "contrast", "formal"],
     exampleSentence: {
       sentence: "雨にもかかわらず、試合は続けた。",
@@ -195,6 +208,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "普及（ふきゅう）",
     back: "phổ biến, lan rộng\n～が普及する = được phổ biến",
     jlptLevel: "N2",
+    lessonId: "lesson-05",
     tags: ["vocabulary", "noun", "advanced"],
     exampleSentence: {
       sentence: "インターネットの普及率は高い。",
@@ -204,12 +218,13 @@ export const mockFlashcards: Flashcard[] = [
     createdAt: "2024-04-01",
     updatedAt: "2024-04-01",
   },
-  // N1 Flashcards
+  // N1 Flashcards - Lesson 06
   {
     id: "fc-015",
     front: "～に違いない",
     back: "Chắc chắn là... / Không còn nghi ngờ gì\nDiễn đạt sự chắc chắn cao độ",
     jlptLevel: "N1",
+    lessonId: "lesson-06",
     tags: ["grammar", "certainty", "formal"],
     exampleSentence: {
       sentence: "彼が犯人犯に違いない。",
@@ -224,6 +239,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "変革（へんかく）",
     back: "cải cách, chuyển đổi\n～を起こす = tiến hành cải cách",
     jlptLevel: "N1",
+    lessonId: "lesson-06",
     tags: ["vocabulary", "noun", "formal"],
     exampleSentence: {
       sentence: "社会変革の必要性が叫ばれている。",
@@ -233,12 +249,13 @@ export const mockFlashcards: Flashcard[] = [
     createdAt: "2024-05-02",
     updatedAt: "2024-05-02",
   },
-  // Reading Support Flashcards
+  // Reading Support Flashcards - Lesson 07
   {
     id: "fc-017",
     front: "しかし",
     back: "Tuy nhiên, nhưng mà\nDùng để nêu ý kiến trái ngược với câu trước",
     jlptLevel: "N5",
+    lessonId: "lesson-07",
     tags: ["grammar", "conjunction", "contrast", "reading-support"],
     difficulty: "easy",
     createdAt: "2024-01-20",
@@ -249,6 +266,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "また",
     back: "Ngoài ra, hơn nữa / lại nữa\nDùng để thêm thông tin hoặc nói lại hành động",
     jlptLevel: "N5",
+    lessonId: "lesson-07",
     tags: ["grammar", "conjunction", "addition", "reading-support"],
     difficulty: "easy",
     createdAt: "2024-01-21",
@@ -259,6 +277,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "したがって",
     back: "Do đó, vì vậy\nDùng để diễn đạt kết luận hoặc kết quả logic",
     jlptLevel: "N2",
+    lessonId: "lesson-08",
     tags: ["grammar", "conjunction", "formal", "reading-support"],
     difficulty: "hard",
     createdAt: "2024-04-10",
@@ -269,6 +288,7 @@ export const mockFlashcards: Flashcard[] = [
     front: "すなわち",
     back: "Tức là, nghĩa là\nDùng để giải thích hoặc làm rõ ý",
     jlptLevel: "N1",
+    lessonId: "lesson-08",
     tags: ["grammar", "conjunction", "formal", "reading-support"],
     difficulty: "hard",
     createdAt: "2024-05-15",
