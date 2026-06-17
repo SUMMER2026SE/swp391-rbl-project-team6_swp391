@@ -3,6 +3,10 @@
 // JLPT Level
 export type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 
+// ─── Listening Modes & Status ─────────────────────────────────────────────────
+export type ListeningMode = "dictation" | "quiz" | "both";
+export type ListeningStatus = "draft" | "processing" | "reviewed" | "published";
+
 // ─── Grammar ──────────────────────────────────────────────────────────────────
 export interface GrammarItem {
   id: string;
@@ -42,17 +46,35 @@ export interface ListeningQuestion {
   options: string[];
   correctAnswer: number;
   explanation?: string;
+  hintWords?: string[];
+  linkedSegmentId?: string;
+}
+
+export interface ListeningTranscript {
+  raw: string;
+  cleaned: string;
+  segments: ListeningSegment[];
+}
+
+export interface ListeningSegment {
+  id: string;
+  startTime: number;
+  endTime: number;
+  text: string;
+  translation: string;
+  hintWords?: string[];
 }
 
 export interface ListeningItem {
   id: string;
   title: string;
   audioUrl: string;
-  transcript: string;
+  mode: ListeningMode;
+  transcript?: ListeningTranscript | string;
   questions: ListeningQuestion[];
   jlptLevel: JLPTLevel;
   tags: string[];
-  duration: number; // in seconds
+  duration: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -111,6 +133,7 @@ export interface Flashcard {
   front: string; // word / question
   back: string; // meaning / answer
   jlptLevel: JLPTLevel;
+  lessonId: string; // links to lesson for organization
   tags: string[]; // grammar, vocab, reading support, etc.
   audioUrl?: string;
   exampleSentence?: {
