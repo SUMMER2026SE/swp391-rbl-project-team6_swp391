@@ -9,7 +9,9 @@ import {
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
   Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
-  Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText
+  Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, FolderOpen, ScrollText,
+  BookUser, Star, Library, PenLine, Video, BookText, Sticker,
+  Activity, BarChart, UserCog, UsersRound, Calendar, GraduationCap as CapIcon
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -49,56 +51,43 @@ const teacherNav: NavItem[] = [
   { to: "/teacher/settings", label: "Settings", icon: Settings },
 ];
 
-// New Academic Actor Admin Navigation
+// New Academic LMS Admin Navigation
 const adminNav: NavItem[] = [
   // 1. Dashboard
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  
-  // 2. User Management
-  { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck, 
+
+  // 2. Teacher Management
+  { to: "/admin/teachers", label: "Teacher Management", icon: ShieldCheck },
+
+  // 3. Class Management
+  { to: "/admin/class-management", label: "Class Management", icon: BookUser },
+
+  // 4. Exam Bank (Question Bank)
+  { to: "/admin/question-bank", label: "Question Bank", icon: ClipboardCheck,
     children: [
-      { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck },
-      { to: "/admin/users", label: "Teacher List", icon: Users },
-      { to: "/admin/students", label: "Student Management", icon: GraduationCap },
-      { to: "/admin/roles", label: "Roles & Permissions", icon: Shield },
+      { to: "/admin/question-bank/n5", label: "N5 Questions", icon: Sticker },
+      { to: "/admin/question-bank/n4", label: "N4 Questions", icon: Sticker },
+      { to: "/admin/question-bank/n3", label: "N3 Questions", icon: Sticker },
+      { to: "/admin/question-bank/n2", label: "N2 Questions", icon: Sticker },
+      { to: "/admin/question-bank/n1", label: "N1 Questions", icon: Sticker },
     ]
   },
-  
-  // 3. JLPT Exam Bank
-  { to: "/admin/exams", label: "Exam Bank", icon: ClipboardCheck,
+
+  // 5. Content Library
+  { to: "/admin/grammar", label: "Content Library", icon: Library,
     children: [
-      { to: "/admin/exams?level=n5", label: "N5 Exams", icon: FileText },
-      { to: "/admin/exams?level=n4", label: "N4 Exams", icon: FileText },
-      { to: "/admin/exams?level=n3", label: "N3 Exams", icon: FileText },
-      { to: "/admin/exams?level=n2", label: "N2 Exams", icon: FileText },
-      { to: "/admin/exams?level=n1", label: "N1 Exams", icon: FileText },
-      { to: "/admin/ai-generator", label: "AI Generator", icon: Sparkles },
+      { to: "/admin/grammar", label: "Grammar", icon: PenLine },
+      { to: "/admin/vocabulary-library", label: "Vocabulary", icon: BookOpen },
+      { to: "/admin/listening-library", label: "Listening", icon: Video },
+      { to: "/admin/reading-library", label: "Reading", icon: BookText },
+      { to: "/admin/kanji-library", label: "Kanji", icon: ScrollText },
+      { to: "/admin/shadowing-library", label: "Shadowing", icon: Mic2 },
+      { to: "/admin/flashcard-library", label: "Flashcards", icon: Layers },
     ]
   },
-  
-  // 4. Content Library
-  { to: "/admin/grammar", label: "Content Library", icon: FolderOpen,
-    children: [
-      { to: "/admin/grammar", label: "Grammar Library", icon: GraduationCap },
-      { to: "/admin/vocabulary-library", label: "Vocabulary Library", icon: BookOpen },
-      { to: "/admin/listening-library", label: "Listening Library", icon: Headphones },
-      { to: "/admin/reading-library", label: "Reading Library", icon: ScrollText },
-      { to: "/admin/shadowing-library", label: "Shadowing Library", icon: Mic2 },
-      { to: "/admin/flashcard-library", label: "Flashcard Library", icon: Layers },
-    ]
-  },
-  
-  // 5. System Analytics
-  { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
-  
-  // 7. System Settings
-  { to: "/admin/settings", label: "System Settings", icon: Settings,
-    children: [
-      { to: "/admin/settings", label: "Settings", icon: Settings },
-      { to: "/admin/notifications", label: "Notifications", icon: Megaphone },
-      { to: "/admin/profile", label: "Profile", icon: User },
-    ]
-  },
+
+  // 6. Profile
+  { to: "/admin/profile", label: "Profile", icon: User },
 ];
 
 function getNav(role: FrontendRole): NavItem[] {
@@ -117,9 +106,9 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
   const [notifOpen, setNotifOpen] = useState(false);
 
   const studentNotifications: Notification[] = [
-    { id: 1, title: "New grammar lesson available", desc: "~なければならない pattern is ready", time: "2 min ago", unread: true, icon: GraduationCap },
+    { id: 1, title: "New grammar lesson available", desc: "~ãªã‘ã‚Œã°ãªã‚‰ãªã„ pattern is ready", time: "2 min ago", unread: true, icon: GraduationCap },
     { id: 2, title: "Daily streak reminder", desc: "Complete today's lesson to keep your 32-day streak!", time: "1 hour ago", unread: true, icon: Flame },
-    { id: 3, title: "Weekly leaderboard update", desc: "You're now #4 — just 80 XP behind #3!", time: "3 hours ago", unread: false, icon: Trophy },
+    { id: 3, title: "Weekly leaderboard update", desc: "You're now #4 â€” just 80 XP behind #3!", time: "3 hours ago", unread: false, icon: Trophy },
     { id: 4, title: "AI Sensei feedback", desc: "Sensei reviewed your shadowing session", time: "Yesterday", unread: false, icon: Bot },
     { id: 5, title: "New badge earned", desc: "You unlocked 'Week Warrior' badge!", time: "2 days ago", unread: false, icon: Sparkles },
   ];
@@ -262,7 +251,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              {item.children!.map(child => renderNavItem(child, true, key))}
+              {item.children!.map(child => renderNavItem(child as NavItem, true, key))}
             </motion.div>
           )}
         </div>
@@ -506,7 +495,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             <div className="flex-1 relative min-w-0">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-col pointer-events-none" />
               <input
-                placeholder="Search lessons, grammar, vocabulary…"
+                placeholder="Search lessons, grammar, vocabularyâ€¦"
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm hover:shadow-[0_8px_24px_rgba(148,163,184,0.16)] dark:hover:shadow-none transition-all duration-200 placeholder:text-muted-col/70 dark:placeholder:text-slate-400"
               />
             </div>
