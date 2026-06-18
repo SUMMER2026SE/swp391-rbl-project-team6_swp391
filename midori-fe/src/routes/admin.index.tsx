@@ -47,9 +47,7 @@ const platformStats = {
   ],
   pendingApprovals: {
     teachers: 7,
-    exams: 12,
     content: 23,
-    reports: 5,
   },
 };
 
@@ -281,8 +279,6 @@ function AdminDashboard() {
             {[
               { key: "Teachers", value: summary?.pendingTeachers ?? platformStats.pendingApprovals.teachers, link: "/admin/teachers", color: "text-[var(--status-teacher)]" },
               { key: "Content", value: summary?.pendingContent ?? platformStats.pendingApprovals.content, link: "/admin/grammar", color: "text-primary" },
-              { key: "Exams", value: platformStats.pendingApprovals.exams, link: "/admin/exams", color: "text-[var(--status-pending)]" },
-              { key: "Reports", value: platformStats.pendingApprovals.reports, link: "/admin/moderation", color: "text-[var(--status-suspended)]" },
             ].map(({ key, value, link, color }) => (
               <Link
                 key={key}
@@ -307,8 +303,8 @@ function AdminDashboard() {
           {[
             { label: "Add Teacher", icon: GraduationCap, link: "/admin/teachers", color: "text-[var(--status-teacher)]" },
             { label: "Create Class", icon: BookUser, link: "/admin/class-management", color: "text-primary" },
-            { label: "Add Exam", icon: ClipboardCheck, link: "/admin/exams", color: "text-[var(--status-pending)]" },
             { label: "Upload Content", icon: BookOpen, link: "/admin/grammar", color: "text-[var(--status-active)]" },
+            { label: "Manage Questions", icon: ClipboardCheck, link: "/admin/question-bank", color: "text-[var(--status-pending)]" },
           ].map((action) => {
             const Icon = action.icon;
             return (
