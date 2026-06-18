@@ -19,6 +19,8 @@ import {
 } from "@/lib/api/studentProgress";
 import { ApiError } from "@/lib/api/client";
 import { QuizletFlashcardModal } from "@/components/student/QuizletFlashcardModal";
+import { mockClasses } from "@/mock/classes";
+import { useAuth } from "@/lib/auth";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "new" | "learning" | "mastered";
@@ -247,6 +249,15 @@ export const Route = createFileRoute("/student/vocabulary")({ component: Vocabul
 
 function VocabularyPage() {
   const childMatches = useChildMatches();
+  const { user } = useAuth();
+
+  // Derive student's enrolled class levels (e.g. ["N5"])
+  const studentLevels = useMemo(() => {
+    return Array.from(new Set(mockClasses.map(c => c.level).filter(Boolean)));
+  }, []);
+
+  // Default to the first enrolled class level
+  const defaultLevel = studentLevels.length === 1 ? studentLevels[0] : "all";
 
   const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
   const [allLessonsBase, setAllLessonsBase] = useState<VocabularyLessonResponse[]>([]);
@@ -254,7 +265,7 @@ function VocabularyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [selectedLevel, setSelectedLevel] = useState<string>(defaultLevel);
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -962,23 +973,25 @@ function VocabularyPage() {
           {/* Content after loading */}
           {!loading && !error && (
             <>
-              {/* JLPT Level Tabs */}
+              {/* JLPT Level Tabs — only show levels the student is enrolled in */}
               <div className="flex gap-1.5 overflow-x-auto pb-1">
-                {/* All button */}
-                <button
-                  onClick={() => { setSelectedLevel("all"); setSelectedTopic("All Topics"); }}
-                  className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
-                    selectedLevel === "all"
-                      ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
-                      : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:shadow-sm dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
-                  }`}
-                >
-                  <span className="font-display font-bold text-sm leading-none">All</span>
-                  <span className={`text-[10px] leading-none ${selectedLevel === "all" ? "text-white/70" : "text-muted-foreground/70 dark:text-indigo-300/60"}`}>
-                    {allLessonsBase.length} lessons
-                  </span>
-                </button>
-                {JLPT_LEVELS.map(level => {
+                {studentLevels.length > 1 && (
+                  /* Show "All" only when student is in multiple levels */
+                  <button
+                    onClick={() => { setSelectedLevel("all"); setSelectedTopic("All Topics"); }}
+                    className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
+                      selectedLevel === "all"
+                        ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
+                        : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:shadow-sm dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
+                    }`}
+                  >
+                    <span className="font-display font-bold text-sm leading-none">All</span>
+                    <span className={`text-[10px] leading-none ${selectedLevel === "all" ? "text-white/70" : "text-muted-foreground/70 dark:text-indigo-300/60"}`}>
+                      {allLessonsBase.length} lessons
+                    </span>
+                  </button>
+                )}
+                {studentLevels.map(level => {
                   const lvlCount = allLessonsBase.filter(l => l.level === level).length;
                   const isSelected = level === selectedLevel;
                   return (

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,6 +14,7 @@ import {
   type GrammarLevel,
 } from "@/lib/api/studentGrammar";
 import { studentProgressApi } from "@/lib/api/studentProgress";
+import { mockClasses } from "@/mock/classes";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -329,7 +330,13 @@ function SkeletonRow() {
 export const Route = createFileRoute("/student/grammar")({ component: GrammarPage });
 
 function GrammarPage() {
-  const [levelFilter, setLevelFilter] = useState<string>("All");
+  // Derive student's enrolled class levels
+  const studentLevels = useMemo(() =>
+    Array.from(new Set(mockClasses.map(c => c.level).filter(Boolean)))
+  , []);
+  const defaultLevel = studentLevels.length === 1 ? studentLevels[0] : "All";
+
+  const [levelFilter, setLevelFilter] = useState<string>(defaultLevel);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -566,7 +573,18 @@ function GrammarPage() {
             </div>
           </div>
           <div className="flex gap-1 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
-            {LEVEL_FILTERS.map(l => (
+            {/* "All" only shown when student is in multiple levels */}
+            {studentLevels.length > 1 && (
+              <button
+                onClick={() => handleLevelFilter("All")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  levelFilter === "All" ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                All
+              </button>
+            )}
+            {studentLevels.map(l => (
               <button
                 key={l}
                 onClick={() => handleLevelFilter(l)}

@@ -10,6 +10,7 @@ import {
 import { SakuraBg } from "@/components/sakura-bg";
 import { listeningApi } from "@/lib/api/listening";
 import { ApiError } from "@/lib/api/client";
+import { mockClasses } from "@/mock/classes";
 
 type Tab = "select" | "practice";
 type JLPTLevel = "All" | "N5" | "N4" | "N3" | "N2" | "N1";
@@ -56,6 +57,12 @@ function getBlankedText(text: string, hiddenWords: string[]): string {
 export const Route = createFileRoute("/student/listening")({ component: Listening });
 
 function Listening() {
+  // Derive student's enrolled class levels
+  const studentLevels = useMemo(() =>
+    Array.from(new Set(mockClasses.map(c => c.level).filter(Boolean))) as JLPTLevel[]
+  , []);
+  const defaultLevel: JLPTLevel = studentLevels.length === 1 ? studentLevels[0] : "All";
+
   const [activeTab, setActiveTab] = useState<Tab>("select");
   const [exercises, setExercises] = useState<StudentListeningExercise[]>([]);
   const [selectedEx, setSelectedEx] = useState<StudentListeningExercise | null>(null);
@@ -63,7 +70,7 @@ function Listening() {
   const [checked, setChecked] = useState(false);
   const [playing, setPlaying] = useState(false);
 
-  const [levelFilter, setLevelFilter] = useState<JLPTLevel>("All");
+  const [levelFilter, setLevelFilter] = useState<JLPTLevel>(defaultLevel);
   const [page, setPage] = useState(1);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -311,9 +318,21 @@ function Listening() {
                 })}
               </div>
 
-              {/* JLPT Level Filter */}
+              {/* JLPT Level Filter - only show enrolled levels */}
               <div className="flex gap-2 flex-wrap mb-5">
-                {JLPT_LEVELS.map(level => {
+                {studentLevels.length > 1 && (
+                  <button
+                    onClick={() => handleSelectLevel("All")}
+                    className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-all duration-200 ${
+                      levelFilter === "All"
+                        ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-md shadow-primary/15 ring-1 ring-white/60 dark:ring-white/10"
+                        : "bg-white/60 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 shadow-sm text-muted-foreground hover:bg-white/90 dark:hover:bg-white/[0.08] hover:text-foreground hover:-translate-y-0.5 hover:shadow-sm"
+                    }`}
+                  >
+                    All
+                  </button>
+                )}
+                {studentLevels.map(level => {
                   const isActive = levelFilter === level;
                   return (
                     <button
