@@ -69,7 +69,7 @@ export interface ListeningItem {
   id: string;
   title: string;
   audioUrl: string;
-  mode: ListeningMode;
+  mode?: ListeningMode; // Optional for backward compatibility
   transcript?: ListeningTranscript | string;
   questions: ListeningQuestion[];
   jlptLevel: JLPTLevel;

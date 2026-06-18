@@ -1,6 +1,7 @@
 import type { DetailedClassInfo } from "@/types/class-detail";
 
 export const mockClasses: DetailedClassInfo[] = [
+  // ==================== ACTIVE CLASSES ====================
   {
     id: "class-1",
     name: "N5A - Midori",
@@ -13,7 +14,7 @@ export const mockClasses: DetailedClassInfo[] = [
     nextDeadline: "2026-06-20",
     createdDate: "2026-06-15",
     joinDate: "2026-06-16",
-    isNew: true,
+    status: "active",
     progress: {
       vocabulary: 80,
       grammar: 65,
@@ -178,6 +179,7 @@ export const mockClasses: DetailedClassInfo[] = [
     nextDeadline: "2026-06-24",
     createdDate: "2026-06-01",
     joinDate: "2026-06-02",
+    status: "active",
     progress: {
       vocabulary: 40,
       grammar: 30,
@@ -209,6 +211,179 @@ export const mockClasses: DetailedClassInfo[] = [
       }
     ],
     materials: { vocabulary: [], grammar: [], listening: [], reading: [], shadowing: [], writing: [] },
+    scores: [],
+    calendarEvents: [],
+    announcements: []
+  },
+
+  // ==================== COMPLETED CLASSES ====================
+  {
+    id: "class-3",
+    name: "N5 Complete Course",
+    teacher: "Yuki Tanaka",
+    teacherAvatarInitials: "YT",
+    level: "N5",
+    members: 32,
+    assignmentCount: 24,
+    unfinishedCount: 0,
+    nextDeadline: "-",
+    createdDate: "2026-01-15",
+    joinDate: "2026-01-15",
+    status: "completed",
+    completionDate: "2026-05-30",
+    finalScore: 92,
+    hasCertificate: true,
+    progress: {
+      vocabulary: 100,
+      grammar: 95,
+      listening: 88,
+      reading: 90,
+      shadowing: 85,
+      writing: 82,
+    },
+    weakPoints: {
+      listening: [],
+      grammar: [],
+      vocabularyCount: 0,
+    },
+    classmates: [
+      { name: "Akira Sato", avatar: "A" },
+      { name: "Hana Suzuki", avatar: "H" },
+    ],
+    assignments: [
+      {
+        id: "c3-a1",
+        title: "Final N5 Examination",
+        moduleType: "Vocabulary",
+        assignedDate: "2026-05-20",
+        deadline: "2026-05-30",
+        timeLimit: 120,
+        maxScore: 200,
+        score: 184,
+        status: "Graded",
+      }
+    ],
+    materials: {
+      vocabulary: [{ level: "N5", lessons: [{ lessonId: "l1", title: "All Lessons", items: [] }] }],
+      grammar: [{ level: "N5", lessons: [{ lessonId: "l1", title: "All Lessons", items: [] }] }],
+      listening: [],
+      reading: [],
+      shadowing: [],
+      writing: []
+    },
+    scores: [
+      {
+        assignmentId: "c3-a1",
+        assignmentName: "Final N5 Examination",
+        module: "All Modules",
+        score: 184,
+        maxScore: 200,
+        submissionTime: "2026-05-30T14:30:00Z",
+        aiFeedback: "Outstanding performance! You have successfully completed the N5 level. Ready for N4!",
+        wrongAnswers: [],
+        strengths: ["Vocabulary", "Grammar fundamentals", "Reading comprehension"],
+        weaknesses: ["Kanji writing speed"]
+      }
+    ],
+    calendarEvents: [],
+    announcements: []
+  },
+  {
+    id: "class-4",
+    name: "Beginner Japanese N5",
+    teacher: "Sakura Yamamoto",
+    teacherAvatarInitials: "SY",
+    level: "N5",
+    members: 20,
+    assignmentCount: 15,
+    unfinishedCount: 0,
+    nextDeadline: "-",
+    createdDate: "2026-02-01",
+    joinDate: "2026-02-01",
+    status: "completed",
+    completionDate: "2026-05-15",
+    finalScore: 85,
+    hasCertificate: true,
+    progress: {
+      vocabulary: 100,
+      grammar: 88,
+      listening: 80,
+      reading: 85,
+      shadowing: 75,
+      writing: 70,
+    },
+    weakPoints: {
+      listening: [],
+      grammar: [],
+      vocabularyCount: 0,
+    },
+    classmates: [],
+    assignments: [
+      {
+        id: "c4-a1",
+        title: "Course Completion Test",
+        moduleType: "Grammar",
+        assignedDate: "2026-05-10",
+        deadline: "2026-05-15",
+        timeLimit: 90,
+        maxScore: 100,
+        score: 85,
+        status: "Graded",
+      }
+    ],
+    materials: {
+      vocabulary: [{ level: "N5", lessons: [{ lessonId: "l1", title: "Basics", items: [] }] }],
+      grammar: [],
+      listening: [],
+      reading: [],
+      shadowing: [],
+      writing: []
+    },
+    scores: [],
+    calendarEvents: [],
+    announcements: []
+  },
+
+  // ==================== COMPLETED CLASSES ====================
+  {
+    id: "class-5",
+    name: "Japanese Trial Class",
+    teacher: "Kenji Sensei",
+    teacherAvatarInitials: "KS",
+    level: "N5",
+    members: 15,
+    assignmentCount: 5,
+    unfinishedCount: 0,
+    nextDeadline: "-",
+    createdDate: "2025-11-01",
+    joinDate: "2025-11-01",
+    status: "completed",
+    completionDate: "2025-11-15",
+    finalScore: 78,
+    hasCertificate: false,
+    progress: {
+      vocabulary: 60,
+      grammar: 55,
+      listening: 50,
+      reading: 45,
+      shadowing: 40,
+      writing: 35,
+    },
+    weakPoints: {
+      listening: ["Basic sounds"],
+      grammar: ["Verb conjugations"],
+      vocabularyCount: 15,
+    },
+    classmates: [],
+    assignments: [],
+    materials: {
+      vocabulary: [],
+      grammar: [],
+      listening: [],
+      reading: [],
+      shadowing: [],
+      writing: []
+    },
     scores: [],
     calendarEvents: [],
     announcements: []

@@ -15,7 +15,6 @@ import {
   ArrowRight,
   ArrowLeft,
   BookOpen,
-  List,
   FlipHorizontal,
   BrainCircuit,
   Layers,
@@ -60,7 +59,7 @@ export const Route = createFileRoute("/student/vocabulary/$lessonId")({
   component: VocabStudyPage,
 });
 
-type StudyMode = "list" | "flashcard" | "quiz" | "srs";
+type StudyMode = "flashcard" | "quiz" | "srs";
 type SRSCategory = "new" | "learning" | "review" | "mastered";
 
 interface QuizOptionType {
@@ -73,7 +72,7 @@ function VocabStudyPage() {
   const search = Route.useSearch();
   const queryClient = useQueryClient();
 
-  const [studyMode, setStudyMode] = useState<StudyMode>(search.mode || "list");
+  const [studyMode, setStudyMode] = useState<StudyMode>("flashcard");
   const [srsCategory, setSrsCategory] = useState<SRSCategory>("new");
 
   // Quizlet Flashcard Modal States
@@ -403,133 +402,31 @@ function VocabStudyPage() {
       </div>
 
       {/* ── Mode Selector Tabs ── */}
-      <div className="relative z-10 px-4 pb-4 flex justify-center">
-        <div className="flex gap-2 bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm rounded-xl p-1 border border-slate-200/60 dark:border-indigo-400/20 w-fit shadow-sm">
-          {[
-            { id: "list" as StudyMode, icon: List, label: "List" },
-            { id: "flashcard" as StudyMode, icon: FlipHorizontal, label: "Flashcard" },
-            { id: "quiz" as StudyMode, icon: BrainCircuit, label: "Quiz" },
-          ].map((mode) => (
-            <button
-              key={mode.id}
-              onClick={() => setStudyMode(mode.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                studyMode === mode.id
-                  ? "bg-gradient-to-r from-blue-500 to-pink-500 text-white shadow"
-                  : "text-muted-foreground dark:text-indigo-300 hover:text-foreground dark:hover:bg-indigo-400/15"
-              }`}
-            >
-              <mode.icon className="w-4 h-4" /> {mode.label}
-            </button>
-          ))}
+      <div className="relative z-10 px-4 pb-4">
+        <div className="flex justify-center">
+          <div className="flex gap-2 bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm rounded-xl p-1 border border-slate-200/60 dark:border-indigo-400/20 shadow-sm">
+            {[
+              { id: "flashcard" as StudyMode, icon: FlipHorizontal, label: "Flashcard" },
+              { id: "quiz" as StudyMode, icon: BrainCircuit, label: "Quiz" },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => setStudyMode(mode.id)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  studyMode === mode.id
+                    ? "bg-linear-to-r from-blue-500 to-pink-500 text-white shadow"
+                    : "text-muted-foreground dark:text-indigo-300 hover:text-foreground dark:hover:bg-indigo-400/15"
+                }`}
+              >
+                <mode.icon className="w-4 h-4" /> {mode.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ── Mode Content ── */}
       <div className="relative z-10 flex-1 flex flex-col px-4 pb-6 gap-3 max-w-4xl mx-auto w-full">
-        {studyMode === "list" && (
-          <div className="space-y-3 w-full">
-            {words.map((word, i) => {
-              const isFav = isWordBookmarked(word.word);
-              const learned = isWordLearned(word.word);
-              const mastered = isWordMastered(word.word);
-
-              return (
-                <motion.div
-                  key={word.word}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  onClick={() => {
-                    const index = words.findIndex(w => w.word === word.word);
-                    if (index !== -1) {
-                      setQuizletInitialIdx(index);
-                      setIsQuizletModalOpen(true);
-                    }
-                  }}
-                  className="group bg-card/85 dark:bg-[#0f1430]/90 dark:border-indigo-400/20 dark:hover:border-cyan-300/40 rounded-2xl border border-border/50 px-4 py-4 hover:shadow-md transition-all duration-200 cursor-pointer"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="font-display text-2xl font-black text-foreground dark:text-white"
-                          style={{ fontFamily: "var(--font-japanese, serif)" }}
-                        >
-                          {word.word}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            speakJapanese(word.furigana || word.word);
-                          }}
-                          title="Play pronunciation"
-                          className="p-1.5 rounded-lg text-muted-foreground dark:text-indigo-300/60 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-cyan-600 dark:hover:text-cyan-300 transition-all"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="text-sm text-primary/95 dark:text-cyan-400 font-bold">
-                        {word.furigana || word.romaji}
-                      </div>
-                      <div className="text-sm font-semibold text-foreground dark:text-slate-100">
-                        {word.meaning}
-                      </div>
-                      {word.exampleJapanese && (
-                        <div className="text-xs text-muted-foreground dark:text-slate-300/80 italic mt-1 border-l-2 border-primary/30 pl-2">
-                          <div>{word.exampleJapanese}</div>
-                          {word.exampleMeaning && (
-                            <div className="text-muted-foreground/70 dark:text-indigo-200/50 mt-0.5">
-                              {word.exampleMeaning}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 self-end sm:self-center" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => toggleMastered(word.word)}
-                        title={mastered ? "Unmark Mastered" : "Mark Mastered"}
-                        className={`p-2 rounded-xl border transition-all ${
-                          mastered
-                            ? "bg-green-500/20 border-green-500/30 text-green-400"
-                            : "bg-white/5 dark:bg-white/5 border-border/40 text-muted-foreground dark:text-indigo-300/60 hover:text-green-400"
-                        }`}
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => toggleLearned(word.word)}
-                        title={learned ? "Unmark Learning" : "Mark Learning"}
-                        className={`p-2 rounded-xl border transition-all ${
-                          learned && !mastered
-                            ? "bg-blue-500/20 border-blue-500/30 text-blue-400"
-                            : "bg-white/5 dark:bg-white/5 border-border/40 text-muted-foreground dark:text-indigo-300/60 hover:text-blue-400"
-                        }`}
-                      >
-                        <Bookmark className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => toggleBookmark(word.word)}
-                        title="Star"
-                        className={`p-2 rounded-xl border transition-all ${
-                          isFav
-                            ? "bg-amber-500/20 border-amber-500/30 text-amber-400"
-                            : "bg-white/5 dark:bg-white/5 border-border/40 text-muted-foreground dark:text-indigo-300/60 hover:text-amber-400"
-                        }`}
-                      >
-                        <Star className={`w-4 h-4 ${isFav ? "fill-amber-400" : ""}`} />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-
         {studyMode === "flashcard" && (
           <div className="flex-1 flex flex-col gap-4 max-w-lg mx-auto w-full">
             <style>{`
@@ -558,7 +455,7 @@ function VocabStudyPage() {
             </div>
             <div className="h-1 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-300"
+                className="h-full bg-linear-to-r from-blue-400 to-pink-400 transition-all duration-300"
                 style={{ width: `${((flashCardIdx + 1) / words.length) * 100}%` }}
               />
             </div>
@@ -731,7 +628,7 @@ function VocabStudyPage() {
                   }
                 }}
                 disabled={flashCardIdx === words.length - 1}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-linear-to-r from-blue-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Next <ArrowRight className="w-4 h-4" />
               </button>
@@ -768,7 +665,7 @@ function VocabStudyPage() {
                 </div>
                 <div className="h-1 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-400 to-pink-400 transition-all duration-300"
+                    className="h-full bg-linear-to-r from-blue-400 to-pink-400 transition-all duration-300"
                     style={{ width: `${((quizIdx + 1) / words.length) * 100}%` }}
                   />
                 </div>
@@ -839,7 +736,7 @@ function VocabStudyPage() {
                         setQuizFinished(true);
                       }
                     }}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition mt-4"
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-linear-to-r from-blue-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition mt-4"
                   >
                     {quizIdx < words.length - 1 ? "Next Question" : "Finish Quiz"} <ArrowRight className="w-4 h-4" />
                   </button>
@@ -848,7 +745,7 @@ function VocabStudyPage() {
             ) : (
               /* Quiz Finished Screen */
               <div className="text-center bg-white/80 dark:bg-indigo-950/40 backdrop-blur-xl border border-slate-200 dark:border-white/20 rounded-3xl p-8 space-y-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 flex items-center justify-center mx-auto shadow-lg">
+                <div className="w-20 h-20 rounded-full bg-linear-to-r from-blue-500 to-pink-500 flex items-center justify-center mx-auto shadow-lg">
                   <Trophy className="w-10 h-10 text-white" />
                 </div>
                 <div className="space-y-2">
@@ -860,7 +757,7 @@ function VocabStudyPage() {
                 </div>
                 <div className="h-1.5 bg-slate-200 dark:bg-white/15 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-400 to-pink-400"
+                    className="h-full bg-linear-to-r from-blue-400 to-pink-400"
                     style={{ width: `${(quizScore / words.length) * 100}%` }}
                   />
                 </div>

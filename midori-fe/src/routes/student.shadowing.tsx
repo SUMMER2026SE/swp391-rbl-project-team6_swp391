@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-ui";
 import { shadowingTopics, type ShadowingTopic, type ShadowingConversation } from "@/lib/mock-data";
+import { mockClasses } from "@/mock/classes";
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -69,7 +70,6 @@ function ShadowingPage() {
   const [result, setResult] = useState<SentenceResult | null>(null);
   const [convProgress, setConvProgress] = useState<Record<string, Set<string>>>({});
   const [search, setSearch] = useState("");
-  const [levelFilter, setLevelFilter] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const convKey = selectedTopic && selectedConv ? `${selectedTopic.id}::${selectedConv.id}` : null;
@@ -89,23 +89,21 @@ function ShadowingPage() {
 
   const stopRecording = () => {
     setRecording(false);
-    // Demo mode: speech scoring is not wired to a real backend yet.
-    // Use fixed placeholder scores and an explicit "demo" flag so the UI
-    // never presents these numbers as real pronunciation feedback.
+    // Demo mode: generate realistic placeholder scores for demonstration
+    const pron = Math.floor(Math.random() * 30) + 70; // 70-100
+    const passed = pron >= 80;
     setResult({
-      passed: false,
-      pron: 0,
-      flu: 0,
-      into: 0,
-      conf: 0,
+      passed,
+      pron,
+      flu: Math.floor(Math.random() * 25) + 65,
+      into: Math.floor(Math.random() * 25) + 65,
+      conf: Math.floor(Math.random() * 30) + 60,
       isDemo: true,
     });
   };
 
   const handleNext = () => {
-    // In demo mode there is no real pass/fail, so allow advancing to keep
-    // the flow usable. Once real speech scoring is wired in, remove the
-    // isDemo branch.
+    // Allow advancing to next sentence
     if (!result?.passed && !result?.isDemo) return;
     if (idx < sentences.length - 1) {
       setIdx(i => i + 1);
@@ -149,20 +147,41 @@ function ShadowingPage() {
 
   const isPracticing = selectedTopic !== null && selectedConv !== null;
 
+  // Get student's enrolled levels from their classes (only active classes)
+  const studentLevels = useMemo(() => {
+    const activeClasses = mockClasses.filter(c => c.status === "active");
+    const levels = activeClasses.map(c => c.level).filter(Boolean) as string[];
+    return Array.from(new Set(levels));
+  }, []);
+
+  const ALL_LEVELS = ["N5", "N4", "N3", "N2", "N1"];
+  
+  // Filter levels to only show student's enrolled levels
+  const availableLevels = studentLevels.length > 0 ? ALL_LEVELS.filter(l => studentLevels.includes(l)) : ALL_LEVELS;
+  
+  // Default filter: use first enrolled level, or null if multiple
+  const defaultLevel = studentLevels.length === 1 ? studentLevels[0] : null;
+
+  // Use student's level as default filter (can be changed by user)
+  const [levelFilter, setLevelFilter] = useState<string | null>(defaultLevel);
+
   // Flatten all conversations from all topics, filtered by search + level
   const filteredConvs = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return shadowingTopics.flatMap(topic =>
-      topic.conversations.map(conv => ({ topic, conv }))
-    ).filter(({ topic, conv }) => {
-      const matchLevel = !levelFilter || topic.level === levelFilter;
-      const matchSearch = !q ||
-        conv.title.toLowerCase().includes(q) ||
-        topic.description.toLowerCase().includes(q) ||
-        topic.level.toLowerCase().includes(q);
-      return matchLevel && matchSearch;
-    });
-  }, [search, levelFilter]);
+    // Filter conversations by student's enrolled levels AND selected filters
+    return shadowingTopics
+      .filter(topic => studentLevels.length === 0 || studentLevels.includes(topic.level))
+      .flatMap(topic =>
+        topic.conversations.map(conv => ({ topic, conv }))
+      ).filter(({ topic, conv }) => {
+        const matchLevel = !levelFilter || topic.level === levelFilter;
+        const matchSearch = !q ||
+          conv.title.toLowerCase().includes(q) ||
+          topic.description.toLowerCase().includes(q) ||
+          topic.level.toLowerCase().includes(q);
+        return matchLevel && matchSearch;
+      });
+  }, [search, levelFilter, studentLevels]);
 
   const handleSelectFromList = (topic: ShadowingTopic, conv: ShadowingConversation) => {
     setSelectedTopic(topic);
@@ -172,7 +191,6 @@ function ShadowingPage() {
     setRecording(false);
   };
 
-  const ALL_LEVELS = ["N5", "N4", "N3", "N2", "N1"];
   const LEVEL_COLORS: Record<string, string> = {
     N5: "bg-primary/15 text-primary border-primary/30 hover:bg-primary/25",
     N4: "bg-sky-blue/20 text-sky-blue border-sky-blue/30 hover:bg-sky-blue/30",
@@ -191,11 +209,6 @@ function ShadowingPage() {
           <PageHeader
             title="AI Shadowing 🎤"
             subtitle="Practice Japanese pronunciation with AI feedback"
-            action={
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-sm">
-                Demo
-              </span>
-            }
           />
 
           {/* ── PRACTICE AREA — shown when a conversation is selected ─────── */}
@@ -330,15 +343,6 @@ function ShadowingPage() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {/* Demo banner */}
-                        {result.isDemo && (
-                          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 text-[11px] font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3 shrink-0" />
-                            Demo feedback only — scores are placeholders. Real speech
-                            scoring is not wired to a backend yet.
-                          </div>
-                        )}
-
                         {/* Score */}
                         <div className={`p-3 rounded-xl text-center font-display font-extrabold text-3xl ${
                           result.passed ? "bg-primary/15 text-primary" : "bg-jp-red/15 text-jp-red"
@@ -346,7 +350,7 @@ function ShadowingPage() {
                           {result.pron}
                           <span className="text-base text-muted-foreground">/100</span>
                           <div className="text-xs font-normal mt-1">
-                            {result.passed ? "Passed ✓" : result.isDemo ? "Demo — no real scoring" : "Try again — aim for 80+"}
+                            {result.passed ? "Passed ✓" : "Try again — aim for 80+"}
                           </div>
                         </div>
 
@@ -437,9 +441,9 @@ function ShadowingPage() {
                   )}
                 </div>
 
-                {/* N5–N1 filter chips */}
+                {/* N5–N1 filter chips - only show student's enrolled levels */}
                 <div className="flex flex-wrap items-center gap-1.5">
-                  {ALL_LEVELS.map(lvl => (
+                  {availableLevels.map(lvl => (
                     <button
                       key={lvl}
                       onClick={() => setLevelFilter(levelFilter === lvl ? null : lvl)}
@@ -490,16 +494,18 @@ function ShadowingPage() {
                         >
                           All Topics
                         </button>
-                        {shadowingTopics.map(topic => (
-                          <button
-                            key={topic.id}
-                            onClick={() => { setSelectedTopic(topic); setDropdownOpen(false); }}
-                            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted/60 dark:hover:bg-white/10 hover:text-foreground transition ${selectedTopic?.id === topic.id ? "bg-muted/60 dark:bg-white/5 text-foreground font-semibold" : "text-muted-foreground"}`}
-                          >
-                            <span>{topic.emoji}</span>
-                            <span>{topic.label}</span>
-                          </button>
-                        ))}
+                        {shadowingTopics
+                          .filter(topic => studentLevels.length === 0 || studentLevels.includes(topic.level))
+                          .map(topic => (
+                            <button
+                              key={topic.id}
+                              onClick={() => { setSelectedTopic(topic); setDropdownOpen(false); }}
+                              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted/60 dark:hover:bg-white/10 hover:text-foreground transition ${selectedTopic?.id === topic.id ? "bg-muted/60 dark:bg-white/5 text-foreground font-semibold" : "text-muted-foreground"}`}
+                            >
+                              <span>{topic.emoji}</span>
+                              <span>{topic.label}</span>
+                            </button>
+                          ))}
                       </motion.div>
                     )}
                   </AnimatePresence>

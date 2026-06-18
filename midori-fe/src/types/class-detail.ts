@@ -87,6 +87,8 @@ export interface AIWeakPoints {
   vocabularyCount: number;
 }
 
+export type ClassStatus = "active" | "completed" | "archived";
+
 export interface DetailedClassInfo {
   id: string;
   name: string;
@@ -100,6 +102,12 @@ export interface DetailedClassInfo {
   createdDate: string;
   joinDate: string;
   isNew?: boolean;
+  // Lifecycle management
+  status: ClassStatus;
+  completionDate?: string;
+  finalScore?: number;
+  hasCertificate?: boolean;
+  // Existing fields
   progress: ModuleProgress;
   classmates: Classmate[];
   assignments: Assignment[];

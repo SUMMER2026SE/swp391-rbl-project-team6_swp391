@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/page-ui";
 import {
   AlertCircle, Clock, CheckCircle2, ShieldAlert, AlertTriangle, ArrowLeft,
@@ -29,7 +29,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
   const [currentQuestion, setCurrentQuestion] = useState(0);
   // In reviewMode, pre-fill a realistic submitted answer set (indices 0-4 mapped)
   const [answers, setAnswers] = useState<Record<number, number>>(
-    reviewMode ? { 0: 1, 1: 2, 2: 0, 3: 0, 4: 0 } : { 0: 1 }
+    reviewMode ? { 0: 1, 1: 2, 2: 0, 3: 0, 4: 0 } : {}
   );
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [violations, setViolations] = useState(0);
@@ -37,6 +37,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
   const [lastViolationType, setLastViolationType] = useState("");
   const [timeLeft, setTimeLeft] = useState(reviewMode ? 0 : 1200); // 20:00 mins in seconds
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [examStarted, setExamStarted] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"Saving..." | "Saved">("Saved");
   const [lastSavedSec, setLastSavedSec] = useState(0);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -137,13 +138,14 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
   // Auto-Save Effect
   useEffect(() => {
+    if (!examStarted || isSubmitted) return;
     setAutoSaveStatus("Saving...");
     const timer = setTimeout(() => {
       setAutoSaveStatus("Saved");
       setLastSavedSec(0);
     }, 600);
     return () => clearTimeout(timer);
-  }, [answers, flagged]);
+  }, [answers, flagged, examStarted, isSubmitted]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -152,24 +154,30 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
     return () => clearInterval(interval);
   }, []);
 
-  // Timer countdown
+  // Timer countdown - chỉ chạy khi exam đã bắt đầu
   useEffect(() => {
-    if (isSubmitted) return;
+    if (!examStarted || isSubmitted) return;
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
           setIsSubmitted(true);
+          // Exit fullscreen when time runs out
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isSubmitted]);
+  }, [examStarted, isSubmitted]);
 
-  // Anti-cheat setup
+  // Anti-cheat setup - chỉ hoạt động khi exam đã bắt đầu
   useEffect(() => {
+    if (!examStarted || isSubmitted) return;
+
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isSubmitted) return;
       const msg = "Are you sure you want to leave? Your exam progress may be lost and this attempt will be reported.";
@@ -211,26 +219,42 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
     };
 
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isNowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isNowFullscreen);
+      // If user exits fullscreen during exam, show warning
+      if (!isNowFullscreen && !isSubmitted) {
+        reportViolation("Exited Fullscreen Mode");
+      }
+    };
+
+    // Prevent Escape key from exiting fullscreen during exam
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitted) {
+        e.preventDefault();
+        e.stopPropagation();
+        reportViolation("Escape Key Pressed");
+      }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("blur", handleBlur);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("keydown", handleEscapeKey, true);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleBlur);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("keydown", handleEscapeKey, true);
     };
-  }, [assignment.title, userName, isSubmitted]);
+  }, [examStarted, assignment.title, userName, isSubmitted]);
 
   // Keyboard support: 1, 2, 3, 4 for selections
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (showViolationWarning || showSubmitDialog || isSubmitted) return;
+      if (!examStarted || showViolationWarning || showSubmitDialog || isSubmitted) return;
       if (["1", "2", "3", "4"].includes(e.key)) {
         const optionIdx = parseInt(e.key) - 1;
         if (optionIdx < questions[currentQuestion].options.length) {
@@ -240,7 +264,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentQuestion, showViolationWarning, showSubmitDialog, isSubmitted]);
+  }, [currentQuestion, examStarted, showViolationWarning, showSubmitDialog, isSubmitted]);
 
   const handleSelectOption = (qIdx: number, optIdx: number) => {
     setAnswers((prev) => ({ ...prev, [qIdx]: optIdx }));
@@ -283,13 +307,44 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
   };
 
   const restartPractice = () => {
-    setAnswers({ 0: 1 });
+    setAnswers({});
     setFlagged({});
     setViolations(0);
     setTimeLeft(1200);
     setCurrentQuestion(0);
     setIsSubmitted(false);
+    setExamStarted(true);
+    // Enter fullscreen
+    document.documentElement.requestFullscreen().catch(() => {});
   };
+
+  // Start exam function
+  const startExam = useCallback(() => {
+    setExamStarted(true);
+    setTimeLeft(1200);
+    // Auto enter fullscreen
+    setTimeout(() => {
+      document.documentElement.requestFullscreen().catch(() => {
+        console.log("Fullscreen not supported or blocked");
+      });
+    }, 100);
+  }, []);
+
+  // Exit exam / close exam
+  const exitExam = useCallback(() => {
+    // Exit fullscreen first
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    // Reset exam state
+    setExamStarted(false);
+    setAnswers({});
+    setFlagged({});
+    setViolations(0);
+    setTimeLeft(1200);
+    setCurrentQuestion(0);
+    setIsSubmitted(false);
+  }, []);
 
   const answeredCount = Object.keys(answers).length;
   const remainingCount = questions.length - answeredCount;
@@ -424,24 +479,6 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                 <span className="w-2.5 h-2.5 rounded bg-red-500/20 border border-red-500/30" />
                 <span>Wrong Answer</span>
               </div>
-            </div>
-          </Card>
-
-          {/* Section 8 & 9: Weak Areas & Performance Analytics */}
-          <Card className="p-4 border border-slate-200/50 dark:border-white/5 bg-white/50 dark:bg-[#0d1020]/45 space-y-4">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Performance Analytics</h4>
-            
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between border-b border-border/40 pb-1.5">
-                <span className="text-muted-foreground">Accuracy Rate</span>
-                <span className="font-black text-foreground">{Math.round((correctCount / questions.length) * 100)}%</span>
-              </div>
-              <div className="flex justify-between border-b border-border/40 pb-1.5">
-                <span className="text-muted-foreground">Avg Time / Question</span>
-                <span className="font-black text-foreground">{Math.round((1200 - timeLeft) / questions.length)}s</span>
-              </div>
-              
-
             </div>
           </Card>
 
@@ -590,255 +627,331 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
     );
   }
 
+  // Show pre-exam screen if exam hasn't started
+  if (!examStarted && !isSubmitted) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-50/95 dark:bg-[#0a0c14]/95 backdrop-blur-sm">
+        <div className="max-w-lg w-full mx-4">
+          <Card className="p-8 border border-slate-200/50 dark:border-white/10 shadow-xl bg-white dark:bg-[#0d1020]/80">
+            {/* Exam Info */}
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <FileText className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="font-display font-black text-2xl text-foreground dark:text-white mb-2">
+                {assignment.title}
+              </h2>
+              <p className="text-sm text-muted-foreground">Ready to start your exam?</p>
+            </div>
+
+            {/* Exam Rules */}
+            <div className="space-y-3 mb-8 p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3">Exam Rules</h3>
+              <div className="flex items-start gap-3 text-sm">
+                <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <span className="text-slate-600 dark:text-slate-300">The exam will run in <strong>fullscreen mode</strong> for focus</span>
+              </div>
+              <div className="flex items-start gap-3 text-sm">
+                <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span className="text-slate-600 dark:text-slate-300">You have <strong>{formatTime(timeLeft)}</strong> to complete {questions.length} questions</span>
+              </div>
+              <div className="flex items-start gap-3 text-sm">
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <span className="text-slate-600 dark:text-slate-300">Switching tabs or leaving fullscreen will be <strong className="text-red-500">logged as violations</strong></span>
+              </div>
+              <div className="flex items-start gap-3 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                <span className="text-slate-600 dark:text-slate-300">Press <strong>1-4</strong> keys to quickly select answers</span>
+              </div>
+            </div>
+
+            {/* Exam Stats */}
+            <div className="grid grid-cols-3 gap-3 mb-8">
+              <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-white/5">
+                <div className="font-black text-lg text-primary">{questions.length}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Questions</div>
+              </div>
+              <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-white/5">
+                <div className="font-black text-lg text-primary">{assignment.maxScore}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Points</div>
+              </div>
+              <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-white/5">
+                <div className="font-black text-lg text-primary">{formatTime(timeLeft)}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Time Limit</div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={startExam}
+                className="w-full py-4 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base uppercase tracking-wider shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Start Exam
+              </button>
+              <button
+                onClick={exitExam}
+                className="w-full py-3 rounded-xl border border-slate-200 dark:border-white/10 text-muted-foreground hover:bg-slate-50 dark:hover:bg-white/5 font-semibold text-sm transition"
+              >
+                Cancel & Return
+              </button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Exam Interface (Fullscreen Mode)
   return (
-    <div className="min-h-screen flex flex-col relative text-slate-700 dark:text-slate-200">
-      {/* 1. TOP EXAM BAR (Sticky Header) */}
-      <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#0c0d12]/95 border-b border-slate-200 dark:border-white/10 backdrop-blur-md px-6 py-3.5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="font-display font-black text-base leading-none text-foreground dark:text-white">
-              {assignment.title}
-            </h1>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider">
-                Reading
-              </span>
-              <span className="text-[10px] text-muted-foreground font-semibold">
-                {currentQuestion + 1} / {questions.length} Questions
-              </span>
+    <div className={`fixed inset-0 z-[100] flex flex-col text-slate-700 dark:text-slate-200 bg-slate-50/95 dark:bg-[#0a0c14]/98 ${isFullscreen ? 'pt-0' : 'pt-0'}`}>
+      {/* 1. FOCUS HEADER - Sticky Top Bar with Timer */}
+      <header className="shrink-0 bg-white/95 dark:bg-[#0c0d12]/98 border-b border-slate-200 dark:border-white/10 shadow-sm">
+        <div className="flex items-center justify-between px-6 py-3">
+          {/* Left: Assignment Info */}
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="font-display font-black text-lg leading-none text-foreground dark:text-white">
+                {assignment.title}
+              </h1>
+              <div className="flex items-center gap-3 mt-1.5">
+                <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider">
+                  {questions[currentQuestion].type}
+                </span>
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  Question {currentQuestion + 1} of {questions.length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Timer & Actions */}
+          <div className="flex items-center gap-4">
+            {/* Auto Save Indicator */}
+            <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className={`w-1.5 h-1.5 rounded-full ${autoSaveStatus === "Saved" ? "bg-green-500" : "bg-amber-500 animate-pulse"}`} />
+              {autoSaveStatus === "Saved" ? "Saved" : "Saving..."}
+            </div>
+
+            {/* Violations Warning */}
+            {violations > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                {violations} / 3
+              </div>
+            )}
+
+            {/* Countdown Timer - Prominent */}
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all duration-300 ${
+              timeLeft <= 60 
+                ? "bg-red-500 text-white animate-pulse" 
+                : timeLeft <= 300 
+                ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30" 
+                : "bg-primary/10 text-primary border border-primary/20"
+            }`}>
+              <Clock className={`w-4 h-4 ${timeLeft <= 60 ? "animate-spin" : ""}`} />
+              <span className="tabular-nums font-black tracking-wider">{formatTime(timeLeft)}</span>
             </div>
           </div>
         </div>
-
-        {/* Timers & Status indicators */}
-        <div className="flex items-center gap-4 text-xs font-semibold">
-          {/* Auto Save Status */}
-          <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span>
-              {autoSaveStatus} {lastSavedSec > 0 && `(Last saved ${lastSavedSec}s ago)`}
-            </span>
-          </div>
-
-          {/* Fullscreen Status */}
-          <button
-            onClick={toggleFullscreen}
-            className="p-1.5 rounded-lg border border-border/50 text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5 transition"
-            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-          >
-            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-          </button>
-
-          {/* Remaining Time */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary">
-            <Clock className="w-4 h-4 animate-pulse" />
-            <span className="font-black tracking-wider text-sm">{formatTime(timeLeft)}</span>
-          </div>
+        
+        {/* Progress Bar */}
+        <div className="h-1 bg-slate-100 dark:bg-white/5">
+          <div 
+            className="h-full bg-linear-to-r from-primary to-pink-500 transition-all duration-300 ease-out"
+            style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
+          />
         </div>
       </header>
 
-      {/* Main Workspace Layout */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-6 py-6 grid md:grid-cols-4 gap-6 items-start">
+      {/* 2. MAIN FOCUS LAYOUT - Left Navigator + Right Content */}
+      <div className="flex-1 flex overflow-hidden">
         
-        {/* Left/Center Column: QUESTION AREA & ANSWER OPTIONS */}
-        <div className="md:col-span-3 space-y-6">
+        {/* LEFT SIDEBAR: Question Navigator */}
+        <aside className="w-64 shrink-0 bg-white/80 dark:bg-[#0d1020]/60 border-r border-slate-200/50 dark:border-white/5 p-4 overflow-y-auto">
           
-          {/* Question Card */}
-          <Card className="p-6 border border-slate-200/50 dark:border-white/5 shadow-sm space-y-4">
-            <div className="flex justify-between items-start">
+          {/* Stats Summary */}
+          <div className="mb-4 p-3 rounded-xl bg-linear-to-br from-primary/5 to-pink-500/5 border border-primary/10">
+            <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
               <div>
-                <span className="text-[10px] uppercase font-black text-primary tracking-widest">
-                  Question {currentQuestion + 1} of {questions.length}
-                </span>
-                <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                  Type: {questions[currentQuestion].type}
-                </p>
+                <div className="font-black text-green-500 text-sm">{answeredCount}</div>
+                <div className="text-muted-foreground font-medium">Done</div>
               </div>
-              <span className="text-[10px] text-muted-foreground font-bold bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-lg">
-                Points: {questions[currentQuestion].points}
-              </span>
+              <div>
+                <div className="font-black text-slate-500 text-sm">{remainingCount}</div>
+                <div className="text-muted-foreground font-medium">Left</div>
+              </div>
+              <div>
+                <div className="font-black text-red-500 text-sm">{flaggedCount}</div>
+                <div className="text-muted-foreground font-medium">Flag</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Question Grid */}
+          <div className="mb-4">
+            <h4 className="text-[10px] uppercase font-black tracking-wider text-muted-foreground mb-2">Questions</h4>
+            <div className="grid grid-cols-5 gap-1.5">
+              {questions.map((_, idx) => {
+                const status = getQuestionStatus(idx);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentQuestion(idx)}
+                    className={`w-9 h-9 rounded-lg font-bold text-xs transition-all duration-200 flex items-center justify-center ${
+                      status === "blue"
+                        ? "bg-primary text-primary-foreground shadow-md scale-110 ring-2 ring-primary/30"
+                        : status === "green"
+                        ? "bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25"
+                        : status === "red"
+                        ? "bg-red-500/15 text-red-600 border border-red-500/30 hover:bg-red-500/25"
+                        : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-muted-foreground hover:border-primary/30 hover:text-primary"
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="text-[9px] text-muted-foreground space-y-1.5 border-t border-slate-100 dark:border-white/5 pt-3">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded bg-primary shadow-sm" />
+              <span>Current</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded bg-green-500/20 border border-green-500/30" />
+              <span>Answered</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded bg-red-500/20 border border-red-500/30" />
+              <span>Flagged</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10" />
+              <span>Not Answered</span>
+            </div>
+          </div>
+
+          {/* Integrity Status */}
+          <div className="mt-4 p-3 rounded-xl bg-red-500/3 border border-red-500/10">
+            <div className="flex items-center gap-2 text-red-500 text-[10px] font-bold mb-2">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Integrity Guard</span>
+            </div>
+            <div className="text-[9px] text-muted-foreground space-y-1">
+              <div className="flex justify-between">
+                <span>Violations</span>
+                <span className={`font-bold ${violations > 0 ? "text-red-500" : "text-green-500"}`}>
+                  {violations} / 3
+                </span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* RIGHT CONTENT: Question & Options - Full Width */}
+        <main className="flex-1 p-6 overflow-y-auto">
+          <div className="max-w-3xl mx-auto space-y-6">
+            
+            {/* Question Card with Animation */}
+            <div className="transition-all duration-300 ease-out">
+              <Card className="p-6 border border-slate-200/50 dark:border-white/5 shadow-sm space-y-5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">
+                      Question {currentQuestion + 1}
+                    </span>
+                    <p className="text-[11px] text-muted-foreground font-medium mt-2">
+                      {questions[currentQuestion].type} • {questions[currentQuestion].points} points
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => toggleFlag(currentQuestion)}
+                    className={`p-2 rounded-lg transition-all ${
+                      flagged[currentQuestion]
+                        ? "bg-red-500/10 text-red-500 border border-red-500/30"
+                        : "text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5"
+                    }`}
+                    title={flagged[currentQuestion] ? "Remove flag" : "Flag for review"}
+                  >
+                    <Flag className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <h2 className="font-display font-bold text-xl text-foreground dark:text-white leading-relaxed">
+                  {questions[currentQuestion].q}
+                </h2>
+              </Card>
             </div>
 
-            <h2 className="font-display font-bold text-base sm:text-lg text-foreground dark:text-white leading-relaxed">
-              {questions[currentQuestion].q}
-            </h2>
-          </Card>
-
-          {/* Answer Options Card */}
-          <Card className="p-6 border border-slate-200/50 dark:border-white/5 shadow-sm space-y-4">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Select one option</h3>
-            
+            {/* Answer Options */}
             <div className="space-y-3">
               {questions[currentQuestion].options.map((opt, optIdx) => {
                 const isSelected = answers[currentQuestion] === optIdx;
                 return (
-                  <label
+                  <button
                     key={optIdx}
                     onClick={() => handleSelectOption(currentQuestion, optIdx)}
-                    className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all duration-150 group w-full ${
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
                       isSelected
-                        ? "bg-primary/5 border-primary text-primary shadow-sm"
-                        : "bg-white/50 dark:bg-slate-900/40 border-slate-200/60 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/[0.01]"
+                        ? "bg-primary/5 border-primary shadow-md shadow-primary/10"
+                        : "bg-white/70 dark:bg-slate-900/40 border-slate-200/60 dark:border-white/10 hover:border-primary/40 hover:bg-white/90 dark:hover:bg-slate-900/60"
                     }`}
                   >
-                    <div className="flex items-center gap-3.5 flex-1">
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
                         isSelected 
-                          ? "border-primary bg-primary text-white" 
-                          : "border-slate-300 dark:border-white/20 group-hover:border-primary"
+                          ? "bg-primary text-white shadow-md" 
+                          : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
                       }`}>
-                        {isSelected && <span className="w-2 h-2 rounded-full bg-white" />}
+                        {String.fromCharCode(65 + optIdx)}
                       </div>
-                      <span className="text-xs sm:text-sm font-semibold text-foreground dark:text-slate-200">
+                      <span className={`text-sm font-medium ${isSelected ? "text-primary" : "text-foreground dark:text-white"}`}>
                         {opt}
                       </span>
                     </div>
-                    {/* Hotkey tag helper */}
-                    <span className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded font-black group-hover:text-primary transition-colors">
+                    <span className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-lg font-bold opacity-0 group-hover:opacity-100">
                       {optIdx + 1}
                     </span>
-                  </label>
+                  </button>
                 );
               })}
             </div>
-          </Card>
-        </div>
 
-        {/* 2. RIGHT PANEL (Sidebar Navigator) */}
-        <aside className="md:col-span-1 space-y-6 md:sticky md:top-24">
-          
-          {/* Exam Summary Stat */}
-          <Card className="p-4 border border-slate-200/50 dark:border-white/5 bg-white/50 dark:bg-[#0d1020]/45 space-y-4">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Exam Summary</h4>
-            
-            <div className="grid grid-cols-3 gap-2 text-center text-xs border-b border-slate-200/50 dark:border-white/5 pb-3">
-              <div>
-                <div className="font-black text-green-500">{answeredCount}</div>
-                <div className="text-[9px] text-muted-foreground font-semibold">Answered</div>
-              </div>
-              <div>
-                <div className="font-black text-slate-500">{remainingCount}</div>
-                <div className="text-[9px] text-muted-foreground font-semibold">Remaining</div>
-              </div>
-              <div>
-                <div className="font-black text-red-500">{flaggedCount}</div>
-                <div className="text-[9px] text-muted-foreground font-semibold">Flagged</div>
-              </div>
-            </div>
+            {/* Navigation Buttons */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
+              <button
+                disabled={currentQuestion === 0}
+                onClick={() => setCurrentQuestion(prev => prev - 1)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border/50 text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition"
+              >
+                <ChevronLeft className="w-4 h-4" /> Previous
+              </button>
 
-            {/* Quick Navigation grid */}
-            <div>
-              <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-2">Question Navigator</div>
-              <div className="grid grid-cols-5 gap-2">
-                {questions.map((_, idx) => {
-                  const status = getQuestionStatus(idx);
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => handleScrollToQuestion(idx)}
-                      className={`w-9 h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center border ${
-                        status === "blue"
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
-                          : status === "green"
-                          ? "bg-green-500/10 text-green-600 border-green-500/20"
-                          : status === "red"
-                          ? "bg-red-500/10 text-red-600 border-red-500/20"
-                          : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-white/10 text-muted-foreground hover:bg-slate-50"
-                      }`}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
+              <div className="flex gap-2">
+                {currentQuestion < questions.length - 1 ? (
+                  <button
+                    onClick={() => setCurrentQuestion(prev => prev + 1)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md hover:opacity-95 transition"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowSubmitDialog(true)}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-green-500 text-white font-black text-xs shadow-md hover:bg-green-600 transition"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> Submit Exam
+                  </button>
+                )}
               </div>
             </div>
-
-            <div className="pt-2 border-t border-dashed border-slate-200 dark:border-white/10 text-[9px] text-muted-foreground space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded bg-green-500/20 border border-green-500/30" />
-                <span>Answered</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded bg-primary" />
-                <span>Current Question</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded bg-red-500/20 border border-red-500/30" />
-                <span>Flagged / Review</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Warnings & Integrity Card */}
-          <Card className="p-4 border border-red-500/15 dark:border-red-500/30 bg-red-500/[0.01] dark:bg-red-500/[0.005] space-y-3.5">
-            <div className="flex items-center gap-2 text-red-500">
-              <ShieldAlert className="w-4 h-4" />
-              <h4 className="font-bold text-xs uppercase tracking-wider">Integrity Center</h4>
-            </div>
-            
-            <div className="text-[10px] text-muted-foreground space-y-2 font-medium">
-              <div className="flex items-center justify-between">
-                <span>Tab Switch Guard</span>
-                <span className="text-green-500 font-bold">ACTIVE</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Page Exit Guard</span>
-                <span className="text-green-500 font-bold">ACTIVE</span>
-              </div>
-              <div className="flex items-center justify-between border-t border-red-500/10 pt-2 mt-1">
-                <span>Violations Logger</span>
-                <span className={`font-black ${violations > 0 ? "text-red-500 animate-pulse" : "text-green-500"}`}>
-                  {violations} / 3 Warnings
-                </span>
-              </div>
-            </div>
-          </Card>
-        </aside>
+          </div>
+        </main>
       </div>
-
-      {/* 3. BOTTOM ACTION BAR (Sticky Footer) */}
-      <footer className="sticky bottom-0 z-40 bg-white/95 dark:bg-[#0c0d12]/95 border-t border-slate-200 dark:border-white/10 backdrop-blur-md px-6 py-4 mt-auto">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex gap-2">
-            <button
-              disabled={currentQuestion === 0}
-              onClick={() => setCurrentQuestion(prev => prev - 1)}
-              className="px-4 py-2 rounded-xl border border-border/50 text-xs font-bold text-muted-foreground hover:bg-slate-50 dark:hover:bg-white/[0.02] disabled:opacity-50 disabled:pointer-events-none transition flex items-center gap-1"
-            >
-              <ChevronLeft className="w-4 h-4" /> Prev
-            </button>
-            <button
-              disabled={currentQuestion === questions.length - 1}
-              onClick={() => setCurrentQuestion(prev => prev + 1)}
-              className="px-4 py-2 rounded-xl border border-border/50 text-xs font-bold text-muted-foreground hover:bg-slate-50 dark:hover:bg-white/[0.02] disabled:opacity-50 disabled:pointer-events-none transition flex items-center gap-1"
-            >
-              Next <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => toggleFlag(currentQuestion)}
-              className={`px-4 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
-                flagged[currentQuestion]
-                  ? "bg-red-500/10 text-red-500 border-red-500/30"
-                  : "border-border/50 text-muted-foreground hover:bg-slate-50 dark:hover:bg-white/[0.02]"
-              }`}
-            >
-              <Flag className="w-4 h-4" />
-              {flagged[currentQuestion] ? "Unflag" : "Flag for Review"}
-            </button>
-
-            <button
-              onClick={() => setShowSubmitDialog(true)}
-              className="px-6 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-black uppercase text-xs shadow-md transition flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Submit Exam
-            </button>
-          </div>
-        </div>
-      </footer>
 
       {/* Submit Confirmation Dialog Modal */}
       {showSubmitDialog && (

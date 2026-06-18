@@ -79,6 +79,7 @@ import { Route as StudentVocabularyLessonIdRouteImport } from './routes/student.
 import { Route as StudentSettingsThemeRouteImport } from './routes/student.settings.theme'
 import { Route as StudentSettingsNotificationsRouteImport } from './routes/student.settings.notifications'
 import { Route as StudentSettingsLanguageRouteImport } from './routes/student.settings.language'
+import { Route as StudentReadingReadingIdRouteImport } from './routes/student.reading.$readingId'
 import { Route as StudentProgressWeakPointsRouteImport } from './routes/student.progress.weak-points'
 import { Route as StudentProgressStreakRouteImport } from './routes/student.progress.streak'
 import { Route as StudentProgressStatisticsRouteImport } from './routes/student.progress.statistics'
@@ -454,6 +455,11 @@ const StudentSettingsLanguageRoute = StudentSettingsLanguageRouteImport.update({
   path: '/language',
   getParentRoute: () => StudentSettingsRoute,
 } as any)
+const StudentReadingReadingIdRoute = StudentReadingReadingIdRouteImport.update({
+  id: '/$readingId',
+  path: '/$readingId',
+  getParentRoute: () => StudentReadingRoute,
+} as any)
 const StudentProgressWeakPointsRoute =
   StudentProgressWeakPointsRouteImport.update({
     id: '/weak-points',
@@ -617,7 +623,7 @@ export interface FileRoutesByFullPath {
   '/student/practice': typeof StudentPracticeRouteWithChildren
   '/student/profile': typeof StudentProfileRoute
   '/student/progress': typeof StudentProgressRouteWithChildren
-  '/student/reading': typeof StudentReadingRoute
+  '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/search': typeof StudentSearchRoute
   '/student/settings': typeof StudentSettingsRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRoute
@@ -655,6 +661,7 @@ export interface FileRoutesByFullPath {
   '/student/progress/statistics': typeof StudentProgressStatisticsRoute
   '/student/progress/streak': typeof StudentProgressStreakRoute
   '/student/progress/weak-points': typeof StudentProgressWeakPointsRoute
+  '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
   '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
   '/student/settings/theme': typeof StudentSettingsThemeRoute
@@ -706,7 +713,7 @@ export interface FileRoutesByTo {
   '/student/practice': typeof StudentPracticeRouteWithChildren
   '/student/profile': typeof StudentProfileRoute
   '/student/progress': typeof StudentProgressRouteWithChildren
-  '/student/reading': typeof StudentReadingRoute
+  '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/search': typeof StudentSearchRoute
   '/student/settings': typeof StudentSettingsRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRoute
@@ -744,6 +751,7 @@ export interface FileRoutesByTo {
   '/student/progress/statistics': typeof StudentProgressStatisticsRoute
   '/student/progress/streak': typeof StudentProgressStreakRoute
   '/student/progress/weak-points': typeof StudentProgressWeakPointsRoute
+  '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
   '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
   '/student/settings/theme': typeof StudentSettingsThemeRoute
@@ -799,7 +807,7 @@ export interface FileRoutesById {
   '/student/practice': typeof StudentPracticeRouteWithChildren
   '/student/profile': typeof StudentProfileRoute
   '/student/progress': typeof StudentProgressRouteWithChildren
-  '/student/reading': typeof StudentReadingRoute
+  '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/search': typeof StudentSearchRoute
   '/student/settings': typeof StudentSettingsRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRoute
@@ -838,6 +846,7 @@ export interface FileRoutesById {
   '/student/progress/statistics': typeof StudentProgressStatisticsRoute
   '/student/progress/streak': typeof StudentProgressStreakRoute
   '/student/progress/weak-points': typeof StudentProgressWeakPointsRoute
+  '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
   '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
   '/student/settings/theme': typeof StudentSettingsThemeRoute
@@ -932,6 +941,7 @@ export interface FileRouteTypes {
     | '/student/progress/statistics'
     | '/student/progress/streak'
     | '/student/progress/weak-points'
+    | '/student/reading/$readingId'
     | '/student/settings/language'
     | '/student/settings/notifications'
     | '/student/settings/theme'
@@ -1021,6 +1031,7 @@ export interface FileRouteTypes {
     | '/student/progress/statistics'
     | '/student/progress/streak'
     | '/student/progress/weak-points'
+    | '/student/reading/$readingId'
     | '/student/settings/language'
     | '/student/settings/notifications'
     | '/student/settings/theme'
@@ -1114,6 +1125,7 @@ export interface FileRouteTypes {
     | '/student/progress/statistics'
     | '/student/progress/streak'
     | '/student/progress/weak-points'
+    | '/student/reading/$readingId'
     | '/student/settings/language'
     | '/student/settings/notifications'
     | '/student/settings/theme'
@@ -1629,6 +1641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentSettingsLanguageRouteImport
       parentRoute: typeof StudentSettingsRoute
     }
+    '/student/reading/$readingId': {
+      id: '/student/reading/$readingId'
+      path: '/$readingId'
+      fullPath: '/student/reading/$readingId'
+      preLoaderRoute: typeof StudentReadingReadingIdRouteImport
+      parentRoute: typeof StudentReadingRoute
+    }
     '/student/progress/weak-points': {
       id: '/student/progress/weak-points'
       path: '/weak-points'
@@ -1931,6 +1950,18 @@ const StudentProgressRouteWithChildren = StudentProgressRoute._addFileChildren(
   StudentProgressRouteChildren,
 )
 
+interface StudentReadingRouteChildren {
+  StudentReadingReadingIdRoute: typeof StudentReadingReadingIdRoute
+}
+
+const StudentReadingRouteChildren: StudentReadingRouteChildren = {
+  StudentReadingReadingIdRoute: StudentReadingReadingIdRoute,
+}
+
+const StudentReadingRouteWithChildren = StudentReadingRoute._addFileChildren(
+  StudentReadingRouteChildren,
+)
+
 interface StudentSettingsRouteChildren {
   StudentSettingsLanguageRoute: typeof StudentSettingsLanguageRoute
   StudentSettingsNotificationsRoute: typeof StudentSettingsNotificationsRoute
@@ -1974,7 +2005,7 @@ interface StudentRouteChildren {
   StudentPracticeRoute: typeof StudentPracticeRouteWithChildren
   StudentProfileRoute: typeof StudentProfileRoute
   StudentProgressRoute: typeof StudentProgressRouteWithChildren
-  StudentReadingRoute: typeof StudentReadingRoute
+  StudentReadingRoute: typeof StudentReadingRouteWithChildren
   StudentSearchRoute: typeof StudentSearchRoute
   StudentSettingsRoute: typeof StudentSettingsRouteWithChildren
   StudentShadowingRoute: typeof StudentShadowingRoute
@@ -1999,7 +2030,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentPracticeRoute: StudentPracticeRouteWithChildren,
   StudentProfileRoute: StudentProfileRoute,
   StudentProgressRoute: StudentProgressRouteWithChildren,
-  StudentReadingRoute: StudentReadingRoute,
+  StudentReadingRoute: StudentReadingRouteWithChildren,
   StudentSearchRoute: StudentSearchRoute,
   StudentSettingsRoute: StudentSettingsRouteWithChildren,
   StudentShadowingRoute: StudentShadowingRoute,

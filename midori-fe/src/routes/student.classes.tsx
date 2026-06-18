@@ -1,16 +1,300 @@
+import { useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { PageHeader, Card, LevelBadge } from "@/components/page-ui";
-import { School, User, Users, ClipboardList, Calendar, Clock } from "lucide-react";
+import { Card, LevelBadge, Progress, PageHeader } from "@/components/page-ui";
+import { BookOpen, Clock, ArrowRight, GraduationCap, Award, RefreshCw, Trophy } from "lucide-react";
 import { mockClasses } from "@/mock/classes";
-import { useAuth } from "@/lib/auth";
+import type { DetailedClassInfo, ClassStatus } from "@/types/class-detail";
 
 export const Route = createFileRoute("/student/classes")({
   component: StudentClassesPage,
 });
 
+// ==================== STATUS CONFIG ====================
+
+const statusConfig: Record<ClassStatus, { label: string; color: string; dot: string }> = {
+  active: { 
+    label: "Active", 
+    color: "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30", 
+    dot: "bg-emerald-500" 
+  },
+  completed: { 
+    label: "Completed", 
+    color: "text-slate-600 bg-slate-100 dark:text-slate-400 dark:bg-slate-800/50", 
+    dot: "bg-slate-400" 
+  },
+  archived: { 
+    label: "Archived", 
+    color: "text-slate-500 bg-slate-100 dark:text-slate-500 dark:bg-slate-800/50", 
+    dot: "bg-slate-400" 
+  },
+};
+
+// ==================== HELPER FUNCTIONS ====================
+
+function getPendingAssignments(cls: DetailedClassInfo): number {
+  return cls.assignments.filter(
+    (a) => a.status === "Not Started" || a.status === "In Progress" || a.status === "Overdue"
+  ).length;
+}
+
+function getCompletedAssignments(cls: DetailedClassInfo): number {
+  return cls.assignments.filter(
+    (a) => a.status === "Submitted" || a.status === "Graded"
+  ).length;
+}
+
+function getProgressPercentage(cls: DetailedClassInfo): number {
+  if (cls.assignments.length === 0) return 0;
+  const completed = getCompletedAssignments(cls);
+  return Math.round((completed / cls.assignments.length) * 100);
+}
+
+function formatShortDate(date: string): string {
+  if (date === "-") return "None";
+  const d = new Date(date);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatDate(date: string): string {
+  if (!date || date === "-") return "N/A";
+  const d = new Date(date);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function getGradeColor(score: number): string {
+  if (score >= 90) return "text-emerald-600";
+  if (score >= 80) return "text-blue-600";
+  if (score >= 70) return "text-amber-600";
+  if (score >= 60) return "text-orange-600";
+  return "text-red-500";
+}
+
+// ==================== STATUS BADGE ====================
+
+function StatusBadge({ status }: { status: ClassStatus }) {
+  const config = statusConfig[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+      {config.label}
+    </span>
+  );
+}
+
+// ==================== ACTIVE CLASS CARD ====================
+
+function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
+  const pendingCount = getPendingAssignments(cls);
+  const progressPercent = getProgressPercentage(cls);
+  const completedCount = getCompletedAssignments(cls);
+  const totalCount = cls.assignments.length;
+
+  return (
+    <Link to="/student/classes/$classId" params={{ classId: cls.id }} className="block">
+      <Card className="p-5 hover:shadow-md transition-shadow group cursor-pointer">
+        
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <LevelBadge level={cls.level} />
+              <StatusBadge status="active" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
+              {cls.name}
+            </h3>
+          </div>
+        </div>
+
+        {/* Teacher */}
+        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border/50">
+          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary grid place-items-center font-medium text-xs">
+            {cls.teacherAvatarInitials}
+          </div>
+          <span className="text-sm text-muted-foreground">{cls.teacher}</span>
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-1.5">
+            <BookOpen className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              <span className={`font-medium ${pendingCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                {pendingCount}
+              </span>
+              <span> pending</span>
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              Due <span className="font-medium text-foreground">{formatShortDate(cls.nextDeadline)}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-muted-foreground">Progress</span>
+            <span className="text-xs font-medium text-foreground">
+              {completedCount}/{totalCount}
+            </span>
+          </div>
+          <Progress value={progressPercent} />
+        </div>
+
+        {/* CTA Button */}
+        <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl btn-gradient-primary text-white text-sm font-semibold transition-colors duration-150">
+          Continue
+          <ArrowRight className="w-3.5 h-3.5" />
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+// ==================== COMPLETED CLASS CARD ====================
+
+function CompletedClassCard({ cls }: { cls: DetailedClassInfo }) {
+  const score = cls.finalScore || 0;
+  const gradeColor = getGradeColor(score);
+
+  return (
+    <Link to="/student/classes/$classId" params={{ classId: cls.id }} className="block">
+      <Card className="p-5 hover:shadow-md transition-shadow group cursor-pointer">
+        
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <LevelBadge level={cls.level} />
+              <StatusBadge status="completed" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
+              {cls.name}
+            </h3>
+          </div>
+          
+          {cls.hasCertificate && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+              <Award className="w-3 h-3" />
+              Certified
+            </div>
+          )}
+        </div>
+
+        {/* Teacher */}
+        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border/50">
+          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary grid place-items-center font-medium text-xs">
+            {cls.teacherAvatarInitials}
+          </div>
+          <span className="text-sm text-muted-foreground">{cls.teacher}</span>
+        </div>
+
+        {/* Final Score */}
+        <div className="flex items-center justify-between mb-4 p-3 rounded-xl bg-muted/50">
+          <div>
+            <div className="text-xs text-muted-foreground mb-0.5">Final Score</div>
+            <div className={`text-xl font-bold ${gradeColor}`}>{score}%</div>
+          </div>
+          <Trophy className={`w-8 h-8 ${score >= 80 ? "text-amber-500" : "text-muted-foreground/40"}`} />
+        </div>
+
+        {/* Completion */}
+        <div className="flex items-center gap-1.5 mb-4">
+          <GraduationCap className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
+            Completed <span className="font-medium text-foreground">{formatDate(cls.completionDate)}</span>
+          </span>
+        </div>
+
+        {/* CTA Button */}
+        <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl btn-gradient-primary text-white text-sm font-semibold transition-colors duration-150">
+          Review Course
+          <RefreshCw className="w-3.5 h-3.5" />
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+// ==================== TAB COMPONENT ====================
+
+type TabType = "active" | "completed";
+
+const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
+  { id: "active", label: "Active", icon: BookOpen },
+  { id: "completed", label: "Completed", icon: Trophy },
+];
+
+function TabButton({ 
+  tab, 
+  isActive, 
+  onClick 
+}: { 
+  tab: typeof tabs[number]; 
+  isActive: boolean; 
+  onClick: () => void;
+}) {
+  const Icon = tab.icon;
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`tab-btn ${isActive ? "tab-btn-active" : "tab-btn-inactive"} flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium`}
+    >
+      <Icon className="w-4 h-4" />
+      {tab.label}
+    </button>
+  );
+}
+
+// ==================== EMPTY STATE ====================
+
+function EmptyState({ type }: { type: TabType }) {
+  const content = {
+    active: {
+      icon: BookOpen,
+      title: "No Active Classes",
+      hint: "You don't have any active classes at the moment.",
+      action: "Browse Courses",
+    },
+    completed: {
+      icon: Trophy,
+      title: "No Completed Classes",
+      hint: "You haven't completed any classes yet. Keep learning!",
+      action: "Go to Active Classes",
+    },
+  };
+
+  const { icon: Icon, title, hint, action } = content[type];
+
+  return (
+    <Card className="py-16 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-5">
+        <Icon className="w-8 h-8 text-muted-foreground" />
+      </div>
+      <h2 className="text-base font-semibold text-foreground mb-1">{title}</h2>
+      <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">{hint}</p>
+      {action && (
+        <Link
+          to="/student/dashboard"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl btn-gradient-primary text-white text-sm font-semibold transition-colors"
+        >
+          {action}
+        </Link>
+      )}
+    </Card>
+  );
+}
+
+// ==================== MAIN PAGE ====================
+
 function StudentClassesPage() {
-  const { user } = useAuth();
   const location = useLocation();
+  const [activeTab, setActiveTab] = useState<TabType>("active");
 
   const isIndex = location.pathname === "/student/classes" || location.pathname === "/student/classes/";
 
@@ -18,97 +302,72 @@ function StudentClassesPage() {
     return <Outlet />;
   }
 
-  // Load and sort classes associated with the student.
-  // Newest classes first (recently added at the top)
-  const sortedClasses = [...mockClasses].sort((a, b) => {
-    return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
-  });
+  // Filter and sort classes by status
+  const activeClasses = mockClasses.filter((c) => c.status === "active")
+    .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+  
+  const completedClasses = mockClasses.filter((c) => c.status === "completed")
+    .sort((a, b) => new Date(b.completionDate || b.createdDate).getTime() - new Date(a.completionDate || a.createdDate).getTime());
+
+  // Calculate summary stats
+  const totalPendingAssignments = activeClasses.reduce((sum, cls) => sum + getPendingAssignments(cls), 0);
+
+  // Get current tab data
+  const currentClasses = activeTab === "active" ? activeClasses : completedClasses;
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <PageHeader
         title="My Classes"
-        subtitle="Manage and enter your active school courses."
+        subtitle="Continue your learning journey and stay on track."
       />
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedClasses.map((cls) => (
-          <Card key={cls.id} className="p-5 flex flex-col justify-between hover:shadow-md transition-shadow relative">
-            {cls.isNew && (
-              <div className="absolute top-4 right-4 z-10 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-jp-red text-white shadow-sm">
-                NEW
-              </div>
-            )}
-            <div>
-              <div className="flex justify-between items-start mb-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary grid place-items-center">
-                  <School className="w-5 h-5" />
-                </div>
-                <div className="flex gap-2 items-center">
-                  <LevelBadge level={cls.level} />
-                </div>
-              </div>
-              <h3 className="font-display font-bold text-base text-foreground mb-1">{cls.name}</h3>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
-                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-[10px]">
-                  {cls.teacherAvatarInitials}
-                </div>
-                Teacher: {cls.teacher}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-border/50 text-center">
-                  <div className="flex items-center justify-center gap-1 text-muted-foreground text-[10px] uppercase font-bold tracking-wider mb-0.5">
-                    <Users className="w-3.5 h-3.5 text-primary" />
-                    Students
-                  </div>
-                  <div className="font-black text-sm text-foreground">{cls.members}</div>
-                </div>
-
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-border/50 text-center">
-                  <div className="flex items-center justify-center gap-1 text-muted-foreground text-[10px] uppercase font-bold tracking-wider mb-0.5">
-                    <ClipboardList className="w-3.5 h-3.5 text-primary" />
-                    Assignments
-                  </div>
-                  <div className="font-black text-sm text-foreground">{cls.assignmentCount}</div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-xs text-muted-foreground mb-6">
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-1">
-                    <ClipboardList className="w-3.5 h-3.5 text-red-500" />
-                    Unfinished Tasks
-                  </span>
-                  <span className="font-semibold text-red-500">{cls.unfinishedCount} tasks</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
-                    Next Deadline
-                  </span>
-                  <span className="font-semibold text-foreground">{cls.nextDeadline}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    Created Date
-                  </span>
-                  <span className="font-semibold text-foreground">{cls.createdDate}</span>
-                </div>
-              </div>
-            </div>
-
-            <Link
-              to="/student/classes/$classId"
-              params={{ classId: cls.id }}
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow hover:bg-primary/95 transition-colors flex items-center justify-center gap-1.5"
-            >
-              Enter Class
-            </Link>
-          </Card>
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-2">
+        {tabs.map((tab) => (
+          <TabButton
+            key={tab.id}
+            tab={tab}
+            isActive={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+          />
         ))}
       </div>
+
+      {/* Summary Stats */}
+      {activeTab === "active" && activeClasses.length > 0 && (
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <BookOpen className="w-4 h-4" />
+            <span><strong className="font-semibold text-foreground">{activeClasses.length}</strong> active classes</span>
+          </div>
+          {totalPendingAssignments > 0 && (
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <Clock className="w-4 h-4" />
+              <span><strong className="font-semibold">{totalPendingAssignments}</strong> pending</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Classes Grid or Empty State */}
+      {currentClasses.length === 0 ? (
+        <EmptyState type={activeTab} />
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {currentClasses.map((cls, index) => (
+            <div
+              key={cls.id}
+              className="animate-in fade-in slide-in-from-bottom-2"
+              style={{ animationDelay: `${index * 50}ms`, animationFillMode: "both" }}
+            >
+              {activeTab === "active" && <ActiveClassCard cls={cls} />}
+              {activeTab === "completed" && <CompletedClassCard cls={cls} />}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

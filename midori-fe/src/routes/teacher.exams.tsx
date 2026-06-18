@@ -1551,20 +1551,20 @@ function EditQuestionItem({
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-3 p-4 text-left">
-        <div className="w-8 h-8 rounded-lg bg-gradient-hero flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-xs font-bold">Q{index + 1}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{localQ.question || <span className="italic text-muted-foreground">No question text</span>}</p>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition">
-            <Trash2 className="w-4 h-4" />
-          </button>
+      <div className="flex items-center gap-3 p-4">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-3 flex-1 text-left">
+          <div className="w-8 h-8 rounded-lg bg-gradient-hero flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xs font-bold">Q{index + 1}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{localQ.question || <span className="italic text-muted-foreground">No question text</span>}</p>
+          </div>
           {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-        </div>
-      </button>
+        </button>
+        <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (

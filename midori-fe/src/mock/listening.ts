@@ -214,6 +214,131 @@ export const mockListening: ListeningItem[] = [
     createdAt: "2024-05-10",
     updatedAt: "2024-05-10",
   },
+  // ─── Dictation Exercises (mode: "dictation") ─────────────────────────────────
+  {
+    id: "dict-001",
+    title: "N5 Dictation - Greetings",
+    audioUrl: "/audio/n5-greetings.mp3",
+    transcript: "おはようございます。今日はいい天気ですね。",
+    questions: [],
+    jlptLevel: "N5",
+    tags: ["dictation", "daily-life", "greetings"],
+    duration: 60,
+    createdAt: "2024-06-01",
+    updatedAt: "2024-06-01",
+    mode: "dictation",
+  },
+  {
+    id: "dict-002",
+    title: "N5 Dictation - School Life",
+    audioUrl: "/audio/n5-school.mp3",
+    transcript: "毎日学校に行きます。友達と一緒に勉強しています。",
+    questions: [],
+    jlptLevel: "N5",
+    tags: ["dictation", "school", "daily-life"],
+    duration: 60,
+    createdAt: "2024-06-01",
+    updatedAt: "2024-06-01",
+    mode: "dictation",
+  },
+  {
+    id: "dict-003",
+    title: "N4 Dictation - Shopping",
+    audioUrl: "/audio/n4-shopping.mp3",
+    transcript: "この靴はいくらですか。三千円です。もう少し安くなりますか。",
+    questions: [],
+    jlptLevel: "N4",
+    tags: ["dictation", "shopping", "conversation"],
+    duration: 90,
+    createdAt: "2024-06-01",
+    updatedAt: "2024-06-01",
+    mode: "dictation",
+  },
+  // ─── Multiple Choice Exercises (mode: "quiz") ─────────────────────────────────
+  {
+    id: "quiz-001",
+    title: "N5 Multiple Choice - Daily Conversation",
+    audioUrl: "/audio/n5-daily.mp3",
+    transcript: "A: お名前は？\nB: 田中です。\nA: どこに住んでいますか？\nB: 大阪に住んでいます。",
+    questions: [
+      {
+        id: "mq1",
+        question: "What is the person's name?",
+        options: ["Tanaka", "Yamada", "Suzuki", "Sato"],
+        correctAnswer: 0,
+        explanation: "The person says 田中です (I am Tanaka).",
+      },
+      {
+        id: "mq2",
+        question: "Where does the person live?",
+        options: ["Tokyo", "Osaka", "Kyoto", "Nagoya"],
+        correctAnswer: 1,
+        explanation: "The person says 大阪に住んでいます (I live in Osaka).",
+      },
+    ],
+    jlptLevel: "N5",
+    tags: ["quiz", "daily-life", "conversation"],
+    duration: 90,
+    createdAt: "2024-06-01",
+    updatedAt: "2024-06-01",
+    mode: "quiz",
+  },
+  {
+    id: "quiz-002",
+    title: "N5 Multiple Choice - Restaurant",
+    audioUrl: "/audio/n5-restaurant2.mp3",
+    transcript: "店員: いらっしゃいませ。 何名様ですか？\n客: 二人です。\n店員: こちらへどうぞ。メニューです。",
+    questions: [
+      {
+        id: "mq1",
+        question: "How many people are in the group?",
+        options: ["One", "Two", "Three", "Four"],
+        correctAnswer: 1,
+        explanation: "The customer says 二人です (Two people).",
+      },
+      {
+        id: "mq2",
+        question: "What does the staff give the customer?",
+        options: ["The bill", "A menu", "Water", "A towel"],
+        correctAnswer: 1,
+        explanation: "The staff says メニューです (Here is the menu).",
+      },
+    ],
+    jlptLevel: "N5",
+    tags: ["quiz", "restaurant", "conversation"],
+    duration: 90,
+    createdAt: "2024-06-01",
+    updatedAt: "2024-06-01",
+    mode: "quiz",
+  },
+  {
+    id: "quiz-003",
+    title: "N4 Multiple Choice - Weather",
+    audioUrl: "/audio/n4-weather2.mp3",
+    transcript: "今日の天気は晴れです。明日は雨が降るでしょう。",
+    questions: [
+      {
+        id: "mq1",
+        question: "What is the weather like today?",
+        options: ["Rainy", "Cloudy", "Sunny", "Snowy"],
+        correctAnswer: 2,
+        explanation: "今日の天気は晴れです means 'Today's weather is sunny'.",
+      },
+      {
+        id: "mq2",
+        question: "What will the weather be like tomorrow?",
+        options: ["Sunny", "Cloudy", "Rainy", "Clear"],
+        correctAnswer: 2,
+        explanation: "明日は雨が降るでしょう means 'It will probably rain tomorrow'.",
+      },
+    ],
+    jlptLevel: "N4",
+    tags: ["quiz", "weather", "forecast"],
+    duration: 90,
+    createdAt: "2024-06-01",
+    updatedAt: "2024-06-01",
+    mode: "quiz",
+  },
 ];
 
 export const getListeningByLevel = (level: ListeningItem["jlptLevel"]) => {
@@ -227,9 +352,13 @@ export const getListeningById = (id: string) => {
 export const searchListening = (query: string) => {
   const lowerQuery = query.toLowerCase();
   return mockListening.filter(
-    item =>
-      item.title.toLowerCase().includes(lowerQuery) ||
-      item.transcript.toLowerCase().includes(lowerQuery) ||
-      item.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+    item => {
+      const transcriptText = typeof item.transcript === "string" ? item.transcript : item.transcript?.raw || "";
+      return (
+        item.title.toLowerCase().includes(lowerQuery) ||
+        transcriptText.toLowerCase().includes(lowerQuery) ||
+        item.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+      );
+    }
   );
 };

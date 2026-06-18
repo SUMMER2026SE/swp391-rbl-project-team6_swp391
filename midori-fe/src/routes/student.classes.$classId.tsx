@@ -1,11 +1,10 @@
 import React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ClipboardList, LineChart } from "lucide-react";
+import { ArrowLeft, ClipboardList } from "lucide-react";
 import { useClassDetail } from "@/hooks/useClassDetail";
 import { Card } from "@/components/page-ui";
 
 import { AssignmentsTab } from "@/components/student/class-detail/AssignmentsTab";
-import { ProgressTab } from "@/components/student/class-detail/ProgressTab";
 
 export const Route = createFileRoute("/student/classes/$classId")({
   component: ClassDetailPage,
@@ -13,11 +12,7 @@ export const Route = createFileRoute("/student/classes/$classId")({
 
 function ClassDetailPage() {
   const { classId } = Route.useParams();
-  const {
-    classInfo,
-    activeTab,
-    setActiveTab,
-  } = useClassDetail(classId);
+  const { classInfo } = useClassDetail(classId);
 
   if (!classInfo) {
     return (
@@ -43,14 +38,6 @@ function ClassDetailPage() {
       </div>
     );
   }
-
-  // Handle default or mapping student class detail tabs
-  const tabs = [
-    { id: "assignments", label: "Assignments", icon: ClipboardList },
-    { id: "progress", label: "Progress", icon: LineChart },
-  ];
-
-  const currentTab = ["assignments", "progress"].includes(activeTab) ? activeTab : "assignments";
 
   return (
     <div className="space-y-6">
@@ -96,36 +83,9 @@ function ClassDetailPage() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-100 dark:border-white/5 pb-2">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = currentTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                isActive
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-white/5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Render Subcomponents */}
       <div className="mt-4">
-        {currentTab === "assignments" && (
-          <AssignmentsTab classInfo={classInfo} />
-        )}
-        {currentTab === "progress" && (
-          <ProgressTab classInfo={classInfo} />
-        )}
+        <AssignmentsTab classInfo={classInfo} />
       </div>
     </div>
   );

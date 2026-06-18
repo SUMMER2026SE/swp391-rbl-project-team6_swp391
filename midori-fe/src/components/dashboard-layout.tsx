@@ -10,7 +10,7 @@ import {
   Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
   Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
   Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText,
-  School, ClipboardList, Brain, ChartColumn, Calendar
+  School, ClipboardList, Brain, ChartColumn
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -34,36 +34,15 @@ const studentNav: NavItem[] = [
       { to: "/student/grammar", label: "Grammar" },
       { to: "/student/listening", label: "Listening" },
       { to: "/student/reading", label: "Reading" },
-      { to: "/student/shadowing", label: "Shadowing" },
-      { to: "/student/writing", label: "Writing" }
-    ]
-  },
-  {
-    to: "/student/practice",
-    label: "Practice",
-    icon: Brain,
-    children: [
-      { to: "/student/practice/quiz", label: "Quiz Mode" },
-      { to: "/student/practice/dictation", label: "Dictation" },
-      { to: "/student/practice/srs", label: "SRS Review" },
-      { to: "/student/practice/review", label: "Review Mistakes" },
-      { to: "/student/practice/bookmarks", label: "Bookmarks" }
+      { to: "/student/shadowing", label: "Shadowing" }
     ]
   },
   {
     to: "/student/progress",
     label: "Progress",
-    icon: ChartColumn,
-    children: [
-      { to: "/student/progress/statistics", label: "Statistics" },
-      { to: "/student/progress/history", label: "Learning History" },
-      { to: "/student/progress/weak-points", label: "Weak Points" },
-      { to: "/student/progress/achievements", label: "Achievements" },
-      { to: "/student/progress/streak", label: "Streak Calendar" }
-    ]
+    icon: ChartColumn
   },
-  { to: "/student/notifications", label: "Notifications", icon: Bell },
-  { to: "/student/calendar", label: "Calendar", icon: Calendar },
+  { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
   {
     to: "/student/settings",
