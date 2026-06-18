@@ -9,7 +9,8 @@ import {
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
   Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
-  Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText
+  Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText,
+  School, UserPlus, BookOpenCheck, ClipboardList, LineChart as ProgressIcon
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -37,16 +38,40 @@ const studentNav: NavItem[] = [
 ];
 
 const teacherNav: NavItem[] = [
+  // 1. Dashboard
   { to: "/teacher", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/teacher/grammar", label: "Grammar", icon: GraduationCap },
-  { to: "/teacher/vocabulary", label: "Vocabulary", icon: BookOpen },
-  { to: "/teacher/flashcards", label: "Flashcards", icon: Layers },
-  { to: "/teacher/listening", label: "Listening", icon: Headphones },
-  { to: "/teacher/shadowing", label: "Shadowing", icon: Mic },
+
+  // 2. My Classes (class-based flow)
+  { to: "/teacher/classes", label: "My Classes", icon: School,
+    children: [
+      { to: "/teacher/classes", label: "My Classes", icon: School },
+      { to: "/teacher/classes/create", label: "Create Class", icon: UserPlus },
+    ]
+  },
+
+  // 3. Lessons (global)
+  { to: "/teacher/lessons", label: "Lessons", icon: BookOpen },
+
+  // 4. Homework (global)
+  { to: "/teacher/homework", label: "Homework", icon: ClipboardList },
+
+  // 5. Exams (global)
   { to: "/teacher/exams", label: "Exams", icon: ClipboardCheck },
+
+  // 6. Progress (global)
+  { to: "/teacher/progress", label: "Progress", icon: ProgressIcon },
+
+  // 7. Data Bank
+  { to: "/teacher/data-bank", label: "Data Bank", icon: FolderOpen },
+
+  // 8. Reports
+  { to: "/teacher/reports", label: "Reports", icon: FileBarChart },
+
+  // 9. Notifications
   { to: "/teacher/notifications", label: "Notifications", icon: BellRing },
+
+  // 10. Profile
   { to: "/teacher/profile", label: "Profile", icon: User },
-  { to: "/teacher/settings", label: "Settings", icon: Settings },
 ];
 
 // New Academic Actor Admin Navigation
@@ -187,6 +212,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
         <Link
           key={item.to}
           to={item.to}
+          preload="intent"
           title={isCollapsed ? item.label : undefined}
           className={cn(
             "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
@@ -274,6 +300,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
       <Link
         key={item.to}
         to={item.to}
+        preload="intent"
         title={isCollapsed ? item.label : undefined}
         className={cn(
           "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
@@ -345,11 +372,11 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
         </div>
 
         <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden", isCollapsed ? "mt-1" : "mt-2")}>
-          {role === "admin" ? (
-            // Admin uses hierarchical navigation
+          {role === "admin" || role === "teacher" ? (
+            // Admin/Teacher uses hierarchical navigation
             items.map(item => renderNavItem(item))
           ) : (
-            // Student/Teacher use flat navigation
+            // Student uses flat navigation
             items.map((it) => {
               const isBaseRoute = it.to === `/${role}`;
               const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
@@ -358,6 +385,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
                 <Link
                   key={it.to}
                   to={it.to}
+                  preload="intent"
                   title={isCollapsed ? it.label : undefined}
                   className={cn(
                     "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
@@ -414,8 +442,8 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
           <aside className="absolute left-0 top-0 bottom-0 w-72 glass-sidebar p-4 rounded-r-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="font-display font-extrabold text-xl tracking-[0.2em] text-primary-col mb-6">MIDORI</div>
             <nav className="space-y-1">
-              {role === "admin" ? (
-                // Admin hierarchical mobile nav
+              {role === "admin" || role === "teacher" ? (
+                // Admin/Teacher hierarchical mobile nav
                 items.map(item => {
                   const hasChildren = item.children && item.children.length > 0;
                   const isActive = isItemOrChildActive(item);
@@ -440,6 +468,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
                               <Link
                                 key={child.to}
                                 to={child.to}
+                                preload="intent"
                                 onClick={() => setOpen(false)}
                                 className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${
                                   pathname === child.to ? "nav-active" : "nav-item"
@@ -460,6 +489,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
                     <Link
                       key={item.to}
                       to={item.to}
+                      preload="intent"
                       onClick={() => setOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
                         isActive ? "nav-active" : "nav-item"
@@ -477,7 +507,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
                   const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
                   const Icon = it.icon;
                   return (
-                    <Link key={it.to} to={it.to} onClick={() => setOpen(false)}
+                    <Link key={it.to} to={it.to} preload="intent" onClick={() => setOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}>
                       <Icon className="w-4 h-4" /> {it.label}
                     </Link>
@@ -692,7 +722,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
             const Icon = it.icon;
             return (
-              <Link key={it.to} to={it.to}
+              <Link key={it.to} to={it.to} preload="intent"
                 className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${
                   active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
                 }`}>
