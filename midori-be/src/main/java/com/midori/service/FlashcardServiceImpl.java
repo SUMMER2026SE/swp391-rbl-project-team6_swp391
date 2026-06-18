@@ -171,6 +171,8 @@ public class FlashcardServiceImpl implements FlashcardService {
 
         checkSetOwnership(set, currentUserId);
 
+        validateCardRequest(request);
+
         Integer nextOrderIndex = request.getOrderIndex();
         if (nextOrderIndex == null) {
             long count = flashcardCardRepository.countByFlashcardSetId(setId);
@@ -178,12 +180,19 @@ public class FlashcardServiceImpl implements FlashcardService {
             System.out.println("[DEBUG] addCard - nextOrderIndex: " + nextOrderIndex);
         }
 
+        String frontText = resolveFrontText(request);
+        String kana = resolveKana(request);
+        String meaning = resolveMeaning(request);
+        String backText = resolveBackText(request);
+
         FlashcardCard card = FlashcardCard.builder()
                 .flashcardSet(set)
-                .frontText(trimToNull(request.getFrontText()))
-                .backText(trimToNull(request.getBackText()))
-                .example(trimToNull(request.getExample()))
-                .hint(trimToNull(request.getHint()))
+                .frontText(frontText)
+                .backText(backText)
+                .kana(kana)
+                .meaning(meaning)
+                .example(trimToEmpty(request.getExample()))
+                .hint("")
                 .orderIndex(nextOrderIndex)
                 .build();
 
@@ -303,6 +312,7 @@ public class FlashcardServiceImpl implements FlashcardService {
                 .id(card.getId())
                 .frontText(card.getFrontText())
                 .backText(card.getBackText())
+                .kana(card.getKana())
                 .example(card.getExample())
                 .hint(card.getHint())
                 .orderIndex(card.getOrderIndex())
@@ -337,21 +347,86 @@ public class FlashcardServiceImpl implements FlashcardService {
     }
 
     private void applyCardUpdate(FlashcardCard card, FlashcardCardUpdateRequest request) {
+        if (request.getKana() != null) {
+            if (request.getKana().isBlank()) {
+                throw new BadRequestException("Kana/reading is required.");
+            }
+            card.setKana(trimToNull(request.getKana()));
+        }
+
+        if (request.getMeaning() != null) {
+            if (request.getMeaning().isBlank()) {
+                throw new BadRequestException("Meaning is required.");
+            }
+            card.setMeaning(trimToNull(request.getMeaning()));
+        }
+
+        String effectiveKana = card.getKana() != null ? card.getKana() : "";
+        String effectiveMeaning = card.getMeaning() != null ? card.getMeaning() : "";
+
         if (request.getFrontText() != null) {
-            card.setFrontText(trimToNull(request.getFrontText()));
+            String frontText = trimToNull(request.getFrontText());
+            card.setFrontText(frontText != null ? frontText : effectiveKana);
         }
-        if (request.getBackText() != null) {
-            card.setBackText(trimToNull(request.getBackText()));
+
+        String backText = trimToNull(request.getBackText());
+        if (backText != null) {
+            card.setBackText(backText);
+        } else if (card.getBackText() == null) {
+            card.setBackText(effectiveMeaning);
         }
+
         if (request.getExample() != null) {
             card.setExample(trimToNull(request.getExample()));
-        }
-        if (request.getHint() != null) {
-            card.setHint(trimToNull(request.getHint()));
         }
         if (request.getOrderIndex() != null) {
             card.setOrderIndex(request.getOrderIndex());
         }
+    }
+
+    private void validateCardRequest(FlashcardCardCreateRequest request) {
+        if (request.getKana() == null || request.getKana().isBlank()) {
+            throw new BadRequestException("Kana/reading is required.");
+        }
+        if (request.getMeaning() == null || request.getMeaning().isBlank()) {
+            throw new BadRequestException("Meaning is required.");
+        }
+    }
+
+    private String resolveFrontText(FlashcardCardCreateRequest request) {
+        String kana = request.getKana();
+        if (isBlank(request.getFrontText())) {
+            return kana != null ? kana.trim() : "";
+        }
+        return request.getFrontText().trim();
+    }
+
+    private String resolveKana(FlashcardCardCreateRequest request) {
+        String kana = request.getKana();
+        if (kana == null || kana.isBlank()) {
+            throw new BadRequestException("Kana/reading is required.");
+        }
+        return kana.trim();
+    }
+
+    private String resolveMeaning(FlashcardCardCreateRequest request) {
+        String meaning = request.getMeaning();
+        if (meaning == null || meaning.isBlank()) {
+            throw new BadRequestException("Meaning is required.");
+        }
+        return meaning.trim();
+    }
+
+    private String resolveBackText(FlashcardCardCreateRequest request) {
+        String backText = request.getBackText();
+        if (backText != null && !backText.isBlank()) {
+            return backText.trim();
+        }
+        String meaning = request.getMeaning();
+        if (meaning != null && !meaning.isBlank()) {
+            return meaning.trim();
+        }
+        return "";
     }
 
     private GrammarLevel parseLevel(String level) {
@@ -371,5 +446,17 @@ public class FlashcardServiceImpl implements FlashcardService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String trimToEmpty(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? "" : trimmed;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
