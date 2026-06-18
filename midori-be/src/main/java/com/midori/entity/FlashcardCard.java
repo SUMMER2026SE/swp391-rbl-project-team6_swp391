@@ -37,6 +37,12 @@ public class FlashcardCard {
     @Column(length = 500)
     private String hint;
 
+    @Column(length = 500, nullable = false)
+    private String kana;
+
+    @Column(name = "meaning", nullable = false, length = 1000)
+    private String meaning;
+
     @Column(name = "order_index", nullable = false)
     @Builder.Default
     private Integer orderIndex = 0;

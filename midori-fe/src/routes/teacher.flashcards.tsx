@@ -124,7 +124,7 @@ function PaginationUI({
 }
 
 // ─── Card Form Component (shared) ───────────────────────────────────────────────
-type CardFormState = { frontText: string; backText: string; example: string; hint: string };
+type CardFormState = { kanji: string; kana: string; meaning: string; example: string };
 
 interface CardFormProps {
   mode: "add" | "edit";
@@ -157,26 +157,37 @@ function CardForm({ mode, onSave, onCancel, form, setForm }: CardFormProps) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
-              Front text <span className="text-red-400">*</span>
+              Kanji <span className="text-slate-400 font-normal">(optional)</span>
             </label>
             <input
-              value={form.frontText}
-              onChange={(e) => setForm((f) => ({ ...f, frontText: e.target.value }))}
-              placeholder="環境"
+              value={form.kanji}
+              onChange={(e) => setForm((f) => ({ ...f, kanji: e.target.value }))}
+              placeholder="e.g. 環境"
               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
           <div>
             <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
-              Back text <span className="text-red-400">*</span>
+              Hiragana / Kana <span className="text-red-400">*</span>
             </label>
             <input
-              value={form.backText}
-              onChange={(e) => setForm((f) => ({ ...f, backText: e.target.value }))}
-              placeholder="Môi trường"
+              value={form.kana}
+              onChange={(e) => setForm((f) => ({ ...f, kana: e.target.value }))}
+              placeholder="e.g. かんきょう"
               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+            Meaning <span className="text-red-400">*</span>
+          </label>
+          <input
+            value={form.meaning}
+            onChange={(e) => setForm((f) => ({ ...f, meaning: e.target.value }))}
+            placeholder="e.g. Môi trường"
+            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+          />
         </div>
         <div>
           <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
@@ -185,18 +196,7 @@ function CardForm({ mode, onSave, onCancel, form, setForm }: CardFormProps) {
           <input
             value={form.example}
             onChange={(e) => setForm((f) => ({ ...f, example: e.target.value }))}
-            placeholder="今日は天気が很好です。"
-            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-          />
-        </div>
-        <div>
-          <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
-            Hint
-          </label>
-          <input
-            value={form.hint}
-            onChange={(e) => setForm((f) => ({ ...f, hint: e.target.value }))}
-            placeholder="Optional hint for the card..."
+            placeholder="e.g. 今日は天気が很好です。"
             className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
@@ -209,7 +209,7 @@ function CardForm({ mode, onSave, onCancel, form, setForm }: CardFormProps) {
           </button>
           <button
             onClick={onSave}
-            disabled={!form.frontText.trim() || !form.backText.trim()}
+            disabled={!form.kana.trim() || !form.meaning.trim()}
             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition flex items-center justify-center gap-2"
           >
             {mode === "add" ? (
@@ -259,8 +259,9 @@ function Toast({ toasts }: { toasts: ToastState[] }) {
 type BulkDelimiter = "\t" | " " | "|" | "," | ";";
 
 interface ParsedCard {
-  frontText: string;
-  backText: string;
+  kanji: string;
+  kana: string;
+  meaning: string;
   example: string;
 }
 
@@ -302,15 +303,24 @@ function parseLines(text: string, delimiter: BulkDelimiter): ParsedResult {
         ? autoSplit(line)
         : line.split(DELIMITER_PATTERN[delimiter as Exclude<BulkDelimiter, "\t">]).map((p) => p.trim());
 
-    const front = parts[0]?.trim();
-    const back = parts[1]?.trim();
+    const part0 = parts[0]?.trim() || "";
+    const part1 = parts[1]?.trim() || "";
+    const part2 = parts[2]?.trim() || "";
+    const part3 = parts[3]?.trim() || "";
 
-    if (!front || !back) {
-      invalidRows++;
+    // 4 columns: kanji | kana | meaning | example
+    if (parts.length >= 4 && part0 && part1 && part2) {
+      cards.push({ kanji: part0, kana: part1, meaning: part2, example: part3 });
       continue;
     }
 
-    cards.push({ frontText: front, backText: back, example: parts[2]?.trim() || "" });
+    // 3 columns: kana | meaning | example (kanji empty)
+    if (parts.length >= 3 && part0 && part1) {
+      cards.push({ kanji: "", kana: part0, meaning: part1, example: part2 });
+      continue;
+    }
+
+    invalidRows++;
   }
 
   return { cards, totalRows: lines.length, invalidRows };
@@ -375,15 +385,15 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
     }
   };
 
-  const alreadyExists = (front: string, back: string) =>
-    currentCards.some(
+  const alreadyExists = (kana: string, meaning: string) =>
+    editCards.some(
       (c) =>
-        c.frontText.trim().toLowerCase() === front.trim().toLowerCase() &&
-        c.backText.trim().toLowerCase() === back.trim().toLowerCase()
+        (c.kana || "").trim().toLowerCase() === kana.trim().toLowerCase() &&
+        ((c as { meaning?: string }).meaning || c.backText || "").trim().toLowerCase() === meaning.trim().toLowerCase()
     );
 
-  const newCount = parsedResult ? parsedResult.cards.filter((p) => !alreadyExists(p.frontText, p.backText)).length : 0;
-  const dupCount = parsedResult ? parsedResult.cards.filter((p) => alreadyExists(p.frontText, p.backText)).length : 0;
+  const newCount = parsedResult ? parsedResult.cards.filter((p) => !alreadyExists(p.kana, p.meaning)).length : 0;
+  const dupCount = parsedResult ? parsedResult.cards.filter((p) => alreadyExists(p.kana, p.meaning)).length : 0;
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
@@ -459,7 +469,7 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
               <textarea
                 value={text}
                 onChange={(e) => handleTextChange(e.target.value)}
-                placeholder={`Paste your vocabulary list here, one card per line.\n\nExamples of supported formats:\n\n食べる  ăn\n飲む    uống    毎日飲みます。\n環境    môi trường  自然環境を保つ。\n\n食べる | ăn\n飲む | uống\n\n食べる, ăn\n飲む, uống`}
+                placeholder={`Paste your vocabulary list here, one card per line.\n\nExamples of supported formats:\n\n# 4 columns: Kanji | Kana | Meaning | Example\n学生    がくせい    học sinh    わたしは学生です。\n\n# 3 columns: Kana | Meaning | Example (no Kanji)\n食べる    たべる    ăn    ごはんを食べる。\n飲む    のむ    uống    水を飲みます。\n\n# Pipe format: Kanji|Kana|Meaning|Example\n|こんにちは|xin chào|こんにちは。\n食べる|たべる|ăn|ごはんを食べる。`}
                 className="w-full h-52 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-mono outline-none focus:ring-2 focus:ring-primary/40 resize-none"
               />
             </div>
@@ -530,7 +540,8 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                     <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
                       <tr className="text-[10px] uppercase text-muted-foreground font-bold">
                         <th className="px-3 py-2 text-left w-8">#</th>
-                        <th className="px-3 py-2 text-left min-w-[120px]">Term</th>
+                        <th className="px-3 py-2 text-left min-w-[120px]">Kanji</th>
+                        <th className="px-3 py-2 text-left min-w-[120px]">Hiragana/Kana</th>
                         <th className="px-3 py-2 text-left min-w-[120px]">Meaning</th>
                         <th className="px-3 py-2 text-left">Example</th>
                         <th className="px-3 py-2 text-left w-16">Status</th>
@@ -538,7 +549,7 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                     </thead>
                     <tbody>
                       {parsedResult.cards.map((card, i) => {
-                        const isDup = alreadyExists(card.frontText, card.backText);
+                        const isDup = alreadyExists(card.kana, card.meaning);
                         return (
                           <tr
                             key={i}
@@ -547,8 +558,9 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                             }`}
                           >
                             <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-2 font-semibold text-foreground leading-relaxed">{card.frontText}</td>
-                            <td className="px-3 py-2 text-foreground leading-relaxed">{card.backText}</td>
+                            <td className="px-3 py-2 font-semibold text-foreground leading-relaxed">{card.kanji || "—"}</td>
+                            <td className="px-3 py-2 text-foreground leading-relaxed">{card.kana}</td>
+                            <td className="px-3 py-2 text-foreground leading-relaxed">{card.meaning}</td>
                             <td className="px-3 py-2 italic text-muted-foreground leading-relaxed">{card.example || "—"}</td>
                             <td className="px-3 py-2">
                               {isDup ? (
@@ -638,10 +650,10 @@ function TeacherFlashcardsPage() {
 
   // ── Card forms ─────────────────────────────────────────────────────────────
   const [showAddCard, setShowAddCard] = useState(false);
-  const [addCardForm, setAddCardForm] = useState({ frontText: "", backText: "", example: "", hint: "" });
+  const [addCardForm, setAddCardForm] = useState({ kanji: "", kana: "", meaning: "", example: "" });
   const [addingCard, setAddingCard] = useState(false);
   const [editingCard, setEditingCard] = useState<FlashcardCardResponse | null>(null);
-  const [editCardForm, setEditCardForm] = useState({ frontText: "", backText: "", example: "", hint: "" });
+  const [editCardForm, setEditCardForm] = useState({ kanji: "", kana: "", meaning: "", example: "" });
   const [savingCard, setSavingCard] = useState(false);
   const [deletingCard, setDeletingCard] = useState<FlashcardCardResponse | null>(null);
   const [deletingCardLoading, setDeletingCardLoading] = useState(false);
@@ -650,7 +662,7 @@ function TeacherFlashcardsPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkDelimiter, setBulkDelimiter] = useState<"\t" | "|" | "," | ";">("\t");
-  const [bulkPreview, setBulkPreview] = useState<{ frontText: string; backText: string; example: string }[] | null>(null);
+  const [bulkPreview, setBulkPreview] = useState<{ kanji: string; kana: string; meaning: string; example: string }[] | null>(null);
   const [bulkImporting, setBulkImporting] = useState(false);
 
   // ── Delete set ──────────────────────────────────────────────────────────────
@@ -764,17 +776,19 @@ function TeacherFlashcardsPage() {
     setEditError(null);
     try {
       // Auto-add draft card if form is filled but not added yet
-      if (addCardForm.frontText.trim() && addCardForm.backText.trim()) {
+      if (addCardForm.kana.trim() && addCardForm.meaning.trim()) {
         console.log("[Flashcards] Auto-adding draft card before save:", addCardForm);
         const draftPayload: FlashcardCardCreateRequest = {
-          frontText: addCardForm.frontText.trim(),
-          backText: addCardForm.backText.trim(),
+          frontText: addCardForm.kanji.trim() || addCardForm.kana.trim(),
+          kana: addCardForm.kana.trim(),
+          meaning: addCardForm.meaning.trim(),
+          backText: addCardForm.meaning.trim(),
           example: addCardForm.example.trim() || undefined,
-          hint: addCardForm.hint.trim() || undefined,
+          hint: "",
         };
         const draftCreated = await teacherFlashcardApi.createCard(editSetId, draftPayload);
         setEditCards((prev) => [...prev, draftCreated]);
-        setAddCardForm({ frontText: "", backText: "", example: "", hint: "" });
+        setAddCardForm({ kanji: "", kana: "", meaning: "", example: "" });
         setShowAddCard(false);
       }
 
@@ -811,20 +825,22 @@ function TeacherFlashcardsPage() {
 
   // Add card
   const handleAddCard = async () => {
-    if (!addCardForm.frontText.trim() || !addCardForm.backText.trim() || !editSetId) return;
+    if (!addCardForm.kana.trim() || !addCardForm.meaning.trim() || !editSetId) return;
     setAddingCard(true);
     try {
       const payload: FlashcardCardCreateRequest = {
-        frontText: addCardForm.frontText.trim(),
-        backText: addCardForm.backText.trim(),
+        frontText: addCardForm.kanji.trim() || addCardForm.kana.trim(),
+        kana: addCardForm.kana.trim(),
+        meaning: addCardForm.meaning.trim(),
+        backText: addCardForm.meaning.trim(),
         example: addCardForm.example.trim() || undefined,
-        hint: addCardForm.hint.trim() || undefined,
+        hint: "",
       };
       console.log("[Flashcards] Adding card with payload:", payload);
       const created = await teacherFlashcardApi.createCard(editSetId, payload);
       console.log("[Flashcards] Card created:", created);
       setEditCards((prev) => [...prev, created]);
-      setAddCardForm({ frontText: "", backText: "", example: "", hint: "" });
+      setAddCardForm({ kanji: "", kana: "", meaning: "", example: "" });
       setShowAddCard(false);
       showToast("Card added successfully!", "success");
     } catch (err) {
@@ -836,14 +852,14 @@ function TeacherFlashcardsPage() {
   };
 
   // Bulk import cards
-  const handleBulkImport = async (parsedCards: { frontText: string; backText: string; example: string }[]) => {
+  const handleBulkImport = async (parsedCards: { kanji: string; kana: string; meaning: string; example: string }[]) => {
     if (!editSetId) return;
     const existing = editCards.map((c) =>
-      `${c.frontText.trim().toLowerCase()}||${c.backText.trim().toLowerCase()}`
+      `${(c.kana || "").trim().toLowerCase()}||${(c.meaning || c.backText || "").trim().toLowerCase()}`
     );
     const seen = new Set<string>(existing);
     const toCreate = parsedCards.filter((p) => {
-      const key = `${p.frontText.trim().toLowerCase()}||${p.backText.trim().toLowerCase()}`;
+      const key = `${p.kana.trim().toLowerCase()}||${p.meaning.trim().toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -861,9 +877,12 @@ function TeacherFlashcardsPage() {
     try {
       for (const card of toCreate) {
         const payload: FlashcardCardCreateRequest = {
-          frontText: card.frontText.trim(),
-          backText: card.backText.trim(),
+          frontText: card.kanji.trim() || card.kana.trim(),
+          kana: card.kana.trim(),
+          meaning: card.meaning.trim(),
+          backText: card.meaning.trim(),
           example: card.example.trim() || undefined,
+          hint: "",
         };
         const created = await teacherFlashcardApi.createCard(editSetId, payload);
         setEditCards((prev) => [...prev, created]);
@@ -885,24 +904,26 @@ function TeacherFlashcardsPage() {
   const openEditCard = (card: FlashcardCardResponse) => {
     setEditingCard(card);
     setEditCardForm({
-      frontText: card.frontText,
-      backText: card.backText,
-      example: card.example ?? "",
-      hint: card.hint ?? "",
+      kanji: card.frontText || "",
+      kana: card.kana || "",
+      meaning: (card as { meaning?: string }).meaning || card.backText || "",
+      example: card.example || "",
     });
     setShowAddCard(false);
   };
 
   // Save edit card
   const handleSaveEditCard = async () => {
-    if (!editingCard || !editCardForm.frontText.trim()) return;
+    if (!editingCard || !editCardForm.kana.trim() || !editCardForm.meaning.trim()) return;
     setSavingCard(true);
     try {
       const payload: FlashcardCardUpdateRequest = {
-        frontText: editCardForm.frontText.trim(),
-        backText: editCardForm.backText.trim(),
+        frontText: editCardForm.kanji.trim() || editCardForm.kana.trim(),
+        kana: editCardForm.kana.trim(),
+        meaning: editCardForm.meaning.trim(),
+        backText: editCardForm.meaning.trim(),
         example: editCardForm.example.trim() || undefined,
-        hint: editCardForm.hint.trim() || undefined,
+        hint: "",
       };
       const updated = await teacherFlashcardApi.updateCard(editingCard.id, payload);
       setEditCards((prev) => prev.map((c) => (c.id === editingCard.id ? updated : c)));
@@ -1482,10 +1503,20 @@ function TeacherFlashcardsPage() {
                               <span className="font-display font-black text-xl text-foreground">
                                 {card.frontText}
                               </span>
+                              {(card as { meaning?: string }).meaning && (
+                                <span className="text-sm font-semibold text-blue-600">
+                                  ({(card as { meaning?: string }).meaning})
+                                </span>
+                              )}
+                              {card.kana && card.kana !== card.frontText && (
+                                <span className="text-sm text-muted-foreground">
+                                  {card.kana}
+                                </span>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  speakJapanese(card.frontText);
+                                  speakJapanese(card.frontText || card.kana || "");
                                 }}
                                 title="Play pronunciation"
                                 className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0"
@@ -1494,16 +1525,11 @@ function TeacherFlashcardsPage() {
                               </button>
                             </div>
                             <div className="text-sm font-semibold text-foreground mb-2">
-                              {card.backText}
+                              {(card as { meaning?: string }).meaning || card.backText}
                             </div>
                             {card.example && (
                               <div className="text-xs text-muted-foreground italic mb-2">
                                 "{card.example}"
-                              </div>
-                            )}
-                            {card.hint && (
-                              <div className="text-xs text-yellow-600 italic mb-2">
-                                💡 Hint: {card.hint}
                               </div>
                             )}
                           </div>
@@ -1715,8 +1741,8 @@ function TeacherFlashcardsPage() {
                           onCancel={() => {
                             setShowAddCard(false);
                             setEditingCard(null);
-                            setAddCardForm({ frontText: "", backText: "", example: "", hint: "" });
-                            setEditCardForm({ frontText: "", backText: "", example: "", hint: "" });
+                          setAddCardForm({ kanji: "", kana: "", meaning: "", example: "" });
+                          setEditCardForm({ kanji: "", kana: "", meaning: "", example: "" });
                           }}
                           form={editingCard ? editCardForm : addCardForm}
                           setForm={editingCard ? setEditCardForm : setAddCardForm}
@@ -1757,12 +1783,12 @@ function TeacherFlashcardsPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-sm text-foreground">
-                                  {card.frontText}
+                                  {card.frontText || card.kana}
                                 </span>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    speakJapanese(card.frontText);
+                                    speakJapanese(card.frontText || card.kana || "");
                                   }}
                                   title="Play pronunciation"
                                   className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition flex-shrink-0"
@@ -1771,21 +1797,14 @@ function TeacherFlashcardsPage() {
                                 </button>
                                 <span className="text-xs text-muted-foreground">→</span>
                                 <span className="text-xs font-semibold text-foreground">
-                                  {card.backText}
+                                  {(card as { meaning?: string }).meaning || card.backText}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                {card.hint && (
-                                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-yellow-50 dark:bg-yellow-950/30 text-yellow-600 border border-yellow-100 dark:border-yellow-900">
-                                    💡 {card.hint}
-                                  </span>
-                                )}
-                                {card.example && (
-                                  <span className="text-[9px] text-muted-foreground italic truncate max-w-[120px]">
-                                    "{card.example}"
-                                  </span>
-                                )}
-                              </div>
+                              {card.example && (
+                                <div className="text-[9px] text-muted-foreground italic truncate max-w-[200px] mt-0.5">
+                                  "{card.example}"
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <button

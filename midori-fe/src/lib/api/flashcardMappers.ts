@@ -42,6 +42,8 @@ export interface FlashcardCardResponse {
   id: string;
   frontText: string;
   backText: string;
+  kana: string | null;
+  meaning: string | null;
   example: string | null;
   hint: string | null;
   orderIndex: number | null;
@@ -66,6 +68,8 @@ export interface FlashcardSetUpdateRequest {
 export interface FlashcardCardCreateRequest {
   frontText: string;
   backText: string;
+  meaning?: string | null;
+  kana?: string | null;
   example?: string | null;
   hint?: string | null;
   orderIndex?: number | null;
@@ -74,6 +78,8 @@ export interface FlashcardCardCreateRequest {
 export interface FlashcardCardUpdateRequest {
   frontText: string;
   backText: string;
+  meaning?: string | null;
+  kana?: string | null;
   example?: string | null;
   hint?: string | null;
   orderIndex?: number | null;
@@ -94,10 +100,13 @@ export interface FlashcardSetListParams {
 
 function normalizeCard(raw: unknown): FlashcardCardResponse {
   const r = raw as Record<string, unknown>;
+  const meaning = r.meaning != null ? String(r.meaning) : null;
   return {
     id: String(r.id ?? ""),
     frontText: String(r.frontText ?? r.front_text ?? ""),
     backText: String(r.backText ?? r.back_text ?? ""),
+    kana: r.kana != null ? String(r.kana) : null,
+    meaning: meaning,
     example: r.example != null ? String(r.example) : null,
     hint: r.hint != null ? String(r.hint) : null,
     orderIndex: r.orderIndex != null ? Number(r.orderIndex) : null,
@@ -176,6 +185,8 @@ export function normalizeCreateCardPayload(
   return {
     frontText: data.frontText,
     backText: data.backText,
+    meaning: data.meaning ?? null,
+    kana: data.kana ?? null,
     example: data.example ?? null,
     hint: data.hint ?? null,
     orderIndex: data.orderIndex ?? null,
@@ -185,5 +196,13 @@ export function normalizeCreateCardPayload(
 export function normalizeUpdateCardPayload(
   data: FlashcardCardUpdateRequest,
 ): FlashcardCardUpdateRequest {
-  return normalizeCreateCardPayload(data);
+  return {
+    frontText: data.frontText,
+    backText: data.backText,
+    meaning: data.meaning ?? null,
+    kana: data.kana ?? null,
+    example: data.example ?? null,
+    hint: data.hint ?? null,
+    orderIndex: data.orderIndex ?? null,
+  };
 }

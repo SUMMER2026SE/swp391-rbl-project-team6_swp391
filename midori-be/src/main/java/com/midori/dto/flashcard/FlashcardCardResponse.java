@@ -17,6 +17,8 @@ public class FlashcardCardResponse {
     private UUID id;
     private String frontText;
     private String backText;
+    private String kana;
+    private String meaning;
     private String example;
     private String hint;
     private Integer orderIndex;
