@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -332,6 +332,22 @@ function ExamsPage() {
   });
   const [editingManualQuestion, setEditingManualQuestion] = useState<ManualQuestion | null>(null);
 
+  // ── Random Exam Generator states ─────────────────────────────────────────
+  const [showRandomGenerator, setShowRandomGenerator] = useState(false);
+  const [randomExamTitle, setRandomExamTitle] = useState("");
+  const [randomExamLevel, setRandomExamLevel] = useState<JLPTLevel>("N5");
+  const [randomExamTime, setRandomExamTime] = useState(60);
+  const [randomTotalQuestions, setRandomTotalQuestions] = useState(20);
+  const [randomEasyCount, setRandomEasyCount] = useState(10);
+  const [randomMediumCount, setRandomMediumCount] = useState(6);
+  const [randomHardCount, setRandomHardCount] = useState(4);
+  const [randomExamMode, setRandomExamMode] = useState<"SAME_FOR_ALL" | "RANDOM_PER_STUDENT">("RANDOM_PER_STUDENT");
+  const [randomQuestionReuse, setRandomQuestionReuse] = useState<"ALLOW_REUSE" | "MINIMIZE_REUSE" | "NO_REUSE">("ALLOW_REUSE");
+  const [randomizeAnswers, setRandomizeAnswers] = useState(false);
+  const [randomCategory, setRandomCategory] = useState("Grammar");
+  const [randomClassId, setRandomClassId] = useState("");
+  const [isGeneratingRandom, setIsGeneratingRandom] = useState(false);
+
   // ── View / Edit / Delete state ─────────────────────────────────────────────
   const [showViewExam, setShowViewExam] = useState<ManualExam | null>(null);
   const [showEditExam, setShowEditExam] = useState<ManualExam | null>(null);
@@ -528,6 +544,13 @@ function ExamsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Create JLPT exams with AI-powered PDF analysis</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowRandomGenerator(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-bold shadow-lg hover:bg-purple-600 transition"
+          >
+            <Settings className="w-4 h-4" />
+            Random Exam Generator
+          </button>
           <button
             onClick={() => setShowPDFGenerator(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition"
@@ -1405,6 +1428,26 @@ function ExamsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Random Exam Generator Modal */}
+      <RandomExamGeneratorModal
+        isOpen={showRandomGenerator}
+        onClose={() => setShowRandomGenerator(false)}
+        onGenerated={(exam) => {
+          const newExam: ManualExam = {
+            id: `exam_${Date.now()}`,
+            title: exam.title,
+            level: exam.level,
+            examType: "Mixed",
+            time: 60,
+            status: "published",
+            questions: [],
+            date: "Just now",
+          };
+          setExams(prev => [newExam, ...prev]);
+          alert(`Exam "${exam.title}" generated!\nQuestions: ${exam.questions}\nMode: ${exam.mode}`);
+        }}
+      />
     </div>
   );
 }
@@ -1681,6 +1724,392 @@ function ManualQuestionForm({
           Save Changes
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Random Exam Generator Modal ─────────────────────────────────────────────
+function RandomExamGeneratorModal({
+  isOpen,
+  onClose,
+  onGenerated,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onGenerated: (exam: { title: string; level: JLPTLevel; questions: number; mode: string }) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [level, setLevel] = useState<JLPTLevel>("N5");
+  const [time, setTime] = useState(60);
+  const [totalQuestions, setTotalQuestions] = useState(20);
+  const [easyCount, setEasyCount] = useState(10);
+  const [mediumCount, setMediumCount] = useState(6);
+  const [hardCount, setHardCount] = useState(4);
+  const [examMode, setExamMode] = useState<"SAME_FOR_ALL" | "RANDOM_PER_STUDENT">("RANDOM_PER_STUDENT");
+  const [questionReuse, setQuestionReuse] = useState<"ALLOW_REUSE" | "MINIMIZE_REUSE" | "NO_REUSE">("ALLOW_REUSE");
+  const [randomizeAnswers, setRandomizeAnswers] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(["Vocabulary", "Grammar"]);
+  const [selectedLessons, setSelectedLessons] = useState<number[]>([1, 2, 3]);
+  const [classId, setClassId] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Mock classes for assignment
+  const mockClasses = [
+    { id: "cls-001", name: "N5 Beginner Class" },
+    { id: "cls-002", name: "N4 Grammar Class" },
+    { id: "cls-003", name: "N3 Conversation Class" },
+  ];
+
+  // Available lessons based on level
+  const availableLessons = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+  const categories = ["Vocabulary", "Grammar", "Reading"];
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const toggleLesson = (lesson: number) => {
+    setSelectedLessons(prev =>
+      prev.includes(lesson) ? prev.filter(l => l !== lesson) : [...prev, lesson].sort((a, b) => a - b)
+    );
+  };
+
+  const handleGenerate = async () => {
+    if (!title.trim()) {
+      alert("Please enter an exam title");
+      return;
+    }
+    if (selectedCategories.length === 0) {
+      alert("Please select at least one category");
+      return;
+    }
+    if (selectedLessons.length === 0) {
+      alert("Please select at least one lesson");
+      return;
+    }
+    if (totalQuestions !== easyCount + mediumCount + hardCount) {
+      alert("Total questions must equal Easy + Medium + Hard count");
+      return;
+    }
+
+    setIsGenerating(true);
+
+    // Simulate API call
+    await new Promise(r => setTimeout(r, 1500));
+
+    setIsGenerating(false);
+
+    onGenerated({
+      title,
+      level,
+      questions: totalQuestions,
+      mode: examMode,
+    });
+
+    // Reset form
+    setTitle("");
+    setLevel("N5");
+    setTime(60);
+    setTotalQuestions(20);
+    setEasyCount(10);
+    setMediumCount(6);
+    setHardCount(4);
+    setExamMode("RANDOM_PER_STUDENT");
+    setQuestionReuse("ALLOW_REUSE");
+    setRandomizeAnswers(false);
+    setSelectedCategories(["Vocabulary", "Grammar"]);
+    setSelectedLessons([1, 2, 3]);
+    setClassId("");
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-lg">Generate Exam from Question Bank</h2>
+              <p className="text-xs text-muted-foreground">Auto-generate exams with randomized questions</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          {/* Exam Title */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Exam Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., N5 Weekly Quiz"
+              className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-sm outline-none focus:border-purple-500 transition"
+            />
+          </div>
+
+          {/* JLPT Level */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">JLPT Level</label>
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value as JLPTLevel)}
+              className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-sm outline-none focus:border-purple-500 transition"
+            >
+              <option value="N5">N5 - Beginner</option>
+              <option value="N4">N4 - Elementary</option>
+              <option value="N3">N3 - Intermediate</option>
+              <option value="N2">N2 - Upper-Intermediate</option>
+              <option value="N1">N1 - Advanced</option>
+            </select>
+          </div>
+
+          {/* Time Limit */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Time Limit (minutes)</label>
+            <input
+              type="number"
+              value={time}
+              onChange={(e) => setTime(parseInt(e.target.value) || 60)}
+              min={5}
+              max={180}
+              className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-sm outline-none focus:border-purple-500 transition"
+            />
+          </div>
+
+          {/* Categories Multi-Select */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Categories</label>
+            <div className="flex flex-wrap gap-2">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => toggleCategory(cat)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+                    selectedCategories.includes(cat)
+                      ? "bg-purple-500 text-white"
+                      : "bg-muted/50 border border-border hover:border-purple-300"
+                  }`}
+                >
+                  {selectedCategories.includes(cat) && <CheckCircle className="w-4 h-4 inline mr-1" />}
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Lessons Multi-Select */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Lessons
+              <span className="ml-2 text-purple-500 font-normal">
+                ({selectedLessons.length} selected)
+              </span>
+            </label>
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 rounded-lg bg-muted/30 border border-border">
+              <button
+                onClick={() => setSelectedLessons(availableLessons)}
+                className="px-3 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-600 hover:bg-purple-200 transition"
+              >
+                Select All
+              </button>
+              <button
+                onClick={() => setSelectedLessons([])}
+                className="px-3 py-1 rounded-lg text-xs font-medium bg-muted hover:bg-muted/80 transition"
+              >
+                Clear
+              </button>
+              {availableLessons.map(lesson => (
+                <button
+                  key={lesson}
+                  onClick={() => toggleLesson(lesson)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                    selectedLessons.includes(lesson)
+                      ? "bg-purple-500 text-white"
+                      : "bg-white dark:bg-slate-800 border border-border hover:border-purple-300"
+                  }`}
+                >
+                  {lesson}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Question Distribution */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Question Distribution</label>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-green-600 font-semibold">Easy</label>
+                <input
+                  type="number"
+                  value={easyCount}
+                  onChange={(e) => setEasyCount(parseInt(e.target.value) || 0)}
+                  min={0}
+                  className="w-full px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-sm text-center focus:outline-none focus:border-green-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-yellow-600 font-semibold">Medium</label>
+                <input
+                  type="number"
+                  value={mediumCount}
+                  onChange={(e) => setMediumCount(parseInt(e.target.value) || 0)}
+                  min={0}
+                  className="w-full px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-center focus:outline-none focus:border-yellow-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-red-600 font-semibold">Hard</label>
+                <input
+                  type="number"
+                  value={hardCount}
+                  onChange={(e) => setHardCount(parseInt(e.target.value) || 0)}
+                  min={0}
+                  className="w-full px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-center focus:outline-none focus:border-red-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground font-semibold">Total</label>
+                <input
+                  type="number"
+                  value={totalQuestions}
+                  onChange={(e) => setTotalQuestions(parseInt(e.target.value) || 0)}
+                  min={1}
+                  className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-sm text-center font-bold focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Total should equal Easy + Medium + Hard ({easyCount + mediumCount + hardCount})
+            </p>
+          </div>
+
+          {/* Exam Generation Mode */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Exam Generation Mode</label>
+            <div className="space-y-2">
+              <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition ${examMode === "SAME_FOR_ALL" ? "border-purple-500 bg-purple-50" : "border-border hover:border-purple-300"}`}>
+                <input
+                  type="radio"
+                  name="examMode"
+                  value="SAME_FOR_ALL"
+                  checked={examMode === "SAME_FOR_ALL"}
+                  onChange={() => setExamMode("SAME_FOR_ALL")}
+                  className="w-4 h-4 text-purple-500"
+                />
+                <div>
+                  <p className="text-sm font-semibold">Same Exam For All Students</p>
+                  <p className="text-[10px] text-muted-foreground">All students receive identical questions</p>
+                </div>
+              </label>
+              <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition ${examMode === "RANDOM_PER_STUDENT" ? "border-purple-500 bg-purple-50" : "border-border hover:border-purple-300"}`}>
+                <input
+                  type="radio"
+                  name="examMode"
+                  value="RANDOM_PER_STUDENT"
+                  checked={examMode === "RANDOM_PER_STUDENT"}
+                  onChange={() => setExamMode("RANDOM_PER_STUDENT")}
+                  className="w-4 h-4 text-purple-500"
+                />
+                <div>
+                  <p className="text-sm font-semibold">Random Exam For Each Student</p>
+                  <p className="text-[10px] text-muted-foreground">Each student gets unique questions from the pool</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Question Reuse Control */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Question Reuse</label>
+            <select
+              value={questionReuse}
+              onChange={(e) => setQuestionReuse(e.target.value as any)}
+              className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-sm outline-none focus:border-purple-500 transition"
+            >
+              <option value="ALLOW_REUSE">Allow Reuse - Questions can repeat across students</option>
+              <option value="MINIMIZE_REUSE">Minimize Reuse - Prefer unique questions</option>
+              <option value="NO_REUSE">No Reuse - Only if enough questions exist</option>
+            </select>
+          </div>
+
+          {/* Answer Randomization */}
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 border border-border">
+            <input
+              type="checkbox"
+              id="randomizeAnswers"
+              checked={randomizeAnswers}
+              onChange={(e) => setRandomizeAnswers(e.target.checked)}
+              className="w-4 h-4 text-purple-500 rounded"
+            />
+            <label htmlFor="randomizeAnswers" className="text-sm cursor-pointer">
+              <span className="font-semibold">Randomize Answer Order</span>
+              <p className="text-[10px] text-muted-foreground">Shuffle answer options for each student</p>
+            </label>
+          </div>
+
+          {/* Assign to Class */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Assign to Class (Optional)</label>
+            <select
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-sm outline-none focus:border-purple-500 transition"
+            >
+              <option value="">Select a class...</option>
+              {mockClasses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-muted/20">
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-bold hover:bg-purple-600 transition disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Settings className="w-4 h-4" />
+                Generate Exam
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
