@@ -5,6 +5,7 @@ export * from "./listening";
 export * from "./reading";
 export * from "./shadowing";
 export * from "./flashcards";
+export * from "./classes";
 
 import { mockVocabulary } from "./vocabulary";
 import { mockListening } from "./listening";

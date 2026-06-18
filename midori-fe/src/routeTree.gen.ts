@@ -32,10 +32,16 @@ import { Route as TeacherListeningRouteImport } from './routes/teacher.listening
 import { Route as TeacherGrammarRouteImport } from './routes/teacher.grammar'
 import { Route as TeacherFlashcardsRouteImport } from './routes/teacher.flashcards'
 import { Route as TeacherExamsRouteImport } from './routes/teacher.exams'
+import { Route as TeacherClassesRouteImport } from './routes/teacher.classes'
+import { Route as StudentWritingRouteImport } from './routes/student.writing'
 import { Route as StudentVocabularyRouteImport } from './routes/student.vocabulary'
 import { Route as StudentShadowingRouteImport } from './routes/student.shadowing'
+import { Route as StudentSettingsRouteImport } from './routes/student.settings'
+import { Route as StudentSearchRouteImport } from './routes/student.search'
+import { Route as StudentReadingRouteImport } from './routes/student.reading'
 import { Route as StudentProgressRouteImport } from './routes/student.progress'
 import { Route as StudentProfileRouteImport } from './routes/student.profile'
+import { Route as StudentPracticeRouteImport } from './routes/student.practice'
 import { Route as StudentNotificationsRouteImport } from './routes/student.notifications'
 import { Route as StudentListeningRouteImport } from './routes/student.listening'
 import { Route as StudentLeaderboardRouteImport } from './routes/student.leaderboard'
@@ -43,6 +49,10 @@ import { Route as StudentJlptRouteImport } from './routes/student.jlpt'
 import { Route as StudentGrammarRouteImport } from './routes/student.grammar'
 import { Route as StudentFlashcardsRouteImport } from './routes/student.flashcards'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
+import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
+import { Route as StudentClassesRouteImport } from './routes/student.classes'
+import { Route as StudentCalendarRouteImport } from './routes/student.calendar'
+import { Route as StudentAssignmentsRouteImport } from './routes/student.assignments'
 import { Route as StudentAiSenseiRouteImport } from './routes/student.ai-sensei'
 import { Route as AdminVocabularyLibraryRouteImport } from './routes/admin.vocabulary-library'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
@@ -64,9 +74,31 @@ import { Route as AdminContentApprovalRouteImport } from './routes/admin.content
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminAiGeneratorRouteImport } from './routes/admin.ai-generator'
 import { Route as TeacherVocabularyLessonIdRouteImport } from './routes/teacher.vocabulary.$lessonId'
+import { Route as TeacherClassesClassIdRouteImport } from './routes/teacher.classes.$classId'
 import { Route as StudentVocabularyLessonIdRouteImport } from './routes/student.vocabulary.$lessonId'
+import { Route as StudentSettingsThemeRouteImport } from './routes/student.settings.theme'
+import { Route as StudentSettingsNotificationsRouteImport } from './routes/student.settings.notifications'
+import { Route as StudentSettingsLanguageRouteImport } from './routes/student.settings.language'
+import { Route as StudentProgressWeakPointsRouteImport } from './routes/student.progress.weak-points'
+import { Route as StudentProgressStreakRouteImport } from './routes/student.progress.streak'
+import { Route as StudentProgressStatisticsRouteImport } from './routes/student.progress.statistics'
+import { Route as StudentProgressHistoryRouteImport } from './routes/student.progress.history'
+import { Route as StudentProgressAchievementsRouteImport } from './routes/student.progress.achievements'
+import { Route as StudentPracticeSrsRouteImport } from './routes/student.practice.srs'
+import { Route as StudentPracticeReviewRouteImport } from './routes/student.practice.review'
+import { Route as StudentPracticeQuizRouteImport } from './routes/student.practice.quiz'
+import { Route as StudentPracticeFlashcardsRouteImport } from './routes/student.practice.flashcards'
+import { Route as StudentPracticeDictationRouteImport } from './routes/student.practice.dictation'
+import { Route as StudentPracticeBookmarksRouteImport } from './routes/student.practice.bookmarks'
 import { Route as StudentGrammarIndexRouteImport } from './routes/student.grammar._index'
 import { Route as StudentGrammarGrammarIdRouteImport } from './routes/student.grammar.$grammarId'
+import { Route as StudentClassesClassIdRouteImport } from './routes/student.classes.$classId'
+import { Route as StudentAssignmentsUpcomingRouteImport } from './routes/student.assignments.upcoming'
+import { Route as StudentAssignmentsSubmittedRouteImport } from './routes/student.assignments.submitted'
+import { Route as StudentAssignmentsOverdueRouteImport } from './routes/student.assignments.overdue'
+import { Route as StudentAssignmentsHomeworkRouteImport } from './routes/student.assignments.homework'
+import { Route as StudentAssignmentsGradedRouteImport } from './routes/student.assignments.graded'
+import { Route as StudentAssignmentsAllRouteImport } from './routes/student.assignments.all'
 import { Route as StudentGrammarGrammarIdStructureIdRouteImport } from './routes/student.grammar.$grammarId.$structureId'
 
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
@@ -184,6 +216,16 @@ const TeacherExamsRoute = TeacherExamsRouteImport.update({
   path: '/exams',
   getParentRoute: () => TeacherRoute,
 } as any)
+const TeacherClassesRoute = TeacherClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const StudentWritingRoute = StudentWritingRouteImport.update({
+  id: '/writing',
+  path: '/writing',
+  getParentRoute: () => StudentRoute,
+} as any)
 const StudentVocabularyRoute = StudentVocabularyRouteImport.update({
   id: '/vocabulary',
   path: '/vocabulary',
@@ -194,6 +236,21 @@ const StudentShadowingRoute = StudentShadowingRouteImport.update({
   path: '/shadowing',
   getParentRoute: () => StudentRoute,
 } as any)
+const StudentSettingsRoute = StudentSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentSearchRoute = StudentSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentReadingRoute = StudentReadingRouteImport.update({
+  id: '/reading',
+  path: '/reading',
+  getParentRoute: () => StudentRoute,
+} as any)
 const StudentProgressRoute = StudentProgressRouteImport.update({
   id: '/progress',
   path: '/progress',
@@ -202,6 +259,11 @@ const StudentProgressRoute = StudentProgressRouteImport.update({
 const StudentProfileRoute = StudentProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentPracticeRoute = StudentPracticeRouteImport.update({
+  id: '/practice',
+  path: '/practice',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentNotificationsRoute = StudentNotificationsRouteImport.update({
@@ -237,6 +299,26 @@ const StudentFlashcardsRoute = StudentFlashcardsRouteImport.update({
 const StudentExamsRoute = StudentExamsRouteImport.update({
   id: '/exams',
   path: '/exams',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentDashboardRoute = StudentDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentClassesRoute = StudentClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentCalendarRoute = StudentCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentAssignmentsRoute = StudentAssignmentsRouteImport.update({
+  id: '/assignments',
+  path: '/assignments',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentAiSenseiRoute = StudentAiSenseiRouteImport.update({
@@ -345,11 +427,93 @@ const TeacherVocabularyLessonIdRoute =
     path: '/$lessonId',
     getParentRoute: () => TeacherVocabularyRoute,
   } as any)
+const TeacherClassesClassIdRoute = TeacherClassesClassIdRouteImport.update({
+  id: '/$classId',
+  path: '/$classId',
+  getParentRoute: () => TeacherClassesRoute,
+} as any)
 const StudentVocabularyLessonIdRoute =
   StudentVocabularyLessonIdRouteImport.update({
     id: '/$lessonId',
     path: '/$lessonId',
     getParentRoute: () => StudentVocabularyRoute,
+  } as any)
+const StudentSettingsThemeRoute = StudentSettingsThemeRouteImport.update({
+  id: '/theme',
+  path: '/theme',
+  getParentRoute: () => StudentSettingsRoute,
+} as any)
+const StudentSettingsNotificationsRoute =
+  StudentSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => StudentSettingsRoute,
+  } as any)
+const StudentSettingsLanguageRoute = StudentSettingsLanguageRouteImport.update({
+  id: '/language',
+  path: '/language',
+  getParentRoute: () => StudentSettingsRoute,
+} as any)
+const StudentProgressWeakPointsRoute =
+  StudentProgressWeakPointsRouteImport.update({
+    id: '/weak-points',
+    path: '/weak-points',
+    getParentRoute: () => StudentProgressRoute,
+  } as any)
+const StudentProgressStreakRoute = StudentProgressStreakRouteImport.update({
+  id: '/streak',
+  path: '/streak',
+  getParentRoute: () => StudentProgressRoute,
+} as any)
+const StudentProgressStatisticsRoute =
+  StudentProgressStatisticsRouteImport.update({
+    id: '/statistics',
+    path: '/statistics',
+    getParentRoute: () => StudentProgressRoute,
+  } as any)
+const StudentProgressHistoryRoute = StudentProgressHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => StudentProgressRoute,
+} as any)
+const StudentProgressAchievementsRoute =
+  StudentProgressAchievementsRouteImport.update({
+    id: '/achievements',
+    path: '/achievements',
+    getParentRoute: () => StudentProgressRoute,
+  } as any)
+const StudentPracticeSrsRoute = StudentPracticeSrsRouteImport.update({
+  id: '/srs',
+  path: '/srs',
+  getParentRoute: () => StudentPracticeRoute,
+} as any)
+const StudentPracticeReviewRoute = StudentPracticeReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => StudentPracticeRoute,
+} as any)
+const StudentPracticeQuizRoute = StudentPracticeQuizRouteImport.update({
+  id: '/quiz',
+  path: '/quiz',
+  getParentRoute: () => StudentPracticeRoute,
+} as any)
+const StudentPracticeFlashcardsRoute =
+  StudentPracticeFlashcardsRouteImport.update({
+    id: '/flashcards',
+    path: '/flashcards',
+    getParentRoute: () => StudentPracticeRoute,
+  } as any)
+const StudentPracticeDictationRoute =
+  StudentPracticeDictationRouteImport.update({
+    id: '/dictation',
+    path: '/dictation',
+    getParentRoute: () => StudentPracticeRoute,
+  } as any)
+const StudentPracticeBookmarksRoute =
+  StudentPracticeBookmarksRouteImport.update({
+    id: '/bookmarks',
+    path: '/bookmarks',
+    getParentRoute: () => StudentPracticeRoute,
   } as any)
 const StudentGrammarIndexRoute = StudentGrammarIndexRouteImport.update({
   id: '/_index',
@@ -359,6 +523,46 @@ const StudentGrammarGrammarIdRoute = StudentGrammarGrammarIdRouteImport.update({
   id: '/$grammarId',
   path: '/$grammarId',
   getParentRoute: () => StudentGrammarRoute,
+} as any)
+const StudentClassesClassIdRoute = StudentClassesClassIdRouteImport.update({
+  id: '/$classId',
+  path: '/$classId',
+  getParentRoute: () => StudentClassesRoute,
+} as any)
+const StudentAssignmentsUpcomingRoute =
+  StudentAssignmentsUpcomingRouteImport.update({
+    id: '/upcoming',
+    path: '/upcoming',
+    getParentRoute: () => StudentAssignmentsRoute,
+  } as any)
+const StudentAssignmentsSubmittedRoute =
+  StudentAssignmentsSubmittedRouteImport.update({
+    id: '/submitted',
+    path: '/submitted',
+    getParentRoute: () => StudentAssignmentsRoute,
+  } as any)
+const StudentAssignmentsOverdueRoute =
+  StudentAssignmentsOverdueRouteImport.update({
+    id: '/overdue',
+    path: '/overdue',
+    getParentRoute: () => StudentAssignmentsRoute,
+  } as any)
+const StudentAssignmentsHomeworkRoute =
+  StudentAssignmentsHomeworkRouteImport.update({
+    id: '/homework',
+    path: '/homework',
+    getParentRoute: () => StudentAssignmentsRoute,
+  } as any)
+const StudentAssignmentsGradedRoute =
+  StudentAssignmentsGradedRouteImport.update({
+    id: '/graded',
+    path: '/graded',
+    getParentRoute: () => StudentAssignmentsRoute,
+  } as any)
+const StudentAssignmentsAllRoute = StudentAssignmentsAllRouteImport.update({
+  id: '/all',
+  path: '/all',
+  getParentRoute: () => StudentAssignmentsRoute,
 } as any)
 const StudentGrammarGrammarIdStructureIdRoute =
   StudentGrammarGrammarIdStructureIdRouteImport.update({
@@ -399,6 +603,10 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
   '/student/ai-sensei': typeof StudentAiSenseiRoute
+  '/student/assignments': typeof StudentAssignmentsRouteWithChildren
+  '/student/calendar': typeof StudentCalendarRoute
+  '/student/classes': typeof StudentClassesRouteWithChildren
+  '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
   '/student/grammar': typeof StudentGrammarRouteWithChildren
@@ -406,10 +614,16 @@ export interface FileRoutesByFullPath {
   '/student/leaderboard': typeof StudentLeaderboardRoute
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
+  '/student/practice': typeof StudentPracticeRouteWithChildren
   '/student/profile': typeof StudentProfileRoute
-  '/student/progress': typeof StudentProgressRoute
+  '/student/progress': typeof StudentProgressRouteWithChildren
+  '/student/reading': typeof StudentReadingRoute
+  '/student/search': typeof StudentSearchRoute
+  '/student/settings': typeof StudentSettingsRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRoute
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
+  '/student/writing': typeof StudentWritingRoute
+  '/teacher/classes': typeof TeacherClassesRouteWithChildren
   '/teacher/exams': typeof TeacherExamsRoute
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
@@ -422,8 +636,30 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/teacher/': typeof TeacherIndexRoute
+  '/student/assignments/all': typeof StudentAssignmentsAllRoute
+  '/student/assignments/graded': typeof StudentAssignmentsGradedRoute
+  '/student/assignments/homework': typeof StudentAssignmentsHomeworkRoute
+  '/student/assignments/overdue': typeof StudentAssignmentsOverdueRoute
+  '/student/assignments/submitted': typeof StudentAssignmentsSubmittedRoute
+  '/student/assignments/upcoming': typeof StudentAssignmentsUpcomingRoute
+  '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
+  '/student/practice/bookmarks': typeof StudentPracticeBookmarksRoute
+  '/student/practice/dictation': typeof StudentPracticeDictationRoute
+  '/student/practice/flashcards': typeof StudentPracticeFlashcardsRoute
+  '/student/practice/quiz': typeof StudentPracticeQuizRoute
+  '/student/practice/review': typeof StudentPracticeReviewRoute
+  '/student/practice/srs': typeof StudentPracticeSrsRoute
+  '/student/progress/achievements': typeof StudentProgressAchievementsRoute
+  '/student/progress/history': typeof StudentProgressHistoryRoute
+  '/student/progress/statistics': typeof StudentProgressStatisticsRoute
+  '/student/progress/streak': typeof StudentProgressStreakRoute
+  '/student/progress/weak-points': typeof StudentProgressWeakPointsRoute
+  '/student/settings/language': typeof StudentSettingsLanguageRoute
+  '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
+  '/student/settings/theme': typeof StudentSettingsThemeRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/teacher/classes/$classId': typeof TeacherClassesClassIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
 }
@@ -456,6 +692,10 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
   '/student/ai-sensei': typeof StudentAiSenseiRoute
+  '/student/assignments': typeof StudentAssignmentsRouteWithChildren
+  '/student/calendar': typeof StudentCalendarRoute
+  '/student/classes': typeof StudentClassesRouteWithChildren
+  '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
   '/student/grammar': typeof StudentGrammarRouteWithChildren
@@ -463,10 +703,16 @@ export interface FileRoutesByTo {
   '/student/leaderboard': typeof StudentLeaderboardRoute
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
+  '/student/practice': typeof StudentPracticeRouteWithChildren
   '/student/profile': typeof StudentProfileRoute
-  '/student/progress': typeof StudentProgressRoute
+  '/student/progress': typeof StudentProgressRouteWithChildren
+  '/student/reading': typeof StudentReadingRoute
+  '/student/search': typeof StudentSearchRoute
+  '/student/settings': typeof StudentSettingsRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRoute
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
+  '/student/writing': typeof StudentWritingRoute
+  '/teacher/classes': typeof TeacherClassesRouteWithChildren
   '/teacher/exams': typeof TeacherExamsRoute
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
@@ -479,8 +725,30 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
   '/teacher': typeof TeacherIndexRoute
+  '/student/assignments/all': typeof StudentAssignmentsAllRoute
+  '/student/assignments/graded': typeof StudentAssignmentsGradedRoute
+  '/student/assignments/homework': typeof StudentAssignmentsHomeworkRoute
+  '/student/assignments/overdue': typeof StudentAssignmentsOverdueRoute
+  '/student/assignments/submitted': typeof StudentAssignmentsSubmittedRoute
+  '/student/assignments/upcoming': typeof StudentAssignmentsUpcomingRoute
+  '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
+  '/student/practice/bookmarks': typeof StudentPracticeBookmarksRoute
+  '/student/practice/dictation': typeof StudentPracticeDictationRoute
+  '/student/practice/flashcards': typeof StudentPracticeFlashcardsRoute
+  '/student/practice/quiz': typeof StudentPracticeQuizRoute
+  '/student/practice/review': typeof StudentPracticeReviewRoute
+  '/student/practice/srs': typeof StudentPracticeSrsRoute
+  '/student/progress/achievements': typeof StudentProgressAchievementsRoute
+  '/student/progress/history': typeof StudentProgressHistoryRoute
+  '/student/progress/statistics': typeof StudentProgressStatisticsRoute
+  '/student/progress/streak': typeof StudentProgressStreakRoute
+  '/student/progress/weak-points': typeof StudentProgressWeakPointsRoute
+  '/student/settings/language': typeof StudentSettingsLanguageRoute
+  '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
+  '/student/settings/theme': typeof StudentSettingsThemeRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/teacher/classes/$classId': typeof TeacherClassesClassIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
 }
@@ -517,6 +785,10 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
   '/student/ai-sensei': typeof StudentAiSenseiRoute
+  '/student/assignments': typeof StudentAssignmentsRouteWithChildren
+  '/student/calendar': typeof StudentCalendarRoute
+  '/student/classes': typeof StudentClassesRouteWithChildren
+  '/student/dashboard': typeof StudentDashboardRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
   '/student/grammar': typeof StudentGrammarRouteWithChildren
@@ -524,10 +796,16 @@ export interface FileRoutesById {
   '/student/leaderboard': typeof StudentLeaderboardRoute
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
+  '/student/practice': typeof StudentPracticeRouteWithChildren
   '/student/profile': typeof StudentProfileRoute
-  '/student/progress': typeof StudentProgressRoute
+  '/student/progress': typeof StudentProgressRouteWithChildren
+  '/student/reading': typeof StudentReadingRoute
+  '/student/search': typeof StudentSearchRoute
+  '/student/settings': typeof StudentSettingsRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRoute
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
+  '/student/writing': typeof StudentWritingRoute
+  '/teacher/classes': typeof TeacherClassesRouteWithChildren
   '/teacher/exams': typeof TeacherExamsRoute
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
@@ -540,9 +818,31 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/teacher/': typeof TeacherIndexRoute
+  '/student/assignments/all': typeof StudentAssignmentsAllRoute
+  '/student/assignments/graded': typeof StudentAssignmentsGradedRoute
+  '/student/assignments/homework': typeof StudentAssignmentsHomeworkRoute
+  '/student/assignments/overdue': typeof StudentAssignmentsOverdueRoute
+  '/student/assignments/submitted': typeof StudentAssignmentsSubmittedRoute
+  '/student/assignments/upcoming': typeof StudentAssignmentsUpcomingRoute
+  '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/grammar/_index': typeof StudentGrammarIndexRoute
+  '/student/practice/bookmarks': typeof StudentPracticeBookmarksRoute
+  '/student/practice/dictation': typeof StudentPracticeDictationRoute
+  '/student/practice/flashcards': typeof StudentPracticeFlashcardsRoute
+  '/student/practice/quiz': typeof StudentPracticeQuizRoute
+  '/student/practice/review': typeof StudentPracticeReviewRoute
+  '/student/practice/srs': typeof StudentPracticeSrsRoute
+  '/student/progress/achievements': typeof StudentProgressAchievementsRoute
+  '/student/progress/history': typeof StudentProgressHistoryRoute
+  '/student/progress/statistics': typeof StudentProgressStatisticsRoute
+  '/student/progress/streak': typeof StudentProgressStreakRoute
+  '/student/progress/weak-points': typeof StudentProgressWeakPointsRoute
+  '/student/settings/language': typeof StudentSettingsLanguageRoute
+  '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
+  '/student/settings/theme': typeof StudentSettingsThemeRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/teacher/classes/$classId': typeof TeacherClassesClassIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
 }
@@ -580,6 +880,10 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vocabulary-library'
     | '/student/ai-sensei'
+    | '/student/assignments'
+    | '/student/calendar'
+    | '/student/classes'
+    | '/student/dashboard'
     | '/student/exams'
     | '/student/flashcards'
     | '/student/grammar'
@@ -587,10 +891,16 @@ export interface FileRouteTypes {
     | '/student/leaderboard'
     | '/student/listening'
     | '/student/notifications'
+    | '/student/practice'
     | '/student/profile'
     | '/student/progress'
+    | '/student/reading'
+    | '/student/search'
+    | '/student/settings'
     | '/student/shadowing'
     | '/student/vocabulary'
+    | '/student/writing'
+    | '/teacher/classes'
     | '/teacher/exams'
     | '/teacher/flashcards'
     | '/teacher/grammar'
@@ -603,8 +913,30 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/teacher/'
+    | '/student/assignments/all'
+    | '/student/assignments/graded'
+    | '/student/assignments/homework'
+    | '/student/assignments/overdue'
+    | '/student/assignments/submitted'
+    | '/student/assignments/upcoming'
+    | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
+    | '/student/practice/bookmarks'
+    | '/student/practice/dictation'
+    | '/student/practice/flashcards'
+    | '/student/practice/quiz'
+    | '/student/practice/review'
+    | '/student/practice/srs'
+    | '/student/progress/achievements'
+    | '/student/progress/history'
+    | '/student/progress/statistics'
+    | '/student/progress/streak'
+    | '/student/progress/weak-points'
+    | '/student/settings/language'
+    | '/student/settings/notifications'
+    | '/student/settings/theme'
     | '/student/vocabulary/$lessonId'
+    | '/teacher/classes/$classId'
     | '/teacher/vocabulary/$lessonId'
     | '/student/grammar/$grammarId/$structureId'
   fileRoutesByTo: FileRoutesByTo
@@ -637,6 +969,10 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vocabulary-library'
     | '/student/ai-sensei'
+    | '/student/assignments'
+    | '/student/calendar'
+    | '/student/classes'
+    | '/student/dashboard'
     | '/student/exams'
     | '/student/flashcards'
     | '/student/grammar'
@@ -644,10 +980,16 @@ export interface FileRouteTypes {
     | '/student/leaderboard'
     | '/student/listening'
     | '/student/notifications'
+    | '/student/practice'
     | '/student/profile'
     | '/student/progress'
+    | '/student/reading'
+    | '/student/search'
+    | '/student/settings'
     | '/student/shadowing'
     | '/student/vocabulary'
+    | '/student/writing'
+    | '/teacher/classes'
     | '/teacher/exams'
     | '/teacher/flashcards'
     | '/teacher/grammar'
@@ -660,8 +1002,30 @@ export interface FileRouteTypes {
     | '/admin'
     | '/student'
     | '/teacher'
+    | '/student/assignments/all'
+    | '/student/assignments/graded'
+    | '/student/assignments/homework'
+    | '/student/assignments/overdue'
+    | '/student/assignments/submitted'
+    | '/student/assignments/upcoming'
+    | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
+    | '/student/practice/bookmarks'
+    | '/student/practice/dictation'
+    | '/student/practice/flashcards'
+    | '/student/practice/quiz'
+    | '/student/practice/review'
+    | '/student/practice/srs'
+    | '/student/progress/achievements'
+    | '/student/progress/history'
+    | '/student/progress/statistics'
+    | '/student/progress/streak'
+    | '/student/progress/weak-points'
+    | '/student/settings/language'
+    | '/student/settings/notifications'
+    | '/student/settings/theme'
     | '/student/vocabulary/$lessonId'
+    | '/teacher/classes/$classId'
     | '/teacher/vocabulary/$lessonId'
     | '/student/grammar/$grammarId/$structureId'
   id:
@@ -697,6 +1061,10 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/vocabulary-library'
     | '/student/ai-sensei'
+    | '/student/assignments'
+    | '/student/calendar'
+    | '/student/classes'
+    | '/student/dashboard'
     | '/student/exams'
     | '/student/flashcards'
     | '/student/grammar'
@@ -704,10 +1072,16 @@ export interface FileRouteTypes {
     | '/student/leaderboard'
     | '/student/listening'
     | '/student/notifications'
+    | '/student/practice'
     | '/student/profile'
     | '/student/progress'
+    | '/student/reading'
+    | '/student/search'
+    | '/student/settings'
     | '/student/shadowing'
     | '/student/vocabulary'
+    | '/student/writing'
+    | '/teacher/classes'
     | '/teacher/exams'
     | '/teacher/flashcards'
     | '/teacher/grammar'
@@ -720,9 +1094,31 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/teacher/'
+    | '/student/assignments/all'
+    | '/student/assignments/graded'
+    | '/student/assignments/homework'
+    | '/student/assignments/overdue'
+    | '/student/assignments/submitted'
+    | '/student/assignments/upcoming'
+    | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
     | '/student/grammar/_index'
+    | '/student/practice/bookmarks'
+    | '/student/practice/dictation'
+    | '/student/practice/flashcards'
+    | '/student/practice/quiz'
+    | '/student/practice/review'
+    | '/student/practice/srs'
+    | '/student/progress/achievements'
+    | '/student/progress/history'
+    | '/student/progress/statistics'
+    | '/student/progress/streak'
+    | '/student/progress/weak-points'
+    | '/student/settings/language'
+    | '/student/settings/notifications'
+    | '/student/settings/theme'
     | '/student/vocabulary/$lessonId'
+    | '/teacher/classes/$classId'
     | '/teacher/vocabulary/$lessonId'
     | '/student/grammar/$grammarId/$structureId'
   fileRoutesById: FileRoutesById
@@ -904,6 +1300,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeacherExamsRouteImport
       parentRoute: typeof TeacherRoute
     }
+    '/teacher/classes': {
+      id: '/teacher/classes'
+      path: '/classes'
+      fullPath: '/teacher/classes'
+      preLoaderRoute: typeof TeacherClassesRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/student/writing': {
+      id: '/student/writing'
+      path: '/writing'
+      fullPath: '/student/writing'
+      preLoaderRoute: typeof StudentWritingRouteImport
+      parentRoute: typeof StudentRoute
+    }
     '/student/vocabulary': {
       id: '/student/vocabulary'
       path: '/vocabulary'
@@ -918,6 +1328,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentShadowingRouteImport
       parentRoute: typeof StudentRoute
     }
+    '/student/settings': {
+      id: '/student/settings'
+      path: '/settings'
+      fullPath: '/student/settings'
+      preLoaderRoute: typeof StudentSettingsRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/search': {
+      id: '/student/search'
+      path: '/search'
+      fullPath: '/student/search'
+      preLoaderRoute: typeof StudentSearchRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/reading': {
+      id: '/student/reading'
+      path: '/reading'
+      fullPath: '/student/reading'
+      preLoaderRoute: typeof StudentReadingRouteImport
+      parentRoute: typeof StudentRoute
+    }
     '/student/progress': {
       id: '/student/progress'
       path: '/progress'
@@ -930,6 +1361,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/student/profile'
       preLoaderRoute: typeof StudentProfileRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/practice': {
+      id: '/student/practice'
+      path: '/practice'
+      fullPath: '/student/practice'
+      preLoaderRoute: typeof StudentPracticeRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/notifications': {
@@ -979,6 +1417,34 @@ declare module '@tanstack/react-router' {
       path: '/exams'
       fullPath: '/student/exams'
       preLoaderRoute: typeof StudentExamsRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/dashboard': {
+      id: '/student/dashboard'
+      path: '/dashboard'
+      fullPath: '/student/dashboard'
+      preLoaderRoute: typeof StudentDashboardRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/classes': {
+      id: '/student/classes'
+      path: '/classes'
+      fullPath: '/student/classes'
+      preLoaderRoute: typeof StudentClassesRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/calendar': {
+      id: '/student/calendar'
+      path: '/calendar'
+      fullPath: '/student/calendar'
+      preLoaderRoute: typeof StudentCalendarRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/assignments': {
+      id: '/student/assignments'
+      path: '/assignments'
+      fullPath: '/student/assignments'
+      preLoaderRoute: typeof StudentAssignmentsRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/ai-sensei': {
@@ -1128,12 +1594,117 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeacherVocabularyLessonIdRouteImport
       parentRoute: typeof TeacherVocabularyRoute
     }
+    '/teacher/classes/$classId': {
+      id: '/teacher/classes/$classId'
+      path: '/$classId'
+      fullPath: '/teacher/classes/$classId'
+      preLoaderRoute: typeof TeacherClassesClassIdRouteImport
+      parentRoute: typeof TeacherClassesRoute
+    }
     '/student/vocabulary/$lessonId': {
       id: '/student/vocabulary/$lessonId'
       path: '/$lessonId'
       fullPath: '/student/vocabulary/$lessonId'
       preLoaderRoute: typeof StudentVocabularyLessonIdRouteImport
       parentRoute: typeof StudentVocabularyRoute
+    }
+    '/student/settings/theme': {
+      id: '/student/settings/theme'
+      path: '/theme'
+      fullPath: '/student/settings/theme'
+      preLoaderRoute: typeof StudentSettingsThemeRouteImport
+      parentRoute: typeof StudentSettingsRoute
+    }
+    '/student/settings/notifications': {
+      id: '/student/settings/notifications'
+      path: '/notifications'
+      fullPath: '/student/settings/notifications'
+      preLoaderRoute: typeof StudentSettingsNotificationsRouteImport
+      parentRoute: typeof StudentSettingsRoute
+    }
+    '/student/settings/language': {
+      id: '/student/settings/language'
+      path: '/language'
+      fullPath: '/student/settings/language'
+      preLoaderRoute: typeof StudentSettingsLanguageRouteImport
+      parentRoute: typeof StudentSettingsRoute
+    }
+    '/student/progress/weak-points': {
+      id: '/student/progress/weak-points'
+      path: '/weak-points'
+      fullPath: '/student/progress/weak-points'
+      preLoaderRoute: typeof StudentProgressWeakPointsRouteImport
+      parentRoute: typeof StudentProgressRoute
+    }
+    '/student/progress/streak': {
+      id: '/student/progress/streak'
+      path: '/streak'
+      fullPath: '/student/progress/streak'
+      preLoaderRoute: typeof StudentProgressStreakRouteImport
+      parentRoute: typeof StudentProgressRoute
+    }
+    '/student/progress/statistics': {
+      id: '/student/progress/statistics'
+      path: '/statistics'
+      fullPath: '/student/progress/statistics'
+      preLoaderRoute: typeof StudentProgressStatisticsRouteImport
+      parentRoute: typeof StudentProgressRoute
+    }
+    '/student/progress/history': {
+      id: '/student/progress/history'
+      path: '/history'
+      fullPath: '/student/progress/history'
+      preLoaderRoute: typeof StudentProgressHistoryRouteImport
+      parentRoute: typeof StudentProgressRoute
+    }
+    '/student/progress/achievements': {
+      id: '/student/progress/achievements'
+      path: '/achievements'
+      fullPath: '/student/progress/achievements'
+      preLoaderRoute: typeof StudentProgressAchievementsRouteImport
+      parentRoute: typeof StudentProgressRoute
+    }
+    '/student/practice/srs': {
+      id: '/student/practice/srs'
+      path: '/srs'
+      fullPath: '/student/practice/srs'
+      preLoaderRoute: typeof StudentPracticeSrsRouteImport
+      parentRoute: typeof StudentPracticeRoute
+    }
+    '/student/practice/review': {
+      id: '/student/practice/review'
+      path: '/review'
+      fullPath: '/student/practice/review'
+      preLoaderRoute: typeof StudentPracticeReviewRouteImport
+      parentRoute: typeof StudentPracticeRoute
+    }
+    '/student/practice/quiz': {
+      id: '/student/practice/quiz'
+      path: '/quiz'
+      fullPath: '/student/practice/quiz'
+      preLoaderRoute: typeof StudentPracticeQuizRouteImport
+      parentRoute: typeof StudentPracticeRoute
+    }
+    '/student/practice/flashcards': {
+      id: '/student/practice/flashcards'
+      path: '/flashcards'
+      fullPath: '/student/practice/flashcards'
+      preLoaderRoute: typeof StudentPracticeFlashcardsRouteImport
+      parentRoute: typeof StudentPracticeRoute
+    }
+    '/student/practice/dictation': {
+      id: '/student/practice/dictation'
+      path: '/dictation'
+      fullPath: '/student/practice/dictation'
+      preLoaderRoute: typeof StudentPracticeDictationRouteImport
+      parentRoute: typeof StudentPracticeRoute
+    }
+    '/student/practice/bookmarks': {
+      id: '/student/practice/bookmarks'
+      path: '/bookmarks'
+      fullPath: '/student/practice/bookmarks'
+      preLoaderRoute: typeof StudentPracticeBookmarksRouteImport
+      parentRoute: typeof StudentPracticeRoute
     }
     '/student/grammar/_index': {
       id: '/student/grammar/_index'
@@ -1148,6 +1719,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/student/grammar/$grammarId'
       preLoaderRoute: typeof StudentGrammarGrammarIdRouteImport
       parentRoute: typeof StudentGrammarRoute
+    }
+    '/student/classes/$classId': {
+      id: '/student/classes/$classId'
+      path: '/$classId'
+      fullPath: '/student/classes/$classId'
+      preLoaderRoute: typeof StudentClassesClassIdRouteImport
+      parentRoute: typeof StudentClassesRoute
+    }
+    '/student/assignments/upcoming': {
+      id: '/student/assignments/upcoming'
+      path: '/upcoming'
+      fullPath: '/student/assignments/upcoming'
+      preLoaderRoute: typeof StudentAssignmentsUpcomingRouteImport
+      parentRoute: typeof StudentAssignmentsRoute
+    }
+    '/student/assignments/submitted': {
+      id: '/student/assignments/submitted'
+      path: '/submitted'
+      fullPath: '/student/assignments/submitted'
+      preLoaderRoute: typeof StudentAssignmentsSubmittedRouteImport
+      parentRoute: typeof StudentAssignmentsRoute
+    }
+    '/student/assignments/overdue': {
+      id: '/student/assignments/overdue'
+      path: '/overdue'
+      fullPath: '/student/assignments/overdue'
+      preLoaderRoute: typeof StudentAssignmentsOverdueRouteImport
+      parentRoute: typeof StudentAssignmentsRoute
+    }
+    '/student/assignments/homework': {
+      id: '/student/assignments/homework'
+      path: '/homework'
+      fullPath: '/student/assignments/homework'
+      preLoaderRoute: typeof StudentAssignmentsHomeworkRouteImport
+      parentRoute: typeof StudentAssignmentsRoute
+    }
+    '/student/assignments/graded': {
+      id: '/student/assignments/graded'
+      path: '/graded'
+      fullPath: '/student/assignments/graded'
+      preLoaderRoute: typeof StudentAssignmentsGradedRouteImport
+      parentRoute: typeof StudentAssignmentsRoute
+    }
+    '/student/assignments/all': {
+      id: '/student/assignments/all'
+      path: '/all'
+      fullPath: '/student/assignments/all'
+      preLoaderRoute: typeof StudentAssignmentsAllRouteImport
+      parentRoute: typeof StudentAssignmentsRoute
     }
     '/student/grammar/$grammarId/$structureId': {
       id: '/student/grammar/$grammarId/$structureId'
@@ -1207,6 +1827,39 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface StudentAssignmentsRouteChildren {
+  StudentAssignmentsAllRoute: typeof StudentAssignmentsAllRoute
+  StudentAssignmentsGradedRoute: typeof StudentAssignmentsGradedRoute
+  StudentAssignmentsHomeworkRoute: typeof StudentAssignmentsHomeworkRoute
+  StudentAssignmentsOverdueRoute: typeof StudentAssignmentsOverdueRoute
+  StudentAssignmentsSubmittedRoute: typeof StudentAssignmentsSubmittedRoute
+  StudentAssignmentsUpcomingRoute: typeof StudentAssignmentsUpcomingRoute
+}
+
+const StudentAssignmentsRouteChildren: StudentAssignmentsRouteChildren = {
+  StudentAssignmentsAllRoute: StudentAssignmentsAllRoute,
+  StudentAssignmentsGradedRoute: StudentAssignmentsGradedRoute,
+  StudentAssignmentsHomeworkRoute: StudentAssignmentsHomeworkRoute,
+  StudentAssignmentsOverdueRoute: StudentAssignmentsOverdueRoute,
+  StudentAssignmentsSubmittedRoute: StudentAssignmentsSubmittedRoute,
+  StudentAssignmentsUpcomingRoute: StudentAssignmentsUpcomingRoute,
+}
+
+const StudentAssignmentsRouteWithChildren =
+  StudentAssignmentsRoute._addFileChildren(StudentAssignmentsRouteChildren)
+
+interface StudentClassesRouteChildren {
+  StudentClassesClassIdRoute: typeof StudentClassesClassIdRoute
+}
+
+const StudentClassesRouteChildren: StudentClassesRouteChildren = {
+  StudentClassesClassIdRoute: StudentClassesClassIdRoute,
+}
+
+const StudentClassesRouteWithChildren = StudentClassesRoute._addFileChildren(
+  StudentClassesRouteChildren,
+)
+
 interface StudentGrammarGrammarIdRouteChildren {
   StudentGrammarGrammarIdStructureIdRoute: typeof StudentGrammarGrammarIdStructureIdRoute
 }
@@ -1236,6 +1889,64 @@ const StudentGrammarRouteWithChildren = StudentGrammarRoute._addFileChildren(
   StudentGrammarRouteChildren,
 )
 
+interface StudentPracticeRouteChildren {
+  StudentPracticeBookmarksRoute: typeof StudentPracticeBookmarksRoute
+  StudentPracticeDictationRoute: typeof StudentPracticeDictationRoute
+  StudentPracticeFlashcardsRoute: typeof StudentPracticeFlashcardsRoute
+  StudentPracticeQuizRoute: typeof StudentPracticeQuizRoute
+  StudentPracticeReviewRoute: typeof StudentPracticeReviewRoute
+  StudentPracticeSrsRoute: typeof StudentPracticeSrsRoute
+}
+
+const StudentPracticeRouteChildren: StudentPracticeRouteChildren = {
+  StudentPracticeBookmarksRoute: StudentPracticeBookmarksRoute,
+  StudentPracticeDictationRoute: StudentPracticeDictationRoute,
+  StudentPracticeFlashcardsRoute: StudentPracticeFlashcardsRoute,
+  StudentPracticeQuizRoute: StudentPracticeQuizRoute,
+  StudentPracticeReviewRoute: StudentPracticeReviewRoute,
+  StudentPracticeSrsRoute: StudentPracticeSrsRoute,
+}
+
+const StudentPracticeRouteWithChildren = StudentPracticeRoute._addFileChildren(
+  StudentPracticeRouteChildren,
+)
+
+interface StudentProgressRouteChildren {
+  StudentProgressAchievementsRoute: typeof StudentProgressAchievementsRoute
+  StudentProgressHistoryRoute: typeof StudentProgressHistoryRoute
+  StudentProgressStatisticsRoute: typeof StudentProgressStatisticsRoute
+  StudentProgressStreakRoute: typeof StudentProgressStreakRoute
+  StudentProgressWeakPointsRoute: typeof StudentProgressWeakPointsRoute
+}
+
+const StudentProgressRouteChildren: StudentProgressRouteChildren = {
+  StudentProgressAchievementsRoute: StudentProgressAchievementsRoute,
+  StudentProgressHistoryRoute: StudentProgressHistoryRoute,
+  StudentProgressStatisticsRoute: StudentProgressStatisticsRoute,
+  StudentProgressStreakRoute: StudentProgressStreakRoute,
+  StudentProgressWeakPointsRoute: StudentProgressWeakPointsRoute,
+}
+
+const StudentProgressRouteWithChildren = StudentProgressRoute._addFileChildren(
+  StudentProgressRouteChildren,
+)
+
+interface StudentSettingsRouteChildren {
+  StudentSettingsLanguageRoute: typeof StudentSettingsLanguageRoute
+  StudentSettingsNotificationsRoute: typeof StudentSettingsNotificationsRoute
+  StudentSettingsThemeRoute: typeof StudentSettingsThemeRoute
+}
+
+const StudentSettingsRouteChildren: StudentSettingsRouteChildren = {
+  StudentSettingsLanguageRoute: StudentSettingsLanguageRoute,
+  StudentSettingsNotificationsRoute: StudentSettingsNotificationsRoute,
+  StudentSettingsThemeRoute: StudentSettingsThemeRoute,
+}
+
+const StudentSettingsRouteWithChildren = StudentSettingsRoute._addFileChildren(
+  StudentSettingsRouteChildren,
+)
+
 interface StudentVocabularyRouteChildren {
   StudentVocabularyLessonIdRoute: typeof StudentVocabularyLessonIdRoute
 }
@@ -1249,6 +1960,10 @@ const StudentVocabularyRouteWithChildren =
 
 interface StudentRouteChildren {
   StudentAiSenseiRoute: typeof StudentAiSenseiRoute
+  StudentAssignmentsRoute: typeof StudentAssignmentsRouteWithChildren
+  StudentCalendarRoute: typeof StudentCalendarRoute
+  StudentClassesRoute: typeof StudentClassesRouteWithChildren
+  StudentDashboardRoute: typeof StudentDashboardRoute
   StudentExamsRoute: typeof StudentExamsRoute
   StudentFlashcardsRoute: typeof StudentFlashcardsRoute
   StudentGrammarRoute: typeof StudentGrammarRouteWithChildren
@@ -1256,15 +1971,24 @@ interface StudentRouteChildren {
   StudentLeaderboardRoute: typeof StudentLeaderboardRoute
   StudentListeningRoute: typeof StudentListeningRoute
   StudentNotificationsRoute: typeof StudentNotificationsRoute
+  StudentPracticeRoute: typeof StudentPracticeRouteWithChildren
   StudentProfileRoute: typeof StudentProfileRoute
-  StudentProgressRoute: typeof StudentProgressRoute
+  StudentProgressRoute: typeof StudentProgressRouteWithChildren
+  StudentReadingRoute: typeof StudentReadingRoute
+  StudentSearchRoute: typeof StudentSearchRoute
+  StudentSettingsRoute: typeof StudentSettingsRouteWithChildren
   StudentShadowingRoute: typeof StudentShadowingRoute
   StudentVocabularyRoute: typeof StudentVocabularyRouteWithChildren
+  StudentWritingRoute: typeof StudentWritingRoute
   StudentIndexRoute: typeof StudentIndexRoute
 }
 
 const StudentRouteChildren: StudentRouteChildren = {
   StudentAiSenseiRoute: StudentAiSenseiRoute,
+  StudentAssignmentsRoute: StudentAssignmentsRouteWithChildren,
+  StudentCalendarRoute: StudentCalendarRoute,
+  StudentClassesRoute: StudentClassesRouteWithChildren,
+  StudentDashboardRoute: StudentDashboardRoute,
   StudentExamsRoute: StudentExamsRoute,
   StudentFlashcardsRoute: StudentFlashcardsRoute,
   StudentGrammarRoute: StudentGrammarRouteWithChildren,
@@ -1272,15 +1996,32 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentLeaderboardRoute: StudentLeaderboardRoute,
   StudentListeningRoute: StudentListeningRoute,
   StudentNotificationsRoute: StudentNotificationsRoute,
+  StudentPracticeRoute: StudentPracticeRouteWithChildren,
   StudentProfileRoute: StudentProfileRoute,
-  StudentProgressRoute: StudentProgressRoute,
+  StudentProgressRoute: StudentProgressRouteWithChildren,
+  StudentReadingRoute: StudentReadingRoute,
+  StudentSearchRoute: StudentSearchRoute,
+  StudentSettingsRoute: StudentSettingsRouteWithChildren,
   StudentShadowingRoute: StudentShadowingRoute,
   StudentVocabularyRoute: StudentVocabularyRouteWithChildren,
+  StudentWritingRoute: StudentWritingRoute,
   StudentIndexRoute: StudentIndexRoute,
 }
 
 const StudentRouteWithChildren =
   StudentRoute._addFileChildren(StudentRouteChildren)
+
+interface TeacherClassesRouteChildren {
+  TeacherClassesClassIdRoute: typeof TeacherClassesClassIdRoute
+}
+
+const TeacherClassesRouteChildren: TeacherClassesRouteChildren = {
+  TeacherClassesClassIdRoute: TeacherClassesClassIdRoute,
+}
+
+const TeacherClassesRouteWithChildren = TeacherClassesRoute._addFileChildren(
+  TeacherClassesRouteChildren,
+)
 
 interface TeacherVocabularyRouteChildren {
   TeacherVocabularyLessonIdRoute: typeof TeacherVocabularyLessonIdRoute
@@ -1294,6 +2035,7 @@ const TeacherVocabularyRouteWithChildren =
   TeacherVocabularyRoute._addFileChildren(TeacherVocabularyRouteChildren)
 
 interface TeacherRouteChildren {
+  TeacherClassesRoute: typeof TeacherClassesRouteWithChildren
   TeacherExamsRoute: typeof TeacherExamsRoute
   TeacherFlashcardsRoute: typeof TeacherFlashcardsRoute
   TeacherGrammarRoute: typeof TeacherGrammarRoute
@@ -1307,6 +2049,7 @@ interface TeacherRouteChildren {
 }
 
 const TeacherRouteChildren: TeacherRouteChildren = {
+  TeacherClassesRoute: TeacherClassesRouteWithChildren,
   TeacherExamsRoute: TeacherExamsRoute,
   TeacherFlashcardsRoute: TeacherFlashcardsRoute,
   TeacherGrammarRoute: TeacherGrammarRoute,
