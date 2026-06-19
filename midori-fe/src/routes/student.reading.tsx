@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useEffect } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   BookOpen, CheckCircle, CheckCircle2, Bookmark, BookmarkCheck,
@@ -7,13 +7,14 @@ import {
   Loader2, AlertCircle, X, Volume2
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { mockReading, allMockReading } from "@/mock/reading";
-import { mockClasses } from "@/mock/classes";
+import { allMockReading } from "@/mock/reading";
+import { studentAccessibleLevels } from "./student.classes";
 import type { JLPTLevel } from "@/types/content-library";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const LEVEL_FILTERS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
+// Only show accessible levels
+const LEVEL_FILTERS = ["All", ...studentAccessibleLevels] as const;
 const PAGE_SIZE = 8;
 
 const levelColors: Record<string, string> = {
@@ -31,19 +32,6 @@ const levelGradients: Record<string, string> = {
   N2: "from-orange-400 to-red-400",
   N1: "from-red-400 to-pink-400",
 };
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-interface ReadingItem {
-  id: string;
-  title: string;
-  passageText: string;
-  jlptLevel: JLPTLevel;
-  estimatedTime: number;
-  tags: string[];
-  examples?: { japanese: string; translation: string }[];
-  questions?: { question: string; options: string[]; answer: number }[];
-}
 
 // ─── Helper Functions ───────────────────────────────────────────────────────────
 
@@ -137,11 +125,13 @@ export const Route = createFileRoute("/student/reading")({
 });
 
 function ReadingPage() {
-  // Get user's level from their enrolled class
-  const studentLevels = useMemo(() =>
-    Array.from(new Set(mockClasses.map(c => c.level).filter(Boolean)))
-  , []);
-  const defaultLevel = studentLevels.length === 1 ? studentLevels[0] : "All";
+  const navigate = useNavigate();
+
+  // Use accessible levels (mock - later from API)
+  const studentLevels = studentAccessibleLevels;
+  
+  // Default to first accessible level
+  const defaultLevel = studentLevels.length > 0 ? studentLevels[0] : "N5";
 
   const [levelFilter, setLevelFilter] = useState<string>(defaultLevel);
   const [search, setSearch] = useState("");
@@ -149,6 +139,24 @@ function ReadingPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "bookmarked">("all");
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleRowClick = (readingId: string) => {
+    console.log("[ReadingList] Row clicked:", readingId);
+    navigate({ to: "/student/reading/$readingId", params: { readingId } });
+  };
+
+  // Debug: Log filter state
+  useEffect(() => {
+    console.log("[ReadingList] Filter state:", {
+      studentLevels,
+      defaultLevel,
+      levelFilter,
+      statusFilter,
+      debouncedSearch,
+      totalReadings: filteredReadings.length,
+      paginatedReadings: paginatedReadings.length,
+    });
+  }, [levelFilter, statusFilter, debouncedSearch]);
 
   // Debounce search input
   useEffect(() => {
@@ -367,22 +375,28 @@ function ReadingPage() {
                   const wordCount = reading.passageText.split(/[\s\n]+/).filter(Boolean).length;
                   
                   return (
-                    <motion.div
+                    <div
                       key={reading.id}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="relative"
+                      data-reading-id={reading.id}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        console.log("[ReadingList] Row clicked:", reading.id);
+                        navigate({ to: "/student/reading/$readingId", params: { readingId: reading.id } });
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          console.log("[ReadingList] Row keydown:", reading.id);
+                          navigate({ to: "/student/reading/$readingId", params: { readingId: reading.id } });
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      className="block relative cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/20 transition select-none"
                     >
-                      <Link
-                        to="/student/reading/$readingId"
-                        params={{ readingId: reading.id }}
-                        className="absolute inset-0 z-10"
-                        aria-label={`View ${reading.title}`}
-                      />
-                      <div className="grid grid-cols-[2fr_80px_1fr_120px_110px_100px_80px] gap-3 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition items-center">
+                      <div className="grid grid-cols-[2fr_80px_1fr_120px_110px_100px_80px] gap-3 px-6 py-4 items-center">
                         {/* Title */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-linear-to-br ${levelGradients[reading.jlptLevel]}/20`}>
                             <BookOpen className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                           </div>
@@ -396,59 +410,59 @@ function ReadingPage() {
                           </div>
                         </div>
 
-                      {/* Level Badge */}
-                      <div className="text-center">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${getLevelBoxStyle(reading.jlptLevel, false)}`}>
-                          {reading.jlptLevel}
-                        </span>
-                      </div>
-
-                      {/* Duration */}
-                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        <span>~{reading.estimatedTime} min</span>
-                      </div>
-
-                      {/* Word Count */}
-                      <div className="text-center">
-                        <span className="text-sm font-medium text-foreground dark:text-white">
-                          {wordCount}
-                        </span>
-                        <span className="text-xs text-muted-foreground ml-1">words</span>
-                      </div>
-
-                      {/* Completed */}
-                      <div className="flex justify-center">
-                        {isCompleted ? (
-                          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Done
+                        {/* Level Badge */}
+                        <div className="text-center">
+                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${getLevelBoxStyle(reading.jlptLevel, false)}`}>
+                            {reading.jlptLevel}
                           </span>
-                        ) : (
-                          <span className="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-slate-600" />
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Tags */}
-                      <div className="flex justify-center gap-1">
-                        <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-900/30 text-pink-500 text-[10px] font-medium">
-                          {reading.tags[0] || "General"}
-                        </span>
-                        {reading.tags.length > 1 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-muted-foreground text-[10px]">
-                            +{reading.tags.length - 1}
+                        {/* Duration */}
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4" />
+                          <span>~{reading.estimatedTime} min</span>
+                        </div>
+
+                        {/* Word Count */}
+                        <div className="text-center">
+                          <span className="text-sm font-medium text-foreground dark:text-white">
+                            {wordCount}
                           </span>
-                        )}
-                      </div>
+                          <span className="text-xs text-muted-foreground ml-1">words</span>
+                        </div>
 
-                      {/* View Button */}
-                      <div className="flex justify-center">
-                        <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
-                          <ChevronRight className="w-4 h-4" />
-                        </span>
+                        {/* Completed */}
+                        <div className="flex justify-center">
+                          {isCompleted ? (
+                            <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Done
+                            </span>
+                          ) : (
+                            <span className="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-slate-600" />
+                          )}
+                        </div>
+
+                        {/* Tags */}
+                        <div className="flex justify-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-900/30 text-pink-500 text-[10px] font-medium">
+                            {reading.tags[0] || "General"}
+                          </span>
+                          {reading.tags.length > 1 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-muted-foreground text-[10px]">
+                              +{reading.tags.length - 1}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* View Button */}
+                        <div className="flex justify-center">
+                          <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <ChevronRight className="w-4 h-4" />
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    </motion.div>
                   );
                 })}
               </div>

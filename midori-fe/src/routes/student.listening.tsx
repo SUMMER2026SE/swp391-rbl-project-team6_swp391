@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-ui";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Play, Pause, RotateCcw, Sparkles, CheckCircle2, XCircle,
@@ -10,7 +10,7 @@ import {
 import { SakuraBg } from "@/components/sakura-bg";
 import { listeningApi } from "@/lib/api/listening";
 import { ApiError } from "@/lib/api/client";
-import { mockClasses } from "@/mock/classes";
+import { studentAccessibleLevels } from "./student.classes";
 
 type Tab = "select" | "practice";
 type JLPTLevel = "All" | "N5" | "N4" | "N3" | "N2" | "N1";
@@ -172,10 +172,11 @@ function getHighlightedSegments(
 export const Route = createFileRoute("/student/listening")({ component: Listening });
 
 function Listening() {
-  const studentLevels = useMemo(() =>
-    Array.from(new Set(mockClasses.map(c => c.level).filter(Boolean))) as JLPTLevel[]
-  , []);
-  const defaultLevel: JLPTLevel = studentLevels.length === 1 ? studentLevels[0] : "All";
+  // Use accessible levels (mock - later from API)
+  const studentLevels = studentAccessibleLevels as JLPTLevel[];
+  
+  // Default to first accessible level
+  const defaultLevel: JLPTLevel = studentLevels.length > 0 ? studentLevels[0] : "N5";
 
   const [activeTab, setActiveTab] = useState<Tab>("select");
   const [exercises, setExercises] = useState<StudentListeningExercise[]>([]);
