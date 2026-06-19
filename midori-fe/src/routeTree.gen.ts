@@ -41,6 +41,8 @@ import { Route as StudentProgressRouteImport } from './routes/student.progress'
 import { Route as StudentProfileRouteImport } from './routes/student.profile'
 import { Route as StudentNotificationsRouteImport } from './routes/student.notifications'
 import { Route as StudentListeningRouteImport } from './routes/student.listening'
+import { Route as StudentLearningRouteImport } from './routes/student.learning'
+import { Route as StudentIntroRouteImport } from './routes/student.intro'
 import { Route as StudentGrammarRouteImport } from './routes/student.grammar'
 import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
 import { Route as StudentClassesRouteImport } from './routes/student.classes'
@@ -71,10 +73,34 @@ import { Route as StudentSettingsThemeRouteImport } from './routes/student.setti
 import { Route as StudentSettingsNotificationsRouteImport } from './routes/student.settings.notifications'
 import { Route as StudentSettingsLanguageRouteImport } from './routes/student.settings.language'
 import { Route as StudentReadingReadingIdRouteImport } from './routes/student.reading.$readingId'
+import { Route as StudentLearningReadingRouteImport } from './routes/student.learning.reading'
+import { Route as StudentLearningJapaneseRouteImport } from './routes/student.learning.japanese'
+import { Route as StudentLearningAlphabetRouteImport } from './routes/student.learning.alphabet'
 import { Route as StudentGrammarIndexRouteImport } from './routes/student.grammar._index'
 import { Route as StudentGrammarGrammarIdRouteImport } from './routes/student.grammar.$grammarId'
 import { Route as StudentClassesClassIdRouteImport } from './routes/student.classes.$classId'
+import { Route as StudentShadowingVideoVideoIdRouteImport } from './routes/student.shadowing.video.$videoId'
+import { Route as StudentShadowingTopicTopicIdRouteImport } from './routes/student.shadowing.topic.$topicId'
+import { Route as StudentShadowingReviewVideoIdRouteImport } from './routes/student.shadowing.review.$videoId'
+import { Route as StudentShadowingPracticeVideoIdRouteImport } from './routes/student.shadowing.practice.$videoId'
+import { Route as StudentLearningReadingReadingIdRouteImport } from './routes/student.learning.reading_.$readingId'
+import { Route as StudentLearningReadingHistoryRouteImport } from './routes/student.learning.reading.history'
+import { Route as StudentLearningJapaneseWritingRouteImport } from './routes/student.learning.japanese.writing'
+import { Route as StudentLearningJapaneseSpeedChallengeRouteImport } from './routes/student.learning.japanese.speed-challenge'
+import { Route as StudentLearningJapaneseQuizRouteImport } from './routes/student.learning.japanese.quiz'
+import { Route as StudentLearningJapaneseListeningRouteImport } from './routes/student.learning.japanese.listening'
+import { Route as StudentLearningJapaneseFlashcardsRouteImport } from './routes/student.learning.japanese.flashcards'
+import { Route as StudentLearningAlphabetKatakanaRouteImport } from './routes/student.learning.alphabet.katakana'
+import { Route as StudentLearningAlphabetHiraganaRouteImport } from './routes/student.learning.alphabet.hiragana'
 import { Route as StudentGrammarGrammarIdStructureIdRouteImport } from './routes/student.grammar.$grammarId.$structureId'
+import { Route as StudentLearningJapaneseLessonLessonIdRouteImport } from './routes/student.learning.japanese.lesson.$lessonId'
+import { Route as StudentLearningAlphabetKatakanaLoanwordsRouteImport } from './routes/student.learning.alphabet.katakana.loanwords'
+import { Route as StudentLearningAlphabetKatakanaDakutenRouteImport } from './routes/student.learning.alphabet.katakana.dakuten'
+import { Route as StudentLearningAlphabetKatakanaCombinationRouteImport } from './routes/student.learning.alphabet.katakana.combination'
+import { Route as StudentLearningAlphabetKatakanaBasicRouteImport } from './routes/student.learning.alphabet.katakana.basic'
+import { Route as StudentLearningAlphabetHiraganaDakutenRouteImport } from './routes/student.learning.alphabet.hiragana.dakuten'
+import { Route as StudentLearningAlphabetHiraganaCombinationRouteImport } from './routes/student.learning.alphabet.hiragana.combination'
+import { Route as StudentLearningAlphabetHiraganaBasicRouteImport } from './routes/student.learning.alphabet.hiragana.basic'
 
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
   id: '/verify-otp',
@@ -236,6 +262,16 @@ const StudentListeningRoute = StudentListeningRouteImport.update({
   path: '/listening',
   getParentRoute: () => StudentRoute,
 } as any)
+const StudentLearningRoute = StudentLearningRouteImport.update({
+  id: '/learning',
+  path: '/learning',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentIntroRoute = StudentIntroRouteImport.update({
+  id: '/intro',
+  path: '/intro',
+  getParentRoute: () => StudentRoute,
+} as any)
 const StudentGrammarRoute = StudentGrammarRouteImport.update({
   id: '/grammar',
   path: '/grammar',
@@ -389,6 +425,21 @@ const StudentReadingReadingIdRoute = StudentReadingReadingIdRouteImport.update({
   path: '/$readingId',
   getParentRoute: () => StudentReadingRoute,
 } as any)
+const StudentLearningReadingRoute = StudentLearningReadingRouteImport.update({
+  id: '/reading',
+  path: '/reading',
+  getParentRoute: () => StudentLearningRoute,
+} as any)
+const StudentLearningJapaneseRoute = StudentLearningJapaneseRouteImport.update({
+  id: '/japanese',
+  path: '/japanese',
+  getParentRoute: () => StudentLearningRoute,
+} as any)
+const StudentLearningAlphabetRoute = StudentLearningAlphabetRouteImport.update({
+  id: '/alphabet',
+  path: '/alphabet',
+  getParentRoute: () => StudentLearningRoute,
+} as any)
 const StudentGrammarIndexRoute = StudentGrammarIndexRouteImport.update({
   id: '/_index',
   getParentRoute: () => StudentGrammarRoute,
@@ -403,11 +454,137 @@ const StudentClassesClassIdRoute = StudentClassesClassIdRouteImport.update({
   path: '/$classId',
   getParentRoute: () => StudentClassesRoute,
 } as any)
+const StudentShadowingVideoVideoIdRoute =
+  StudentShadowingVideoVideoIdRouteImport.update({
+    id: '/video/$videoId',
+    path: '/video/$videoId',
+    getParentRoute: () => StudentShadowingRoute,
+  } as any)
+const StudentShadowingTopicTopicIdRoute =
+  StudentShadowingTopicTopicIdRouteImport.update({
+    id: '/topic/$topicId',
+    path: '/topic/$topicId',
+    getParentRoute: () => StudentShadowingRoute,
+  } as any)
+const StudentShadowingReviewVideoIdRoute =
+  StudentShadowingReviewVideoIdRouteImport.update({
+    id: '/review/$videoId',
+    path: '/review/$videoId',
+    getParentRoute: () => StudentShadowingRoute,
+  } as any)
+const StudentShadowingPracticeVideoIdRoute =
+  StudentShadowingPracticeVideoIdRouteImport.update({
+    id: '/practice/$videoId',
+    path: '/practice/$videoId',
+    getParentRoute: () => StudentShadowingRoute,
+  } as any)
+const StudentLearningReadingReadingIdRoute =
+  StudentLearningReadingReadingIdRouteImport.update({
+    id: '/reading_/$readingId',
+    path: '/reading/$readingId',
+    getParentRoute: () => StudentLearningRoute,
+  } as any)
+const StudentLearningReadingHistoryRoute =
+  StudentLearningReadingHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => StudentLearningReadingRoute,
+  } as any)
+const StudentLearningJapaneseWritingRoute =
+  StudentLearningJapaneseWritingRouteImport.update({
+    id: '/writing',
+    path: '/writing',
+    getParentRoute: () => StudentLearningJapaneseRoute,
+  } as any)
+const StudentLearningJapaneseSpeedChallengeRoute =
+  StudentLearningJapaneseSpeedChallengeRouteImport.update({
+    id: '/speed-challenge',
+    path: '/speed-challenge',
+    getParentRoute: () => StudentLearningJapaneseRoute,
+  } as any)
+const StudentLearningJapaneseQuizRoute =
+  StudentLearningJapaneseQuizRouteImport.update({
+    id: '/quiz',
+    path: '/quiz',
+    getParentRoute: () => StudentLearningJapaneseRoute,
+  } as any)
+const StudentLearningJapaneseListeningRoute =
+  StudentLearningJapaneseListeningRouteImport.update({
+    id: '/listening',
+    path: '/listening',
+    getParentRoute: () => StudentLearningJapaneseRoute,
+  } as any)
+const StudentLearningJapaneseFlashcardsRoute =
+  StudentLearningJapaneseFlashcardsRouteImport.update({
+    id: '/flashcards',
+    path: '/flashcards',
+    getParentRoute: () => StudentLearningJapaneseRoute,
+  } as any)
+const StudentLearningAlphabetKatakanaRoute =
+  StudentLearningAlphabetKatakanaRouteImport.update({
+    id: '/katakana',
+    path: '/katakana',
+    getParentRoute: () => StudentLearningAlphabetRoute,
+  } as any)
+const StudentLearningAlphabetHiraganaRoute =
+  StudentLearningAlphabetHiraganaRouteImport.update({
+    id: '/hiragana',
+    path: '/hiragana',
+    getParentRoute: () => StudentLearningAlphabetRoute,
+  } as any)
 const StudentGrammarGrammarIdStructureIdRoute =
   StudentGrammarGrammarIdStructureIdRouteImport.update({
     id: '/$structureId',
     path: '/$structureId',
     getParentRoute: () => StudentGrammarGrammarIdRoute,
+  } as any)
+const StudentLearningJapaneseLessonLessonIdRoute =
+  StudentLearningJapaneseLessonLessonIdRouteImport.update({
+    id: '/lesson/$lessonId',
+    path: '/lesson/$lessonId',
+    getParentRoute: () => StudentLearningJapaneseRoute,
+  } as any)
+const StudentLearningAlphabetKatakanaLoanwordsRoute =
+  StudentLearningAlphabetKatakanaLoanwordsRouteImport.update({
+    id: '/loanwords',
+    path: '/loanwords',
+    getParentRoute: () => StudentLearningAlphabetKatakanaRoute,
+  } as any)
+const StudentLearningAlphabetKatakanaDakutenRoute =
+  StudentLearningAlphabetKatakanaDakutenRouteImport.update({
+    id: '/dakuten',
+    path: '/dakuten',
+    getParentRoute: () => StudentLearningAlphabetKatakanaRoute,
+  } as any)
+const StudentLearningAlphabetKatakanaCombinationRoute =
+  StudentLearningAlphabetKatakanaCombinationRouteImport.update({
+    id: '/combination',
+    path: '/combination',
+    getParentRoute: () => StudentLearningAlphabetKatakanaRoute,
+  } as any)
+const StudentLearningAlphabetKatakanaBasicRoute =
+  StudentLearningAlphabetKatakanaBasicRouteImport.update({
+    id: '/basic',
+    path: '/basic',
+    getParentRoute: () => StudentLearningAlphabetKatakanaRoute,
+  } as any)
+const StudentLearningAlphabetHiraganaDakutenRoute =
+  StudentLearningAlphabetHiraganaDakutenRouteImport.update({
+    id: '/dakuten',
+    path: '/dakuten',
+    getParentRoute: () => StudentLearningAlphabetHiraganaRoute,
+  } as any)
+const StudentLearningAlphabetHiraganaCombinationRoute =
+  StudentLearningAlphabetHiraganaCombinationRouteImport.update({
+    id: '/combination',
+    path: '/combination',
+    getParentRoute: () => StudentLearningAlphabetHiraganaRoute,
+  } as any)
+const StudentLearningAlphabetHiraganaBasicRoute =
+  StudentLearningAlphabetHiraganaBasicRouteImport.update({
+    id: '/basic',
+    path: '/basic',
+    getParentRoute: () => StudentLearningAlphabetHiraganaRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -445,13 +622,15 @@ export interface FileRoutesByFullPath {
   '/student/classes': typeof StudentClassesRouteWithChildren
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/grammar': typeof StudentGrammarRouteWithChildren
+  '/student/intro': typeof StudentIntroRoute
+  '/student/learning': typeof StudentLearningRouteWithChildren
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
   '/student/profile': typeof StudentProfileRoute
   '/student/progress': typeof StudentProgressRoute
   '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/settings': typeof StudentSettingsRouteWithChildren
-  '/student/shadowing': typeof StudentShadowingRoute
+  '/student/shadowing': typeof StudentShadowingRouteWithChildren
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
   '/teacher/classes': typeof TeacherClassesRouteWithChildren
   '/teacher/exams': typeof TeacherExamsRoute
@@ -468,6 +647,9 @@ export interface FileRoutesByFullPath {
   '/teacher/': typeof TeacherIndexRoute
   '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
+  '/student/learning/alphabet': typeof StudentLearningAlphabetRouteWithChildren
+  '/student/learning/japanese': typeof StudentLearningJapaneseRouteWithChildren
+  '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
   '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
@@ -476,6 +658,27 @@ export interface FileRoutesByFullPath {
   '/teacher/classes/$classId': typeof TeacherClassesClassIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/student/learning/alphabet/hiragana': typeof StudentLearningAlphabetHiraganaRouteWithChildren
+  '/student/learning/alphabet/katakana': typeof StudentLearningAlphabetKatakanaRouteWithChildren
+  '/student/learning/japanese/flashcards': typeof StudentLearningJapaneseFlashcardsRoute
+  '/student/learning/japanese/listening': typeof StudentLearningJapaneseListeningRoute
+  '/student/learning/japanese/quiz': typeof StudentLearningJapaneseQuizRoute
+  '/student/learning/japanese/speed-challenge': typeof StudentLearningJapaneseSpeedChallengeRoute
+  '/student/learning/japanese/writing': typeof StudentLearningJapaneseWritingRoute
+  '/student/learning/reading/history': typeof StudentLearningReadingHistoryRoute
+  '/student/learning/reading/$readingId': typeof StudentLearningReadingReadingIdRoute
+  '/student/shadowing/practice/$videoId': typeof StudentShadowingPracticeVideoIdRoute
+  '/student/shadowing/review/$videoId': typeof StudentShadowingReviewVideoIdRoute
+  '/student/shadowing/topic/$topicId': typeof StudentShadowingTopicTopicIdRoute
+  '/student/shadowing/video/$videoId': typeof StudentShadowingVideoVideoIdRoute
+  '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
+  '/student/learning/alphabet/hiragana/combination': typeof StudentLearningAlphabetHiraganaCombinationRoute
+  '/student/learning/alphabet/hiragana/dakuten': typeof StudentLearningAlphabetHiraganaDakutenRoute
+  '/student/learning/alphabet/katakana/basic': typeof StudentLearningAlphabetKatakanaBasicRoute
+  '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
+  '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
+  '/student/learning/alphabet/katakana/loanwords': typeof StudentLearningAlphabetKatakanaLoanwordsRoute
+  '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -509,13 +712,15 @@ export interface FileRoutesByTo {
   '/student/classes': typeof StudentClassesRouteWithChildren
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/grammar': typeof StudentGrammarRouteWithChildren
+  '/student/intro': typeof StudentIntroRoute
+  '/student/learning': typeof StudentLearningRouteWithChildren
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
   '/student/profile': typeof StudentProfileRoute
   '/student/progress': typeof StudentProgressRoute
   '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/settings': typeof StudentSettingsRouteWithChildren
-  '/student/shadowing': typeof StudentShadowingRoute
+  '/student/shadowing': typeof StudentShadowingRouteWithChildren
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
   '/teacher/classes': typeof TeacherClassesRouteWithChildren
   '/teacher/exams': typeof TeacherExamsRoute
@@ -532,6 +737,9 @@ export interface FileRoutesByTo {
   '/teacher': typeof TeacherIndexRoute
   '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
+  '/student/learning/alphabet': typeof StudentLearningAlphabetRouteWithChildren
+  '/student/learning/japanese': typeof StudentLearningJapaneseRouteWithChildren
+  '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
   '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
@@ -540,6 +748,27 @@ export interface FileRoutesByTo {
   '/teacher/classes/$classId': typeof TeacherClassesClassIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/student/learning/alphabet/hiragana': typeof StudentLearningAlphabetHiraganaRouteWithChildren
+  '/student/learning/alphabet/katakana': typeof StudentLearningAlphabetKatakanaRouteWithChildren
+  '/student/learning/japanese/flashcards': typeof StudentLearningJapaneseFlashcardsRoute
+  '/student/learning/japanese/listening': typeof StudentLearningJapaneseListeningRoute
+  '/student/learning/japanese/quiz': typeof StudentLearningJapaneseQuizRoute
+  '/student/learning/japanese/speed-challenge': typeof StudentLearningJapaneseSpeedChallengeRoute
+  '/student/learning/japanese/writing': typeof StudentLearningJapaneseWritingRoute
+  '/student/learning/reading/history': typeof StudentLearningReadingHistoryRoute
+  '/student/learning/reading/$readingId': typeof StudentLearningReadingReadingIdRoute
+  '/student/shadowing/practice/$videoId': typeof StudentShadowingPracticeVideoIdRoute
+  '/student/shadowing/review/$videoId': typeof StudentShadowingReviewVideoIdRoute
+  '/student/shadowing/topic/$topicId': typeof StudentShadowingTopicTopicIdRoute
+  '/student/shadowing/video/$videoId': typeof StudentShadowingVideoVideoIdRoute
+  '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
+  '/student/learning/alphabet/hiragana/combination': typeof StudentLearningAlphabetHiraganaCombinationRoute
+  '/student/learning/alphabet/hiragana/dakuten': typeof StudentLearningAlphabetHiraganaDakutenRoute
+  '/student/learning/alphabet/katakana/basic': typeof StudentLearningAlphabetKatakanaBasicRoute
+  '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
+  '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
+  '/student/learning/alphabet/katakana/loanwords': typeof StudentLearningAlphabetKatakanaLoanwordsRoute
+  '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -577,13 +806,15 @@ export interface FileRoutesById {
   '/student/classes': typeof StudentClassesRouteWithChildren
   '/student/dashboard': typeof StudentDashboardRoute
   '/student/grammar': typeof StudentGrammarRouteWithChildren
+  '/student/intro': typeof StudentIntroRoute
+  '/student/learning': typeof StudentLearningRouteWithChildren
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
   '/student/profile': typeof StudentProfileRoute
   '/student/progress': typeof StudentProgressRoute
   '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/settings': typeof StudentSettingsRouteWithChildren
-  '/student/shadowing': typeof StudentShadowingRoute
+  '/student/shadowing': typeof StudentShadowingRouteWithChildren
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
   '/teacher/classes': typeof TeacherClassesRouteWithChildren
   '/teacher/exams': typeof TeacherExamsRoute
@@ -601,6 +832,9 @@ export interface FileRoutesById {
   '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/grammar/_index': typeof StudentGrammarIndexRoute
+  '/student/learning/alphabet': typeof StudentLearningAlphabetRouteWithChildren
+  '/student/learning/japanese': typeof StudentLearningJapaneseRouteWithChildren
+  '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
   '/student/settings/notifications': typeof StudentSettingsNotificationsRoute
@@ -609,6 +843,27 @@ export interface FileRoutesById {
   '/teacher/classes/$classId': typeof TeacherClassesClassIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/student/learning/alphabet/hiragana': typeof StudentLearningAlphabetHiraganaRouteWithChildren
+  '/student/learning/alphabet/katakana': typeof StudentLearningAlphabetKatakanaRouteWithChildren
+  '/student/learning/japanese/flashcards': typeof StudentLearningJapaneseFlashcardsRoute
+  '/student/learning/japanese/listening': typeof StudentLearningJapaneseListeningRoute
+  '/student/learning/japanese/quiz': typeof StudentLearningJapaneseQuizRoute
+  '/student/learning/japanese/speed-challenge': typeof StudentLearningJapaneseSpeedChallengeRoute
+  '/student/learning/japanese/writing': typeof StudentLearningJapaneseWritingRoute
+  '/student/learning/reading/history': typeof StudentLearningReadingHistoryRoute
+  '/student/learning/reading_/$readingId': typeof StudentLearningReadingReadingIdRoute
+  '/student/shadowing/practice/$videoId': typeof StudentShadowingPracticeVideoIdRoute
+  '/student/shadowing/review/$videoId': typeof StudentShadowingReviewVideoIdRoute
+  '/student/shadowing/topic/$topicId': typeof StudentShadowingTopicTopicIdRoute
+  '/student/shadowing/video/$videoId': typeof StudentShadowingVideoVideoIdRoute
+  '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
+  '/student/learning/alphabet/hiragana/combination': typeof StudentLearningAlphabetHiraganaCombinationRoute
+  '/student/learning/alphabet/hiragana/dakuten': typeof StudentLearningAlphabetHiraganaDakutenRoute
+  '/student/learning/alphabet/katakana/basic': typeof StudentLearningAlphabetKatakanaBasicRoute
+  '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
+  '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
+  '/student/learning/alphabet/katakana/loanwords': typeof StudentLearningAlphabetKatakanaLoanwordsRoute
+  '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -647,6 +902,8 @@ export interface FileRouteTypes {
     | '/student/classes'
     | '/student/dashboard'
     | '/student/grammar'
+    | '/student/intro'
+    | '/student/learning'
     | '/student/listening'
     | '/student/notifications'
     | '/student/profile'
@@ -670,6 +927,9 @@ export interface FileRouteTypes {
     | '/teacher/'
     | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
+    | '/student/learning/alphabet'
+    | '/student/learning/japanese'
+    | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/settings/language'
     | '/student/settings/notifications'
@@ -678,6 +938,27 @@ export interface FileRouteTypes {
     | '/teacher/classes/$classId'
     | '/teacher/vocabulary/$lessonId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/student/learning/alphabet/hiragana'
+    | '/student/learning/alphabet/katakana'
+    | '/student/learning/japanese/flashcards'
+    | '/student/learning/japanese/listening'
+    | '/student/learning/japanese/quiz'
+    | '/student/learning/japanese/speed-challenge'
+    | '/student/learning/japanese/writing'
+    | '/student/learning/reading/history'
+    | '/student/learning/reading/$readingId'
+    | '/student/shadowing/practice/$videoId'
+    | '/student/shadowing/review/$videoId'
+    | '/student/shadowing/topic/$topicId'
+    | '/student/shadowing/video/$videoId'
+    | '/student/learning/alphabet/hiragana/basic'
+    | '/student/learning/alphabet/hiragana/combination'
+    | '/student/learning/alphabet/hiragana/dakuten'
+    | '/student/learning/alphabet/katakana/basic'
+    | '/student/learning/alphabet/katakana/combination'
+    | '/student/learning/alphabet/katakana/dakuten'
+    | '/student/learning/alphabet/katakana/loanwords'
+    | '/student/learning/japanese/lesson/$lessonId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -711,6 +992,8 @@ export interface FileRouteTypes {
     | '/student/classes'
     | '/student/dashboard'
     | '/student/grammar'
+    | '/student/intro'
+    | '/student/learning'
     | '/student/listening'
     | '/student/notifications'
     | '/student/profile'
@@ -734,6 +1017,9 @@ export interface FileRouteTypes {
     | '/teacher'
     | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
+    | '/student/learning/alphabet'
+    | '/student/learning/japanese'
+    | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/settings/language'
     | '/student/settings/notifications'
@@ -742,6 +1028,27 @@ export interface FileRouteTypes {
     | '/teacher/classes/$classId'
     | '/teacher/vocabulary/$lessonId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/student/learning/alphabet/hiragana'
+    | '/student/learning/alphabet/katakana'
+    | '/student/learning/japanese/flashcards'
+    | '/student/learning/japanese/listening'
+    | '/student/learning/japanese/quiz'
+    | '/student/learning/japanese/speed-challenge'
+    | '/student/learning/japanese/writing'
+    | '/student/learning/reading/history'
+    | '/student/learning/reading/$readingId'
+    | '/student/shadowing/practice/$videoId'
+    | '/student/shadowing/review/$videoId'
+    | '/student/shadowing/topic/$topicId'
+    | '/student/shadowing/video/$videoId'
+    | '/student/learning/alphabet/hiragana/basic'
+    | '/student/learning/alphabet/hiragana/combination'
+    | '/student/learning/alphabet/hiragana/dakuten'
+    | '/student/learning/alphabet/katakana/basic'
+    | '/student/learning/alphabet/katakana/combination'
+    | '/student/learning/alphabet/katakana/dakuten'
+    | '/student/learning/alphabet/katakana/loanwords'
+    | '/student/learning/japanese/lesson/$lessonId'
   id:
     | '__root__'
     | '/'
@@ -778,6 +1085,8 @@ export interface FileRouteTypes {
     | '/student/classes'
     | '/student/dashboard'
     | '/student/grammar'
+    | '/student/intro'
+    | '/student/learning'
     | '/student/listening'
     | '/student/notifications'
     | '/student/profile'
@@ -802,6 +1111,9 @@ export interface FileRouteTypes {
     | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
     | '/student/grammar/_index'
+    | '/student/learning/alphabet'
+    | '/student/learning/japanese'
+    | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/settings/language'
     | '/student/settings/notifications'
@@ -810,6 +1122,27 @@ export interface FileRouteTypes {
     | '/teacher/classes/$classId'
     | '/teacher/vocabulary/$lessonId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/student/learning/alphabet/hiragana'
+    | '/student/learning/alphabet/katakana'
+    | '/student/learning/japanese/flashcards'
+    | '/student/learning/japanese/listening'
+    | '/student/learning/japanese/quiz'
+    | '/student/learning/japanese/speed-challenge'
+    | '/student/learning/japanese/writing'
+    | '/student/learning/reading/history'
+    | '/student/learning/reading_/$readingId'
+    | '/student/shadowing/practice/$videoId'
+    | '/student/shadowing/review/$videoId'
+    | '/student/shadowing/topic/$topicId'
+    | '/student/shadowing/video/$videoId'
+    | '/student/learning/alphabet/hiragana/basic'
+    | '/student/learning/alphabet/hiragana/combination'
+    | '/student/learning/alphabet/hiragana/dakuten'
+    | '/student/learning/alphabet/katakana/basic'
+    | '/student/learning/alphabet/katakana/combination'
+    | '/student/learning/alphabet/katakana/dakuten'
+    | '/student/learning/alphabet/katakana/loanwords'
+    | '/student/learning/japanese/lesson/$lessonId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1052,6 +1385,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentListeningRouteImport
       parentRoute: typeof StudentRoute
     }
+    '/student/learning': {
+      id: '/student/learning'
+      path: '/learning'
+      fullPath: '/student/learning'
+      preLoaderRoute: typeof StudentLearningRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/intro': {
+      id: '/student/intro'
+      path: '/intro'
+      fullPath: '/student/intro'
+      preLoaderRoute: typeof StudentIntroRouteImport
+      parentRoute: typeof StudentRoute
+    }
     '/student/grammar': {
       id: '/student/grammar'
       path: '/grammar'
@@ -1262,6 +1609,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentReadingReadingIdRouteImport
       parentRoute: typeof StudentReadingRoute
     }
+    '/student/learning/reading': {
+      id: '/student/learning/reading'
+      path: '/reading'
+      fullPath: '/student/learning/reading'
+      preLoaderRoute: typeof StudentLearningReadingRouteImport
+      parentRoute: typeof StudentLearningRoute
+    }
+    '/student/learning/japanese': {
+      id: '/student/learning/japanese'
+      path: '/japanese'
+      fullPath: '/student/learning/japanese'
+      preLoaderRoute: typeof StudentLearningJapaneseRouteImport
+      parentRoute: typeof StudentLearningRoute
+    }
+    '/student/learning/alphabet': {
+      id: '/student/learning/alphabet'
+      path: '/alphabet'
+      fullPath: '/student/learning/alphabet'
+      preLoaderRoute: typeof StudentLearningAlphabetRouteImport
+      parentRoute: typeof StudentLearningRoute
+    }
     '/student/grammar/_index': {
       id: '/student/grammar/_index'
       path: ''
@@ -1283,12 +1651,159 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentClassesClassIdRouteImport
       parentRoute: typeof StudentClassesRoute
     }
+    '/student/shadowing/video/$videoId': {
+      id: '/student/shadowing/video/$videoId'
+      path: '/video/$videoId'
+      fullPath: '/student/shadowing/video/$videoId'
+      preLoaderRoute: typeof StudentShadowingVideoVideoIdRouteImport
+      parentRoute: typeof StudentShadowingRoute
+    }
+    '/student/shadowing/topic/$topicId': {
+      id: '/student/shadowing/topic/$topicId'
+      path: '/topic/$topicId'
+      fullPath: '/student/shadowing/topic/$topicId'
+      preLoaderRoute: typeof StudentShadowingTopicTopicIdRouteImport
+      parentRoute: typeof StudentShadowingRoute
+    }
+    '/student/shadowing/review/$videoId': {
+      id: '/student/shadowing/review/$videoId'
+      path: '/review/$videoId'
+      fullPath: '/student/shadowing/review/$videoId'
+      preLoaderRoute: typeof StudentShadowingReviewVideoIdRouteImport
+      parentRoute: typeof StudentShadowingRoute
+    }
+    '/student/shadowing/practice/$videoId': {
+      id: '/student/shadowing/practice/$videoId'
+      path: '/practice/$videoId'
+      fullPath: '/student/shadowing/practice/$videoId'
+      preLoaderRoute: typeof StudentShadowingPracticeVideoIdRouteImport
+      parentRoute: typeof StudentShadowingRoute
+    }
+    '/student/learning/reading_/$readingId': {
+      id: '/student/learning/reading_/$readingId'
+      path: '/reading/$readingId'
+      fullPath: '/student/learning/reading/$readingId'
+      preLoaderRoute: typeof StudentLearningReadingReadingIdRouteImport
+      parentRoute: typeof StudentLearningRoute
+    }
+    '/student/learning/reading/history': {
+      id: '/student/learning/reading/history'
+      path: '/history'
+      fullPath: '/student/learning/reading/history'
+      preLoaderRoute: typeof StudentLearningReadingHistoryRouteImport
+      parentRoute: typeof StudentLearningReadingRoute
+    }
+    '/student/learning/japanese/writing': {
+      id: '/student/learning/japanese/writing'
+      path: '/writing'
+      fullPath: '/student/learning/japanese/writing'
+      preLoaderRoute: typeof StudentLearningJapaneseWritingRouteImport
+      parentRoute: typeof StudentLearningJapaneseRoute
+    }
+    '/student/learning/japanese/speed-challenge': {
+      id: '/student/learning/japanese/speed-challenge'
+      path: '/speed-challenge'
+      fullPath: '/student/learning/japanese/speed-challenge'
+      preLoaderRoute: typeof StudentLearningJapaneseSpeedChallengeRouteImport
+      parentRoute: typeof StudentLearningJapaneseRoute
+    }
+    '/student/learning/japanese/quiz': {
+      id: '/student/learning/japanese/quiz'
+      path: '/quiz'
+      fullPath: '/student/learning/japanese/quiz'
+      preLoaderRoute: typeof StudentLearningJapaneseQuizRouteImport
+      parentRoute: typeof StudentLearningJapaneseRoute
+    }
+    '/student/learning/japanese/listening': {
+      id: '/student/learning/japanese/listening'
+      path: '/listening'
+      fullPath: '/student/learning/japanese/listening'
+      preLoaderRoute: typeof StudentLearningJapaneseListeningRouteImport
+      parentRoute: typeof StudentLearningJapaneseRoute
+    }
+    '/student/learning/japanese/flashcards': {
+      id: '/student/learning/japanese/flashcards'
+      path: '/flashcards'
+      fullPath: '/student/learning/japanese/flashcards'
+      preLoaderRoute: typeof StudentLearningJapaneseFlashcardsRouteImport
+      parentRoute: typeof StudentLearningJapaneseRoute
+    }
+    '/student/learning/alphabet/katakana': {
+      id: '/student/learning/alphabet/katakana'
+      path: '/katakana'
+      fullPath: '/student/learning/alphabet/katakana'
+      preLoaderRoute: typeof StudentLearningAlphabetKatakanaRouteImport
+      parentRoute: typeof StudentLearningAlphabetRoute
+    }
+    '/student/learning/alphabet/hiragana': {
+      id: '/student/learning/alphabet/hiragana'
+      path: '/hiragana'
+      fullPath: '/student/learning/alphabet/hiragana'
+      preLoaderRoute: typeof StudentLearningAlphabetHiraganaRouteImport
+      parentRoute: typeof StudentLearningAlphabetRoute
+    }
     '/student/grammar/$grammarId/$structureId': {
       id: '/student/grammar/$grammarId/$structureId'
       path: '/$structureId'
       fullPath: '/student/grammar/$grammarId/$structureId'
       preLoaderRoute: typeof StudentGrammarGrammarIdStructureIdRouteImport
       parentRoute: typeof StudentGrammarGrammarIdRoute
+    }
+    '/student/learning/japanese/lesson/$lessonId': {
+      id: '/student/learning/japanese/lesson/$lessonId'
+      path: '/lesson/$lessonId'
+      fullPath: '/student/learning/japanese/lesson/$lessonId'
+      preLoaderRoute: typeof StudentLearningJapaneseLessonLessonIdRouteImport
+      parentRoute: typeof StudentLearningJapaneseRoute
+    }
+    '/student/learning/alphabet/katakana/loanwords': {
+      id: '/student/learning/alphabet/katakana/loanwords'
+      path: '/loanwords'
+      fullPath: '/student/learning/alphabet/katakana/loanwords'
+      preLoaderRoute: typeof StudentLearningAlphabetKatakanaLoanwordsRouteImport
+      parentRoute: typeof StudentLearningAlphabetKatakanaRoute
+    }
+    '/student/learning/alphabet/katakana/dakuten': {
+      id: '/student/learning/alphabet/katakana/dakuten'
+      path: '/dakuten'
+      fullPath: '/student/learning/alphabet/katakana/dakuten'
+      preLoaderRoute: typeof StudentLearningAlphabetKatakanaDakutenRouteImport
+      parentRoute: typeof StudentLearningAlphabetKatakanaRoute
+    }
+    '/student/learning/alphabet/katakana/combination': {
+      id: '/student/learning/alphabet/katakana/combination'
+      path: '/combination'
+      fullPath: '/student/learning/alphabet/katakana/combination'
+      preLoaderRoute: typeof StudentLearningAlphabetKatakanaCombinationRouteImport
+      parentRoute: typeof StudentLearningAlphabetKatakanaRoute
+    }
+    '/student/learning/alphabet/katakana/basic': {
+      id: '/student/learning/alphabet/katakana/basic'
+      path: '/basic'
+      fullPath: '/student/learning/alphabet/katakana/basic'
+      preLoaderRoute: typeof StudentLearningAlphabetKatakanaBasicRouteImport
+      parentRoute: typeof StudentLearningAlphabetKatakanaRoute
+    }
+    '/student/learning/alphabet/hiragana/dakuten': {
+      id: '/student/learning/alphabet/hiragana/dakuten'
+      path: '/dakuten'
+      fullPath: '/student/learning/alphabet/hiragana/dakuten'
+      preLoaderRoute: typeof StudentLearningAlphabetHiraganaDakutenRouteImport
+      parentRoute: typeof StudentLearningAlphabetHiraganaRoute
+    }
+    '/student/learning/alphabet/hiragana/combination': {
+      id: '/student/learning/alphabet/hiragana/combination'
+      path: '/combination'
+      fullPath: '/student/learning/alphabet/hiragana/combination'
+      preLoaderRoute: typeof StudentLearningAlphabetHiraganaCombinationRouteImport
+      parentRoute: typeof StudentLearningAlphabetHiraganaRoute
+    }
+    '/student/learning/alphabet/hiragana/basic': {
+      id: '/student/learning/alphabet/hiragana/basic'
+      path: '/basic'
+      fullPath: '/student/learning/alphabet/hiragana/basic'
+      preLoaderRoute: typeof StudentLearningAlphabetHiraganaBasicRouteImport
+      parentRoute: typeof StudentLearningAlphabetHiraganaRoute
     }
   }
 }
@@ -1382,6 +1897,129 @@ const StudentGrammarRouteWithChildren = StudentGrammarRoute._addFileChildren(
   StudentGrammarRouteChildren,
 )
 
+interface StudentLearningAlphabetHiraganaRouteChildren {
+  StudentLearningAlphabetHiraganaBasicRoute: typeof StudentLearningAlphabetHiraganaBasicRoute
+  StudentLearningAlphabetHiraganaCombinationRoute: typeof StudentLearningAlphabetHiraganaCombinationRoute
+  StudentLearningAlphabetHiraganaDakutenRoute: typeof StudentLearningAlphabetHiraganaDakutenRoute
+}
+
+const StudentLearningAlphabetHiraganaRouteChildren: StudentLearningAlphabetHiraganaRouteChildren =
+  {
+    StudentLearningAlphabetHiraganaBasicRoute:
+      StudentLearningAlphabetHiraganaBasicRoute,
+    StudentLearningAlphabetHiraganaCombinationRoute:
+      StudentLearningAlphabetHiraganaCombinationRoute,
+    StudentLearningAlphabetHiraganaDakutenRoute:
+      StudentLearningAlphabetHiraganaDakutenRoute,
+  }
+
+const StudentLearningAlphabetHiraganaRouteWithChildren =
+  StudentLearningAlphabetHiraganaRoute._addFileChildren(
+    StudentLearningAlphabetHiraganaRouteChildren,
+  )
+
+interface StudentLearningAlphabetKatakanaRouteChildren {
+  StudentLearningAlphabetKatakanaBasicRoute: typeof StudentLearningAlphabetKatakanaBasicRoute
+  StudentLearningAlphabetKatakanaCombinationRoute: typeof StudentLearningAlphabetKatakanaCombinationRoute
+  StudentLearningAlphabetKatakanaDakutenRoute: typeof StudentLearningAlphabetKatakanaDakutenRoute
+  StudentLearningAlphabetKatakanaLoanwordsRoute: typeof StudentLearningAlphabetKatakanaLoanwordsRoute
+}
+
+const StudentLearningAlphabetKatakanaRouteChildren: StudentLearningAlphabetKatakanaRouteChildren =
+  {
+    StudentLearningAlphabetKatakanaBasicRoute:
+      StudentLearningAlphabetKatakanaBasicRoute,
+    StudentLearningAlphabetKatakanaCombinationRoute:
+      StudentLearningAlphabetKatakanaCombinationRoute,
+    StudentLearningAlphabetKatakanaDakutenRoute:
+      StudentLearningAlphabetKatakanaDakutenRoute,
+    StudentLearningAlphabetKatakanaLoanwordsRoute:
+      StudentLearningAlphabetKatakanaLoanwordsRoute,
+  }
+
+const StudentLearningAlphabetKatakanaRouteWithChildren =
+  StudentLearningAlphabetKatakanaRoute._addFileChildren(
+    StudentLearningAlphabetKatakanaRouteChildren,
+  )
+
+interface StudentLearningAlphabetRouteChildren {
+  StudentLearningAlphabetHiraganaRoute: typeof StudentLearningAlphabetHiraganaRouteWithChildren
+  StudentLearningAlphabetKatakanaRoute: typeof StudentLearningAlphabetKatakanaRouteWithChildren
+}
+
+const StudentLearningAlphabetRouteChildren: StudentLearningAlphabetRouteChildren =
+  {
+    StudentLearningAlphabetHiraganaRoute:
+      StudentLearningAlphabetHiraganaRouteWithChildren,
+    StudentLearningAlphabetKatakanaRoute:
+      StudentLearningAlphabetKatakanaRouteWithChildren,
+  }
+
+const StudentLearningAlphabetRouteWithChildren =
+  StudentLearningAlphabetRoute._addFileChildren(
+    StudentLearningAlphabetRouteChildren,
+  )
+
+interface StudentLearningJapaneseRouteChildren {
+  StudentLearningJapaneseFlashcardsRoute: typeof StudentLearningJapaneseFlashcardsRoute
+  StudentLearningJapaneseListeningRoute: typeof StudentLearningJapaneseListeningRoute
+  StudentLearningJapaneseQuizRoute: typeof StudentLearningJapaneseQuizRoute
+  StudentLearningJapaneseSpeedChallengeRoute: typeof StudentLearningJapaneseSpeedChallengeRoute
+  StudentLearningJapaneseWritingRoute: typeof StudentLearningJapaneseWritingRoute
+  StudentLearningJapaneseLessonLessonIdRoute: typeof StudentLearningJapaneseLessonLessonIdRoute
+}
+
+const StudentLearningJapaneseRouteChildren: StudentLearningJapaneseRouteChildren =
+  {
+    StudentLearningJapaneseFlashcardsRoute:
+      StudentLearningJapaneseFlashcardsRoute,
+    StudentLearningJapaneseListeningRoute:
+      StudentLearningJapaneseListeningRoute,
+    StudentLearningJapaneseQuizRoute: StudentLearningJapaneseQuizRoute,
+    StudentLearningJapaneseSpeedChallengeRoute:
+      StudentLearningJapaneseSpeedChallengeRoute,
+    StudentLearningJapaneseWritingRoute: StudentLearningJapaneseWritingRoute,
+    StudentLearningJapaneseLessonLessonIdRoute:
+      StudentLearningJapaneseLessonLessonIdRoute,
+  }
+
+const StudentLearningJapaneseRouteWithChildren =
+  StudentLearningJapaneseRoute._addFileChildren(
+    StudentLearningJapaneseRouteChildren,
+  )
+
+interface StudentLearningReadingRouteChildren {
+  StudentLearningReadingHistoryRoute: typeof StudentLearningReadingHistoryRoute
+}
+
+const StudentLearningReadingRouteChildren: StudentLearningReadingRouteChildren =
+  {
+    StudentLearningReadingHistoryRoute: StudentLearningReadingHistoryRoute,
+  }
+
+const StudentLearningReadingRouteWithChildren =
+  StudentLearningReadingRoute._addFileChildren(
+    StudentLearningReadingRouteChildren,
+  )
+
+interface StudentLearningRouteChildren {
+  StudentLearningAlphabetRoute: typeof StudentLearningAlphabetRouteWithChildren
+  StudentLearningJapaneseRoute: typeof StudentLearningJapaneseRouteWithChildren
+  StudentLearningReadingRoute: typeof StudentLearningReadingRouteWithChildren
+  StudentLearningReadingReadingIdRoute: typeof StudentLearningReadingReadingIdRoute
+}
+
+const StudentLearningRouteChildren: StudentLearningRouteChildren = {
+  StudentLearningAlphabetRoute: StudentLearningAlphabetRouteWithChildren,
+  StudentLearningJapaneseRoute: StudentLearningJapaneseRouteWithChildren,
+  StudentLearningReadingRoute: StudentLearningReadingRouteWithChildren,
+  StudentLearningReadingReadingIdRoute: StudentLearningReadingReadingIdRoute,
+}
+
+const StudentLearningRouteWithChildren = StudentLearningRoute._addFileChildren(
+  StudentLearningRouteChildren,
+)
+
 interface StudentReadingRouteChildren {
   StudentReadingReadingIdRoute: typeof StudentReadingReadingIdRoute
 }
@@ -1410,6 +2048,23 @@ const StudentSettingsRouteWithChildren = StudentSettingsRoute._addFileChildren(
   StudentSettingsRouteChildren,
 )
 
+interface StudentShadowingRouteChildren {
+  StudentShadowingPracticeVideoIdRoute: typeof StudentShadowingPracticeVideoIdRoute
+  StudentShadowingReviewVideoIdRoute: typeof StudentShadowingReviewVideoIdRoute
+  StudentShadowingTopicTopicIdRoute: typeof StudentShadowingTopicTopicIdRoute
+  StudentShadowingVideoVideoIdRoute: typeof StudentShadowingVideoVideoIdRoute
+}
+
+const StudentShadowingRouteChildren: StudentShadowingRouteChildren = {
+  StudentShadowingPracticeVideoIdRoute: StudentShadowingPracticeVideoIdRoute,
+  StudentShadowingReviewVideoIdRoute: StudentShadowingReviewVideoIdRoute,
+  StudentShadowingTopicTopicIdRoute: StudentShadowingTopicTopicIdRoute,
+  StudentShadowingVideoVideoIdRoute: StudentShadowingVideoVideoIdRoute,
+}
+
+const StudentShadowingRouteWithChildren =
+  StudentShadowingRoute._addFileChildren(StudentShadowingRouteChildren)
+
 interface StudentVocabularyRouteChildren {
   StudentVocabularyLessonIdRoute: typeof StudentVocabularyLessonIdRoute
 }
@@ -1426,13 +2081,15 @@ interface StudentRouteChildren {
   StudentClassesRoute: typeof StudentClassesRouteWithChildren
   StudentDashboardRoute: typeof StudentDashboardRoute
   StudentGrammarRoute: typeof StudentGrammarRouteWithChildren
+  StudentIntroRoute: typeof StudentIntroRoute
+  StudentLearningRoute: typeof StudentLearningRouteWithChildren
   StudentListeningRoute: typeof StudentListeningRoute
   StudentNotificationsRoute: typeof StudentNotificationsRoute
   StudentProfileRoute: typeof StudentProfileRoute
   StudentProgressRoute: typeof StudentProgressRoute
   StudentReadingRoute: typeof StudentReadingRouteWithChildren
   StudentSettingsRoute: typeof StudentSettingsRouteWithChildren
-  StudentShadowingRoute: typeof StudentShadowingRoute
+  StudentShadowingRoute: typeof StudentShadowingRouteWithChildren
   StudentVocabularyRoute: typeof StudentVocabularyRouteWithChildren
   StudentIndexRoute: typeof StudentIndexRoute
 }
@@ -1442,13 +2099,15 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentClassesRoute: StudentClassesRouteWithChildren,
   StudentDashboardRoute: StudentDashboardRoute,
   StudentGrammarRoute: StudentGrammarRouteWithChildren,
+  StudentIntroRoute: StudentIntroRoute,
+  StudentLearningRoute: StudentLearningRouteWithChildren,
   StudentListeningRoute: StudentListeningRoute,
   StudentNotificationsRoute: StudentNotificationsRoute,
   StudentProfileRoute: StudentProfileRoute,
   StudentProgressRoute: StudentProgressRoute,
   StudentReadingRoute: StudentReadingRouteWithChildren,
   StudentSettingsRoute: StudentSettingsRouteWithChildren,
-  StudentShadowingRoute: StudentShadowingRoute,
+  StudentShadowingRoute: StudentShadowingRouteWithChildren,
   StudentVocabularyRoute: StudentVocabularyRouteWithChildren,
   StudentIndexRoute: StudentIndexRoute,
 }
