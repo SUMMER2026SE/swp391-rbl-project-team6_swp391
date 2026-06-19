@@ -1,40 +1,82 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { SakuraBg } from "@/components/sakura-bg";
 import { Logo } from "@/components/logo";
 import { Footer } from "@/components/layout/Footer";
 import { motion } from "framer-motion";
-import { Sparkles, Mic, Headphones, ClipboardCheck, GraduationCap, Trophy, ArrowRight, Check } from "lucide-react";
-import { rolePath } from "@/lib/auth";
+import { Sparkles, Mic, Headphones, ClipboardCheck, GraduationCap, Trophy, ArrowRight, Check, Lock, Users, BookOpen } from "lucide-react";
+import { rolePath, isStudentActive, useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import type { User } from "@/lib/auth";
 
-export const Route = createFileRoute("/")({ component: Landing });
+export const Route = createFileRoute("/")({
+  beforeLoad: () => {
+    // Redirect logged-in guest students (who haven't joined a class) to intro page
+    try {
+      const raw = localStorage.getItem("midori_user");
+      if (raw) {
+        const user = JSON.parse(raw) as User;
+        if (user.role === "student" && !isStudentActive(user)) {
+          throw redirect({ to: "/student/intro" });
+        }
+      }
+    } catch (e) {
+      // If it's a redirect error, re-throw it
+      if (e && typeof e === "object" && "to" in e) throw e;
+    }
+  },
+  component: Landing,
+});
 
 function Landing() {
   const [user, setUser] = useState<User | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("midori_user");
-      if (raw) setUser(JSON.parse(raw));
-    } catch {}
+    // Use auth context if available, otherwise fall back to localStorage
+    if (authUser) {
+      setUser(authUser);
+    } else {
+      try {
+        const raw = localStorage.getItem("midori_user");
+        if (raw) setUser(JSON.parse(raw));
+      } catch {}
+    }
     setLoaded(true);
-  }, []);
+  }, [authUser]);
+
+  // Check if student is active (joined a class) - GUEST students see CTA
+  const hasExplicitGuestStatus = user?.role === "student" && 
+    user.status !== undefined && 
+    user.status !== null && 
+    user.status !== "ACTIVE";
+  
+  const isActiveStudent = user?.role === "student" && !hasExplicitGuestStatus;
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("midori_user");
+    localStorage.removeItem("midori_access_token");
   };
 
   const navButtons = !loaded ? null : user ? (
     <>
-      <Link
-        to={rolePath(user.role)}
-        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-medium transition"
-      >
-        Go to Dashboard
-      </Link>
+      {isActiveStudent ? (
+        <Link
+          to={rolePath(user.role)}
+          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-medium transition"
+        >
+          Go to Dashboard
+        </Link>
+      ) : (
+        <Link
+          to="/student/classes"
+          className="px-4 py-2 rounded-xl bg-gradient-hero hover:opacity-90 text-sm font-medium transition flex items-center gap-2"
+        >
+          <BookOpen className="w-4 h-4" />
+          Join a Class
+        </Link>
+      )}
       <button
         onClick={logout}
         className="px-4 py-2 text-sm font-medium hover:text-primary transition"
@@ -124,6 +166,66 @@ function Landing() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* Guest Student CTA Section */}
+      {user && !isActiveStudent && (
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="glass rounded-3xl p-8 md:p-12 text-center relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+            <div className="relative z-10">
+              <div className="w-16 h-16 rounded-full bg-gradient-hero flex items-center justify-center mx-auto mb-6">
+                <BookOpen className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-3xl font-extrabold font-display mb-4">
+                Welcome, {user.name || "Student"}!
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
+                You're almost ready to start your Japanese learning journey. 
+                Join a class to unlock all learning modules, track your progress, and get AI-powered feedback.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4 mb-8">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-primary" />
+                  </div>
+                  Grammar lessons
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-primary" />
+                  </div>
+                  AI Shadowing
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-primary" />
+                  </div>
+                  Progress tracking
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-primary" />
+                  </div>
+                  JLPT mock exams
+                </div>
+              </div>
+              <Link
+                to="/student/classes"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-hero text-white font-bold text-lg shadow-lg hover:shadow-xl transition"
+              >
+                <BookOpen className="w-5 h-5" />
+                Join a Class
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+          </motion.div>
+        </section>
+      )}
 
       {/* Features */}
       <section id="features" className="max-w-7xl mx-auto px-6 py-16">
