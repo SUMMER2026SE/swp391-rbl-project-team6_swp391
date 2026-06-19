@@ -1,16 +1,16 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useAuth, useTheme, getAvatarInitial, getUserAvatar, type FrontendRole } from "@/lib/auth";
+import { useAuth, useTheme, getAvatarInitial, getUserAvatar, isStudentActive, type FrontendRole } from "@/lib/auth";
 import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import {
-  LayoutDashboard, BookOpen, GraduationCap, Layers, Headphones, Mic,
+  LayoutDashboard, BookOpen, GraduationCap, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
   Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
   Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText,
-  School, ClipboardList, Brain, ChartColumn
+  School, ClipboardList, Brain, ChartColumn, BookText, Lock
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -18,10 +18,30 @@ import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
 import type { Notification } from "@/types/notification";
 
 // Hierarchical navigation types
-type NavItemBase = { to: string; label: string; icon: React.ElementType; badge?: number };
-type NavSubItem = { to: string; label: string; icon?: React.ElementType; badge?: number };
+type NavItemBase = { to: string; label: string; icon: React.ElementType; badge?: number; disabled?: boolean };
+type NavSubItem = { to: string; label: string; icon?: React.ElementType; badge?: number; disabled?: boolean };
 type NavItem = NavItemBase & { children?: NavSubItem[] };
 
+// Guest student navigation - limited access
+const guestStudentNav: NavItem[] = [
+  { to: "/", label: "Home", icon: BookText },
+  { to: "/teachers", label: "Teachers", icon: GraduationCap },
+  { to: "/reviews", label: "Reviews", icon: BookMarked },
+  { to: "/preview", label: "Course Preview", icon: Eye },
+  { to: "/student/profile", label: "Profile", icon: User },
+  {
+    to: "/student/settings",
+    label: "Settings",
+    icon: Settings,
+    children: [
+      { to: "/student/settings/theme", label: "Theme" },
+      { to: "/student/settings/language", label: "Language" },
+      { to: "/student/settings/notifications", label: "Notification Settings" }
+    ]
+  }
+];
+
+// Active student navigation - full access with locked learning modules for guests
 const studentNav: NavItem[] = [
   { to: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/student/classes", label: "My Classes", icon: School },
@@ -30,10 +50,11 @@ const studentNav: NavItem[] = [
     label: "Learning Modules",
     icon: BookOpen,
     children: [
+      { to: "/student/learning/alphabet", label: "Alphabet" },
+      { to: "/student/learning/reading", label: "Reading" },
       { to: "/student/vocabulary", label: "Vocabulary" },
       { to: "/student/grammar", label: "Grammar" },
       { to: "/student/listening", label: "Listening" },
-      { to: "/student/reading", label: "Reading" },
       { to: "/student/shadowing", label: "Shadowing" }
     ]
   },
@@ -41,6 +62,44 @@ const studentNav: NavItem[] = [
     to: "/student/progress",
     label: "Progress",
     icon: ChartColumn
+  },
+  { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
+  { to: "/student/profile", label: "Profile", icon: User },
+  {
+    to: "/student/settings",
+    label: "Settings",
+    icon: Settings,
+    children: [
+      { to: "/student/settings/theme", label: "Theme" },
+      { to: "/student/settings/language", label: "Language" },
+      { to: "/student/settings/notifications", label: "Notification Settings" }
+    ]
+  }
+];
+
+// Guest student navigation - redirected to intro page
+const guestStudentNavWithLockedLearning: NavItem[] = [
+  { to: "/student/intro", label: "Introduction", icon: LayoutDashboard },
+  { to: "/student/classes", label: "My Classes", icon: School },
+    {
+    to: "/",
+    label: "Learning Modules",
+    icon: BookOpen,
+    disabled: true,
+    children: [
+      { to: "/", label: "Alphabet", disabled: true },
+      { to: "/", label: "Reading", disabled: true },
+      { to: "/", label: "Vocabulary", disabled: true },
+      { to: "/", label: "Grammar", disabled: true },
+      { to: "/", label: "Listening", disabled: true },
+      { to: "/", label: "Shadowing", disabled: true }
+    ]
+  },
+  {
+    to: "/",
+    label: "Progress",
+    icon: ChartColumn,
+    disabled: true
   },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
@@ -102,9 +161,7 @@ const adminNav: NavItem[] = [
       { to: "/admin/grammar", label: "Grammar Library", icon: GraduationCap },
       { to: "/admin/vocabulary-library", label: "Vocabulary Library", icon: BookOpen },
       { to: "/admin/listening-library", label: "Listening Library", icon: Headphones },
-      { to: "/admin/reading-library", label: "Reading Library", icon: ScrollText },
       { to: "/admin/shadowing-library", label: "Shadowing Library", icon: Mic2 },
-      { to: "/admin/flashcard-library", label: "Flashcard Library", icon: Layers },
     ]
   },
   
@@ -121,11 +178,14 @@ const adminNav: NavItem[] = [
   },
 ];
 
-function getNav(role: FrontendRole): NavItem[] {
-  return role === "student" ? studentNav : role === "teacher" ? teacherNav : adminNav;
+function getNav(role: FrontendRole, isActive: boolean): NavItem[] {
+  if (role === "student") {
+    return isActive ? studentNav : guestStudentNavWithLockedLearning;
+  }
+  return role === "teacher" ? teacherNav : adminNav;
 }
 
-export function DashboardLayout({ role, children }: { role: FrontendRole; children?: React.ReactNode }) {
+export function DashboardLayout({ role, children, hideFooter = false }: { role: FrontendRole; children?: React.ReactNode; hideFooter?: boolean }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
@@ -149,7 +209,10 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
     role === "teacher" ? teacherNotifications : studentNotifications;
 
   const unreadCount = notifications.filter(n => n.unread).length;
-  const rawItems = getNav(role);
+  // Check if student is active (joined a class)
+  const isStudentActiveStudent = role === "student" && isStudentActive(user);
+  const isStudentGuestStudent = role === "student" && !isStudentActive(user);
+  const rawItems = getNav(role, isStudentActiveStudent);
   const items = rawItems.map(item => {
     if (item.to === "/student/notifications") {
       return { ...item, badge: unreadCount };
@@ -200,6 +263,16 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
     return activeChild?.to || null;
   }, [pathname]);
 
+  // Handle click on disabled items
+  const handleDisabledClick = (e: React.MouseEvent, item: NavItem | NavSubItem) => {
+    if (item.disabled) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Show toast or notification
+      alert("Join a class to access learning content");
+    }
+  };
+
   // Render navigation item (flat or with children)
   const renderNavItem = (item: NavItem, isChild = false, parentKey = '') => {
     const key = parentKey ? `${parentKey}-${item.to}` : item.to;
@@ -211,6 +284,38 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
 
     if (isChild) {
       // Render child item (flat list style)
+      // Handle disabled child items
+      if (item.disabled) {
+        return (
+          <div
+            key={item.to}
+            title="Join a class to access"
+            className={cn(
+              "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative cursor-not-allowed opacity-50",
+              isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6"
+            )}
+            onClick={(e) => handleDisabledClick(e as unknown as React.MouseEvent, item)}
+          >
+            {item.icon && (
+              <item.icon
+                className={cn(
+                  "w-4 h-4 flex-shrink-0 transition-all duration-300 text-muted-foreground"
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                "transition-all duration-300 whitespace-nowrap overflow-hidden text-secondary-col",
+                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+              )}
+            >
+              {item.label}
+            </span>
+            <Lock className="w-3 h-3 ml-auto text-muted-foreground" />
+          </div>
+        );
+      }
+
       return (
         <Link
           key={item.to}
@@ -248,6 +353,37 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             </span>
           )}
         </Link>
+      );
+    }
+
+    // Handle disabled parent items
+    if (item.disabled) {
+      return (
+        <div key={item.to} className="relative">
+          <button
+            onClick={(e) => handleDisabledClick(e, item)}
+            title="Join a class to access learning content"
+            className={cn(
+              "w-full group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative cursor-not-allowed opacity-50",
+              isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+            )}
+          >
+            <Icon
+              className={cn(
+                "w-4 h-4 flex-shrink-0 transition-all duration-300 text-muted-foreground"
+              )}
+            />
+            <span
+              className={cn(
+                "transition-all duration-300 whitespace-nowrap overflow-hidden flex-1 text-left text-secondary-col",
+                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+              )}
+            >
+              {item.label}
+            </span>
+            <Lock className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
       );
     }
 
@@ -401,47 +537,105 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
           </button>
         </div>
 
-        <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden", isCollapsed ? "mt-1" : "mt-2")}>
+        <nav className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
+          isCollapsed 
+            ? "flex flex-row flex-wrap content-start gap-2 mt-1" 
+            : "flex-col mt-2"
+        )}>
           {role === "admin" || role === "student" ? (
             // Admin and Student use hierarchical navigation
-            items.map(item => renderNavItem(item))
+            isCollapsed ? (
+              // When collapsed, render a simplified icon-only view
+              <div className="flex flex-row flex-wrap gap-2 w-full justify-center">
+                {items.map(item => {
+                  const Icon = item.icon;
+                  const isActive = isItemOrChildActive(item);
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.disabled ? "/" : item.to}
+                      title={item.label}
+                      onClick={item.disabled ? (e) => { e.preventDefault(); alert("Join a class to access learning content"); } : undefined}
+                      className={cn(
+                        "flex items-center justify-center rounded-xl transition-all duration-300",
+                        isActive 
+                          ? "bg-primary text-white w-10 h-10" 
+                          : item.disabled 
+                            ? "bg-slate-100 dark:bg-slate-800 text-muted-foreground w-10 h-10 cursor-not-allowed opacity-50"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10"
+                      )}
+                    >
+                      <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-muted-foreground")} />
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              items.map(item => renderNavItem(item))
+            )
           ) : (
             // Teacher uses flat navigation
-            items.map((it) => {
-              const isBaseRoute = it.to === `/${role}`;
-              const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-              const Icon = it.icon;
-              return (
-                <Link
-                  key={it.to}
-                  to={it.to}
-                  title={isCollapsed ? it.label : undefined}
-                  className={cn(
-                    "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
-                    active ? "nav-active" : "nav-item",
-                    isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
-                  )}
-                >
-                  <Icon
+            isCollapsed ? (
+              <div className="flex flex-row flex-wrap gap-2 w-full justify-center">
+                {items.map(it => {
+                  const isBaseRoute = it.to === `/${role}`;
+                  const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+                  const Icon = it.icon;
+                  return (
+                    <Link
+                      key={it.to}
+                      to={it.to}
+                      title={it.label}
+                      className={cn(
+                        "flex items-center justify-center rounded-xl transition-all duration-300",
+                        active 
+                          ? "bg-primary text-white w-10 h-10" 
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10"
+                      )}
+                    >
+                      <Icon className={cn("w-5 h-5", active ? "text-white" : "text-muted-foreground")} />
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              items.map((it) => {
+                const isBaseRoute = it.to === `/${role}`;
+                const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+                const Icon = it.icon;
+                return (
+                  <Link
+                    key={it.to}
+                    to={it.to}
+                    title={isCollapsed ? it.label : undefined}
                     className={cn(
-                      "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                      active ? "text-white" : "text-muted-foreground group-hover:text-primary",
-                      isCollapsed ? "mx-auto" : ""
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "transition-all duration-300 whitespace-nowrap overflow-hidden",
-                      active ? "text-white font-semibold" : "text-secondary-col",
-                      isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                      "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
+                      active ? "nav-active" : "nav-item",
+                      isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
                     )}
                   >
-                    {it.label}
-                  </span>
-                  {!isCollapsed && active && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
-                </Link>
-              );
-            })
+                    <Icon
+                      className={cn(
+                        "w-4 h-4 flex-shrink-0 transition-all duration-300",
+                        active ? "text-white" : "text-muted-foreground group-hover:text-primary",
+                        isCollapsed ? "mx-auto" : ""
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "transition-all duration-300 whitespace-nowrap overflow-hidden",
+                        active ? "text-white font-semibold" : "text-secondary-col",
+                        isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                      )}
+                    >
+                      {it.label}
+                    </span>
+                    {!isCollapsed && active && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
+                  </Link>
+                );
+              })
+            )
           )}
         </nav>
 
@@ -740,10 +934,11 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
           </motion.div>
         </main>
 
-        {role === "student" && <Footer />}
+        {role === "student" && !hideFooter && <Footer />}
 
-        {/* Mobile bottom nav */}
-        <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">
+        {/* Mobile bottom nav - hidden on lesson pages and desktop */}
+        {role === "student" && !hideFooter && (
+          <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">
           {items.slice(0, 5).map((it) => {
             const targetTo = it.children && it.children.length > 0 && (it.to.endsWith("-modules") || it.to.includes("practice"))
               ? it.children[0].to
@@ -762,6 +957,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             );
           })}
         </nav>
+        )}
       </div>
     </div>
   );
