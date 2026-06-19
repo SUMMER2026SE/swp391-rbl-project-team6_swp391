@@ -465,6 +465,379 @@ export const mockReadingAdditional: ReadingItem[] = [
     createdAt: "2024-05-18",
     updatedAt: "2024-05-18",
   },
+
+  // ─── NEW ADDITIONAL READING ITEMS ─────────────────────────────────────────────
+
+  // N5 - New Items
+  {
+    id: "read-022",
+    title: "JLPT N5 - My Town",
+    passageText: "私の町は静かです。駅前に銀行があります。超市は駅の前です。便利店は私の家の近くにあります。町には図書館があります。本を借りることができます。",
+    comprehensionQuestions: [
+      { id: "q1", question: "銀行はどこにありますか？", options: ["家の近く", "駅前から", "図書館のとなり", "公園の前"], correctAnswer: 1, explanation: "駅前に銀行があります。" },
+      { id: "q2", question: "图书馆可以用来做什么？", options: ["買い物", "本を借りる", "ご飯を食べる", "映画を見る"], correctAnswer: 1, explanation: "本を借りることができます。" },
+    ],
+    jlptLevel: "N5",
+    tags: ["town", "places", "location"],
+    estimatedTime: 5,
+    createdAt: "2024-06-01",
+    updatedAt: "2024-06-01",
+  },
+  {
+    id: "read-023",
+    title: "JLPT N5 - Weather and Seasons",
+    passageText: "今日は晴れです。明日は曇りです。冬は雪が降ります。夏は暑いです。春と秋は涼しいです。",
+    comprehensionQuestions: [
+      { id: "q1", question: "今日の天気は何ですか？", options: ["雨", "曇り", "晴れ", "雪"], correctAnswer: 2, explanation: "今日は晴れです。" },
+      { id: "q2", question: "冬に何が降りますか？", options: ["雨", "雪", "風", "霧"], correctAnswer: 1, explanation: "冬は雪が降ります。" },
+    ],
+    jlptLevel: "N5",
+    tags: ["weather", "seasons", "nature"],
+    estimatedTime: 5,
+    createdAt: "2024-06-02",
+    updatedAt: "2024-06-02",
+  },
+  {
+    id: "read-024",
+    title: "JLPT N5 - At the Restaurant",
+    passageText: "食堂で昼ご飯を食べます。今日はラーメンにしました。美味しかったです。coffee を飲みました。三百五十円でした。",
+    comprehensionQuestions: [
+      { id: "q1", question: "著者はどこで昼ご飯を食べましたか？", options: ["家", "食堂", "レストラン", "学校"], correctAnswer: 1, explanation: "食堂で昼ご飯を食べます。" },
+      { id: "q2", question: "今日 무엇을 먹었어요?", options: ["カレー", "ラーメン", "そば", "定食"], correctAnswer: 1, explanation: "今日はラーメンにしました。" },
+    ],
+    jlptLevel: "N5",
+    tags: ["food", "restaurant", "daily-life"],
+    estimatedTime: 5,
+    createdAt: "2024-06-03",
+    updatedAt: "2024-06-03",
+  },
+  {
+    id: "read-025",
+    title: "JLPT N5 - My Birthday",
+    passageText: "私の诞生日は七月十五日です。母がケーキを作ってくれました。友達がプレゼントをくれました。嬉しかったです。",
+    comprehensionQuestions: [
+      { id: "q1", question: "诞生日はいつですか？", options: ["七月五日", "七月十五日", "八月十五日", "六月十五日"], correctAnswer: 1, explanation: "私の诞生日は七月十五日です。" },
+      { id: "q2", question: "母が何をくれましたか？", options: ["プレゼント", "ケーキ", "お金", "花"], correctAnswer: 1, explanation: "母がケーキを作ってくれました。" },
+    ],
+    jlptLevel: "N5",
+    tags: ["birthday", "family", "celebration"],
+    estimatedTime: 5,
+    createdAt: "2024-06-04",
+    updatedAt: "2024-06-04",
+  },
+
+  // N4 - New Items
+  {
+    id: "read-026",
+    title: "JLPT N4 - Japanese Holidays and Festivals",
+    passageText: "日本には伝統的なお祭りが多いです。夏には花火大会があります很多人都穿浴衣。冬にはクリスマスがあります。正月には初詣を行います。",
+    comprehensionQuestions: [
+      { id: "q1", question: "夏の花火大会で着什么来る人が増えますか？", options: ["浴衣", "スーツ", "制服", "カジュアル"], correctAnswer: 0, explanation: "很多人都穿浴衣。" },
+      { id: "q2", question: "正月に行う行事は何ですか？", options: ["花火大会", "初詣", "ディズニー", "旅行"], correctAnswer: 1, explanation: "正月には初詣を行います。" },
+    ],
+    jlptLevel: "N4",
+    tags: ["festivals", "traditions", "culture"],
+    estimatedTime: 8,
+    createdAt: "2024-06-05",
+    updatedAt: "2024-06-05",
+  },
+  {
+    id: "read-027",
+    title: "JLPT N4 - Job Hunting in Japan",
+    passageText: "日本では、四年生の三月までに就活が終わります。まずはESを書きます。そして、面接を行います。面接では自己PR重要です。最終面接をパスすると、内定脖ます。",
+    comprehensionQuestions: [
+      { id: "q1", question: "就活はいつまでに終わりますか？", options: ["三月", "六月", "十二月", "一年中"], correctAnswer: 0, explanation: "日本では、四年生の三月までに就活が終わります。" },
+      { id: "q2", question: "就活の第一步は何ですか？", options: ["面接", "ESを書く", "説明会参加", "雰囲探し"], correctAnswer: 1, explanation: "まずはESを書きます。" },
+    ],
+    jlptLevel: "N4",
+    tags: ["job-hunting", "work", "career"],
+    estimatedTime: 8,
+    createdAt: "2024-06-06",
+    updatedAt: "2024-06-06",
+  },
+  {
+    id: "read-028",
+    title: "JLPT N4 - Shopping in Japan",
+    passageText: "日本では网购も普及しています。Amazon や楽天市場で買い物をする人が増えました。でも、コンビニや超市も気軽に買い物ができて便利です。夜遅くまで開いている店が多いです。",
+    comprehensionQuestions: [
+      { id: "q1", question: "网上购物用什么平台？", options: ["コンビニ", "Amazon・楽天市場", "百货店", "自动贩卖机"], correctAnswer: 1, explanation: "Amazon や楽天市場で買い物をする人が増えました。" },
+      { id: "q2", question: "日本の店はどんな特徴がありますか？", options: ["早く閉まる", "夜遅くまで開いている", "假日不开门", "24小时营业"], correctAnswer: 1, explanation: "夜遅くまで開いている店が多いです。" },
+    ],
+    jlptLevel: "N4",
+    tags: ["shopping", "online", "retail"],
+    estimatedTime: 8,
+    createdAt: "2024-06-07",
+    updatedAt: "2024-06-07",
+  },
+  {
+    id: "read-029",
+    title: "JLPT N4 - Japanese Etiquette",
+    passageText: "日本には 많은 作法があります。電車では大きい声で話さないことです。人にものを渡す時は両手を使います。お辞儀も很重要的コミュニケーション手段です。",
+    comprehensionQuestions: [
+      { id: "q1", question: "電車ですることとして正しくないのはどれですか？", options: ["静かにする", "大きい声で話す", "席を譲る", "スマホを見る"], correctAnswer: 1, explanation: "電車では大きい声で話さないことです。" },
+      { id: "q2", question: "ものを渡す時はどうしますか？", options: ["片手", "両手", "指先", "足"], correctAnswer: 1, explanation: "人にものを渡す時は両手を使います。" },
+    ],
+    jlptLevel: "N4",
+    tags: ["etiquette", "manners", "culture"],
+    estimatedTime: 8,
+    createdAt: "2024-06-08",
+    updatedAt: "2024-06-08",
+  },
+
+  // N3 - New Items
+  {
+    id: "read-030",
+    title: "JLPT N3 - Japanese Education System",
+    passageText: "日本の教育制度は六・三・三・四制です。小学六年、中学三年、高校三年、大学四年です。义务教育は小学と中学の九年です。近年全球化に伴い、英語教育の導入が早期化する傾向があります。",
+    comprehensionQuestions: [
+      { id: "q1", question: "義務教育は合わせて何年間ですか？", options: ["六年", "九年", "十二年", "十三年"], correctAnswer: 1, explanation: "义务教育は小学と中学の九年です。" },
+      { id: "q2", question: "近年什么教育变得更加早期化？", options: ["体育", "音楽", "英語", "美術"], correctAnswer: 2, explanation: "近年全球化に伴い、英語教育の導入が早期化する傾向があります。" },
+    ],
+    jlptLevel: "N3",
+    tags: ["education", "school", "system"],
+    estimatedTime: 10,
+    createdAt: "2024-06-09",
+    updatedAt: "2024-06-09",
+  },
+  {
+    id: "read-031",
+    title: "JLPT N3 - Smartphones and Modern Life",
+    passageText: "现代人はスマートフォン离不开手边。情報を入手するだけでなく、SNSで交流を深めることもできます。一方で、スマホ依存が社会問題化しています。特に若者のスクリーンタイム管理が課題です。",
+    comprehensionQuestions: [
+      { id: "q1", question: "スマホ除了获取信息还有什么用途？", options: ["料理", "運動", "SNSで交流", "洗濯"], correctAnswer: 2, explanation: "情報を入手するだけでなく、SNSで交流を深めることもできます。" },
+      { id: "q2", question: "スマホに関連する社会問題は何ですか？", options: ["手机坏了", "スマホ依存", "电池续航", "屏幕大小"], correctAnswer: 1, explanation: "一方で、スマホ依存が社会問題化しています。" },
+    ],
+    jlptLevel: "N3",
+    tags: ["technology", "smartphone", "society"],
+    estimatedTime: 10,
+    createdAt: "2024-06-10",
+    updatedAt: "2024-06-10",
+  },
+  {
+    id: "read-032",
+    title: "JLPT N3 - Japanese Sports Culture",
+    passageText: "野球は日本で最もpopularな 스포츠です。高校野球は夏の风物詩です。他にも、相撲、サッカー、バレーボールなどが愛されています。近年は、F1やテニスなど国際的なスポーツにも注目が集まっています。",
+    comprehensionQuestions: [
+      { id: "q1", question: "日本で最も人気があるスポーツは何ですか？", options: ["サッカー", "野球", "相撲", "テニス"], correctAnswer: 1, explanation: "野球は日本で最もpopularな 스포츠です。" },
+      { id: "q2", question: "高校野球はいつ頃のイベントですか？", options: ["春", "夏", "秋", "冬"], correctAnswer: 1, explanation: "高校野球は夏の风物詩です。" },
+    ],
+    jlptLevel: "N3",
+    tags: ["sports", "baseball", "culture"],
+    estimatedTime: 10,
+    createdAt: "2024-06-11",
+    updatedAt: "2024-06-11",
+  },
+  {
+    id: "read-033",
+    title: "JLPT N3 - The Importance of Reading",
+    passageText: "読書の好处は多方面に渡ります。語彙力が向上し、表現力が生まれ変わります。また、想像力が豊かになり、empathic abilities も养的できます。本を選ぶ時は、难度の合ったものを選ぶことが重要的吧。",
+    comprehensionQuestions: [
+      { id: "q1", question: "読書的好处不包括哪一项？", options: ["語彙力向上", "表現力 UP", "運動能力 향상", "想像力豊か"], correctAnswer: 2, explanation: "語彙力が向上し、表現力が生まれ変わります。また、想像力が豊かになり..." },
+      { id: "q2", question: "本を選ぶ時何が重要ですか？", options: ["可愛いカバー", "难度の合ったもの", "畅销书", "作者的知名度"], correctAnswer: 1, explanation: "本を選ぶ時は、难度の合ったものを選ぶことが重要的吧。" },
+    ],
+    jlptLevel: "N3",
+    tags: ["reading", "books", "education"],
+    estimatedTime: 10,
+    createdAt: "2024-06-12",
+    updatedAt: "2024-06-12",
+  },
+
+  // N2 - New Items
+  {
+    id: "read-034",
+    title: "JLPT N2 - The Aging Society",
+    passageText: "日本は今、超高齢社会に直面しています。世界に先駆けて Aging population が進行しています。社会保障費の増加が深刻な課題です。また、労働人口の減少も経済に大きな影响を与えています。",
+    comprehensionQuestions: [
+      { id: "q1", question: "日本が世界に先駆けて進行している问题是？", options: ["少子化", "高齢社会化", "環境污染", "経済衰退"], correctAnswer: 1, explanation: "世界に先駆けて Aging population が進行しています。" },
+      { id: "q2", question: "高齢社会に有什么关系的问题？", options: ["社会保障費增加", "娱乐施設增加", "交通便利", "物价下降"], correctAnswer: 0, explanation: "社会保障費の増加が深刻な課題です。" },
+    ],
+    jlptLevel: "N2",
+    tags: ["society", "aging", "demographics"],
+    estimatedTime: 12,
+    createdAt: "2024-06-13",
+    updatedAt: "2024-06-13",
+  },
+  {
+    id: "read-035",
+    title: "JLPT N2 - Work-Life Balance",
+    passageText: "ワークライフバランスの重要性が叫ばれています。長時間労働の是正が求められています。しかし、現実的には implementation が難しい企業も多いです。Remote work の普及が変革の起爆剤となる可能性があります。",
+    comprehensionQuestions: [
+      { id: "q1", question: "ワークライフバランスに関連して何が求められていますか？", options: ["長時間労働の是正", "給与 DOWN", "休日增加", "出勤不可"], correctAnswer: 0, explanation: "長時間労働の三是求められています。" },
+      { id: "q2", question: "何が変革の起爆剤となる可能性がありますか？", options: ["対面会议", "Remote work の普及", "出張增加", "加班强制"], correctAnswer: 1, explanation: "Remote work の普及が変革の起爆剤となる可能性があります。" },
+    ],
+    jlptLevel: "N2",
+    tags: ["work", "balance", "lifestyle"],
+    estimatedTime: 12,
+    createdAt: "2024-06-14",
+    updatedAt: "2024-06-14",
+  },
+  {
+    id: "read-036",
+    title: "JLPT N2 - Digital Transformation",
+    passageText: "デジタルトランスフォーメーション（DX）は企業にとって不可避の課題です。AIやクラウドサービスの活用が加速しています。しかし、中小企業にとっては導入のハードルが高いのも事実です。人材の育成と技術導入の両立が求められています。",
+    comprehensionQuestions: [
+      { id: "q1", question: "DXにおいて加速している是什么？", options: ["対面取引", "AIやクラウドサービスの活用", "纸的使用", "店舗扩张"], correctAnswer: 1, explanation: "AIやクラウドサービスの活用が加速しています。" },
+      { id: "q2", question: "中小企业在DX方面面临什么挑战？", options: ["導入のハードルが高い", "市場扩大", "人手过剩", "竞争减少"], correctAnswer: 0, explanation: "中小企業にとっては導入のハードルが高いのも事実です。" },
+    ],
+    jlptLevel: "N2",
+    tags: ["technology", "DX", "business"],
+    estimatedTime: 12,
+    createdAt: "2024-06-15",
+    updatedAt: "2024-06-15",
+  },
+  {
+    id: "read-037",
+    title: "JLPT N2 - Cultural Diversity",
+    passageText: "全球化の進展により、日本の社会は越来越多种多样です。街上可以看到各种国家的人。外国人の労働者や留学生が増加しています。多文化共生社会の実現が今後の重要なテーマです。",
+    comprehensionQuestions: [
+      { id: "q1", question: "増加している是什么人ですか？", options: ["旅行者", "労働者や留学生", "外交官", "记者"], correctAnswer: 1, explanation: "外国人の労働者や留学生が増加しています。" },
+      { id: "q2", question: "今後の重要なテーマは何ですか？", options: ["経済成長", "多文化共生社会の実現", "军事增强", "孤立主義"], correctAnswer: 1, explanation: "多文化共生社会の実現が今後の重要なテーマです。" },
+    ],
+    jlptLevel: "N2",
+    tags: ["globalization", "diversity", "society"],
+    estimatedTime: 12,
+    createdAt: "2024-06-16",
+    updatedAt: "2024-06-16",
+  },
+
+  // N1 - New Items
+  {
+    id: "read-038",
+    title: "JLPT N1 - The Concept of Ikigai",
+    passageText: "「生きがい」とは、自己の人生を充実させる源泉を指す概念です。単なる快楽や物質的满足を超えた、存在本身への意义感觉を含みます。他会から求められる役割と、自己の本当にやりたいことが交わる点に、生涯続く生きがいが見出されます。",
+    comprehensionQuestions: [
+      { id: "q1", question: "「生きがい」の概念について正しくない説明はどれですか？", options: ["単なる快楽を超えた概念", "存在本身への意义感觉を含む", "常に金储けと関系がある", "自己の本当にやりたいことが関係する"], correctAnswer: 2, explanation: "単なる快楽や物質的满足を超えた、存在本身への意义感觉を含みます。" },
+      { id: "q2", question: "生きがいはどこに見出されますか？", options: ["華やかな場所", "他会から求められる役割と自分のやりたいことが交わる点", "自然に囲まれた場所", "思い出の地"], correctAnswer: 1, explanation: "他会から求められる役割と、自己の本当にやりたいことが交わる点に..." },
+    ],
+    jlptLevel: "N1",
+    tags: ["philosophy", "ikigai", "meaning-of-life"],
+    estimatedTime: 15,
+    createdAt: "2024-06-17",
+    updatedAt: "2024-06-17",
+  },
+  {
+    id: "read-039",
+    title: "JLPT N1 - Semantic Shift in Language",
+    passageText: "言語は生きた有机体であり、常に変容し続けています。かつては否定的な意味を持っていた言葉が、时代とともに肯定的な意味を帯びるようになる现象は珍しいことではありません。このような意味の转移は、社会的文脈と深く関わっています。",
+    comprehensionQuestions: [
+      { id: "q1", question: "言語について作者はどのように捉えていますか？", options: ["unchangeable なもの", "生きた有机体", "単なるツール", "时代遅れの产物"], correctAnswer: 1, explanation: "言語は生きた有机体であり、常に変容し続けています。" },
+      { id: "q2", question: "意味转移と深く関わっている的是什么？", options: ["技術革新", "社会的文脈", "経済状況", "国際関係"], correctAnswer: 1, explanation: "このような意味の转移は、社会的文脈と深くに関わっています。" },
+    ],
+    jlptLevel: "N1",
+    tags: ["linguistics", "language", "semantics"],
+    estimatedTime: 15,
+    createdAt: "2024-06-18",
+    updatedAt: "2024-06-18",
+  },
+  {
+    id: "read-040",
+    title: "JLPT N1 - Post-Modern Society",
+    passageText: "ポストモダン社会において、絶対的価値観は解体されました。大きい な物語は力を失い、個人の解釈多样性のみが残されました。この状况は、自由と不安を同時に中生む两面性を内有しています。自己の再構築が現代人に课せられた新たな課題と言えましょう。",
+    comprehensionQuestions: [
+      { id: "q1", question: "ポストモダン社会で力を失った的是什么？", options: ["個人", "大きい な物語", "技術", "経済"], correctAnswer: 1, explanation: "大きい な物語は力を失い..." },
+      { id: "q2", question: "この状况が中生む两面性とは？", options: ["安全と危険", "自由と不安", "豊かと貧しさ", "個人と集団"], correctAnswer: 1, explanation: "この状况は、自由と不安を同時に中生む两面성을内有しています。" },
+    ],
+    jlptLevel: "N1",
+    tags: ["philosophy", "postmodern", "society"],
+    estimatedTime: 15,
+    createdAt: "2024-06-19",
+    updatedAt: "2024-06-19",
+  },
+  {
+    id: "read-041",
+    title: "JLPT N1 - Artificial Intelligence Ethics",
+    passageText: "AI倫理は現代の紧要な课题です。アルゴリズムのbiasが社会的不公平を再生産する恐れがあります。また、説明責任の所在が曖昧であることも問題视されています。技術の进步と倫理的配慮のバランス를 어떻게 맞출 것인가が問われています。",
+    comprehensionQuestions: [
+      { id: "q1", question: "アルゴリズムのbiasが中生む恐れがある是什么？", options: ["技术进步", "社会的不公平の再生産", "经济增长", "国际合作"], correctAnswer: 1, explanation: "アルゴリズムのbiasが社会的不公平を再生産する恐れがあります。" },
+      { id: "q2", question: "什么问题也被指出？", options: ["技术水平", "説明責任の所在が曖昧", "用户数量", "成本控制"], correctAnswer: 1, explanation: "また、説明責任の所在が曖昧であることも問題视されています。" },
+    ],
+    jlptLevel: "N1",
+    tags: ["AI", "ethics", "technology"],
+    estimatedTime: 15,
+    createdAt: "2024-06-20",
+    updatedAt: "2024-06-20",
+  },
+  {
+    id: "read-042",
+    title: "JLPT N1 - Hermeneutics and Interpretation",
+    passageText: "解釈学は、文本や歴史に対する理解の方法を考察する学问です。読者は自分の前で立ち上がる文本と对话を通じて、新たな意味を生成します。この过程において、読者の前理解は無視できません。текст の意味は永远に确定するものではなく、常に开かれた状态にあります。",
+    comprehensionQuestions: [
+      { id: "q1", question: "解釈学が考察的是什么？", options: ["自然科学", "理解の方法", "経済理論", "法律制度"], correctAnswer: 1, explanation: "解釈学は、文本や歴史に対する理解の方法を考察する学问です。" },
+      { id: "q2", question: "текст の意味について作者の见解は？", options: ["永远に確定する", "常に开まれた状態にある", "唯一の意味を持つ", "読者と无关"], correctAnswer: 1, explanation: "текст の意味は永远に确定するものではなく、常に开かれた状态にあります。" },
+    ],
+    jlptLevel: "N1",
+    tags: ["hermeneutics", "philosophy", "interpretation"],
+    estimatedTime: 15,
+    createdAt: "2024-06-21",
+    updatedAt: "2024-06-21",
+  },
+
+  // Extra Items for More Testing
+  {
+    id: "read-043",
+    title: "JLPT N5 - Time to Get Up",
+    passageText: "私は毎朝六時半に起きます。七時に朝ご飯を食べます。八時に家を出ます。",
+    comprehensionQuestions: [
+      { id: "q1", question: "何時に起きますか？", options: ["六時", "六時半", "七時", "五時半"], correctAnswer: 1, explanation: "私は毎朝六時半に起きます。" },
+    ],
+    jlptLevel: "N5",
+    tags: ["morning", "routine", "time"],
+    estimatedTime: 5,
+    createdAt: "2024-06-22",
+    updatedAt: "2024-06-22",
+  },
+  {
+    id: "read-044",
+    title: "JLPT N4 - Study Abroad",
+    passageText: "来年、日本に留学する計画を立てています。日本語学校に通って、N1合格が目標です。",
+    comprehensionQuestions: [
+      { id: "q1", question: "著者は来年干什么？", options: ["旅行", "留学", "出張", "研修"], correctAnswer: 1, explanation: "来年、日本に留学する計画を立てています。" },
+    ],
+    jlptLevel: "N4",
+    tags: ["study-abroad", "plan", "goal"],
+    estimatedTime: 8,
+    createdAt: "2024-06-23",
+    updatedAt: "2024-06-23",
+  },
+  {
+    id: "read-045",
+    title: "JLPT N3 - Environmental Protection",
+    passageText: "環境保護は人類永远的テーマです。Carbon emission の削減が迫切的な課題となっています。",
+    comprehensionQuestions: [
+      { id: "q1", question: "環境保護はどのようなテーマですか？", options: ["一时的", "流行的", "人類永远的", "経済的"], correctAnswer: 2, explanation: "環境保護は人類永远的テーマです。" },
+    ],
+    jlptLevel: "N3",
+    tags: ["environment", "protection", "climate"],
+    estimatedTime: 10,
+    createdAt: "2024-06-24",
+    updatedAt: "2024-06-24",
+  },
+  {
+    id: "read-046",
+    title: "JLPT N2 - Social Media Impact",
+    passageText: "SNSは现代人の暮らし不可或缺的一部分となりました。情報伝播の速度と範囲は、かつてなかったレベルに達しています。",
+    comprehensionQuestions: [
+      { id: "q1", question: "SNSは现代人の暮らしにとって怎样的存在ですか？", options: ["无关紧要", "不可或缺的一部分", "一时的流行", "年轻人的专利"], correctAnswer: 1, explanation: "SNSは现代人の暮らし不可或缺的一部分となりました。" },
+    ],
+    jlptLevel: "N2",
+    tags: ["SNS", "social-media", "communication"],
+    estimatedTime: 12,
+    createdAt: "2024-06-25",
+    updatedAt: "2024-06-25",
+  },
+  {
+    id: "read-047",
+    title: "JLPT N1 - Phenomenology of Perception",
+    passageText: "知覚の现象学は、人間の意识と世界の关係を再考させる旷の学問です。",
+    comprehensionQuestions: [
+      { id: "q1", question: "知覚の现象学はどのような学問ですか？", options: ["自然科学", "哲学の一分野", "心理学の基礎", "藝術理論"], correctAnswer: 1, explanation: "知覚の现象学は、人間の意识と世界の关係を再考させる旷の学問です。" },
+    ],
+    jlptLevel: "N1",
+    tags: ["phenomenology", "perception", "philosophy"],
+    estimatedTime: 15,
+    createdAt: "2024-06-26",
+    updatedAt: "2024-06-26",
+  },
 ];
 
 // Merge with main mock data
@@ -475,7 +848,7 @@ export const getReadingByLevel = (level: ReadingItem["jlptLevel"]) => {
 };
 
 export const getReadingById = (id: string) => {
-  return mockReading.find(item => item.id === id);
+  return allMockReading.find(item => item.id === id);
 };
 
 export const searchReading = (query: string) => {
