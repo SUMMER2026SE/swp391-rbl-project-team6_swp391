@@ -14,10 +14,20 @@ import {
   type GrammarLevel,
 } from "@/lib/api/studentGrammar";
 import { studentProgressApi } from "@/lib/api/studentProgress";
+import { studentAccessibleLevels } from "./student.classes";
+
+// ─── Student Accessible Levels ─────────────────────────────────────────────────
+// Mock: Levels assigned/purchased for this student in Midori
+// This will later come from: purchased courses, enrollment records, assigned classes
+const enrolledLevels = studentAccessibleLevels;
+
+// Default to first accessible level
+const defaultLevel = enrolledLevels.length > 0 ? enrolledLevels[0] : "N5";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const LEVEL_FILTERS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
+// Only show enrolled levels (derived from student's classes)
+const LEVEL_FILTERS = ["All", ...enrolledLevels] as const;
 
 const levelColors: Record<string, { bg: string; text: string; border: string }> = {
   N5: { bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-500", border: "border-blue-200 dark:border-blue-800" },
@@ -274,7 +284,7 @@ function LearningPathCard({
 export const Route = createFileRoute("/student/grammar/_index")({ component: GrammarListPage });
 
 function GrammarListPage() {
-  const [levelFilter, setLevelFilter] = useState("All");
+  const [levelFilter, setLevelFilter] = useState(defaultLevel);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [completed, setCompleted] = useState<Set<string>>(new Set());

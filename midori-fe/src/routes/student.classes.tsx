@@ -5,6 +5,36 @@ import { BookOpen, Clock, ArrowRight, GraduationCap, Award, RefreshCw, Trophy } 
 import { mockClasses } from "@/mock/classes";
 import type { DetailedClassInfo, ClassStatus } from "@/types/class-detail";
 
+// ==================== STUDENT ENROLLMENT MOCK DATA ====================
+// Current logged-in student (mock - later will come from auth context/API)
+const currentStudent = {
+  id: 1,
+  name: "Student A"
+};
+
+// Mock enrollments - which classes this student is enrolled in
+// ID format matches mockClasses.id
+const mockEnrollments = [
+  { studentId: 1, classId: "class-1" },
+  { studentId: 1, classId: "class-2" }
+];
+
+// Get enrolled class IDs for current student
+const enrolledClassIds = mockEnrollments
+  .filter(e => e.studentId === currentStudent.id)
+  .map(e => e.classId);
+
+// Filter classes to only show enrolled ones
+const enrolledClasses = mockClasses.filter(c => enrolledClassIds.includes(c.id));
+
+// Get unique levels from enrolled classes (for Learning Modules filtering)
+const enrolledLevels = Array.from(new Set(enrolledClasses.map(c => c.level)));
+
+// ==================== STUDENT ACCESSIBLE LEVELS ====================
+// Mock: Levels assigned/purchased for this student in Midori
+// This will later come from: purchased courses, enrollment records, assigned classes
+export const studentAccessibleLevels: string[] = enrolledLevels;
+
 export const Route = createFileRoute("/student/classes")({
   component: StudentClassesPage,
 });
@@ -254,12 +284,17 @@ function TabButton({
 // ==================== EMPTY STATE ====================
 
 function EmptyState({ type }: { type: TabType }) {
+  // Check if student has any enrolled classes at all
+  const hasNoEnrolledClasses = enrolledClasses.length === 0;
+  
   const content = {
     active: {
       icon: BookOpen,
-      title: "No Active Classes",
-      hint: "You don't have any active classes at the moment.",
-      action: "Browse Courses",
+      title: hasNoEnrolledClasses ? "No Classes Assigned" : "No Active Classes",
+      hint: hasNoEnrolledClasses 
+        ? "You have not been assigned to any class yet. Please contact your teacher."
+        : "You don't have any active classes at the moment.",
+      action: hasNoEnrolledClasses ? null : "Browse Courses",
     },
     completed: {
       icon: Trophy,
@@ -302,11 +337,12 @@ function StudentClassesPage() {
     return <Outlet />;
   }
 
-  // Filter and sort classes by status
-  const activeClasses = mockClasses.filter((c) => c.status === "active")
+  // Filter enrolled classes by status
+  // Using enrolledClasses (filtered by student's enrollment) instead of mockClasses
+  const activeClasses = enrolledClasses.filter((c) => c.status === "active")
     .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
   
-  const completedClasses = mockClasses.filter((c) => c.status === "completed")
+  const completedClasses = enrolledClasses.filter((c) => c.status === "completed")
     .sort((a, b) => new Date(b.completionDate || b.createdDate).getTime() - new Date(a.completionDate || a.createdDate).getTime());
 
   // Calculate summary stats

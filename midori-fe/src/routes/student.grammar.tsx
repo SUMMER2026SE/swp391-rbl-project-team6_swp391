@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,11 +14,12 @@ import {
   type GrammarLevel,
 } from "@/lib/api/studentGrammar";
 import { studentProgressApi } from "@/lib/api/studentProgress";
-import { mockClasses } from "@/mock/classes";
+import { studentAccessibleLevels } from "./student.classes";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const LEVEL_FILTERS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
+// Only show accessible levels
+const LEVEL_FILTERS = ["All", ...studentAccessibleLevels] as const;
 const PAGE_SIZE = 8;
 
 const levelColors: Record<string, string> = {
@@ -330,11 +331,11 @@ function SkeletonRow() {
 export const Route = createFileRoute("/student/grammar")({ component: GrammarPage });
 
 function GrammarPage() {
-  // Derive student's enrolled class levels
-  const studentLevels = useMemo(() =>
-    Array.from(new Set(mockClasses.map(c => c.level).filter(Boolean)))
-  , []);
-  const defaultLevel = studentLevels.length === 1 ? studentLevels[0] : "All";
+  // Use accessible levels (mock - later from API)
+  const studentLevels = studentAccessibleLevels;
+  
+  // Default to first accessible level
+  const defaultLevel = studentLevels.length > 0 ? studentLevels[0] : "N5";
 
   const [levelFilter, setLevelFilter] = useState<string>(defaultLevel);
   const [search, setSearch] = useState("");

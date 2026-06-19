@@ -177,7 +177,6 @@ function StudentHome() {
                   { name: "Vocabulary", val: stats?.progressPercent ? Math.round(stats.progressPercent) : 75, count: `${stats?.learnedWords ?? 0} learned` },
                   { name: "Grammar", val: stats?.grammarCompleted ? Math.round((stats.grammarCompleted / 100) * 100) : 60, count: `${stats?.completedLessons ?? 0} completed` },
                   { name: "Listening", val: 45, count: "12 exercises done" },
-                  { name: "Reading", val: 50, count: "8 articles read" },
                   { name: "Shadowing", val: 35, count: "5 sessions passed" },
                   { name: "Writing", val: 20, count: "2 essays submitted" },
                 ].map((item, idx) => (
