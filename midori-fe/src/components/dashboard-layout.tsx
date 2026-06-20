@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth, useTheme, getAvatarInitial, getUserAvatar, type FrontendRole } from "@/lib/auth";
 import { Footer } from "@/components/layout/Footer";
+import { AdminFooter } from "@/components/layout/AdminFooter";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
@@ -483,7 +484,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             <div className="flex-1 relative min-w-0">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-col pointer-events-none" />
               <input
-                placeholder="Search lessons, grammar, vocabularyâ€¦"
+                placeholder="Search lessons, grammar, vocabulary..."
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm hover:shadow-[0_8px_24px_rgba(148,163,184,0.16)] dark:hover:shadow-none transition-all duration-200 placeholder:text-muted-col/70 dark:placeholder:text-slate-400"
               />
             </div>
@@ -660,7 +661,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
           </motion.div>
         </main>
 
-        {role === "student" && <Footer />}
+        {role === "student" ? <Footer /> : role === "admin" && <AdminFooter />}
 
         {/* Mobile bottom nav */}
         <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">
