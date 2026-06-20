@@ -9,11 +9,8 @@ export interface JLPTExam {
   level: JLPTLevel;
   name: string;
   status: ExamStatus;
-  vocabularyQuestions: number;
-  grammarQuestions: number;
-  readingQuestions: number;
-  listeningQuestions: number;
   duration: number;
+  questions: ExamQuestion[];
   updatedAt: string;
   createdAt: string;
 }
@@ -202,6 +199,84 @@ const listeningData = [
 // 4. GENERATE MOCK DATA
 // ============================================
 
+// ============================================
+// Helper to generate questions for an exam
+function generateExamQuestions(
+  examId: string,
+  vocabCount: number,
+  grammarCount: number,
+  readingCount: number,
+  listeningCount: number
+): ExamQuestion[] {
+  const questions: ExamQuestion[] = [];
+  let questionNumber = 1;
+
+  // Vocabulary questions
+  for (let i = 0; i < Math.min(vocabCount, vocabularyData.length); i++) {
+    const v = vocabularyData[i % vocabularyData.length];
+    questions.push({
+      id: `${examId}-vocab-${i + 1}`,
+      section: "Vocabulary",
+      questionNumber: questionNumber++,
+      type: "Multiple Choice",
+      question: v.q,
+      options: v.opts,
+      correctAnswer: v.ans,
+      explanation: v.exp,
+    });
+  }
+
+  // Grammar questions
+  for (let i = 0; i < Math.min(grammarCount, grammarData.length); i++) {
+    const g = grammarData[i % grammarData.length];
+    questions.push({
+      id: `${examId}-grammar-${i + 1}`,
+      section: "Grammar",
+      questionNumber: questionNumber++,
+      type: "Multiple Choice",
+      question: g.q,
+      options: g.opts,
+      correctAnswer: g.ans,
+      explanation: g.exp,
+    });
+  }
+
+  // Reading questions
+  for (let i = 0; i < Math.min(readingCount, 4); i++) {
+    const r = readingData[i % readingData.length];
+    const rq = r.questions[i % r.questions.length];
+    questions.push({
+      id: `${examId}-reading-${i + 1}`,
+      section: "Reading",
+      questionNumber: questionNumber++,
+      type: "Multiple Choice",
+      question: rq.q,
+      options: rq.opts,
+      correctAnswer: rq.ans,
+      explanation: rq.exp,
+      passage: r.passage,
+    });
+  }
+
+  // Listening questions
+  for (let i = 0; i < Math.min(listeningCount, listeningData.length); i++) {
+    const l = listeningData[i % listeningData.length];
+    questions.push({
+      id: `${examId}-listening-${i + 1}`,
+      section: "Listening",
+      questionNumber: questionNumber++,
+      type: "Listening Audio",
+      question: l.question,
+      options: l.opts,
+      correctAnswer: l.ans,
+      explanation: l.exp,
+      audioFileName: l.fileName,
+    });
+  }
+
+  return questions;
+}
+
 // Generate mock exams for each level
 function generateMockExams(): JLPTExam[] {
   const exams: JLPTExam[] = [];
@@ -234,16 +309,20 @@ function generateMockExams(): JLPTExam[] {
       const readingVariation = Math.floor(Math.random() * 5) - 2;
       const listeningVariation = Math.floor(Math.random() * 5) - 2;
 
+      const examId = `${level.toLowerCase()}-exam-${String(i).padStart(2, "0")}`;
+
+      const vocabCount = Math.max(10, config.vocabulary + vocabVariation);
+      const grammarCount = Math.max(10, config.grammar + grammarVariation);
+      const readingCount = Math.max(10, config.reading + readingVariation);
+      const listeningCount = Math.max(10, config.listening + listeningVariation);
+
       const exam: JLPTExam = {
-        id: `${level.toLowerCase()}-exam-${String(i).padStart(2, "0")}`,
+        id: examId,
         level,
         name: `JLPT ${level} Mock Test ${String(i).padStart(2, "0")}`,
         status,
-        vocabularyQuestions: Math.max(10, config.vocabulary + vocabVariation),
-        grammarQuestions: Math.max(10, config.grammar + grammarVariation),
-        readingQuestions: Math.max(10, config.reading + readingVariation),
-        listeningQuestions: Math.max(10, config.listening + listeningVariation),
         duration: config.duration,
+        questions: generateExamQuestions(examId, vocabCount, grammarCount, readingCount, listeningCount),
         updatedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString(),
       };
@@ -311,10 +390,21 @@ export function deleteExam(id: string): boolean {
 /**
  * Create a new exam
  */
-export function addExam(exam: Omit<JLPTExam, "id" | "createdAt" | "updatedAt">): JLPTExam {
+export function addExam(examData: {
+  level: JLPTLevel;
+  name: string;
+  status: ExamStatus;
+  duration: number;
+  questions?: ExamQuestion[];
+}): JLPTExam {
+  const examId = `${examData.level.toLowerCase()}-exam-${String(examStore.length + 1).padStart(2, "0")}`;
   const newExam: JLPTExam = {
-    ...exam,
-    id: `${exam.level.toLowerCase()}-exam-${String(examStore.length + 1).padStart(2, "0")}`,
+    id: examId,
+    level: examData.level,
+    name: examData.name,
+    status: examData.status,
+    duration: examData.duration,
+    questions: examData.questions ?? [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -370,71 +460,72 @@ export function getExamByIdLegacy(id: string): JLPTExam | undefined {
 // ============================================
 
 export function getExamQuestions(exam: JLPTExam): ExamQuestion[] {
-  const questions: ExamQuestion[] = [];
-  let questionNumber = 1;
-
-  // Vocabulary questions
-  for (let i = 0; i < Math.min(exam.vocabularyQuestions, vocabularyData.length); i++) {
-    const v = vocabularyData[i % vocabularyData.length];
-    questions.push({
-      id: `${exam.id}-vocab-${i + 1}`,
-      section: "Vocabulary",
-      questionNumber: questionNumber++,
-      type: "Multiple Choice",
-      question: v.q,
-      options: v.opts,
-      correctAnswer: v.ans,
-      explanation: v.exp,
-    });
-  }
-
-  // Grammar questions
-  for (let i = 0; i < Math.min(exam.grammarQuestions, grammarData.length); i++) {
-    const g = grammarData[i % grammarData.length];
-    questions.push({
-      id: `${exam.id}-grammar-${i + 1}`,
-      section: "Grammar",
-      questionNumber: questionNumber++,
-      type: "Multiple Choice",
-      question: g.q,
-      options: g.opts,
-      correctAnswer: g.ans,
-      explanation: g.exp,
-    });
-  }
-
-  // Reading questions
-  for (let i = 0; i < Math.min(exam.readingQuestions, 4); i++) {
-    const r = readingData[i % readingData.length];
-    const rq = r.questions[i % r.questions.length];
-    questions.push({
-      id: `${exam.id}-reading-${i + 1}`,
-      section: "Reading",
-      questionNumber: questionNumber++,
-      type: "Multiple Choice",
-      question: rq.q,
-      options: rq.opts,
-      correctAnswer: rq.ans,
-      explanation: rq.exp,
-      passage: r.passage,
-    });
-  }
-
-  // Listening questions
-  for (let i = 0; i < Math.min(exam.listeningQuestions, listeningData.length); i++) {
-    const l = listeningData[i % listeningData.length];
-    questions.push({
-      id: `${exam.id}-listening-${i + 1}`,
-      section: "Listening",
-      questionNumber: questionNumber++,
-      type: "Listening Audio",
-      question: l.question,
-      options: l.opts,
-      correctAnswer: l.ans,
-      explanation: l.exp,
-      audioFileName: l.fileName,
-    });
-  }
-
-  return questions;
+  return exam.questions ?? [];
 }
+
+// ============================================
+// 8. QUESTION COUNT HELPERS (computed, not stored)
+// ============================================
+
+export function getExamQuestionCounts(exam: JLPTExam): {
+  vocabulary: number;
+  grammar: number;
+  reading: number;
+  listening: number;
+  total: number;
+} {
+  const questions = exam.questions ?? [];
+  return {
+    vocabulary: questions.filter((q) => q.section === "Vocabulary").length,
+    grammar: questions.filter((q) => q.section === "Grammar").length,
+    reading: questions.filter((q) => q.section === "Reading").length,
+    listening: questions.filter((q) => q.section === "Listening").length,
+    total: questions.length,
+  };
+}
+
+// ============================================
+// 9. QUESTION CRUD OPERATIONS
+// ============================================
+
+export function addQuestionToExam(examId: string, question: ExamQuestion): JLPTExam {
+  const index = examStore.findIndex((e) => e.id === examId);
+  if (index === -1) {
+    throw new Error(`Exam with id ${examId} not found`);
+  }
+  examStore[index] = {
+    ...examStore[index],
+    questions: [...examStore[index].questions, question],
+    updatedAt: new Date().toISOString(),
+  };
+  return examStore[index];
+}
+
+export function updateQuestionInExam(examId: string, questionId: string, updates: Partial<ExamQuestion>): JLPTExam {
+  const index = examStore.findIndex((e) => e.id === examId);
+  if (index === -1) {
+    throw new Error(`Exam with id ${examId} not found`);
+  }
+  examStore[index] = {
+    ...examStore[index],
+    questions: examStore[index].questions.map((q) =>
+      q.id === questionId ? { ...q, ...updates } : q
+    ),
+    updatedAt: new Date().toISOString(),
+  };
+  return examStore[index];
+}
+
+export function deleteQuestionFromExam(examId: string, questionId: string): JLPTExam {
+  const index = examStore.findIndex((e) => e.id === examId);
+  if (index === -1) {
+    throw new Error(`Exam with id ${examId} not found`);
+  }
+  examStore[index] = {
+    ...examStore[index],
+    questions: examStore[index].questions.filter((q) => q.id !== questionId),
+    updatedAt: new Date().toISOString(),
+  };
+  return examStore[index];
+}
+

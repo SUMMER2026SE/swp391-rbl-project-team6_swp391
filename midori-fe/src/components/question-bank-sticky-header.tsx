@@ -56,9 +56,9 @@ export function QuestionBankStickyHeader({
   };
 
   return (
-    <div className="sticky top-0 z-50 -mx-4 sm:-mx-6 lg:-mx-8">
-      {/* Main Sticky Header */}
-      <div className="bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--border)] px-4 sm:px-6 lg:px-8">
+    <div className="z-[60]">
+      {/* Main Header */}
+      <div className="bg-[var(--background)] border border-[var(--border)] rounded-2xl px-4 sm:px-6 lg:px-8 mb-4">
         <div className="max-w-7xl mx-auto">
           {/* Top Row: Back Button + Breadcrumbs */}
           <div className="flex items-center gap-2 py-3">
@@ -147,8 +147,8 @@ export function QuestionBankCompactHeader({
   };
 
   return (
-    <div className="sticky top-0 z-50 -mx-4 sm:-mx-6 lg:-mx-8">
-      <div className="bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--border)] px-4 sm:px-6 lg:px-8">
+    <div className="z-[60]">
+      <div className="bg-[var(--background)] border border-[var(--border)] rounded-2xl px-4 sm:px-6 lg:px-8 mb-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 py-3">
           {/* Left: Back + Breadcrumbs */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
