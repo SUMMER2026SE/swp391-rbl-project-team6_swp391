@@ -16,10 +16,22 @@ import {
   Trash2,
   Download,
   HelpCircle,
+  ArrowLeft,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   type JLPTLevel,
   type ExamStatus,
+  type ExamQuestion,
   DEFAULT_EXAM_CONFIG,
   addExam,
 } from "@/mocks/jlptExamMock";
@@ -456,20 +468,25 @@ function CreateExamPage() {
     setError(null);
 
     try {
-      const vocabCount = importedQuestions.filter((q) => q.type.toLowerCase() === "vocabulary").length;
-      const grammarCount = importedQuestions.filter((q) => q.type.toLowerCase() === "grammar").length;
-      const readingCount = importedQuestions.filter((q) => q.type.toLowerCase() === "reading").length;
-      const listeningCount = importedQuestions.filter((q) => q.type.toLowerCase() === "listening").length;
+      // Assign unique IDs to each question
+      const examId = `${upperLevel.toLowerCase()}-exam-${Date.now()}`;
+      const questionsWithIds: ExamQuestion[] = importedQuestions.map((q, index) => ({
+        id: `${examId}-q-${index + 1}`,
+        section: q.type as "Vocabulary" | "Grammar" | "Reading" | "Listening",
+        questionNumber: index + 1,
+        type: "Multiple Choice",
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+      }));
 
       addExam({
         level: upperLevel as JLPTLevel,
         name: examName,
         status,
-        vocabularyQuestions: vocabCount,
-        grammarQuestions: grammarCount,
-        readingQuestions: readingCount,
-        listeningQuestions: listeningCount,
         duration,
+        questions: questionsWithIds,
       });
 
       setSuccessMessage("Exam created successfully!");
@@ -490,7 +507,7 @@ function CreateExamPage() {
         <AlertTriangle className="w-16 h-16 text-[var(--status-rejected)]/50 mb-4" />
         <h2 className="text-xl font-bold text-primary-col mb-2">Invalid Level</h2>
         <p className="text-sm text-secondary-col mb-4">The level "{level}" is not a valid JLPT level.</p>
-        <Link to="/admin/jlpt-exam" className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold hover:bg-primary/20 transition">
+        <Link to="/admin/jlpt-exam" className="px-4 py-2.5 rounded-xl bg-primary/12 text-primary text-sm font-bold hover:bg-primary/20 transition">
           Back to JLPT Exam Management
         </Link>
       </div>
@@ -498,38 +515,41 @@ function CreateExamPage() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
-        <Link to="/admin/jlpt-exam" className="text-muted-col hover:text-primary transition">JLPT Exam</Link>
-        <ChevronRight className="w-4 h-4 text-muted-col" />
-        <Link to="/admin/jlpt-exam/$level" params={{ level }} className="text-muted-col hover:text-primary transition">JLPT {upperLevel}</Link>
-        <ChevronRight className="w-4 h-4 text-muted-col" />
-        <span className="text-primary-col font-medium">Create Exam</span>
-      </div>
+    <div className="space-y-5">
+      {/* Back Button */}
+      <Link
+        to="/admin/jlpt-exam/$level"
+        params={{ level: level.toLowerCase() }}
+        className="inline-flex items-center gap-2 text-sm text-muted-col hover:text-primary-col transition"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to {upperLevel} JLPT Exam
+      </Link>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-display font-black text-primary-col">Create Exam</h1>
-          <JLPTBadge level={upperLevel as JLPTLevel} />
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/admin/jlpt-exam/$level"
-            params={{ level }}
-            className="px-4 py-2 rounded-lg bg-[var(--accent)] text-secondary-col text-sm font-bold hover:bg-[var(--border)] transition"
-          >
-            Cancel
-          </Link>
-          <button
-            onClick={handleSubmit}
-            disabled={creating || importedQuestions.length === 0}
-            className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition disabled:opacity-50 flex items-center gap-2"
-          >
-            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-            Create Exam
-          </button>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-display font-black text-primary-col">Create Exam</h1>
+            <p className="text-sm text-secondary-col mt-0.5">Import questions from Excel file</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/admin/jlpt-exam/$level"
+              params={{ level: level.toLowerCase() }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
+            >
+              Cancel
+            </Link>
+            <button
+              onClick={handleSubmit}
+              disabled={creating || importedQuestions.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
+            >
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              Create Exam
+            </button>
+          </div>
         </div>
       </div>
 
@@ -537,21 +557,15 @@ function CreateExamPage() {
       <div className="card-base p-5">
         <h2 className="font-display font-bold text-primary-col mb-4">Exam Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 md:col-span-2">
             <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Exam Name</label>
             <input
               type="text"
               value={examName}
               onChange={(e) => setExamName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
               placeholder="Enter exam name"
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Level</label>
-            <div className="px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)]">
-              <JLPTBadge level={upperLevel as JLPTLevel} />
-            </div>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Duration (min)</label>
@@ -561,7 +575,7 @@ function CreateExamPage() {
               onChange={(e) => setDuration(Math.max(1, parseInt(e.target.value) || 0))}
               min={1}
               max={300}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
             />
           </div>
           <div className="space-y-1.5">
@@ -569,7 +583,7 @@ function CreateExamPage() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ExamStatus)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition cursor-pointer"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
             >
               <option value="Draft">Draft</option>
               <option value="Active">Active</option>
@@ -590,7 +604,7 @@ function CreateExamPage() {
 
         <div
           className={`border-2 border-dashed rounded-xl p-8 text-center transition ${
-            importing ? "border-primary bg-primary/5" : "border-[var(--border)] hover:border-primary/40"
+            importing ? "border-[oklch(0.62_0.18_270)] bg-[oklch(0.62_0.18_270)]/5" : "border-[var(--border)] hover:border-[oklch(0.62_0.18_270)]/40"
           }`}
         >
           {importedQuestions.length > 0 ? (
@@ -619,7 +633,7 @@ function CreateExamPage() {
               </div>
               <button
                 onClick={handleClearImport}
-                className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 text-sm font-bold hover:bg-red-500/20 transition"
+                className="px-4 py-2 rounded-xl bg-red-500/10 text-red-500 text-sm font-bold hover:bg-red-500/20 transition"
               >
                 Clear All
               </button>
@@ -640,7 +654,7 @@ function CreateExamPage() {
               />
               <label
                 htmlFor="excel-upload"
-                className="inline-block px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition cursor-pointer"
+                className="inline-block px-4 py-2.5 rounded-xl bg-[oklch(0.62_0.18_270)] text-white text-sm font-bold shadow-md hover:opacity-90 transition cursor-pointer"
               >
                 {importing ? "Importing..." : "Select File"}
               </label>
