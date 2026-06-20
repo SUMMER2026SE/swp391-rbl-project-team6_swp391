@@ -295,33 +295,6 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Quick Actions */}
-      <div className="card-base p-5">
-        <h2 className="font-display font-bold text-sm text-primary-col mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "Add Teacher", icon: GraduationCap, link: "/admin/teachers", color: "text-[var(--status-teacher)]" },
-            { label: "Create Class", icon: BookUser, link: "/admin/class-management", color: "text-primary" },
-            { label: "Upload Content", icon: BookOpen, link: "/admin/grammar", color: "text-[var(--status-active)]" },
-            { label: "Manage Questions", icon: ClipboardCheck, link: "/admin/question-bank", color: "text-[var(--status-pending)]" },
-          ].map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.label}
-                to={action.link}
-                className="flex items-center gap-3 p-4 rounded-xl glass-surface hover:bg-[var(--accent)] transition group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-[var(--accent)] flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition">
-                  <Icon className={`w-5 h-5 ${action.color}`} />
-                </div>
-                <span className="text-sm font-semibold text-primary-col">{action.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
