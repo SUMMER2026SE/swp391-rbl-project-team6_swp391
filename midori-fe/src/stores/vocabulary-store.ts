@@ -1,7 +1,7 @@
 // ─── Shared Vocabulary Store ─────────────────────────────────────────────────────
 // Module-level state for sharing vocabulary between pages
 
-import type { VocabularyItem } from "../types/content-library";
+import type { VocabularyItem } from "../mocks/contentLibraryMock";
 
 // Shared vocabulary state (will be populated from API)
 let sharedVocabulary: VocabularyItem[] = [];
