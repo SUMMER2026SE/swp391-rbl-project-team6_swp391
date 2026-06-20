@@ -1,10 +1,20 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Plus, Pencil, Archive, RotateCcw,
   Search, ArrowLeft, Loader2, CheckCircle, Trash2, X
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   type JLPTLevel,
   type JLPTExam,
@@ -15,14 +25,15 @@ import {
 type LevelUpper = "N5" | "N4" | "N3" | "N2" | "N1";
 
 function StatusBadge({ status }: { status: ExamStatus }) {
-  const configs: Record<ExamStatus, { label: string; color: string }> = {
-    Active: { label: "Active", color: "bg-[var(--status-active)]/10 text-[var(--status-active)]" },
-    Draft: { label: "Draft", color: "bg-[var(--status-pending)]/10 text-[var(--status-pending)]" },
-    Archived: { label: "Archived", color: "bg-muted text-muted-col" },
+  const configs: Record<ExamStatus, { label: string; color: string; bg: string }> = {
+    Active: { label: "Active", color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
+    Draft: { label: "Draft", color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
+    Archived: { label: "Archived", color: "text-[var(--status-suspended)]", bg: "bg-[var(--status-suspended)]" },
   };
   const cfg = configs[status] || configs["Active"];
   return (
-    <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-medium ${cfg.color}`}>
+    <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${cfg.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.bg}`} />
       {cfg.label}
     </span>
   );
@@ -81,7 +92,7 @@ function ExamListPage() {
           <Link
             to="/admin/jlpt-exam/$level/create"
             params={{ level: level }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[oklch(0.62_0.18_270)] text-white text-sm font-bold shadow-md hover:opacity-90 transition"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
           >
             <Plus className="w-4 h-4" />
             Create Exam
@@ -119,8 +130,8 @@ function ExamListPage() {
           </div>
         </div>
         <div className="card-base p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-            <Archive className="w-5 h-5 text-muted-col" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--status-suspended)]/12 flex items-center justify-center shrink-0">
+            <Archive className="w-5 h-5 text-[var(--status-suspended)]" />
           </div>
           <div>
             <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Archived</p>
@@ -155,7 +166,7 @@ function ExamListPage() {
             <Link
               to="/admin/jlpt-exam/$level/create"
               params={{ level: level }}
-              className="mt-4 px-4 py-2.5 rounded-xl bg-[oklch(0.62_0.18_270)] text-white text-sm font-bold shadow-md hover:opacity-90 transition"
+              className="mt-4 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
             >
               Create Exam
             </Link>
@@ -164,22 +175,18 @@ function ExamListPage() {
       ) : (
         <div className="card-base overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator">
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
             <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">Exam</div>
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Status</div>
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Questions</div>
-            <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Duration</div>
-            <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">Actions</div>
+            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">Actions</div>
           </div>
           {/* Table Rows */}
-          <div>
-            {filteredExams.map((exam, index) => (
-              <motion.div
+          <div className="divide-y divide-[var(--border)]">
+            {filteredExams.map((exam) => (
+              <div
                 key={exam.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
-                className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)]/50 transition items-center"
+                className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-[var(--accent)]/50 transition items-center"
               >
                 <div className="col-span-5">
                   <div className="flex items-center gap-3">
@@ -188,166 +195,98 @@ function ExamListPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-primary-col">{exam.name}</p>
-                      <div className="flex gap-2 mt-1 text-xs text-muted-col">
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--status-active)]/10 text-[var(--status-active)]">V: {exam.vocabularyQuestions}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--status-pending)]/10 text-[var(--status-pending)]">G: {exam.grammarQuestions}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500">R: {exam.readingQuestions}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">L: {exam.listeningQuestions}</span>
-                      </div>
+                      <p className="text-xs text-muted-col mt-0.5">{exam.duration} min</p>
                     </div>
                   </div>
                 </div>
                 <div className="col-span-2 flex justify-center">
                   <StatusBadge status={exam.status} />
                 </div>
-                <div className="col-span-2 flex justify-center gap-1">
-                  <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold">
-                    {exam.vocabularyQuestions + exam.grammarQuestions + exam.readingQuestions + exam.listeningQuestions}
+                <div className="col-span-2 text-center">
+                  <span className="text-sm font-medium text-muted-col">
+                    {exam.questions?.length ?? 0}
                   </span>
                 </div>
-                <div className="col-span-1 text-center text-sm text-muted-col">
-                  {exam.duration} min
-                </div>
-                <div className="col-span-2 flex justify-end gap-2">
+                <div className="col-span-3 flex justify-end gap-2">
                   <Link
                     to="/admin/jlpt-exam/$level/$examId/edit"
                     params={{ level: upperLevel.toLowerCase(), examId: exam.id }}
-                    className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition"
-                    title="Edit"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/20 transition text-xs font-medium"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
                   </Link>
                   {exam.status === "Archived" ? (
                     <button
                       onClick={() => handleRestore(exam)}
-                      className="p-2 rounded-lg bg-[var(--status-active)]/10 text-[var(--status-active)] hover:bg-[var(--status-active)]/20 transition"
-                      title="Restore"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--status-active)]/10 text-[var(--status-active)] hover:bg-[var(--status-active)]/20 transition text-xs font-medium"
                     >
-                      <RotateCcw className="w-4 h-4" />
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Restore
                     </button>
                   ) : (
                     <button
                       onClick={() => setArchiveExam(exam)}
-                      className="p-2 rounded-lg bg-muted text-muted-col hover:bg-muted/80 transition"
-                      title="Archive"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 transition text-xs font-medium"
                     >
-                      <Archive className="w-4 h-4" />
+                      <Archive className="w-3.5 h-3.5" />
+                      Archive
                     </button>
                   )}
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
       )}
 
       {/* Archive Confirm Modal */}
-      <AnimatePresence>
-        {archiveExam && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setArchiveExam(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={e => e.stopPropagation()}
-              className="relative z-10 w-full max-w-md glass-modal rounded-2xl shadow-2xl overflow-hidden"
+      <AlertDialog open={!!archiveExam} onOpenChange={(open) => !open && setArchiveExam(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center mx-auto mb-2">
+              <Archive className="w-6 h-6 text-yellow-500" />
+            </div>
+            <AlertDialogTitle className="text-center">Archive Exam</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              Are you sure you want to archive "{archiveExam?.name}"? This exam will be hidden but can be restored later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setArchiveExam(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => archiveExam && handleArchive(archiveExam)}
+              className="bg-yellow-500 hover:bg-yellow-600"
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b separator">
-                <h2 className="font-display font-bold text-primary-col text-base">Archive Exam</h2>
-                <button 
-                  onClick={() => setArchiveExam(null)} 
-                  className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto">
-                  <Archive className="w-6 h-6 text-muted-col" />
-                </div>
-                <h3 className="font-display font-bold text-primary-col text-lg text-center">Archive "{archiveExam.name}"?</h3>
-                <p className="text-secondary-col text-sm text-center">
-                  This exam will be hidden but can be restored later.
-                </p>
-              </div>
-              <div className="flex gap-3 px-6 py-4 border-t separator">
-                <button 
-                  onClick={() => setArchiveExam(null)} 
-                  className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => handleArchive(archiveExam)} 
-                  className="flex-1 py-2.5 rounded-xl bg-muted text-white text-sm font-bold shadow-md hover:bg-muted/80 transition"
-                >
-                  Archive
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Restore Confirm Modal */}
-      <AnimatePresence>
-        {restoreExam && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setRestoreExam(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={e => e.stopPropagation()}
-              className="relative z-10 w-full max-w-md glass-modal rounded-2xl shadow-2xl overflow-hidden"
+      <AlertDialog open={!!restoreExam} onOpenChange={(open) => !open && setRestoreExam(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="w-12 h-12 rounded-full bg-[var(--status-active)]/10 flex items-center justify-center mx-auto mb-2">
+              <RotateCcw className="w-6 h-6 text-[var(--status-active)]" />
+            </div>
+            <AlertDialogTitle className="text-center">Restore Exam</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              Are you sure you want to restore "{restoreExam?.name}"? This exam will be available for students again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRestoreExam(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => restoreExam && handleRestore(restoreExam)}
+              className="bg-[var(--status-active)] hover:opacity-90"
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b separator">
-                <h2 className="font-display font-bold text-primary-col text-base">Restore Exam</h2>
-                <button 
-                  onClick={() => setRestoreExam(null)} 
-                  className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--status-active)]/12 flex items-center justify-center mx-auto">
-                  <RotateCcw className="w-6 h-6 text-[var(--status-active)]" />
-                </div>
-                <h3 className="font-display font-bold text-primary-col text-lg text-center">Restore "{restoreExam.name}"?</h3>
-                <p className="text-secondary-col text-sm text-center">
-                  This exam will be available for students again.
-                </p>
-              </div>
-              <div className="flex gap-3 px-6 py-4 border-t separator">
-                <button 
-                  onClick={() => setRestoreExam(null)} 
-                  className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => handleRestore(restoreExam)} 
-                  className="flex-1 py-2.5 rounded-xl bg-[var(--status-active)] text-white text-sm font-bold shadow-md hover:opacity-90 transition"
-                >
-                  Restore
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,29 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronRight,
   CheckCircle,
+  Check,
   Loader2,
   AlertTriangle,
   BookOpen,
   GraduationCap,
   FileText,
   Headphones,
-  Clock,
   Save,
   Pencil,
   Trash2,
   Plus,
-  AlertCircle,
-  Upload,
-  Play,
-  Pause,
-  X,
+  MoreHorizontal,
   BarChart3,
-  ChevronDown,
-  ChevronUp,
   Settings,
+  ArrowLeft,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -75,11 +69,11 @@ const TABS: { id: TabType; label: string; icon: React.ReactNode }[] = [
   { id: "listening", label: "Listening", icon: <Headphones className="w-4 h-4" /> },
 ];
 
-const SECTION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  vocabulary: { bg: "bg-[oklch(0.62_0.18_270)]/10", text: "text-[oklch(0.62_0.18_270)]", border: "border-[oklch(0.62_0.18_270)]/20" },
-  grammar: { bg: "bg-[oklch(0.72_0.15_230)]/10", text: "text-[oklch(0.72_0.15_230)]", border: "border-[oklch(0.72_0.15_230)]/20" },
-  reading: { bg: "bg-[var(--status-pending)]/10", text: "text-[var(--status-pending)]", border: "border-[var(--status-pending)]/20" },
-  listening: { bg: "bg-[oklch(0.6_0.22_25)]/10", text: "text-[oklch(0.6_0.22_25)]", border: "border-[oklch(0.6_0.22_25)]/20" },
+const SECTION_COLORS: Record<string, { text: string; border: string }> = {
+  vocabulary: { text: "text-[oklch(0.62_0.18_270)]", border: "border-[oklch(0.62_0.18_270)]" },
+  grammar: { text: "text-[oklch(0.72_0.15_230)]", border: "border-[oklch(0.72_0.15_230)]" },
+  reading: { text: "text-[var(--status-pending)]", border: "border-[var(--status-pending)]" },
+  listening: { text: "text-[oklch(0.6_0.22_25)]", border: "border-[oklch(0.6_0.22_25)]" },
 };
 
 const STATUS_CONFIG: Record<ExamStatus, { label: string; color: string; bg: string }> = {
@@ -91,94 +85,75 @@ const STATUS_CONFIG: Record<ExamStatus, { label: string; color: string; bg: stri
 function StatusBadge({ status }: { status: ExamStatus }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${cfg.color}`}>
+    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${cfg.color}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.bg}`} />
       {cfg.label}
     </span>
   );
 }
 
-// ============================================
-// EXAM SETTINGS CARD (Collapsible)
-// ============================================
-function ExamSettingsCard({
-  examName,
-  setExamName,
-  duration,
-  setDuration,
-  status,
-  setStatus,
+// Row Action Menu Component
+function RowActionMenu({
+  onEdit,
+  onDelete,
 }: {
-  examName: string;
-  setExamName: (v: string) => void;
-  duration: number;
-  setDuration: (v: number) => void;
-  status: ExamStatus;
-  setStatus: (v: ExamStatus) => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className="card-base overflow-hidden">
+    <div className="relative" ref={menuRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-[var(--accent)] transition"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(!open);
+        }}
+        className="p-1.5 rounded-lg text-muted-col hover:text-primary-col hover:bg-[var(--accent)] transition opacity-0 group-hover:opacity-100"
       >
-        <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4 text-muted-col" />
-          <span className="text-sm font-bold text-primary-col">Exam Settings</span>
-        </div>
-        {isOpen ? <ChevronUp className="w-4 h-4 text-muted-col" /> : <ChevronDown className="w-4 h-4 text-muted-col" />}
+        <MoreHorizontal className="w-4 h-4" />
       </button>
-
       <AnimatePresence>
-        {isOpen && (
+        {open && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            className="absolute right-0 top-full mt-1 z-20 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden min-w-[120px]"
           >
-            <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Exam Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Exam Name</label>
-                <input
-                  type="text"
-                  value={examName}
-                  onChange={(e) => setExamName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition"
-                  placeholder="Enter exam name"
-                />
-              </div>
-
-              {/* Duration */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Duration (min)</label>
-                <input
-                  type="number"
-                  value={duration}
-                  onChange={(e) => setDuration(Math.max(1, parseInt(e.target.value) || 0))}
-                  min={1}
-                  max={300}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition"
-                />
-              </div>
-
-              {/* Status */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Status</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as ExamStatus)}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition cursor-pointer"
-                >
-                  <option value="Draft">Draft</option>
-                  <option value="Active">Active</option>
-                  <option value="Archived">Archived</option>
-                </select>
-              </div>
-            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                onEdit();
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-primary-col hover:bg-[var(--accent)] transition"
+            >
+              <Pencil className="w-3.5 h-3.5 text-[oklch(0.62_0.18_270)]" />
+              Edit
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                onDelete();
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-500/5 transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -186,9 +161,7 @@ function ExamSettingsCard({
   );
 }
 
-// ============================================
-// QUESTION CARD (Compact)
-// ============================================
+// Question Card Component - Clean Design
 function QuestionCard({
   question,
   sectionColor,
@@ -196,84 +169,69 @@ function QuestionCard({
   onDelete,
 }: {
   question: ExamQuestion;
-  sectionColor: { bg: string; text: string; border: string };
+  sectionColor: { text: string };
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const optionLabels = ["A", "B", "C", "D"];
 
   return (
-    <div className={`card-base p-4 border-l-4 ${sectionColor.border}`}>
-      <div className="flex items-start gap-4">
-        {/* Question Number */}
-        <div className={`w-8 h-8 rounded-lg ${sectionColor.bg} ${sectionColor.text} flex items-center justify-center text-sm font-bold shrink-0`}>
-          {question.questionNumber}
-        </div>
+    <div className="group flex items-start gap-4 px-4 py-4 hover:bg-[var(--accent)]/30 transition rounded-xl border border-transparent hover:border-[var(--border)]">
+      <div className={`w-8 h-8 rounded-lg bg-[var(--accent)] ${sectionColor.text} flex items-center justify-center text-sm font-bold shrink-0 mt-0.5`}>
+        {question.questionNumber}
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0 space-y-2">
-          {/* Passage for Reading */}
-          {question.passage && (
-            <p className="text-xs text-muted-col italic bg-[var(--accent)] p-2 rounded-lg line-clamp-2">
-              {question.passage}
-            </p>
-          )}
+      <div className="flex-1 min-w-0 space-y-3">
+        {question.passage && (
+          <p className="text-xs text-muted-col italic bg-[var(--accent)]/50 p-2.5 rounded-lg line-clamp-2">
+            {question.passage}
+          </p>
+        )}
 
-          {/* Audio File for Listening */}
-          {question.audioFileName && (
-            <div className="flex items-center gap-2 text-xs text-muted-col">
-              <Headphones className="w-3.5 h-3.5" />
-              {question.audioFileName}
-            </div>
-          )}
+        {question.audioFileName && (
+          <div className="flex items-center gap-2 text-xs text-muted-col">
+            <Headphones className="w-3.5 h-3.5" />
+            <span className="truncate">{question.audioFileName}</span>
+          </div>
+        )}
 
-          {/* Question Text */}
-          <p className="text-sm text-primary-col">{question.question}</p>
+        <p className="text-sm text-primary-col font-medium leading-relaxed">{question.question}</p>
 
-          {/* Options */}
-          {question.options && question.options.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {question.options.map((opt, i) => (
-                <span
+        {question.options && question.options.length > 0 && (
+          <div className="space-y-1.5">
+            {question.options.map((opt, i) => {
+              const isCorrect = question.correctAnswer === i;
+              return (
+                <div
                   key={i}
-                  className={`text-xs px-2 py-1 rounded-lg ${
-                    question.correctAnswer === i
-                      ? `${sectionColor.bg} ${sectionColor.text} font-medium`
-                      : "bg-[var(--accent)] text-muted-col"
+                  className={`flex items-center gap-2.5 text-sm ${
+                    isCorrect
+                      ? `${sectionColor.text} font-medium`
+                      : "text-muted-col"
                   }`}
                 >
-                  {optionLabels[i]}. {opt}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-1.5 shrink-0">
-          <button
-            onClick={onEdit}
-            className="p-2 rounded-lg bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/20 transition"
-            title="Edit"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+                  <span className={`w-5 h-5 rounded flex items-center justify-center text-xs font-semibold shrink-0 ${
+                    isCorrect
+                      ? `bg-[oklch(0.62_0.18_270)]/10 ${sectionColor.text}`
+                      : "bg-[var(--accent)] text-muted-col/60"
+                  }`}>
+                    {optionLabels[i]}
+                  </span>
+                  <span className="flex-1 truncate">{opt}</span>
+                  {isCorrect && <Check className="w-4 h-4 shrink-0" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      <RowActionMenu onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }
 
-// ============================================
-// QUESTION EDITOR DIALOG
-// ============================================
+// Question Editor Dialog
 function QuestionEditorDialog({
   open,
   onClose,
@@ -292,6 +250,7 @@ function QuestionEditorDialog({
   const [correctAnswer, setCorrectAnswer] = useState(0);
   const [explanation, setExplanation] = useState("");
   const [passage, setPassage] = useState("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (question) {
@@ -300,14 +259,23 @@ function QuestionEditorDialog({
       setCorrectAnswer(question.correctAnswer ?? 0);
       setExplanation(question.explanation || "");
       setPassage(question.passage || "");
+      setAudioFile(null);
     } else {
       setQuestionText("");
       setOptions(["", "", "", ""]);
       setCorrectAnswer(0);
       setExplanation("");
       setPassage("");
+      setAudioFile(null);
     }
   }, [question, open]);
+
+  const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAudioFile(file);
+    }
+  };
 
   const handleSave = () => {
     if (!questionText.trim()) return;
@@ -322,7 +290,7 @@ function QuestionEditorDialog({
       correctAnswer,
       explanation: explanation || undefined,
       passage: section === "Reading" ? passage : undefined,
-      audioFileName: question?.audioFileName,
+      audioFileName: audioFile?.name || question?.audioFileName,
     };
     onSave(newQuestion);
     onClose();
@@ -336,7 +304,7 @@ function QuestionEditorDialog({
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className={`w-6 h-6 rounded ${sectionColor.bg} ${sectionColor.text} flex items-center justify-center text-xs font-bold`}>
+            <span className={`w-6 h-6 rounded ${sectionColor.text} bg-[var(--accent)] flex items-center justify-center text-xs font-bold`}>
               {section[0]}
             </span>
             {question ? "Edit Question" : `Add ${section} Question`}
@@ -344,42 +312,57 @@ function QuestionEditorDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Reading Passage */}
           {section === "Reading" && (
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Reading Passage</label>
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Reading Passage</label>
               <textarea
                 value={passage}
                 onChange={(e) => setPassage(e.target.value)}
-                rows={2}
+                rows={3}
                 placeholder="Enter reading passage..."
-                className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition resize-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30 focus:border-[oklch(0.62_0.18_270)] transition resize-none"
               />
             </div>
           )}
 
-          {/* Question */}
+          {section === "Listening" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Audio File</label>
+              <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-[var(--border)] hover:border-[oklch(0.62_0.18_270)]/40 cursor-pointer transition bg-[var(--accent)]">
+                <Headphones className="w-5 h-5 text-muted-col" />
+                <span className="text-sm text-muted-col flex-1 truncate">
+                  {audioFile ? audioFile.name : "Click to upload audio file..."}
+                </span>
+                <input type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" onChange={handleAudioChange} className="hidden" />
+              </label>
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Question</label>
+            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Question</label>
             <textarea
               value={questionText}
               onChange={(e) => setQuestionText(e.target.value)}
-              rows={2}
+              rows={3}
               placeholder="Enter question text..."
-              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:border-primary/40 transition resize-none"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30 focus:border-[oklch(0.62_0.18_270)] transition resize-none"
             />
           </div>
 
-          {/* Options */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Answer Options</label>
+            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Answer Options</label>
             {options.map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${
-                  correctAnswer === i ? `${sectionColor.bg} ${sectionColor.text}` : "bg-[var(--accent)] text-muted-col"
-                }`}>
-                  {optionLabels[i]}
-                </span>
+                <button
+                  onClick={() => setCorrectAnswer(i)}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition shrink-0 ${
+                    correctAnswer === i
+                      ? `${sectionColor.text} bg-[oklch(0.62_0.18_270)]/10 ring-2 ring-[oklch(0.62_0.18_270)]/30`
+                      : "bg-[var(--accent)] text-muted-col hover:bg-[var(--border)]"
+                  }`}
+                >
+                  {correctAnswer === i ? <Check className="w-4 h-4" /> : optionLabels[i]}
+                </button>
                 <input
                   type="text"
                   value={opt}
@@ -389,44 +372,34 @@ function QuestionEditorDialog({
                     setOptions(newOptions);
                   }}
                   placeholder={`Option ${optionLabels[i]}`}
-                  className="flex-1 px-3 py-1.5 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm focus:outline-none focus:border-primary/40 transition"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--accent)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30 focus:border-[oklch(0.62_0.18_270)] transition"
                 />
-                <button
-                  onClick={() => setCorrectAnswer(i)}
-                  className={`px-2 py-1 rounded text-xs font-bold transition ${
-                    correctAnswer === i ? `${sectionColor.bg} ${sectionColor.text}` : "bg-[var(--accent)] text-muted-col hover:bg-[var(--border)]"
-                  }`}
-                >
-                  {correctAnswer === i ? "Correct" : "Set"}
-                </button>
               </div>
             ))}
           </div>
 
-          {/* Explanation */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Explanation (Optional)</label>
+            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Explanation <span className="normal-case font-normal">(Optional)</span></label>
             <input
               type="text"
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
               placeholder="Brief explanation..."
-              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm focus:outline-none focus:border-primary/40 transition"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--accent)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30 focus:border-[oklch(0.62_0.18_270)] transition"
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-[var(--accent)] text-secondary-col text-sm font-bold hover:bg-[var(--border)] transition"
+              className="px-5 py-2.5 rounded-xl border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={!questionText.trim()}
-              className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
             >
               {question ? "Update" : "Add"} Question
             </button>
@@ -437,65 +410,7 @@ function QuestionEditorDialog({
   );
 }
 
-// ============================================
-// LISTENING AUDIO MANAGER
-// ============================================
-function ListeningAudioManager({ questions, onUpdate }: { questions: ExamQuestion[]; onUpdate: (q: ExamQuestion[]) => void }) {
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const listeningQuestions = questions.filter((q) => q.section === "Listening");
-  const hasAudio = listeningQuestions.some((q) => q.audioFileName);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAudioFile(file);
-      setAudioUrl(URL.createObjectURL(file));
-    }
-  };
-
-  return (
-    <div className="card-base p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Headphones className="w-5 h-5 text-[oklch(0.6_0.22_25)]" />
-          <span className="text-sm font-bold text-primary-col">Audio Files</span>
-        </div>
-        <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[oklch(0.6_0.22_25)]/10 text-[oklch(0.6_0.22_25)] text-xs font-bold cursor-pointer hover:bg-[oklch(0.6_0.22_25)]/20 transition">
-          <Upload className="w-3.5 h-3.5" />
-          Upload Audio
-          <input type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" onChange={handleFileChange} className="hidden" />
-        </label>
-      </div>
-
-      {audioUrl && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--accent)]">
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="w-8 h-8 rounded-full bg-[oklch(0.6_0.22_25)] text-white flex items-center justify-center hover:bg-[oklch(0.6_0.22_25)]/80 transition"
-          >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-          </button>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-primary-col truncate">{audioFile?.name}</p>
-            <audio src={audioUrl} className="hidden" />
-          </div>
-          <span className="text-xs text-muted-col">{listeningQuestions.length} questions</span>
-        </div>
-      )}
-
-      {!hasAudio && !audioUrl && (
-        <p className="text-xs text-muted-col text-center py-4">No audio files uploaded yet</p>
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// SECTION CONTENT (Vocabulary/Grammar/Reading/Listening)
-// ============================================
+// Section Content
 function SectionContent({
   section,
   questions,
@@ -525,38 +440,37 @@ function SectionContent({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center`}>
+          <div className={`w-10 h-10 rounded-xl border border-[var(--border)] flex items-center justify-center`}>
             <SectionIcon className={`w-5 h-5 ${colors.text}`} />
           </div>
           <div>
-            <h3 className="font-bold text-primary-col">{section} Questions</h3>
+            <h3 className="font-semibold text-primary-col">{section} Questions</h3>
             <p className="text-xs text-muted-col">
-              {count}/{required} {isComplete ? <span className="text-[var(--status-active)] ml-1">Complete</span> : ""}
+              {count}/{required}
+              {isComplete && <span className="text-[var(--status-active)] ml-1.5 font-medium">Complete</span>}
             </p>
           </div>
         </div>
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/10 transition text-xs font-medium"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           Add
         </button>
       </div>
 
-      {/* Questions */}
       {sectionQuestions.length === 0 ? (
-        <div className="card-base p-8 text-center">
-          <SectionIcon className="w-8 h-8 text-muted-col mx-auto mb-2" />
-          <p className="text-sm text-muted-col mb-3">No questions yet</p>
+        <div className="p-10 text-center rounded-xl border border-dashed border-[var(--border)]">
+          <SectionIcon className="w-8 h-8 text-muted-col/50 mx-auto mb-3" />
+          <p className="text-sm text-muted-col mb-4">No questions added yet</p>
           <button
             onClick={onAdd}
-            className="px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/10 transition text-sm font-medium"
           >
-            <Plus className="w-4 h-4 inline mr-1" />
+            <Plus className="w-4 h-4" />
             Add First Question
           </button>
         </div>
@@ -577,72 +491,7 @@ function SectionContent({
   );
 }
 
-// ============================================
-// TOTAL TAB CONTENT
-// ============================================
-function TotalContent({
-  exam,
-  questions,
-  structure,
-}: {
-  exam: JLPTExam;
-  questions: ExamQuestion[];
-  structure: { vocab: number; grammar: number; reading: number; listening: number };
-}) {
-  const vocabCount = questions.filter((q) => q.section === "Vocabulary").length;
-  const grammarCount = questions.filter((q) => q.section === "Grammar").length;
-  const readingCount = questions.filter((q) => q.section === "Reading").length;
-  const listeningCount = questions.filter((q) => q.section === "Listening").length;
-
-  const stats = [
-    { label: "Total", value: questions.length, color: "bg-primary/10 text-primary", icon: BarChart3 },
-    { label: "Vocabulary", value: vocabCount, color: SECTION_COLORS.vocabulary.bg + " " + SECTION_COLORS.vocabulary.text, icon: BookOpen },
-    { label: "Grammar", value: grammarCount, color: SECTION_COLORS.grammar.bg + " " + SECTION_COLORS.grammar.text, icon: GraduationCap },
-    { label: "Reading", value: readingCount, color: SECTION_COLORS.reading.bg + " " + SECTION_COLORS.reading.text, icon: FileText },
-    { label: "Listening", value: listeningCount, color: SECTION_COLORS.listening.bg + " " + SECTION_COLORS.listening.text, icon: Headphones },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className="card-base p-4 text-center">
-              <Icon className={`w-5 h-5 mx-auto mb-2 ${stat.color}`} />
-              <p className="text-2xl font-black text-primary-col">{stat.value}</p>
-              <p className="text-xs text-muted-col">{stat.label}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Info Bar */}
-      <div className="card-base p-4">
-        <div className="flex flex-wrap items-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-muted-col" />
-            <span className="text-secondary-col">Duration:</span>
-            <span className="font-bold text-primary-col">{exam.duration} min</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-secondary-col">Status:</span>
-            <StatusBadge status={exam.status} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-secondary-col">Last updated:</span>
-            <span className="text-muted-col">{new Date(exam.updatedAt).toLocaleDateString()}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// MAIN PAGE COMPONENT
-// ============================================
+// Main Page Component
 function EditExamPage() {
   const { level, examId } = Route.useParams();
   const navigate = useNavigate();
@@ -652,7 +501,6 @@ function EditExamPage() {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Form state
   const [examName, setExamName] = useState("");
   const [status, setStatus] = useState<ExamStatus>("Draft");
   const [duration, setDuration] = useState(0);
@@ -661,10 +509,8 @@ function EditExamPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Tab state
   const [activeTab, setActiveTab] = useState<TabType>("total");
 
-  // Modal states
   const [editingQuestion, setEditingQuestion] = useState<ExamQuestion | null>(null);
   const [showQuestionEditor, setShowQuestionEditor] = useState(false);
   const [editingSection, setEditingSection] = useState<"Vocabulary" | "Grammar" | "Reading" | "Listening">("Vocabulary");
@@ -745,10 +591,7 @@ function EditExamPage() {
         ...exam,
         name: examName,
         status,
-        vocabularyQuestions: questions.filter((q) => q.section === "Vocabulary").length,
-        grammarQuestions: questions.filter((q) => q.section === "Grammar").length,
-        readingQuestions: questions.filter((q) => q.section === "Reading").length,
-        listeningQuestions: questions.filter((q) => q.section === "Listening").length,
+        questions,
         duration,
       };
 
@@ -776,7 +619,7 @@ function EditExamPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
+        <div className="w-10 h-10 border-2 border-[oklch(0.62_0.18_270)]/30 border-t-[oklch(0.62_0.18_270)] rounded-full animate-spin mb-4" />
         <p className="text-sm text-muted-col">Loading exam...</p>
       </div>
     );
@@ -785,9 +628,9 @@ function EditExamPage() {
   if (!exam) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <AlertTriangle className="w-16 h-16 text-[var(--status-rejected)]/50 mb-4" />
+        <AlertTriangle className="w-16 h-16 text-red-500/30 mb-4" />
         <h2 className="text-xl font-bold text-primary-col mb-2">Exam Not Found</h2>
-        <Link to="/admin/jlpt-exam/$level" params={{ level }} className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold hover:bg-primary/20 transition">
+        <Link to="/admin/jlpt-exam/$level" params={{ level }} className="px-4 py-2 rounded-xl bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)] text-sm font-medium hover:bg-[oklch(0.62_0.18_270)]/20 transition">
           Back to Exam List
         </Link>
       </div>
@@ -795,37 +638,35 @@ function EditExamPage() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
-        <Link to="/admin/jlpt-exam" className="text-muted-col hover:text-primary transition">JLPT Exam</Link>
-        <ChevronRight className="w-4 h-4 text-muted-col" />
-        <span className="text-primary-col font-medium">JLPT {upperLevel}</span>
-      </div>
+    <div className="space-y-5">
+      {/* Back Button */}
+      <Link
+        to="/admin/jlpt-exam/$level"
+        params={{ level: level.toLowerCase() }}
+        className="inline-flex items-center gap-2 text-sm text-muted-col hover:text-primary-col transition"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to {upperLevel} JLPT Exam
+      </Link>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-display font-black text-primary-col">Exam Editor</h1>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
-            upperLevel === "N5" ? "bg-[oklch(0.62_0.18_270)]/12 text-[oklch(0.62_0.18_270)] border-[oklch(0.62_0.18_270)]/20" :
-            upperLevel === "N4" ? "bg-[oklch(0.72_0.15_230)]/12 text-[oklch(0.72_0.15_230)] border-[oklch(0.72_0.15_230)]/20" :
-            "bg-[var(--accent)] text-muted-col border-[var(--border)]"
-          }`}>
-            {upperLevel}
-          </span>
+          <h1 className="text-2xl font-display font-black text-primary-col">{examName || "Exam Editor"}</h1>
+          <StatusBadge status={status} />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate({ to: "/admin/jlpt-exam/$level", params: { level } })}
-            className="px-4 py-2 rounded-lg bg-[var(--accent)] text-secondary-col text-sm font-bold hover:bg-[var(--border)] transition"
+          <Link
+            to="/admin/jlpt-exam/$level"
+            params={{ level: level.toLowerCase() }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
           >
             Cancel
-          </button>
+          </Link>
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:bg-primary/90 transition disabled:opacity-50 flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save Changes
@@ -833,15 +674,163 @@ function EditExamPage() {
         </div>
       </div>
 
-      {/* Exam Settings Card */}
-      <ExamSettingsCard
-        examName={examName}
-        setExamName={setExamName}
-        duration={duration}
-        setDuration={setDuration}
-        status={status}
-        setStatus={setStatus}
-      />
+      {/* Main Container - Increased padding */}
+      <div className="card-base p-6 space-y-8">
+        {/* Exam Information Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Settings className="w-4 h-4 text-muted-col" />
+            <h2 className="text-sm font-semibold text-muted-col uppercase tracking-wider">Exam Information</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Exam Name</label>
+              <input
+                type="text"
+                value={examName}
+                onChange={(e) => setExamName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30 focus:border-[oklch(0.62_0.18_270)] transition placeholder:text-muted-col/50"
+                placeholder="Enter exam name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Duration (min)</label>
+              <input
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(Math.max(1, parseInt(e.target.value) || 0))}
+                min={1}
+                max={300}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30 focus:border-[oklch(0.62_0.18_270)] transition"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Status</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ExamStatus)}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30 focus:border-[oklch(0.62_0.18_270)] transition cursor-pointer"
+              >
+                <option value="Draft">Draft</option>
+                <option value="Active">Active</option>
+                <option value="Archived">Archived</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-[var(--border)]" />
+
+        {/* Question Management Section */}
+        <div className="space-y-5">
+          <h2 className="text-sm font-semibold text-muted-col uppercase tracking-wider">Question Management</h2>
+
+          {/* Redesigned Tabs - Underline Style */}
+          <div className="border-b border-[var(--border)]">
+            <div className="flex items-end gap-1 -mb-px overflow-x-auto">
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition whitespace-nowrap border-b-2 ${
+                      isActive
+                        ? "text-[oklch(0.62_0.18_270)] border-[oklch(0.62_0.18_270)]"
+                        : "text-muted-col border-transparent hover:text-primary-col hover:border-[var(--border)]"
+                    }`}
+                  >
+                    <span className="hidden sm:inline">{tab.icon}</span>
+                    {tab.label}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      isActive
+                        ? "bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)]"
+                        : "bg-[var(--accent)] text-muted-col"
+                    }`}>
+                      {tabCounts[tab.id]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div>
+            {activeTab === "total" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-col">All questions across all sections.</p>
+                {questions.length === 0 ? (
+                  <div className="p-10 text-center rounded-xl border border-dashed border-[var(--border)]">
+                    <BarChart3 className="w-8 h-8 text-muted-col/50 mx-auto mb-3" />
+                    <p className="text-sm text-muted-col mb-4">No questions added yet</p>
+                    <button
+                      onClick={handleAddQuestion}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/10 transition text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add First Question
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[var(--border)]/50">
+                    {questions.map((q) => (
+                      <QuestionCard
+                        key={q.id}
+                        question={q}
+                        sectionColor={SECTION_COLORS[q.section.toLowerCase() as keyof typeof SECTION_COLORS]}
+                        onEdit={() => handleEditQuestion(q)}
+                        onDelete={() => handleDeleteClick(q.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {activeTab === "vocabulary" && (
+              <SectionContent
+                section="Vocabulary"
+                questions={questions}
+                required={structure.vocab}
+                onAdd={handleAddQuestion}
+                onEdit={handleEditQuestion}
+                onDelete={handleDeleteClick}
+              />
+            )}
+            {activeTab === "grammar" && (
+              <SectionContent
+                section="Grammar"
+                questions={questions}
+                required={structure.grammar}
+                onAdd={handleAddQuestion}
+                onEdit={handleEditQuestion}
+                onDelete={handleDeleteClick}
+              />
+            )}
+            {activeTab === "reading" && (
+              <SectionContent
+                section="Reading"
+                questions={questions}
+                required={structure.reading}
+                onAdd={handleAddQuestion}
+                onEdit={handleEditQuestion}
+                onDelete={handleDeleteClick}
+              />
+            )}
+            {activeTab === "listening" && (
+              <SectionContent
+                section="Listening"
+                questions={questions}
+                required={structure.listening}
+                onAdd={handleAddQuestion}
+                onEdit={handleEditQuestion}
+                onDelete={handleDeleteClick}
+              />
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Success/Error Messages */}
       <AnimatePresence>
@@ -850,7 +839,7 @@ function EditExamPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 right-4 z-50 px-5 py-3 rounded-xl bg-[var(--status-active)] text-white shadow-lg flex items-center gap-2 font-medium"
+            className="fixed bottom-4 right-4 z-50 px-5 py-3 rounded-xl bg-[var(--status-active)] text-white shadow-lg flex items-center gap-2 text-sm font-medium"
           >
             <CheckCircle className="w-5 h-5" />
             {successMessage}
@@ -864,88 +853,13 @@ function EditExamPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="px-4 py-3 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm font-medium flex items-center gap-2"
+            className="px-4 py-3 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium flex items-center gap-2"
           >
             <AlertTriangle className="w-4 h-4" />
             {error}
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Tabs */}
-      <div className="card-base p-1">
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-primary/12 text-primary"
-                  : "text-muted-col hover:text-primary-col hover:bg-[var(--accent)]"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                activeTab === tab.id ? "bg-primary/20 text-primary" : "bg-[var(--accent)] text-muted-col"
-              }`}>
-                {tabCounts[tab.id]}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div>
-        {activeTab === "total" && (
-          <TotalContent exam={exam} questions={questions} structure={structure} />
-        )}
-        {activeTab === "vocabulary" && (
-          <SectionContent
-            section="Vocabulary"
-            questions={questions}
-            required={structure.vocab}
-            onAdd={handleAddQuestion}
-            onEdit={handleEditQuestion}
-            onDelete={handleDeleteClick}
-          />
-        )}
-        {activeTab === "grammar" && (
-          <SectionContent
-            section="Grammar"
-            questions={questions}
-            required={structure.grammar}
-            onAdd={handleAddQuestion}
-            onEdit={handleEditQuestion}
-            onDelete={handleDeleteClick}
-          />
-        )}
-        {activeTab === "reading" && (
-          <SectionContent
-            section="Reading"
-            questions={questions}
-            required={structure.reading}
-            onAdd={handleAddQuestion}
-            onEdit={handleEditQuestion}
-            onDelete={handleDeleteClick}
-          />
-        )}
-        {activeTab === "listening" && (
-          <div className="space-y-4">
-            <ListeningAudioManager questions={questions} onUpdate={setQuestions} />
-            <SectionContent
-              section="Listening"
-              questions={questions}
-              required={structure.listening}
-              onAdd={handleAddQuestion}
-              onEdit={handleEditQuestion}
-              onDelete={handleDeleteClick}
-            />
-          </div>
-        )}
-      </div>
 
       {/* Delete Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
