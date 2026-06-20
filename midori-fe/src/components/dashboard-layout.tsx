@@ -9,8 +9,8 @@ import {
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
   Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
-  Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, FolderOpen, ScrollText,
-  BookUser, Star, Library, PenLine, Video, BookText, Sticker,
+  Shield, FileText, FileBarChart, Eye, BookMarked, FolderOpen,
+  BookUser, Star, Library, Sticker,
   Activity, BarChart, UserCog, UsersRound, Calendar, GraduationCap as CapIcon
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
@@ -62,31 +62,19 @@ const adminNav: NavItem[] = [
   // 3. Class Management
   { to: "/admin/class-management", label: "Class Management", icon: BookUser },
 
-  // 4. Exam Bank (Question Bank)
-  { to: "/admin/question-bank", label: "Question Bank", icon: ClipboardCheck,
-    children: [
-      { to: "/admin/question-bank/n5", label: "N5 Questions", icon: Sticker },
-      { to: "/admin/question-bank/n4", label: "N4 Questions", icon: Sticker },
-      { to: "/admin/question-bank/n3", label: "N3 Questions", icon: Sticker },
-      { to: "/admin/question-bank/n2", label: "N2 Questions", icon: Sticker },
-      { to: "/admin/question-bank/n1", label: "N1 Questions", icon: Sticker },
-    ]
-  },
+  // 4. Question Bank
+  { to: "/admin/question-bank", label: "Question Bank", icon: ClipboardCheck },
 
-  // 5. Content Library
-  { to: "/admin/grammar", label: "Content Library", icon: Library,
-    children: [
-      { to: "/admin/grammar", label: "Grammar", icon: PenLine },
-      { to: "/admin/vocabulary-library", label: "Vocabulary", icon: BookOpen },
-      { to: "/admin/listening-library", label: "Listening", icon: Video },
-      { to: "/admin/reading-library", label: "Reading", icon: BookText },
-      { to: "/admin/kanji-library", label: "Kanji", icon: ScrollText },
-      { to: "/admin/shadowing-library", label: "Shadowing", icon: Mic2 },
-      { to: "/admin/flashcard-library", label: "Flashcards", icon: Layers },
-    ]
-  },
+  // 5. JLPT Exam Management
+  { to: "/admin/jlpt-exam", label: "JLPT Exam", icon: FileText },
 
-  // 6. Profile
+  // 6. Content Library
+  { to: "/admin/content-library", label: "Content Library", icon: Library },
+
+  // 7. Notification Management
+  { to: "/admin/notification", label: "Notification", icon: Bell },
+
+  // 8. Profile
   { to: "/admin/profile", label: "Profile", icon: User },
 ];
 
@@ -145,7 +133,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
 
   // Check if item or any child is active
   const isItemOrChildActive = useCallback((item: NavItem): boolean => {
-    if (item.children) {
+    if (item.children && item.children.length > 0) {
       return item.children.some(child => pathname === child.to || pathname.startsWith(child.to + '/'));
     }
     const isBaseRoute = item.to === `/${role}`;
@@ -154,7 +142,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
 
   // Get active child for a parent item
   const getActiveChild = useCallback((item: NavItem): string | null => {
-    if (!item.children) return null;
+    if (!item.children || item.children.length === 0) return null;
     const activeChild = item.children.find(child => 
       pathname === child.to || pathname.startsWith(child.to + '/')
     );
@@ -668,7 +656,7 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
           >
-            {children}
+            {(() => { console.log("[DashboardLayout] Rendering children for role:", role); return children; })()}
           </motion.div>
         </main>
 
