@@ -44,30 +44,33 @@ import { Route as StudentGrammarRouteImport } from './routes/student.grammar'
 import { Route as StudentFlashcardsRouteImport } from './routes/student.flashcards'
 import { Route as StudentExamsRouteImport } from './routes/student.exams'
 import { Route as StudentAiSenseiRouteImport } from './routes/student.ai-sensei'
-import { Route as AdminVocabularyLibraryRouteImport } from './routes/admin.vocabulary-library'
-import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTeachersRouteImport } from './routes/admin.teachers'
-import { Route as AdminStudentsRouteImport } from './routes/admin.students'
-import { Route as AdminShadowingLibraryRouteImport } from './routes/admin.shadowing-library'
-import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
-import { Route as AdminRolesRouteImport } from './routes/admin.roles'
-import { Route as AdminReadingLibraryRouteImport } from './routes/admin.reading-library'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
-import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
-import { Route as AdminModerationRouteImport } from './routes/admin.moderation'
-import { Route as AdminListeningLibraryRouteImport } from './routes/admin.listening-library'
-import { Route as AdminGrammarApprovalRouteImport } from './routes/admin.grammar-approval'
-import { Route as AdminGrammarRouteImport } from './routes/admin.grammar'
-import { Route as AdminFlashcardLibraryRouteImport } from './routes/admin.flashcard-library'
-import { Route as AdminExamsRouteImport } from './routes/admin.exams'
-import { Route as AdminContentApprovalRouteImport } from './routes/admin.content-approval'
-import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
-import { Route as AdminAiGeneratorRouteImport } from './routes/admin.ai-generator'
+import { Route as AdminNotificationRouteImport } from './routes/admin.notification'
 import { Route as TeacherVocabularyLessonIdRouteImport } from './routes/teacher.vocabulary.$lessonId'
 import { Route as StudentVocabularyLessonIdRouteImport } from './routes/student.vocabulary.$lessonId'
 import { Route as StudentGrammarIndexRouteImport } from './routes/student.grammar._index'
 import { Route as StudentGrammarGrammarIdRouteImport } from './routes/student.grammar.$grammarId'
+import { Route as AdminTeachersTeacherIdRouteImport } from './routes/admin.teachers.$teacherId'
+import { Route as AdminQuestionBankQuestionBuilderRouteImport } from './routes/admin.question-bank.question-builder'
+import { Route as AdminQuestionBankLessonDetailRouteImport } from './routes/admin.question-bank.lesson-detail'
+import { Route as AdminQuestionBankImportExcelRouteImport } from './routes/admin.question-bank.import-excel'
+import { Route as AdminQuestionBankIndexRouteImport } from './routes/admin.question-bank._index'
+import { Route as AdminQuestionBankLevelRouteImport } from './routes/admin.question-bank.$level'
+import { Route as AdminJlptExamIndexRouteImport } from './routes/admin.jlpt-exam._index'
+import { Route as AdminContentLibraryIndexRouteImport } from './routes/admin.content-library._index'
+import { Route as AdminContentLibraryLevelRouteImport } from './routes/admin.content-library.$level'
+import { Route as AdminClassClassIdRouteImport } from './routes/admin.class.$classId'
+import { Route as AdminClassManagementIndexRouteImport } from './routes/admin.class-management._index'
+import { Route as AdminContentLibraryLevelIndexRouteImport } from './routes/admin.content-library.$level.index'
 import { Route as StudentGrammarGrammarIdStructureIdRouteImport } from './routes/student.grammar.$grammarId.$structureId'
+import { Route as AdminTeachersApprovalTeacherIdRouteImport } from './routes/admin.teachers.approval.$teacherId'
+import { Route as AdminTeachersTeacherIdClassesRouteImport } from './routes/admin.teachers.$teacherId.classes'
+import { Route as AdminTeachersTeacherIdAnalyticsRouteImport } from './routes/admin.teachers.$teacherId.analytics'
+import { Route as AdminJlptExamLevelCreateRouteImport } from './routes/admin.jlpt-exam.$level.create'
+import { Route as AdminJlptExamLevelIndexRouteImport } from './routes/admin.jlpt-exam.$level._index'
+import { Route as AdminJlptExamLevelExamIdEditRouteImport } from './routes/admin.jlpt-exam.$level.$examId.edit'
+import { Route as AdminContentLibraryLevelSkillIndexRouteImport } from './routes/admin.content-library.$level.$skill._index'
 
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
   id: '/verify-otp',
@@ -244,44 +247,9 @@ const StudentAiSenseiRoute = StudentAiSenseiRouteImport.update({
   path: '/ai-sensei',
   getParentRoute: () => StudentRoute,
 } as any)
-const AdminVocabularyLibraryRoute = AdminVocabularyLibraryRouteImport.update({
-  id: '/vocabulary-library',
-  path: '/vocabulary-library',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminTeachersRoute = AdminTeachersRouteImport.update({
   id: '/teachers',
   path: '/teachers',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminStudentsRoute = AdminStudentsRouteImport.update({
-  id: '/students',
-  path: '/students',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminShadowingLibraryRoute = AdminShadowingLibraryRouteImport.update({
-  id: '/shadowing-library',
-  path: '/shadowing-library',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRolesRoute = AdminRolesRouteImport.update({
-  id: '/roles',
-  path: '/roles',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminReadingLibraryRoute = AdminReadingLibraryRouteImport.update({
-  id: '/reading-library',
-  path: '/reading-library',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProfileRoute = AdminProfileRouteImport.update({
@@ -289,54 +257,9 @@ const AdminProfileRoute = AdminProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminModerationRoute = AdminModerationRouteImport.update({
-  id: '/moderation',
-  path: '/moderation',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminListeningLibraryRoute = AdminListeningLibraryRouteImport.update({
-  id: '/listening-library',
-  path: '/listening-library',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminGrammarApprovalRoute = AdminGrammarApprovalRouteImport.update({
-  id: '/grammar-approval',
-  path: '/grammar-approval',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminGrammarRoute = AdminGrammarRouteImport.update({
-  id: '/grammar',
-  path: '/grammar',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminFlashcardLibraryRoute = AdminFlashcardLibraryRouteImport.update({
-  id: '/flashcard-library',
-  path: '/flashcard-library',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminExamsRoute = AdminExamsRouteImport.update({
-  id: '/exams',
-  path: '/exams',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminContentApprovalRoute = AdminContentApprovalRouteImport.update({
-  id: '/content-approval',
-  path: '/content-approval',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAiGeneratorRoute = AdminAiGeneratorRouteImport.update({
-  id: '/ai-generator',
-  path: '/ai-generator',
+const AdminNotificationRoute = AdminNotificationRouteImport.update({
+  id: '/notification',
+  path: '/notification',
   getParentRoute: () => AdminRoute,
 } as any)
 const TeacherVocabularyLessonIdRoute =
@@ -360,11 +283,119 @@ const StudentGrammarGrammarIdRoute = StudentGrammarGrammarIdRouteImport.update({
   path: '/$grammarId',
   getParentRoute: () => StudentGrammarRoute,
 } as any)
+const AdminTeachersTeacherIdRoute = AdminTeachersTeacherIdRouteImport.update({
+  id: '/$teacherId',
+  path: '/$teacherId',
+  getParentRoute: () => AdminTeachersRoute,
+} as any)
+const AdminQuestionBankQuestionBuilderRoute =
+  AdminQuestionBankQuestionBuilderRouteImport.update({
+    id: '/question-bank/question-builder',
+    path: '/question-bank/question-builder',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminQuestionBankLessonDetailRoute =
+  AdminQuestionBankLessonDetailRouteImport.update({
+    id: '/question-bank/lesson-detail',
+    path: '/question-bank/lesson-detail',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminQuestionBankImportExcelRoute =
+  AdminQuestionBankImportExcelRouteImport.update({
+    id: '/question-bank/import-excel',
+    path: '/question-bank/import-excel',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminQuestionBankIndexRoute = AdminQuestionBankIndexRouteImport.update({
+  id: '/question-bank/_index',
+  path: '/question-bank',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminQuestionBankLevelRoute = AdminQuestionBankLevelRouteImport.update({
+  id: '/question-bank/$level',
+  path: '/question-bank/$level',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminJlptExamIndexRoute = AdminJlptExamIndexRouteImport.update({
+  id: '/jlpt-exam/_index',
+  path: '/jlpt-exam',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContentLibraryIndexRoute =
+  AdminContentLibraryIndexRouteImport.update({
+    id: '/content-library/_index',
+    path: '/content-library',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminContentLibraryLevelRoute =
+  AdminContentLibraryLevelRouteImport.update({
+    id: '/content-library/$level',
+    path: '/content-library/$level',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminClassClassIdRoute = AdminClassClassIdRouteImport.update({
+  id: '/class/$classId',
+  path: '/class/$classId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminClassManagementIndexRoute =
+  AdminClassManagementIndexRouteImport.update({
+    id: '/class-management/_index',
+    path: '/class-management',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminContentLibraryLevelIndexRoute =
+  AdminContentLibraryLevelIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AdminContentLibraryLevelRoute,
+  } as any)
 const StudentGrammarGrammarIdStructureIdRoute =
   StudentGrammarGrammarIdStructureIdRouteImport.update({
     id: '/$structureId',
     path: '/$structureId',
     getParentRoute: () => StudentGrammarGrammarIdRoute,
+  } as any)
+const AdminTeachersApprovalTeacherIdRoute =
+  AdminTeachersApprovalTeacherIdRouteImport.update({
+    id: '/approval/$teacherId',
+    path: '/approval/$teacherId',
+    getParentRoute: () => AdminTeachersRoute,
+  } as any)
+const AdminTeachersTeacherIdClassesRoute =
+  AdminTeachersTeacherIdClassesRouteImport.update({
+    id: '/classes',
+    path: '/classes',
+    getParentRoute: () => AdminTeachersTeacherIdRoute,
+  } as any)
+const AdminTeachersTeacherIdAnalyticsRoute =
+  AdminTeachersTeacherIdAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AdminTeachersTeacherIdRoute,
+  } as any)
+const AdminJlptExamLevelCreateRoute =
+  AdminJlptExamLevelCreateRouteImport.update({
+    id: '/jlpt-exam/$level/create',
+    path: '/jlpt-exam/$level/create',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminJlptExamLevelIndexRoute = AdminJlptExamLevelIndexRouteImport.update({
+  id: '/jlpt-exam/$level/_index',
+  path: '/jlpt-exam/$level',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminJlptExamLevelExamIdEditRoute =
+  AdminJlptExamLevelExamIdEditRouteImport.update({
+    id: '/jlpt-exam/$level/$examId/edit',
+    path: '/jlpt-exam/$level/$examId/edit',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminContentLibraryLevelSkillIndexRoute =
+  AdminContentLibraryLevelSkillIndexRouteImport.update({
+    id: '/$skill/_index',
+    path: '/$skill',
+    getParentRoute: () => AdminContentLibraryLevelRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -379,25 +410,9 @@ export interface FileRoutesByFullPath {
   '/teacher': typeof TeacherRouteWithChildren
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
-  '/admin/ai-generator': typeof AdminAiGeneratorRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
-  '/admin/content-approval': typeof AdminContentApprovalRoute
-  '/admin/exams': typeof AdminExamsRoute
-  '/admin/flashcard-library': typeof AdminFlashcardLibraryRoute
-  '/admin/grammar': typeof AdminGrammarRoute
-  '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
-  '/admin/listening-library': typeof AdminListeningLibraryRoute
-  '/admin/moderation': typeof AdminModerationRoute
-  '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/notification': typeof AdminNotificationRoute
   '/admin/profile': typeof AdminProfileRoute
-  '/admin/reading-library': typeof AdminReadingLibraryRoute
-  '/admin/roles': typeof AdminRolesRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/shadowing-library': typeof AdminShadowingLibraryRoute
-  '/admin/students': typeof AdminStudentsRoute
-  '/admin/teachers': typeof AdminTeachersRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
+  '/admin/teachers': typeof AdminTeachersRouteWithChildren
   '/student/ai-sensei': typeof StudentAiSenseiRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
@@ -422,10 +437,29 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/teacher/': typeof TeacherIndexRoute
+  '/admin/class-management': typeof AdminClassManagementIndexRoute
+  '/admin/class/$classId': typeof AdminClassClassIdRoute
+  '/admin/content-library/$level': typeof AdminContentLibraryLevelRouteWithChildren
+  '/admin/content-library': typeof AdminContentLibraryIndexRoute
+  '/admin/jlpt-exam': typeof AdminJlptExamIndexRoute
+  '/admin/question-bank/$level': typeof AdminQuestionBankLevelRoute
+  '/admin/question-bank': typeof AdminQuestionBankIndexRoute
+  '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
+  '/admin/question-bank/lesson-detail': typeof AdminQuestionBankLessonDetailRoute
+  '/admin/question-bank/question-builder': typeof AdminQuestionBankQuestionBuilderRoute
+  '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
+  '/admin/jlpt-exam/$level': typeof AdminJlptExamLevelIndexRoute
+  '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
+  '/admin/teachers/$teacherId/analytics': typeof AdminTeachersTeacherIdAnalyticsRoute
+  '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
+  '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
+  '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
+  '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -436,25 +470,9 @@ export interface FileRoutesByTo {
   '/reset-success': typeof ResetSuccessRoute
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
-  '/admin/ai-generator': typeof AdminAiGeneratorRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
-  '/admin/content-approval': typeof AdminContentApprovalRoute
-  '/admin/exams': typeof AdminExamsRoute
-  '/admin/flashcard-library': typeof AdminFlashcardLibraryRoute
-  '/admin/grammar': typeof AdminGrammarRoute
-  '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
-  '/admin/listening-library': typeof AdminListeningLibraryRoute
-  '/admin/moderation': typeof AdminModerationRoute
-  '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/notification': typeof AdminNotificationRoute
   '/admin/profile': typeof AdminProfileRoute
-  '/admin/reading-library': typeof AdminReadingLibraryRoute
-  '/admin/roles': typeof AdminRolesRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/shadowing-library': typeof AdminShadowingLibraryRoute
-  '/admin/students': typeof AdminStudentsRoute
-  '/admin/teachers': typeof AdminTeachersRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
+  '/admin/teachers': typeof AdminTeachersRouteWithChildren
   '/student/ai-sensei': typeof StudentAiSenseiRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
@@ -479,10 +497,28 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/student': typeof StudentIndexRoute
   '/teacher': typeof TeacherIndexRoute
+  '/admin/class-management': typeof AdminClassManagementIndexRoute
+  '/admin/class/$classId': typeof AdminClassClassIdRoute
+  '/admin/content-library': typeof AdminContentLibraryIndexRoute
+  '/admin/jlpt-exam': typeof AdminJlptExamIndexRoute
+  '/admin/question-bank/$level': typeof AdminQuestionBankLevelRoute
+  '/admin/question-bank': typeof AdminQuestionBankIndexRoute
+  '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
+  '/admin/question-bank/lesson-detail': typeof AdminQuestionBankLessonDetailRoute
+  '/admin/question-bank/question-builder': typeof AdminQuestionBankQuestionBuilderRoute
+  '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
+  '/admin/jlpt-exam/$level': typeof AdminJlptExamLevelIndexRoute
+  '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
+  '/admin/teachers/$teacherId/analytics': typeof AdminTeachersTeacherIdAnalyticsRoute
+  '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
+  '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/admin/content-library/$level': typeof AdminContentLibraryLevelIndexRoute
+  '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
+  '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -497,25 +533,9 @@ export interface FileRoutesById {
   '/teacher': typeof TeacherRouteWithChildren
   '/teacher-pending': typeof TeacherPendingRoute
   '/verify-otp': typeof VerifyOtpRoute
-  '/admin/ai-generator': typeof AdminAiGeneratorRoute
-  '/admin/analytics': typeof AdminAnalyticsRoute
-  '/admin/content-approval': typeof AdminContentApprovalRoute
-  '/admin/exams': typeof AdminExamsRoute
-  '/admin/flashcard-library': typeof AdminFlashcardLibraryRoute
-  '/admin/grammar': typeof AdminGrammarRoute
-  '/admin/grammar-approval': typeof AdminGrammarApprovalRoute
-  '/admin/listening-library': typeof AdminListeningLibraryRoute
-  '/admin/moderation': typeof AdminModerationRoute
-  '/admin/notifications': typeof AdminNotificationsRoute
+  '/admin/notification': typeof AdminNotificationRoute
   '/admin/profile': typeof AdminProfileRoute
-  '/admin/reading-library': typeof AdminReadingLibraryRoute
-  '/admin/roles': typeof AdminRolesRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/shadowing-library': typeof AdminShadowingLibraryRoute
-  '/admin/students': typeof AdminStudentsRoute
-  '/admin/teachers': typeof AdminTeachersRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/admin/vocabulary-library': typeof AdminVocabularyLibraryRoute
+  '/admin/teachers': typeof AdminTeachersRouteWithChildren
   '/student/ai-sensei': typeof StudentAiSenseiRoute
   '/student/exams': typeof StudentExamsRoute
   '/student/flashcards': typeof StudentFlashcardsRoute
@@ -540,11 +560,30 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/student/': typeof StudentIndexRoute
   '/teacher/': typeof TeacherIndexRoute
+  '/admin/class-management/_index': typeof AdminClassManagementIndexRoute
+  '/admin/class/$classId': typeof AdminClassClassIdRoute
+  '/admin/content-library/$level': typeof AdminContentLibraryLevelRouteWithChildren
+  '/admin/content-library/_index': typeof AdminContentLibraryIndexRoute
+  '/admin/jlpt-exam/_index': typeof AdminJlptExamIndexRoute
+  '/admin/question-bank/$level': typeof AdminQuestionBankLevelRoute
+  '/admin/question-bank/_index': typeof AdminQuestionBankIndexRoute
+  '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
+  '/admin/question-bank/lesson-detail': typeof AdminQuestionBankLessonDetailRoute
+  '/admin/question-bank/question-builder': typeof AdminQuestionBankQuestionBuilderRoute
+  '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/grammar/_index': typeof StudentGrammarIndexRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
+  '/admin/jlpt-exam/$level/_index': typeof AdminJlptExamLevelIndexRoute
+  '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
+  '/admin/teachers/$teacherId/analytics': typeof AdminTeachersTeacherIdAnalyticsRoute
+  '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
+  '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
+  '/admin/content-library/$level/$skill/_index': typeof AdminContentLibraryLevelSkillIndexRoute
+  '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -560,25 +599,9 @@ export interface FileRouteTypes {
     | '/teacher'
     | '/teacher-pending'
     | '/verify-otp'
-    | '/admin/ai-generator'
-    | '/admin/analytics'
-    | '/admin/content-approval'
-    | '/admin/exams'
-    | '/admin/flashcard-library'
-    | '/admin/grammar'
-    | '/admin/grammar-approval'
-    | '/admin/listening-library'
-    | '/admin/moderation'
-    | '/admin/notifications'
+    | '/admin/notification'
     | '/admin/profile'
-    | '/admin/reading-library'
-    | '/admin/roles'
-    | '/admin/settings'
-    | '/admin/shadowing-library'
-    | '/admin/students'
     | '/admin/teachers'
-    | '/admin/users'
-    | '/admin/vocabulary-library'
     | '/student/ai-sensei'
     | '/student/exams'
     | '/student/flashcards'
@@ -603,10 +626,29 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/teacher/'
+    | '/admin/class-management'
+    | '/admin/class/$classId'
+    | '/admin/content-library/$level'
+    | '/admin/content-library'
+    | '/admin/jlpt-exam'
+    | '/admin/question-bank/$level'
+    | '/admin/question-bank'
+    | '/admin/question-bank/import-excel'
+    | '/admin/question-bank/lesson-detail'
+    | '/admin/question-bank/question-builder'
+    | '/admin/teachers/$teacherId'
     | '/student/grammar/$grammarId'
     | '/student/vocabulary/$lessonId'
     | '/teacher/vocabulary/$lessonId'
+    | '/admin/jlpt-exam/$level'
+    | '/admin/jlpt-exam/$level/create'
+    | '/admin/teachers/$teacherId/analytics'
+    | '/admin/teachers/$teacherId/classes'
+    | '/admin/teachers/approval/$teacherId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/admin/content-library/$level/'
+    | '/admin/content-library/$level/$skill'
+    | '/admin/jlpt-exam/$level/$examId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -617,25 +659,9 @@ export interface FileRouteTypes {
     | '/reset-success'
     | '/teacher-pending'
     | '/verify-otp'
-    | '/admin/ai-generator'
-    | '/admin/analytics'
-    | '/admin/content-approval'
-    | '/admin/exams'
-    | '/admin/flashcard-library'
-    | '/admin/grammar'
-    | '/admin/grammar-approval'
-    | '/admin/listening-library'
-    | '/admin/moderation'
-    | '/admin/notifications'
+    | '/admin/notification'
     | '/admin/profile'
-    | '/admin/reading-library'
-    | '/admin/roles'
-    | '/admin/settings'
-    | '/admin/shadowing-library'
-    | '/admin/students'
     | '/admin/teachers'
-    | '/admin/users'
-    | '/admin/vocabulary-library'
     | '/student/ai-sensei'
     | '/student/exams'
     | '/student/flashcards'
@@ -660,10 +686,28 @@ export interface FileRouteTypes {
     | '/admin'
     | '/student'
     | '/teacher'
+    | '/admin/class-management'
+    | '/admin/class/$classId'
+    | '/admin/content-library'
+    | '/admin/jlpt-exam'
+    | '/admin/question-bank/$level'
+    | '/admin/question-bank'
+    | '/admin/question-bank/import-excel'
+    | '/admin/question-bank/lesson-detail'
+    | '/admin/question-bank/question-builder'
+    | '/admin/teachers/$teacherId'
     | '/student/grammar/$grammarId'
     | '/student/vocabulary/$lessonId'
     | '/teacher/vocabulary/$lessonId'
+    | '/admin/jlpt-exam/$level'
+    | '/admin/jlpt-exam/$level/create'
+    | '/admin/teachers/$teacherId/analytics'
+    | '/admin/teachers/$teacherId/classes'
+    | '/admin/teachers/approval/$teacherId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/admin/content-library/$level'
+    | '/admin/content-library/$level/$skill'
+    | '/admin/jlpt-exam/$level/$examId/edit'
   id:
     | '__root__'
     | '/'
@@ -677,25 +721,9 @@ export interface FileRouteTypes {
     | '/teacher'
     | '/teacher-pending'
     | '/verify-otp'
-    | '/admin/ai-generator'
-    | '/admin/analytics'
-    | '/admin/content-approval'
-    | '/admin/exams'
-    | '/admin/flashcard-library'
-    | '/admin/grammar'
-    | '/admin/grammar-approval'
-    | '/admin/listening-library'
-    | '/admin/moderation'
-    | '/admin/notifications'
+    | '/admin/notification'
     | '/admin/profile'
-    | '/admin/reading-library'
-    | '/admin/roles'
-    | '/admin/settings'
-    | '/admin/shadowing-library'
-    | '/admin/students'
     | '/admin/teachers'
-    | '/admin/users'
-    | '/admin/vocabulary-library'
     | '/student/ai-sensei'
     | '/student/exams'
     | '/student/flashcards'
@@ -720,11 +748,30 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/student/'
     | '/teacher/'
+    | '/admin/class-management/_index'
+    | '/admin/class/$classId'
+    | '/admin/content-library/$level'
+    | '/admin/content-library/_index'
+    | '/admin/jlpt-exam/_index'
+    | '/admin/question-bank/$level'
+    | '/admin/question-bank/_index'
+    | '/admin/question-bank/import-excel'
+    | '/admin/question-bank/lesson-detail'
+    | '/admin/question-bank/question-builder'
+    | '/admin/teachers/$teacherId'
     | '/student/grammar/$grammarId'
     | '/student/grammar/_index'
     | '/student/vocabulary/$lessonId'
     | '/teacher/vocabulary/$lessonId'
+    | '/admin/jlpt-exam/$level/_index'
+    | '/admin/jlpt-exam/$level/create'
+    | '/admin/teachers/$teacherId/analytics'
+    | '/admin/teachers/$teacherId/classes'
+    | '/admin/teachers/approval/$teacherId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/admin/content-library/$level/'
+    | '/admin/content-library/$level/$skill/_index'
+    | '/admin/jlpt-exam/$level/$examId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -988,60 +1035,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentAiSenseiRouteImport
       parentRoute: typeof StudentRoute
     }
-    '/admin/vocabulary-library': {
-      id: '/admin/vocabulary-library'
-      path: '/vocabulary-library'
-      fullPath: '/admin/vocabulary-library'
-      preLoaderRoute: typeof AdminVocabularyLibraryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/teachers': {
       id: '/admin/teachers'
       path: '/teachers'
       fullPath: '/admin/teachers'
       preLoaderRoute: typeof AdminTeachersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/students': {
-      id: '/admin/students'
-      path: '/students'
-      fullPath: '/admin/students'
-      preLoaderRoute: typeof AdminStudentsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/shadowing-library': {
-      id: '/admin/shadowing-library'
-      path: '/shadowing-library'
-      fullPath: '/admin/shadowing-library'
-      preLoaderRoute: typeof AdminShadowingLibraryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/roles': {
-      id: '/admin/roles'
-      path: '/roles'
-      fullPath: '/admin/roles'
-      preLoaderRoute: typeof AdminRolesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/reading-library': {
-      id: '/admin/reading-library'
-      path: '/reading-library'
-      fullPath: '/admin/reading-library'
-      preLoaderRoute: typeof AdminReadingLibraryRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/profile': {
@@ -1051,74 +1049,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProfileRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/notifications': {
-      id: '/admin/notifications'
-      path: '/notifications'
-      fullPath: '/admin/notifications'
-      preLoaderRoute: typeof AdminNotificationsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/moderation': {
-      id: '/admin/moderation'
-      path: '/moderation'
-      fullPath: '/admin/moderation'
-      preLoaderRoute: typeof AdminModerationRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/listening-library': {
-      id: '/admin/listening-library'
-      path: '/listening-library'
-      fullPath: '/admin/listening-library'
-      preLoaderRoute: typeof AdminListeningLibraryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/grammar-approval': {
-      id: '/admin/grammar-approval'
-      path: '/grammar-approval'
-      fullPath: '/admin/grammar-approval'
-      preLoaderRoute: typeof AdminGrammarApprovalRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/grammar': {
-      id: '/admin/grammar'
-      path: '/grammar'
-      fullPath: '/admin/grammar'
-      preLoaderRoute: typeof AdminGrammarRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/flashcard-library': {
-      id: '/admin/flashcard-library'
-      path: '/flashcard-library'
-      fullPath: '/admin/flashcard-library'
-      preLoaderRoute: typeof AdminFlashcardLibraryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/exams': {
-      id: '/admin/exams'
-      path: '/exams'
-      fullPath: '/admin/exams'
-      preLoaderRoute: typeof AdminExamsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/content-approval': {
-      id: '/admin/content-approval'
-      path: '/content-approval'
-      fullPath: '/admin/content-approval'
-      preLoaderRoute: typeof AdminContentApprovalRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/analytics': {
-      id: '/admin/analytics'
-      path: '/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AdminAnalyticsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/ai-generator': {
-      id: '/admin/ai-generator'
-      path: '/ai-generator'
-      fullPath: '/admin/ai-generator'
-      preLoaderRoute: typeof AdminAiGeneratorRouteImport
+    '/admin/notification': {
+      id: '/admin/notification'
+      path: '/notification'
+      fullPath: '/admin/notification'
+      preLoaderRoute: typeof AdminNotificationRouteImport
       parentRoute: typeof AdminRoute
     }
     '/teacher/vocabulary/$lessonId': {
@@ -1149,6 +1084,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentGrammarGrammarIdRouteImport
       parentRoute: typeof StudentGrammarRoute
     }
+    '/admin/teachers/$teacherId': {
+      id: '/admin/teachers/$teacherId'
+      path: '/$teacherId'
+      fullPath: '/admin/teachers/$teacherId'
+      preLoaderRoute: typeof AdminTeachersTeacherIdRouteImport
+      parentRoute: typeof AdminTeachersRoute
+    }
+    '/admin/question-bank/question-builder': {
+      id: '/admin/question-bank/question-builder'
+      path: '/question-bank/question-builder'
+      fullPath: '/admin/question-bank/question-builder'
+      preLoaderRoute: typeof AdminQuestionBankQuestionBuilderRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/question-bank/lesson-detail': {
+      id: '/admin/question-bank/lesson-detail'
+      path: '/question-bank/lesson-detail'
+      fullPath: '/admin/question-bank/lesson-detail'
+      preLoaderRoute: typeof AdminQuestionBankLessonDetailRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/question-bank/import-excel': {
+      id: '/admin/question-bank/import-excel'
+      path: '/question-bank/import-excel'
+      fullPath: '/admin/question-bank/import-excel'
+      preLoaderRoute: typeof AdminQuestionBankImportExcelRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/question-bank/_index': {
+      id: '/admin/question-bank/_index'
+      path: '/question-bank'
+      fullPath: '/admin/question-bank'
+      preLoaderRoute: typeof AdminQuestionBankIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/question-bank/$level': {
+      id: '/admin/question-bank/$level'
+      path: '/question-bank/$level'
+      fullPath: '/admin/question-bank/$level'
+      preLoaderRoute: typeof AdminQuestionBankLevelRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/jlpt-exam/_index': {
+      id: '/admin/jlpt-exam/_index'
+      path: '/jlpt-exam'
+      fullPath: '/admin/jlpt-exam'
+      preLoaderRoute: typeof AdminJlptExamIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/content-library/_index': {
+      id: '/admin/content-library/_index'
+      path: '/content-library'
+      fullPath: '/admin/content-library'
+      preLoaderRoute: typeof AdminContentLibraryIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/content-library/$level': {
+      id: '/admin/content-library/$level'
+      path: '/content-library/$level'
+      fullPath: '/admin/content-library/$level'
+      preLoaderRoute: typeof AdminContentLibraryLevelRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/class/$classId': {
+      id: '/admin/class/$classId'
+      path: '/class/$classId'
+      fullPath: '/admin/class/$classId'
+      preLoaderRoute: typeof AdminClassClassIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/class-management/_index': {
+      id: '/admin/class-management/_index'
+      path: '/class-management'
+      fullPath: '/admin/class-management'
+      preLoaderRoute: typeof AdminClassManagementIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/content-library/$level/': {
+      id: '/admin/content-library/$level/'
+      path: '/'
+      fullPath: '/admin/content-library/$level/'
+      preLoaderRoute: typeof AdminContentLibraryLevelIndexRouteImport
+      parentRoute: typeof AdminContentLibraryLevelRoute
+    }
     '/student/grammar/$grammarId/$structureId': {
       id: '/student/grammar/$grammarId/$structureId'
       path: '/$structureId'
@@ -1156,53 +1175,143 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentGrammarGrammarIdStructureIdRouteImport
       parentRoute: typeof StudentGrammarGrammarIdRoute
     }
+    '/admin/teachers/approval/$teacherId': {
+      id: '/admin/teachers/approval/$teacherId'
+      path: '/approval/$teacherId'
+      fullPath: '/admin/teachers/approval/$teacherId'
+      preLoaderRoute: typeof AdminTeachersApprovalTeacherIdRouteImport
+      parentRoute: typeof AdminTeachersRoute
+    }
+    '/admin/teachers/$teacherId/classes': {
+      id: '/admin/teachers/$teacherId/classes'
+      path: '/classes'
+      fullPath: '/admin/teachers/$teacherId/classes'
+      preLoaderRoute: typeof AdminTeachersTeacherIdClassesRouteImport
+      parentRoute: typeof AdminTeachersTeacherIdRoute
+    }
+    '/admin/teachers/$teacherId/analytics': {
+      id: '/admin/teachers/$teacherId/analytics'
+      path: '/analytics'
+      fullPath: '/admin/teachers/$teacherId/analytics'
+      preLoaderRoute: typeof AdminTeachersTeacherIdAnalyticsRouteImport
+      parentRoute: typeof AdminTeachersTeacherIdRoute
+    }
+    '/admin/jlpt-exam/$level/create': {
+      id: '/admin/jlpt-exam/$level/create'
+      path: '/jlpt-exam/$level/create'
+      fullPath: '/admin/jlpt-exam/$level/create'
+      preLoaderRoute: typeof AdminJlptExamLevelCreateRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/jlpt-exam/$level/_index': {
+      id: '/admin/jlpt-exam/$level/_index'
+      path: '/jlpt-exam/$level'
+      fullPath: '/admin/jlpt-exam/$level'
+      preLoaderRoute: typeof AdminJlptExamLevelIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/jlpt-exam/$level/$examId/edit': {
+      id: '/admin/jlpt-exam/$level/$examId/edit'
+      path: '/jlpt-exam/$level/$examId/edit'
+      fullPath: '/admin/jlpt-exam/$level/$examId/edit'
+      preLoaderRoute: typeof AdminJlptExamLevelExamIdEditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/content-library/$level/$skill/_index': {
+      id: '/admin/content-library/$level/$skill/_index'
+      path: '/$skill'
+      fullPath: '/admin/content-library/$level/$skill'
+      preLoaderRoute: typeof AdminContentLibraryLevelSkillIndexRouteImport
+      parentRoute: typeof AdminContentLibraryLevelRoute
+    }
   }
 }
 
+interface AdminTeachersTeacherIdRouteChildren {
+  AdminTeachersTeacherIdAnalyticsRoute: typeof AdminTeachersTeacherIdAnalyticsRoute
+  AdminTeachersTeacherIdClassesRoute: typeof AdminTeachersTeacherIdClassesRoute
+}
+
+const AdminTeachersTeacherIdRouteChildren: AdminTeachersTeacherIdRouteChildren =
+  {
+    AdminTeachersTeacherIdAnalyticsRoute: AdminTeachersTeacherIdAnalyticsRoute,
+    AdminTeachersTeacherIdClassesRoute: AdminTeachersTeacherIdClassesRoute,
+  }
+
+const AdminTeachersTeacherIdRouteWithChildren =
+  AdminTeachersTeacherIdRoute._addFileChildren(
+    AdminTeachersTeacherIdRouteChildren,
+  )
+
+interface AdminTeachersRouteChildren {
+  AdminTeachersTeacherIdRoute: typeof AdminTeachersTeacherIdRouteWithChildren
+  AdminTeachersApprovalTeacherIdRoute: typeof AdminTeachersApprovalTeacherIdRoute
+}
+
+const AdminTeachersRouteChildren: AdminTeachersRouteChildren = {
+  AdminTeachersTeacherIdRoute: AdminTeachersTeacherIdRouteWithChildren,
+  AdminTeachersApprovalTeacherIdRoute: AdminTeachersApprovalTeacherIdRoute,
+}
+
+const AdminTeachersRouteWithChildren = AdminTeachersRoute._addFileChildren(
+  AdminTeachersRouteChildren,
+)
+
+interface AdminContentLibraryLevelRouteChildren {
+  AdminContentLibraryLevelIndexRoute: typeof AdminContentLibraryLevelIndexRoute
+  AdminContentLibraryLevelSkillIndexRoute: typeof AdminContentLibraryLevelSkillIndexRoute
+}
+
+const AdminContentLibraryLevelRouteChildren: AdminContentLibraryLevelRouteChildren =
+  {
+    AdminContentLibraryLevelIndexRoute: AdminContentLibraryLevelIndexRoute,
+    AdminContentLibraryLevelSkillIndexRoute:
+      AdminContentLibraryLevelSkillIndexRoute,
+  }
+
+const AdminContentLibraryLevelRouteWithChildren =
+  AdminContentLibraryLevelRoute._addFileChildren(
+    AdminContentLibraryLevelRouteChildren,
+  )
+
 interface AdminRouteChildren {
-  AdminAiGeneratorRoute: typeof AdminAiGeneratorRoute
-  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
-  AdminContentApprovalRoute: typeof AdminContentApprovalRoute
-  AdminExamsRoute: typeof AdminExamsRoute
-  AdminFlashcardLibraryRoute: typeof AdminFlashcardLibraryRoute
-  AdminGrammarRoute: typeof AdminGrammarRoute
-  AdminGrammarApprovalRoute: typeof AdminGrammarApprovalRoute
-  AdminListeningLibraryRoute: typeof AdminListeningLibraryRoute
-  AdminModerationRoute: typeof AdminModerationRoute
-  AdminNotificationsRoute: typeof AdminNotificationsRoute
+  AdminNotificationRoute: typeof AdminNotificationRoute
   AdminProfileRoute: typeof AdminProfileRoute
-  AdminReadingLibraryRoute: typeof AdminReadingLibraryRoute
-  AdminRolesRoute: typeof AdminRolesRoute
-  AdminSettingsRoute: typeof AdminSettingsRoute
-  AdminShadowingLibraryRoute: typeof AdminShadowingLibraryRoute
-  AdminStudentsRoute: typeof AdminStudentsRoute
-  AdminTeachersRoute: typeof AdminTeachersRoute
-  AdminUsersRoute: typeof AdminUsersRoute
-  AdminVocabularyLibraryRoute: typeof AdminVocabularyLibraryRoute
+  AdminTeachersRoute: typeof AdminTeachersRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminClassManagementIndexRoute: typeof AdminClassManagementIndexRoute
+  AdminClassClassIdRoute: typeof AdminClassClassIdRoute
+  AdminContentLibraryLevelRoute: typeof AdminContentLibraryLevelRouteWithChildren
+  AdminContentLibraryIndexRoute: typeof AdminContentLibraryIndexRoute
+  AdminJlptExamIndexRoute: typeof AdminJlptExamIndexRoute
+  AdminQuestionBankLevelRoute: typeof AdminQuestionBankLevelRoute
+  AdminQuestionBankIndexRoute: typeof AdminQuestionBankIndexRoute
+  AdminQuestionBankImportExcelRoute: typeof AdminQuestionBankImportExcelRoute
+  AdminQuestionBankLessonDetailRoute: typeof AdminQuestionBankLessonDetailRoute
+  AdminQuestionBankQuestionBuilderRoute: typeof AdminQuestionBankQuestionBuilderRoute
+  AdminJlptExamLevelIndexRoute: typeof AdminJlptExamLevelIndexRoute
+  AdminJlptExamLevelCreateRoute: typeof AdminJlptExamLevelCreateRoute
+  AdminJlptExamLevelExamIdEditRoute: typeof AdminJlptExamLevelExamIdEditRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminAiGeneratorRoute: AdminAiGeneratorRoute,
-  AdminAnalyticsRoute: AdminAnalyticsRoute,
-  AdminContentApprovalRoute: AdminContentApprovalRoute,
-  AdminExamsRoute: AdminExamsRoute,
-  AdminFlashcardLibraryRoute: AdminFlashcardLibraryRoute,
-  AdminGrammarRoute: AdminGrammarRoute,
-  AdminGrammarApprovalRoute: AdminGrammarApprovalRoute,
-  AdminListeningLibraryRoute: AdminListeningLibraryRoute,
-  AdminModerationRoute: AdminModerationRoute,
-  AdminNotificationsRoute: AdminNotificationsRoute,
+  AdminNotificationRoute: AdminNotificationRoute,
   AdminProfileRoute: AdminProfileRoute,
-  AdminReadingLibraryRoute: AdminReadingLibraryRoute,
-  AdminRolesRoute: AdminRolesRoute,
-  AdminSettingsRoute: AdminSettingsRoute,
-  AdminShadowingLibraryRoute: AdminShadowingLibraryRoute,
-  AdminStudentsRoute: AdminStudentsRoute,
-  AdminTeachersRoute: AdminTeachersRoute,
-  AdminUsersRoute: AdminUsersRoute,
-  AdminVocabularyLibraryRoute: AdminVocabularyLibraryRoute,
+  AdminTeachersRoute: AdminTeachersRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
+  AdminClassManagementIndexRoute: AdminClassManagementIndexRoute,
+  AdminClassClassIdRoute: AdminClassClassIdRoute,
+  AdminContentLibraryLevelRoute: AdminContentLibraryLevelRouteWithChildren,
+  AdminContentLibraryIndexRoute: AdminContentLibraryIndexRoute,
+  AdminJlptExamIndexRoute: AdminJlptExamIndexRoute,
+  AdminQuestionBankLevelRoute: AdminQuestionBankLevelRoute,
+  AdminQuestionBankIndexRoute: AdminQuestionBankIndexRoute,
+  AdminQuestionBankImportExcelRoute: AdminQuestionBankImportExcelRoute,
+  AdminQuestionBankLessonDetailRoute: AdminQuestionBankLessonDetailRoute,
+  AdminQuestionBankQuestionBuilderRoute: AdminQuestionBankQuestionBuilderRoute,
+  AdminJlptExamLevelIndexRoute: AdminJlptExamLevelIndexRoute,
+  AdminJlptExamLevelCreateRoute: AdminJlptExamLevelCreateRoute,
+  AdminJlptExamLevelExamIdEditRoute: AdminJlptExamLevelExamIdEditRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
