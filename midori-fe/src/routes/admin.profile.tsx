@@ -131,10 +131,22 @@ function AdminProfilePage() {
         setAvatarPreview(user?.googleAvatar ?? null);
       }
     } catch (err) {
-      if (err instanceof ApiError) {
-        setLoadError(err.message);
+      // If API fails, show UI with local user data as fallback
+      if (user) {
+        setEditName(user.name || "");
+        setEditBio("");
+        setEditLocation("");
+        setEditPhone("");
+        setEditDateOfBirth("");
+        setAvatarPreview(user?.googleAvatar ?? null);
+        // Don't set error - show UI with fallback data
+        console.warn("Profile API unavailable, showing local user data:", err);
       } else {
-        setLoadError("Failed to load profile.");
+        if (err instanceof ApiError) {
+          setLoadError(err.message);
+        } else {
+          setLoadError("Failed to load profile.");
+        }
       }
     } finally {
       setLoading(false);
@@ -216,7 +228,7 @@ function AdminProfilePage() {
     }
   };
 
-  const avatarLetter = (editName || profile?.displayName || "?").charAt(0).toUpperCase();
+  const avatarLetter = (editName || profile?.displayName || user?.name || "?").charAt(0).toUpperCase();
 
   if (loading) {
     return (
@@ -245,7 +257,7 @@ function AdminProfilePage() {
     );
   }
 
-  if (!profile) {
+  if (!profile && !user) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center space-y-3 max-w-sm">
@@ -273,13 +285,13 @@ function AdminProfilePage() {
         <div className="h-32 relative" style={{ background: "linear-gradient(135deg, oklch(0.62 0.18 270 / 0.15) 0%, oklch(0.72 0.15 230 / 0.10) 50%, oklch(0.55 0.18 340 / 0.08) 100%)" }}>
           <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 25% 50%, oklch(0.62 0.18 270 / 0.25) 0%, transparent 50%), radial-gradient(circle at 75% 50%, oklch(0.72 0.15 230 / 0.2) 0%, transparent 50%)" }} />
           <div className="absolute top-4 right-6 flex gap-2">
-            {editing ? (
-              <>
-                <button onClick={() => { setEditing(false); setEditName(profile?.displayName || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); setEditPhone(profile?.phone || ""); setEditDateOfBirth(profile?.dateOfBirth || ""); }}
-                  disabled={isProfileSaving}
-                  className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition disabled:opacity-50">
-                  Cancel
-                </button>
+                {editing ? (
+                  <>
+                    <button onClick={() => { setEditing(false); setEditName(profile?.displayName || user?.name || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); setEditPhone(profile?.phone || ""); setEditDateOfBirth(profile?.dateOfBirth || ""); }}
+                      disabled={isProfileSaving}
+                      className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition disabled:opacity-50">
+                      Cancel
+                    </button>
                 <button onClick={handleSave}
                   disabled={isProfileSaving}
                   className="px-3 py-1.5 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition disabled:opacity-70 flex items-center gap-1">
@@ -385,7 +397,7 @@ function AdminProfilePage() {
                     className="text-2xl font-display font-black bg-transparent border-b-2 border-primary outline-none w-full text-center sm:text-left mb-1 text-primary-col"
                   />
                 ) : (
-                  <h1 className="text-2xl font-display font-black text-primary-col">{profile?.displayName}</h1>
+                  <h1 className="text-2xl font-display font-black text-primary-col">{profile?.displayName || user?.name || "User"}</h1>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full glass-surface text-secondary-col text-xs font-bold border border-glass-border">
@@ -453,7 +465,7 @@ function AdminProfilePage() {
             </h3>
             <div className="space-y-3">
               {[
-                { icon: Mail, label: "Email", value: profile?.email },
+                { icon: Mail, label: "Email", value: user?.email },
                 { icon: Shield, label: "Role", value: "Administrator" },
                 { icon: MapPin, label: "Location", value: profile?.location },
                 { icon: Calendar, label: "Member Since", value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : null },
