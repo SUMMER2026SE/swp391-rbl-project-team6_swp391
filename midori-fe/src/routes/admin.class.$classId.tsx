@@ -5,7 +5,7 @@ import {
   ArrowLeft, BookUser, GraduationCap, Users, Calendar,
   BookOpen, ClipboardCheck, Eye, UserX,
   Loader2, TrendingUp, Award, CheckCircle,
-  Clock, FileText, Phone
+  Clock, FileText, Phone, BarChart3, Settings, LayoutDashboard
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 
-type TabValue = "overview" | "students" | "assignments";
+type TabValue = "overview" | "students" | "assignments" | "analytics" | "settings";
 
 function JLPTBadge({ level }: { level: string }) {
   const colors: Record<string, string> = {
@@ -278,6 +278,18 @@ function ClassWorkspacePage() {
   const [students, setStudents] = useState(mockStudents);
   const [classStudentCount, setClassStudentCount] = useState(mockClass.students);
 
+  // Class data state (for settings updates)
+  const [className, setClassName] = useState(mockClass.name);
+  const [classLevel, setClassLevel] = useState(mockClass.level);
+  const [classStatus, setClassStatus] = useState(mockClass.status);
+
+  // Settings form state
+  const [settingsName, setSettingsName] = useState(mockClass.name);
+  const [settingsMaxStudents, setSettingsMaxStudents] = useState(mockClass.maxStudents);
+  const [settingsDescription, setSettingsDescription] = useState(mockClass.description);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
+
   // Modal states
   const [viewProfileStudent, setViewProfileStudent] = useState<typeof mockStudents[0] | null>(null);
   const [removeStudent, setRemoveStudent] = useState<typeof mockStudents[0] | null>(null);
@@ -322,39 +334,53 @@ function ClassWorkspacePage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start gap-4">
-        <Link
-          to="/admin/class-management"
-          className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary hover:bg-accent transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-display font-black text-primary-col">{mockClass.name}</h1>
-            <JLPTBadge level={mockClass.level} />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/admin/class-management"
+            className="p-2 rounded-xl bg-slate-100 text-secondary-col hover:text-primary-col hover:bg-slate-200 transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl font-bold text-primary-col">{className}</h1>
+              <JLPTBadge level={classLevel} />
+              <StatusBadge status={classStatus} />
+            </div>
+            <div className="flex items-center gap-4 text-sm text-secondary-col">
+              <span className="flex items-center gap-1.5">
+                <GraduationCap className="w-4 h-4" />
+                {mockClass.teacher}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users className="w-4 h-4" />
+                {classStudentCount} students
+              </span>
+            </div>
           </div>
-          <p className="text-sm text-secondary-col">{mockClass.description}</p>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="w-full">
-        <TabsList className="glass-card p-1 flex gap-1 w-full justify-start overflow-x-auto">
+        <TabsList className="bg-card border border-border p-1 flex gap-1 w-full justify-start overflow-x-auto">
           {[
-            { value: "overview", label: "Overview", icon: BookUser },
+            { value: "overview", label: "Overview", icon: LayoutDashboard },
             { value: "students", label: "Students", icon: Users },
             { value: "assignments", label: "Assignments", icon: ClipboardCheck },
+            { value: "analytics", label: "Analytics", icon: BarChart3 },
+            { value: "settings", label: "Settings", icon: Settings },
           ].map(tab => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap ${
                 activeTab === tab.value
-                  ? "bg-gradient-hero text-white shadow-md"
-                  : "text-secondary-col hover:text-primary hover:bg-accent"
+                  ? "bg-primary text-white"
+                  : "text-muted-foreground hover:text-primary hover:bg-accent"
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -365,242 +391,157 @@ function ClassWorkspacePage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-5 space-y-5">
-          {/* SECTION 1: Class Information */}
-          <div className="card-base p-5">
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[oklch(0.62_0.18_270)] to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                {mockClass.level}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <h2 className="text-lg font-display font-black text-primary-col">{mockClass.name}</h2>
-                  <StatusBadge status={mockClass.status} />
+          {/* Class Header Card */}
+          <div className="bg-card border border-border rounded-xl p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-xl font-bold text-foreground">{className}</h1>
+                  <JLPTBadge level={classLevel} />
+                  <StatusBadge status={classStatus} />
                 </div>
-                <p className="text-sm text-secondary-col">{mockClass.description}</p>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <GraduationCap className="w-4 h-4" />
+                    Teacher: {mockClass.teacher}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4" />
+                    {classStudentCount} Students
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <ClipboardCheck className="w-4 h-4" />
+                    {mockAssignments.length} Assignments
+                  </span>
+                </div>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                Created {new Date(mockClass.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex items-center gap-2 p-3 rounded-xl glass-surface">
-                <GraduationCap className="w-4 h-4 text-primary shrink-0" />
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-blue-500" />
+                </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider">Teacher</p>
-                  <p className="text-sm font-semibold text-primary-col">{mockClass.teacher}</p>
+                  <p className="text-2xl font-bold text-foreground">{classStudentCount} / {mockClass.maxStudents}</p>
+                  <p className="text-xs text-muted-foreground">Students</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 p-3 rounded-xl glass-surface">
-                <Users className="w-4 h-4 text-[oklch(0.72_0.15_230)] shrink-0" />
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <ClipboardCheck className="w-5 h-5 text-green-500" />
+                </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider">Students</p>
-                  <p className="text-sm font-semibold text-primary-col">{classStudentCount} / {mockClass.maxStudents}</p>
+                  <p className="text-2xl font-bold text-foreground">{mockAssignments.length}</p>
+                  <p className="text-xs text-muted-foreground">Assignments</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 p-3 rounded-xl glass-surface">
-                <Calendar className="w-4 h-4 text-[var(--status-pending)] shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider">Created</p>
-                  <p className="text-sm font-semibold text-primary-col">
-                    {new Date(mockClass.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-purple-500" />
                 </div>
-              </div>
-              <div className="flex items-center gap-2 p-3 rounded-xl glass-surface">
-                <JLPTBadge level={mockClass.level} />
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider">Level</p>
-                  <p className="text-sm font-semibold text-primary-col">JLPT {mockClass.level}</p>
+                  <p className="text-2xl font-bold text-foreground capitalize">{classStatus.toLowerCase()}</p>
+                  <p className="text-xs text-muted-foreground">Status</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 2: Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="card-base p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-col font-bold uppercase tracking-wider">Total Students</span>
-                <Users className="w-5 h-5 text-[oklch(0.72_0.15_230)]" />
-              </div>
-              <p className="font-display font-black text-3xl text-primary-col">{classStudentCount}</p>
-              <p className="text-xs text-muted-col mt-1">of {mockClass.maxStudents} capacity</p>
+          {/* Recent Assignments Table */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-foreground">Recent Assignments</h3>
             </div>
-            <div className="card-base p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-col font-bold uppercase tracking-wider">Completion Rate</span>
-                <TrendingUp className="w-5 h-5 text-[oklch(0.62_0.18_270)]" />
-              </div>
-              <p className="font-display font-black text-3xl text-primary-col">{mockClass.progress}%</p>
-              <div className="mt-2 h-1.5 glass-surface rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-[oklch(0.62_0.18_270)]" style={{ width: `${mockClass.progress}%` }} />
-              </div>
-            </div>
-            <div className="card-base p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-col font-bold uppercase tracking-wider">Average Score</span>
-                <Award className="w-5 h-5 text-[oklch(0.72_0.15_230)]" />
-              </div>
-              <p className="font-display font-black text-3xl text-primary-col">{mockClass.avgScore}%</p>
-              <div className="mt-2 h-1.5 glass-surface rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-[oklch(0.72_0.15_230)]" style={{ width: `${mockClass.avgScore}%` }} />
-              </div>
-            </div>
-            <div className="card-base p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-muted-col font-bold uppercase tracking-wider">Attendance</span>
-                <CheckCircle className="w-5 h-5 text-[var(--status-active)]" />
-              </div>
-              <p className="font-display font-black text-3xl text-primary-col">{mockClass.attendanceRate}%</p>
-              <div className="mt-2 h-1.5 glass-surface rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-[var(--status-active)]" style={{ width: `${mockClass.attendanceRate}%` }} />
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 3: Analytics Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Student Progress Trend */}
-            <div className="card-base p-5">
-              <h3 className="font-display font-bold text-sm text-primary-col mb-4">Student Progress Trend</h3>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={progressData}>
-                    <defs>
-                      <linearGradient id="progressFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="oklch(0.62 0.18 270)" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="oklch(0.62 0.18 270)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 0.05)" />
-                    <XAxis dataKey="week" tick={{ fontSize: 10, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ background: "rgba(15,20,40,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "#F3F4F6", fontSize: 12 }} />
-                    <Area type="monotone" dataKey="avgScore" stroke="oklch(0.62 0.18 270)" fill="url(#progressFill)" strokeWidth={2} name="Avg Score %" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Assignment Completion Rate */}
-            <div className="card-base p-5">
-              <h3 className="font-display font-bold text-sm text-primary-col mb-4">Score Distribution</h3>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={scoreDistribution} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 0.05)" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} />
-                    <YAxis dataKey="range" type="category" tick={{ fontSize: 10, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} width={60} />
-                    <Tooltip contentStyle={{ background: "rgba(15,20,40,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "#F3F4F6", fontSize: 12 }} />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                      {scoreDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Weekly Progress Chart */}
-          <div className="card-base p-5">
-            <h3 className="font-display font-bold text-sm text-primary-col mb-4">Average Score Trend</h3>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={progressData}>
-                  <defs>
-                    <linearGradient id="scoreTrendFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="oklch(0.72_0.15_230)" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="oklch(0.72_0.15_230)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 0.05)" />
-                  <XAxis dataKey="week" tick={{ fontSize: 10, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "rgba(15,20,40,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "#F3F4F6", fontSize: 12 }} />
-                  <Area type="monotone" dataKey="avgScore" stroke="oklch(0.72_0.15_230)" fill="url(#scoreTrendFill)" strokeWidth={2} name="Score %" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* SECTION 4: Class Performance */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Best Performing Students */}
-            <div className="card-base p-5">
-              <h3 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
-                <Award className="w-4 h-4 text-[oklch(0.62_0.18_270)]" />
-                Top Performers
-              </h3>
-              <div className="space-y-3">
-                {mockStudents
-                  .filter(s => s.status === "ACTIVE")
-                  .sort((a, b) => b.avgScore - a.avgScore)
-                  .slice(0, 3)
-                  .map((student, i) => (
-                    <div key={student.id} className="flex items-center gap-3">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        i === 0 ? "bg-[oklch(0.62_0.18_270)] text-white" :
-                        i === 1 ? "bg-[oklch(0.72_0.15_230)] text-white" :
-                        "bg-[oklch(0.72_0.18_340)] text-white"
-                      }`}>
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-primary-col truncate">{student.name}</p>
-                        <p className="text-[10px] text-muted-col">{student.avgScore}% avg score</p>
-                      </div>
-                    </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b border-border">
+                    <th className="text-left px-5 py-3 font-medium">Assignment</th>
+                    <th className="text-left px-5 py-3 font-medium">Due Date</th>
+                    <th className="text-left px-5 py-3 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mockAssignments.slice(0, 5).map((assignment) => (
+                    <tr key={assignment.id} className="border-b border-border hover:bg-accent/50 transition">
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm text-foreground">{assignment.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground">
+                        {new Date(assignment.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusBadge status={assignment.status === "active" ? "ACTIVE" : "INACTIVE"} />
+                      </td>
+                    </tr>
                   ))}
-              </div>
+                </tbody>
+              </table>
             </div>
+          </div>
 
-            {/* Students Needing Attention */}
-            <div className="card-base p-5">
-              <h3 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[var(--status-pending)]" />
-                Needs Attention
-              </h3>
-              <div className="space-y-3">
-                {mockStudents
-                  .filter(s => s.progress < 60 || s.status === "INACTIVE")
-                  .slice(0, 3)
-                  .map((student) => (
-                    <div key={student.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                        {student.name.split(" ").map(n => n[0]).join("")}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-primary-col truncate">{student.name}</p>
-                        <p className="text-[10px] text-[var(--status-pending)]">{student.progress}% progress</p>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+          {/* Recent Students Table */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-foreground">Recent Students</h3>
             </div>
-
-            {/* Recent Activity */}
-            <div className="card-base p-5">
-              <h3 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[var(--status-active)]" />
-                Recent Activity
-              </h3>
-              <div className="space-y-3">
-                {mockStudents
-                  .slice(0, 4)
-                  .sort((a, b) => {
-                    const timeA = a.lastActivity.includes("hour") ? 0 : a.lastActivity.includes("day") ? 1 : 2;
-                    const timeB = b.lastActivity.includes("hour") ? 0 : b.lastActivity.includes("day") ? 1 : 2;
-                    return timeA - timeB;
-                  })
-                  .map((student) => (
-                    <div key={student.id} className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-[var(--status-active)] shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-primary-col truncate">{student.name}</p>
-                        <p className="text-[10px] text-muted-col">{student.lastActivity}</p>
-                      </div>
-                    </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b border-border">
+                    <th className="text-left px-5 py-3 font-medium">Student</th>
+                    <th className="text-left px-5 py-3 font-medium">Progress</th>
+                    <th className="text-left px-5 py-3 font-medium">Last Activity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.slice(0, 5).map((student) => (
+                    <tr key={student.id} className="border-b border-border hover:bg-accent/50 transition">
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+                            {student.name.split(" ").map(n => n[0]).join("")}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{student.name}</p>
+                            <p className="text-xs text-muted-foreground">{student.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                student.progress >= 80 ? "bg-green-500" :
+                                student.progress >= 60 ? "bg-yellow-500" :
+                                "bg-red-500"
+                              }`}
+                              style={{ width: `${student.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">{student.progress}%</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-xs text-muted-foreground">{student.lastActivity}</td>
+                    </tr>
                   ))}
-              </div>
+                </tbody>
+              </table>
             </div>
           </div>
         </TabsContent>
@@ -783,6 +724,200 @@ function ClassWorkspacePage() {
                   </div>
                 </motion.div>
               ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="mt-5 space-y-5">
+          {/* Analytics Header */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Class Analytics</h2>
+            <p className="text-sm text-muted-foreground">Performance insights for {className}</p>
+          </div>
+
+          {/* KPI Cards Row */}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs text-muted-foreground mb-1">Average Score</p>
+              <p className="text-2xl font-bold text-foreground">{mockClass.avgScore}%</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs text-muted-foreground mb-1">Attendance Rate</p>
+              <p className="text-2xl font-bold text-foreground">{mockClass.attendanceRate}%</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs text-muted-foreground mb-1">Completion Rate</p>
+              <p className="text-2xl font-bold text-foreground">{mockClass.progress}%</p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs text-muted-foreground mb-1">Total Students</p>
+              <p className="text-2xl font-bold text-foreground">{classStudentCount}</p>
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Progress Trend */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Progress Trend</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={progressData}>
+                  <defs>
+                    <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="oklch(0.62 0.18 270)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="oklch(0.62 0.18 270)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }} />
+                  <Area type="monotone" dataKey="avgScore" stroke="oklch(0.62 0.18 270)" fill="url(#progressGradient)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Score Distribution */}
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Score Distribution</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={scoreDistribution} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis type="category" dataKey="range" stroke="var(--muted-foreground)" fontSize={12} width={80} />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }} />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {scoreDistribution.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Top Performers */}
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Top Performers</h3>
+            <div className="space-y-3">
+              {students.filter(s => s.status === "ACTIVE").sort((a, b) => b.avgScore - a.avgScore).slice(0, 5).map((student, i) => (
+                <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+                      {student.name.split(" ").map(n => n[0]).join("")}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{student.name}</p>
+                      <p className="text-xs text-muted-foreground">{student.email}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-foreground">{student.avgScore}%</p>
+                    <p className="text-xs text-muted-foreground">{student.progress}% progress</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Needs Attention */}
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Needs Attention</h3>
+            <div className="space-y-3">
+              {students.filter(s => s.progress < 70 || s.status === "INACTIVE").map((student) => (
+                <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-xs">
+                      {student.name.split(" ").map(n => n[0]).join("")}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{student.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {student.status === "INACTIVE" ? "Inactive" : `${student.progress}% progress`}
+                      </p>
+                    </div>
+                  </div>
+                  <StatusBadge status={student.status} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="mt-5 space-y-5">
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Class Settings</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-muted-foreground">Class Name</label>
+                <input
+                  type="text"
+                  value={settingsName}
+                  onChange={(e) => setSettingsName(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Maximum Students</label>
+                <input
+                  type="number"
+                  value={settingsMaxStudents}
+                  onChange={(e) => setSettingsMaxStudents(parseInt(e.target.value) || 0)}
+                  min={classStudentCount}
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Description</label>
+                <textarea
+                  value={settingsDescription}
+                  onChange={(e) => setSettingsDescription(e.target.value)}
+                  rows={3}
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm resize-none"
+                />
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Class Status</p>
+                  <p className="text-xs text-muted-foreground">Current: {classStatus}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSettingsName(className);
+                      setSettingsMaxStudents(mockClass.maxStudents);
+                      setSettingsDescription(mockClass.description);
+                    }}
+                    className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:bg-accent transition"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setSettingsSaving(true);
+                      try {
+                        await new Promise(r => setTimeout(r, 500));
+                        // Update class data state
+                        setClassName(settingsName);
+                        setClassLevel(mockClass.level);
+                        setClassStatus(mockClass.status);
+                        setSettingsSuccess(true);
+                        setTimeout(() => setSettingsSuccess(false), 3000);
+                      } finally {
+                        setSettingsSaving(false);
+                      }
+                    }}
+                    disabled={settingsSaving}
+                    className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {settingsSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {settingsSuccess ? "Saved!" : "Save Changes"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>

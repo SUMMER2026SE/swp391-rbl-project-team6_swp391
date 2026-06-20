@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Search, Eye, Edit, Archive, Trash2, Plus, BookUser,
+  Search, Eye, Archive, Trash2, Plus, BookUser,
   GraduationCap, Users, ChevronRight, AlertTriangle, Loader2,
   MoreHorizontal, Filter, X, CheckCircle, RotateCcw
 } from "lucide-react";
@@ -90,14 +90,6 @@ function ClassManagementPage() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [page, setPage] = useState(0);
 
-  // Edit Modal state
-  const [editClass, setEditClass] = useState<typeof mockClasses[0] | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editLevel, setEditLevel] = useState("N5");
-  const [editCapacity, setEditCapacity] = useState(25);
-  const [editLoading, setEditLoading] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
-
   // Archive Modal state
   const [archiveClass, setArchiveClass] = useState<typeof mockClasses[0] | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
@@ -158,50 +150,6 @@ function ClassManagementPage() {
   const hasFilters = search || levelFilter || statusFilter;
 
   // Handlers
-  const handleEditClick = (cls: typeof mockClasses[0]) => {
-    setEditClass(cls);
-    setEditName(cls.name);
-    setEditLevel(cls.level);
-    setEditCapacity(cls.maxStudents);
-    setEditError(null);
-  };
-
-  const handleEditSave = async () => {
-    if (!editClass) return;
-
-    // Validation
-    if (!editName.trim()) {
-      setEditError("Class name is required");
-      return;
-    }
-    if (editCapacity < editClass.students) {
-      setEditError(`Capacity cannot be less than current students (${editClass.students})`);
-      return;
-    }
-
-    setEditLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(r => setTimeout(r, 500));
-
-      // Update local state
-      setClasses(prev => prev.map(c =>
-        c.id === editClass.id
-          ? { ...c, name: editName, level: editLevel, maxStudents: editCapacity }
-          : c
-      ));
-
-      setEditClass(null);
-      setSuccessMessage("Class updated successfully.");
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (err: any) {
-      setEditError(err.message || "Failed to update class");
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
   const handleArchiveClick = (cls: typeof mockClasses[0]) => {
     setArchiveClass(cls);
   };
@@ -495,18 +443,10 @@ function ClassManagementPage() {
               </div>
 
               <div className="col-span-2 flex items-center gap-2">
-                <div className="flex-1">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-secondary-col">{cls.students}/{cls.maxStudents}</span>
-                    <span className="text-primary-col font-bold">{Math.round((cls.students / cls.maxStudents) * 100)}%</span>
-                  </div>
-                  <div className="h-1.5 glass-surface rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-[var(--status-active)]"
-                      style={{ width: `${(cls.students / cls.maxStudents) * 100}%` }}
-                    />
-                  </div>
-                </div>
+                <span className="text-sm font-medium">
+                  <span className="text-secondary-col">{cls.students}</span>
+                  <span className="text-muted-col">/{cls.maxStudents}</span>
+                </span>
               </div>
 
               <div className="col-span-1">
@@ -526,17 +466,10 @@ function ClassManagementPage() {
                   >
                     <Eye className="w-4 h-4" />
                   </Link>
-                  <button
-                    onClick={() => handleEditClick(cls)}
-                    className="p-2 rounded-lg bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 transition"
-                    title="Edit Class"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
                   {cls.status === "ACTIVE" ? (
                     <button
                       onClick={() => handleArchiveClick(cls)}
-                      className="p-2 rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 transition"
+                      className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition"
                       title="Archive Class"
                     >
                       <Archive className="w-4 h-4" />
@@ -566,88 +499,6 @@ function ClassManagementPage() {
         </div>
       )}
 
-      {/* Edit Class Modal */}
-      <Dialog open={!!editClass} onOpenChange={() => setEditClass(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Class</DialogTitle>
-            <DialogDescription>Update class information</DialogDescription>
-          </DialogHeader>
-          {editClass && (
-            <div className="space-y-4">
-              {/* Class Name */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Class Name</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g., N5 Morning"
-                  className="w-full px-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col placeholder:text-muted-col focus:outline-none focus:border-primary/40 transition"
-                />
-              </div>
-
-              {/* JLPT Level */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">JLPT Level</label>
-                <select
-                  value={editLevel}
-                  onChange={(e) => setEditLevel(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col focus:outline-none focus:border-primary/40 transition appearance-none"
-                >
-                  <option value="N5">N5</option>
-                  <option value="N4">N4</option>
-                  <option value="N3">N3</option>
-                  <option value="N2">N2</option>
-                  <option value="N1">N1</option>
-                </select>
-              </div>
-
-              {/* Capacity */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Capacity</label>
-                <input
-                  type="number"
-                  value={editCapacity}
-                  onChange={(e) => setEditCapacity(parseInt(e.target.value) || 0)}
-                  min={editClass.students}
-                  className="w-full px-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col focus:outline-none focus:border-primary/40 transition"
-                />
-                <p className="text-[10px] text-muted-col">
-                  Current students: {editClass.students}. Minimum capacity: {editClass.students}
-                </p>
-              </div>
-
-              {/* Error */}
-              {editError && (
-                <div className="px-3 py-2 rounded-lg bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-xs font-medium">
-                  {editError}
-                </div>
-              )}
-
-              {/* Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setEditClass(null)}
-                  disabled={editLoading}
-                  className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-accent transition disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleEditSave}
-                  disabled={editLoading}
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {editLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Archive Confirmation Modal */}
       <AlertDialog open={!!archiveClass} onOpenChange={() => setArchiveClass(null)}>
         <AlertDialogContent>
@@ -664,7 +515,7 @@ function ClassManagementPage() {
             <AlertDialogAction
               onClick={handleArchiveConfirm}
               disabled={archiveLoading}
-              className="bg-purple-500 hover:bg-purple-600"
+              className="bg-yellow-500 hover:bg-yellow-600"
             >
               {archiveLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
               Archive
