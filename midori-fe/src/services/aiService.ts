@@ -1,7 +1,7 @@
 // ─── AI Service for Listening Content ───────────────────────────────────────────
 // Provides AI processing for audio files with mock fallback
 
-import type { JLPTLevel } from "../types/content-library";
+import type { JLPTLevel } from "../mocks/contentLibraryMock";
 import type {
   ListeningAIResult,
   ListeningQuestion,
@@ -61,7 +61,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Next to that building", "Behind the park", "In front of the school", "Near the hospital"],
       correctAnswer: 0,
       explanation: "The speaker says the station is next to that building.",
-      hint: "あのビル",
+      hintWords: ["あのビル"],
     },
     {
       id: "mock-q2",
@@ -69,7 +69,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Rice", "Bread", "Noodles", "Vegetables"],
       correctAnswer: 1,
       explanation: "The customer ordered bread.",
-      hint: "パン",
+      hintWords: ["パン"],
     },
   ],
   N4: [
@@ -79,7 +79,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Rainy", "Cloudy", "Sunny", "Snowy"],
       correctAnswer: 2,
       explanation: "The forecast says it will be sunny today.",
-      hint: "晴れ",
+      hintWords: ["晴れ"],
     },
     {
       id: "mock-q2",
@@ -87,7 +87,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["An umbrella", "A jacket", "Sunglasses", "A hat"],
       correctAnswer: 1,
       explanation: "You should bring a jacket because it will be cool in the morning.",
-      hint: "ジャケット",
+      hintWords: ["ジャケット"],
     },
     {
       id: "mock-q3",
@@ -95,7 +95,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Sunny", "Cloudy", "Rainy", "Snowy"],
       correctAnswer: 2,
       explanation: "Tomorrow is expected to be rainy.",
-      hint: "雨",
+      hintWords: ["雨"],
     },
   ],
   N3: [
@@ -105,7 +105,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Climate change", "Declining birthrate and aging population", "Unemployment", "Housing problems"],
       correctAnswer: 1,
       explanation: "The declining birthrate and aging population is mentioned as a serious social issue.",
-      hint: "少子高齢化",
+      hintWords: ["少子高齢化"],
     },
     {
       id: "mock-q2",
@@ -113,7 +113,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Workload", "Financial burden on younger generations", "Housing costs", "Education costs"],
       correctAnswer: 1,
       explanation: "The financial burden on younger generations is mentioned as increasing.",
-      hint: "負担",
+      hintWords: ["負担"],
     },
     {
       id: "mock-q3",
@@ -121,7 +121,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Health issues", "Living expenses", "Loneliness", "Boredom"],
       correctAnswer: 1,
       explanation: "Living expenses after retirement is mentioned as a concern.",
-      hint: "老後の生活费",
+      hintWords: ["老後の生活费"],
     },
   ],
   N2: [
@@ -131,7 +131,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Government intervention", "Improved consumer sentiment", "Lower taxes", "Increased exports"],
       correctAnswer: 1,
       explanation: "According to the economic analyst, improved consumer sentiment is likely to lead to economic recovery.",
-      hint: "消費者心理",
+      hintWords: ["消費者心理"],
     },
     {
       id: "mock-q2",
@@ -139,7 +139,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Labor shortages", "Rising energy prices", "Trade deficits", "Inflation"],
       correctAnswer: 1,
       explanation: "Rising energy prices are mentioned as casting a shadow on the economy.",
-      hint: "エネルギー価格",
+      hintWords: ["エネルギー価格"],
     },
     {
       id: "mock-q3",
@@ -147,7 +147,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Population is decreasing", "Population concentration is unavoidable", "Rural areas are growing", "Population is stabilizing"],
       correctAnswer: 1,
       explanation: "Population concentration in urban areas is mentioned as an unavoidable trend.",
-      hint: "人口集中",
+      hintWords: ["人口集中"],
     },
     {
       id: "mock-q4",
@@ -155,7 +155,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Traditional marketing", "Digital transformation-based approach", "International expansion", "Cost reduction"],
       correctAnswer: 1,
       explanation: "A digital transformation-based approach is being discussed.",
-      hint: "デジタル transformation",
+      hintWords: ["デジタル transformation"],
     },
   ],
   N1: [
@@ -165,7 +165,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Work opportunities", "Direct communication opportunities", "Learning resources", "Social activities"],
       correctAnswer: 1,
       explanation: "Direct communication opportunities have significantly decreased due to technology evolution.",
-      hint: "コミュニケーション",
+      hintWords: ["コミュニケーション"],
     },
     {
       id: "mock-q2",
@@ -173,7 +173,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Increased happiness", "Cannot be overlooked", "Reduced stress", "Improved relationships"],
       correctAnswer: 1,
       explanation: "The psychological impact mentioned cannot be overlooked.",
-      hint: "心理的影響",
+      hintWords: ["心理的影響"],
     },
     {
       id: "mock-q3",
@@ -181,7 +181,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Digital transformation", "Industrial structure transformation", "Social transformation", "Cultural transformation"],
       correctAnswer: 1,
       explanation: "Industrial structure transformation is described as an unavoidable trend.",
-      hint: "产业结构",
+      hintWords: ["产业结构"],
     },
     {
       id: "mock-q4",
@@ -189,7 +189,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Uniform values", "Flexibility to accept diversity", "Strict rules", "Technology adoption"],
       correctAnswer: 1,
       explanation: "Flexibility to accept diversity is required in modern global society.",
-      hint: "多様性",
+      hintWords: ["多様性"],
     },
     {
       id: "mock-q5",
@@ -197,7 +197,7 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       options: ["Expand globally", "Be fundamentally reviewed", "Increase prices", "Reduce staff"],
       correctAnswer: 1,
       explanation: "AI introduction requires existing business models to be fundamentally reviewed.",
-      hint: "見直される",
+      hintWords: ["見直される"],
     },
   ],
 };

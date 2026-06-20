@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, Clock, Eye, AlertTriangle,
   MapPin, Mail, Calendar, Briefcase, BookOpen, Award,
   Download, X, ChevronLeft, ZoomIn, Loader2, UserCheck,
-  InboxIcon, AlertCircle, Ban, AlertOctagon,
+  InboxIcon, AlertCircle, Ban, AlertOctagon, Lock, Unlock,
   Search, SlidersHorizontal, Users as UsersIcon, BookOpen as BookOpenIcon, BookUser, BarChart3, MoreVertical, ChevronDown,
   GraduationCap, UserPen, User, FileText, FileImage
 } from "lucide-react";
@@ -39,6 +39,7 @@ type TeacherApplication = {
   jlptLevel: string;
   appliedDate: string;
   status: "pending" | "approved" | "rejected" | "active" | "inactive";
+  accountStatus: "ACTIVE" | "LOCKED";
   certificates: Certificate[];
   rejectionReason?: string | null;
 };
@@ -68,6 +69,7 @@ function mapToTeacherApplication(teacher: AdminTeacherResponse): TeacherApplicat
       ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(teacher.createdAt))
       : "â€”",
     status: "pending",
+    accountStatus: (teacher as any).accountStatus || "ACTIVE",
     certificates: [],
     rejectionReason: teacher.rejectionReason ?? null,
   };
@@ -408,6 +410,148 @@ function ApproveModal({
             {loading
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Approvingâ€¦</>
               : <><CheckCircle className="w-4 h-4" /> Approve</>
+            }
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// â”€â”€â”€ Lock Account Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+function LockAccountModal({
+  teacher,
+  onConfirm,
+  onClose,
+  loading = false,
+}: {
+  teacher: TeacherApplication;
+  onConfirm: (id: string) => void;
+  onClose: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        className="relative z-10 w-full max-w-md glass-modal rounded-2xl shadow-2xl overflow-hidden"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
+        {/* Icon */}
+        <div className="flex justify-center pt-8 pb-4">
+          <div className="w-16 h-16 rounded-2xl bg-(--status-rejected)/15 flex items-center justify-center">
+            <Lock className="w-8 h-8 text-(--status-rejected)" />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 pb-2 text-center">
+          <h3 className="font-display font-bold text-primary-col text-lg">Lock Teacher Account?</h3>
+          <p className="text-secondary-col text-sm mt-2 leading-relaxed">
+            Are you sure you want to lock the account for{" "}
+            <span className="font-semibold text-primary-col">{teacher.name}</span>?
+            <br />
+            <span className="text-xs text-muted-col mt-1 block">
+              This teacher will not be able to login or access the platform.
+            </span>
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 py-5 flex gap-3">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-accent transition disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(teacher.id)}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl bg-(--status-rejected)/15 text-(--status-rejected) text-sm font-bold border border-(--status-rejected)/25 hover:bg-(--status-rejected)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Locking...</>
+              : <><Lock className="w-4 h-4" /> Lock Account</>
+            }
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// â”€â”€â”€ Unlock Account Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+function UnlockAccountModal({
+  teacher,
+  onConfirm,
+  onClose,
+  loading = false,
+}: {
+  teacher: TeacherApplication;
+  onConfirm: (id: string) => void;
+  onClose: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        className="relative z-10 w-full max-w-md glass-modal rounded-2xl shadow-2xl overflow-hidden"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
+        {/* Icon */}
+        <div className="flex justify-center pt-8 pb-4">
+          <div className="w-16 h-16 rounded-2xl bg-(--status-active)/15 flex items-center justify-center">
+            <Unlock className="w-8 h-8 text-(--status-active)" />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 pb-2 text-center">
+          <h3 className="font-display font-bold text-primary-col text-lg">Unlock Teacher Account?</h3>
+          <p className="text-secondary-col text-sm mt-2 leading-relaxed">
+            Are you sure you want to unlock the account for{" "}
+            <span className="font-semibold text-primary-col">{teacher.name}</span>?
+            <br />
+            <span className="text-xs text-muted-col mt-1 block">
+              This teacher will be able to login and access the platform again.
+            </span>
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 py-5 flex gap-3">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-accent transition disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(teacher.id)}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl bg-(--status-active)/15 text-(--status-active) text-sm font-bold border border-(--status-active)/25 hover:bg-(--status-active)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Unlocking...</>
+              : <><Unlock className="w-4 h-4" /> Unlock Account</>
             }
           </button>
         </div>
@@ -1058,6 +1202,10 @@ function TeachersPage() {
   const [classesDrawerOpen, setClassesDrawerOpen] = useState(false);
   const [classesDrawerTeacher, setClassesDrawerTeacher] = useState<TeacherApplication | null>(null);
 
+  // Lock/Unlock state
+  const [lockTarget, setLockTarget] = useState<TeacherApplication | null>(null);
+  const [unlockTarget, setUnlockTarget] = useState<TeacherApplication | null>(null);
+
   // Teacher List state
   const [listTeachers, setListTeachers] = useState<TeacherApplication[]>([]);
   const [listLoading, setListLoading] = useState(false);
@@ -1084,6 +1232,7 @@ function TeachersPage() {
       jlptLevel: "N1",
       appliedDate: "Jun 15, 2026",
       status: "pending",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1099,6 +1248,7 @@ function TeachersPage() {
       jlptLevel: "N1",
       appliedDate: "Jun 14, 2026",
       status: "pending",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1114,6 +1264,7 @@ function TeachersPage() {
       jlptLevel: "N2",
       appliedDate: "Jun 13, 2026",
       status: "pending",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1129,6 +1280,7 @@ function TeachersPage() {
       jlptLevel: "N1",
       appliedDate: "Jun 12, 2026",
       status: "pending",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1144,6 +1296,7 @@ function TeachersPage() {
       jlptLevel: "N1",
       appliedDate: "Jun 10, 2026",
       status: "pending",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1228,6 +1381,7 @@ function TeachersPage() {
       jlptLevel: "N1",
       appliedDate: "Mar 10, 2026",
       status: "active",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1243,6 +1397,7 @@ function TeachersPage() {
       jlptLevel: "N1",
       appliedDate: "Feb 15, 2026",
       status: "active",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1258,6 +1413,7 @@ function TeachersPage() {
       jlptLevel: "N2",
       appliedDate: "Jan 20, 2026",
       status: "active",
+      accountStatus: "ACTIVE",
       certificates: [],
       rejectionReason: null,
     },
@@ -1273,6 +1429,7 @@ function TeachersPage() {
       jlptLevel: "N1",
       appliedDate: "Dec 5, 2025",
       status: "inactive",
+      accountStatus: "LOCKED",
       certificates: [],
       rejectionReason: null,
     },
@@ -1407,6 +1564,56 @@ function TeachersPage() {
       setActionLoadingId(null);
     }
   }, [showToast, fetchListTeachers]);
+
+  const handleLock = useCallback(async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      // Skip API call for mock data
+      if (!id.startsWith("00000000-")) {
+        // TODO: Call adminApi.lockTeacher(id) when available
+      }
+      // Update local state
+      setListTeachers(prev => prev.map(t =>
+        t.id === id ? { ...t, accountStatus: "LOCKED" as const } : t
+      ));
+      showToast("Teacher account has been locked.", "success");
+      setLockTarget(null);
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Failed to lock teacher account. Please try again.";
+      showToast(message, "error");
+    } finally {
+      setActionLoadingId(null);
+    }
+  }, [showToast]);
+
+  const handleUnlock = useCallback(async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      // Skip API call for mock data
+      if (!id.startsWith("00000000-")) {
+        // TODO: Call adminApi.unlockTeacher(id) when available
+      }
+      // Update local state
+      setListTeachers(prev => prev.map(t =>
+        t.id === id ? { ...t, accountStatus: "ACTIVE" as const } : t
+      ));
+      showToast("Teacher account has been unlocked.", "success");
+      setUnlockTarget(null);
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Failed to unlock teacher account. Please try again.";
+      showToast(message, "error");
+    } finally {
+      setActionLoadingId(null);
+    }
+  }, [showToast]);
 
   const fetchTeacherCertificates = useCallback(async (teacherId: string): Promise<Certificate[]> => {
     // Skip API call for mock data
@@ -1800,28 +2007,29 @@ function TeachersPage() {
           ) : (
             <div className="card-base overflow-hidden">
               <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold">
-                <div className="col-span-4">Teacher</div>
+                <div className="col-span-3">Teacher</div>
                 <div className="col-span-2 text-center">Classes</div>
                 <div className="col-span-2 text-center">Students</div>
-                <div className="col-span-2 text-center">Status</div>
-                <div className="col-span-2 text-right">Actions</div>
+                <div className="col-span-2 text-center">Account</div>
+                <div className="col-span-3 text-right">Actions</div>
               </div>
               {filteredListTeachers.map(teacher => {
                 const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
                 const avatarColor = getAvatarColor(teacher.id);
                 const teacherClasses = (teacher as any).totalClasses || 0;
                 const teacherStudents = (teacher as any).totalStudents || 0;
-                const statusColor = teacher.status === "active"
+                const accountStatus = teacher.accountStatus;
+                const accountStatusColor = accountStatus === "ACTIVE"
                   ? "text-(--status-active) bg-(--status-active)/12"
-                  : "text-(--status-inactive) bg-(--status-inactive)/12";
-                const statusLabel = teacher.status === "active" ? "Active" : "Inactive";
+                  : "text-(--status-rejected) bg-(--status-rejected)/12";
+                const accountStatusLabel = accountStatus === "ACTIVE" ? "Active" : "Locked";
 
                 return (
                   <div
                     key={teacher.id}
                     className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-border hover:bg-accent transition items-center"
                   >
-                    <div className="col-span-4 flex items-center gap-3">
+                    <div className="col-span-3 flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}>
                         {initials}
                       </div>
@@ -1837,11 +2045,16 @@ function TeachersPage() {
                       {teacherStudents}
                     </div>
                     <div className="col-span-2 text-center">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${statusColor}`}>
-                        {statusLabel}
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${accountStatusColor}`}>
+                        {accountStatus === "ACTIVE" ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        ) : (
+                          <Lock className="w-3 h-3" />
+                        )}
+                        {accountStatusLabel}
                       </span>
                     </div>
-                    <div className="col-span-2 text-right">
+                    <div className="col-span-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {/* View Profile */}
                         <button
@@ -1868,6 +2081,26 @@ function TeachersPage() {
                         >
                           <GraduationCap className="w-4 h-4" />
                         </button>
+                        {/* Lock/Unlock Button */}
+                        {accountStatus === "ACTIVE" ? (
+                          <button
+                            onClick={() => setLockTarget(teacher)}
+                            disabled={listLoading}
+                            className="p-1.5 rounded-lg bg-(--status-rejected)/10 text-(--status-rejected) hover:bg-(--status-rejected)/20 transition disabled:opacity-40"
+                            title="Lock Account"
+                          >
+                            <Lock className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setUnlockTarget(teacher)}
+                            disabled={listLoading}
+                            className="p-1.5 rounded-lg bg-(--status-active)/10 text-(--status-active) hover:bg-(--status-active)/20 transition disabled:opacity-40"
+                            title="Unlock Account"
+                          >
+                            <Unlock className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1923,6 +2156,34 @@ function TeachersPage() {
             }}
             onClose={() => setApproveTarget(null)}
             loading={actionLoadingId === approveTarget.id}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Lock Account Modal */}
+      <AnimatePresence>
+        {lockTarget && (
+          <LockAccountModal
+            teacher={lockTarget}
+            onConfirm={async (id) => {
+              await handleLock(id);
+            }}
+            onClose={() => setLockTarget(null)}
+            loading={actionLoadingId === lockTarget.id}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Unlock Account Modal */}
+      <AnimatePresence>
+        {unlockTarget && (
+          <UnlockAccountModal
+            teacher={unlockTarget}
+            onConfirm={async (id) => {
+              await handleUnlock(id);
+            }}
+            onClose={() => setUnlockTarget(null)}
+            loading={actionLoadingId === unlockTarget.id}
           />
         )}
       </AnimatePresence>
