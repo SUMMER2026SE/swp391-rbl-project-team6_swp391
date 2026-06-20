@@ -318,7 +318,7 @@ function RejectModal({
               <textarea
                 value={detail}
                 onChange={e => setDetail(e.target.value)}
-                placeholder="Please describe the issue in detailâ€¦"
+                placeholder="Please describe the issue in detail..."
                 rows={3}
                 className="w-full px-4 py-3 rounded-xl input-glass text-sm placeholder:text-muted-col resize-none"
               />
@@ -340,7 +340,7 @@ function RejectModal({
             className="flex-1 py-2.5 rounded-xl bg-(--status-rejected)/15 text-(--status-rejected) text-sm font-bold border border-(--status-rejected)/25 hover:bg-(--status-rejected)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Rejectingâ€¦</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Rejecting...</>
               : <><XCircle className="w-4 h-4" /> Confirm Reject</>
             }
           </button>
@@ -408,7 +408,7 @@ function ApproveModal({
             className="flex-1 py-2.5 rounded-xl bg-(--status-active)/15 text-(--status-active) text-sm font-bold border border-(--status-active)/25 hover:bg-(--status-active)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Approvingâ€¦</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Approving...</>
               : <><CheckCircle className="w-4 h-4" /> Approve</>
             }
           </button>
