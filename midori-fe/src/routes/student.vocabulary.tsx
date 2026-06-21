@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { createFileRoute, Link, Outlet, useChildMatches } from "@tanstack/react-router";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, Clock, ChevronRight, CheckCircle, X,
   Volume2, Play, ChevronLeft, Trophy,
   Bookmark, Zap, ChevronDown, Tag,
-  Loader2, Star, Search, User,
+  Loader2, Star, Search, User, FlipHorizontal, BrainCircuit,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
@@ -18,6 +18,10 @@ import {
   type ContentType,
 } from "@/lib/api/studentProgress";
 import { ApiError } from "@/lib/api/client";
+import { QuizletFlashcardModal } from "@/components/student/QuizletFlashcardModal";
+import { mockClasses } from "@/mock/classes";
+import { studentAccessibleLevels } from "./student.classes";
+import { useAuth } from "@/lib/auth";
 
 // ─── Word Status ───────────────────────────────────────────────────────────────
 type WordStatus = "new" | "learning" | "mastered";
@@ -245,13 +249,22 @@ function TopicsDropdown({ topics, selected, onSelect, isOpen, onToggle }: Topics
 export const Route = createFileRoute("/student/vocabulary")({ component: VocabularyPage });
 
 function VocabularyPage() {
+  const childMatches = useChildMatches();
+  const { user } = useAuth();
+
+  // Use accessible levels from student enrollment (mock data - later from API)
+  const enrolledLevels = studentAccessibleLevels;
+
+  // Default to first enrolled level or "N5" if enrolled
+  const defaultLevel = enrolledLevels.length > 0 ? enrolledLevels[0] : "N5";
+
   const [lessons, setLessons] = useState<VocabularyLessonResponse[]>([]);
   const [allLessonsBase, setAllLessonsBase] = useState<VocabularyLessonResponse[]>([]);
   const [allTopics, setAllTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [selectedLevel, setSelectedLevel] = useState<string>(defaultLevel);
   const [selectedTopic, setSelectedTopic] = useState<string>("All Topics");
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -270,6 +283,10 @@ function VocabularyPage() {
   const [lessonDetail, setLessonDetail] = useState<VocabularyLessonDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  // Quizlet Flashcard Modal States
+  const [isQuizletModalOpen, setIsQuizletModalOpen] = useState(false);
+  const [quizletInitialIdx, setQuizletInitialIdx] = useState(0);
 
   // ── Fetch progress from API on mount ────────────────────────────────────────
   useEffect(() => {
@@ -389,7 +406,8 @@ function VocabularyPage() {
     fetchLessons();
   }, [fetchLessons]);
 
-  const filteredLessons = lessons;
+  // Filter lessons to only show enrolled levels
+  const filteredLessons = lessons.filter(lesson => enrolledLevels.includes(lesson.level));
 
   // ── Derived: topics available within the selected level ─────────────────────
   const topicsInLevel = useMemo(() => {
@@ -480,6 +498,10 @@ function VocabularyPage() {
     };
     toggleFn();
   };
+
+  if (childMatches.length > 0) {
+    return <Outlet />;
+  }
 
   // ── Lesson Detail View ───────────────────────────────────────────
   if (loading) {
@@ -598,6 +620,45 @@ function VocabularyPage() {
               </div>
             </div>
 
+            {/* Practice Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link
+                to="/student/vocabulary/$lessonId"
+                params={{ lessonId: activeLesson }}
+                search={{ mode: "flashcard" }}
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20 border border-blue-400/30 p-4 hover:shadow-lg hover:border-blue-400/50 transition duration-300 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-500 dark:text-blue-300 group-hover:scale-110 transition duration-300">
+                    <FlipHorizontal className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-800 dark:text-white">Flashcard Mode</h4>
+                    <p className="text-xs text-muted-foreground dark:text-slate-300/80">Learn and memorize with flip-cards</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-blue-500 dark:text-blue-300 group-hover:translate-x-1 transition" />
+              </Link>
+
+              <Link
+                to="/student/vocabulary/$lessonId"
+                params={{ lessonId: activeLesson }}
+                search={{ mode: "quiz" }}
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-red-500/10 dark:from-pink-500/20 dark:to-red-500/20 border border-pink-400/30 p-4 hover:shadow-lg hover:border-pink-400/50 transition duration-300 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-500 dark:text-pink-300 group-hover:scale-110 transition duration-300">
+                    <BrainCircuit className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-800 dark:text-white">Quiz Practice</h4>
+                    <p className="text-xs text-muted-foreground dark:text-slate-300/80">Test your knowledge with multiple-choice questions</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-pink-500 dark:text-pink-300 group-hover:translate-x-1 transition" />
+              </Link>
+            </div>
+
             {/* Filter Tabs */}
             <div className="flex gap-1.5 flex-wrap">
               {FILTER_TABS.map(tab => (
@@ -654,7 +715,14 @@ function VocabularyPage() {
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      className="group bg-card/80 dark:bg-[#0f1430] dark:border-indigo-400/20 dark:hover:border-cyan-300/40 dark:hover:shadow-xl dark:hover:shadow-indigo-500/10 rounded-2xl border border-border/50 px-4 py-3 hover:shadow-md hover:border-blue-200/60 hover:-translate-y-0.5 transition-all duration-200"
+                      onClick={() => {
+                        const index = filteredWords.findIndex(w => w.word === word.word);
+                        if (index !== -1) {
+                          setQuizletInitialIdx(index);
+                          setIsQuizletModalOpen(true);
+                        }
+                      }}
+                      className="group bg-card/80 dark:bg-[#0f1430] dark:border-indigo-400/20 dark:hover:border-cyan-300/40 dark:hover:shadow-xl dark:hover:shadow-indigo-500/10 rounded-2xl border border-border/50 px-4 py-3 hover:shadow-md hover:border-blue-200/60 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                     >
                       <div className="grid grid-cols-[auto_minmax(280px,34%)_1px_minmax(260px,1fr)_auto] items-start gap-x-4 gap-y-1">
                         {/* Status dot */}
@@ -663,7 +731,7 @@ function VocabularyPage() {
                         {/* Japanese + Furigana */}
                         <div className="shrink-0 min-w-0">
                           <div className="font-display text-xl font-black text-foreground dark:text-white leading-tight">{word.word}</div>
-                          <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">{word.furigana || word.romaji}</div>
+                          <div className="text-xs text-primary/80 dark:text-cyan-400 font-medium leading-tight">{word.furigana}</div>
                         </div>
 
                         {/* Divider */}
@@ -677,7 +745,7 @@ function VocabularyPage() {
                         </div>
 
                         {/* Action icons */}
-                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => setWordStatus(wordKey, "mastered")}
                             title="Mastered"
@@ -743,9 +811,16 @@ function VocabularyPage() {
                     </motion.div>
                   );
                 })}
-                {/* Complete Lesson Button */}
+                {/* Complete Lesson Button & Practice Modes Link */}
                 {paginatedWords.length > 0 && (
-                  <div className="flex justify-center pt-2">
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    <Link
+                      to="/student/vocabulary/$lessonId"
+                      params={{ lessonId: activeLesson }}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-linear-to-r from-cyan-500 to-blue-500 text-white text-sm font-bold shadow-lg hover:opacity-90 transition"
+                    >
+                      <Play className="w-4 h-4 fill-white" /> Practice Modes
+                    </Link>
                     {progressPct === 100 ? (
                       <div className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-300 text-sm font-bold border border-green-200 dark:border-green-800">
                         <CheckCircle className="w-4 h-4" /> Completed
@@ -817,6 +892,31 @@ function VocabularyPage() {
           )}
         </div>
       </div>
+      
+      <QuizletFlashcardModal
+        isOpen={isQuizletModalOpen}
+        onClose={() => setIsQuizletModalOpen(false)}
+        initialIndex={quizletInitialIdx}
+        words={filteredWords.map(w => ({
+          word: w.word,
+          furigana: w.furigana,
+          meaning: w.meaning,
+          example: w.example,
+          exampleMeaning: w.exampleMeaning,
+        }))}
+        isBookmarked={(word) => favorites.has(`${activeLesson}::${word}`)}
+        toggleBookmark={(word) => toggleFavoriteWord(`${activeLesson}::${word}`)}
+        isLearned={(word) => getWordStatus(`${activeLesson}::${word}`) !== "new"}
+        toggleLearned={(word) => {
+          const key = `${activeLesson}::${word}`;
+          setWordStatus(key, getWordStatus(key) === "learning" ? "new" : "learning");
+        }}
+        isMastered={(word) => getWordStatus(`${activeLesson}::${word}`) === "mastered"}
+        toggleMastered={(word) => {
+          const key = `${activeLesson}::${word}`;
+          setWordStatus(key, getWordStatus(key) === "mastered" ? "new" : "mastered");
+        }}
+      />
     </div>
   );
 }
@@ -873,23 +973,9 @@ function VocabularyPage() {
           {/* Content after loading */}
           {!loading && !error && (
             <>
-              {/* JLPT Level Tabs */}
+              {/* JLPT Level Tabs — only show student's enrolled levels */}
               <div className="flex gap-1.5 overflow-x-auto pb-1">
-                {/* All button */}
-                <button
-                  onClick={() => { setSelectedLevel("all"); setSelectedTopic("All Topics"); }}
-                  className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${
-                    selectedLevel === "all"
-                      ? "bg-linear-to-r from-blue-400 to-pink-400 text-white shadow-md"
-                      : "bg-card/70 dark:bg-white/4.5 backdrop-blur-sm border border-border/50 dark:border-white/10 text-muted-foreground dark:text-indigo-200/80 hover:shadow-sm dark:hover:bg-white/8 dark:hover:border-indigo-300/20"
-                  }`}
-                >
-                  <span className="font-display font-bold text-sm leading-none">All</span>
-                  <span className={`text-[10px] leading-none ${selectedLevel === "all" ? "text-white/70" : "text-muted-foreground/70 dark:text-indigo-300/60"}`}>
-                    {allLessonsBase.length} lessons
-                  </span>
-                </button>
-                {JLPT_LEVELS.map(level => {
+                {enrolledLevels.map(level => {
                   const lvlCount = allLessonsBase.filter(l => l.level === level).length;
                   const isSelected = level === selectedLevel;
                   return (

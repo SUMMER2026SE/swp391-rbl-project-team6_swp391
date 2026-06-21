@@ -1,0 +1,110 @@
+import type { TeacherClassInfo } from "@/types/teacher-class";
+
+export const mockTeacherClasses: TeacherClassInfo[] = [
+  {
+    id: "class-1",
+    name: "N5A - Midori",
+    teacher: "Nguyễn Ngân",
+    teacherAvatarInitials: "NN",
+    level: "N5",
+    members: 25,
+    assignmentCount: 18,
+    avgScore: 8.2,
+    nextDeadline: "2026-06-20",
+    createdDate: "2026-06-15",
+    students: [
+      { id: "s1", name: "Sakura Ito", email: "sakura.ito@gmail.com", avatar: "SI", avgScore: 9.5, completionRate: 100, currentStreak: 12, lastActivity: "5 minutes ago" },
+      { id: "s2", name: "Hiroshi Tanaka", email: "hiroshi@yahoo.com", avatar: "HT", avgScore: 8.8, completionRate: 95, currentStreak: 8, lastActivity: "2 hours ago" },
+      { id: "s3", name: "Mei Lin", email: "mei.lin@outlook.com", avatar: "ML", avgScore: 9.0, completionRate: 90, currentStreak: 5, lastActivity: "Yesterday" },
+      { id: "s4", name: "Daniel Kim", email: "daniel.kim@gmail.com", avatar: "DK", avgScore: 7.2, completionRate: 75, currentStreak: 0, lastActivity: "2 days ago", needSupport: true, overdueCount: 1 },
+      { id: "s5", name: "Nguyễn Văn A", email: "a.nguyen@gmail.com", avatar: "NA", avgScore: 5.5, completionRate: 60, currentStreak: 1, lastActivity: "Yesterday", needSupport: true, lowScoreCount: 2 },
+      { id: "s6", name: "Nguyễn Văn B", email: "b.nguyen@gmail.com", avatar: "NB", avgScore: 8.5, completionRate: 85, currentStreak: 3, lastActivity: "3 hours ago" },
+      { id: "s7", name: "Yuki Sato", email: "yuki.sato@jp.com", avatar: "YS", avgScore: 4.8, completionRate: 40, currentStreak: 0, lastActivity: "5 days ago", needSupport: true, overdueCount: 2, lowScoreCount: 3 }
+    ],
+    assignments: [
+      { id: "a1", title: "Vocabulary Quiz Lesson 1", moduleType: "Vocabulary", assignedDate: "2026-06-15", deadline: "2026-06-20", totalSubmissions: 22, notSubmittedCount: 3, avgScore: 8.5, status: "Active" },
+      { id: "a2", title: "Grammar Particles practice", moduleType: "Grammar", assignedDate: "2026-06-15", deadline: "2026-06-21", totalSubmissions: 20, notSubmittedCount: 5, avgScore: 7.8, status: "Active" },
+      { id: "a3", title: "Listening Test 03", moduleType: "Listening", assignedDate: "2026-06-16", deadline: "2026-06-22", totalSubmissions: 18, notSubmittedCount: 7, avgScore: 8.0, status: "Active" },
+      { id: "a4", title: "Kanji Basics N5 Test", moduleType: "Vocabulary", assignedDate: "2026-06-10", deadline: "2026-06-14", totalSubmissions: 25, notSubmittedCount: 0, avgScore: 9.5, status: "Closed" },
+      { id: "a5", title: "Reading Practice Part 1", moduleType: "Reading", assignedDate: "2026-06-08", deadline: "2026-06-12", totalSubmissions: 22, notSubmittedCount: 3, avgScore: 7.1, status: "Closed" },
+      { id: "a6", title: "N5 Listening Basics", moduleType: "Listening", assignedDate: "2026-06-22", deadline: "2026-06-28", totalSubmissions: 0, notSubmittedCount: 25, avgScore: 0, status: "Upcoming" }
+    ],
+    activities: [
+      { id: "act-1", studentName: "Nguyễn Văn A", actionText: "submitted Reading Test 03.", timeAgo: "5 minutes ago", date: "2026-06-18" },
+      { id: "act-2", studentName: "Nguyễn Văn B", actionText: "completed Listening Test 02.", timeAgo: "2 hours ago", date: "2026-06-18" },
+      { id: "act-3", studentName: "Nguyễn Ngân", actionText: "uploaded Vocabulary Lesson 06.", timeAgo: "4 hours ago", date: "2026-06-18" },
+      { id: "act-4", studentName: "Nguyễn Ngân", actionText: "posted an announcement.", timeAgo: "Yesterday", date: "2026-06-17" }
+    ],
+    materials: [
+      { id: "vocabulary", moduleName: "Vocabulary", totalLessons: 15, publishedCount: 12, draftCount: 3 },
+      { id: "grammar", moduleName: "Grammar", totalLessons: 10, publishedCount: 8, draftCount: 2 },
+      { id: "listening", moduleName: "Listening", totalLessons: 8, publishedCount: 6, draftCount: 2 },
+      { id: "reading", moduleName: "Reading", totalLessons: 6, publishedCount: 5, draftCount: 1 },
+      { id: "shadowing", moduleName: "Shadowing", totalLessons: 12, publishedCount: 10, draftCount: 2 },
+      { id: "writing", moduleName: "Writing", totalLessons: 5, publishedCount: 4, draftCount: 1 }
+    ],
+    announcements: [
+      { id: "ann-1", title: "Final Exam Preparation", content: "Please make sure to review all N5 grammar units 1 to 5 before tomorrow's live class.", date: "2026-06-17", isPinned: true },
+      { id: "ann-2", title: "Homework Due Reminder", content: "Reminder: Vocabulary Quiz Lesson 1 deadline is June 20th.", date: "2026-06-16" }
+    ],
+    analytics: {
+      avgScore: 8.2,
+      submissionRate: 84,
+      topStudents: ["Sakura Ito", "Mei Lin", "Hiroshi Tanaka"],
+      weakestTopics: ["Listening (Time Expressions)", "Grammar (～ながら)", "Vocabulary (Verbs)"],
+      mostDifficultAssignments: ["Grammar Particles practice", "Reading Practice Part 1"],
+      progressByModule: {
+        vocabulary: 80,
+        grammar: 65,
+        listening: 45,
+        reading: 50,
+        shadowing: 35,
+        writing: 20
+      }
+    },
+    calendarEvents: [
+      { id: "c1", title: "Vocabulary Quiz Lesson 1 Deadline", date: "2026-06-20", type: "deadline" },
+      { id: "c2", title: "Grammar Particles practice Deadline", date: "2026-06-21", type: "deadline" },
+      { id: "c3", title: "Listening Test 03 Deadline", date: "2026-06-22", type: "deadline" },
+      { id: "c4", title: "Midterm Roster Review", date: "2026-06-25", type: "event" }
+    ]
+  },
+  {
+    id: "class-2",
+    name: "Japanese Basic N5 - Class A",
+    teacher: "Kenji Sensei",
+    teacherAvatarInitials: "KS",
+    level: "N5",
+    members: 18,
+    assignmentCount: 8,
+    avgScore: 7.9,
+    nextDeadline: "2026-06-24",
+    createdDate: "2026-06-01",
+    students: [
+      { id: "s10", name: "Aiko Mori", email: "aiko@gmail.com", avatar: "AM", avgScore: 8.5, completionRate: 90, currentStreak: 4, lastActivity: "1 hour ago" },
+      { id: "s11", name: "Takeshi Sato", email: "takeshi@gmail.com", avatar: "TS", avgScore: 7.9, completionRate: 80, currentStreak: 2, lastActivity: "Yesterday" }
+    ],
+    assignments: [
+      { id: "a10", title: "Vocabulary Match Lesson 3", moduleType: "Vocabulary", assignedDate: "2026-06-01", deadline: "2026-06-24", totalSubmissions: 15, notSubmittedCount: 3, avgScore: 7.9, status: "Active" }
+    ],
+    activities: [],
+    materials: [],
+    announcements: [],
+    analytics: {
+      avgScore: 7.9,
+      submissionRate: 80,
+      topStudents: ["Aiko Mori"],
+      weakestTopics: ["Katakana Words"],
+      mostDifficultAssignments: ["Vocabulary Match Lesson 3"],
+      progressByModule: {
+        vocabulary: 40,
+        grammar: 30,
+        listening: 25,
+        reading: 20,
+        shadowing: 15,
+        writing: 10
+      }
+    },
+    calendarEvents: []
+  }
+];

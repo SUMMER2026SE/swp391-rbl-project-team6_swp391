@@ -6,6 +6,53 @@ import type { LoginRequest, RegisterRequest, Role, UserResponse, UserStatus } fr
 
 export type FrontendRole = "student" | "teacher" | "admin";
 
+// Student status for access control
+export type StudentStatus = "GUEST" | "ACTIVE";
+
+// Helper to check if student is active (joined a class)
+export function isStudentActive(user: Pick<User, "role" | "status" | "classId"> | null): boolean {
+  if (!user || user.role !== "student") return false;
+  
+  // Student must have ACTIVE status AND (optionally) a classId to be considered active
+  // If status is not ACTIVE, student is considered GUEST
+  if (user.status !== "ACTIVE") return false;
+  
+  // If student has classId, definitely active
+  if ("classId" in user && user.classId) return true;
+  
+  // If status is ACTIVE (backend sets this when student joins a class)
+  return user.status === "ACTIVE";
+}
+
+// Helper to check if user is a guest student (not joined any class)
+export function isStudentGuest(user: Pick<User, "role" | "status" | "classId"> | null): boolean {
+  if (!user || user.role !== "student") return false;
+  
+  // Guest if: no classId OR status is not ACTIVE
+  const hasClassId = "classId" in user && user.classId;
+  const isActiveStatus = user.status === "ACTIVE";
+  
+  return !hasClassId || !isActiveStatus;
+}
+
+// Get redirect path based on student status
+export function getStudentStatusRedirect(user: Pick<User, "role" | "status" | "classId"> | null): string | null {
+  if (!user) {
+    return "/login";
+  }
+
+  if (user.role !== "student") {
+    return null; // Not a student, no redirect needed
+  }
+
+  // Guest students cannot access protected routes
+  if (!isStudentActive(user)) {
+    return "/"; // Redirect to landing page
+  }
+
+  return null; // Active student, allow access
+}
+
 export type User = {
   id: string;
   name: string;
@@ -286,8 +333,15 @@ type ThemeCtx = {
   toggleTheme: () => void;
 };
 
+type LanguageCtx = {
+  language: "en" | "vi";
+  setLanguage: (lang: "en" | "vi") => void;
+};
+
 const ThemeCtx = createContext<ThemeCtx>({ theme: "dark", toggleTheme: () => {} });
+const LanguageCtx = createContext<LanguageCtx>({ language: "en", setLanguage: () => {} });
 const THEME_KEY = "midori_theme";
+const LANGUAGE_KEY = "midori_language";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -318,4 +372,31 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   return useContext(ThemeCtx);
+}
+
+export function useLanguage() {
+  return useContext(LanguageCtx);
+}
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<"en" | "vi">("en");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(LANGUAGE_KEY) as "en" | "vi" | null;
+      if (saved === "en" || saved === "vi") {
+        setLanguageState(saved);
+      }
+    } catch {}
+  }, []);
+
+  const setLanguage = (lang: "en" | "vi") => {
+    setLanguageState(lang);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(LANGUAGE_KEY, lang);
+    }
+  };
+
+  return <LanguageCtx.Provider value={{ language, setLanguage }}>{children}</LanguageCtx.Provider>;
 }
