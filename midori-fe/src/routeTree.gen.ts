@@ -27,11 +27,13 @@ import { Route as TeacherVocabularyRouteImport } from './routes/teacher.vocabula
 import { Route as TeacherShadowingRouteImport } from './routes/teacher.shadowing'
 import { Route as TeacherSettingsRouteImport } from './routes/teacher.settings'
 import { Route as TeacherReportsRouteImport } from './routes/teacher.reports'
+import { Route as TeacherQuestionBankRouteImport } from './routes/teacher.question-bank'
 import { Route as TeacherProgressRouteImport } from './routes/teacher.progress'
 import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
 import { Route as TeacherNotificationsRouteImport } from './routes/teacher.notifications'
 import { Route as TeacherListeningRouteImport } from './routes/teacher.listening'
 import { Route as TeacherLessonsRouteImport } from './routes/teacher.lessons'
+import { Route as TeacherJlptBankRouteImport } from './routes/teacher.jlpt-bank'
 import { Route as TeacherHomeworkRouteImport } from './routes/teacher.homework'
 import { Route as TeacherGrammarRouteImport } from './routes/teacher.grammar'
 import { Route as TeacherFlashcardsRouteImport } from './routes/teacher.flashcards'
@@ -175,6 +177,11 @@ const TeacherReportsRoute = TeacherReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => TeacherRoute,
 } as any)
+const TeacherQuestionBankRoute = TeacherQuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
+  getParentRoute: () => TeacherRoute,
+} as any)
 const TeacherProgressRoute = TeacherProgressRouteImport.update({
   id: '/progress',
   path: '/progress',
@@ -198,6 +205,11 @@ const TeacherListeningRoute = TeacherListeningRouteImport.update({
 const TeacherLessonsRoute = TeacherLessonsRouteImport.update({
   id: '/lessons',
   path: '/lessons',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherJlptBankRoute = TeacherJlptBankRouteImport.update({
+  id: '/jlpt-bank',
+  path: '/jlpt-bank',
   getParentRoute: () => TeacherRoute,
 } as any)
 const TeacherHomeworkRoute = TeacherHomeworkRouteImport.update({
@@ -517,11 +529,13 @@ export interface FileRoutesByFullPath {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
+  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/progress': typeof TeacherProgressRoute
+  '/teacher/question-bank': typeof TeacherQuestionBankRoute
   '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
@@ -590,11 +604,13 @@ export interface FileRoutesByTo {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
+  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/progress': typeof TeacherProgressRoute
+  '/teacher/question-bank': typeof TeacherQuestionBankRoute
   '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
@@ -667,11 +683,13 @@ export interface FileRoutesById {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
+  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/progress': typeof TeacherProgressRoute
+  '/teacher/question-bank': typeof TeacherQuestionBankRoute
   '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
@@ -746,11 +764,13 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/homework'
+    | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/progress'
+    | '/teacher/question-bank'
     | '/teacher/reports'
     | '/teacher/settings'
     | '/teacher/shadowing'
@@ -819,11 +839,13 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/homework'
+    | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/progress'
+    | '/teacher/question-bank'
     | '/teacher/reports'
     | '/teacher/settings'
     | '/teacher/shadowing'
@@ -895,11 +917,13 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/homework'
+    | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/progress'
+    | '/teacher/question-bank'
     | '/teacher/reports'
     | '/teacher/settings'
     | '/teacher/shadowing'
@@ -1066,6 +1090,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeacherReportsRouteImport
       parentRoute: typeof TeacherRoute
     }
+    '/teacher/question-bank': {
+      id: '/teacher/question-bank'
+      path: '/question-bank'
+      fullPath: '/teacher/question-bank'
+      preLoaderRoute: typeof TeacherQuestionBankRouteImport
+      parentRoute: typeof TeacherRoute
+    }
     '/teacher/progress': {
       id: '/teacher/progress'
       path: '/progress'
@@ -1099,6 +1130,13 @@ declare module '@tanstack/react-router' {
       path: '/lessons'
       fullPath: '/teacher/lessons'
       preLoaderRoute: typeof TeacherLessonsRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/jlpt-bank': {
+      id: '/teacher/jlpt-bank'
+      path: '/jlpt-bank'
+      fullPath: '/teacher/jlpt-bank'
+      preLoaderRoute: typeof TeacherJlptBankRouteImport
       parentRoute: typeof TeacherRoute
     }
     '/teacher/homework': {
@@ -1680,11 +1718,13 @@ interface TeacherRouteChildren {
   TeacherFlashcardsRoute: typeof TeacherFlashcardsRoute
   TeacherGrammarRoute: typeof TeacherGrammarRoute
   TeacherHomeworkRoute: typeof TeacherHomeworkRouteWithChildren
+  TeacherJlptBankRoute: typeof TeacherJlptBankRoute
   TeacherLessonsRoute: typeof TeacherLessonsRouteWithChildren
   TeacherListeningRoute: typeof TeacherListeningRoute
   TeacherNotificationsRoute: typeof TeacherNotificationsRoute
   TeacherProfileRoute: typeof TeacherProfileRoute
   TeacherProgressRoute: typeof TeacherProgressRoute
+  TeacherQuestionBankRoute: typeof TeacherQuestionBankRoute
   TeacherReportsRoute: typeof TeacherReportsRoute
   TeacherSettingsRoute: typeof TeacherSettingsRoute
   TeacherShadowingRoute: typeof TeacherShadowingRoute
@@ -1699,11 +1739,13 @@ const TeacherRouteChildren: TeacherRouteChildren = {
   TeacherFlashcardsRoute: TeacherFlashcardsRoute,
   TeacherGrammarRoute: TeacherGrammarRoute,
   TeacherHomeworkRoute: TeacherHomeworkRouteWithChildren,
+  TeacherJlptBankRoute: TeacherJlptBankRoute,
   TeacherLessonsRoute: TeacherLessonsRouteWithChildren,
   TeacherListeningRoute: TeacherListeningRoute,
   TeacherNotificationsRoute: TeacherNotificationsRoute,
   TeacherProfileRoute: TeacherProfileRoute,
   TeacherProgressRoute: TeacherProgressRoute,
+  TeacherQuestionBankRoute: TeacherQuestionBankRoute,
   TeacherReportsRoute: TeacherReportsRoute,
   TeacherSettingsRoute: TeacherSettingsRoute,
   TeacherShadowingRoute: TeacherShadowingRoute,

@@ -1,215 +1,159 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getClasses } from "@/data/teacher-data";
+import { LevelBadge } from "@/components/teacher/badges";
+import { Progress } from "@/components/ui/progress";
+import { Plus, Search, Users, BookOpenCheck, TrendingUp, Calendar, Edit, UserPlus, Archive, TrendingUp as TgIcon, MoreVertical, ArrowRight } from "lucide-react";
 import {
-  Plus, Search, School, Users, BookOpenCheck, TrendingUp,
-  ChevronRight, Filter
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { PageHeader, StatCard, LevelBadge, EmptyState } from "@/components/page-ui";
-import { MOCK_CLASSES, type TeacherClass } from "@/data/teacher-classes";
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { InviteStudentsDialog } from "@/components/teacher/dialogs";
+import { cn } from "@/lib/utils";
 
-const LEVELS = ["N5", "N4", "N3", "N2", "N1"] as const;
+const LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
 const STATUSES = ["All", "Draft", "Active", "Archived"] as const;
 
-function StatusBadge({ status }: { status: TeacherClass["status"] }) {
-  const cfg: Record<string, { label: string; dot: string; text: string }> = {
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; dot: string; text: string }> = {
     Active:   { label: "Active",   dot: "bg-[var(--status-active)]",   text: "text-[var(--status-active)]" },
-    Draft:    { label: "Draft",    dot: "bg-[var(--status-pending)]",  text: "text-[var(--status-pending)]" },
-    Archived: { label: "Archived", dot: "bg-gray-400",               text: "text-gray-400" },
+    Draft:    { label: "Draft",    dot: "bg-[var(--status-pending)]", text: "text-[var(--status-pending)]" },
+    Archived: { label: "Archived", dot: "bg-gray-400",                text: "text-gray-400" },
+    Upcoming: { label: "Upcoming", dot: "bg-[var(--status-pending)]", text: "text-[var(--status-pending)]" },
   };
-  const c = cfg[status];
+  const c = map[status] ?? { label: status, dot: "bg-muted", text: "text-muted-foreground" };
   return (
-    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${c.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+    <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider", c.text)}>
+      <span className={cn("w-1.5 h-1.5 rounded-full", c.dot)} />
       {c.label}
     </span>
   );
 }
 
-function ClassCard({ cls, index }: { cls: TeacherClass; index: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-card text-card-foreground border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
-    >
-      {/* Top row: name + badges */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <h3 className="font-display font-bold text-sm truncate">{cls.name}</h3>
-            <LevelBadge level={cls.level} />
-            <StatusBadge status={cls.status} />
-          </div>
-          <p className="text-xs text-muted-foreground line-clamp-2">{cls.description}</p>
-        </div>
-      </div>
-
-      {/* Meta grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Users className="w-3.5 h-3.5 text-primary/60" />
-          <span className="font-semibold text-foreground">{cls.students}</span>
-          <span>students</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <BookOpenCheck className="w-3.5 h-3.5 text-primary/60" />
-          <span className="font-semibold text-foreground">{cls.lessons}</span>
-          <span>lessons</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <TrendingUp className="w-3.5 h-3.5 text-primary/60" />
-          <span className="font-semibold text-foreground">{cls.averageProgress}%</span>
-        </div>
-        {cls.schedule && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Filter className="w-3.5 h-3.5 text-primary/60" />
-            <span>{cls.schedule}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      {cls.averageProgress > 0 && (
-        <div className="mb-4">
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${cls.averageProgress}%` }}
-              transition={{ duration: 0.8, delay: index * 0.05 + 0.2 }}
-              className="h-full bg-gradient-hero rounded-full"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Action */}
-      <Link
-        to={`/teacher/classes/${cls.id}`}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
-      >
-        View Detail
-        <ChevronRight className="w-3.5 h-3.5" />
-      </Link>
-    </motion.div>
-  );
-}
-
 export const Route = createFileRoute("/teacher/classes")({
-  component: TeacherClassesPage,
+  head: () => ({ meta: [{ title: "My Classes — MIDORI Teacher" }] }),
+  component: ClassesLayout,
 });
 
-function TeacherClassesPage() {
-  const [search, setSearch] = useState("");
+function ClassesLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  if (pathname !== "/teacher/classes") {
+    return <Outlet />;
+  }
+
+  const [q, setQ] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [inviteFor, setInviteFor] = useState<string | null>(null);
+
+  const all = getClasses();
 
   const filtered = useMemo(() => {
-    return MOCK_CLASSES.filter((cls) => {
-      const matchSearch = cls.name.toLowerCase().includes(search.toLowerCase());
-      const matchLevel = levelFilter === "All" || cls.level === levelFilter;
-      const matchStatus = statusFilter === "All" || cls.status === statusFilter;
+    return all.filter((c) => {
+      const matchSearch = c.name.toLowerCase().includes(q.toLowerCase());
+      const matchLevel = levelFilter === "All" || c.level === levelFilter;
+      const matchStatus = statusFilter === "All" || c.status === statusFilter;
       return matchSearch && matchLevel && matchStatus;
     });
-  }, [search, levelFilter, statusFilter]);
-
-  const totalClasses = MOCK_CLASSES.length;
-  const activeClasses = MOCK_CLASSES.filter((c) => c.status === "Active").length;
-  const totalStudents = MOCK_CLASSES.reduce((sum, c) => sum + c.students, 0);
-  const avgProgress = totalClasses > 0
-    ? Math.round(MOCK_CLASSES.reduce((sum, c) => sum + c.averageProgress, 0) / totalClasses)
-    : 0;
+  }, [all, q, levelFilter, statusFilter]);
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
+    <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
+        eyebrow="Classroom"
         title="My Classes"
-        subtitle="Manage the classes you are teaching."
-        action={
-          <Link
-            to="/teacher/classes/create"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] text-white hover:opacity-90 transition shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create New Class
-          </Link>
-        }
+        subtitle="All your active and upcoming Japanese language classes."
+        actions={<Button asChild><Link to="/teacher/classes/create"><Plus className="mr-2 h-4 w-4" />New class</Link></Button>}
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-        <StatCard label="Total Classes" value={totalClasses} icon={<School className="w-5 h-5" />} accent="primary" />
-        <StatCard label="Active Classes" value={activeClasses} icon={<TrendingUp className="w-5 h-5" />} accent="sakura" />
-        <StatCard label="Total Students" value={totalStudents} icon={<Users className="w-5 h-5" />} accent="sky" />
-        <StatCard label="Avg Progress" value={`${avgProgress}%`} icon={<BookOpenCheck className="w-5 h-5" />} accent="primary" />
-      </div>
-
-      {/* Filters */}
-      <div className="bg-card text-card-foreground border border-border/50 rounded-2xl p-4 shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-col pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by class name…"
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm"
-            />
-          </div>
-
-          {/* Level filter */}
-          <div className="flex flex-wrap gap-1.5">
-            {["All", ...LEVELS].map((lv) => (
-              <button
-                key={lv}
-                onClick={() => setLevelFilter(lv)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                  levelFilter === lv
-                    ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                    : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-                }`}
-              >
-                {lv}
-              </button>
-            ))}
-          </div>
-
-          {/* Status filter */}
-          <div className="flex flex-wrap gap-1.5">
-            {STATUSES.map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                  statusFilter === s
-                    ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                    : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search class..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
         </div>
-      </div>
-
-      {/* Class list */}
-      {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((cls, i) => (
-            <ClassCard key={cls.id} cls={cls} index={i} />
+        <div className="flex flex-wrap gap-1.5">
+          {LEVELS.map((lv) => (
+            <Button key={lv} size="sm" variant={levelFilter === lv ? "default" : "outline"} onClick={() => setLevelFilter(lv)}>{lv}</Button>
           ))}
         </div>
+        <div className="flex flex-wrap gap-1.5">
+          {STATUSES.map((s) => (
+            <Button key={s} size="sm" variant={statusFilter === s ? "default" : "outline"} onClick={() => setStatusFilter(s)}>{s}</Button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <Card><CardContent className="py-16 text-center text-muted-foreground">No classes match your filters.</CardContent></Card>
       ) : (
-        <EmptyState
-          title="No classes found"
-          hint="Adjust your filters or create a new class."
-        />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((c) => (
+            <Card key={c.id} className="group overflow-hidden border-border/60 transition-all hover:border-primary/40 hover:shadow-md">
+              <div className="h-1.5 bg-gradient-to-r from-primary via-success to-info" />
+              <CardContent className="p-5">
+                <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <div className="min-w-0">
+                    <div className="mb-1 flex items-center gap-2">
+                      <LevelBadge level={c.level} />
+                      <StatusBadge status={c.status} />
+                    </div>
+                    <div className="truncate font-display text-lg font-semibold">{c.name}</div>
+                    <div className="font-jp text-xs text-muted-foreground">{c.jpName}</div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild><Link to="/teacher/classes/$classId" params={{ classId: c.id }}><Edit className="mr-2 h-4 w-4" />Edit class</Link></DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setInviteFor(c.id)}><UserPlus className="mr-2 h-4 w-4" />Invite students</DropdownMenuItem>
+                      <DropdownMenuItem asChild><Link to="/teacher/classes/$classId/progress" params={{ classId: c.id }}><TgIcon className="mr-2 h-4 w-4" />View progress</Link></DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => toast.success(`${c.name} archived`)}><Archive className="mr-2 h-4 w-4" />Archive</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="mb-3 flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{c.schedule}</span>
+                </div>
+
+                <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-muted/50 p-2">
+                    <div className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground"><Users className="h-3 w-3" />Students</div>
+                    <div className="mt-0.5 text-sm font-bold">{c.studentCount}/{c.capacity}</div>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-2">
+                    <div className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground"><BookOpenCheck className="h-3 w-3" />Homework</div>
+                    <div className="mt-0.5 text-sm font-bold">{c.openHomework}</div>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-2">
+                    <div className="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground"><TrendingUp className="h-3 w-3" />Exams</div>
+                    <div className="mt-0.5 text-sm font-bold">{c.upcomingExams}</div>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span className="text-muted-foreground">Class progress</span>
+                    <span className="font-semibold">{c.progress}%</span>
+                  </div>
+                  <Progress value={c.progress} className="h-2" />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button asChild className="flex-1"><Link to="/teacher/classes/$classId" params={{ classId: c.id }}>Open class<ArrowRight className="ml-1 h-3.5 w-3.5" /></Link></Button>
+                  <Button variant="outline" onClick={() => setInviteFor(c.id)}><UserPlus className="h-4 w-4" /></Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
+
+      <InviteStudentsDialog open={!!inviteFor} onOpenChange={(o) => !o && setInviteFor(null)} className={all.find((c) => c.id === inviteFor)?.name} />
     </div>
   );
 }

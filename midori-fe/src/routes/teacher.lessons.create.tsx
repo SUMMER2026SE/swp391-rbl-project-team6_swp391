@@ -1,324 +1,331 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import {
-  ArrowLeft, BookOpen, CheckCircle2, AlertCircle, Plus, TrendingUp
-} from "lucide-react";
-import { PageHeader, Card, LevelBadge } from "@/components/page-ui";
-import { MOCK_CLASSES } from "@/data/teacher-classes";
-
-const SKILL_OPTIONS = ["Vocabulary", "Grammar", "Listening", "Shadowing"] as const;
-type Skill = typeof SKILL_OPTIONS[number];
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getClasses, getDataBankResources, getDataBankResourceById } from "@/data/teacher-data";
+import { LevelBadge } from "@/components/teacher/badges";
+import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
+import { ArrowLeft, BookOpen, Library, Save, Send, Eye, Search, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/teacher/lessons/create")({
-  component: CreateLessonPage,
+  head: () => ({ meta: [{ title: "Create lesson — MIDORI Teacher" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    classId: typeof s.classId === "string" ? s.classId : undefined,
+    source: s.source === "data-bank" ? "data-bank" as const : undefined,
+    resourceId: typeof s.resourceId === "string" ? s.resourceId : undefined,
+  }),
+  component: CreateLesson,
 });
 
-function CreateLessonPage() {
-  const [classId, setClassId] = useState("");
-  const [title, setTitle] = useState("");
-  const [topic, setTopic] = useState("");
-  const [description, setDescription] = useState("");
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [status, setStatus] = useState<"Draft" | "Published">("Draft");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
+function CreateLesson() {
+  const navigate = useNavigate();
+  const { classId, source: initSource, resourceId } = Route.useSearch();
+  const classes = getClasses();
+  const lockedClass = classId ? classes.find((c) => c.id === classId) : null;
+  const initial = initSource === "data-bank" ? "data-bank" : null;
+  const [method, setMethod] = useState<"manual" | "data-bank" | null>(initial);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const initialClassId = params.get("classId");
-    if (initialClassId) {
-      const exists = MOCK_CLASSES.some(c => c.id === initialClassId);
-      if (exists) {
-        setClassId(initialClassId);
-      }
-    }
-  }, []);
-
-  const selectedClass = MOCK_CLASSES.find(c => c.id === classId);
-
-  const toggleSkill = (skill: Skill) => {
-    setSkills(prev =>
-      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
-    );
-  };
-
-  const validate = () => {
-    const errs: Record<string, string> = {};
-    if (!classId) errs.classId = "Please select a class.";
-    if (!title.trim()) errs.title = "Lesson title is required.";
-    if (skills.length === 0) errs.skills = "Select at least one skill.";
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-    setSubmitted(true);
-  };
-
-  if (submitted) {
+  if (!method) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Create Lesson" subtitle="Create a lesson for one of your classes." />
-        <Card className="p-8 text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-green-50 text-green-500 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-7 h-7" />
-          </div>
-          <div>
-            <h2 className="font-display font-bold text-lg">Lesson draft created locally</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              {selectedClass
-                ? `Lesson draft created locally for ${selectedClass.name}. Backend integration will save it later.`
-                : "Backend integration will save it later."}
-            </p>
-          </div>
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            {selectedClass && (
-              <Link
-                to={`/teacher/classes/${selectedClass.id}/lessons`}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] text-white hover:opacity-90 transition shadow-sm"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Class Lessons
-              </Link>
-            )}
-            <Link
-              to="/teacher/lessons"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-primary/40 transition"
-            >
-              Back to Lessons
-            </Link>
-            <button
-              onClick={() => { setSubmitted(false); setClassId(""); setTitle(""); setTopic(""); setDescription(""); setSkills([]); setStatus("Draft"); }}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-primary/40 transition"
-            >
-              Create Another
-            </button>
-          </div>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <PageHeader eyebrow="New lesson" title="How do you want to create this lesson?" subtitle="Choose a starting point. You can switch later." />
+        <div className="grid gap-4 md:grid-cols-2">
+          <MethodCard
+            icon={BookOpen}
+            title="Manual lesson"
+            desc="Write the lesson yourself with full control over content, objectives and materials."
+            badge="Editor / Builder"
+            onClick={() => setMethod("manual")}
+          />
+          <MethodCard
+            icon={Library}
+            title="From Data Bank"
+            desc="Pick a ready-made resource created by the Center and attach it to your lesson."
+            badge="Picker / Generator"
+            onClick={() => setMethod("data-bank")}
+          />
+        </div>
+        {lockedClass && <p className="text-center text-xs text-muted-foreground">Class locked: <b>{lockedClass.name}</b></p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6">
+      <Button variant="ghost" size="sm" onClick={() => setMethod(null)} className="-ml-2">
+        <ArrowLeft className="mr-1 h-4 w-4" />Change method
+      </Button>
+      {method === "manual" ? (
+        <ManualLesson navigate={navigate} lockedClass={lockedClass} />
+      ) : (
+        <DataBankLesson navigate={navigate} lockedClass={lockedClass} resourceId={resourceId} />
+      )}
+    </div>
+  );
+}
+
+function MethodCard({ icon: Icon, title, desc, badge, onClick }: {
+  icon: React.ElementType; title: string; desc: string; badge: string; onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} className="group rounded-2xl border bg-card p-6 text-left transition-all hover:border-primary/50 hover:shadow-md">
+      <div className="mb-3 inline-flex items-center gap-2">
+        <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-success/15 text-primary group-hover:from-primary group-hover:to-success group-hover:text-primary-foreground">
+          <Icon className="h-5 w-5" />
+        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{badge}</span>
+      </div>
+      <h3 className="font-display text-lg font-semibold">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
+    </button>
+  );
+}
+
+function ManualLesson({ navigate, lockedClass }: {
+  navigate: ReturnType<typeof useNavigate>;
+  lockedClass: ReturnType<typeof getClasses>[number] | null;
+}) {
+  const classes = getClasses();
+  const [form, setForm] = useState({
+    classId: lockedClass?.id ?? classes[0]?.id ?? "",
+    level: lockedClass?.level ?? "N5",
+    skill: "Grammar",
+    title: "",
+    jpTitle: "",
+    topic: "",
+    objective: "",
+    content: "",
+    materials: "",
+    duration: 45,
+  });
+  const [done, setDone] = useState<"draft" | "published" | null>(null);
+  const [preview, setPreview] = useState(false);
+
+  if (done) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4">
+        <SuccessBanner title={`Lesson ${done === "draft" ? "saved as draft" : "published"}`}>
+          {form.title || "Your lesson"} is {done === "draft" ? "saved in your library" : "now available to your class"}.
+        </SuccessBanner>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setDone(null)}><BookOpen className="mr-2 h-4 w-4" />Create another</Button>
+          <Button asChild variant="outline"><Link to="/teacher/lessons">Back to lessons</Link></Button>
+        </div>
+      </div>
+    );
+  }
+
+  const valid = form.title.trim().length > 2 && form.objective.trim().length > 5;
+
+  return (
+    <div>
+      <PageHeader eyebrow="Manual lesson builder" title="Build your lesson" subtitle="Editor mode — full control over content and structure." />
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Lesson content</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Target class</Label>
+                {lockedClass ? (
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
+                    <LevelBadge level={lockedClass.level} />
+                    <span className="text-sm">{lockedClass.name}</span>
+                    <span className="ml-auto text-[10px] uppercase text-muted-foreground">Locked</span>
+                  </div>
+                ) : (
+                  <Select value={form.classId} onValueChange={(v) => setForm({ ...form, classId: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Skill</Label>
+                <Select value={form.skill} onValueChange={(v) => setForm({ ...form, skill: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{["Vocabulary", "Grammar", "Kanji", "Reading", "Listening", "Speaking", "Writing", "Mixed"].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2"><Label>Lesson title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Te-form Basics" /></div>
+            <div className="space-y-2"><Label>Japanese title</Label><Input className="font-jp" value={form.jpTitle} onChange={(e) => setForm({ ...form, jpTitle: e.target.value })} placeholder="例：て形の基本" /></div>
+            <div className="space-y-2"><Label>Topic</Label><Input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} placeholder="Verb conjugation, daily verbs" /></div>
+            <div className="space-y-2"><Label>Learning objective *</Label><Textarea rows={2} value={form.objective} onChange={(e) => setForm({ ...form, objective: e.target.value })} placeholder="By the end, students can…" /></div>
+            <div className="space-y-2"><Label>Main content / outline</Label><Textarea rows={6} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder="Lesson sections, key vocabulary, example sentences…" /></div>
+            <div className="space-y-2"><Label>Materials & notes</Label><Textarea rows={3} value={form.materials} onChange={(e) => setForm({ ...form, materials: e.target.value })} placeholder="Textbook pp.42–48, handouts, audio files…" /></div>
+          </CardContent>
         </Card>
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-2xl p-4 text-center">
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            This is a UI mock. Data will be saved when backend integration is available.
-          </p>
+
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Settings</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label>JLPT level</Label>
+                <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{["N5", "N4", "N3", "N2", "N1"].map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Duration (min)</Label><Input type="number" value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) || 0 })} /></div>
+            </CardContent>
+          </Card>
+          <div className="space-y-2">
+            <Button className="w-full" onClick={() => setPreview(true)} variant="outline"><Eye className="mr-2 h-4 w-4" />Preview lesson</Button>
+            <Button className="w-full" variant="outline" disabled={!valid} onClick={() => { toast.success("Draft saved"); setDone("draft"); }}><Save className="mr-2 h-4 w-4" />Save draft</Button>
+            <Button className="w-full" disabled={!valid} onClick={() => { toast.success("Lesson published"); setDone("published"); }}><Send className="mr-2 h-4 w-4" />Publish lesson</Button>
+          </div>
+          <p className="text-center text-xs text-muted-foreground">{valid ? "Ready to save" : "Add title and learning objective to continue"}</p>
+        </div>
+      </div>
+
+      <PreviewSheet open={preview} onOpenChange={setPreview} title={form.title || "Untitled lesson"} description={form.jpTitle}>
+        <div className="space-y-3 text-sm">
+          <p><b>Skill:</b> {form.skill} · <b>Level:</b> {form.level} · <b>Duration:</b> {form.duration} min</p>
+          <p><b>Objective:</b> {form.objective || <em className="text-muted-foreground">—</em>}</p>
+          <div className="rounded-lg border bg-muted/30 p-3 whitespace-pre-wrap text-sm">{form.content || <em className="text-muted-foreground">No content</em>}</div>
+        </div>
+      </PreviewSheet>
+    </div>
+  );
+}
+
+function DataBankLesson({ navigate, lockedClass, resourceId }: {
+  navigate: ReturnType<typeof useNavigate>;
+  lockedClass: ReturnType<typeof getClasses>[number] | null;
+  resourceId?: string;
+}) {
+  const classes = getClasses();
+  const resources = getDataBankResources();
+  const initial = resourceId && getDataBankResourceById(resourceId) ? getDataBankResourceById(resourceId) : null;
+  if (resourceId && !initial) toast.warning("Resource not found in Data Bank");
+  const [selected, setSelected] = useState<string | null>(initial?.id ?? null);
+  const [q, setQ] = useState("");
+  const [level, setLevel] = useState<string>("All");
+  const [classIdSel, setClassIdSel] = useState(lockedClass?.id ?? classes[0]?.id ?? "");
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [objective, setObjective] = useState(initial?.description ?? "");
+  const [done, setDone] = useState<"draft" | "published" | null>(null);
+  const [previewRes, setPreviewRes] = useState<string | null>(null);
+
+  const filtered = resources.filter((r) =>
+    (level === "All" || r.level === level) &&
+    (r.title + r.jpTitle + r.type).toLowerCase().includes(q.toLowerCase())
+  );
+  const res = resources.find((r) => r.id === selected);
+  const previewItem = resources.find((r) => r.id === previewRes);
+
+  if (done) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4">
+        <SuccessBanner title={`Lesson ${done === "draft" ? "saved as draft" : "published"}`}>
+          {title || res?.title || "Your lesson"} is {done === "draft" ? "saved in your library" : "now available to your class"}.
+        </SuccessBanner>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setDone(null)}><BookOpen className="mr-2 h-4 w-4" />Create another</Button>
+          <Button asChild variant="outline"><Link to="/teacher/lessons">Back to lessons</Link></Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Create Lesson" subtitle="Create a lesson for one of your classes." />
-
-      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-2xl p-4 flex items-start gap-3">
-        <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-700 dark:text-amber-400">
-          This is a UI mock. Data will be saved when backend integration is available.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <Card className="p-6 space-y-5">
-          <h2 className="font-display font-bold text-sm flex items-center gap-2">
-            <Plus className="w-4 h-4 text-primary" />
-            Lesson Information
-          </h2>
-
-          {/* Select Class */}
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-              Class <span className="text-[var(--jp-red)]">*</span>
-            </label>
-            <select
-              value={classId}
-              onChange={e => setClassId(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm"
-            >
-              <option value="">Select a class...</option>
-              {MOCK_CLASSES.map(cls => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} — {cls.level}
-                </option>
-              ))}
-            </select>
-            {errors.classId && <p className="text-[10px] text-[var(--jp-red)] mt-1">{errors.classId}</p>}
-          </div>
-
-          {/* Level auto-display */}
-          {selectedClass && (
-            <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
-              <div className="flex items-center gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Level</label>
-                  <LevelBadge level={selectedClass.level} />
-                </div>
-                <div className="w-px h-8 bg-blue-200 dark:bg-blue-700/50" />
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Class</label>
-                  <p className="text-sm font-semibold text-foreground">{selectedClass.name}</p>
-                </div>
+    <div>
+      <PageHeader eyebrow="Data Bank · Resource picker" title="Pick a resource, attach it as a lesson" subtitle="Browse the Center's library, preview, and configure." />
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Choose a resource</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Search resources…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
               </div>
-              <p className="text-[10px] text-muted-col mt-2">Level is automatically set based on the selected class. This lesson will follow {selectedClass.level} curriculum.</p>
-            </div>
-          )}
-
-          {/* Lesson Title */}
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-              Lesson Title <span className="text-[var(--jp-red)]">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Lesson 3: みず (Water)"
-              className="w-full px-3 py-2.5 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm"
-            />
-            {errors.title && <p className="text-[10px] text-[var(--jp-red)] mt-1">{errors.title}</p>}
-          </div>
-
-          {/* Topic */}
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Topic</label>
-            <input
-              type="text"
-              value={topic}
-              onChange={e => setTopic(e.target.value)}
-              placeholder="e.g. Greetings"
-              className="w-full px-3 py-2.5 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Description</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Brief description of the lesson..."
-              rows={3}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm resize-none"
-            />
-          </div>
-
-          {/* Skills */}
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-              Skills <span className="text-[var(--jp-red)]">*</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {SKILL_OPTIONS.map(skill => (
-                <button
-                  key={skill}
-                  type="button"
-                  onClick={() => toggleSkill(skill)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                    skills.includes(skill)
-                      ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                      : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-                  }`}
-                >
-                  {skill}
-                </button>
+              {["All", "N5", "N4", "N3", "N2", "N1"].map((l) => (
+                <Button key={l} size="sm" variant={level === l ? "default" : "outline"} onClick={() => setLevel(l)}>{l}</Button>
               ))}
             </div>
-            {errors.skills && <p className="text-[10px] text-[var(--jp-red)] mt-1">{errors.skills}</p>}
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Status</label>
-            <div className="flex gap-2">
-              {(["Draft", "Published"] as const).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setStatus(s)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                    status === s
-                      ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                      : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-                  }`}
-                >
-                  {s}
-                </button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {filtered.map((r) => (
+                <div key={r.id} className={cn("relative rounded-lg border p-3 transition-all", selected === r.id ? "border-primary bg-primary/5 shadow-sm" : "hover:border-primary/40")}>
+                  <button
+                    onClick={() => { setSelected(r.id); if (!title) setTitle(r.title); if (!objective) setObjective(r.description); }}
+                    className="block w-full text-left"
+                  >
+                    <div className="mb-1 flex items-center gap-2"><LevelBadge level={r.level} /><span className="text-[10px] uppercase tracking-widest text-muted-foreground">{r.type}</span></div>
+                    <div className="truncate text-sm font-semibold">{r.title}</div>
+                    <div className="font-jp text-xs text-muted-foreground">{r.jpTitle}</div>
+                  </button>
+                  <Button size="sm" variant="ghost" className="mt-2 h-7 px-2" onClick={() => setPreviewRes(r.id)}>
+                    <Eye className="mr-1 h-3.5 w-3.5" />Preview
+                  </Button>
+                </div>
               ))}
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        {/* Preview Summary */}
-        {classId && title && (
-          <Card className="p-5 border-blue-200/50 dark:border-blue-800/30">
-            <h3 className="font-display font-bold text-sm flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-              Preview Summary
-            </h3>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="space-y-1">
-                <p className="text-muted-foreground font-semibold">Class</p>
-                <p className="font-bold">{selectedClass?.name}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground font-semibold">Level</p>
-                <LevelBadge level={selectedClass?.level ?? ""} />
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground font-semibold">Title</p>
-                <p className="font-bold">{title}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground font-semibold">Topic</p>
-                <p className="font-bold">{topic || "—"}</p>
-              </div>
-              <div className="space-y-1 col-span-2">
-                <p className="text-muted-foreground font-semibold">Skills</p>
-                <div className="flex flex-wrap gap-1">
-                  {skills.length > 0 ? skills.map(s => (
-                    <span key={s} className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">{s}</span>
-                  )) : <span className="text-muted-col">No skills selected</span>}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Attach to lesson</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {res ? (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="text-xs text-muted-foreground">Selected resource</div>
+                  <div className="font-medium">{res.title}</div>
                 </div>
+              ) : (
+                <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">No resource selected yet</div>
+              )}
+              <div className="space-y-2">
+                <Label>Target class</Label>
+                {lockedClass ? (
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
+                    <LevelBadge level={lockedClass.level} />
+                    <span className="text-sm">{lockedClass.name}</span>
+                  </div>
+                ) : (
+                  <Select value={classIdSel} onValueChange={setClassIdSel}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
               </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground font-semibold">Status</p>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${status === "Published" ? "bg-green-50 text-green-600" : "bg-yellow-50 text-yellow-600"}`}>
-                  {status}
-                </span>
-              </div>
-            </div>
+              <div className="space-y-2"><Label>Lesson title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Objective</Label><Textarea rows={3} value={objective} onChange={(e) => setObjective(e.target.value)} /></div>
+            </CardContent>
           </Card>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            {classId ? (
-              <Link
-                to={`/teacher/classes/${classId}/lessons`}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-primary/40 transition"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Class Lessons
-              </Link>
-            ) : (
-              <Link
-                to="/teacher/lessons"
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-primary/40 transition"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Lessons
-              </Link>
-            )}
+          <div className="space-y-2">
+            <Button className="w-full" variant="outline" disabled={!res} onClick={() => setPreviewRes(res!.id)}><Eye className="mr-2 h-4 w-4" />Preview lesson</Button>
+            <Button className="w-full" variant="outline" disabled={!res || !title} onClick={() => { toast.success("Draft saved"); setDone("draft"); }}><Save className="mr-2 h-4 w-4" />Save draft</Button>
+            <Button className="w-full" disabled={!res || !title} onClick={() => { toast.success("Lesson published"); setDone("published"); }}><Sparkles className="mr-2 h-4 w-4" />Publish lesson</Button>
           </div>
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] text-white hover:opacity-90 transition shadow-sm"
-          >
-            <BookOpen className="w-4 h-4" />
-            {status === "Published" ? "Publish Lesson" : "Save as Draft"}
-          </button>
         </div>
-      </form>
+      </div>
+
+      <PreviewSheet open={!!previewItem} onOpenChange={(o) => !o && setPreviewRes(null)} title={previewItem?.title ?? ""} description={previewItem?.jpTitle}>
+        {previewItem && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-2"><LevelBadge level={previewItem.level} /><span className="text-xs text-muted-foreground">{previewItem.type}</span></div>
+            <p>{previewItem.description}</p>
+            <p className="text-xs text-muted-foreground">⏱ {previewItem.duration} min · ★ {previewItem.rating} · used {previewItem.usage}×</p>
+            <Button
+              className="w-full"
+              onClick={() => { setSelected(previewItem.id); if (!title) setTitle(previewItem.title); if (!objective) setObjective(previewItem.description); setPreviewRes(null); }}
+            >
+              <BookOpen className="mr-2 h-4 w-4" />Select this resource
+            </Button>
+          </div>
+        )}
+      </PreviewSheet>
     </div>
   );
 }

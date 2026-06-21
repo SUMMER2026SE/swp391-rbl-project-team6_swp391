@@ -1,263 +1,73 @@
-﻿import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
-import {
-  Search, ClipboardCheck, GraduationCap, Filter, ChevronRight, BookOpen, Clock, TrendingUp
-} from "lucide-react";
-import { PageHeader, Card, LevelBadge, EmptyState } from "@/components/page-ui";
-import { MOCK_CLASSES } from "@/data/teacher-classes";
-
-const LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
-const STATUSES = ["All", "Draft", "Scheduled", "Open", "Closed", "Graded"] as const;
-
-const SECTIONS = ["Vocabulary", "Grammar", "Listening", "Mixed"] as const;
-
-const allExams: {
-  id: string;
-  title: string;
-  className: string;
-  classId: string;
-  level: string;
-  lessonTitle: string;
-  sections: string[];
-  status: string;
-  durationMinutes: number;
-  attemptLimit: number;
-  submittedCount: number;
-  totalStudents: number;
-  averageScore: number | null;
-}[] = MOCK_CLASSES.flatMap(cls =>
-  cls.examList.map(exam => ({
-    ...exam,
-    className: cls.name,
-    classId: cls.id,
-  }))
-);
+﻿import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getExams, getClasses } from "@/data/teacher-data";
+import { LevelBadge, StatusBadge } from "@/components/teacher/badges";
+import { Plus, Search } from "lucide-react";
 
 export const Route = createFileRoute("/teacher/exams")({
-  component: TeacherExamsPage,
+  head: () => ({ meta: [{ title: "Exams — MIDORI Teacher" }] }),
+  component: ExamsPage,
 });
 
-function TeacherExamsPage() {
-  const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState("All");
-  const [levelFilter, setLevelFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [sectionFilter, setSectionFilter] = useState("All");
+function ExamsPage() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const classes = useMemo(() => ["All", ...MOCK_CLASSES.map(c => c.name)], []);
+  if (pathname !== "/teacher/exams") {
+    return <Outlet />;
+  }
 
-  const examStats = useMemo(() => {
-    return {
-      total: allExams.length,
-      open: allExams.filter(e => e.status === "Open").length,
-      scheduled: allExams.filter(e => e.status === "Scheduled").length,
-      graded: allExams.filter(e => e.status === "Graded").length,
-    };
-  }, []);
+  const exams = getExams();
+  const classes = getClasses();
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string>("All");
 
-  const filtered = useMemo(() => {
-    return allExams.filter(exam => {
-      const matchSearch = exam.title.toLowerCase().includes(search.toLowerCase()) ||
-        exam.lessonTitle.toLowerCase().includes(search.toLowerCase());
-      const matchClass = classFilter === "All" || exam.className === classFilter;
-      const matchLevel = levelFilter === "All" || exam.level === levelFilter;
-      const matchStatus = statusFilter === "All" || exam.status === statusFilter;
-      const matchSection = sectionFilter === "All" || exam.sections.includes(sectionFilter);
-      return matchSearch && matchClass && matchLevel && matchStatus && matchSection;
-    });
-  }, [search, classFilter, levelFilter, statusFilter, sectionFilter]);
+  const filtered = exams.filter((e) =>
+    (status === "All" || e.status === status) &&
+    e.title.toLowerCase().includes(q.toLowerCase())
+  );
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
+        eyebrow="Library"
         title="Exams"
-        subtitle="Manage exams across your classes."
-        action={
-          <Link
-            to="/teacher/exams/create"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] text-white hover:opacity-90 transition shadow-sm"
-          >
-            <ClipboardCheck className="w-4 h-4" />
-            Create Exam
-          </Link>
-        }
+        subtitle="All exams scheduled or completed."
+        actions={<Button asChild><Link to="/teacher/exams/create"><Plus className="mr-2 h-4 w-4" />Create exam</Link></Button>}
       />
 
-      {/* Global overview notice */}
-      <div className="bg-card text-card-foreground border border-border/50 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0">
-          <TrendingUp className="w-4 h-4" />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search exams..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
         </div>
-        <div>
-          <p className="text-sm font-semibold text-foreground">
-            Global Overview — All Classes
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            This page manages exams across all classes you teach. New exams must be assigned to a class and a related lesson.
-          </p>
-        </div>
+        {(["All", "Draft", "Scheduled", "Completed", "Archived"] as const).map((f) => (
+          <Button key={f} size="sm" variant={status === f ? "default" : "outline"} onClick={() => setStatus(f)}>{f}</Button>
+        ))}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-        <Card className="p-3.5 text-center">
-          <div className="font-display font-black text-lg">{examStats.total}</div>
-          <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Exams</div>
-        </Card>
-        <Card className="p-3.5 text-center">
-          <div className="font-display font-black text-lg">{examStats.open}</div>
-          <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Open</div>
-        </Card>
-        <Card className="p-3.5 text-center">
-          <div className="font-display font-black text-lg">{examStats.scheduled}</div>
-          <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Scheduled</div>
-        </Card>
-        <Card className="p-3.5 text-center">
-          <div className="font-display font-black text-lg">{examStats.graded}</div>
-          <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Graded</div>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {filtered.map((e) => {
+          const cls = classes.find((c) => c.id === e.classId)!;
+          return (
+            <Card key={e.id}>
+              <CardContent className="p-4">
+                <div className="mb-2 flex items-center gap-2"><LevelBadge level={e.level} /><StatusBadge status={e.status} /><span className="text-[10px] uppercase tracking-widest text-muted-foreground">{e.source.replace("-", " ")}</span></div>
+                <Link to="/teacher/classes/$classId/exams" params={{ classId: cls.id }} className="block truncate font-semibold hover:text-primary">{e.title}</Link>
+                <div className="text-xs text-muted-foreground">{cls.name} · {e.scheduledAt}</div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-md bg-muted/40 p-2"><div className="text-muted-foreground">Questions</div><div className="font-bold">{e.totalQuestions}</div></div>
+                  <div className="rounded-md bg-muted/40 p-2"><div className="text-muted-foreground">Duration</div><div className="font-bold">{e.duration}m</div></div>
+                  <div className="rounded-md bg-muted/40 p-2"><div className="text-muted-foreground">Avg</div><div className="font-bold">{e.averageScore ?? "—"}</div></div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-
-      {/* Filters */}
-      <Card className="p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-col pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search exams..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {classes.map((cls) => (
-              <button
-                key={cls}
-                onClick={() => setClassFilter(cls)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                  classFilter === cls
-                    ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                    : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-                }`}
-              >
-                {cls}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {LEVELS.map((lv) => (
-            <button
-              key={lv}
-              onClick={() => setLevelFilter(lv)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                levelFilter === lv
-                  ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                  : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-              }`}
-            >
-              {lv}
-            </button>
-          ))}
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                statusFilter === s
-                  ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                  : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-          {SECTIONS.map((sec) => (
-            <button
-              key={sec}
-              onClick={() => setSectionFilter(sec)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                sectionFilter === sec
-                  ? "bg-[var(--primary)] text-white border-[var(--primary)]"
-                  : "bg-white dark:bg-[#1e2330] border-slate-200 dark:border-white/10 hover:border-primary/40"
-              }`}
-            >
-              {sec}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {/* Exam list */}
-      {filtered.length > 0 ? (
-        <div className="space-y-3">
-          {filtered.map((exam) => (
-            <div
-              key={exam.id}
-              className="bg-card text-card-foreground border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-display font-bold text-sm truncate">{exam.title}</h3>
-                    <LevelBadge level={exam.level} />
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      exam.status === "Open"
-                        ? "bg-green-50 text-green-600 dark:bg-green-950/30"
-                        : exam.status === "Scheduled"
-                        ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30"
-                        : exam.status === "Graded"
-                        ? "bg-purple-50 text-purple-600 dark:bg-purple-950/30"
-                        : exam.status === "Draft"
-                        ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/30"
-                        : "bg-slate-100 text-slate-500 dark:bg-slate-700"
-                    }`}>
-                      {exam.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] text-muted-col flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="w-3 h-3" />
-                      {exam.className}
-                    </span>
-                    <span>·</span>
-                    <span>Lesson: {exam.lessonTitle}</span>
-                    <span>·</span>
-                    <span>Sections: {exam.sections.join(", ")}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-col">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {exam.durationMinutes} min
-                    </span>
-                    <span>Attempts: {exam.attemptLimit}</span>
-                    <span>Submitted: {exam.submittedCount}/{exam.totalStudents}</span>
-                    {exam.averageScore !== null && (
-                      <span>Avg Score: {exam.averageScore}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Link
-                    to={`/teacher/classes/${exam.classId}/exams`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-[var(--primary)]/40 hover:text-primary transition"
-                  >
-                    View Class Exams
-                    <ChevronRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          title="No exams found"
-          hint="Adjust your filters or create a new exam."
-        />
-      )}
     </div>
   );
 }

@@ -1,296 +1,483 @@
-import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { createFileRoute, Link, Outlet, useRouterState, notFound } from "@tanstack/react-router";
+import { useState } from "react";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { LevelBadge, StatusBadge } from "@/components/teacher/badges";
+import { Progress } from "@/components/ui/progress";
+import { getClassById, getStudentsByClass, getProgressByClass } from "@/data/teacher-data";
+import { MOCK_CLASSES } from "@/data/teacher-classes";
 import {
-  ArrowLeft, Users, BookOpenCheck, ClipboardList, ClipboardCheck,
-  TrendingUp, Mail, Link2, ExternalLink, Clock, Shield,
-  BookOpen, GraduationCap, Headphones, Mic, BarChart3, CheckCircle,
-  ChevronRight, Plus, AlertTriangle, FileText
+  Calendar, Users, BookOpen, ClipboardList, FileText, TrendingUp,
+  UserPlus, Edit, Archive, ArrowLeft, PlusCircle, AlertTriangle, Clock, CheckCircle2
 } from "lucide-react";
-import { PageHeader, Card, LevelBadge, EmptyState, Progress } from "@/components/page-ui";
-import { MOCK_CLASSES, type TeacherClass } from "@/data/teacher-classes";
-
-/* ─── Helpers ──────────────────────────────────────────────────────────────── */
-
-function StatusBadge({ status }: { status: TeacherClass["status"] }) {
-  const cfg: Record<string, { label: string; dot: string; text: string }> = {
-    Active:   { label: "Active",   dot: "bg-[var(--status-active)]",   text: "text-[var(--status-active)]" },
-    Draft:    { label: "Draft",    dot: "bg-[var(--status-pending)]",  text: "text-[var(--status-pending)]" },
-    Archived: { label: "Archived", dot: "bg-gray-400",               text: "text-gray-400" },
-  };
-  const c = cfg[status];
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${c.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-      {c.label}
-    </span>
-  );
-}
-
-function PriorityBadge({ priority }: { priority: "High" | "Medium" | "Low" }) {
-  const cfg: Record<string, { label: string; cls: string }> = {
-    High:   { label: "High",   cls: "text-[var(--status-rejected)] bg-[var(--status-rejected)]/10 border-[var(--status-rejected)]/20" },
-    Medium: { label: "Medium", cls: "text-[var(--status-pending)] bg-[var(--status-pending)]/10 border-[var(--status-pending)]/20" },
-    Low:    { label: "Low",    cls: "text-[var(--status-active)] bg-[var(--status-active)]/10 border-[var(--status-active)]/20" },
-  };
-  const c = cfg[priority];
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.cls}`}>{c.label}</span>
-  );
-}
-
-const SECTION_ITEMS = [
-  { to: "",                              icon: BookOpen,       label: "Overview",    desc: "Class overview, stats and quick actions." },
-  { to: "students",                      icon: Users,          label: "Students",    desc: "Invite and manage class members by Gmail." },
-  { to: "lessons",                       icon: GraduationCap,  label: "Lessons",     desc: "Create and manage lessons following class level." },
-  { to: "homework",                      icon: ClipboardList,  label: "Homework",    desc: "Create and assign homework to this class." },
-  { to: "exams",                         icon: ClipboardCheck, label: "Exams",       desc: "Create and manage exams for this class." },
-  { to: "progress",                      icon: TrendingUp,     label: "Progress",    desc: "Track student learning progress in this class." },
-] as const;
-
-/* ─── Main Component ──────────────────────────────────────────────────────── */
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { ConfirmDialog, InviteStudentsDialog } from "@/components/teacher/dialogs";
 
 export const Route = createFileRoute("/teacher/classes/$classId")({
-  component: TeacherClassDetailPage,
+  loader: ({ params }) => {
+    const cls = getClassById(params.classId);
+    if (!cls) throw notFound();
+    return { cls };
+  },
+  head: ({ loaderData }) => ({
+    meta: [{ title: `${loaderData?.cls.name ?? "Class"} — MIDORI Teacher` }],
+  }),
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-2xl py-10 text-center">
+      <h1 className="text-xl font-semibold">Class not found</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        This class no longer exists or you don&apos;t have access.
+      </p>
+      <Button asChild className="mt-4">
+        <Link to="/teacher/classes"><ArrowLeft className="mr-2 h-4 w-4" />Back to classes</Link>
+      </Button>
+    </div>
+  ),
+  component: ClassWorkspaceLayout,
 });
 
-function TeacherClassDetailPage() {
-  const { classId } = Route.useParams();
-  const location = useLocation();
-  const cls = MOCK_CLASSES.find((c) => c.id === classId);
+// ─── Overview content component ───────────────────────────────────────────────
 
-  // Not found state
-  if (!cls) {
-    return (
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-6">
-          <Link
-            to="/teacher/classes"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to My Classes
-          </Link>
+function ClassOverview({ classId, cls }: { classId: string; cls: ReturnType<typeof getClassById> }) {
+  const students = getStudentsByClass(classId);
+  const progressData = getProgressByClass(classId);
+  const mockClass = MOCK_CLASSES.find((c) => c.id === classId);
+
+  const recentActivity = mockClass?.recentActivity ?? [];
+  const upcomingWork = mockClass?.upcomingWork ?? [];
+
+  const hwCompletion =
+    progressData && progressData.homeworkCompletion != null
+      ? progressData.homeworkCompletion
+      : 0;
+
+  const atRiskStudents = students.filter((s) => s.status === "at-risk").slice(0, 5);
+
+  const skillSnapshot = progressData?.skills ?? {
+    Vocabulary: 0,
+    Grammar: 0,
+    Reading: 0,
+    Listening: 0,
+  };
+
+  const skillLabelClass = (value: number) => {
+    if (value >= 70) return "text-emerald-600";
+    if (value >= 40) return "text-amber-600";
+    return "text-red-500";
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ── 1. Summary cards ── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryCard
+          label="Students enrolled"
+          value={String(students.length)}
+          icon={Users}
+          className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30"
+          iconClass="text-blue-600 dark:text-blue-400"
+        />
+        <SummaryCard
+          label="Avg progress"
+          value={`${cls?.progress ?? 0}%`}
+          icon={TrendingUp}
+          className="border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
+          iconClass="text-emerald-600 dark:text-emerald-400"
+        />
+        <SummaryCard
+          label="Homework completion"
+          value={`${hwCompletion}%`}
+          icon={ClipboardList}
+          className="border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/30"
+          iconClass="text-purple-600 dark:text-purple-400"
+        />
+        <SummaryCard
+          label="Upcoming exams"
+          value={String(cls?.upcomingExams ?? 0)}
+          icon={FileText}
+          className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30"
+          iconClass="text-orange-600 dark:text-orange-400"
+        />
+      </div>
+
+      {/* ── 2. Quick actions ── */}
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Quick Actions
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to="/teacher/lessons/create" search={{ classId }}>
+                <PlusCircle className="mr-1.5 h-4 w-4" />Create lesson
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/teacher/homework/create" search={{ classId }}>
+                <PlusCircle className="mr-1.5 h-4 w-4" />Assign homework
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/teacher/exams/create" search={{ classId }}>
+                <PlusCircle className="mr-1.5 h-4 w-4" />Create exam
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={`/teacher/classes/${classId}/students`}>
+                <UserPlus className="mr-1.5 h-4 w-4" />Invite students
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={`/teacher/classes/${classId}/progress`}>
+                <TrendingUp className="mr-1.5 h-4 w-4" />View progress
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 3. Upcoming work ── */}
+      {upcomingWork.length > 0 ? (
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Upcoming Work
+            </h3>
+            <div className="space-y-2">
+              {upcomingWork.map((work) => {
+                const priorityColor =
+                  work.priority === "High"
+                    ? "text-red-600 dark:text-red-400"
+                    : work.priority === "Medium"
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-muted-foreground";
+                return (
+                  <div
+                    key={work.id}
+                    className="flex items-center justify-between rounded-md border p-3 text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{work.title}</span>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                        {work.type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={cn("text-xs font-medium", priorityColor)}>
+                        {work.priority}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />{work.due}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="mb-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Upcoming Work
+            </h3>
+            <p className="text-sm text-muted-foreground">No upcoming work scheduled.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* ── 4. Recent activity ── */}
+        {recentActivity.length > 0 ? (
+          <Card>
+            <CardContent className="p-5">
+              <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Recent Activity
+              </h3>
+              <div className="space-y-2">
+                {recentActivity.slice(0, 5).map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-2 text-sm"
+                  >
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    <span className="flex-1 text-muted-foreground">
+                      {activity.text}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {activity.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-5">
+              <h3 className="mb-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Recent Activity
+              </h3>
+              <p className="text-sm text-muted-foreground">No recent activity.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── 5. At-risk / low progress students ── */}
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              At-Risk Students
+            </h3>
+            {atRiskStudents.length > 0 ? (
+              <div className="space-y-2">
+                {atRiskStudents.map((student) => (
+                  <div
+                    key={student.id}
+                    className="flex items-center justify-between rounded-md border p-2.5 text-sm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{student.name}</div>
+                        {student.weakSkill ? (
+                          <div className="text-xs text-muted-foreground">
+                            Weak: {student.weakSkill}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Progress value={student.progress} className="h-1.5 w-12" />
+                      <span className="text-xs font-semibold">{student.progress}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                All students are on track.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── 6. Skill snapshot ── */}
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Skill Snapshot
+          </h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {(Object.entries(skillSnapshot) as [string, number][]).map(([skill, value]) => (
+              <div key={skill}>
+                <div className="mb-1.5 flex items-center justify-between text-sm">
+                  <span className="font-medium">{skill}</span>
+                  <span className={cn("text-sm font-semibold", skillLabelClass(value))}>
+                    {value}%
+                  </span>
+                </div>
+                <Progress
+                  value={value}
+                  className={cn(
+                    "h-2",
+                    value >= 70
+                      ? "[&>div]:bg-emerald-500"
+                      : value >= 40
+                      ? "[&>div]:bg-amber-500"
+                      : "[&>div]:bg-red-500"
+                  )}
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Summary card helper ───────────────────────────────────────────────────────
+
+function SummaryCard({
+  label,
+  value,
+  icon: Icon,
+  className,
+  iconClass,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  className?: string;
+  iconClass?: string;
+}) {
+  return (
+    <Card className={className}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={cn("rounded-full bg-primary/10 p-2.5", iconClass)}>
+          <Icon className="h-4 w-4" />
         </div>
-        <EmptyState
-          title="Class not found"
-          hint="The class you are looking for does not exist or has been removed."
-          action={
-            <Link
-              to="/teacher/classes"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[var(--primary)] text-white hover:opacity-90 transition mt-4"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to My Classes
-            </Link>
+        <div>
+          <div className="text-xs text-muted-foreground">{label}</div>
+          <div className="text-lg font-bold">{value}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Main layout component ────────────────────────────────────────────────────
+
+function ClassWorkspaceLayout() {
+  const { cls } = Route.useLoaderData();
+  const students = getStudentsByClass(cls.id);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [invite, setInvite] = useState(false);
+  const [archive, setArchive] = useState(false);
+
+  const base = `/teacher/classes/${cls.id}`;
+  const tabs = [
+    { to: base, label: "Overview", icon: TrendingUp, exact: true },
+    { to: `${base}/students`, label: "Students", icon: Users },
+    { to: `${base}/lessons`, label: "Lessons", icon: BookOpen },
+    { to: `${base}/homework`, label: "Homework", icon: ClipboardList },
+    { to: `${base}/exams`, label: "Exams", icon: FileText },
+    { to: `${base}/progress`, label: "Progress", icon: TrendingUp },
+  ];
+
+  const isOverview = pathname === base;
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div>
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="mb-2 -ml-2"
+        >
+          <Link to="/teacher/classes">
+            <ArrowLeft className="mr-1 h-4 w-4" />All classes
+          </Link>
+        </Button>
+        <PageHeader
+          eyebrow={cls.jpName}
+          title={cls.name}
+          subtitle={cls.description}
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setInvite(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />Invite
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">Actions</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => toast.info("Opening class editor…")}>
+                    <Edit className="mr-2 h-4 w-4" />Edit class
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setArchive(true)}>
+                    <Archive className="mr-2 h-4 w-4" />Archive class
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           }
         />
       </div>
-    );
-  }
 
-  const basePath = `/teacher/classes/${classId}`;
-  const tabBase = (tail: string) => `${basePath}/${tail}`;
-
-  // If on a child route (students/lessons/homework/exams/progress),
-  // render only the child page without the overview wrapper.
-  if (location.pathname !== basePath) {
-    return <Outlet />;
-  }
-
-  return (
-    <div className="space-y-5">
-      {/* ── A. Header ─────────────────────────────────────────────────── */}
-      <PageHeader
-        title={cls.name}
-        subtitle="You are teaching this class."
-        action={
-          <div className="flex items-center gap-2">
-            <LevelBadge level={cls.level} />
-            <StatusBadge status={cls.status} />
-          </div>
-        }
-      />
-
-      {/* Description + Schedule */}
-      <div className="bg-card text-card-foreground border border-border/50 rounded-2xl p-5 shadow-sm space-y-2">
-        <p className="text-sm text-muted-foreground">{cls.description}</p>
-        {cls.schedule && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="w-3.5 h-3.5 text-primary/60" />
-            <span className="font-semibold text-foreground">Schedule:</span> {cls.schedule}
-          </div>
-        )}
-      </div>
-
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          { to: tabBase("students"),  icon: Mail,            label: "Invite Students" },
-          { to: tabBase("lessons"),   icon: BookOpen,         label: "Create Lesson" },
-          { to: tabBase("homework"),  icon: ClipboardList,    label: "Create Homework" },
-          { to: tabBase("exams"),     icon: ClipboardCheck,   label: "Create Exam" },
-          { to: tabBase("progress"),  icon: TrendingUp,       label: "View Progress" },
-        ].map((action) => (
-          <Link
-            key={action.to}
-            to={action.to}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-[var(--primary)]/40 hover:text-primary transition"
-          >
-            <action.icon className="w-3.5 h-3.5" />
-            {action.label}
-            <ExternalLink className="w-3 h-3 text-muted-col" />
-          </Link>
-        ))}
-      </div>
-
-      {/* Child routes (students, lessons, homework, exams, progress) render here */}
-      <Outlet />
-
-      {/* ── B. Overview Cards ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        {[
-          { label: "Students",   value: cls.students,        icon: <Users className="w-4 h-4" />,         accent: "primary" as const },
-          { label: "Lessons",    value: cls.lessons,          icon: <BookOpenCheck className="w-4 h-4" />, accent: "sky" as const },
-          { label: "Progress",   value: `${cls.averageProgress}%`, icon: <TrendingUp className="w-4 h-4" />, accent: "sakura" as const },
-          { label: "Homework",   value: cls.openHomework,     icon: <ClipboardList className="w-4 h-4" />, accent: "primary" as const },
-          { label: "Exams",      value: cls.openExams,        icon: <ClipboardCheck className="w-4 h-4" />, accent: "red" as const },
-          { label: "Invitations",value: cls.pendingInvitations,icon: <Mail className="w-4 h-4" />,          accent: "sky" as const },
-        ].map((stat) => (
-          <Card key={stat.label} className="p-3.5 text-center">
-            <div className="flex flex-col items-center gap-1.5">
-              <div className={`w-8 h-8 rounded-lg grid place-items-center ${
-                stat.accent === "primary" ? "bg-primary/15 text-primary" :
-                stat.accent === "sakura"  ? "bg-sakura/40 text-jp-red" :
-                stat.accent === "sky"     ? "bg-sky-blue/20 text-sky-blue" :
-                stat.accent === "red"     ? "bg-[var(--jp-red)]/15 text-[var(--jp-red)]" :
-                                           "bg-muted text-muted-foreground"
-              }`}>
-                {stat.icon}
-              </div>
-              <div className="font-display font-black text-lg">{stat.value}</div>
-              <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold">{stat.label}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* ── C. Class Level Notice ─────────────────────────────────────── */}
-      <div className="bg-card text-card-foreground border border-border/50 rounded-2xl p-4 shadow-sm flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0">
-          <Shield className="w-4 h-4" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-foreground">Class level is {cls.level}.</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Lessons, homework, exams and Data Bank content should follow this level.
-          </p>
-        </div>
-      </div>
-
-      {/* ── D. Section Navigation ─────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {SECTION_ITEMS.map((section) => {
-          const href = section.to ? tabBase(section.to) : basePath;
-          return (
-            <Link
-              key={section.to}
-              to={href}
-              className="bg-card text-card-foreground border border-border/50 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200 group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-2.5">
-                <section.icon className="w-4 h-4" />
-              </div>
-              <h3 className="text-xs font-bold text-foreground group-hover:text-primary transition">{section.label}</h3>
-              <p className="text-[10px] text-muted-col mt-1 leading-relaxed">{section.desc}</p>
-              <div className="flex items-center gap-1 text-[10px] font-semibold text-primary mt-2 opacity-0 group-hover:opacity-100 transition">
-                Open <ChevronRight className="w-3 h-3" />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* ── E. Recent Activity & F. Upcoming Work ────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent Activity */}
-        <Card>
-          <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-4">
-            <Clock className="w-4 h-4 text-primary" />
-            Recent Activity
-          </h2>
-          {cls.recentActivity.length > 0 ? (
-            <div className="space-y-3">
-              {cls.recentActivity.map((act) => (
-                <div key={act.id} className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <CheckCircle className="w-3 h-3" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-foreground">{act.text}</p>
-                    <span className="text-[10px] text-muted-col">{act.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-col">No recent activity.</p>
-          )}
-        </Card>
-
-        {/* Upcoming Work */}
-        <Card>
-          <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-[var(--jp-red)]" />
-            Upcoming Work
-          </h2>
-          {cls.upcomingWork.length > 0 ? (
-            <div className="space-y-2.5">
-              {cls.upcomingWork.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-foreground">{item.title}</span>
-                      <PriorityBadge priority={item.priority} />
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-col">
-                      <FileText className="w-3 h-3" />
-                      <span>{item.type}</span>
-                      <span>·</span>
-                      <span>{item.due}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-col">No upcoming work scheduled.</p>
-          )}
-        </Card>
-      </div>
-
-      {/* ── G. Teacher Rules ──────────────────────────────────────────── */}
       <Card>
-        <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-primary" />
-          Class Rules
-        </h2>
-        <ul className="space-y-2">
-          {[
-            "You manage only this class. Students from other classes cannot access content here.",
-            "Students must accept your invitation before joining and seeing lessons.",
-            "Class level (N5–N1) controls which lessons, homework, exams and Data Bank content are available.",
-            "Data Bank is managed by Admin. You can pick or random approved content from the bank — you cannot modify the bank directly.",
-          ].map((rule, i) => (
-            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-              <span className="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-bold">
-                {i + 1}
-              </span>
-              {rule}
-            </li>
-          ))}
-        </ul>
+        <CardContent className="grid grid-cols-2 gap-4 p-5 md:grid-cols-5">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Level
+            </div>
+            <div className="mt-1">
+              <LevelBadge level={cls.level} />
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Status
+            </div>
+            <div className="mt-1">
+              <StatusBadge status={cls.status} />
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3 w-3" />Schedule
+            </div>
+            <div className="mt-1 text-sm font-medium">{cls.schedule}</div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" />Students
+            </div>
+            <div className="mt-1 text-sm font-medium">
+              {students.length} / {cls.capacity}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Progress
+            </div>
+            <div className="mt-1 flex items-center gap-2">
+              <Progress value={cls.progress} className="h-1.5 flex-1" />
+              <span className="text-xs font-semibold">{cls.progress}%</span>
+            </div>
+          </div>
+        </CardContent>
       </Card>
+
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="flex min-w-max gap-1 rounded-lg bg-muted/40 p-1">
+          {tabs.map((t) => {
+            const active = t.exact ? pathname === t.to : pathname.startsWith(t.to);
+            return (
+              <Link
+                key={t.to}
+                to={t.to}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+                  active
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <t.icon className="h-3.5 w-3.5" />
+                {t.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {isOverview ? (
+        <ClassOverview classId={cls.id} cls={cls} />
+      ) : (
+        <Outlet />
+      )}
+
+      <InviteStudentsDialog open={invite} onOpenChange={setInvite} className={cls.name} />
+      <ConfirmDialog
+        open={archive}
+        onOpenChange={setArchive}
+        title="Archive this class?"
+        description="Students will lose access. You can restore later from archived classes."
+        destructive
+        confirmLabel="Archive class"
+        onConfirm={() => toast.success(`${cls.name} archived`)}
+      />
     </div>
   );
 }

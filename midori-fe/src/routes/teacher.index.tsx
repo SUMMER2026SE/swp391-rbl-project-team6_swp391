@@ -1,376 +1,207 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LevelBadge } from "@/components/teacher/badges";
 import {
-  Users, BookOpen, TrendingUp, CheckCircle2, AlertTriangle,
-  ClipboardList, GraduationCap, ArrowUpRight, Plus, Clock,
-  FileText, Headphones, Download, Shield, BarChart3
+  getClasses, getHomework, getExams, getAllStudents, getNotifications, teacherProfile, getProgressOverview,
+} from "@/data/teacher-data";
+import {
+  GraduationCap, Users, ClipboardList, FileText, BookOpen, AlertTriangle, ArrowRight,
+  Plus, Library, HelpCircle, TrendingUp, CheckCircle2, Clock,
 } from "lucide-react";
-import { Card, LevelBadge, EmptyState, Progress, PageHeader } from "@/components/page-ui";
-import { MOCK_CLASSES, type StudentInvitation } from "@/data/teacher-classes";
-import { cn } from "@/lib/utils";
 
-/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+export const Route = createFileRoute("/teacher/")({
+  head: () => ({ meta: [{ title: "Dashboard — MIDORI Teacher Studio" }] }),
+  component: Dashboard,
+});
 
-function avg(arr: number[]) {
-  if (arr.length === 0) return 0;
-  return Math.round(arr.reduce((s, v) => s + v, 0) / arr.length);
-}
+function Dashboard() {
+  const classes = getClasses();
+  const hw = getHomework();
+  const ex = getExams();
+  const students = getAllStudents();
+  const notifs = getNotifications().slice(0, 4);
+  const overview = getProgressOverview();
 
-const ACTIVE_CLASSES = MOCK_CLASSES.filter((c) => c.status === "Active");
-const ALL_INVITATIONS = ACTIVE_CLASSES.flatMap((c) => (c.invitations ?? []));
-const ACTIVE_STUDENTS = ALL_INVITATIONS.filter(
-  (s): s is StudentInvitation & { progressDetails: NonNullable<StudentInvitation["progressDetails"]> } =>
-    s.status === "Active" && s.progressDetails != null
-);
+  const activeClasses = classes.filter((c) => c.status === "Active");
+  const dueSoon = hw.filter((h) => h.status === "Assigned").slice(0, 4);
+  const upcomingExams = ex.filter((e) => e.status === "Scheduled");
+  const pendingGrading = hw.reduce((s, h) => s + h.pendingGrading, 0);
+  const atRisk = students.filter((s) => s.status === "at-risk");
+  const attention = classes.filter((c) => c.attention > 0);
 
-const totalStudents = ACTIVE_STUDENTS.length;
-const pendingInvitations = ALL_INVITATIONS.filter((s) => s.status === "Invited").length;
-const openHomework = ACTIVE_CLASSES.reduce((s, c) => s + (c.homeworkList ?? []).filter((h) => h.status === "Open").length, 0);
-const openExams = ACTIVE_CLASSES.reduce((s, c) => s + (c.examList ?? []).filter((e) => e.status === "Open").length, 0);
-const lowProgressStudents = ACTIVE_STUDENTS.filter((s) => (s.progressDetails?.overallProgress ?? 0) < 50).length;
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-const allRecentActivity = ACTIVE_CLASSES.flatMap((c) =>
-  (c.recentActivity ?? []).map((a) => ({ ...a, className: c.name }))
-).sort((a, b) => a.id.localeCompare(b.id)).slice(0, 6);
+  const stats = [
+    { label: "Active classes", value: activeClasses.length, icon: GraduationCap, tone: "bg-primary/10 text-primary" },
+    { label: "Total students", value: overview.totalStudents, icon: Users, tone: "bg-info/10 text-info" },
+    { label: "Homework due soon", value: dueSoon.length, icon: ClipboardList, tone: "bg-warning/15 text-foreground dark:text-warning" },
+    { label: "Exams scheduled", value: upcomingExams.length, icon: FileText, tone: "bg-success/10 text-success" },
+    { label: "Pending grading", value: pendingGrading, icon: Clock, tone: "bg-sakura/30 text-foreground" },
+    { label: "Students at risk", value: atRisk.length, icon: AlertTriangle, tone: "bg-destructive/10 text-destructive" },
+  ];
 
-/* ─── Main Component ──────────────────────────────────────────────────────── */
-
-export const Route = createFileRoute("/teacher/")({ component: TeacherDashboard });
-
-function TeacherDashboard() {
-  const firstClass = ACTIVE_CLASSES[0];
+  const quickActions = [
+    { to: "/teacher/lessons/create", label: "Create Lesson", icon: BookOpen },
+    { to: "/teacher/homework/create", label: "Assign Homework", icon: ClipboardList },
+    { to: "/teacher/exams/create", label: "Create Exam", icon: FileText },
+    { to: "/teacher/progress", label: "View Progress", icon: TrendingUp },
+    { to: "/teacher/question-bank", label: "Open Question Bank", icon: HelpCircle },
+    { to: "/teacher/data-bank", label: "Open Data Bank", icon: Library },
+  ];
 
   return (
-    <div className="space-y-5">
-      {/* ── A. Welcome ─────────────────────────────────────────────────── */}
+    <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Welcome back, Teacher"
-        subtitle="Manage your classes, lessons, homework, exams and student progress."
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/teacher/classes/create"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-[var(--primary)] text-white hover:opacity-90 shadow-sm transition"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Create Class
-            </Link>
-            <Link
-              to="/teacher/classes"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-primary/40 shadow-sm transition"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              View My Classes
-            </Link>
-          </div>
+        eyebrow={today}
+        title={`おかえりなさい, ${teacherProfile.name.split(" ")[0]}-sensei`}
+        subtitle="Here's what needs your attention today across your classes and students."
+        actions={
+          <>
+            <Button asChild variant="outline"><Link to="/teacher/classes"><GraduationCap className="mr-2 h-4 w-4" />My classes</Link></Button>
+            <Button asChild><Link to="/teacher/lessons/create"><Plus className="mr-2 h-4 w-4" />New lesson</Link></Button>
+          </>
         }
       />
 
-      {/* ── B. Overview Cards ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-        {[
-          { label: "Active Classes", value: ACTIVE_CLASSES.length, icon: <BookOpen className="w-4 h-4" />, accent: "primary" as const },
-          { label: "Total Students", value: totalStudents, icon: <Users className="w-4 h-4" />, accent: "sky" as const },
-          { label: "Pending Invites", value: pendingInvitations, icon: <Clock className="w-4 h-4" />, accent: "sakura" as const },
-          { label: "Open Homework", value: openHomework, icon: <ClipboardList className="w-4 h-4" />, accent: "red" as const },
-          { label: "Open Exams", value: openExams, icon: <FileText className="w-4 h-4" />, accent: "red" as const },
-          { label: "At-Risk Students", value: lowProgressStudents, icon: <AlertTriangle className="w-4 h-4" />, accent: "red" as const },
-        ].map((stat) => (
-          <Card key={stat.label} className="p-3 text-center">
-            <div className="flex flex-col items-center gap-1">
-              <div className={`w-7 h-7 rounded-lg grid place-items-center ${
-                stat.accent === "primary" ? "bg-primary/15 text-primary" :
-                stat.accent === "sky"    ? "bg-sky-blue/20 text-sky-blue" :
-                stat.accent === "sakura" ? "bg-sakura/40 text-jp-red" :
-                                           "bg-[var(--jp-red)]/15 text-[var(--jp-red)]"
-              }`}>{stat.icon}</div>
-              <div className="font-display font-black text-sm leading-tight">{stat.value}</div>
-              <div className="text-[9px] text-muted-col uppercase tracking-wider font-bold leading-tight">{stat.label}</div>
-            </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {stats.map((s) => (
+          <Card key={s.label} className="overflow-hidden border-border/60">
+            <CardContent className="p-4">
+              <div className={`mb-3 grid h-9 w-9 place-items-center rounded-lg ${s.tone}`}>
+                <s.icon className="h-4 w-4" />
+              </div>
+              <div className="text-2xl font-bold leading-none">{s.value}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{s.label}</div>
+            </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* ── C. Recent Classes ──────────────────────────────────────────── */}
-      <div>
-        <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-3">
-          <BookOpen className="w-4 h-4 text-primary" />
-          Recent Classes
-        </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {ACTIVE_CLASSES.slice(0, 3).map((cls) => (
-            <Card key={cls.id} className="p-4 flex flex-col gap-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-display font-bold text-sm text-foreground leading-snug">{cls.name}</p>
-                  <p className="text-[10px] text-muted-col mt-0.5">{cls.description}</p>
-                </div>
-                <LevelBadge level={cls.level} />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                  cls.status === "Active" ? "bg-[var(--status-active)]/15 text-[var(--status-active)]" :
-                  cls.status === "Draft"  ? "bg-[var(--status-pending)]/15 text-[var(--status-pending)]" :
-                                            "bg-muted text-muted-col"
-                }`}>{cls.status}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-muted/20 rounded-lg py-1.5">
-                  <div className="font-display font-black text-xs">{cls.students}</div>
-                  <div className="text-[9px] text-muted-col">Students</div>
-                </div>
-                <div className="bg-muted/20 rounded-lg py-1.5">
-                  <div className="font-display font-black text-xs">{cls.lessons}</div>
-                  <div className="text-[9px] text-muted-col">Lessons</div>
-                </div>
-                <div className="bg-muted/20 rounded-lg py-1.5">
-                  <div className="font-display font-black text-xs">{cls.averageProgress}%</div>
-                  <div className="text-[9px] text-muted-col">Progress</div>
-                </div>
-              </div>
-              <Link
-                to={`/teacher/classes/${cls.id}`}
-                className="mt-auto inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-[10px] font-semibold bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-white/10 hover:border-primary/40 transition"
-              >
-                View Class <ArrowUpRight className="w-3 h-3" />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Quick actions</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {quickActions.map((a) => (
+            <Button key={a.to} asChild variant="outline" className="h-auto flex-col gap-2 py-4">
+              <Link to={a.to}>
+                <a.icon className="h-5 w-5 text-primary" />
+                <span className="text-xs">{a.label}</span>
               </Link>
-            </Card>
+            </Button>
           ))}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid lg:grid-cols-2 gap-5">
-        {/* ── D. Teaching Tasks ─────────────────────────────────────────── */}
-        <Card>
-          <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-[var(--jp-red)]" />
-            Teaching Tasks
-          </h2>
-          <div className="space-y-2">
-            {(() => {
-              const tasks: { label: string; count: number; to: string; icon: React.ReactNode; accent: string }[] = [];
-
-              // Pending invitations
-              const pendingCount = ALL_INVITATIONS.filter((s) => s.status === "Invited").length;
-              if (pendingCount > 0 && firstClass) {
-                tasks.push({
-                  label: `${pendingCount} Pending invitation(s) need follow-up`,
-                  count: pendingCount,
-                  to: `/teacher/classes/${firstClass.id}/students`,
-                  icon: <Users className="w-3.5 h-3.5" />,
-                  accent: "bg-[var(--jp-red)]/15 text-[var(--jp-red)]",
-                });
-              }
-
-              // Missing homework
-              ACTIVE_CLASSES.forEach((cls) => {
-                (cls.homeworkList ?? []).forEach((h) => {
-                  if (h.missingCount > 0) {
-                    tasks.push({
-                      label: `${h.missingCount} missing submission(s) — ${h.title}`,
-                      count: h.missingCount,
-                      to: `/teacher/classes/${cls.id}/homework`,
-                      icon: <ClipboardList className="w-3.5 h-3.5" />,
-                      accent: "bg-[var(--jp-red)]/15 text-[var(--jp-red)]",
-                    });
-                  }
-                });
-              });
-
-              // Open exams
-              ACTIVE_CLASSES.forEach((cls) => {
-                (cls.examList ?? []).forEach((e) => {
-                  if (e.status === "Open") {
-                    tasks.push({
-                      label: `Open exam — ${e.title}`,
-                      count: e.submittedCount ?? 0,
-                      to: `/teacher/classes/${cls.id}/exams`,
-                      icon: <FileText className="w-3.5 h-3.5" />,
-                      accent: "bg-sky-blue/15 text-sky-blue",
-                    });
-                  }
-                });
-              });
-
-              // Low progress
-              const lowCount = ACTIVE_STUDENTS.filter((s) => (s.progressDetails?.overallProgress ?? 0) < 50).length;
-              if (lowCount > 0 && firstClass) {
-                tasks.push({
-                  label: `${lowCount} student(s) with low progress`,
-                  count: lowCount,
-                  to: `/teacher/classes/${firstClass.id}/progress`,
-                  icon: <TrendingUp className="w-3.5 h-3.5" />,
-                  accent: "bg-[var(--status-pending)]/15 text-[var(--status-pending)]",
-                });
-              }
-
-              // Draft lessons
-              ACTIVE_CLASSES.forEach((cls) => {
-                (cls.lessonList ?? []).forEach((l) => {
-                  if (l.status === "Draft") {
-                    tasks.push({
-                      label: `Draft — ${l.title}`,
-                      count: 0,
-                      to: `/teacher/classes/${cls.id}/lessons`,
-                      icon: <GraduationCap className="w-3.5 h-3.5" />,
-                      accent: "bg-[var(--status-pending)]/15 text-[var(--status-pending)]",
-                    });
-                  }
-                });
-              });
-
-              if (tasks.length === 0) {
-                return <p className="text-xs text-muted-col">All clear — no attention needed.</p>;
-              }
-
-              return tasks.slice(0, 6).map((t) => (
-                <Link
-                  key={t.label}
-                  to={t.to}
-                  className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/30 transition"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={`w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 ${t.accent}`}>{t.icon}</div>
-                    <span className="text-xs text-foreground truncate">{t.label}</span>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Classes needing attention</CardTitle>
+            <Button asChild variant="ghost" size="sm"><Link to="/teacher/classes">View all <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link></Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {attention.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                <CheckCircle2 className="mx-auto mb-2 h-6 w-6 text-success" />
+                All classes are on track.
+              </div>
+            ) : attention.map((c) => (
+              <Link
+                key={c.id}
+                to="/teacher/classes/$classId"
+                params={{ classId: c.id }}
+                className="flex items-center gap-4 rounded-lg border border-border/60 bg-card p-3 transition-all hover:border-primary/40 hover:shadow-sm"
+              >
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary font-bold">
+                  {c.level}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="truncate font-medium">{c.name}</div>
+                    {c.attention > 0 && <Badge variant="destructive" className="shrink-0">{c.attention} alerts</Badge>}
                   </div>
-                  <span className="text-[10px] font-bold text-muted-col flex-shrink-0">
-                    {t.count > 0 ? t.count : "→"}
-                  </span>
-                </Link>
-              ));
-            })()}
-          </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{c.schedule}</div>
+                  <Progress value={c.progress} className="mt-2 h-1.5" />
+                </div>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+          </CardContent>
         </Card>
 
-        {/* ── E + G. Low Progress + Recent Activity ────────────────────── */}
-        <div className="space-y-5">
-          {/* Low Progress Students */}
-          <Card>
-            <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-[var(--jp-red)]" />
-              Low Progress Students
-            </h2>
-            {lowProgressStudents === 0 ? (
-              <p className="text-xs text-muted-col">No students flagged.</p>
-            ) : (
-              <div className="space-y-2">
-                {ACTIVE_STUDENTS
-                  .filter((s) => (s.progressDetails?.overallProgress ?? 0) < 50)
-                  .map((s) => {
-                    const classInfo = ACTIVE_CLASSES.find((c) =>
-                      (c.invitations ?? []).some((inv) => inv.id === s.id && inv.status === "Active")
-                    );
-                    return (
-                      <div key={s.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/20 border border-border/30">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-foreground truncate">{s.name}</p>
-                          <p className="text-[10px] text-muted-col">{classInfo?.name ?? ""}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-1 justify-end">
-                          {(s.progressDetails?.warnings ?? []).map((w) => {
-                            const cfg: Record<string, { label: string; cls: string }> = {
-                              "Low progress":     { label: "Low Progress", cls: "bg-[var(--jp-red)]/10 text-[var(--jp-red)]" },
-                              "Missing homework": { label: "Missing HW",   cls: "bg-[var(--status-pending)]/10 text-[var(--status-pending)]" },
-                              "Weak listening":   { label: "Weak Listen",  cls: "bg-sky-blue/10 text-sky-blue" },
-                              "Inactive":         { label: "Inactive",      cls: "bg-gray-100 dark:bg-gray-800 text-gray-500" },
-                            };
-                            const c = cfg[w] ?? { label: w, cls: "bg-muted text-muted-col" };
-                            return (
-                              <span key={w} className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${c.cls}`}>
-                                {c.label}
-                              </span>
-                            );
-                          })}
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-[10px] font-bold text-[var(--jp-red)]">{s.progressDetails?.overallProgress ?? 0}%</div>
-                          <div className="text-[9px] text-muted-col">{s.lastActive}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </Card>
-
-          {/* Recent Activity */}
-          <Card>
-            <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4 text-primary" />
-              Recent Activity
-            </h2>
-            <div className="space-y-3">
-              {allRecentActivity.length === 0 ? (
-                <p className="text-xs text-muted-col">No recent activity.</p>
-              ) : (
-                allRecentActivity.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-3 h-3" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-foreground">{a.text}</p>
-                      <p className="text-[10px] text-muted-col">{a.time}</p>
-                    </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Notifications</CardTitle>
+            <Button asChild variant="ghost" size="sm"><Link to="/teacher/notifications">All <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link></Button>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {notifs.map((n) => (
+              <Link key={n.id} to={n.link ?? "/teacher/notifications"} className="block rounded-lg border border-border/60 p-3 transition-colors hover:bg-accent/40">
+                <div className="flex items-start gap-2">
+                  {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{n.title}</div>
+                    <div className="line-clamp-2 text-xs text-muted-foreground">{n.message}</div>
+                    <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{n.time}</div>
                   </div>
-                ))
-              )}
-            </div>
-          </Card>
-        </div>
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ── F. Quick Actions ───────────────────────────────────────────── */}
-      <Card>
-        <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-3">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {[
-            { label: "Create Class",      to: "/teacher/classes/create", icon: <Plus className="w-3.5 h-3.5" /> },
-            { label: "Manage Classes",   to: "/teacher/classes",        icon: <BookOpen className="w-3.5 h-3.5" /> },
-            { label: "Manage Lessons",    to: "/teacher/lessons",        icon: <GraduationCap className="w-3.5 h-3.5" /> },
-            { label: "Assign Homework",  to: "/teacher/homework",       icon: <ClipboardList className="w-3.5 h-3.5" /> },
-            { label: "Manage Exams",     to: "/teacher/exams",         icon: <FileText className="w-3.5 h-3.5" /> },
-            { label: "View Progress",     to: "/teacher/progress",      icon: <TrendingUp className="w-3.5 h-3.5" /> },
-            { label: "Data Bank",        to: "/teacher/data-bank",     icon: <Download className="w-3.5 h-3.5" /> },
-            { label: "Reports",          to: "/teacher/reports",       icon: <BarChart3 className="w-3.5 h-3.5" /> },
-          ].map((action) => (
-            <Link
-              key={action.label}
-              to={action.to}
-              className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/30 hover:bg-muted/30 transition text-center"
-            >
-              <div className="w-7 h-7 rounded-lg bg-primary/15 text-primary grid place-items-center">{action.icon}</div>
-              <span className="text-[10px] font-semibold text-foreground leading-tight">{action.label}</span>
-            </Link>
-          ))}
-        </div>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Upcoming deadlines</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {[...dueSoon, ...upcomingExams.slice(0, 2).map((e) => ({ id: e.id, classId: e.classId, title: e.title, dueDate: e.scheduledAt, status: "Scheduled" }))].map((d) => {
+              const cls = classes.find((c) => c.id === d.classId);
+              return (
+                <div key={d.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-warning/15 text-foreground dark:text-warning">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{d.title}</div>
+                    <div className="text-xs text-muted-foreground">{cls?.name} · due {d.dueDate}</div>
+                  </div>
+                  {cls && <LevelBadge level={cls.level} />}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
 
-      {/* ── H. Rules / Info Card ──────────────────────────────────────── */}
-      <Card>
-        <h2 className="font-display font-bold text-sm flex items-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-primary" />
-          Teaching Rules
-        </h2>
-        <ul className="grid sm:grid-cols-2 gap-2">
-          {[
-            "Teacher manages only their own classes.",
-            "Class level (N5–N1) is required when creating a class.",
-            "Students must accept invitation before joining the class.",
-            "Data Bank is managed by Admin; Teacher can use approved content.",
-          ].map((rule, i) => (
-            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-              <span className="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-bold">
-                {i + 1}
-              </span>
-              {rule}
-            </li>
-          ))}
-        </ul>
-      </Card>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Students at risk</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {atRisk.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                <CheckCircle2 className="mx-auto mb-2 h-6 w-6 text-success" />
+                No students currently at risk.
+              </div>
+            ) : atRisk.slice(0, 5).map((s) => (
+              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage src={s.avatar} alt={s.name} />
+                  <AvatarFallback>{s.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{s.name}</div>
+                  <div className="text-xs text-muted-foreground">Progress {s.progress}% · Weak: {s.weakSkill}</div>
+                </div>
+                <LevelBadge level={s.level} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
