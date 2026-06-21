@@ -1,160 +1,206 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LevelBadge } from "@/components/teacher/badges";
 import {
-  Users, BookOpen, TrendingUp, CheckCircle, BarChart3,
-  Headphones, GraduationCap, ArrowUpRight, ArrowDownRight
+  getClasses, getHomework, getExams, getAllStudents, getNotifications, teacherProfile, getProgressOverview,
+} from "@/data/teacher-data";
+import {
+  GraduationCap, Users, ClipboardList, FileText, BookOpen, AlertTriangle, ArrowRight,
+  Plus, Library, HelpCircle, TrendingUp, CheckCircle2, Clock,
 } from "lucide-react";
-import {
-  BarChart, Bar, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid
-} from "recharts";
 
-// ─── Mock Data ───────────────────────────────────────────────────────────────
+export const Route = createFileRoute("/teacher/")({
+  head: () => ({ meta: [{ title: "Dashboard — MIDORI Teacher Studio" }] }),
+  component: Dashboard,
+});
 
-const teacherStats = {
-  totalStudents: 248,
-  activeStudents: 186,
-  lessonCompletionRate: 78,
-  listeningAvgAccuracy: 71,
-  vocabularyUploaded: 1240,
-  shadowingSessions: 89,
-  totalExams: 34,
-};
+function Dashboard() {
+  const classes = getClasses();
+  const hw = getHomework();
+  const ex = getExams();
+  const students = getAllStudents();
+  const notifs = getNotifications().slice(0, 4);
+  const overview = getProgressOverview();
 
-const weeklyData = [
-  { day: "Mon", students: 145, lessons: 38, exams: 5 },
-  { day: "Tue", students: 162, lessons: 42, exams: 8 },
-  { day: "Wed", students: 138, lessons: 35, exams: 3 },
-  { day: "Thu", students: 178, lessons: 48, exams: 12 },
-  { day: "Fri", students: 155, lessons: 40, exams: 6 },
-  { day: "Sat", students: 98, lessons: 25, exams: 2 },
-  { day: "Sun", students: 67, lessons: 18, exams: 1 },
-];
+  const activeClasses = classes.filter((c) => c.status === "Active");
+  const dueSoon = hw.filter((h) => h.status === "Assigned").slice(0, 4);
+  const upcomingExams = ex.filter((e) => e.status === "Scheduled");
+  const pendingGrading = hw.reduce((s, h) => s + h.pendingGrading, 0);
+  const atRisk = students.filter((s) => s.status === "at-risk");
+  const attention = classes.filter((c) => c.attention > 0);
 
-const recentUploads = [
-  { id: 1, type: "vocabulary", title: "N2 Kanji — 環境", level: "N2", views: 342, completions: 156, date: "2 days ago" },
-  { id: 2, type: "grammar", title: "〜たところで", level: "N3", views: 218, completions: 89, date: "3 days ago" },
-  { id: 3, type: "listening", title: "Business Phone Manners", level: "N3", views: 445, completions: 203, date: "5 days ago" },
-];
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+  const stats = [
+    { label: "Active classes", value: activeClasses.length, icon: GraduationCap, tone: "bg-primary/10 text-primary" },
+    { label: "Total students", value: overview.totalStudents, icon: Users, tone: "bg-info/10 text-info" },
+    { label: "Homework due soon", value: dueSoon.length, icon: ClipboardList, tone: "bg-warning/15 text-foreground dark:text-warning" },
+    { label: "Exams scheduled", value: upcomingExams.length, icon: FileText, tone: "bg-success/10 text-success" },
+    { label: "Pending grading", value: pendingGrading, icon: Clock, tone: "bg-sakura/30 text-foreground" },
+    { label: "Students at risk", value: atRisk.length, icon: AlertTriangle, tone: "bg-destructive/10 text-destructive" },
+  ];
 
-function StatCard({ label, value, delta, icon, color, sublabel }: {
-  label: string; value: string | number; delta?: string; icon: React.ElementType; color: string; sublabel?: string;
-}) {
-  const Icon = icon;
-  const up = delta?.startsWith("+");
+  const quickActions = [
+    { to: "/teacher/lessons/create", label: "Create Lesson", icon: BookOpen },
+    { to: "/teacher/homework/create", label: "Assign Homework", icon: ClipboardList },
+    { to: "/teacher/exams/create", label: "Create Exam", icon: FileText },
+    { to: "/teacher/progress", label: "View Progress", icon: TrendingUp },
+    { to: "/teacher/question-bank", label: "Open Question Bank", icon: HelpCircle },
+    { to: "/teacher/data-bank", label: "Open Data Bank", icon: Library },
+  ];
+
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-card text-card-foreground border border-border/50 rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color}`}>
-          <Icon className="w-4 h-4" />
-        </div>
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
-      </div>
-      <div className="font-display font-black text-2xl">{value}</div>
-      <div className="flex items-center justify-between mt-1.5">
-        {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
-        {delta && (
-          <span className={`text-[10px] font-bold flex items-center gap-0.5 ${up ? "text-green-500" : "text-red-400"}`}>
-            {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {delta}
-          </span>
-        )}
-      </div>
-    </motion.div>
-  );
-}
+    <div className="mx-auto max-w-7xl space-y-6">
+      <PageHeader
+        eyebrow={today}
+        title={`おかえりなさい, ${teacherProfile.name.split(" ")[0]}-sensei`}
+        subtitle="Here's what needs your attention today across your classes and students."
+        actions={
+          <>
+            <Button asChild variant="outline"><Link to="/teacher/classes"><GraduationCap className="mr-2 h-4 w-4" />My classes</Link></Button>
+            <Button asChild><Link to="/teacher/lessons/create"><Plus className="mr-2 h-4 w-4" />New lesson</Link></Button>
+          </>
+        }
+      />
 
-// ─── Main Component ─────────────────────────────────────────────────────────
-
-export const Route = createFileRoute("/teacher/")({ component: TeacherDashboard });
-
-function TeacherDashboard() {
-  return (
-    <div className="space-y-5">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-display font-black text-foreground">Teacher Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Welcome back, Sensei Taro — here's your teaching overview.</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {stats.map((s) => (
+          <Card key={s.label} className="overflow-hidden border-border/60">
+            <CardContent className="p-4">
+              <div className={`mb-3 grid h-9 w-9 place-items-center rounded-lg ${s.tone}`}>
+                <s.icon className="h-4 w-4" />
+              </div>
+              <div className="text-2xl font-bold leading-none">{s.value}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{s.label}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <StatCard label="Total Students" value={teacherStats.totalStudents} delta="+12" icon={Users} color="bg-blue-50 text-blue-500" sublabel="enrolled" />
-        <StatCard label="Active Students" value={teacherStats.activeStudents} delta="+8" icon={TrendingUp} color="bg-green-50 text-green-500" sublabel="this week" />
-        <StatCard label="Lesson Completion" value={`${teacherStats.lessonCompletionRate}%`} delta="+5%" icon={CheckCircle} color="bg-purple-50 text-purple-500" sublabel="avg rate" />
-      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Quick actions</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {quickActions.map((a) => (
+            <Button key={a.to} asChild variant="outline" className="h-auto flex-col gap-2 py-4">
+              <Link to={a.to}>
+                <a.icon className="h-5 w-5 text-primary" />
+                <span className="text-xs">{a.label}</span>
+              </Link>
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
 
-      {/* Main grid: Weekly Activity + Recent Uploads */}
-      <div className="grid lg:grid-cols-2 gap-5">
-        {/* Weekly activity chart */}
-        <div className="bg-card text-card-foreground border border-border/50 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="font-display font-bold text-base flex items-center gap-2 text-foreground">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Weekly Activity
-            </h2>
-            <div className="flex gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500" /> Students</span>
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-purple-500" /> Lessons</span>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4">Student engagement over the past 7 days</p>
-          <div className="h-[260px] min-h-[240px] w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} barCategoryGap="35%">
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.02 300)" opacity={0.3} vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.08)", backgroundColor: "var(--card)" }} />
-                <Bar dataKey="students" fill="oklch(0.62 0.18 270)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="lessons" fill="oklch(0.72 0.18 340)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Recent uploads */}
-        <div className="bg-card text-card-foreground border border-border/50 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-base text-foreground">Your Recent Uploads</h2>
-            <button className="text-xs text-primary font-semibold hover:underline">View all</button>
-          </div>
-          <div className="space-y-3">
-            {recentUploads.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition"
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Classes needing attention</CardTitle>
+            <Button asChild variant="ghost" size="sm"><Link to="/teacher/classes">View all <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link></Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {attention.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                <CheckCircle2 className="mx-auto mb-2 h-6 w-6 text-success" />
+                All classes are on track.
+              </div>
+            ) : attention.map((c) => (
+              <Link
+                key={c.id}
+                to="/teacher/classes/$classId"
+                params={{ classId: c.id }}
+                className="flex items-center gap-4 rounded-lg border border-border/60 bg-card p-3 transition-all hover:border-primary/40 hover:shadow-sm"
               >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  item.type === "vocabulary" ? "bg-blue-50 text-blue-500 dark:bg-blue-950/30" :
-                  item.type === "grammar" ? "bg-purple-50 text-purple-500 dark:bg-purple-950/30" :
-                  "bg-green-50 text-green-500 dark:bg-green-950/30"
-                }`}>
-                  {item.type === "vocabulary" ? <BookOpen className="w-4 h-4" /> :
-                   item.type === "grammar" ? <GraduationCap className="w-4 h-4" /> :
-                   <Headphones className="w-4 h-4" />}
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary font-bold">
+                  {c.level}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-foreground">{item.title}</div>
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                    <span className="px-1.5 py-0.5 rounded-full bg-muted font-bold">{item.level}</span>
-                    <span>{item.views} views</span>
-                    <span>·</span>
-                    <span>{item.completions} completions</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="truncate font-medium">{c.name}</div>
+                    {c.attention > 0 && <Badge variant="destructive" className="shrink-0">{c.attention} alerts</Badge>}
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{c.schedule}</div>
+                  <Progress value={c.progress} className="mt-2 h-1.5" />
+                </div>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Notifications</CardTitle>
+            <Button asChild variant="ghost" size="sm"><Link to="/teacher/notifications">All <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link></Button>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {notifs.map((n) => (
+              <Link key={n.id} to={n.link ?? "/teacher/notifications"} className="block rounded-lg border border-border/60 p-3 transition-colors hover:bg-accent/40">
+                <div className="flex items-start gap-2">
+                  {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{n.title}</div>
+                    <div className="line-clamp-2 text-xs text-muted-foreground">{n.message}</div>
+                    <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{n.time}</div>
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-[10px] text-muted-foreground">{item.date}</div>
-                  <button className="text-[10px] text-primary font-semibold hover:underline mt-0.5">Edit</button>
-                </div>
-              </motion.div>
+              </Link>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Upcoming deadlines</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {[...dueSoon, ...upcomingExams.slice(0, 2).map((e) => ({ id: e.id, classId: e.classId, title: e.title, dueDate: e.scheduledAt, status: "Scheduled" }))].map((d) => {
+              const cls = classes.find((c) => c.id === d.classId);
+              return (
+                <div key={d.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-warning/15 text-foreground dark:text-warning">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{d.title}</div>
+                    <div className="text-xs text-muted-foreground">{cls?.name} · due {d.dueDate}</div>
+                  </div>
+                  {cls && <LevelBadge level={cls.level} />}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Students at risk</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {atRisk.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                <CheckCircle2 className="mx-auto mb-2 h-6 w-6 text-success" />
+                No students currently at risk.
+              </div>
+            ) : atRisk.slice(0, 5).map((s) => (
+              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage src={s.avatar} alt={s.name} />
+                  <AvatarFallback>{s.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{s.name}</div>
+                  <div className="text-xs text-muted-foreground">Progress {s.progress}% · Weak: {s.weakSkill}</div>
+                </div>
+                <LevelBadge level={s.level} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

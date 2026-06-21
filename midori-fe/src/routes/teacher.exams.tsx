@@ -296,272 +296,73 @@ function createEmptyQuestion(jlptLevel: JLPTLevel = "N3"): ManualQuestion {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/teacher/exams")({ component: ExamsPage });
+﻿import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getExams, getClasses } from "@/data/teacher-data";
+import { LevelBadge, StatusBadge } from "@/components/teacher/badges";
+import { Plus, Search } from "lucide-react";
+
+export const Route = createFileRoute("/teacher/exams")({
+  head: () => ({ meta: [{ title: "Exams — MIDORI Teacher" }] }),
+  component: ExamsPage,
+});
 
 function ExamsPage() {
-  // ── Exams list state ──────────────────────────────────────────────────────
-  const [exams, setExams] = useState<ManualExam[]>(initialExams);
-  const [search, setSearch] = useState("");
-  const [levelFilter, setLevelFilter] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  // ── PDF Generator states (UNCHANGED — DO NOT MODIFY) ───────────────────────
-  const [showPDFGenerator, setShowPDFGenerator] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisStage, setAnalysisStage] = useState("");
-  const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
-  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
-  const [examTitle, setExamTitle] = useState("");
-  const [examLevel, setExamLevel] = useState<JLPTLevel>("N3");
-  const [editingQuestion, setEditingQuestion] = useState<GeneratedQuestion | null>(null);
-  const [editingDraft, setEditingDraft] = useState<GeneratedQuestion | null>(null);
+  if (pathname !== "/teacher/exams") {
+    return <Outlet />;
+  }
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const exams = getExams();
+  const classes = getClasses();
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string>("All");
 
-  // ── Manual Create state ───────────────────────────────────────────────────
-  const [showManualCreate, setShowManualCreate] = useState(false);
-  const [manualDraft, setManualDraft] = useState<Partial<ManualExam>>({
-    title: "",
-    level: "N3",
-    examType: "Grammar",
-    time: 45,
-    status: "draft",
-    questions: [],
-  });
-  const [editingManualQuestion, setEditingManualQuestion] = useState<ManualQuestion | null>(null);
+  const filtered = exams.filter((e) =>
+    (status === "All" || e.status === status) &&
+    e.title.toLowerCase().includes(q.toLowerCase())
+  );
 
-  // ── View / Edit / Delete state ─────────────────────────────────────────────
-  const [showViewExam, setShowViewExam] = useState<ManualExam | null>(null);
-  const [showEditExam, setShowEditExam] = useState<ManualExam | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-
-  // ── Filtered + paginated exams ────────────────────────────────────────────
-  const filteredExams = exams.filter(e => {
-    const matchSearch = e.title.toLowerCase().includes(search.toLowerCase());
-    const matchLevel = levelFilter === "All" || e.level === levelFilter;
-    return matchSearch && matchLevel;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredExams.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedExams = filteredExams.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  // ── PDF Generator handlers (UNCHANGED — DO NOT MODIFY) ─────────────────────
-  const simulateAnalysis = useCallback(async (file: File) => {
-    setIsAnalyzing(true);
-    const stages = [
-      "Extracting text from PDF...",
-      "Identifying vocabulary terms...",
-      "Analyzing grammar patterns...",
-      "Generating reading comprehension...",
-      "Creating multiple-choice questions...",
-      "Applying JLPT difficulty levels...",
-      "Finalizing question bank...",
-    ];
-    for (let i = 0; i < stages.length; i++) {
-      setAnalysisStage(stages[i]);
-      await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
-    }
-    const questions = sampleGeneratedQuestions.map((q, idx) => ({
-      ...q,
-      id: `q_${Date.now()}_${idx}`,
-      question: idx === 0
-        ? `PDF "${file.name.replace(".pdf", "")}" based vocabulary questions.`
-        : q.question,
-    }));
-    setGeneratedQuestions(questions);
-    setSelectedQuestions(new Set(questions.map(q => q.id)));
-    setIsAnalyzing(false);
-  }, []);
-
-  const handleFileUpload = useCallback((file: File) => {
-    if (!file.name.endsWith(".pdf")) { alert("Please upload a PDF file"); return; }
-    setUploadedFile(file);
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(p => {
-        if (p >= 100) { clearInterval(interval); simulateAnalysis(file); return 100; }
-        return p + Math.random() * 15;
-      });
-    }, 200);
-  }, [simulateAnalysis]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileUpload(file);
-  }, [handleFileUpload]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleToggleQuestion = useCallback((id: string) => {
-    setSelectedQuestions(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const handleDeleteQuestion = useCallback((id: string) => {
-    setGeneratedQuestions(prev => prev.filter(q => q.id !== id));
-    setSelectedQuestions(prev => { const next = new Set(prev); next.delete(id); return next; });
-  }, []);
-
-  const handleSaveQuestionEdit = useCallback(() => {
-    if (!editingDraft) return;
-    setGeneratedQuestions(prev => prev.map(q => q.id === editingDraft.id ? editingDraft : q));
-    setEditingQuestion(null);
-    setEditingDraft(null);
-  }, [editingDraft]);
-
-  const handlePublish = useCallback(() => {
-    const finalQuestions = generatedQuestions.filter(q => selectedQuestions.has(q.id));
-    alert(`Exam "${examTitle}" published with ${finalQuestions.length} questions!`);
-    setShowPDFGenerator(false);
-    setUploadedFile(null);
-    setGeneratedQuestions([]);
-    setSelectedQuestions(new Set());
-    setExamTitle("");
-  }, [examTitle, examLevel, generatedQuestions, selectedQuestions]);
-
-  const handleSaveDraft = useCallback(() => {
-    const finalQuestions = generatedQuestions.filter(q => selectedQuestions.has(q.id));
-    alert(`Draft saved with ${finalQuestions.length} questions!`);
-  }, [examTitle, examLevel, generatedQuestions, selectedQuestions]);
-
-  // ── Manual Create handlers ────────────────────────────────────────────────
-  const resetManualDraft = () => {
-    setManualDraft({ title: "", level: "N3", examType: "Grammar", time: 45, status: "draft", questions: [] });
-    setEditingManualQuestion(null);
-  };
-
-  const handleOpenManualCreate = () => {
-    resetManualDraft();
-    setShowManualCreate(true);
-  };
-
-  const handleAddQuestionToManual = () => {
-    const newQ = createEmptyQuestion(manualDraft.level);
-    setManualDraft(prev => ({ ...prev, questions: [...(prev.questions || []), newQ] }));
-    setEditingManualQuestion(newQ);
-  };
-
-  const handleUpdateManualQuestion = (updated: ManualQuestion) => {
-    setManualDraft(prev => ({
-      ...prev,
-      questions: prev.questions?.map(q => q.id === updated.id ? updated : q) || [],
-    }));
-    setEditingManualQuestion(updated);
-  };
-
-  const handleDeleteManualQuestion = (id: string) => {
-    setManualDraft(prev => ({
-      ...prev,
-      questions: prev.questions?.filter(q => q.id !== id) || [],
-    }));
-    if (editingManualQuestion?.id === id) setEditingManualQuestion(null);
-  };
-
-  const handleSaveManualExam = (status: ExamStatus = "draft") => {
-    if (!manualDraft.title?.trim()) { alert("Please enter an exam title."); return; }
-    const newExam: ManualExam = {
-      id: `exam_${Date.now()}`,
-      title: manualDraft.title!,
-      level: manualDraft.level || "N3",
-      examType: manualDraft.examType || "Grammar",
-      time: manualDraft.time || 45,
-      status,
-      questions: manualDraft.questions || [],
-      date: "Just now",
-    };
-    setExams(prev => [newExam, ...prev]);
-    setShowManualCreate(false);
-    resetManualDraft();
-    setCurrentPage(1);
-    alert(status === "published" ? `Exam "${newExam.title}" published!` : `Draft saved!`);
-  };
-
-  // ── View / Edit / Delete handlers ─────────────────────────────────────────
-  const handleViewExam = (exam: ManualExam) => setShowViewExam(exam);
-  const handleCloseView = () => setShowViewExam(null);
-
-  const handleOpenEdit = (exam: ManualExam) => {
-    setShowEditExam({ ...exam, questions: [...exam.questions] });
-  };
-
-  const handleSaveEdit = () => {
-    if (!showEditExam) return;
-    setExams(prev => prev.map(e => e.id === showEditExam.id ? { ...showEditExam } : e));
-    setShowEditExam(null);
-    alert("Exam updated successfully!");
-  };
-
-  const handleDeleteExam = (id: string) => {
-    setExams(prev => prev.filter(e => e.id !== id));
-    setShowDeleteConfirm(null);
-    setCurrentPage(1);
-  };
-
-  const handlePublishExam = (id: string) => {
-    setExams(prev => prev.map(e => e.id === id ? { ...e, status: "published" as ExamStatus } : e));
-    alert("Exam published successfully!");
-  };
-
-  const handleSearch = (val: string) => { setSearch(val); setCurrentPage(1); };
-  const handleLevelFilter = (val: string) => { setLevelFilter(val); setCurrentPage(1); };
-
-  // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-black">Exam Builder</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Create JLPT exams with AI-powered PDF analysis</p>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <PageHeader
+        eyebrow="Library"
+        title="Exams"
+        subtitle="All exams scheduled or completed."
+        actions={<Button asChild><Link to="/teacher/exams/create"><Plus className="mr-2 h-4 w-4" />Create exam</Link></Button>}
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search exams..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowPDFGenerator(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition"
-          >
-            <Wand2 className="w-4 h-4" />
-            AI PDF Generator
-          </button>
-          <button onClick={handleOpenManualCreate}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:shadow-md transition">
-            <Plus className="w-4 h-4" />
-            Manual Create
-          </button>
-        </div>
+        {(["All", "Draft", "Scheduled", "Completed", "Archived"] as const).map((f) => (
+          <Button key={f} size="sm" variant={status === f ? "default" : "outline"} onClick={() => setStatus(f)}>{f}</Button>
+        ))}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total Exams", value: String(exams.length), icon: ClipboardCheck, color: "bg-blue-50 text-blue-500" },
-          { label: "Published", value: String(exams.filter(e => e.status === "published").length), icon: CheckCircle, color: "bg-green-50 text-green-500" },
-          { label: "Drafts", value: String(exams.filter(e => e.status === "draft").length), icon: Settings, color: "bg-orange-50 text-orange-500" },
-          { label: "Pending", value: String(exams.filter(e => e.status === "pending").length), icon: AlertCircle, color: "bg-purple-50 text-purple-500" },
-        ].map(stat => {
-          const Icon = stat.icon;
+      <div className="grid gap-3 sm:grid-cols-2">
+        {filtered.map((e) => {
+          const cls = classes.find((c) => c.id === e.classId)!;
           return (
-            <div key={stat.label} className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-700">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-display font-black text-xl">{stat.value}</div>
-                <div className="text-[10px] text-muted-foreground">{stat.label}</div>
-              </div>
-            </div>
+            <Card key={e.id}>
+              <CardContent className="p-4">
+                <div className="mb-2 flex items-center gap-2"><LevelBadge level={e.level} /><StatusBadge status={e.status} /><span className="text-[10px] uppercase tracking-widest text-muted-foreground">{e.source.replace("-", " ")}</span></div>
+                <Link to="/teacher/classes/$classId/exams" params={{ classId: cls.id }} className="block truncate font-semibold hover:text-primary">{e.title}</Link>
+                <div className="text-xs text-muted-foreground">{cls.name} · {e.scheduledAt}</div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-md bg-muted/40 p-2"><div className="text-muted-foreground">Questions</div><div className="font-bold">{e.totalQuestions}</div></div>
+                  <div className="rounded-md bg-muted/40 p-2"><div className="text-muted-foreground">Duration</div><div className="font-bold">{e.duration}m</div></div>
+                  <div className="rounded-md bg-muted/40 p-2"><div className="text-muted-foreground">Avg</div><div className="font-bold">{e.averageScore ?? "—"}</div></div>
+                </div>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
