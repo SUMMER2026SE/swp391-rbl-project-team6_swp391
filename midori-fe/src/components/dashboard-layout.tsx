@@ -8,13 +8,11 @@ import { Logo } from "./logo";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Layers, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
-  Users, ShieldCheck, Settings, Megaphone, ChevronRight, Menu,
-  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
-  Shield, FileText, FileBarChart, Eye, BookMarked, FolderOpen,
-  BookUser, Star, Library, Sticker,
-  Activity, BarChart, UserCog, UsersRound, Calendar, GraduationCap as CapIcon,
-  Mic2, BarChart3, ScrollText,
-  School, UserPlus, BookOpenCheck, ClipboardList, LineChart as ProgressIcon
+  ShieldCheck, ChevronRight, Menu,
+  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft,
+  FileText, FileBarChart, FolderOpen,
+  BookUser, Library,
+  School, UserPlus, ClipboardList
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
