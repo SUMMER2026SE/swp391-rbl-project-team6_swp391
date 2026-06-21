@@ -10,8 +10,8 @@ import {
   Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
   Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
   Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText,
-  School, ClipboardList, Brain, ChartColumn, BookText, Lock
-  School, UserPlus, BookOpenCheck, ClipboardList, LineChart as ProgressIcon
+  School, ClipboardList, Brain, ChartColumn, BookText, Lock,
+  UserPlus, BookOpenCheck, LineChart as ProgressIcon
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -640,37 +640,8 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                   <Link
                     key={it.to}
                     to={it.to}
+                    preload="intent"
                     title={isCollapsed ? it.label : undefined}
-        <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden", isCollapsed ? "mt-1" : "mt-2")}>
-          {role === "admin" || role === "teacher" ? (
-            // Admin/Teacher uses hierarchical navigation
-            items.map(item => renderNavItem(item))
-          ) : (
-            // Student uses flat navigation
-            items.map((it) => {
-              const isBaseRoute = it.to === `/${role}`;
-              const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-              const Icon = it.icon;
-              return (
-                <Link
-                  key={it.to}
-                  to={it.to}
-                  preload="intent"
-                  title={isCollapsed ? it.label : undefined}
-                  className={cn(
-                    "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
-                    active ? "nav-active" : "nav-item",
-                    isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                      active ? "text-white" : "text-muted-foreground group-hover:text-primary",
-                      isCollapsed ? "mx-auto" : ""
-                    )}
-                  />
-                  <span
                     className={cn(
                       "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
                       active ? "nav-active" : "nav-item",
@@ -729,8 +700,6 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             <nav className="space-y-1">
               {role === "admin" || role === "student" ? (
                 // Admin and Student hierarchical mobile nav
-              {role === "admin" || role === "teacher" ? (
-                // Admin/Teacher hierarchical mobile nav
                 items.map(item => {
                   const hasChildren = item.children && item.children.length > 0;
                   const isActive = isItemOrChildActive(item);
@@ -1014,7 +983,6 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             const Icon = it.icon;
             return (
               <Link key={it.to} to={targetTo as any} preload="intent"
-              <Link key={it.to} to={it.to} preload="intent"
                 className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${
                   active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
                 }`}>
