@@ -26,12 +26,20 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TeacherVocabularyRouteImport } from './routes/teacher.vocabulary'
 import { Route as TeacherShadowingRouteImport } from './routes/teacher.shadowing'
 import { Route as TeacherSettingsRouteImport } from './routes/teacher.settings'
+import { Route as TeacherReportsRouteImport } from './routes/teacher.reports'
+import { Route as TeacherQuestionBankRouteImport } from './routes/teacher.question-bank'
+import { Route as TeacherProgressRouteImport } from './routes/teacher.progress'
 import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
 import { Route as TeacherNotificationsRouteImport } from './routes/teacher.notifications'
 import { Route as TeacherListeningRouteImport } from './routes/teacher.listening'
+import { Route as TeacherLessonsRouteImport } from './routes/teacher.lessons'
+import { Route as TeacherJlptBankRouteImport } from './routes/teacher.jlpt-bank'
+import { Route as TeacherHomeworkRouteImport } from './routes/teacher.homework'
 import { Route as TeacherGrammarRouteImport } from './routes/teacher.grammar'
 import { Route as TeacherFlashcardsRouteImport } from './routes/teacher.flashcards'
 import { Route as TeacherExamsRouteImport } from './routes/teacher.exams'
+import { Route as TeacherDataBankRouteImport } from './routes/teacher.data-bank'
+import { Route as TeacherClassesRouteImport } from './routes/teacher.classes'
 import { Route as StudentVocabularyRouteImport } from './routes/student.vocabulary'
 import { Route as StudentShadowingRouteImport } from './routes/student.shadowing'
 import { Route as StudentProgressRouteImport } from './routes/student.progress'
@@ -48,6 +56,11 @@ import { Route as AdminTeachersRouteImport } from './routes/admin.teachers'
 import { Route as AdminProfileRouteImport } from './routes/admin.profile'
 import { Route as AdminNotificationRouteImport } from './routes/admin.notification'
 import { Route as TeacherVocabularyLessonIdRouteImport } from './routes/teacher.vocabulary.$lessonId'
+import { Route as TeacherLessonsCreateRouteImport } from './routes/teacher.lessons.create'
+import { Route as TeacherHomeworkCreateRouteImport } from './routes/teacher.homework.create'
+import { Route as TeacherExamsCreateRouteImport } from './routes/teacher.exams.create'
+import { Route as TeacherClassesCreateRouteImport } from './routes/teacher.classes.create'
+import { Route as TeacherClassesClassIdRouteImport } from './routes/teacher.classes.$classId'
 import { Route as StudentVocabularyLessonIdRouteImport } from './routes/student.vocabulary.$lessonId'
 import { Route as StudentGrammarIndexRouteImport } from './routes/student.grammar._index'
 import { Route as StudentGrammarGrammarIdRouteImport } from './routes/student.grammar.$grammarId'
@@ -63,6 +76,11 @@ import { Route as AdminContentLibraryLevelRouteImport } from './routes/admin.con
 import { Route as AdminClassClassIdRouteImport } from './routes/admin.class.$classId'
 import { Route as AdminClassManagementIndexRouteImport } from './routes/admin.class-management._index'
 import { Route as AdminContentLibraryLevelIndexRouteImport } from './routes/admin.content-library.$level.index'
+import { Route as TeacherClassesClassIdStudentsRouteImport } from './routes/teacher.classes.$classId.students'
+import { Route as TeacherClassesClassIdProgressRouteImport } from './routes/teacher.classes.$classId.progress'
+import { Route as TeacherClassesClassIdLessonsRouteImport } from './routes/teacher.classes.$classId.lessons'
+import { Route as TeacherClassesClassIdHomeworkRouteImport } from './routes/teacher.classes.$classId.homework'
+import { Route as TeacherClassesClassIdExamsRouteImport } from './routes/teacher.classes.$classId.exams'
 import { Route as StudentGrammarGrammarIdStructureIdRouteImport } from './routes/student.grammar.$grammarId.$structureId'
 import { Route as AdminTeachersApprovalTeacherIdRouteImport } from './routes/admin.teachers.approval.$teacherId'
 import { Route as AdminTeachersTeacherIdClassesRouteImport } from './routes/admin.teachers.$teacherId.classes'
@@ -157,6 +175,21 @@ const TeacherSettingsRoute = TeacherSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => TeacherRoute,
 } as any)
+const TeacherReportsRoute = TeacherReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherQuestionBankRoute = TeacherQuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherProgressRoute = TeacherProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => TeacherRoute,
+} as any)
 const TeacherProfileRoute = TeacherProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -172,6 +205,21 @@ const TeacherListeningRoute = TeacherListeningRouteImport.update({
   path: '/listening',
   getParentRoute: () => TeacherRoute,
 } as any)
+const TeacherLessonsRoute = TeacherLessonsRouteImport.update({
+  id: '/lessons',
+  path: '/lessons',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherJlptBankRoute = TeacherJlptBankRouteImport.update({
+  id: '/jlpt-bank',
+  path: '/jlpt-bank',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherHomeworkRoute = TeacherHomeworkRouteImport.update({
+  id: '/homework',
+  path: '/homework',
+  getParentRoute: () => TeacherRoute,
+} as any)
 const TeacherGrammarRoute = TeacherGrammarRouteImport.update({
   id: '/grammar',
   path: '/grammar',
@@ -185,6 +233,16 @@ const TeacherFlashcardsRoute = TeacherFlashcardsRouteImport.update({
 const TeacherExamsRoute = TeacherExamsRouteImport.update({
   id: '/exams',
   path: '/exams',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherDataBankRoute = TeacherDataBankRouteImport.update({
+  id: '/data-bank',
+  path: '/data-bank',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherClassesRoute = TeacherClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
   getParentRoute: () => TeacherRoute,
 } as any)
 const StudentVocabularyRoute = StudentVocabularyRouteImport.update({
@@ -268,6 +326,31 @@ const TeacherVocabularyLessonIdRoute =
     path: '/$lessonId',
     getParentRoute: () => TeacherVocabularyRoute,
   } as any)
+const TeacherLessonsCreateRoute = TeacherLessonsCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TeacherLessonsRoute,
+} as any)
+const TeacherHomeworkCreateRoute = TeacherHomeworkCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TeacherHomeworkRoute,
+} as any)
+const TeacherExamsCreateRoute = TeacherExamsCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TeacherExamsRoute,
+} as any)
+const TeacherClassesCreateRoute = TeacherClassesCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => TeacherClassesRoute,
+} as any)
+const TeacherClassesClassIdRoute = TeacherClassesClassIdRouteImport.update({
+  id: '/$classId',
+  path: '/$classId',
+  getParentRoute: () => TeacherClassesRoute,
+} as any)
 const StudentVocabularyLessonIdRoute =
   StudentVocabularyLessonIdRouteImport.update({
     id: '/$lessonId',
@@ -350,6 +433,36 @@ const AdminContentLibraryLevelIndexRoute =
     path: '/',
     getParentRoute: () => AdminContentLibraryLevelRoute,
   } as any)
+const TeacherClassesClassIdStudentsRoute =
+  TeacherClassesClassIdStudentsRouteImport.update({
+    id: '/students',
+    path: '/students',
+    getParentRoute: () => TeacherClassesClassIdRoute,
+  } as any)
+const TeacherClassesClassIdProgressRoute =
+  TeacherClassesClassIdProgressRouteImport.update({
+    id: '/progress',
+    path: '/progress',
+    getParentRoute: () => TeacherClassesClassIdRoute,
+  } as any)
+const TeacherClassesClassIdLessonsRoute =
+  TeacherClassesClassIdLessonsRouteImport.update({
+    id: '/lessons',
+    path: '/lessons',
+    getParentRoute: () => TeacherClassesClassIdRoute,
+  } as any)
+const TeacherClassesClassIdHomeworkRoute =
+  TeacherClassesClassIdHomeworkRouteImport.update({
+    id: '/homework',
+    path: '/homework',
+    getParentRoute: () => TeacherClassesClassIdRoute,
+  } as any)
+const TeacherClassesClassIdExamsRoute =
+  TeacherClassesClassIdExamsRouteImport.update({
+    id: '/exams',
+    path: '/exams',
+    getParentRoute: () => TeacherClassesClassIdRoute,
+  } as any)
 const StudentGrammarGrammarIdStructureIdRoute =
   StudentGrammarGrammarIdStructureIdRouteImport.update({
     id: '/$structureId',
@@ -425,12 +538,20 @@ export interface FileRoutesByFullPath {
   '/student/progress': typeof StudentProgressRoute
   '/student/shadowing': typeof StudentShadowingRoute
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
-  '/teacher/exams': typeof TeacherExamsRoute
+  '/teacher/classes': typeof TeacherClassesRouteWithChildren
+  '/teacher/data-bank': typeof TeacherDataBankRoute
+  '/teacher/exams': typeof TeacherExamsRouteWithChildren
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
+  '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
+  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
+  '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
+  '/teacher/progress': typeof TeacherProgressRoute
+  '/teacher/question-bank': typeof TeacherQuestionBankRoute
+  '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
   '/teacher/vocabulary': typeof TeacherVocabularyRouteWithChildren
@@ -450,6 +571,11 @@ export interface FileRoutesByFullPath {
   '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/teacher/classes/$classId': typeof TeacherClassesClassIdRouteWithChildren
+  '/teacher/classes/create': typeof TeacherClassesCreateRoute
+  '/teacher/exams/create': typeof TeacherExamsCreateRoute
+  '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
+  '/teacher/lessons/create': typeof TeacherLessonsCreateRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/admin/jlpt-exam/$level': typeof AdminJlptExamLevelIndexRoute
   '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
@@ -457,6 +583,11 @@ export interface FileRoutesByFullPath {
   '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
   '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/teacher/classes/$classId/exams': typeof TeacherClassesClassIdExamsRoute
+  '/teacher/classes/$classId/homework': typeof TeacherClassesClassIdHomeworkRoute
+  '/teacher/classes/$classId/lessons': typeof TeacherClassesClassIdLessonsRoute
+  '/teacher/classes/$classId/progress': typeof TeacherClassesClassIdProgressRoute
+  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRoute
   '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
   '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
   '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
@@ -485,12 +616,20 @@ export interface FileRoutesByTo {
   '/student/progress': typeof StudentProgressRoute
   '/student/shadowing': typeof StudentShadowingRoute
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
-  '/teacher/exams': typeof TeacherExamsRoute
+  '/teacher/classes': typeof TeacherClassesRouteWithChildren
+  '/teacher/data-bank': typeof TeacherDataBankRoute
+  '/teacher/exams': typeof TeacherExamsRouteWithChildren
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
+  '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
+  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
+  '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
+  '/teacher/progress': typeof TeacherProgressRoute
+  '/teacher/question-bank': typeof TeacherQuestionBankRoute
+  '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
   '/teacher/vocabulary': typeof TeacherVocabularyRouteWithChildren
@@ -509,6 +648,11 @@ export interface FileRoutesByTo {
   '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/teacher/classes/$classId': typeof TeacherClassesClassIdRouteWithChildren
+  '/teacher/classes/create': typeof TeacherClassesCreateRoute
+  '/teacher/exams/create': typeof TeacherExamsCreateRoute
+  '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
+  '/teacher/lessons/create': typeof TeacherLessonsCreateRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/admin/jlpt-exam/$level': typeof AdminJlptExamLevelIndexRoute
   '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
@@ -516,6 +660,11 @@ export interface FileRoutesByTo {
   '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
   '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/teacher/classes/$classId/exams': typeof TeacherClassesClassIdExamsRoute
+  '/teacher/classes/$classId/homework': typeof TeacherClassesClassIdHomeworkRoute
+  '/teacher/classes/$classId/lessons': typeof TeacherClassesClassIdLessonsRoute
+  '/teacher/classes/$classId/progress': typeof TeacherClassesClassIdProgressRoute
+  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRoute
   '/admin/content-library/$level': typeof AdminContentLibraryLevelIndexRoute
   '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
   '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
@@ -548,12 +697,20 @@ export interface FileRoutesById {
   '/student/progress': typeof StudentProgressRoute
   '/student/shadowing': typeof StudentShadowingRoute
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
-  '/teacher/exams': typeof TeacherExamsRoute
+  '/teacher/classes': typeof TeacherClassesRouteWithChildren
+  '/teacher/data-bank': typeof TeacherDataBankRoute
+  '/teacher/exams': typeof TeacherExamsRouteWithChildren
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
+  '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
+  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
+  '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
+  '/teacher/progress': typeof TeacherProgressRoute
+  '/teacher/question-bank': typeof TeacherQuestionBankRoute
+  '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
   '/teacher/shadowing': typeof TeacherShadowingRoute
   '/teacher/vocabulary': typeof TeacherVocabularyRouteWithChildren
@@ -574,6 +731,11 @@ export interface FileRoutesById {
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/grammar/_index': typeof StudentGrammarIndexRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/teacher/classes/$classId': typeof TeacherClassesClassIdRouteWithChildren
+  '/teacher/classes/create': typeof TeacherClassesCreateRoute
+  '/teacher/exams/create': typeof TeacherExamsCreateRoute
+  '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
+  '/teacher/lessons/create': typeof TeacherLessonsCreateRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
   '/admin/jlpt-exam/$level/_index': typeof AdminJlptExamLevelIndexRoute
   '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
@@ -581,6 +743,11 @@ export interface FileRoutesById {
   '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
   '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
   '/student/grammar/$grammarId/$structureId': typeof StudentGrammarGrammarIdStructureIdRoute
+  '/teacher/classes/$classId/exams': typeof TeacherClassesClassIdExamsRoute
+  '/teacher/classes/$classId/homework': typeof TeacherClassesClassIdHomeworkRoute
+  '/teacher/classes/$classId/lessons': typeof TeacherClassesClassIdLessonsRoute
+  '/teacher/classes/$classId/progress': typeof TeacherClassesClassIdProgressRoute
+  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRoute
   '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
   '/admin/content-library/$level/$skill/_index': typeof AdminContentLibraryLevelSkillIndexRoute
   '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
@@ -614,12 +781,20 @@ export interface FileRouteTypes {
     | '/student/progress'
     | '/student/shadowing'
     | '/student/vocabulary'
+    | '/teacher/classes'
+    | '/teacher/data-bank'
     | '/teacher/exams'
     | '/teacher/flashcards'
     | '/teacher/grammar'
+    | '/teacher/homework'
+    | '/teacher/jlpt-bank'
+    | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/notifications'
     | '/teacher/profile'
+    | '/teacher/progress'
+    | '/teacher/question-bank'
+    | '/teacher/reports'
     | '/teacher/settings'
     | '/teacher/shadowing'
     | '/teacher/vocabulary'
@@ -639,6 +814,11 @@ export interface FileRouteTypes {
     | '/admin/teachers/$teacherId'
     | '/student/grammar/$grammarId'
     | '/student/vocabulary/$lessonId'
+    | '/teacher/classes/$classId'
+    | '/teacher/classes/create'
+    | '/teacher/exams/create'
+    | '/teacher/homework/create'
+    | '/teacher/lessons/create'
     | '/teacher/vocabulary/$lessonId'
     | '/admin/jlpt-exam/$level'
     | '/admin/jlpt-exam/$level/create'
@@ -646,6 +826,11 @@ export interface FileRouteTypes {
     | '/admin/teachers/$teacherId/classes'
     | '/admin/teachers/approval/$teacherId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/teacher/classes/$classId/exams'
+    | '/teacher/classes/$classId/homework'
+    | '/teacher/classes/$classId/lessons'
+    | '/teacher/classes/$classId/progress'
+    | '/teacher/classes/$classId/students'
     | '/admin/content-library/$level/'
     | '/admin/content-library/$level/$skill'
     | '/admin/jlpt-exam/$level/$examId/edit'
@@ -674,12 +859,20 @@ export interface FileRouteTypes {
     | '/student/progress'
     | '/student/shadowing'
     | '/student/vocabulary'
+    | '/teacher/classes'
+    | '/teacher/data-bank'
     | '/teacher/exams'
     | '/teacher/flashcards'
     | '/teacher/grammar'
+    | '/teacher/homework'
+    | '/teacher/jlpt-bank'
+    | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/notifications'
     | '/teacher/profile'
+    | '/teacher/progress'
+    | '/teacher/question-bank'
+    | '/teacher/reports'
     | '/teacher/settings'
     | '/teacher/shadowing'
     | '/teacher/vocabulary'
@@ -698,6 +891,11 @@ export interface FileRouteTypes {
     | '/admin/teachers/$teacherId'
     | '/student/grammar/$grammarId'
     | '/student/vocabulary/$lessonId'
+    | '/teacher/classes/$classId'
+    | '/teacher/classes/create'
+    | '/teacher/exams/create'
+    | '/teacher/homework/create'
+    | '/teacher/lessons/create'
     | '/teacher/vocabulary/$lessonId'
     | '/admin/jlpt-exam/$level'
     | '/admin/jlpt-exam/$level/create'
@@ -705,6 +903,11 @@ export interface FileRouteTypes {
     | '/admin/teachers/$teacherId/classes'
     | '/admin/teachers/approval/$teacherId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/teacher/classes/$classId/exams'
+    | '/teacher/classes/$classId/homework'
+    | '/teacher/classes/$classId/lessons'
+    | '/teacher/classes/$classId/progress'
+    | '/teacher/classes/$classId/students'
     | '/admin/content-library/$level'
     | '/admin/content-library/$level/$skill'
     | '/admin/jlpt-exam/$level/$examId/edit'
@@ -736,12 +939,20 @@ export interface FileRouteTypes {
     | '/student/progress'
     | '/student/shadowing'
     | '/student/vocabulary'
+    | '/teacher/classes'
+    | '/teacher/data-bank'
     | '/teacher/exams'
     | '/teacher/flashcards'
     | '/teacher/grammar'
+    | '/teacher/homework'
+    | '/teacher/jlpt-bank'
+    | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/notifications'
     | '/teacher/profile'
+    | '/teacher/progress'
+    | '/teacher/question-bank'
+    | '/teacher/reports'
     | '/teacher/settings'
     | '/teacher/shadowing'
     | '/teacher/vocabulary'
@@ -762,6 +973,11 @@ export interface FileRouteTypes {
     | '/student/grammar/$grammarId'
     | '/student/grammar/_index'
     | '/student/vocabulary/$lessonId'
+    | '/teacher/classes/$classId'
+    | '/teacher/classes/create'
+    | '/teacher/exams/create'
+    | '/teacher/homework/create'
+    | '/teacher/lessons/create'
     | '/teacher/vocabulary/$lessonId'
     | '/admin/jlpt-exam/$level/_index'
     | '/admin/jlpt-exam/$level/create'
@@ -769,6 +985,11 @@ export interface FileRouteTypes {
     | '/admin/teachers/$teacherId/classes'
     | '/admin/teachers/approval/$teacherId'
     | '/student/grammar/$grammarId/$structureId'
+    | '/teacher/classes/$classId/exams'
+    | '/teacher/classes/$classId/homework'
+    | '/teacher/classes/$classId/lessons'
+    | '/teacher/classes/$classId/progress'
+    | '/teacher/classes/$classId/students'
     | '/admin/content-library/$level/'
     | '/admin/content-library/$level/$skill/_index'
     | '/admin/jlpt-exam/$level/$examId/edit'
@@ -909,6 +1130,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeacherSettingsRouteImport
       parentRoute: typeof TeacherRoute
     }
+    '/teacher/reports': {
+      id: '/teacher/reports'
+      path: '/reports'
+      fullPath: '/teacher/reports'
+      preLoaderRoute: typeof TeacherReportsRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/question-bank': {
+      id: '/teacher/question-bank'
+      path: '/question-bank'
+      fullPath: '/teacher/question-bank'
+      preLoaderRoute: typeof TeacherQuestionBankRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/progress': {
+      id: '/teacher/progress'
+      path: '/progress'
+      fullPath: '/teacher/progress'
+      preLoaderRoute: typeof TeacherProgressRouteImport
+      parentRoute: typeof TeacherRoute
+    }
     '/teacher/profile': {
       id: '/teacher/profile'
       path: '/profile'
@@ -930,6 +1172,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeacherListeningRouteImport
       parentRoute: typeof TeacherRoute
     }
+    '/teacher/lessons': {
+      id: '/teacher/lessons'
+      path: '/lessons'
+      fullPath: '/teacher/lessons'
+      preLoaderRoute: typeof TeacherLessonsRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/jlpt-bank': {
+      id: '/teacher/jlpt-bank'
+      path: '/jlpt-bank'
+      fullPath: '/teacher/jlpt-bank'
+      preLoaderRoute: typeof TeacherJlptBankRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/homework': {
+      id: '/teacher/homework'
+      path: '/homework'
+      fullPath: '/teacher/homework'
+      preLoaderRoute: typeof TeacherHomeworkRouteImport
+      parentRoute: typeof TeacherRoute
+    }
     '/teacher/grammar': {
       id: '/teacher/grammar'
       path: '/grammar'
@@ -949,6 +1212,20 @@ declare module '@tanstack/react-router' {
       path: '/exams'
       fullPath: '/teacher/exams'
       preLoaderRoute: typeof TeacherExamsRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/data-bank': {
+      id: '/teacher/data-bank'
+      path: '/data-bank'
+      fullPath: '/teacher/data-bank'
+      preLoaderRoute: typeof TeacherDataBankRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/classes': {
+      id: '/teacher/classes'
+      path: '/classes'
+      fullPath: '/teacher/classes'
+      preLoaderRoute: typeof TeacherClassesRouteImport
       parentRoute: typeof TeacherRoute
     }
     '/student/vocabulary': {
@@ -1063,6 +1340,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeacherVocabularyLessonIdRouteImport
       parentRoute: typeof TeacherVocabularyRoute
     }
+    '/teacher/lessons/create': {
+      id: '/teacher/lessons/create'
+      path: '/create'
+      fullPath: '/teacher/lessons/create'
+      preLoaderRoute: typeof TeacherLessonsCreateRouteImport
+      parentRoute: typeof TeacherLessonsRoute
+    }
+    '/teacher/homework/create': {
+      id: '/teacher/homework/create'
+      path: '/create'
+      fullPath: '/teacher/homework/create'
+      preLoaderRoute: typeof TeacherHomeworkCreateRouteImport
+      parentRoute: typeof TeacherHomeworkRoute
+    }
+    '/teacher/exams/create': {
+      id: '/teacher/exams/create'
+      path: '/create'
+      fullPath: '/teacher/exams/create'
+      preLoaderRoute: typeof TeacherExamsCreateRouteImport
+      parentRoute: typeof TeacherExamsRoute
+    }
+    '/teacher/classes/create': {
+      id: '/teacher/classes/create'
+      path: '/create'
+      fullPath: '/teacher/classes/create'
+      preLoaderRoute: typeof TeacherClassesCreateRouteImport
+      parentRoute: typeof TeacherClassesRoute
+    }
+    '/teacher/classes/$classId': {
+      id: '/teacher/classes/$classId'
+      path: '/$classId'
+      fullPath: '/teacher/classes/$classId'
+      preLoaderRoute: typeof TeacherClassesClassIdRouteImport
+      parentRoute: typeof TeacherClassesRoute
+    }
     '/student/vocabulary/$lessonId': {
       id: '/student/vocabulary/$lessonId'
       path: '/$lessonId'
@@ -1167,6 +1479,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/content-library/$level/'
       preLoaderRoute: typeof AdminContentLibraryLevelIndexRouteImport
       parentRoute: typeof AdminContentLibraryLevelRoute
+    }
+    '/teacher/classes/$classId/students': {
+      id: '/teacher/classes/$classId/students'
+      path: '/students'
+      fullPath: '/teacher/classes/$classId/students'
+      preLoaderRoute: typeof TeacherClassesClassIdStudentsRouteImport
+      parentRoute: typeof TeacherClassesClassIdRoute
+    }
+    '/teacher/classes/$classId/progress': {
+      id: '/teacher/classes/$classId/progress'
+      path: '/progress'
+      fullPath: '/teacher/classes/$classId/progress'
+      preLoaderRoute: typeof TeacherClassesClassIdProgressRouteImport
+      parentRoute: typeof TeacherClassesClassIdRoute
+    }
+    '/teacher/classes/$classId/lessons': {
+      id: '/teacher/classes/$classId/lessons'
+      path: '/lessons'
+      fullPath: '/teacher/classes/$classId/lessons'
+      preLoaderRoute: typeof TeacherClassesClassIdLessonsRouteImport
+      parentRoute: typeof TeacherClassesClassIdRoute
+    }
+    '/teacher/classes/$classId/homework': {
+      id: '/teacher/classes/$classId/homework'
+      path: '/homework'
+      fullPath: '/teacher/classes/$classId/homework'
+      preLoaderRoute: typeof TeacherClassesClassIdHomeworkRouteImport
+      parentRoute: typeof TeacherClassesClassIdRoute
+    }
+    '/teacher/classes/$classId/exams': {
+      id: '/teacher/classes/$classId/exams'
+      path: '/exams'
+      fullPath: '/teacher/classes/$classId/exams'
+      preLoaderRoute: typeof TeacherClassesClassIdExamsRouteImport
+      parentRoute: typeof TeacherClassesClassIdRoute
     }
     '/student/grammar/$grammarId/$structureId': {
       id: '/student/grammar/$grammarId/$structureId'
@@ -1391,6 +1738,77 @@ const StudentRouteChildren: StudentRouteChildren = {
 const StudentRouteWithChildren =
   StudentRoute._addFileChildren(StudentRouteChildren)
 
+interface TeacherClassesClassIdRouteChildren {
+  TeacherClassesClassIdExamsRoute: typeof TeacherClassesClassIdExamsRoute
+  TeacherClassesClassIdHomeworkRoute: typeof TeacherClassesClassIdHomeworkRoute
+  TeacherClassesClassIdLessonsRoute: typeof TeacherClassesClassIdLessonsRoute
+  TeacherClassesClassIdProgressRoute: typeof TeacherClassesClassIdProgressRoute
+  TeacherClassesClassIdStudentsRoute: typeof TeacherClassesClassIdStudentsRoute
+}
+
+const TeacherClassesClassIdRouteChildren: TeacherClassesClassIdRouteChildren = {
+  TeacherClassesClassIdExamsRoute: TeacherClassesClassIdExamsRoute,
+  TeacherClassesClassIdHomeworkRoute: TeacherClassesClassIdHomeworkRoute,
+  TeacherClassesClassIdLessonsRoute: TeacherClassesClassIdLessonsRoute,
+  TeacherClassesClassIdProgressRoute: TeacherClassesClassIdProgressRoute,
+  TeacherClassesClassIdStudentsRoute: TeacherClassesClassIdStudentsRoute,
+}
+
+const TeacherClassesClassIdRouteWithChildren =
+  TeacherClassesClassIdRoute._addFileChildren(
+    TeacherClassesClassIdRouteChildren,
+  )
+
+interface TeacherClassesRouteChildren {
+  TeacherClassesClassIdRoute: typeof TeacherClassesClassIdRouteWithChildren
+  TeacherClassesCreateRoute: typeof TeacherClassesCreateRoute
+}
+
+const TeacherClassesRouteChildren: TeacherClassesRouteChildren = {
+  TeacherClassesClassIdRoute: TeacherClassesClassIdRouteWithChildren,
+  TeacherClassesCreateRoute: TeacherClassesCreateRoute,
+}
+
+const TeacherClassesRouteWithChildren = TeacherClassesRoute._addFileChildren(
+  TeacherClassesRouteChildren,
+)
+
+interface TeacherExamsRouteChildren {
+  TeacherExamsCreateRoute: typeof TeacherExamsCreateRoute
+}
+
+const TeacherExamsRouteChildren: TeacherExamsRouteChildren = {
+  TeacherExamsCreateRoute: TeacherExamsCreateRoute,
+}
+
+const TeacherExamsRouteWithChildren = TeacherExamsRoute._addFileChildren(
+  TeacherExamsRouteChildren,
+)
+
+interface TeacherHomeworkRouteChildren {
+  TeacherHomeworkCreateRoute: typeof TeacherHomeworkCreateRoute
+}
+
+const TeacherHomeworkRouteChildren: TeacherHomeworkRouteChildren = {
+  TeacherHomeworkCreateRoute: TeacherHomeworkCreateRoute,
+}
+
+const TeacherHomeworkRouteWithChildren = TeacherHomeworkRoute._addFileChildren(
+  TeacherHomeworkRouteChildren,
+)
+
+interface TeacherLessonsRouteChildren {
+  TeacherLessonsCreateRoute: typeof TeacherLessonsCreateRoute
+}
+
+const TeacherLessonsRouteChildren: TeacherLessonsRouteChildren = {
+  TeacherLessonsCreateRoute: TeacherLessonsCreateRoute,
+}
+
+const TeacherLessonsRouteWithChildren = TeacherLessonsRoute._addFileChildren(
+  TeacherLessonsRouteChildren,
+)
+
 interface TeacherVocabularyRouteChildren {
   TeacherVocabularyLessonIdRoute: typeof TeacherVocabularyLessonIdRoute
 }
@@ -1403,12 +1821,20 @@ const TeacherVocabularyRouteWithChildren =
   TeacherVocabularyRoute._addFileChildren(TeacherVocabularyRouteChildren)
 
 interface TeacherRouteChildren {
-  TeacherExamsRoute: typeof TeacherExamsRoute
+  TeacherClassesRoute: typeof TeacherClassesRouteWithChildren
+  TeacherDataBankRoute: typeof TeacherDataBankRoute
+  TeacherExamsRoute: typeof TeacherExamsRouteWithChildren
   TeacherFlashcardsRoute: typeof TeacherFlashcardsRoute
   TeacherGrammarRoute: typeof TeacherGrammarRoute
+  TeacherHomeworkRoute: typeof TeacherHomeworkRouteWithChildren
+  TeacherJlptBankRoute: typeof TeacherJlptBankRoute
+  TeacherLessonsRoute: typeof TeacherLessonsRouteWithChildren
   TeacherListeningRoute: typeof TeacherListeningRoute
   TeacherNotificationsRoute: typeof TeacherNotificationsRoute
   TeacherProfileRoute: typeof TeacherProfileRoute
+  TeacherProgressRoute: typeof TeacherProgressRoute
+  TeacherQuestionBankRoute: typeof TeacherQuestionBankRoute
+  TeacherReportsRoute: typeof TeacherReportsRoute
   TeacherSettingsRoute: typeof TeacherSettingsRoute
   TeacherShadowingRoute: typeof TeacherShadowingRoute
   TeacherVocabularyRoute: typeof TeacherVocabularyRouteWithChildren
@@ -1416,12 +1842,20 @@ interface TeacherRouteChildren {
 }
 
 const TeacherRouteChildren: TeacherRouteChildren = {
-  TeacherExamsRoute: TeacherExamsRoute,
+  TeacherClassesRoute: TeacherClassesRouteWithChildren,
+  TeacherDataBankRoute: TeacherDataBankRoute,
+  TeacherExamsRoute: TeacherExamsRouteWithChildren,
   TeacherFlashcardsRoute: TeacherFlashcardsRoute,
   TeacherGrammarRoute: TeacherGrammarRoute,
+  TeacherHomeworkRoute: TeacherHomeworkRouteWithChildren,
+  TeacherJlptBankRoute: TeacherJlptBankRoute,
+  TeacherLessonsRoute: TeacherLessonsRouteWithChildren,
   TeacherListeningRoute: TeacherListeningRoute,
   TeacherNotificationsRoute: TeacherNotificationsRoute,
   TeacherProfileRoute: TeacherProfileRoute,
+  TeacherProgressRoute: TeacherProgressRoute,
+  TeacherQuestionBankRoute: TeacherQuestionBankRoute,
+  TeacherReportsRoute: TeacherReportsRoute,
   TeacherSettingsRoute: TeacherSettingsRoute,
   TeacherShadowingRoute: TeacherShadowingRoute,
   TeacherVocabularyRoute: TeacherVocabularyRouteWithChildren,
