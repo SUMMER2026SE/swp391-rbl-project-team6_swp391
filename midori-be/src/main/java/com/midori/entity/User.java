@@ -47,6 +47,10 @@ public class User {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private UserProfile profile;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id")
+    private ClassEntity assignedClass;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

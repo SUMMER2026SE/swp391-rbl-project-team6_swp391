@@ -1,17 +1,21 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth, useTheme, getAvatarInitial, getUserAvatar, isStudentActive, type FrontendRole } from "@/lib/auth";
 import { Footer } from "@/components/layout/Footer";
+import { AdminFooter } from "@/components/layout/AdminFooter";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
-  Users, ShieldCheck, Settings, Megaphone,   ChevronRight, Menu,
-  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft, GraduationCap as GrammarIcon,
-  Shield, FileText, FileBarChart, Eye, BookMarked, Mic2, BarChart3, FolderOpen, ScrollText,
-  School, ClipboardList, Brain, ChartColumn, BookText, Lock,
-  UserPlus, BookOpenCheck, LineChart as ProgressIcon
+  ShieldCheck, ChevronRight, Menu,
+  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft,
+  FileText, FileBarChart, FolderOpen,
+  BookUser, Library,
+  School, UserPlus, ClipboardList,
+  Users, Settings, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText,
+  Brain, ChartColumn, BookText, Lock,
+  BookOpenCheck, ProgressIcon
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -143,7 +147,7 @@ const teacherNav: NavItem[] = [
   { to: "/teacher/exams", label: "Exams", icon: ClipboardCheck },
 
   // 6. Progress (global)
-  { to: "/teacher/progress", label: "Progress", icon: ProgressIcon },
+  { to: "/teacher/progress", label: "Progress", icon: LineChart },
 
   // 7. Data Bank
   { to: "/teacher/data-bank", label: "Data Bank", icon: FolderOpen },
@@ -158,54 +162,31 @@ const teacherNav: NavItem[] = [
   { to: "/teacher/profile", label: "Profile", icon: User },
 ];
 
-// New Academic Actor Admin Navigation
+// New Academic LMS Admin Navigation
 const adminNav: NavItem[] = [
   // 1. Dashboard
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  
-  // 2. User Management
-  { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck, 
-    children: [
-      { to: "/admin/teachers", label: "Teacher Approval", icon: ShieldCheck },
-      { to: "/admin/users", label: "Teacher List", icon: Users },
-      { to: "/admin/students", label: "Student Management", icon: GraduationCap },
-      { to: "/admin/roles", label: "Roles & Permissions", icon: Shield },
-    ]
-  },
-  
-  // 3. JLPT Exam Bank
-  { to: "/admin/exams", label: "Exam Bank", icon: ClipboardCheck,
-    children: [
-      { to: "/admin/exams?level=n5", label: "N5 Exams", icon: FileText },
-      { to: "/admin/exams?level=n4", label: "N4 Exams", icon: FileText },
-      { to: "/admin/exams?level=n3", label: "N3 Exams", icon: FileText },
-      { to: "/admin/exams?level=n2", label: "N2 Exams", icon: FileText },
-      { to: "/admin/exams?level=n1", label: "N1 Exams", icon: FileText },
-      { to: "/admin/ai-generator", label: "AI Generator", icon: Sparkles },
-    ]
-  },
-  
-  // 4. Content Library
-  { to: "/admin/grammar", label: "Content Library", icon: FolderOpen,
-    children: [
-      { to: "/admin/grammar", label: "Grammar Library", icon: GraduationCap },
-      { to: "/admin/vocabulary-library", label: "Vocabulary Library", icon: BookOpen },
-      { to: "/admin/listening-library", label: "Listening Library", icon: Headphones },
-      { to: "/admin/shadowing-library", label: "Shadowing Library", icon: Mic2 },
-    ]
-  },
-  
-  // 5. System Analytics
-  { to: "/admin/analytics", label: "System Analytics", icon: BarChart3 },
-  
-  // 7. System Settings
-  { to: "/admin/settings", label: "System Settings", icon: Settings,
-    children: [
-      { to: "/admin/settings", label: "Settings", icon: Settings },
-      { to: "/admin/notifications", label: "Notifications", icon: Megaphone },
-      { to: "/admin/profile", label: "Profile", icon: User },
-    ]
-  },
+
+  // 2. Teacher Management
+  { to: "/admin/teachers", label: "Teacher Management", icon: ShieldCheck },
+
+  // 3. Class Management
+  { to: "/admin/class-management", label: "Class Management", icon: BookUser },
+
+  // 4. Question Bank
+  { to: "/admin/question-bank", label: "Question Bank", icon: ClipboardCheck },
+
+  // 5. JLPT Exam Management
+  { to: "/admin/jlpt-exam", label: "JLPT Exam", icon: FileText },
+
+  // 6. Content Library
+  { to: "/admin/content-library", label: "Content Library", icon: Library },
+
+  // 7. Notification Management
+  { to: "/admin/notification", label: "Notification", icon: Bell },
+
+  // 8. Profile
+  { to: "/admin/profile", label: "Profile", icon: User },
 ];
 
 function getNav(role: FrontendRole, isActive: boolean): NavItem[] {
@@ -226,9 +207,9 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
   const [notifOpen, setNotifOpen] = useState(false);
 
   const studentNotifications: Notification[] = [
-    { id: 1, title: "New grammar lesson available", desc: "~なければならない pattern is ready", time: "2 min ago", unread: true, icon: GraduationCap },
+    { id: 1, title: "New grammar lesson available", desc: "~ãªã‘ã‚Œã°ãªã‚‰ãªã„ pattern is ready", time: "2 min ago", unread: true, icon: GraduationCap },
     { id: 2, title: "Daily streak reminder", desc: "Complete today's lesson to keep your 32-day streak!", time: "1 hour ago", unread: true, icon: Flame },
-    { id: 3, title: "Weekly leaderboard update", desc: "You're now #4 — just 80 XP behind #3!", time: "3 hours ago", unread: false, icon: Trophy },
+    { id: 3, title: "Weekly leaderboard update", desc: "You're now #4 â€” just 80 XP behind #3!", time: "3 hours ago", unread: false, icon: Trophy },
     { id: 4, title: "AI Sensei feedback", desc: "Sensei reviewed your shadowing session", time: "Yesterday", unread: false, icon: Bot },
     { id: 5, title: "New badge earned", desc: "You unlocked 'Week Warrior' badge!", time: "2 days ago", unread: false, icon: Sparkles },
   ];
@@ -236,7 +217,16 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
   const teacherNotifications = TEACHER_NOTIFICATIONS;
 
   const notifications: Notification[] =
-    role === "teacher" ? teacherNotifications : studentNotifications;
+    role === "teacher"
+      ? teacherNotifications.map((n, i) => ({
+          id: i + 1,
+          title: n.title,
+          desc: n.message,
+          time: n.time,
+          unread: !n.read,
+          icon: BookOpen,
+        }))
+      : studentNotifications;
 
   const unreadCount = notifications.filter(n => n.unread).length;
   // Check if student is active (joined a class)
@@ -277,7 +267,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
 
   // Check if item or any child is active
   const isItemOrChildActive = useCallback((item: NavItem): boolean => {
-    if (item.children) {
+    if (item.children && item.children.length > 0) {
       return item.children.some(child => pathname === child.to || pathname.startsWith(child.to + '/'));
     }
     const isBaseRoute = item.to === `/${role}`;
@@ -286,7 +276,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
 
   // Get active child for a parent item
   const getActiveChild = useCallback((item: NavItem): string | null => {
-    if (!item.children) return null;
+    if (!item.children || item.children.length === 0) return null;
     const activeChild = item.children.find(child => 
       pathname === child.to || pathname.startsWith(child.to + '/')
     );
@@ -473,7 +463,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              {item.children!.map(child => renderNavItem(child, true, key))}
+              {item.children!.map(child => renderNavItem(child as NavItem, true, key))}
             </motion.div>
           )}
         </div>
@@ -792,7 +782,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             <div className="flex-1 relative min-w-0">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-col pointer-events-none" />
               <input
-                placeholder="Search lessons, grammar, vocabulary…"
+                placeholder="Search lessons, grammar, vocabulary..."
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm hover:shadow-[0_8px_24px_rgba(148,163,184,0.16)] dark:hover:shadow-none transition-all duration-200 placeholder:text-muted-col/70 dark:placeholder:text-slate-400"
               />
             </div>
@@ -965,11 +955,11 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
           >
-            {children}
+            {(() => { console.log("[DashboardLayout] Rendering children for role:", role); return children; })()}
           </motion.div>
         </main>
 
-        {role === "student" && !hideFooter && <Footer />}
+        {role === "student" ? <Footer /> : role === "admin" && <AdminFooter />}
 
         {/* Mobile bottom nav - hidden on lesson pages and desktop */}
         {role === "student" && !hideFooter && (

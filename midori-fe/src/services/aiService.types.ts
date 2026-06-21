@@ -1,7 +1,7 @@
 // ─── AI Service Types ─────────────────────────────────────────────────────────────
 // Type definitions for the Listening AI Content System
 
-import type { JLPTLevel } from "../types/content-library";
+import type { JLPTLevel } from "../mocks/contentLibraryMock";
 
 // ─── Listening Modes ─────────────────────────────────────────────────────────────
 export type ListeningMode = "dictation" | "quiz" | "both";

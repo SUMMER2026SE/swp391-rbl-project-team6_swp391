@@ -102,8 +102,8 @@
   --sidebar-border:    rgba(255, 255, 255, 0.35);
 
   /* Brand Colors */
-  --sakura:   oklch(0.88 0.08 350);
-  --lavender: oklch(0.9 0.06 290);
+  --sakura:   oklch(0.70 0.14 350);
+  --lavender: oklch(0.72 0.12 290);
   --sky-blue: oklch(0.75 0.13 240);
   --jp-red:   oklch(0.62 0.22 25);
 
@@ -185,8 +185,8 @@
   --sidebar-border:    rgba(255, 255, 255, 0.06);
 
   /* Brand Colors */
-  --sakura:   oklch(0.88 0.08 350);
-  --lavender: oklch(0.9 0.06 290);
+  --sakura:   oklch(0.70 0.14 350);
+  --lavender: oklch(0.72 0.12 290);
   --sky-blue: oklch(0.75 0.13 240);
   --jp-red:   oklch(0.62 0.22 25);
 

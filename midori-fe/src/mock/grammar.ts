@@ -1,8 +1,20 @@
-// ─── Grammar Mock Data ────────────────────────────────────────────────────────
+// ─── Grammar Mock Data ───────────────────────────────────────────────────────
 
-import { GrammarItem } from "../types/content-library";
+import type { JLPTLevel } from "../mocks/contentLibraryMock";
 
-export const mockGrammar: GrammarItem[] = [
+// Local type definition matching this file's data structure
+interface GrammarItemLocal {
+  id: string;
+  grammarStructure: string;
+  meaning: string;
+  exampleSentences: Array<{ sentence: string; meaning: string }>;
+  jlptLevel: JLPTLevel;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const mockGrammar: GrammarItemLocal[] = [
   {
     id: "gram-001",
     grammarStructure: "～は～です",
@@ -200,7 +212,7 @@ export const mockGrammar: GrammarItem[] = [
   },
 ];
 
-export const getGrammarByLevel = (level: GrammarItem["jlptLevel"]) => {
+export const getGrammarByLevel = (level: JLPTLevel) => {
   return mockGrammar.filter(item => item.jlptLevel === level);
 };
 
@@ -214,6 +226,6 @@ export const searchGrammar = (query: string) => {
     item =>
       item.grammarStructure.toLowerCase().includes(lowerQuery) ||
       item.meaning.toLowerCase().includes(lowerQuery) ||
-      item.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+      item.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery))
   );
 };
