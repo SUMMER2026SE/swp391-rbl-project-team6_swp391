@@ -47,7 +47,8 @@ const skillCards = [
 
 function ContentLibraryLevelPage() {
   const { level } = Route.useParams();
-  const upperLevel = level.toUpperCase();
+  const levelStr = level ?? "";
+  const upperLevel = levelStr.toUpperCase();
 
   return (
     <div className="space-y-5">
@@ -81,7 +82,7 @@ function ContentLibraryLevelPage() {
           <Link
             key={skill.id}
             to="/admin/content-library/$level/$skill"
-            params={{ level, skill: skill.id }}
+            params={{ level: levelStr, skill: skill.id }}
           >
             <motion.div
               initial={{ opacity: 0, y: 8 }}

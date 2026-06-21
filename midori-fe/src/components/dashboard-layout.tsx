@@ -129,7 +129,16 @@ export function DashboardLayout({ role, children }: { role: FrontendRole; childr
   const teacherNotifications = TEACHER_NOTIFICATIONS;
 
   const notifications: Notification[] =
-    role === "teacher" ? teacherNotifications : studentNotifications;
+    role === "teacher"
+      ? teacherNotifications.map((n, i) => ({
+          id: i + 1,
+          title: n.title,
+          desc: n.message,
+          time: n.time,
+          unread: !n.read,
+          icon: BookOpen,
+        }))
+      : studentNotifications;
 
   const notificationsPath = `/${role}/notifications`;
 
