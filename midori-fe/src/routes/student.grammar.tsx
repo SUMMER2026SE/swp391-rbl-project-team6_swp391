@@ -14,10 +14,12 @@ import {
   type GrammarLevel,
 } from "@/lib/api/studentGrammar";
 import { studentProgressApi } from "@/lib/api/studentProgress";
+import { studentAccessibleLevels } from "./student.classes";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const LEVEL_FILTERS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
+// Only show accessible levels
+const LEVEL_FILTERS = ["All", ...studentAccessibleLevels] as const;
 const PAGE_SIZE = 8;
 
 const levelColors: Record<string, string> = {
@@ -329,7 +331,13 @@ function SkeletonRow() {
 export const Route = createFileRoute("/student/grammar")({ component: GrammarPage });
 
 function GrammarPage() {
-  const [levelFilter, setLevelFilter] = useState<string>("All");
+  // Use accessible levels (mock - later from API)
+  const studentLevels = studentAccessibleLevels;
+  
+  // Default to first accessible level
+  const defaultLevel = studentLevels.length > 0 ? studentLevels[0] : "N5";
+
+  const [levelFilter, setLevelFilter] = useState<string>(defaultLevel);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -566,7 +574,18 @@ function GrammarPage() {
             </div>
           </div>
           <div className="flex gap-1 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
-            {LEVEL_FILTERS.map(l => (
+            {/* "All" only shown when student is in multiple levels */}
+            {studentLevels.length > 1 && (
+              <button
+                onClick={() => handleLevelFilter("All")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                  levelFilter === "All" ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                All
+              </button>
+            )}
+            {studentLevels.map(l => (
               <button
                 key={l}
                 onClick={() => handleLevelFilter(l)}

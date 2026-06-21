@@ -3,15 +3,82 @@ import { PageHeader } from "@/components/page-ui";
 import { motion } from "framer-motion";
 import {
   Sparkles, Flame, Clock, Target, ArrowUpRight,
-  BarChart3, Loader2,
+  BarChart3, BookOpen, Headphones, Mic2, FileText, GraduationCap, Award, TrendingUp, AlertCircle, CheckCircle2
 } from "lucide-react";
 import {
   BarChart, Bar, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import { useQuery } from "@tanstack/react-query";
-import { studentProgressApi } from "@/lib/api/studentProgress";
-import { ApiError } from "@/lib/api/client";
-import { useMemo } from "react";
+
+// ─── Mock Progress Data Structure ───────────────────────────────────────────
+
+const mockProgressData = {
+  vocabulary: 80,
+  grammar: 65,
+  reading: 70,
+  listening: 60,
+  shadowing: 75
+};
+
+// Calculate overall progress (average of all skills)
+const calculateOverallProgress = () => {
+  const skills = Object.values(mockProgressData);
+  return Math.round(skills.reduce((sum, val) => sum + val, 0) / skills.length);
+};
+
+// Mock learning trend data (Week 1 → Week 2 → Week 3)
+const mockLearningTrend = {
+  vocabulary: [60, 70, 80],
+  grammar: [50, 58, 65],
+  reading: [55, 62, 70],
+  listening: [45, 52, 60],
+  shadowing: [65, 70, 75]
+};
+
+// Static badges
+const mockBadges = [
+  { id: 1, name: "Consistent Learner", icon: Award, earned: true, description: "Studied for 7 consecutive days" },
+  { id: 2, name: "Vocabulary Builder", icon: BookOpen, earned: true, description: "Learned 100+ words" },
+  { id: 3, name: "Listening Improver", icon: Headphones, earned: mockProgressData.listening >= 70, description: "Listening score above 70%" },
+  { id: 4, name: "Grammar Master", icon: GraduationCap, earned: false, description: "Grammar score above 90%" },
+  { id: 5, name: "Reading Pro", icon: FileText, earned: false, description: "Read 50+ passages" },
+  { id: 6, name: "Shadowing Expert", icon: Mic2, earned: false, description: "Shadowing score above 90%" }
+];
+
+// Performance insights based on scores
+const getPerformanceInsights = () => {
+  const insights = [];
+  
+  if (mockProgressData.vocabulary < 70) {
+    insights.push({ type: "warning", message: "Bạn cần cải thiện từ vựng", icon: AlertCircle });
+  }
+  if (mockProgressData.listening < 70) {
+    insights.push({ type: "warning", message: "Kỹ năng nghe còn yếu", icon: AlertCircle });
+  }
+  if (mockProgressData.shadowing < 70) {
+    insights.push({ type: "warning", message: "Phát âm và độ trôi chảy cần cải thiện", icon: AlertCircle });
+  }
+  if (mockProgressData.grammar >= 70 && mockProgressData.vocabulary >= 70) {
+    insights.push({ type: "success", message: "Nền tảng ngữ pháp và từ vựng tốt!", icon: CheckCircle2 });
+  }
+  
+  return insights;
+};
+
+// Skill labels and colors
+const skillConfig = {
+  vocabulary: { label: "Vocabulary", color: "#4F7DF3", bgColor: "bg-blue-500" },
+  grammar: { label: "Grammar", color: "#38BDF8", bgColor: "bg-sky-400" },
+  reading: { label: "Reading", color: "#A78BFA", bgColor: "bg-purple-400" },
+  listening: { label: "Listening", color: "#F9A8D4", bgColor: "bg-pink-400" },
+  shadowing: { label: "Shadowing", color: "#FDA4AF", bgColor: "bg-rose-400" }
+};
+
+// Trend chart data
+const trendChartData = [
+  { week: "Week 1", vocabulary: 60, grammar: 50, reading: 55, listening: 45, shadowing: 65 },
+  { week: "Week 2", vocabulary: 70, grammar: 58, reading: 62, listening: 52, shadowing: 70 },
+  { week: "Week 3", vocabulary: 80, grammar: 65, reading: 70, listening: 60, shadowing: 75 }
+];
 
 // ─── Chart colors ────────────────────────────────────────────────────────────
 
@@ -45,45 +112,8 @@ export const Route = createFileRoute("/student/progress")({
 
 function ProgressPage() {
   const chartColors = getChartColors();
-
-  // ── Fetch progress stats from API ────────────────────────────────────────
-  const { data: stats, isLoading, error } = useQuery({
-    queryKey: ["progress-stats"],
-    queryFn: () => studentProgressApi.getProgressStats(),
-    staleTime: 60 * 1000, // 1 minute
-  });
-
-  const errorMessage = error instanceof ApiError ? error.message : "Failed to load progress statistics.";
-
-  // Convert weeklyStudyData from API to chart format
-  const weeklyStudyData = (stats?.weeklyStudyData ?? []).map((item) => ({
-    day: item.day,
-    vocab: item.vocabCount ?? 0,
-    grammar: item.grammarCount ?? 0,
-    listening: 0,
-    shadow: 0,
-  }));
-
-  // Ensure we have 7 days for the chart
-  const dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const chartData = useMemo(() => {
-    if (weeklyStudyData.length === 0) {
-      return dayOrder.map((day) => ({ day, vocab: 0, grammar: 0, listening: 0, shadow: 0 }));
-    }
-    return dayOrder.map((day) => {
-      const found = weeklyStudyData.find((d) => d.day === day);
-      return found ?? { day, vocab: 0, grammar: 0, listening: 0, shadow: 0 };
-    });
-  }, [weeklyStudyData]);
-
-  const statsData = {
-    totalXp: stats?.progressPercent ? Math.round(stats.progressPercent * 100) : 0,
-    studyStreak: stats?.learningStreak ?? 0,
-    learnedWords: stats?.learnedWords ?? 0,
-    masteredWords: stats?.masteredWords ?? 0,
-    completedLessons: stats?.completedLessons ?? 0,
-    favoriteWords: stats?.favoriteWords ?? 0,
-  };
+  const overallProgress = calculateOverallProgress();
+  const insights = getPerformanceInsights();
 
   return (
     <div className="space-y-5">
@@ -92,38 +122,13 @@ function ProgressPage() {
         subtitle="Track your Japanese learning journey"
       />
 
-      {/* ─── Loading State ─── */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="ml-3 text-sm font-semibold text-muted-foreground">Loading progress...</span>
-        </div>
-      )}
-
-      {/* ─── Error State ─── */}
-      {!isLoading && error && (
-        <div className="text-center py-12 px-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mb-4">
-            <Sparkles className="w-8 h-8 text-red-500" />
-          </div>
-          <p className="text-red-500 mb-2 font-semibold">{errorMessage}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-sm text-primary underline"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
       {/* ─── Stats Row ─── */}
-      {!isLoading && !error && (
-        <>
+      <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               {
                 label: "Learned Words",
-                value: statsData.learnedWords.toLocaleString(),
+                value: "245",
                 delta: "+18%",
                 up: true,
                 icon: Sparkles,
@@ -132,7 +137,7 @@ function ProgressPage() {
               },
               {
                 label: "Study Streak",
-                value: `${statsData.studyStreak} days`,
+                value: "7 days",
                 delta: "+4",
                 up: true,
                 icon: Flame,
@@ -141,7 +146,7 @@ function ProgressPage() {
               },
               {
                 label: "Completed Lessons",
-                value: statsData.completedLessons.toString(),
+                value: "32",
                 delta: "+12%",
                 up: true,
                 icon: Clock,
@@ -150,7 +155,7 @@ function ProgressPage() {
               },
               {
                 label: "Mastered Words",
-                value: statsData.masteredWords.toLocaleString(),
+                value: "89",
                 delta: "+3%",
                 up: true,
                 icon: Target,
@@ -165,7 +170,7 @@ function ProgressPage() {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className="glass rounded-2xl p-4 hover:shadow-md transition-shadow duration-200"
+                  className="bg-white dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow duration-200"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${kpi.bgLight} ${kpi.textLight}`}>
@@ -185,97 +190,155 @@ function ProgressPage() {
             })}
           </div>
 
-          {/* ─── Weekly Study Breakdown ─── */}
-          <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="glass rounded-2xl p-5"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-display font-bold text-base flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            Weekly Study Breakdown
-          </h3>
-          <div className="flex gap-4 text-xs">
-            {[
-              { l: "Vocab" },
-              { l: "Grammar" },
-              { l: "Listening" },
-              { l: "Shadow" },
-            ].map((c, i) => (
-              <span key={i} className="flex items-center gap-1.5 text-xs" style={{ color: chartColors.legendText }}>
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: chartColors.legendColors[i] }}
-                />
-                {c.l}
-              </span>
-            ))}
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mb-4">Study time distribution by skill</p>
-        <div style={{ height: 235 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              barCategoryGap="28%"
-              barGap={3}
-              margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+          {/* ─── Overall Progress & Skill Breakdown ─── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Overall Progress */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700"
             >
-              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={1} vertical={false} />
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 11, fill: chartColors.axis }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: chartColors.axis }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 12,
-                  border: `1px solid ${chartColors.tooltipBorder}`,
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-                  backgroundColor: chartColors.tooltipBg,
-                  color: chartColors.tooltipText,
-                }}
-                labelStyle={{ color: chartColors.tooltipLabel, fontWeight: 600, marginBottom: 4 }}
-                itemStyle={{ color: chartColors.tooltipText, paddingTop: 2 }}
-                formatter={(value: number, name: string) => {
-                  const itemColors: Record<string, string> = {
-                    vocab: chartColors.barVocab,
-                    grammar: chartColors.barGrammar,
-                    listening: chartColors.barListening,
-                    shadow: chartColors.barShadow,
-                  };
-                  const labels: Record<string, string> = {
-                    vocab: "Vocab",
-                    grammar: "Grammar",
-                    listening: "Listening",
-                    shadow: "Shadow",
-                  };
-                  return [
-                    <span key="val" style={{ color: itemColors[name] ?? chartColors.tooltipText, fontWeight: 600 }}>
-                      {value} min
-                    </span>,
-                    labels[name] ?? name,
-                  ];
-                }}
-              />
-              <Bar dataKey="vocab" fill={chartColors.barVocab} radius={[5, 5, 0, 0]} barSize={12} />
-              <Bar dataKey="grammar" fill={chartColors.barGrammar} radius={[5, 5, 0, 0]} barSize={12} />
-              <Bar dataKey="listening" fill={chartColors.barListening} radius={[5, 5, 0, 0]} barSize={12} />
-              <Bar dataKey="shadow" fill={chartColors.barShadow} radius={[5, 5, 0, 0]} barSize={12} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
+              <h3 className="font-display font-bold text-base flex items-center gap-2 mb-4">
+                <Target className="w-4 h-4 text-primary" />
+                Overall Progress
+              </h3>
+              <div className="flex items-center justify-center mb-4">
+                <div className="relative w-32 h-32">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      stroke="currentColor"
+                      strokeWidth="12"
+                      fill="none"
+                      className="text-slate-200 dark:text-slate-700"
+                    />
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="56"
+                      stroke="url(#progressGradient)"
+                      strokeWidth="12"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(overallProgress / 100) * 352} 352`}
+                      className="transition-all duration-1000"
+                    />
+                    <defs>
+                      <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#4F7DF3" />
+                        <stop offset="100%" stopColor="#A78BFA" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-3xl font-bold text-foreground">{overallProgress}%</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-center text-sm text-muted-foreground">
+                Average across all skills
+              </p>
+            </motion.div>
+
+            {/* Skill Breakdown */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700"
+            >
+              <h3 className="font-display font-bold text-base flex items-center gap-2 mb-4">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                Skill Breakdown
+              </h3>
+              <div className="space-y-3">
+                {Object.entries(mockProgressData).map(([skill, value]) => {
+                  const config = skillConfig[skill as keyof typeof skillConfig];
+                  return (
+                    <div key={skill} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-foreground">{config.label}</span>
+                        <span className="font-semibold" style={{ color: config.color }}>{value}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${config.bgColor}`}
+                          style={{ width: `${value}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* ─── Learning Trend ─── */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200 dark:border-slate-700"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-bold text-base flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                Learning Trend
+              </h3>
+              <div className="flex flex-wrap gap-3 text-xs">
+                {Object.entries(skillConfig).map(([key, config]) => (
+                  <span key={key} className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
+                    {config.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Progress over the last 3 weeks</p>
+            <div style={{ height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={trendChartData}
+                  barCategoryGap="35%"
+                  barGap={4}
+                  margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={1} vertical={false} />
+                  <XAxis
+                    dataKey="week"
+                    tick={{ fontSize: 11, fill: chartColors.axis }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: chartColors.axis }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: `1px solid ${chartColors.tooltipBorder}`,
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                      backgroundColor: chartColors.tooltipBg,
+                      color: chartColors.tooltipText,
+                    }}
+                    labelStyle={{ color: chartColors.tooltipLabel, fontWeight: 600, marginBottom: 4 }}
+                  />
+                  <Bar dataKey="vocabulary" fill="#4F7DF3" radius={[5, 5, 0, 0]} barSize={18} />
+                  <Bar dataKey="grammar" fill="#38BDF8" radius={[5, 5, 0, 0]} barSize={18} />
+                  <Bar dataKey="reading" fill="#A78BFA" radius={[5, 5, 0, 0]} barSize={18} />
+                  <Bar dataKey="listening" fill="#F9A8D4" radius={[5, 5, 0, 0]} barSize={18} />
+                  <Bar dataKey="shadowing" fill="#FDA4AF" radius={[5, 5, 0, 0]} barSize={18} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
         </>
-      )}
     </div>
   );
 }

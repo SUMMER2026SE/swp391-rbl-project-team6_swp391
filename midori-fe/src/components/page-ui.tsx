@@ -1,12 +1,27 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronLeft } from "lucide-react";
 
-export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+export function PageHeader({ title, subtitle, action, showBack }: { title: string; subtitle?: string; action?: ReactNode; showBack?: boolean }) {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-      <div>
-        <h1 className="text-3xl font-extrabold font-display text-foreground">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+      <div className="flex items-center gap-4">
+        {showBack && (
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-xl bg-white/60 dark:bg-white/10 backdrop-blur-md border border-white/70 dark:border-white/20 flex items-center justify-center hover:bg-white/90 dark:hover:bg-white/20 transition-all duration-200 shadow-sm"
+            title="Go back"
+          >
+            <ChevronLeft className="w-5 h-5 text-foreground" />
+          </button>
+        )}
+        <div>
+          <h1 className="text-3xl font-extrabold font-display text-foreground">{title}</h1>
+          {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+        </div>
       </div>
       {action}
     </div>

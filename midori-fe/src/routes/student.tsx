@@ -1,14 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Outlet } from "@tanstack/react-router";
 import { AuthGuard } from "@/components/auth-guard";
+import { StudentStatusGuard } from "@/components/student-status-guard";
 
 export const Route = createFileRoute("/student")({
-  component: () => (
-    <AuthGuard role="student">
-      <DashboardLayout role="student">
-        <Outlet />
-      </DashboardLayout>
-    </AuthGuard>
-  ),
+  component: StudentLayout,
 });
+
+function StudentLayout() {
+  const routerState = useRouterState();
+  const isLessonPage = routerState.location.pathname.includes("/learning/japanese/lesson/");
+  const hideFooter = isLessonPage;
+
+  return (
+    <AuthGuard role="student">
+      <StudentStatusGuard>
+        <DashboardLayout role="student" hideFooter={hideFooter}>
+          <Outlet />
+        </DashboardLayout>
+      </StudentStatusGuard>
+    </AuthGuard>
+  );
+}

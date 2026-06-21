@@ -1,0 +1,96 @@
+// Hiragana Basic - Complete 46 characters
+export interface HiraganaCharacter {
+  id: string;
+  character: string;
+  romaji: string;
+  pronunciation: string;
+  meaning: string;
+  exampleWord: string;
+  exampleMeaning: string;
+  audioUrl: null;
+  strokeOrder: number;
+}
+
+export const hiraganaBasic: HiraganaCharacter[] = [
+  // Vowels (あ行)
+  { id: "a", character: "あ", romaji: "a", pronunciation: "/a/", meaning: "vowel a", exampleWord: "あめ", exampleMeaning: "rain", audioUrl: null, strokeOrder: 1 },
+  { id: "i", character: "い", romaji: "i", pronunciation: "/i/", meaning: "vowel i", exampleWord: "いぬ", exampleMeaning: "dog", audioUrl: null, strokeOrder: 2 },
+  { id: "u", character: "う", romaji: "u", pronunciation: "/ɯ/", meaning: "vowel u", exampleWord: "うみ", exampleMeaning: "sea", audioUrl: null, strokeOrder: 3 },
+  { id: "e", character: "え", romaji: "e", pronunciation: "/e/", meaning: "vowel e", exampleWord: "えき", exampleMeaning: "station", audioUrl: null, strokeOrder: 4 },
+  { id: "o", character: "お", romaji: "o", pronunciation: "/o/", meaning: "vowel o", exampleWord: "おとこ", exampleMeaning: "man", audioUrl: null, strokeOrder: 5 },
+  
+  // K row (か行)
+  { id: "ka", character: "か", romaji: "ka", pronunciation: "/ka/", meaning: "ka", exampleWord: "かさ", exampleMeaning: "umbrella", audioUrl: null, strokeOrder: 6 },
+  { id: "ki", character: "き", romaji: "ki", pronunciation: "/ki/", meaning: "ki", exampleWord: "きもの", exampleMeaning: "kimono", audioUrl: null, strokeOrder: 7 },
+  { id: "ku", character: "く", romaji: "ku", pronunciation: "/kɯ/", meaning: "ku", exampleWord: "くつ", exampleMeaning: "shoes", audioUrl: null, strokeOrder: 8 },
+  { id: "ke", character: "け", romaji: "ke", pronunciation: "/ke/", meaning: "ke", exampleWord: "けさ", exampleMeaning: "this morning", audioUrl: null, strokeOrder: 9 },
+  { id: "ko", character: "こ", romaji: "ko", pronunciation: "/ko/", meaning: "ko", exampleWord: "こえ", exampleMeaning: "voice", audioUrl: null, strokeOrder: 10 },
+  
+  // S row (さ行)
+  { id: "sa", character: "さ", romaji: "sa", pronunciation: "/sa/", meaning: "sa", exampleWord: "さくら", exampleMeaning: "cherry blossom", audioUrl: null, strokeOrder: 11 },
+  { id: "shi", character: "し", romaji: "shi", pronunciation: "/ɕi/", meaning: "shi", exampleWord: "しお", exampleMeaning: "salt", audioUrl: null, strokeOrder: 12 },
+  { id: "su", character: "す", romaji: "su", pronunciation: "/sɯ/", meaning: "su", exampleWord: "すし", exampleMeaning: "sushi", audioUrl: null, strokeOrder: 13 },
+  { id: "se", character: "せ", romaji: "se", pronunciation: "/se/", meaning: "se", exampleWord: "せかい", exampleMeaning: "world", audioUrl: null, strokeOrder: 14 },
+  { id: "so", character: "そ", romaji: "so", pronunciation: "/so/", meaning: "so", exampleWord: "そら", exampleMeaning: "sky", audioUrl: null, strokeOrder: 15 },
+  
+  // T row (た行)
+  { id: "ta", character: "た", romaji: "ta", pronunciation: "/ta/", meaning: "ta", exampleWord: "たまご", exampleMeaning: "egg", audioUrl: null, strokeOrder: 16 },
+  { id: "chi", character: "ち", romaji: "chi", pronunciation: "/tɕi/", meaning: "chi", exampleWord: "ちず", exampleMeaning: "map", audioUrl: null, strokeOrder: 17 },
+  { id: "tsu", character: "つ", romaji: "tsu", pronunciation: "/tsɯ/", meaning: "tsu", exampleWord: "つき", exampleMeaning: "moon", audioUrl: null, strokeOrder: 18 },
+  { id: "te", character: "て", romaji: "te", pronunciation: "/te/", meaning: "te", exampleWord: "てがみ", exampleMeaning: "letter", audioUrl: null, strokeOrder: 19 },
+  { id: "to", character: "と", romaji: "to", pronunciation: "/to/", meaning: "to", exampleWord: "とり", exampleMeaning: "bird", audioUrl: null, strokeOrder: 20 },
+  
+  // N row (な行)
+  { id: "na", character: "な", romaji: "na", pronunciation: "/na/", meaning: "na", exampleWord: "なつ", exampleMeaning: "summer", audioUrl: null, strokeOrder: 21 },
+  { id: "ni", character: "に", romaji: "ni", pronunciation: "/ni/", meaning: "ni", exampleWord: "にほん", exampleMeaning: "Japan", audioUrl: null, strokeOrder: 22 },
+  { id: "nu", character: "ぬ", romaji: "nu", pronunciation: "/nɯ/", meaning: "nu", exampleWord: "いぬ", exampleMeaning: "dog", audioUrl: null, strokeOrder: 23 },
+  { id: "ne", character: "ね", romaji: "ne", pronunciation: "/ne/", meaning: "ne", exampleWord: "ねこ", exampleMeaning: "cat", audioUrl: null, strokeOrder: 24 },
+  { id: "no", character: "の", romaji: "no", pronunciation: "/no/", meaning: "no", exampleWord: "のみず", exampleMeaning: "drinking water", audioUrl: null, strokeOrder: 25 },
+  
+  // H row (は行)
+  { id: "ha", character: "は", romaji: "ha", pronunciation: "/ha/", meaning: "ha", exampleWord: "はな", exampleMeaning: "flower", audioUrl: null, strokeOrder: 26 },
+  { id: "hi", character: "ひ", romaji: "hi", pronunciation: "/çi/", meaning: "hi", exampleWord: "ひと", exampleMeaning: "person", audioUrl: null, strokeOrder: 27 },
+  { id: "fu", character: "ふ", romaji: "fu", pronunciation: "/ɸɯ/", meaning: "fu", exampleWord: "ふゆ", exampleMeaning: "winter", audioUrl: null, strokeOrder: 28 },
+  { id: "he", character: "へ", romaji: "he", pronunciation: "/he/", meaning: "he", exampleWord: "へや", exampleMeaning: "room", audioUrl: null, strokeOrder: 29 },
+  { id: "ho", character: "ほ", romaji: "ho", pronunciation: "/ho/", meaning: "ho", exampleWord: "ほし", exampleMeaning: "star", audioUrl: null, strokeOrder: 30 },
+  
+  // M row (ま行)
+  { id: "ma", character: "ま", romaji: "ma", pronunciation: "/ma/", meaning: "ma", exampleWord: "まち", exampleMeaning: "town", audioUrl: null, strokeOrder: 31 },
+  { id: "mi", character: "み", romaji: "mi", pronunciation: "/mi/", meaning: "mi", exampleWord: "みみ", exampleMeaning: "ear", audioUrl: null, strokeOrder: 32 },
+  { id: "mu", character: "む", romaji: "mu", pronunciation: "/mɯ/", meaning: "mu", exampleWord: "むすめ", exampleMeaning: "daughter", audioUrl: null, strokeOrder: 33 },
+  { id: "me", character: "め", romaji: "me", pronunciation: "/me/", meaning: "me", exampleWord: "め", exampleMeaning: "eye", audioUrl: null, strokeOrder: 34 },
+  { id: "mo", character: "も", romaji: "mo", pronunciation: "/mo/", meaning: "mo", exampleWord: "もり", exampleMeaning: "forest", audioUrl: null, strokeOrder: 35 },
+  
+  // Y row (や行)
+  { id: "ya", character: "や", romaji: "ya", pronunciation: "/ja/", meaning: "ya", exampleWord: "やま", exampleMeaning: "mountain", audioUrl: null, strokeOrder: 36 },
+  { id: "yu", character: "ゆ", romaji: "yu", pronunciation: "/jɯ/", meaning: "yu", exampleWord: "ゆき", exampleMeaning: "snow", audioUrl: null, strokeOrder: 37 },
+  { id: "yo", character: "よ", romaji: "yo", pronunciation: "/jo/", meaning: "yo", exampleWord: "よる", exampleMeaning: "night", audioUrl: null, strokeOrder: 38 },
+  
+  // R row (ら行)
+  { id: "ra", character: "ら", romaji: "ra", pronunciation: "/ɾa/", meaning: "ra", exampleWord: "らいねん", exampleMeaning: "next year", audioUrl: null, strokeOrder: 39 },
+  { id: "ri", character: "り", romaji: "ri", pronunciation: "/ɾi/", meaning: "ri", exampleWord: "りんご", exampleMeaning: "apple", audioUrl: null, strokeOrder: 40 },
+  { id: "ru", character: "る", romaji: "ru", pronunciation: "/ɾɯ/", meaning: "ru", exampleWord: "いる", exampleMeaning: "to be (living)", audioUrl: null, strokeOrder: 41 },
+  { id: "re", character: "れ", romaji: "re", pronunciation: "/ɾe/", meaning: "re", exampleWord: "れきし", exampleMeaning: "history", audioUrl: null, strokeOrder: 42 },
+  { id: "ro", character: "ろ", romaji: "ro", pronunciation: "/ɾo/", meaning: "ro", exampleWord: "ろく", exampleMeaning: "six", audioUrl: null, strokeOrder: 43 },
+  
+  // W row (わ行)
+  { id: "wa", character: "わ", romaji: "wa", pronunciation: "/wa/", meaning: "wa", exampleWord: "わたし", exampleMeaning: "I/me", audioUrl: null, strokeOrder: 44 },
+  { id: "wo", character: "を", romaji: "wo", pronunciation: "/o/", meaning: "wo (particle)", exampleWord: "みずをのむ", exampleMeaning: "drink water", audioUrl: null, strokeOrder: 45 },
+  
+  // N (ん)
+  { id: "n", character: "ん", romaji: "n", pronunciation: "/n/", meaning: "n (consonant)", exampleWord: "にほん", exampleMeaning: "Japan", audioUrl: null, strokeOrder: 46 },
+];
+
+export const hiraganaBasicLesson = {
+  id: "hiragana-basic",
+  title: "Hiragana Basic",
+  subtitle: "46 Basic Characters",
+  description: "Master the fundamental Hiragana syllabary - the foundation of Japanese writing.",
+  totalCharacters: 46,
+  difficulty: 1,
+  estimatedTime: 45,
+  characters: hiraganaBasic,
+  color: "from-pink-400 to-rose-500",
+};
+
+export default hiraganaBasic;

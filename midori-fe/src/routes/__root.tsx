@@ -11,7 +11,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useRef, useEffect, useState } from "react";
 
 import appCss from "../styles.css?url";
-import { AuthProvider, ThemeProvider } from "@/lib/auth";
+import { AuthProvider, ThemeProvider, LanguageProvider } from "@/lib/auth";
 
 function NotFoundComponent() {
   return (
@@ -137,9 +137,11 @@ function RootComponent() {
   const app = (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <Outlet />
+          </AuthProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

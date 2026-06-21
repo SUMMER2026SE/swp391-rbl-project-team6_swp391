@@ -547,6 +547,68 @@
   .bg-gradient-sakura { background: var(--page-bg); }
   .bg-gradient-active { background: var(--gradient-active); }
 
+  /* ── Gradient Button ── */
+  .btn-gradient-primary {
+    background: var(--gradient-hero);
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-gradient-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0);
+    transition: background 0.2s ease;
+  }
+  .btn-gradient-primary:hover::before {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .btn-gradient-primary:active::before {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  /* ── Gradient Tab Buttons ── */
+  .tab-btn {
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .tab-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  /* Active tab - gradient background */
+  .tab-btn-active {
+    background: var(--gradient-hero);
+    color: white;
+    box-shadow: 0 4px 12px rgba(140, 80, 255, 0.35);
+  }
+  .tab-btn-active::before {
+    background: rgba(255, 255, 255, 0.15);
+    opacity: 0;
+  }
+  .tab-btn-active:hover::before {
+    opacity: 1;
+  }
+  
+  /* Inactive tab - muted style */
+  .tab-btn-inactive {
+    background: var(--muted);
+    color: var(--muted-foreground);
+    border: 1px solid var(--border);
+  }
+  .tab-btn-inactive:hover {
+    background: var(--secondary);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 2px 8px rgba(140, 80, 255, 0.15);
+  }
+
   /* ── Card base ── */
   .card-base {
     background: var(--glass-bg);
