@@ -1,307 +1,285 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useCallback } from "react";
-import {
-  GraduationCap,
-  CheckCircle,
-  XCircle,
-  UserCheck,
-  Bell,
-  CheckCheck,
-  ArrowLeft,
-  AlertCircle,
-} from "lucide-react";
-import {
-  getNotifications,
-  markAsRead,
-  markAllAsRead,
-  NotificationResponse,
-} from "@/lib/api/notifications";
-
-type NotificationItem = {
-  id: number;
-  title: string;
-  desc: string;
-  time: string;
-  unread: boolean;
-  icon: React.ElementType;
-};
-
-// Map notification type to icon
-function getIconForType(type: string): React.ElementType {
-  switch (type) {
-    case "LESSON":
-      return GraduationCap;
-    case "CONTENT_APPROVED":
-      return CheckCircle;
-    case "CONTENT_REJECTED":
-      return XCircle;
-    case "TEACHER_APPROVED":
-      return UserCheck;
-    case "SYSTEM":
-    default:
-      return Bell;
-  }
-}
-
-// Format relative time
-function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString();
-}
-
-// Map API response to UI format
-function mapNotification(apiNotification: NotificationResponse): NotificationItem {
-  return {
-    id: apiNotification.id,
-    title: apiNotification.title,
-    desc: apiNotification.content || "",
-    time: formatTime(apiNotification.createdAt),
-    unread: !apiNotification.isRead,
-    icon: getIconForType(apiNotification.type),
-  };
-}
+import { useState } from "react";
+import { PageHeader } from "@/components/teacher/teacher-shell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { notifications as raw } from "@/data/teacher-data";
+import { PreviewSheet } from "@/components/teacher/dialogs";
+import { Bell, Check, CheckCheck, ClipboardList, FileText, User, Settings, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import type { Notification } from "@/data/teacher-data";
 
 export const Route = createFileRoute("/teacher/notifications")({
   component: TeacherNotificationsPage,
 });
 
-function TeacherNotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+type TabType = "All" | "Unread" | "homework" | "exam" | "student" | "system";
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setError(null);
-      const response = await getNotifications();
-      const mapped = response.notifications.map(mapNotification);
-      setNotifications(mapped);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load notifications";
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const TABS: { id: TabType; label: string }[] = [
+  { id: "All", label: "All" },
+  { id: "Unread", label: "Unread" },
+  { id: "homework", label: "Homework" },
+  { id: "exam", label: "Exam" },
+  { id: "student", label: "Student" },
+  { id: "system", label: "System" },
+];
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+const typeIcons: Record<string, typeof Bell> = {
+  homework: ClipboardList,
+  exam: FileText,
+  student: User,
+  system: Settings,
+};
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+const typeColors: Record<string, string> = {
+  homework: "bg-warning/10 text-warning",
+  exam: "bg-info/10 text-info",
+  student: "bg-sakura/20 text-sakura",
+  system: "bg-muted text-muted-foreground",
+};
 
-  const handleMarkAsRead = async (id: number) => {
-    // Optimistic update
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
-    try {
-      await markAsRead(id);
-    } catch (err) {
-      // Revert on error
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, unread: true } : n))
-      );
-    }
-  };
-
-  const handleMarkAllRead = async () => {
-    // Optimistic update
-    const previousNotifications = [...notifications];
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-    try {
-      await markAllAsRead();
-    } catch (err) {
-      // Revert on error
-      setNotifications(previousNotifications);
-    }
-  };
-
-  const toggleExpanded = (id: number) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const isLong = (text: string) => text.length > 65;
+function NotificationCard({ notification, onMarkRead, onPreview }: {
+  notification: Notification;
+  onMarkRead: (id: string) => void;
+  onPreview: (n: Notification) => void;
+}) {
+  const Icon = typeIcons[notification.type] ?? Bell;
+  const colorClass = typeColors[notification.type] ?? "bg-muted text-muted-foreground";
 
   return (
-    <div className="max-w-xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <Link
-          to="/teacher"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mb-4 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </Link>
-
-        {/* Title row */}
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Notifications
-            </h1>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
-              Stay updated with your teaching activity
-            </p>
+    <Card
+      className={cn(
+        "cursor-pointer transition-all hover:shadow-md",
+        !notification.read && "border-l-4 border-l-primary bg-primary/5"
+      )}
+      onClick={() => {
+        onPreview(notification);
+        if (!notification.read) {
+          onMarkRead(notification.id);
+        }
+      }}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={cn("mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl", colorClass)}>
+            <Icon className="h-5 w-5" />
           </div>
-
-          {unreadCount > 0 && !loading && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex-shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition mb-0.5"
-            >
-              <CheckCheck className="w-3.5 h-3.5" />
-              Mark all read
-            </button>
-          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  {!notification.read && (
+                    <span className="grid h-2 w-2 place-items-center rounded-full bg-primary" />
+                  )}
+                  <h3 className={cn("text-sm font-medium", !notification.read && "font-semibold")}>
+                    {notification.title}
+                  </h3>
+                </div>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                  {notification.message}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  {notification.time}
+                </span>
+                {notification.link && (
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NotificationPreviewSheet({ notification, open, onOpenChange }: {
+  notification: Notification | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  if (!notification) return null;
+
+  const Icon = typeIcons[notification.type] ?? Bell;
+  const colorClass = typeColors[notification.type] ?? "bg-muted text-muted-foreground";
+
+  return (
+    <PreviewSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={notification.title}
+      description={`${notification.type} · ${notification.time}`}
+    >
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 rounded-lg border p-3">
+          <div className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", colorClass)}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-medium">{notification.title}</p>
+            <p className="text-sm text-muted-foreground">{notification.message}</p>
+          </div>
+        </div>
+
+        <div className="rounded-lg border p-3 text-sm">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Time</p>
+          <p className="mt-1 font-medium">{notification.time}</p>
+        </div>
+
+        <div className="rounded-lg border p-3 text-sm">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Type</p>
+          <p className="mt-1 capitalize font-medium">{notification.type}</p>
+        </div>
+
+        {notification.link ? (
+          <div>
+            <p className="mb-2 text-sm font-medium">Related Link</p>
+            <Link
+              to={notification.link}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary hover:bg-primary/10 transition-colors"
+              onClick={() => onOpenChange(false)}
+            >
+              Go to related item
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed p-3 text-center text-sm text-muted-foreground">
+            No linked item
+          </div>
+        )}
+      </div>
+    </PreviewSheet>
+  );
+}
+
+function TeacherNotificationsPage() {
+  const [notifications, setNotifications] = useState<Notification[]>(raw);
+  const [activeTab, setActiveTab] = useState<TabType>("All");
+  const [previewNotification, setPreviewNotification] = useState<Notification | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (activeTab === "All") return true;
+    if (activeTab === "Unread") return !n.read;
+    return n.type === activeTab;
+  });
+
+  const handleMarkRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+    toast.success("Marked as read");
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    toast.success(`All ${notifications.length} notifications marked as read`);
+  };
+
+  const handlePreview = (notification: Notification) => {
+    setPreviewNotification(notification);
+    setPreviewOpen(true);
+  };
+
+  const tabCounts: Record<string, number> = {
+    All: notifications.length,
+    Unread: unreadCount,
+    homework: notifications.filter((n) => n.type === "homework").length,
+    exam: notifications.filter((n) => n.type === "exam").length,
+    student: notifications.filter((n) => n.type === "student").length,
+    system: notifications.filter((n) => n.type === "system").length,
+  };
+
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Inbox"
+        title="Notifications"
+        subtitle={`${unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}`}
+        actions={
+          unreadCount > 0 ? (
+            <Button variant="outline" onClick={handleMarkAllRead}>
+              <CheckCheck className="mr-1.5 h-4 w-4" />
+              Mark all read
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {/* Tab bar */}
+      <div className="mb-4 flex flex-wrap items-center gap-1 border-b">
+        {TABS.map((tab) => {
+          const count = tabCounts[tab.id];
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "relative px-3 py-2 text-sm font-medium transition-colors hover:text-foreground",
+                activeTab === tab.id
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+              )}
+            >
+              <span>{tab.label}</span>
+              {count > 0 && (
+                <span
+                  className={cn(
+                    "ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                    activeTab === tab.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {count}
+                </span>
+              )}
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Loading state */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-            <Bell className="w-8 h-8 text-gray-300 dark:text-gray-600 animate-pulse" />
-          </div>
-          <p className="text-base font-medium text-gray-500 dark:text-gray-400">
-            Loading notifications...
-          </p>
-        </div>
-      )}
-
-      {/* Error state */}
-      {!loading && error && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center mb-4">
-            <AlertCircle className="w-8 h-8 text-red-400" />
-          </div>
-          <p className="text-base font-medium text-red-600 dark:text-red-400">
-            {error}
-          </p>
-          <button
-            onClick={fetchNotifications}
-            className="mt-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && !error && notifications.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-            <Bell className="w-8 h-8 text-gray-300 dark:text-gray-600" />
-          </div>
-          <p className="text-base font-medium text-gray-500 dark:text-gray-400">
-            No notifications
-          </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-            You're all caught up!
-          </p>
-        </div>
-      )}
-
-      {/* Notification list */}
-      {!loading && !error && notifications.length > 0 && (
-        <div className="space-y-3">
-          {notifications.map((n) => {
-            const Icon = n.icon;
-            const isExpanded = expandedIds.has(n.id);
-            const showToggle = isLong(n.desc);
-
-            return (
-              <div
-                key={n.id}
-                onClick={() => n.unread && handleMarkAsRead(n.id)}
-                className={`
-                  relative flex items-start gap-4 p-4 rounded-xl border transition-all duration-200 cursor-pointer
-                  hover:-translate-y-px hover:shadow-lg
-                  ${
-                    n.unread
-                      ? // Unread — indigo tint + left accent border
-                        "bg-indigo-50/80 dark:bg-indigo-950/60 border-indigo-100 dark:border-indigo-900/60 border-l-[3px] border-l-indigo-500 dark:border-l-indigo-400 border-t-indigo-100 dark:border-t-indigo-900/60 border-r-indigo-100 dark:border-r-indigo-900/60 border-b-indigo-100 dark:border-b-indigo-900/60 shadow-sm hover:shadow-indigo-200/40 dark:hover:shadow-indigo-900/30"
-                      : // Read — clean white surface, subtle border
-                        "bg-white dark:bg-[#111827] border-gray-200 dark:border-gray-700/80 shadow-sm hover:shadow-gray-200/60 dark:hover:shadow-black/40"
-                  }
-                `}
-              >
-                {/* Icon */}
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                    n.unread
-                      ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-sm font-semibold leading-tight ${
-                        n.unread
-                          ? "text-gray-900 dark:text-gray-100"
-                          : "text-gray-800 dark:text-gray-200"
-                      }`}
-                    >
-                      {n.title}
-                    </span>
-                    {n.unread && (
-                      <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />
-                    )}
-                  </div>
-
-                  <p
-                    className={`text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed ${
-                      isExpanded ? "" : "line-clamp-2"
-                    }`}
-                  >
-                    {n.desc}
-                  </p>
-
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">
-                      {n.time}
-                    </span>
-                    {showToggle && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExpanded(n.id);
-                        }}
-                        className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition"
-                      >
-                        {isExpanded ? "Less" : "More"}
-                      </button>
-                    )}
-                  </div>
-                </div>
+      {/* Notifications list */}
+      <div className="space-y-3">
+        {filteredNotifications.map((notification) => (
+          <NotificationCard
+            key={notification.id}
+            notification={notification}
+            onMarkRead={handleMarkRead}
+            onPreview={handlePreview}
+          />
+        ))}
+        {filteredNotifications.length === 0 && (
+          <Card>
+            <CardContent className="p-10 text-center">
+              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-muted">
+                <Bell className="h-5 w-5 text-muted-foreground" />
               </div>
-            );
-          })}
-        </div>
-      )}
+              <h3 className="text-base font-semibold">No notifications</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {activeTab === "Unread"
+                  ? "You've read all your notifications."
+                  : `No ${activeTab} notifications right now.`}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <NotificationPreviewSheet
+        notification={previewNotification}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
     </div>
   );
 }
