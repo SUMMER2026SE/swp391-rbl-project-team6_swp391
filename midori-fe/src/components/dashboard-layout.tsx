@@ -61,7 +61,7 @@ const teacherNav: NavItem[] = [
   { to: "/teacher/exams", label: "Exams", icon: ClipboardCheck },
 
   // 6. Progress (global)
-  { to: "/teacher/progress", label: "Progress", icon: ProgressIcon },
+  { to: "/teacher/progress", label: "Progress", icon: LineChart },
 
   // 7. Data Bank
   { to: "/teacher/data-bank", label: "Data Bank", icon: FolderOpen },
