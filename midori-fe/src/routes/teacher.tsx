@@ -1,14 +1,13 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { AuthGuard } from "@/components/auth-guard";
+import { TeacherShell } from "@/components/teacher/teacher-shell";
 
 export const Route = createFileRoute("/teacher")({
   component: () => (
     <AuthGuard role="teacher">
-      <DashboardLayout role="teacher">
+      <TeacherShell>
         <Outlet />
-      </DashboardLayout>
+      </TeacherShell>
     </AuthGuard>
   ),
 });
