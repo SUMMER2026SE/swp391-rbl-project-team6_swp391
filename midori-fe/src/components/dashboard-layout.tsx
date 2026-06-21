@@ -947,7 +947,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             const active = pathname === targetTo || (!isBaseRoute && pathname.startsWith(targetTo));
             const Icon = it.icon;
             return (
-              <Link key={it.to} to={targetTo as any}
+              <Link key={it.to} to={targetTo as any} preload="intent"
                 className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${
                   active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
                 }`}>
