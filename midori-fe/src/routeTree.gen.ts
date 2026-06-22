@@ -69,6 +69,7 @@ import { Route as StudentSettingsNotificationsRouteImport } from './routes/stude
 import { Route as StudentSettingsLanguageRouteImport } from './routes/student.settings.language'
 import { Route as StudentReadingReadingIdRouteImport } from './routes/student.reading.$readingId'
 import { Route as StudentLearningReadingRouteImport } from './routes/student.learning.reading'
+import { Route as StudentLearningKanjiRouteImport } from './routes/student.learning.kanji'
 import { Route as StudentLearningJapaneseRouteImport } from './routes/student.learning.japanese'
 import { Route as StudentLearningAlphabetRouteImport } from './routes/student.learning.alphabet'
 import { Route as StudentGrammarIndexRouteImport } from './routes/student.grammar._index'
@@ -422,6 +423,11 @@ const StudentReadingReadingIdRoute = StudentReadingReadingIdRouteImport.update({
 const StudentLearningReadingRoute = StudentLearningReadingRouteImport.update({
   id: '/reading',
   path: '/reading',
+  getParentRoute: () => StudentLearningRoute,
+} as any)
+const StudentLearningKanjiRoute = StudentLearningKanjiRouteImport.update({
+  id: '/kanji',
+  path: '/kanji',
   getParentRoute: () => StudentLearningRoute,
 } as any)
 const StudentLearningJapaneseRoute = StudentLearningJapaneseRouteImport.update({
@@ -783,6 +789,7 @@ export interface FileRoutesByFullPath {
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/learning/alphabet': typeof StudentLearningAlphabetRouteWithChildren
   '/student/learning/japanese': typeof StudentLearningJapaneseRouteWithChildren
+  '/student/learning/kanji': typeof StudentLearningKanjiRoute
   '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
@@ -891,6 +898,7 @@ export interface FileRoutesByTo {
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
   '/student/learning/alphabet': typeof StudentLearningAlphabetRouteWithChildren
   '/student/learning/japanese': typeof StudentLearningJapaneseRouteWithChildren
+  '/student/learning/kanji': typeof StudentLearningKanjiRoute
   '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
@@ -1005,6 +1013,7 @@ export interface FileRoutesById {
   '/student/grammar/_index': typeof StudentGrammarIndexRoute
   '/student/learning/alphabet': typeof StudentLearningAlphabetRouteWithChildren
   '/student/learning/japanese': typeof StudentLearningJapaneseRouteWithChildren
+  '/student/learning/kanji': typeof StudentLearningKanjiRoute
   '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/settings/language': typeof StudentSettingsLanguageRoute
@@ -1119,6 +1128,7 @@ export interface FileRouteTypes {
     | '/student/grammar/$grammarId'
     | '/student/learning/alphabet'
     | '/student/learning/japanese'
+    | '/student/learning/kanji'
     | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/settings/language'
@@ -1227,6 +1237,7 @@ export interface FileRouteTypes {
     | '/student/grammar/$grammarId'
     | '/student/learning/alphabet'
     | '/student/learning/japanese'
+    | '/student/learning/kanji'
     | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/settings/language'
@@ -1340,6 +1351,7 @@ export interface FileRouteTypes {
     | '/student/grammar/_index'
     | '/student/learning/alphabet'
     | '/student/learning/japanese'
+    | '/student/learning/kanji'
     | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/settings/language'
@@ -1823,6 +1835,13 @@ declare module '@tanstack/react-router' {
       path: '/reading'
       fullPath: '/student/learning/reading'
       preLoaderRoute: typeof StudentLearningReadingRouteImport
+      parentRoute: typeof StudentLearningRoute
+    }
+    '/student/learning/kanji': {
+      id: '/student/learning/kanji'
+      path: '/kanji'
+      fullPath: '/student/learning/kanji'
+      preLoaderRoute: typeof StudentLearningKanjiRouteImport
       parentRoute: typeof StudentLearningRoute
     }
     '/student/learning/japanese': {
@@ -2423,6 +2442,7 @@ const StudentLearningReadingRouteWithChildren =
 interface StudentLearningRouteChildren {
   StudentLearningAlphabetRoute: typeof StudentLearningAlphabetRouteWithChildren
   StudentLearningJapaneseRoute: typeof StudentLearningJapaneseRouteWithChildren
+  StudentLearningKanjiRoute: typeof StudentLearningKanjiRoute
   StudentLearningReadingRoute: typeof StudentLearningReadingRouteWithChildren
   StudentLearningReadingReadingIdRoute: typeof StudentLearningReadingReadingIdRoute
 }
@@ -2430,6 +2450,7 @@ interface StudentLearningRouteChildren {
 const StudentLearningRouteChildren: StudentLearningRouteChildren = {
   StudentLearningAlphabetRoute: StudentLearningAlphabetRouteWithChildren,
   StudentLearningJapaneseRoute: StudentLearningJapaneseRouteWithChildren,
+  StudentLearningKanjiRoute: StudentLearningKanjiRoute,
   StudentLearningReadingRoute: StudentLearningReadingRouteWithChildren,
   StudentLearningReadingReadingIdRoute: StudentLearningReadingReadingIdRoute,
 }
