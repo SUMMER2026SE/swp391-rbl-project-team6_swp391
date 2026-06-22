@@ -56,6 +56,7 @@ const studentNav: NavItem[] = [
     icon: BookOpen,
     children: [
       { to: "/student/learning/alphabet", label: "Alphabet" },
+      { to: "/student/learning/kanji", label: "Kanji" },
       { to: "/student/learning/reading", label: "Reading" },
       { to: "/student/vocabulary", label: "Vocabulary" },
       { to: "/student/grammar", label: "Grammar" },
@@ -93,6 +94,7 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
     disabled: true,
     children: [
       { to: "/", label: "Alphabet", disabled: true },
+      { to: "/", label: "Kanji", disabled: true },
       { to: "/", label: "Reading", disabled: true },
       { to: "/", label: "Vocabulary", disabled: true },
       { to: "/", label: "Grammar", disabled: true },
