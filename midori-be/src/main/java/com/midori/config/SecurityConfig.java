@@ -80,6 +80,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/teacher/**").authenticated()
                         .requestMatchers("/api/vocabulary/**").authenticated()
+                        .requestMatchers("/api/kanji/**").authenticated()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
