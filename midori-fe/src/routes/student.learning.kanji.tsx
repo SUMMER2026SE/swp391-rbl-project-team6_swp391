@@ -16,20 +16,72 @@ import {
   Sparkles,
   Award,
   ChevronRight,
-  Info
+  Info,
+  Trash2,
+  Plus,
+  Printer,
+  Loader2,
+  Eye
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { cn } from "@/lib/utils";
 import { KANJI_DATA, type KanjiCharacter } from "@/data/kanji-data";
 import { speakJapanese } from "@/data/japanese-learning-data";
+import { WorksheetPreviewComponent } from "@/components/WorksheetPreviewComponent";
 
 export const Route = createFileRoute("/student/learning/kanji")({
   component: KanjiLearningPage,
 });
 
 // Student levels logic
-const ALL_LEVELS = ["N5 - Cơ bản", "N4", "N3", "N2", "N1", "214 Bộ thủ"];
+const ALL_LEVELS = ["N5 - Cơ bản", "N4", "N3", "N2", "N1", "Bộ thủ"];
 const STUDENT_LEVEL = "N5 - Cơ bản"; // Mock current student level
+
+function findKanjiCharacter(char: string): KanjiCharacter | undefined {
+  for (const level in KANJI_DATA) {
+    const found = KANJI_DATA[level].find(k => k.char === char.trim());
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function generateStrokeOrderImages(kanji: KanjiCharacter): string[] {
+  const images: string[] = [];
+  const size = 100;
+  
+  kanji.svgPaths.forEach((path, idx) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    
+    // Fill white background (necessary for clean PDF rendering)
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+    
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    
+    // Draw previous strokes in gray
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 5;
+    for (let pIdx = 0; pIdx < idx; pIdx++) {
+      const p2d = new Path2D(kanji.svgPaths[pIdx]);
+      ctx.stroke(p2d);
+    }
+    
+    // Draw current stroke in blue/violet
+    ctx.strokeStyle = "#4f46e5";
+    ctx.lineWidth = 6;
+    const currentP2D = new Path2D(path);
+    ctx.stroke(currentP2D);
+    
+    images.push(canvas.toDataURL("image/png"));
+  });
+  
+  return images;
+}
 
 function KanjiLearningPage() {
   const [selectedLevel, setSelectedLevel] = useState<string>("N5 - Cơ bản");
@@ -37,6 +89,144 @@ function KanjiLearningPage() {
   const [selectedKanji, setSelectedKanji] = useState<KanjiCharacter | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showPractice, setShowPractice] = useState<boolean>(false);
+
+  const [worksheetKanji, setWorksheetKanji] = useState<KanjiCharacter[]>([]);
+  const [bulkInput, setBulkInput] = useState<string>("");
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [showPreview, setShowPreview] = useState<boolean>(false);
+
+  // Load worksheet from local storage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("midori_worksheet_kanji");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const loaded: KanjiCharacter[] = [];
+        parsed.forEach((charStr: string) => {
+          const found = findKanjiCharacter(charStr);
+          if (found) loaded.push(found);
+        });
+        setWorksheetKanji(loaded);
+      } catch (e) {
+        console.error("Failed to parse worksheet kanji", e);
+      }
+    }
+  }, []);
+
+  const saveWorksheet = (list: KanjiCharacter[]) => {
+    setWorksheetKanji(list);
+    localStorage.setItem("midori_worksheet_kanji", JSON.stringify(list.map(k => k.char)));
+  };
+
+  const addToWorksheet = (kanji: KanjiCharacter) => {
+    if (worksheetKanji.some(k => k.char === kanji.char)) {
+      alert(`Chữ ${kanji.char} đã có trong bảng luyện viết!`);
+      return;
+    }
+    const nextList = [...worksheetKanji, kanji];
+    saveWorksheet(nextList);
+  };
+
+  const removeFromWorksheet = (char: string) => {
+    const nextList = worksheetKanji.filter(k => k.char !== char);
+    saveWorksheet(nextList);
+  };
+
+  const clearWorksheet = () => {
+    saveWorksheet([]);
+  };
+
+  const handleImportBulk = () => {
+    if (!bulkInput.trim()) {
+      alert("Vui lòng nhập danh sách Kanji!");
+      return;
+    }
+    const chars = bulkInput.split(/[\s,，、]+/).filter(Boolean);
+    const added: KanjiCharacter[] = [];
+    const notFound: string[] = [];
+    const alreadyExists: string[] = [];
+
+    chars.forEach(char => {
+      for (const singleChar of char) {
+        const found = findKanjiCharacter(singleChar);
+        if (found) {
+          if (worksheetKanji.some(k => k.char === singleChar) || added.some(k => k.char === singleChar)) {
+            alreadyExists.push(singleChar);
+          } else {
+            added.push(found);
+          }
+        } else {
+          if (!notFound.includes(singleChar) && /[\u4e00-\u9faf]/.test(singleChar)) {
+            notFound.push(singleChar);
+          }
+        }
+      }
+    });
+
+    if (added.length === 0) {
+      if (alreadyExists.length > 0) {
+        alert("Tất cả các chữ nhập vào đều đã có trong bảng luyện viết!");
+      } else {
+        alert("Không tìm thấy chữ Kanji hợp lệ nào trong nội dung nhập vào!");
+      }
+      return;
+    }
+
+    const nextList = [...worksheetKanji, ...added];
+    saveWorksheet(nextList);
+    setBulkInput("");
+
+    let msg = `Đã thêm thành công ${added.length} chữ Kanji vào bảng!`;
+    if (notFound.length > 0) {
+      msg += `\nKhông tìm thấy các chữ: ${notFound.join(", ")}`;
+    }
+    alert(msg);
+  };
+
+  const handleExportWorksheetPDF = async () => {
+    if (worksheetKanji.length === 0) {
+      alert("Vui lòng thêm ít nhất một chữ Kanji vào bảng để xuất PDF!");
+      return;
+    }
+    
+    setIsExporting(true);
+    try {
+      const kanjiListDTO = worksheetKanji.map(k => ({
+        character: k.char,
+        hanViet: k.sinoVietnamese,
+        meaning: k.meaning,
+        strokeOrderImages: generateStrokeOrderImages(k)
+      }));
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api"}/kanji/pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("midori_access_token")}`
+        },
+        body: JSON.stringify(kanjiListDTO)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `midori-kanji-worksheet.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export PDF:", error);
+      alert("Đã xảy ra lỗi khi xuất file PDF. Vui lòng thử lại!");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Load favorites from local storage
   useEffect(() => {
@@ -82,16 +272,16 @@ function KanjiLearningPage() {
   return (
     <div className="min-h-screen relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300">
       <SakuraBg count={16} />
-      
+
       {/* Background Pastel Blurs (Pink-Blue Ambient Glow) */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Main Floating Outer White Container */}
         <div className="bg-white dark:bg-slate-900 border border-[#EEF2F7] dark:border-white/10 rounded-[40px] p-6 sm:p-10 shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:shadow-2xl">
-          
+
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
@@ -107,7 +297,7 @@ function KanjiLearningPage() {
                 Master Sino-Japanese characters through writing, order animation, and worksheets.
               </p>
             </div>
-            
+
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl text-xs text-indigo-600 dark:text-indigo-300 font-semibold shadow-sm">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Current Level: {STUDENT_LEVEL}</span>
@@ -119,8 +309,7 @@ function KanjiLearningPage() {
                KANJI DASHBOARD VIEW
                ========================================================================= */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
-              {/* Left Column: Search Kanji Card */}
+              {/* Left Column: Search Kanji Card & Worksheet Card */}
               <div className="lg:col-span-4 space-y-6">
                 <div className="bg-slate-50 dark:bg-slate-950/60 border border-[#EEF2F7] dark:border-white/10 rounded-[32px] p-6 shadow-sm relative overflow-hidden">
                   <div className="flex items-center gap-2 mb-4">
@@ -136,7 +325,7 @@ function KanjiLearningPage() {
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl py-3 pl-4 pr-10 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/40 transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     />
                     {searchQuery && (
-                      <button 
+                      <button
                         onClick={() => setSearchQuery("")}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-white text-xs font-semibold"
                       >
@@ -145,93 +334,223 @@ function KanjiLearningPage() {
                     )}
                   </div>
                 </div>
-              </div>
 
-              {/* Right Column: Level Tabs & Kanji Grid Container */}
-              <div className="lg:col-span-8 space-y-6">
-                {/* Level Tabs */}
-                <div className="flex flex-wrap gap-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-white/10 p-2 rounded-[20px] backdrop-blur-md mt-2">
-                  {ALL_LEVELS.map(level => {
-                    const locked = isLevelLocked(level);
-                    const active = selectedLevel === level;
-                    const isRadicalTab = level === "214 Bộ thủ";
-                    
-                    return (
+                {/* Worksheet Card */}
+                <div className="bg-slate-50 dark:bg-slate-950/60 border border-[#EEF2F7] dark:border-white/10 rounded-[32px] p-6 shadow-sm relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Printer className="w-5 h-5 text-indigo-500" />
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-white">Bảng tập viết ({worksheetKanji.length})</h3>
+                    </div>
+                    {worksheetKanji.length > 0 && (
                       <button
-                        key={level}
-                        disabled={locked}
-                        onClick={() => {
-                          setSelectedLevel(level);
-                          setSearchQuery("");
-                        }}
-                        className={cn(
-                          "relative flex-1 md:flex-none min-w-[75px] flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-300",
-                          active 
-                            ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-purple-500/20"
-                            : isRadicalTab
-                              ? "bg-[#F3E8FF] border border-purple-200 text-[#7C3AED] hover:opacity-90 dark:bg-purple-950/40 dark:border-purple-800/40 dark:text-purple-300 shadow-sm"
-                              : locked
-                                ? "bg-slate-100/50 border border-slate-200/50 text-slate-400 opacity-60 dark:bg-slate-900/40 dark:border-transparent cursor-not-allowed"
-                                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:bg-transparent dark:border-transparent dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5"
-                        )}
+                        onClick={clearWorksheet}
+                        className="text-xs text-red-500 hover:text-red-700 font-bold transition flex items-center gap-1"
                       >
-                        <span>{level}</span>
-                        {locked && <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                        <Trash2 className="w-3.5 h-3.5" /> Xóa hết
                       </button>
-                    );
-                  })}
-                </div>
-
-                {/* Kanji Grid Container */}
-                <div className="bg-slate-50 dark:bg-slate-900/40 border border-[#EEF2F7] dark:border-white/10 rounded-[32px] p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                      Trình độ: {selectedLevel}
-                    </h3>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      Hiển thị {filteredKanjiList.length} chữ
-                    </span>
+                    )}
                   </div>
 
-                  {filteredKanjiList.length === 0 ? (
-                    <div className="text-center py-16">
-                      <p className="text-slate-500 dark:text-slate-400">Không tìm thấy chữ Kanji nào phù hợp.</p>
+                  {/* Bulk Input */}
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase">
+                      Nhập nhanh nhiều Kanji (phân cách bằng dấu phẩy)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={bulkInput}
+                        onChange={(e) => setBulkInput(e.target.value)}
+                        placeholder="Ví dụ: 食, 飲, 学, 書"
+                        className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/40 transition placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleImportBulk();
+                        }}
+                      />
+                      <button
+                        onClick={handleImportBulk}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm shrink-0"
+                      >
+                        Nhập
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Worksheet Kanji List */}
+                  {worksheetKanji.length === 0 ? (
+                    <div className="text-center py-6 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-slate-900/40">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Chưa có chữ nào trong bảng.</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Chọn từ danh sách hoặc nhập nhanh ở trên.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                      {filteredKanjiList.map((kanji, idx) => {
-                        const isFav = favorites.includes(kanji.char);
-                        return (
-                          <motion.button
-                            key={kanji.char}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.02 }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setSelectedKanji(kanji)}
-                            className="relative aspect-square flex flex-col items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-white/10 shadow-sm transition-all"
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                      {worksheetKanji.map((kanji) => (
+                        <div
+                          key={kanji.char}
+                          className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl p-2.5 shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl font-bold font-japanese" style={{ fontFamily: "var(--font-japanese)" }}>{kanji.char}</span>
+                            <div>
+                              <div className="text-xs font-bold uppercase">{kanji.sinoVietnamese}</div>
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">{kanji.meaning}</div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeFromWorksheet(kanji.char)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition"
                           >
-                            <span 
-                              className="text-2xl font-bold text-slate-900 dark:text-white mb-1"
-                              style={{ fontFamily: "var(--font-japanese)" }}
-                            >
-                              {kanji.char}
-                            </span>
-                            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-                              {kanji.sinoVietnamese}
-                            </span>
-                            {isFav && (
-                              <div className="absolute top-1.5 right-1.5">
-                                <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
-                              </div>
-                            )}
-                          </motion.button>
-                        );
-                      })}
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Worksheet buttons */}
+                  {worksheetKanji.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <button
+                        onClick={() => setShowPreview(!showPreview)}
+                        className={cn(
+                          "w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-bold transition shadow-sm",
+                          showPreview 
+                            ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
+                            : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 dark:bg-transparent dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+                        )}
+                      >
+                        <Eye className="w-4 h-4 text-indigo-500" />
+                        {showPreview ? "Quay lại Bảng Học" : "Xem trước Worksheet"}
+                      </button>
+                      
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleExportWorksheetPDF}
+                          disabled={isExporting}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 disabled:opacity-50 text-white text-xs font-bold transition shadow-md shadow-indigo-500/10"
+                        >
+                          {isExporting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
+                          Tải PDF
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowPreview(true);
+                            setTimeout(() => {
+                              window.print();
+                            }, 300);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition shadow-sm dark:bg-transparent dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+                        >
+                          <Printer className="w-4 h-4 text-indigo-500" />
+                          In bảng
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
+              </div>
+              {/* Right Column: Level Tabs & Kanji Grid Container */}
+              <div className="lg:col-span-8 space-y-6">
+                {showPreview ? (
+                  <WorksheetPreviewComponent
+                    kanjiList={worksheetKanji}
+                    onRemoveKanji={removeFromWorksheet}
+                    onClearAll={clearWorksheet}
+                    onDownloadPDF={handleExportWorksheetPDF}
+                    isExporting={isExporting}
+                  />
+                ) : (
+                  <>
+                    {/* Level Tabs */}
+                    <div className="flex flex-wrap gap-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-white/10 p-2 rounded-[20px] backdrop-blur-md mt-2">
+                      {ALL_LEVELS.map(level => {
+                        const locked = isLevelLocked(level);
+                        const active = selectedLevel === level;
+                        const isRadicalTab = level === "214 Bộ thủ";
+
+                        return (
+                          <button
+                            key={level}
+                            disabled={locked}
+                            onClick={() => {
+                              setSelectedLevel(level);
+                              setSearchQuery("");
+                            }}
+                            className={cn(
+                              "relative flex-1 md:flex-none min-w-[75px] flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-300",
+                              active
+                                ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-lg shadow-purple-500/20"
+                                : isRadicalTab
+                                  ? "bg-[#F3E8FF] border border-purple-200 text-[#7C3AED] hover:opacity-90 dark:bg-purple-950/40 dark:border-purple-800/40 dark:text-purple-300 shadow-sm"
+                                  : locked
+                                    ? "bg-slate-100/50 border border-slate-200/50 text-slate-400 opacity-60 dark:bg-slate-900/40 dark:border-transparent cursor-not-allowed"
+                                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:bg-transparent dark:border-transparent dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5"
+                            )}
+                          >
+                            <span>{level}</span>
+                            {locked && <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Kanji Grid Container */}
+                    <div className="bg-slate-50 dark:bg-slate-900/40 border border-[#EEF2F7] dark:border-white/10 rounded-[32px] p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                          Trình độ: {selectedLevel}
+                        </h3>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Hiển thị {filteredKanjiList.length} chữ
+                        </span>
+                      </div>
+
+                      {filteredKanjiList.length === 0 ? (
+                        <div className="text-center py-16">
+                          <p className="text-slate-500 dark:text-slate-400">Không tìm thấy chữ Kanji nào phù hợp.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                          {filteredKanjiList.map((kanji, idx) => {
+                            const isFav = favorites.includes(kanji.char);
+                            return (
+                              <motion.button
+                                key={kanji.char}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: idx * 0.02 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setSelectedKanji(kanji)}
+                                className="relative aspect-square flex flex-col items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-white/10 shadow-sm transition-all"
+                              >
+                                <span
+                                  className="text-2xl font-bold text-slate-900 dark:text-white mb-1"
+                                  style={{ fontFamily: "var(--font-japanese)" }}
+                                >
+                                  {kanji.char}
+                                </span>
+                                <span className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                                  {kanji.sinoVietnamese}
+                                </span>
+                                {isFav && (
+                                  <div className="absolute top-1.5 right-1.5">
+                                    <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
+                                  </div>
+                                )}
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
             </div>
@@ -239,9 +558,9 @@ function KanjiLearningPage() {
             /* =========================================================================
                WRITING PRACTICE VIEW
                ========================================================================= */
-            <WritingPracticeView 
-              kanji={selectedKanji!} 
-              onBack={() => setShowPractice(false)} 
+            <WritingPracticeView
+              kanji={selectedKanji!}
+              onBack={() => setShowPractice(false)}
             />
           )}
         </div>
@@ -259,6 +578,8 @@ function KanjiLearningPage() {
               onOpenPractice={() => {
                 setShowPractice(true);
               }}
+              onAddToWorksheet={addToWorksheet}
+              isInWorksheet={worksheetKanji.some(k => k.char === selectedKanji.char)}
             />
           )}
         </AnimatePresence>
@@ -277,9 +598,19 @@ interface DetailModalProps {
   onClose: () => void;
   onToggleFav: (char: string) => void;
   onOpenPractice: () => void;
+  onAddToWorksheet: (kanji: KanjiCharacter) => void;
+  isInWorksheet: boolean;
 }
 
-function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPractice }: DetailModalProps) {
+function KanjiDetailModal({ 
+  kanji, 
+  favorites, 
+  onClose, 
+  onToggleFav, 
+  onOpenPractice,
+  onAddToWorksheet,
+  isInWorksheet
+}: DetailModalProps) {
   const isFav = favorites.includes(kanji.char);
   const [isPlaying, setIsPlaying] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
@@ -310,10 +641,10 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
     ctx.strokeStyle = "#cbd5e1";
     ctx.lineWidth = 4;
     ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
-    
+
     // Internal margin
     const margin = 80;
-    
+
     // 1. Header Text
     ctx.fillStyle = "#4f46e5";
     ctx.font = "bold 38px sans-serif";
@@ -346,7 +677,7 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
     ctx.strokeStyle = "#4f46e5";
     ctx.lineWidth = 4;
     ctx.fillStyle = "#f8fafc";
-    
+
     const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
@@ -389,20 +720,20 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
     // Right Info Box
     const ix = 440;
     const iy = 210;
-    
+
     const drawInfoRow = (label: string, value: string, yPos: number) => {
       ctx.textAlign = "left";
       ctx.fillStyle = "#64748b";
       ctx.font = "bold 13px sans-serif";
       ctx.fillText(label.toUpperCase(), ix, yPos);
-      
+
       ctx.fillStyle = "#0f172a";
       ctx.font = "16px sans-serif";
-      
+
       const words = value.split(" ");
       let line = "";
       let currentY = yPos + 22;
-      
+
       for (let n = 0; n < words.length; n++) {
         const testLine = line + words[n] + " ";
         const metrics = ctx.measureText(testLine);
@@ -463,7 +794,7 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
       ctx.translate(x + stepSize / 2, y + stepSize / 2);
       ctx.scale((stepSize * 0.8) / 100, (stepSize * 0.8) / 100);
       ctx.translate(-50, -50);
-      
+
       ctx.strokeStyle = "#e2e8f0";
       ctx.lineWidth = 5;
       ctx.lineCap = "round";
@@ -584,7 +915,7 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      
+
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -601,10 +932,10 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         className="relative w-full max-w-2xl bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-2xl z-10 flex flex-col md:flex-row"
       >
-        
+
         {/* Left Side: Large Kanji Character & Animation */}
         <div className="w-full md:w-1/2 p-6 flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50">
-          
+
           {/* Header toolbar */}
           <div className="w-full flex justify-between items-center mb-4">
             <button
@@ -628,7 +959,7 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
                 // Calculation of path length to animate it drawing
                 // Standard default length is ~100
                 const pathLength = 120;
-                
+
                 return (
                   <motion.path
                     key={index}
@@ -663,7 +994,7 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
           </div>
 
           <div className="w-full text-center mt-4">
-            <h2 
+            <h2
               className="text-4xl font-extrabold text-slate-900"
               style={{ fontFamily: "var(--font-japanese)" }}
             >
@@ -677,13 +1008,28 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
           {/* Action Toolbar */}
           <div className="w-full flex gap-2 mt-6">
             <button
-              onClick={handleExportPDF}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs text-slate-700 font-bold transition shadow-sm"
+              onClick={() => onAddToWorksheet(kanji)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-bold transition shadow-sm",
+                isInWorksheet 
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 cursor-not-allowed" 
+                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+              )}
+              disabled={isInWorksheet}
             >
-              <Download className="w-4 h-4" />
-              Tải file tập viết
+              {isInWorksheet ? (
+                <>
+                  <Check className="w-4.5 h-4.5 text-emerald-600" />
+                  Đã thêm vào bảng
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 text-indigo-600" />
+                  Thêm vào bảng viết
+                </>
+              )}
             </button>
-            
+
             <button
               onClick={onOpenPractice}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-blue-400 to-pink-400 hover:opacity-90 text-xs text-white font-bold transition shadow-lg shadow-purple-500/20"
@@ -707,7 +1053,7 @@ function KanjiDetailModal({ kanji, favorites, onClose, onToggleFav, onOpenPracti
                   Bộ: {kanji.radical}
                 </span>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="text-slate-400 hover:text-slate-700 text-xs font-semibold transition"
               >
@@ -782,7 +1128,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
     const deviation = Math.abs(strokes.length - kanji.strokes);
     const baseScore = Math.max(30, 95 - deviation * 15);
     const finalScore = Math.min(100, Math.floor(baseScore + Math.random() * 8));
-    
+
     setScore(finalScore);
 
     if (finalScore >= 90) {
@@ -891,7 +1237,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      
+
       {/* Sub Header */}
       <div className="flex justify-between items-center">
         <button
@@ -932,7 +1278,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
 
       {/* Writing Canvas Board */}
       <div className="relative bg-white border-2 border-dashed border-slate-200 rounded-3xl aspect-square w-full max-w-md mx-auto overflow-hidden shadow-sm">
-        
+
         {/* Guide grid helper */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-200 border-dashed" />
@@ -942,7 +1288,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
         {/* Gray Guide Kanji Background */}
         {showGuide && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-            <span 
+            <span
               className="text-[250px] font-bold text-slate-300 select-none"
               style={{ fontFamily: "var(--font-japanese)" }}
             >
@@ -973,7 +1319,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
           onClick={() => setShowGuide(!showGuide)}
           className={cn(
             "flex-1 py-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm",
-            showGuide 
+            showGuide
               ? "bg-indigo-50 border-indigo-200 text-indigo-600"
               : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           )}
