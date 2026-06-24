@@ -15,5 +15,7 @@ public class KanjiDTO {
     private String character;
     private String hanViet;
     private String meaning;
+    private String mnemonic;
+    private List<String> svgPaths;
     private List<String> strokeOrderImages;
 }
