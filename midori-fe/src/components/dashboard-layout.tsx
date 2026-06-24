@@ -521,7 +521,6 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
   return (
     <div className="min-h-screen flex">
       <SakuraBg count={14} />
-
       <aside
         className={cn(
           "hidden lg:flex flex-col flex-shrink-0 overflow-hidden glass-sidebar m-3 mr-0 rounded-3xl p-4 sticky top-3 h-[calc(100vh-1.5rem)] transition-[width,padding] duration-300 ease-in-out",
