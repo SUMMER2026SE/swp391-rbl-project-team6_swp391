@@ -587,6 +587,11 @@ export const getTopicForVideo = (videoId: string): ShadowingTopic | undefined =>
 
 // ─── Mock AI Feedback Generator ────────────────────────────────────────────────
 
+export interface WordResult {
+  word: string;
+  correct: boolean;
+}
+
 export interface AIFeedback {
   pronunciation: number;
   pitchAccent: number;
@@ -595,6 +600,8 @@ export interface AIFeedback {
   overallScore: number;
   feedback: string;
   tips: string[];
+  wordResults: WordResult[];
+  spokenText: string;
 }
 
 export const generateMockAIFeedback = (sentence: string): AIFeedback => {
@@ -617,10 +624,21 @@ export const generateMockAIFeedback = (sentence: string): AIFeedback => {
   ];
 
   const feedback = overallScore >= 85 
-    ? "Excellent work! Your pronunciation is very natural."
+    ? "Xuất sắc! Phát âm của bạn rất tự nhiên."
     : overallScore >= 75
-    ? "Good job! Keep practicing to improve further."
-    : "Keep trying! Focus on the highlighted areas.";
+    ? "Tốt lắm! Hãy tiếp tục luyện tập để cải thiện."
+    : "Cố gắng lên! Chú ý đến các từ được đánh dấu đỏ.";
+
+  // Generate word-level results: split sentence into words/tokens and randomly mark correct/incorrect
+  const words = sentence.split(/(?<=[ぁ-ん々ー])|(?=[ぁ-ん々ー])|(?<=[ァ-ヶ])|(?=[ァ-ヶ])|(?<=[一-龯])|(?=[一-龯])|\s+/).filter(w => w.trim().length > 0);
+  const errorChance = overallScore >= 85 ? 0.1 : overallScore >= 75 ? 0.25 : 0.4;
+  const wordResults: WordResult[] = words.map(word => ({
+    word,
+    correct: Math.random() > errorChance,
+  }));
+
+  // Build spoken text representation (simulate what user said)
+  const spokenText = sentence;
 
   return {
     pronunciation,
@@ -630,5 +648,7 @@ export const generateMockAIFeedback = (sentence: string): AIFeedback => {
     overallScore,
     feedback,
     tips: tipsPool.slice(0, 2),
+    wordResults,
+    spokenText,
   };
 };
