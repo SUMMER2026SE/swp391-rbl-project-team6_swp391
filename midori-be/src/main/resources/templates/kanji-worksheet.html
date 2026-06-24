@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 20mm 15mm 20mm 15mm;
+            margin: 15mm 15mm 20mm 15mm;
             @bottom-center {
                 content: "Midori Japanese Platform © 2026 - Trang " counter(page);
                 font-family: 'Arial', sans-serif;
@@ -21,16 +21,35 @@
             color: #1e293b;
             background-color: #ffffff;
         }
-        .worksheet-title {
+        .worksheet-header {
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+            height: 45px;
+            clear: both;
+        }
+        .header-left {
+            float: left;
+        }
+        .title-main {
             font-size: 22px;
             font-weight: bold;
-            text-align: center;
-            color: #4f46e5;
-            margin-bottom: 30px;
-            text-transform: uppercase;
+            color: #0f172a;
             letter-spacing: 1px;
-            border-bottom: 2px double #cbd5e1;
-            padding-bottom: 8px;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        .title-sub {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+        .header-right {
+            float: right;
+            font-size: 12px;
+            color: #64748b;
+            line-height: 45px;
+            font-weight: bold;
         }
         .worksheet-row {
             margin-bottom: 35px;
@@ -45,7 +64,7 @@
             float: left;
             font-size: 20px;
             font-weight: bold;
-            color: #1e293b;
+            color: #0f172a;
             line-height: 45px;
             text-transform: uppercase;
             margin-right: 24px;
@@ -66,9 +85,15 @@
             font-size: 14px;
             font-weight: bold;
             color: #4b5563;
+            margin-bottom: 4px;
+            clear: both;
+        }
+        .mnemonic-line {
+            font-size: 11px;
+            color: #64748b;
             margin-bottom: 12px;
             clear: both;
-            font-style: italic;
+            line-height: 1.4;
         }
         .practice-grid {
             display: block;
@@ -88,10 +113,11 @@
             float: left;
             width: 61px;
             height: 62px;
-            border-right: 1px solid #d9d9d9;
-            border-bottom: 1px solid #d9d9d9;
+            border-right: 1px solid #cbd5e1;
+            border-bottom: 1px solid #cbd5e1;
             text-align: center;
             vertical-align: top;
+            box-sizing: border-box;
         }
         .practice-box:last-child {
             border-right: none;
@@ -118,19 +144,40 @@
             border-left: 1px dashed #e2e8f0;
             z-index: 1;
         }
-        .char-trace {
-            font-family: 'Arial', 'MS Gothic', sans-serif;
+        .char-solid {
+            font-family: 'MS Gothic', 'Arial', sans-serif;
             position: relative;
             font-size: 34px;
             line-height: 62px;
-            font-weight: normal;
-            color: #D9D9D9;
+            font-weight: bold;
+            color: #0f172a;
             z-index: 2;
+        }
+        .trace-svg-wrapper {
+            position: absolute;
+            top: 11px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            z-index: 2;
+        }
+        .trace-svg {
+            width: 40px;
+            height: 40px;
         }
     </style>
 </head>
 <body>
-    <div class="worksheet-title">BẢNG LUYỆN VIẾT KANJI (KANJI WORKSHEET)</div>
+    <div class="worksheet-header">
+        <div class="header-left">
+            <div class="title-main">LUYỆN VIẾT KANJI</div>
+            <div class="title-sub">midori-japanese.pages.dev</div>
+        </div>
+        <div class="header-right">
+            <span>Họ tên: _________________</span>
+            <span style="margin-left: 20px;">Ngày: ___/___/______</span>
+        </div>
+    </div>
 
     <div th:each="kanji : ${kanjiList}" class="worksheet-row">
         <div class="row-header">
@@ -141,14 +188,20 @@
         </div>
 
         <div class="meaning-line" th:text="${kanji.meaning}"></div>
+        <div class="mnemonic-line" th:if="${kanji.mnemonic != null}">
+            <strong>Mẹo nhớ:</strong> <span th:text="${kanji.mnemonic}"></span>
+        </div>
 
         <div class="practice-grid">
-            <!-- Row 1: 10 tracing cells -->
+            <!-- Row 1: 1st box solid, next 3 trace (SVG), remaining empty -->
             <div class="grid-row-div">
-                <div class="practice-box" th:each="i : ${#numbers.sequence(0, 9)}">
+                <div class="practice-box" th:each="i : ${#numbers.sequence(0, 9)}"
+                     th:style="${i == 0} ? 'border: 2px solid #0f172a; width: 61px; height: 62px; z-index: 10;' : ''">
                     <div class="cross-h"></div>
                     <div class="cross-v"></div>
-                    <span class="char-trace" th:text="${kanji.character}"></span>
+                    <!-- Cell 1: Solid black Kanji -->
+                    <span th:if="${i == 0}" class="char-solid" th:text="${kanji.character}"></span>
+
                 </div>
             </div>
             <!-- Row 2: 10 empty cells -->
