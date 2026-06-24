@@ -54,9 +54,9 @@ function TopicDetailPage() {
   return (
     <div className="min-h-screen relative flex flex-col">
       <SakuraBg count={14} />
-      <div className="relative z-10 bg-white dark:bg-slate-900 flex-1">
+      <div className="relative z-10 flex-1">
         {/* Header */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
+        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center gap-4">
               <Link
