@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import type { KanjiCharacter } from "@/data/kanji-data";
-import { Trash2, Download, Printer, Loader2, X } from "lucide-react";
+import { Trash2, Download, Printer, Loader2, X, ArrowLeft } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
 // Helper to generate cumulative stroke order images
 function generateStrokeOrderImages(kanji: KanjiCharacter): string[] {
   const images: string[] = [];
-  const size = 80;
+  const size = 100; // High resolution for premium printing
   
   kanji.svgPaths.forEach((path, idx) => {
     const canvas = document.createElement("canvas");
@@ -22,17 +23,20 @@ function generateStrokeOrderImages(kanji: KanjiCharacter): string[] {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     
-    // Draw previous strokes in gray
-    ctx.strokeStyle = "#cbd5e1";
-    ctx.lineWidth = 4;
-    for (let pIdx = 0; pIdx < idx; pIdx++) {
-      const p2d = new Path2D(kanji.svgPaths[pIdx]);
-      ctx.stroke(p2d);
+    // Draw previous strokes in light gray
+    const prevPathStr = kanji.svgPaths.slice(0, idx).join(" ");
+    if (prevPathStr) {
+      ctx.beginPath();
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 5;
+      const prevP2D = new Path2D(prevPathStr);
+      ctx.stroke(prevP2D);
     }
     
-    // Draw current stroke in blue/violet
+    // Draw current stroke in deep indigo
+    ctx.beginPath();
     ctx.strokeStyle = "#4f46e5";
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 7;
     const currentP2D = new Path2D(path);
     ctx.stroke(currentP2D);
     
@@ -72,7 +76,7 @@ export function WorksheetPreviewComponent({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-[32px] p-6 shadow-xl space-y-6">
+    <div className="w-full space-y-6">
       {/* CSS Styles for Print Mode */}
       <style>{`
         @media print {
@@ -88,25 +92,29 @@ export function WorksheetPreviewComponent({
             position: absolute;
             left: 0;
             top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background-color: white !important;
             color: black !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
           }
           #worksheet-print-area table {
-            border: 2px solid #6b7280 !important;
+            border: 2px solid #000000 !important;
             border-collapse: collapse !important;
           }
           #worksheet-print-area td {
-            border: 1px solid #9ca3af !important;
+            border: 1px solid #cbd5e1 !important;
           }
           .no-print {
             display: none !important;
           }
           .print-row {
             page-break-inside: avoid !important;
-            margin-bottom: 35px !important;
+            margin-bottom: 30px !important;
           }
           @page {
             size: A4 portrait;
@@ -115,139 +123,138 @@ export function WorksheetPreviewComponent({
         }
       `}</style>
 
-      {/* Header controls (not printed) */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-white/5 pb-4 no-print">
-        <div>
-          <h3 className="font-extrabold text-xl text-slate-900 dark:text-white flex items-center gap-2">
-            <Printer className="w-5 h-5 text-indigo-500" />
-            Xem trước Worksheet ({kanjiList.length} chữ)
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Bản xem trước hiển thị chính xác bố cục bản in / PDF.
-          </p>
-        </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          {kanjiList.length > 0 && (
-            <>
-              <button
-                onClick={onClearAll}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 border border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 text-xs font-bold rounded-xl transition"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Xóa hết
-              </button>
-              <button
-                onClick={handlePrint}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold rounded-xl transition"
-              >
-                <Printer className="w-3.5 h-3.5" /> In ngay
-              </button>
-              <button
-                onClick={onDownloadPDF}
-                disabled={isExporting}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-md shadow-indigo-500/10"
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Đang tải PDF...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-3.5 h-3.5" /> Tải file PDF
-                  </>
-                )}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Main Print / Preview Area */}
+      {/* Main A4 Print / Preview Canvas */}
       {kanjiList.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 no-print">
-          <p className="text-sm text-slate-500 dark:text-slate-400">Chưa có chữ Kanji nào được thêm vào Worksheet.</p>
+        <div className="text-center py-16 border border-dashed border-slate-250 dark:border-white/10 rounded-2xl bg-white dark:bg-slate-900 w-full max-w-[750px] mx-auto shadow-[0_8px_30px_rgb(0,0,0,0.02)] no-print">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Chưa có chữ Kanji nào được thêm vào Worksheet.</p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Chọn từ danh sách hoặc nhập nhanh bên trái để xem trước.</p>
         </div>
       ) : (
         <div 
           id="worksheet-print-area" 
-          className="border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 bg-white dark:bg-slate-950 max-h-[600px] overflow-y-auto shadow-inner space-y-8"
+          className="w-full max-w-[750px] mx-auto border border-slate-200/80 dark:border-white/10 rounded-[24px] p-6 sm:p-10 bg-white dark:bg-slate-900 shadow-[0_15px_50px_rgba(0,0,0,0.05)] dark:shadow-2xl space-y-6 text-[#111827] dark:text-slate-100 font-japanese"
         >
-          {/* Printable title */}
-          <div className="hidden @media-print:block text-center border-b-2 border-double border-slate-300 pb-2 mb-6">
-            <h1 className="text-2xl font-bold uppercase tracking-wider text-slate-800">Bảng Luyện Viết Kanji</h1>
-          </div>
-
-          {kanjiList.map((kanji) => (
-            <div 
-              key={kanji.char} 
-              className="print-row border-b border-slate-200 dark:border-white/10 last:border-b-0 pb-8 last:pb-0 pt-4 space-y-4 relative group"
-            >
-              {/* Individual delete button (hidden in print) */}
-              <button
-                onClick={() => onRemoveKanji(kanji.char)}
-                className="absolute right-0 top-0 p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition opacity-0 group-hover:opacity-100 no-print"
-                title="Xóa chữ này"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {/* Line 1: [Han Viet Reading] [Stroke order images] centered vertically */}
-              <div className="flex items-center gap-6">
-                <span className="text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
-                  {kanji.sinoVietnamese}
-                </span>
-                
-                {/* Stroke Order Sequence */}
-                <div className="flex gap-2 items-center flex-wrap">
-                  {strokeImages[kanji.char]?.map((imgSrc, sIdx) => (
-                    <img 
-                      key={sIdx}
-                      src={imgSrc} 
-                      alt={`Nét ${sIdx + 1}`}
-                      className="w-10 h-10 rounded border border-slate-200 dark:border-slate-700 bg-white"
-                    />
-                  ))}
-                </div>
+          {/* Sheet Header Area */}
+          <div className="mb-6">
+            <div className="flex justify-between items-end pb-3">
+              <div>
+                <h1 className="text-2xl font-black tracking-widest text-[#0F172A] dark:text-white">LUYỆN VIẾT KANJI</h1>
+                <span className="text-[10px] text-slate-400 font-semibold">midori-japanese.pages.dev</span>
               </div>
-
-              {/* Line 2: Meaning */}
-              <div className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                {kanji.meaning}
-              </div>
-
-              {/* Line 3: Practice grid (10x2 table) */}
-              <div className="pt-2 w-full max-w-[800px]">
-                <table className="w-full border-collapse border-2 border-[#9CA3AF] bg-white table-fixed">
-                  <tbody>
-                    <tr className="border-b border-[#d9d9d9]">
-                      {Array.from({ length: 10 }).map((_, cIdx) => (
-                        <td key={cIdx} className="relative aspect-square border-r border-[#d9d9d9] last:border-r-0 p-0 text-center align-middle">
-                          {/* guidelines */}
-                          <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-[#e2e8f0] -translate-y-1/2 z-10 pointer-events-none" />
-                          <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#e2e8f0] -translate-x-1/2 z-10 pointer-events-none" />
-                          <span className="relative z-20 text-[2.5rem] font-normal text-[#D9D9D9] leading-none select-none" style={{ fontFamily: "var(--font-japanese), 'Arial', sans-serif" }}>
-                            {kanji.char}
-                          </span>
-                        </td>
-                      ))}
-                    </tr>
-                    <tr>
-                      {Array.from({ length: 10 }).map((_, cIdx) => (
-                        <td key={cIdx} className="relative aspect-square border-r border-[#d9d9d9] last:border-r-0 p-0 text-center align-middle">
-                          {/* guidelines */}
-                          <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-[#e2e8f0] -translate-y-1/2 z-10 pointer-events-none" />
-                          <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-[#e2e8f0] -translate-x-1/2 z-10 pointer-events-none" />
-                          {/* Empty spacer to force cell height and ratio */}
-                          <div className="w-full aspect-square" />
-                        </td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="flex gap-6 text-xs font-semibold text-slate-500 dark:text-slate-400 pb-1">
+                <span>Họ tên: _________________</span>
+                <span>Ngày: ___/___/______</span>
               </div>
             </div>
-          ))}
+            <div className="border-t border-slate-200 dark:border-white/10 w-full" />
+          </div>
+
+          {/* Kanji Rows */}
+          <div className="space-y-6">
+            {kanjiList.map((kanji) => (
+              <div 
+                key={kanji.char} 
+                className="print-row border border-slate-150/80 dark:border-white/5 p-5 rounded-2xl bg-slate-50/20 dark:bg-slate-900/10 space-y-4 relative group"
+              >
+                {/* Individual delete button (hidden in print) */}
+                <button
+                  onClick={() => onRemoveKanji(kanji.char)}
+                  className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition opacity-0 group-hover:opacity-100 no-print cursor-pointer"
+                  title="Xóa chữ này"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-3">
+                  <div className="space-y-1 max-w-[420px]">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-extrabold text-[#111827] dark:text-slate-100 uppercase tracking-widest leading-none">
+                        {kanji.sinoVietnamese}
+                      </span>
+                      <span className="text-xs text-[#475569] dark:text-slate-500 font-medium leading-none">
+                        — {kanji.meaning}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#475569] dark:text-slate-400 leading-relaxed font-medium">
+                      <span className="font-bold text-[#111827] dark:text-slate-350">Mẹo nhớ:</span> {kanji.mnemonic || "Hình dáng giống như một mái nhà che chở cho những người ở bên trong hiện tại."}
+                    </p>
+                  </div>
+                  
+                  {/* Stroke Order Sequence */}
+                  <div className="flex gap-1.5 items-center flex-wrap">
+                    {strokeImages[kanji.char]?.map((imgSrc, sIdx) => (
+                      <div key={sIdx} className="w-8 h-8 rounded border border-slate-200 dark:border-white/10 bg-white flex items-center justify-center shrink-0 shadow-sm">
+                        <img 
+                          src={imgSrc} 
+                          alt={`Nét ${sIdx + 1}`}
+                          className="w-7 h-7 object-contain"
+                        />
+                      </div>
+                    ))}
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 rounded shrink-0 ml-1">
+                      ({kanji.strokes} nét)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Practice grid (10x2 table) */}
+                <div className="w-full">
+                  <table className="w-full border-collapse border border-slate-200 dark:border-slate-800 bg-white table-fixed">
+                    <tbody>
+                      <tr className="border-b border-slate-200 dark:border-slate-850">
+                        {Array.from({ length: 10 }).map((_, cIdx) => {
+                          const isFirst = cIdx === 0;
+                          const isTracing = cIdx > 0 && cIdx <= 3;
+                          return (
+                            <td 
+                              key={cIdx} 
+                              className={cn(
+                                "relative aspect-square p-0 text-center align-middle border-r border-slate-200 dark:border-slate-800 last:border-r-0",
+                                isFirst ? "border-2 border-slate-950 dark:border-white z-20" : ""
+                              )}
+                              style={{ width: "10%" }}
+                            >
+                              {/* Inner cross guidelines */}
+                              <div className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-slate-850/60 top-1/2 -translate-y-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
+                              <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-slate-200 dark:border-slate-850/60 -translate-x-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
+                              
+                              {isFirst && (
+                                <span className="relative z-20 text-[2rem] sm:text-[2.2rem] font-bold text-[#111827] dark:text-white leading-none select-none" style={{ fontFamily: "var(--font-japanese), 'Arial', sans-serif" }}>
+                                  {kanji.char}
+                                </span>
+                              )}
+                              {!isFirst && (
+                                <div className="w-full aspect-square" />
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr>
+                        {Array.from({ length: 10 }).map((_, cIdx) => (
+                          <td 
+                            key={cIdx} 
+                            className="relative aspect-square border-r border-slate-200 dark:border-slate-800 last:border-r-0 p-0 text-center align-middle"
+                            style={{ width: "10%" }}
+                          >
+                            {/* Inner cross guidelines */}
+                            <div className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-slate-850/60 top-1/2 -translate-y-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
+                            <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-slate-200 dark:border-slate-850/60 -translate-x-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
+                            <div className="w-full aspect-square" />
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="text-center text-[10px] text-slate-400 border-t border-slate-100 dark:border-white/5 pt-3 mt-6">
+            Bản quyền thuộc về Midori Japanese Platform © 2026. Tất cả các quyền được bảo lưu.
+          </div>
         </div>
       )}
     </div>
