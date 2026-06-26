@@ -26,12 +26,7 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { cn } from "@/lib/utils";
-import {
-  getLessonById,
-  LESSONS,
-  speakJapanese,
-  type Lesson,
-} from "@/data/japanese-learning-data";
+import { getLessonById, LESSONS, speakJapanese, type Lesson } from "@/data/japanese-learning-data";
 
 // Progress storage
 const PROGRESS_STORAGE_KEY = "japanese-learning-progress";
@@ -132,7 +127,10 @@ function LessonDetailPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-slate-500 dark:text-indigo-200/60">Lesson not found</p>
-          <Link to="/student/learning/japanese" className="text-primary hover:underline mt-2 inline-block">
+          <Link
+            to="/student/learning/japanese"
+            className="text-primary hover:underline mt-2 inline-block"
+          >
             Back to Learning
           </Link>
         </div>
@@ -159,7 +157,11 @@ function LessonDetailPage() {
       setTypedAnswer("");
     } else {
       // Finish quiz
-      const finalScore = Math.round(((quizScore + (quizAnswer === quizQuestions[quizIdx].correctAnswer ? 1 : 0)) / quizQuestions.length) * 100);
+      const finalScore = Math.round(
+        ((quizScore + (quizAnswer === quizQuestions[quizIdx].correctAnswer ? 1 : 0)) /
+          quizQuestions.length) *
+          100,
+      );
       const newProgress = {
         ...progress,
         [lessonId]: {
@@ -342,8 +344,9 @@ function LessonDetailPage() {
         {/* Card Progress */}
         <div className="flex justify-between text-sm mb-2">
           <span className="text-slate-600 dark:text-indigo-200/80">
-            Card <span className="font-bold text-slate-800 dark:text-white">{currentCharIdx + 1}</span> of{" "}
-            <span className="text-slate-500">{lesson.characters.length}</span>
+            Card{" "}
+            <span className="font-bold text-slate-800 dark:text-white">{currentCharIdx + 1}</span>{" "}
+            of <span className="text-slate-500">{lesson.characters.length}</span>
           </span>
           <span className="text-slate-600 dark:text-indigo-200/80">
             {Math.round(((currentCharIdx + 1) / lesson.characters.length) * 100)}%
@@ -386,9 +389,7 @@ function LessonDetailPage() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-4">
                 Romaji
               </span>
-              <div className="text-5xl font-black text-white">
-                {currentChar.romaji}
-              </div>
+              <div className="text-5xl font-black text-white">{currentChar.romaji}</div>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -465,8 +466,8 @@ function LessonDetailPage() {
         {/* Progress */}
         <div className="flex justify-between text-sm mb-2">
           <span className="text-slate-600 dark:text-indigo-200/80">
-            Question <span className="font-bold text-slate-800 dark:text-white">{quizIdx + 1}</span> of{" "}
-            <span className="text-slate-500">{quizQuestions.length}</span>
+            Question <span className="font-bold text-slate-800 dark:text-white">{quizIdx + 1}</span>{" "}
+            of <span className="text-slate-500">{quizQuestions.length}</span>
           </span>
           <span className="text-slate-800 dark:text-white font-bold">Score: {quizScore}</span>
         </div>
@@ -511,7 +512,8 @@ function LessonDetailPage() {
             const showCorrect = quizAnswer !== null && isCorrect;
             const showIncorrect = quizAnswer !== null && isSelected && !isCorrect;
 
-            let btnStyle = "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white hover:bg-white/90";
+            let btnStyle =
+              "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white hover:bg-white/90";
             if (showCorrect) {
               btnStyle = "bg-green-500/20 border-green-500/40 text-green-600 dark:text-green-300";
             } else if (showIncorrect) {
@@ -527,7 +529,7 @@ function LessonDetailPage() {
                 disabled={quizAnswer !== null}
                 className={cn(
                   "py-4 px-4 rounded-2xl border font-bold text-center transition-all text-sm",
-                  btnStyle
+                  btnStyle,
                 )}
               >
                 {option}
@@ -540,10 +542,7 @@ function LessonDetailPage() {
 
         {/* Next Button */}
         {quizAnswer && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <button
               onClick={handleNextQuestion}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold hover:opacity-90 transition"
@@ -594,10 +593,14 @@ function LessonDetailPage() {
         animate={{ opacity: 1, scale: 1 }}
         className="text-center space-y-6"
       >
-        <div className={cn(
-          "w-24 h-24 rounded-full mx-auto flex items-center justify-center shadow-2xl",
-          passed ? "bg-gradient-to-br from-green-400 to-emerald-500" : "bg-gradient-to-br from-amber-400 to-orange-500"
-        )}>
+        <div
+          className={cn(
+            "w-24 h-24 rounded-full mx-auto flex items-center justify-center shadow-2xl",
+            passed
+              ? "bg-gradient-to-br from-green-400 to-emerald-500"
+              : "bg-gradient-to-br from-amber-400 to-orange-500",
+          )}
+        >
           <Trophy className="w-12 h-12 text-white" />
         </div>
 
@@ -619,7 +622,9 @@ function LessonDetailPage() {
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                passed ? "bg-gradient-to-r from-green-400 to-emerald-500" : "bg-gradient-to-r from-amber-400 to-orange-500"
+                passed
+                  ? "bg-gradient-to-r from-green-400 to-emerald-500"
+                  : "bg-gradient-to-r from-amber-400 to-orange-500",
               )}
               style={{ width: `${finalScore}%` }}
             />
@@ -664,7 +669,7 @@ function LessonDetailPage() {
                 "flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm transition",
                 showGuide
                   ? "bg-primary/10 text-primary"
-                  : "bg-slate-100/60 dark:bg-white/10 text-slate-600 dark:text-indigo-200/80"
+                  : "bg-slate-100/60 dark:bg-white/10 text-slate-600 dark:text-indigo-200/80",
               )}
             >
               {showGuide ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -756,8 +761,12 @@ function LessonDetailPage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </Link>
               <div>
-                <h1 className="text-xl font-black text-slate-800 dark:text-white">{lesson.title}</h1>
-                <p className="text-xs text-slate-500 dark:text-indigo-200/60">{lesson.characters.length} characters</p>
+                <h1 className="text-xl font-black text-slate-800 dark:text-white">
+                  {lesson.title}
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-indigo-200/60">
+                  {lesson.characters.length} characters
+                </p>
               </div>
             </div>
           </div>
@@ -781,7 +790,7 @@ function LessonDetailPage() {
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   viewMode === mode.id
                     ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg"
-                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90"
+                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90",
                 )}
               >
                 <mode.icon className="w-4 h-4" />
@@ -849,28 +858,34 @@ function DrawingCanvas({ character }: { character: string }) {
     };
   }, []);
 
-  const startDrawing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    const coords = getCoordinates(e);
-    setIsDrawing(true);
-    setCurrentPath([coords]);
-  }, [getCoordinates]);
+  const startDrawing = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      const coords = getCoordinates(e);
+      setIsDrawing(true);
+      setCurrentPath([coords]);
+    },
+    [getCoordinates],
+  );
 
-  const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
+  const draw = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      if (!isDrawing) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!ctx || !canvas) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!ctx || !canvas) return;
 
-    const coords = getCoordinates(e);
+      const coords = getCoordinates(e);
 
-    ctx.beginPath();
-    ctx.moveTo(currentPath[currentPath.length - 1].x, currentPath[currentPath.length - 1].y);
-    ctx.lineTo(coords.x, coords.y);
-    ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(currentPath[currentPath.length - 1].x, currentPath[currentPath.length - 1].y);
+      ctx.lineTo(coords.x, coords.y);
+      ctx.stroke();
 
-    setCurrentPath((prev) => [...prev, coords]);
-  }, [isDrawing, currentPath, getCoordinates]);
+      setCurrentPath((prev) => [...prev, coords]);
+    },
+    [isDrawing, currentPath, getCoordinates],
+  );
 
   const stopDrawing = useCallback(() => {
     if (isDrawing && currentPath.length > 0) {

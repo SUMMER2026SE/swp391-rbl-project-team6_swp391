@@ -3,15 +3,20 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  GraduationCap, CheckCircle2, Bookmark, BookmarkCheck,
-  ChevronLeft, BookOpen, ArrowRight, List, Target,
-  BookMarked, AlertCircle
+  GraduationCap,
+  CheckCircle2,
+  Bookmark,
+  BookmarkCheck,
+  ChevronLeft,
+  BookOpen,
+  ArrowRight,
+  List,
+  Target,
+  BookMarked,
+  AlertCircle,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import {
-  studentGrammarApi,
-  type GrammarResponse,
-} from "@/lib/api/studentGrammar";
+import { studentGrammarApi, type GrammarResponse } from "@/lib/api/studentGrammar";
 import { studentProgressApi } from "@/lib/api/studentProgress";
 
 const levelColors: Record<string, string> = {
@@ -51,7 +56,7 @@ function PageSkeleton() {
       </div>
       <div className="px-6 pb-8">
         <div className="space-y-3">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <div key={i} className="h-24 bg-slate-100 dark:bg-slate-700 rounded-2xl" />
           ))}
         </div>
@@ -62,7 +67,9 @@ function PageSkeleton() {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-export const Route = createFileRoute("/student/grammar/$grammarId")({ component: StructureListPage });
+export const Route = createFileRoute("/student/grammar/$grammarId")({
+  component: StructureListPage,
+});
 
 function StructureListPage() {
   const { grammarId } = Route.useParams();
@@ -70,7 +77,12 @@ function StructureListPage() {
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
 
   // ── API Query ─────────────────────────────────────────────────────────────
-  const { data: grammar, isLoading, isError, error } = useQuery({
+  const {
+    data: grammar,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["student-grammar", grammarId],
     queryFn: () => studentGrammarApi.getGrammarById(grammarId),
     enabled: !!grammarId,
@@ -90,7 +102,7 @@ function StructureListPage() {
     if (!grammar) return;
     const completedSet = new Set<string>();
     const bookmarkedSet = new Set<string>();
-    progressList.forEach(p => {
+    progressList.forEach((p) => {
       if (p.contentType === "GRAMMAR" && p.contentId === grammar.id) {
         if (p.completed) completedSet.add(p.contentId);
         if (p.favorite) bookmarkedSet.add(p.contentId);
@@ -98,7 +110,7 @@ function StructureListPage() {
     });
     setCompleted(completedSet);
     setBookmarked(bookmarkedSet);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progressList, grammar?.id]);
 
   const errorMessage =
@@ -110,20 +122,24 @@ function StructureListPage() {
     translation: `Translation ${i + 1}`,
   }));
 
-  const structureItems = grammar ? [{
-    id: grammar.id,
-    title: "Grammar Detail",
-    description: grammar.meaning,
-    formation: grammar.structure ?? grammar.pattern ?? "—",
-    usage: grammar.usage ?? "",
-    examplesCount: examples.length,
-    examples,
-  }] : [];
+  const structureItems = grammar
+    ? [
+        {
+          id: grammar.id,
+          title: "Grammar Detail",
+          description: grammar.meaning,
+          formation: grammar.structure ?? grammar.pattern ?? "—",
+          usage: grammar.usage ?? "",
+          examplesCount: examples.length,
+          examples,
+        },
+      ]
+    : [];
 
   const toggleComplete = async (id: string) => {
     const isCurrentlyCompleted = completed.has(id);
     // Optimistic update
-    setCompleted(prev => {
+    setCompleted((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -138,7 +154,7 @@ function StructureListPage() {
       await refetchProgress();
     } catch {
       // Revert on error
-      setCompleted(prev => {
+      setCompleted((prev) => {
         const next = new Set(prev);
         if (isCurrentlyCompleted) next.add(id);
         else next.delete(id);
@@ -150,7 +166,7 @@ function StructureListPage() {
   const toggleBookmark = async (id: string) => {
     const isCurrentlyBookmarked = bookmarked.has(id);
     // Optimistic update
-    setBookmarked(prev => {
+    setBookmarked((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -161,7 +177,7 @@ function StructureListPage() {
       await refetchProgress();
     } catch {
       // Revert on error
-      setBookmarked(prev => {
+      setBookmarked((prev) => {
         const next = new Set(prev);
         if (isCurrentlyBookmarked) next.add(id);
         else next.delete(id);
@@ -170,10 +186,9 @@ function StructureListPage() {
     }
   };
 
-  const completedCount = structureItems.filter(s => completed.has(s.id)).length;
-  const progressPct = structureItems.length > 0
-    ? Math.round((completedCount / structureItems.length) * 100)
-    : 0;
+  const completedCount = structureItems.filter((s) => completed.has(s.id)).length;
+  const progressPct =
+    structureItems.length > 0 ? Math.round((completedCount / structureItems.length) * 100) : 0;
 
   return (
     <div>
@@ -229,7 +244,9 @@ function StructureListPage() {
                   Grammar
                 </Link>
                 <span className="text-muted-foreground">/</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${levelColors[grammar.level]}`}>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${levelColors[grammar.level]}`}
+                >
                   {grammar.level}
                 </span>
                 <span className="text-muted-foreground">/</span>
@@ -239,14 +256,18 @@ function StructureListPage() {
               {/* Grammar Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${levelGradients[grammar.level]} flex-shrink-0`}>
+                  <div
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${levelGradients[grammar.level]} flex-shrink-0`}
+                  >
                     <GraduationCap className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <h1 className="text-2xl font-display font-black">{grammar.title}</h1>
                     <p className="text-sm text-muted-foreground mt-0.5">{grammar.meaning}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${levelColors[grammar.level]}`}>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${levelColors[grammar.level]}`}
+                      >
                         JLPT {grammar.level}
                       </span>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -283,7 +304,9 @@ function StructureListPage() {
               <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
                 <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                   <span>Learning Progress</span>
-                  <span className="font-semibold text-foreground">{completedCount} / {structureItems.length} completed</span>
+                  <span className="font-semibold text-foreground">
+                    {completedCount} / {structureItems.length} completed
+                  </span>
                 </div>
                 <div className="h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <motion.div
@@ -300,7 +323,9 @@ function StructureListPage() {
               {/* Formation */}
               {(grammar.structure || grammar.pattern) && (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-2">Formation / Structure</div>
+                  <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-2">
+                    Formation / Structure
+                  </div>
                   <div className="font-display font-black text-purple-700 dark:text-purple-300 text-lg">
                     {grammar.structure ?? grammar.pattern}
                   </div>
@@ -310,8 +335,12 @@ function StructureListPage() {
               {/* Usage */}
               {grammar.usage && (
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Usage / Explanation</div>
-                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{grammar.usage}</p>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                    Usage / Explanation
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                    {grammar.usage}
+                  </p>
                 </div>
               )}
 
@@ -347,7 +376,9 @@ function StructureListPage() {
                                 >
                                   {ex.japanese}
                                 </div>
-                                <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{ex.translation}</div>
+                                <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                  {ex.translation}
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
@@ -360,7 +391,9 @@ function StructureListPage() {
                                     : "bg-slate-50 dark:bg-slate-700/50 text-slate-300 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-950/30"
                                 }`}
                               >
-                                <CheckCircle2 className={`w-4 h-4 ${isComp ? "fill-green-400" : ""}`} />
+                                <CheckCircle2
+                                  className={`w-4 h-4 ${isComp ? "fill-green-400" : ""}`}
+                                />
                               </button>
                               <button
                                 onClick={() => toggleBookmark(itemId)}
@@ -371,9 +404,11 @@ function StructureListPage() {
                                     : "bg-slate-50 dark:bg-slate-700/50 text-slate-300 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-950/30"
                                 }`}
                               >
-                                {isBook
-                                  ? <BookmarkCheck className="w-4 h-4 fill-yellow-400" />
-                                  : <Bookmark className="w-4 h-4" />}
+                                {isBook ? (
+                                  <BookmarkCheck className="w-4 h-4 fill-yellow-400" />
+                                ) : (
+                                  <Bookmark className="w-4 h-4" />
+                                )}
                               </button>
                             </div>
                           </div>

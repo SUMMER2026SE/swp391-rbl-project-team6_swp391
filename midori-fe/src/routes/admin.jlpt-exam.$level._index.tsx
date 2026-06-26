@@ -2,8 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  FileText, Plus, Pencil, Archive, RotateCcw,
-  Search, ArrowLeft, Loader2, CheckCircle, Trash2, X
+  FileText,
+  Plus,
+  Pencil,
+  Archive,
+  RotateCcw,
+  Search,
+  ArrowLeft,
+  Loader2,
+  CheckCircle,
+  Trash2,
+  X,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -26,9 +35,21 @@ type LevelUpper = "N5" | "N4" | "N3" | "N2" | "N1";
 
 function StatusBadge({ status }: { status: ExamStatus }) {
   const configs: Record<ExamStatus, { label: string; color: string; bg: string }> = {
-    Active: { label: "Active", color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
-    Draft: { label: "Draft", color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
-    Archived: { label: "Archived", color: "text-[var(--status-suspended)]", bg: "bg-[var(--status-suspended)]" },
+    Active: {
+      label: "Active",
+      color: "text-[var(--status-active)]",
+      bg: "bg-[var(--status-active)]",
+    },
+    Draft: {
+      label: "Draft",
+      color: "text-[var(--status-pending)]",
+      bg: "bg-[var(--status-pending)]",
+    },
+    Archived: {
+      label: "Archived",
+      color: "text-[var(--status-suspended)]",
+      bg: "bg-[var(--status-suspended)]",
+    },
   };
   const cfg = configs[status] || configs["Active"];
   return (
@@ -45,7 +66,7 @@ export const Route = createFileRoute("/admin/jlpt-exam/$level/_index")({
 
 function ExamListPage() {
   const { level } = Route.useParams();
-  const upperLevel = (level.toUpperCase() as LevelUpper);
+  const upperLevel = level.toUpperCase() as LevelUpper;
 
   const [exams, setExams] = useState<JLPTExam[]>(() => getExamsByLevel(upperLevel as JLPTLevel));
   const [search, setSearch] = useState("");
@@ -53,29 +74,29 @@ function ExamListPage() {
   const [restoreExam, setRestoreExam] = useState<JLPTExam | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const filteredExams = exams.filter(exam =>
-    !search || exam.name.toLowerCase().includes(search.toLowerCase())
+  const filteredExams = exams.filter(
+    (exam) => !search || exam.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleArchive = (exam: JLPTExam) => {
-    setExams(prev => prev.map(e =>
-      e.id === exam.id ? { ...e, status: "Archived" as ExamStatus } : e
-    ));
+    setExams((prev) =>
+      prev.map((e) => (e.id === exam.id ? { ...e, status: "Archived" as ExamStatus } : e)),
+    );
     setArchiveExam(null);
   };
 
   const handleRestore = (exam: JLPTExam) => {
-    setExams(prev => prev.map(e =>
-      e.id === exam.id ? { ...e, status: "Active" as ExamStatus } : e
-    ));
+    setExams((prev) =>
+      prev.map((e) => (e.id === exam.id ? { ...e, status: "Active" as ExamStatus } : e)),
+    );
     setRestoreExam(null);
   };
 
   return (
     <div className="space-y-5">
       {/* Back Button */}
-      <Link 
-        to="/admin/jlpt-exam" 
+      <Link
+        to="/admin/jlpt-exam"
         className="inline-flex items-center gap-2 text-sm text-muted-col hover:text-primary-col transition"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -86,7 +107,9 @@ function ExamListPage() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-display font-black text-primary-col">{upperLevel} JLPT Exam</h1>
+            <h1 className="text-2xl font-display font-black text-primary-col">
+              {upperLevel} JLPT Exam
+            </h1>
             <p className="text-sm text-secondary-col mt-0.5">{exams.length} exams</p>
           </div>
           <Link
@@ -107,7 +130,9 @@ function ExamListPage() {
             <FileText className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Exams</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Total Exams
+            </p>
             <p className="font-display font-black text-lg text-primary-col">{exams.length}</p>
           </div>
         </div>
@@ -117,7 +142,9 @@ function ExamListPage() {
           </div>
           <div>
             <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Active</p>
-            <p className="font-display font-black text-lg text-primary-col">{exams.filter(e => e.status === "Active").length}</p>
+            <p className="font-display font-black text-lg text-primary-col">
+              {exams.filter((e) => e.status === "Active").length}
+            </p>
           </div>
         </div>
         <div className="card-base p-4 flex items-center gap-3">
@@ -126,7 +153,9 @@ function ExamListPage() {
           </div>
           <div>
             <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Draft</p>
-            <p className="font-display font-black text-lg text-primary-col">{exams.filter(e => e.status === "Draft").length}</p>
+            <p className="font-display font-black text-lg text-primary-col">
+              {exams.filter((e) => e.status === "Draft").length}
+            </p>
           </div>
         </div>
         <div className="card-base p-4 flex items-center gap-3">
@@ -134,8 +163,12 @@ function ExamListPage() {
             <Archive className="w-5 h-5 text-[var(--status-suspended)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Archived</p>
-            <p className="font-display font-black text-lg text-primary-col">{exams.filter(e => e.status === "Archived").length}</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Archived
+            </p>
+            <p className="font-display font-black text-lg text-primary-col">
+              {exams.filter((e) => e.status === "Archived").length}
+            </p>
           </div>
         </div>
       </div>
@@ -176,10 +209,18 @@ function ExamListPage() {
         <div className="card-base overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">Exam</div>
-            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Status</div>
-            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Questions</div>
-            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">Actions</div>
+            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Exam
+            </div>
+            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Status
+            </div>
+            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Questions
+            </div>
+            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Actions
+            </div>
           </div>
           {/* Table Rows */}
           <div className="divide-y divide-[var(--border)]">
@@ -249,7 +290,8 @@ function ExamListPage() {
             </div>
             <AlertDialogTitle className="text-center">Archive Exam</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Are you sure you want to archive "{archiveExam?.name}"? This exam will be hidden but can be restored later.
+              Are you sure you want to archive "{archiveExam?.name}"? This exam will be hidden but
+              can be restored later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -273,7 +315,8 @@ function ExamListPage() {
             </div>
             <AlertDialogTitle className="text-center">Restore Exam</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Are you sure you want to restore "{restoreExam?.name}"? This exam will be available for students again.
+              Are you sure you want to restore "{restoreExam?.name}"? This exam will be available
+              for students again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

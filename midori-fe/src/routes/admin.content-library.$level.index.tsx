@@ -64,9 +64,7 @@ function ContentLibraryLevelPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-display font-black text-primary-col">
-            Content Library
-          </h1>
+          <h1 className="text-2xl font-display font-black text-primary-col">Content Library</h1>
           <p className="text-sm text-secondary-col mt-0.5">
             Manage JLPT learning materials and resources
           </p>
@@ -90,13 +88,13 @@ function ContentLibraryLevelPage() {
               transition={{ delay: i * 0.05 }}
               className={`glass-card p-5 flex flex-col items-center justify-center gap-3 cursor-pointer group transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${skill.hoverBg}`}
             >
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${skill.bg} border ${skill.border} group-hover:scale-110 transition-transform`}>
+              <div
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center ${skill.bg} border ${skill.border} group-hover:scale-110 transition-transform`}
+              >
                 <skill.icon className={`w-6 h-6 ${skill.color}`} />
               </div>
               <div className="text-center">
-                <span className={`font-semibold text-sm ${skill.color}`}>
-                  {skill.label}
-                </span>
+                <span className={`font-semibold text-sm ${skill.color}`}>{skill.label}</span>
               </div>
             </motion.div>
           </Link>

@@ -21,7 +21,7 @@ import { katakanaCombination } from "./katakanaCombination";
 // Generate recognition quiz questions (Character -> Romaji)
 export function generateRecognitionQuestions(
   characters: Array<{ id: string; character: string; romaji: string }>,
-  lessonId: string
+  lessonId: string,
 ): QuizQuestion[] {
   return characters.map((char, idx) => {
     const otherChars = characters.filter((c) => c.id !== char.id);
@@ -29,7 +29,7 @@ export function generateRecognitionQuestions(
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
       .map((c) => c.romaji);
-    
+
     return {
       id: `${lessonId}-recognition-${idx}`,
       type: "recognition" as const,
@@ -45,7 +45,7 @@ export function generateRecognitionQuestions(
 // Generate romaji to character questions (Romaji -> Character)
 export function generateRomajiToCharQuestions(
   characters: Array<{ id: string; character: string; romaji: string }>,
-  lessonId: string
+  lessonId: string,
 ): QuizQuestion[] {
   return characters.map((char, idx) => {
     const otherChars = characters.filter((c) => c.id !== char.id);
@@ -53,7 +53,7 @@ export function generateRomajiToCharQuestions(
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
       .map((c) => c.character);
-    
+
     return {
       id: `${lessonId}-romaji-${idx}`,
       type: "romaji_to_char" as const,
@@ -95,18 +95,20 @@ export const quizzes = {
 };
 
 // Get quiz by lesson ID
-export function getQuizByLessonId(lessonId: string): { recognition: QuizQuestion[]; romajiToChar: QuizQuestion[] } | null {
+export function getQuizByLessonId(
+  lessonId: string,
+): { recognition: QuizQuestion[]; romajiToChar: QuizQuestion[] } | null {
   return quizzes[lessonId as keyof typeof quizzes] || null;
 }
 
 // Get random quiz questions from all lessons
 export function getMixedQuiz(count: number = 10): QuizQuestion[] {
   const allQuestions: QuizQuestion[] = [];
-  
+
   Object.values(quizzes).forEach((quiz) => {
     allQuestions.push(...quiz.recognition);
   });
-  
+
   return allQuestions.sort(() => Math.random() - 0.5).slice(0, count);
 }
 

@@ -4,7 +4,15 @@
 // Can be easily replaced with real API calls in the future
 
 import { useState, useCallback } from "react";
-import type { JLPTLevel, QuestionType, Difficulty, Lesson, Question, ListeningQuestion, StandardQuestion } from "./questionBank.types";
+import type {
+  JLPTLevel,
+  QuestionType,
+  Difficulty,
+  Lesson,
+  Question,
+  ListeningQuestion,
+  StandardQuestion,
+} from "./questionBank.types";
 import { baseMockData, sampleQuestions } from "../mocks/questionBankMock";
 import { formatDuration } from "./questionBank.types";
 
@@ -15,8 +23,8 @@ let questionsData: Question[] = [];
 // Initialize with mock data
 function initializeData() {
   const allLevels: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
-  allLevels.forEach(level => {
-    lessonsData[level] = baseMockData[level].map(l => ({
+  allLevels.forEach((level) => {
+    lessonsData[level] = baseMockData[level].map((l) => ({
       id: l.id,
       lessonNumber: l.lessonNumber,
       lessonName: l.lessonName,
@@ -24,8 +32,8 @@ function initializeData() {
       createdAt: l.createdAt,
     }));
   });
-  
-  questionsData = sampleQuestions.map(q => {
+
+  questionsData = sampleQuestions.map((q) => {
     // Handle listening questions with audio
     if (q.type === "Listening") {
       return {
@@ -40,16 +48,17 @@ function initializeData() {
     // Standard questions
     return q as StandardQuestion;
   });
-  
+
   updateQuestionCounts();
 }
 
 function updateQuestionCounts() {
   const allLevels: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
-  allLevels.forEach(level => {
-    lessonsData[level] = lessonsData[level].map(lesson => ({
+  allLevels.forEach((level) => {
+    lessonsData[level] = lessonsData[level].map((lesson) => ({
       ...lesson,
-      questionCount: questionsData.filter(q => q.level === level && q.lesson === lesson.id).length,
+      questionCount: questionsData.filter((q) => q.level === level && q.lesson === lesson.id)
+        .length,
     }));
   });
 }
@@ -68,32 +77,32 @@ export const questionBankService = {
   getLessons(level: JLPTLevel): Lesson[] {
     return lessonsData[level] || [];
   },
-  
+
   getLesson(level: JLPTLevel, lessonId: number): Lesson | undefined {
-    return lessonsData[level]?.find(l => l.id === lessonId);
+    return lessonsData[level]?.find((l) => l.id === lessonId);
   },
-  
+
   getQuestions(level: JLPTLevel, lessonId: number): Question[] {
-    return questionsData.filter(q => q.level === level && q.lesson === lessonId);
+    return questionsData.filter((q) => q.level === level && q.lesson === lessonId);
   },
-  
+
   getAllQuestions(level: JLPTLevel): Question[] {
-    return questionsData.filter(q => q.level === level);
+    return questionsData.filter((q) => q.level === level);
   },
-  
+
   getLevelStats(level: JLPTLevel) {
     const lessons = lessonsData[level] || [];
-    const questions = questionsData.filter(q => q.level === level);
+    const questions = questionsData.filter((q) => q.level === level);
     return {
       totalLessons: lessons.length,
       totalQuestions: questions.length,
-      activeLessons: lessons.filter(l => l.questionCount > 0).length,
+      activeLessons: lessons.filter((l) => l.questionCount > 0).length,
     };
   },
-  
+
   createLesson(level: JLPTLevel, lessonName: string, lessonNumber?: number): Lesson {
     const lessons = lessonsData[level] || [];
-    const maxId = lessons.length > 0 ? Math.max(...lessons.map(l => l.id)) : 0;
+    const maxId = lessons.length > 0 ? Math.max(...lessons.map((l) => l.id)) : 0;
     const newLesson: Lesson = {
       id: maxId + 1,
       lessonNumber: lessonNumber || maxId + 1,
@@ -104,37 +113,41 @@ export const questionBankService = {
     lessonsData[level] = [...lessons, newLesson];
     return newLesson;
   },
-  
+
   updateLesson(level: JLPTLevel, lessonId: number, lessonName: string): Lesson | undefined {
     const lessons = lessonsData[level] || [];
-    const index = lessons.findIndex(l => l.id === lessonId);
+    const index = lessons.findIndex((l) => l.id === lessonId);
     if (index === -1) return undefined;
-    
+
     lessons[index] = { ...lessons[index], lessonName };
     lessonsData[level] = [...lessons];
     return lessons[index];
   },
-  
+
   deleteLesson(level: JLPTLevel, lessonId: number): boolean {
     const lessons = lessonsData[level] || [];
-    lessonsData[level] = lessons.filter(l => l.id !== lessonId);
-    questionsData = questionsData.filter(q => !(q.level === level && q.lesson === lessonId));
+    lessonsData[level] = lessons.filter((l) => l.id !== lessonId);
+    questionsData = questionsData.filter((q) => !(q.level === level && q.lesson === lessonId));
     return true;
   },
-  
-  createQuestion(level: JLPTLevel, lessonId: number, questionData: {
-    type: QuestionType;
-    difficulty: Difficulty;
-    questionText: string;
-    options: string[];
-    correctIndex: number;
-    explanation: string;
-    audio?: {
-      audioUrl: string;
-      audioFileName: string;
-      audioDuration: number;
-    };
-  }): Question {
+
+  createQuestion(
+    level: JLPTLevel,
+    lessonId: number,
+    questionData: {
+      type: QuestionType;
+      difficulty: Difficulty;
+      questionText: string;
+      options: string[];
+      correctIndex: number;
+      explanation: string;
+      audio?: {
+        audioUrl: string;
+        audioFileName: string;
+        audioDuration: number;
+      };
+    },
+  ): Question {
     const baseQuestion = {
       id: generateId(),
       level,
@@ -147,7 +160,7 @@ export const questionBankService = {
       explanation: questionData.explanation,
       createdAt: new Date().toISOString(),
     };
-    
+
     // Create the appropriate question type
     if (questionData.type === "Listening" && questionData.audio) {
       const newListeningQuestion: ListeningQuestion = {
@@ -166,30 +179,33 @@ export const questionBankService = {
       return newStandardQuestion;
     }
   },
-  
-  updateQuestion(questionId: string, updates: {
-    type?: QuestionType;
-    difficulty?: Difficulty;
-    questionText?: string;
-    options?: string[];
-    correctIndex?: number;
-    explanation?: string;
-    audio?: {
-      audioUrl: string;
-      audioFileName: string;
-      audioDuration: number;
-    };
-  }): Question | undefined {
-    const index = questionsData.findIndex(q => q.id === questionId);
+
+  updateQuestion(
+    questionId: string,
+    updates: {
+      type?: QuestionType;
+      difficulty?: Difficulty;
+      questionText?: string;
+      options?: string[];
+      correctIndex?: number;
+      explanation?: string;
+      audio?: {
+        audioUrl: string;
+        audioFileName: string;
+        audioDuration: number;
+      };
+    },
+  ): Question | undefined {
+    const index = questionsData.findIndex((q) => q.id === questionId);
     if (index === -1) return undefined;
-    
+
     const existingQuestion = questionsData[index];
-    
+
     // Handle type-specific updates
     if (existingQuestion.type === "Listening") {
       const updatedListening: ListeningQuestion = {
         ...existingQuestion,
-        type: updates.type as "Listening" || "Listening",
+        type: (updates.type as "Listening") || "Listening",
         difficulty: updates.difficulty || existingQuestion.difficulty,
         questionText: updates.questionText || existingQuestion.questionText,
         options: updates.options || existingQuestion.options,
@@ -202,7 +218,7 @@ export const questionBankService = {
     } else {
       const updatedStandard: StandardQuestion = {
         ...existingQuestion,
-        type: updates.type as "Vocabulary" | "Grammar" | "Reading" || existingQuestion.type,
+        type: (updates.type as "Vocabulary" | "Grammar" | "Reading") || existingQuestion.type,
         difficulty: updates.difficulty || existingQuestion.difficulty,
         questionText: updates.questionText || existingQuestion.questionText,
         options: updates.options || existingQuestion.options,
@@ -213,20 +229,20 @@ export const questionBankService = {
       return updatedStandard;
     }
   },
-  
+
   deleteQuestion(questionId: string): boolean {
-    const index = questionsData.findIndex(q => q.id === questionId);
+    const index = questionsData.findIndex((q) => q.id === questionId);
     if (index === -1) return false;
-    
-    questionsData = questionsData.filter(q => q.id !== questionId);
+
+    questionsData = questionsData.filter((q) => q.id !== questionId);
     updateQuestionCounts();
     return true;
   },
-  
+
   getQuestion(questionId: string): Question | undefined {
-    return questionsData.find(q => q.id === questionId);
+    return questionsData.find((q) => q.id === questionId);
   },
-  
+
   reset() {
     initializeData();
   },
@@ -253,66 +269,89 @@ export const questionBankService = {
 // React hook for using the service with state
 export function useQuestionBank(level: JLPTLevel) {
   const [lessons, setLessons] = useState<Lesson[]>(questionBankService.getLessons(level));
-  const [questions, setQuestions] = useState<Question[]>(questionBankService.getAllQuestions(level));
-  
+  const [questions, setQuestions] = useState<Question[]>(
+    questionBankService.getAllQuestions(level),
+  );
+
   const refresh = useCallback(() => {
     setLessons(questionBankService.getLessons(level));
     setQuestions(questionBankService.getAllQuestions(level));
   }, [level]);
-  
-  const getLessonStats = useCallback((lessonId: number) => {
-    const lessonQs = questions.filter(q => q.lesson === lessonId);
-    return {
-      total: lessonQs.length,
-      Vocabulary: lessonQs.filter(q => q.type === "Vocabulary").length,
-      Grammar: lessonQs.filter(q => q.type === "Grammar").length,
-      Reading: lessonQs.filter(q => q.type === "Reading").length,
-      Listening: lessonQs.filter(q => q.type === "Listening").length,
-    };
-  }, [questions]);
-  
-  const createLessonAction = useCallback((lessonName: string, lessonNumber?: number) => {
-    const newLesson = questionBankService.createLesson(level, lessonName, lessonNumber);
-    setLessons(questionBankService.getLessons(level));
-    return newLesson;
-  }, [level]);
-  
-  const updateLessonAction = useCallback((lessonId: number, lessonName: string) => {
-    const updated = questionBankService.updateLesson(level, lessonId, lessonName);
-    setLessons(questionBankService.getLessons(level));
-    return updated;
-  }, [level]);
-  
-  const deleteLessonAction = useCallback((lessonId: number) => {
-    questionBankService.deleteLesson(level, lessonId);
-    setLessons(questionBankService.getLessons(level));
-    setQuestions(questionBankService.getAllQuestions(level));
-  }, [level]);
-  
-  const createQuestionAction = useCallback((lessonId: number, questionData: Parameters<typeof questionBankService.createQuestion>[2]) => {
-    const newQuestion = questionBankService.createQuestion(level, lessonId, questionData);
-    setQuestions(questionBankService.getAllQuestions(level));
-    setLessons(questionBankService.getLessons(level));
-    return newQuestion;
-  }, [level]);
-  
-  const updateQuestionAction = useCallback((questionId: string, updates: Parameters<typeof questionBankService.updateQuestion>[1]) => {
-    const updated = questionBankService.updateQuestion(questionId, updates);
-    setQuestions(questionBankService.getAllQuestions(level));
-    setLessons(questionBankService.getLessons(level));
-    return updated;
-  }, [level]);
-  
-  const deleteQuestionAction = useCallback((questionId: string) => {
-    questionBankService.deleteQuestion(questionId);
-    setQuestions(questionBankService.getAllQuestions(level));
-    setLessons(questionBankService.getLessons(level));
-  }, [level]);
-  
+
+  const getLessonStats = useCallback(
+    (lessonId: number) => {
+      const lessonQs = questions.filter((q) => q.lesson === lessonId);
+      return {
+        total: lessonQs.length,
+        Vocabulary: lessonQs.filter((q) => q.type === "Vocabulary").length,
+        Grammar: lessonQs.filter((q) => q.type === "Grammar").length,
+        Reading: lessonQs.filter((q) => q.type === "Reading").length,
+        Listening: lessonQs.filter((q) => q.type === "Listening").length,
+      };
+    },
+    [questions],
+  );
+
+  const createLessonAction = useCallback(
+    (lessonName: string, lessonNumber?: number) => {
+      const newLesson = questionBankService.createLesson(level, lessonName, lessonNumber);
+      setLessons(questionBankService.getLessons(level));
+      return newLesson;
+    },
+    [level],
+  );
+
+  const updateLessonAction = useCallback(
+    (lessonId: number, lessonName: string) => {
+      const updated = questionBankService.updateLesson(level, lessonId, lessonName);
+      setLessons(questionBankService.getLessons(level));
+      return updated;
+    },
+    [level],
+  );
+
+  const deleteLessonAction = useCallback(
+    (lessonId: number) => {
+      questionBankService.deleteLesson(level, lessonId);
+      setLessons(questionBankService.getLessons(level));
+      setQuestions(questionBankService.getAllQuestions(level));
+    },
+    [level],
+  );
+
+  const createQuestionAction = useCallback(
+    (lessonId: number, questionData: Parameters<typeof questionBankService.createQuestion>[2]) => {
+      const newQuestion = questionBankService.createQuestion(level, lessonId, questionData);
+      setQuestions(questionBankService.getAllQuestions(level));
+      setLessons(questionBankService.getLessons(level));
+      return newQuestion;
+    },
+    [level],
+  );
+
+  const updateQuestionAction = useCallback(
+    (questionId: string, updates: Parameters<typeof questionBankService.updateQuestion>[1]) => {
+      const updated = questionBankService.updateQuestion(questionId, updates);
+      setQuestions(questionBankService.getAllQuestions(level));
+      setLessons(questionBankService.getLessons(level));
+      return updated;
+    },
+    [level],
+  );
+
+  const deleteQuestionAction = useCallback(
+    (questionId: string) => {
+      questionBankService.deleteQuestion(questionId);
+      setQuestions(questionBankService.getAllQuestions(level));
+      setLessons(questionBankService.getLessons(level));
+    },
+    [level],
+  );
+
   const getStats = useCallback(() => {
     return questionBankService.getLevelStats(level);
   }, [level]);
-  
+
   return {
     lessons,
     questions,

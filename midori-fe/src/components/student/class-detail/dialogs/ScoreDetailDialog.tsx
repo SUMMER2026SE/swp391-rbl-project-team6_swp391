@@ -1,6 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { X, Sparkles, AlertCircle, Award, CheckCircle, BrainCircuit, RefreshCw } from "lucide-react";
+import {
+  X,
+  Sparkles,
+  AlertCircle,
+  Award,
+  CheckCircle,
+  BrainCircuit,
+  RefreshCw,
+} from "lucide-react";
 import { Card } from "@/components/page-ui";
 import type { ScoreBreakdown } from "@/types/class-detail";
 
@@ -26,7 +34,9 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
         {/* Header */}
         <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-white/10">
           <div>
-            <h3 className="text-lg font-bold text-foreground dark:text-white">{score.assignmentName}</h3>
+            <h3 className="text-lg font-bold text-foreground dark:text-white">
+              {score.assignmentName}
+            </h3>
             <span className="text-xs text-muted-foreground">{score.module} Module</span>
           </div>
           <button
@@ -56,31 +66,47 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
               <Sparkles className="w-4 h-4 text-indigo-500" />
               AI Sensei Explanation
             </h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {score.aiFeedback}
-            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{score.aiFeedback}</p>
           </div>
 
           {/* Custom Section: Listening diagnostics */}
           {isListening && (
             <div className="p-4 border border-amber-500/20 rounded-2xl bg-amber-500/[0.01] space-y-3">
-              <h5 className="text-xs font-bold text-amber-500 uppercase tracking-wider">Listening Skill Analysis</h5>
+              <h5 className="text-xs font-bold text-amber-500 uppercase tracking-wider">
+                Listening Skill Analysis
+              </h5>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Pronunciation</span>
-                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">Good, minor accent tweaks needed</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Pronunciation
+                  </span>
+                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">
+                    Good, minor accent tweaks needed
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Numbers</span>
-                  <div className="font-bold mt-0.5 text-red-500">Struggled with large figures (万, 億)</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Numbers
+                  </span>
+                  <div className="font-bold mt-0.5 text-red-500">
+                    Struggled with large figures (万, 億)
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Time Expressions</span>
-                  <div className="font-bold mt-0.5 text-red-500">Confused duration with specific time stamps</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Time Expressions
+                  </span>
+                  <div className="font-bold mt-0.5 text-red-500">
+                    Confused duration with specific time stamps
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Particles</span>
-                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">Identified wa and ga context clues</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Particles
+                  </span>
+                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">
+                    Identified wa and ga context clues
+                  </div>
                 </div>
               </div>
             </div>
@@ -89,23 +115,41 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
           {/* Custom Section: Writing diagnostics */}
           {isWriting && (
             <div className="p-4 border border-indigo-500/20 rounded-2xl bg-indigo-500/[0.01] space-y-3">
-              <h5 className="text-xs font-bold text-indigo-500 uppercase tracking-wider">Writing Quality Breakdown</h5>
+              <h5 className="text-xs font-bold text-indigo-500 uppercase tracking-wider">
+                Writing Quality Breakdown
+              </h5>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Grammar Mistakes</span>
-                  <div className="font-bold mt-0.5 text-red-500">2 errors with transitivity (他動詞)</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Grammar Mistakes
+                  </span>
+                  <div className="font-bold mt-0.5 text-red-500">
+                    2 errors with transitivity (他動詞)
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Vocabulary Mistakes</span>
-                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">Appropriate word selection</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Vocabulary Mistakes
+                  </span>
+                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">
+                    Appropriate word selection
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Spelling / Kanji</span>
-                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">Kanji strokes correct</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Spelling / Kanji
+                  </span>
+                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">
+                    Kanji strokes correct
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Naturalness & Expression</span>
-                  <div className="font-bold mt-0.5 text-indigo-500">Level appropriate; expression style: 8.5/10</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Naturalness & Expression
+                  </span>
+                  <div className="font-bold mt-0.5 text-indigo-500">
+                    Level appropriate; expression style: 8.5/10
+                  </div>
                 </div>
               </div>
             </div>
@@ -114,23 +158,41 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
           {/* Custom Section: Shadowing diagnostics */}
           {isShadowing && (
             <div className="p-4 border border-purple-500/20 rounded-2xl bg-purple-500/[0.01] space-y-3">
-              <h5 className="text-xs font-bold text-purple-500 uppercase tracking-wider">Shadowing Audio Analysis</h5>
+              <h5 className="text-xs font-bold text-purple-500 uppercase tracking-wider">
+                Shadowing Audio Analysis
+              </h5>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Pronunciation</span>
-                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">Clear consonant articulation</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Pronunciation
+                  </span>
+                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">
+                    Clear consonant articulation
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Fluency</span>
-                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">Speech rate: 110 WPM (Target: 120)</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Fluency
+                  </span>
+                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">
+                    Speech rate: 110 WPM (Target: 120)
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Accuracy</span>
-                  <div className="font-bold mt-0.5 text-red-500">Missed 2 end particles (ね, よ)</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Accuracy
+                  </span>
+                  <div className="font-bold mt-0.5 text-red-500">
+                    Missed 2 end particles (ね, よ)
+                  </div>
                 </div>
                 <div className="p-2.5 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/20 dark:bg-white/[0.002]">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">Intonation</span>
-                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">Good rising pitch contour</div>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    Intonation
+                  </span>
+                  <div className="font-bold mt-0.5 text-foreground dark:text-slate-200">
+                    Good rising pitch contour
+                  </div>
                 </div>
               </div>
             </div>
@@ -157,33 +219,50 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
                 {score.weaknesses.map((wk, i) => (
                   <li key={i}>{wk}</li>
                 ))}
-                {score.weaknesses.length === 0 && <li>Speed and parsing accuracy under time limit</li>}
+                {score.weaknesses.length === 0 && (
+                  <li>Speed and parsing accuracy under time limit</li>
+                )}
               </ul>
             </div>
           </div>
 
           {/* Suggestions & Words/Grammar Needing Review */}
           <Card className="p-4 space-y-3 bg-slate-50/50 dark:bg-white/[0.01] border border-slate-200/50 dark:border-white/5">
-            <h5 className="text-xs font-black uppercase text-primary tracking-wider">AI Improvement Plan</h5>
-            
+            <h5 className="text-xs font-black uppercase text-primary tracking-wider">
+              AI Improvement Plan
+            </h5>
+
             <div className="space-y-2 text-xs">
               <div>
-                <div className="font-bold text-foreground dark:text-slate-200">Suggestions for Improvement</div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Focus on particle differentiations Wa and Ga, and re-listen to lesson 1 auditory examples.</p>
+                <div className="font-bold text-foreground dark:text-slate-200">
+                  Suggestions for Improvement
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Focus on particle differentiations Wa and Ga, and re-listen to lesson 1 auditory
+                  examples.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-white/5 mt-2">
                 <div>
-                  <div className="font-bold text-foreground dark:text-slate-200">Words to Review</div>
+                  <div className="font-bold text-foreground dark:text-slate-200">
+                    Words to Review
+                  </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">時間, 曜日, 今日</div>
                 </div>
                 <div>
-                  <div className="font-bold text-foreground dark:text-slate-200">Grammar to Review</div>
+                  <div className="font-bold text-foreground dark:text-slate-200">
+                    Grammar to Review
+                  </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">～てから, ～ながら</div>
                 </div>
               </div>
               <div className="pt-2 border-t border-slate-100 dark:border-white/5 mt-2">
-                <div className="font-bold text-foreground dark:text-slate-200">Practice Recommendations</div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Practice basic N5 listening drills focusing specifically on time duration markers.</p>
+                <div className="font-bold text-foreground dark:text-slate-200">
+                  Practice Recommendations
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Practice basic N5 listening drills focusing specifically on time duration markers.
+                </p>
               </div>
             </div>
           </Card>
@@ -191,22 +270,32 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
           {/* Wrong Answers List */}
           {score.wrongAnswers.length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-bold text-foreground dark:text-white">Wrong Answers Breakdown</h4>
+              <h4 className="text-sm font-bold text-foreground dark:text-white">
+                Wrong Answers Breakdown
+              </h4>
               <div className="space-y-2.5">
                 {score.wrongAnswers.map((wrong, idx) => (
                   <div
                     key={idx}
                     className="p-4 rounded-xl border border-slate-200/60 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01]"
                   >
-                    <div className="text-xs font-bold text-foreground mb-2">Q: {wrong.question}</div>
+                    <div className="text-xs font-bold text-foreground mb-2">
+                      Q: {wrong.question}
+                    </div>
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
-                        <div className="text-[9px] uppercase font-bold text-red-500">Your Answer</div>
+                        <div className="text-[9px] uppercase font-bold text-red-500">
+                          Your Answer
+                        </div>
                         <div className="font-semibold text-red-400 mt-0.5">{wrong.userAnswer}</div>
                       </div>
                       <div>
-                        <div className="text-[9px] uppercase font-bold text-green-500">Correct Answer</div>
-                        <div className="font-semibold text-green-400 mt-0.5">{wrong.correctAnswer}</div>
+                        <div className="text-[9px] uppercase font-bold text-green-500">
+                          Correct Answer
+                        </div>
+                        <div className="font-semibold text-green-400 mt-0.5">
+                          {wrong.correctAnswer}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -219,7 +308,10 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
         {/* Footer actions */}
         <div className="flex gap-3 border-t border-slate-100 dark:border-white/10 pt-4 mt-2">
           <button
-            onClick={() => { onClose(); if (onReview) onReview(); }}
+            onClick={() => {
+              onClose();
+              if (onReview) onReview();
+            }}
             className="flex-1 py-2.5 rounded-xl bg-primary hover:opacity-95 text-primary-foreground text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm"
           >
             <BrainCircuit className="w-3.5 h-3.5" /> Review Mistakes
@@ -227,6 +319,6 @@ export function ScoreDetailDialog({ score, onClose, onReview }: ScoreDetailDialo
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

@@ -2,9 +2,20 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft, CheckCircle2, XCircle, Trophy, RotateCcw,
-  BookOpen, Clock, CheckCircle, Circle, BookText, List, GraduationCap, Volume2,
-  AlertCircle
+  ChevronLeft,
+  CheckCircle2,
+  XCircle,
+  Trophy,
+  RotateCcw,
+  BookOpen,
+  Clock,
+  CheckCircle,
+  Circle,
+  BookText,
+  List,
+  GraduationCap,
+  Volume2,
+  AlertCircle,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { getReadingById } from "@/mock/reading";
@@ -92,7 +103,9 @@ function ReadingDetailPage() {
             <XCircle className="w-8 h-8 text-red-400" />
           </div>
           <h3 className="text-lg font-bold text-white mb-2">Reading not found</h3>
-          <p className="text-sm text-white/60 mb-4">The reading you're looking for doesn't exist.</p>
+          <p className="text-sm text-white/60 mb-4">
+            The reading you're looking for doesn't exist.
+          </p>
           <Link
             to="/student/reading"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 text-white text-sm font-semibold hover:bg-white/25 transition"
@@ -160,16 +173,32 @@ function ReadingDetailPage() {
     return acc;
   }, 0);
 
-  const isCorrect = selectedAnswer !== null && question?.correctAnswer !== undefined
-    ? selectedAnswer === question.correctAnswer
-    : false;
+  const isCorrect =
+    selectedAnswer !== null && question?.correctAnswer !== undefined
+      ? selectedAnswer === question.correctAnswer
+      : false;
 
   // Tab navigation items
   const tabs: { id: TabType; label: string; icon: React.ReactNode; count?: number }[] = [
     { id: "reading", label: "Bài đọc", icon: <BookText className="w-4 h-4" /> },
-    { id: "vocabulary", label: "Từ vựng", icon: <List className="w-4 h-4" />, count: vocabulary.length },
-    { id: "grammar", label: "Ngữ pháp", icon: <GraduationCap className="w-4 h-4" />, count: grammarPoints.length },
-    { id: "quiz", label: "Luyện tập", icon: <Trophy className="w-4 h-4" />, count: questions.length },
+    {
+      id: "vocabulary",
+      label: "Từ vựng",
+      icon: <List className="w-4 h-4" />,
+      count: vocabulary.length,
+    },
+    {
+      id: "grammar",
+      label: "Ngữ pháp",
+      icon: <GraduationCap className="w-4 h-4" />,
+      count: grammarPoints.length,
+    },
+    {
+      id: "quiz",
+      label: "Luyện tập",
+      icon: <Trophy className="w-4 h-4" />,
+      count: questions.length,
+    },
   ];
 
   return (
@@ -188,7 +217,9 @@ function ReadingDetailPage() {
               Reading
             </Link>
             <span className="text-muted-foreground">/</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${levelColors[reading.jlptLevel]}`}>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-bold ${levelColors[reading.jlptLevel]}`}
+            >
               {reading.jlptLevel}
             </span>
             <span className="text-muted-foreground">/</span>
@@ -198,14 +229,18 @@ function ReadingDetailPage() {
           {/* Reading Header */}
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${levelGradients[reading.jlptLevel]} flex-shrink-0`}>
+              <div
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${levelGradients[reading.jlptLevel]} flex-shrink-0`}
+              >
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-display font-black">{reading.title}</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">{reading.titleVn}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${levelColors[reading.jlptLevel]}`}>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${levelColors[reading.jlptLevel]}`}
+                  >
                     JLPT {reading.jlptLevel}
                   </span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -213,8 +248,7 @@ function ReadingDetailPage() {
                     {wordCount} words
                   </span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    ~{reading.estimatedTime} min
+                    <Clock className="w-3.5 h-3.5" />~{reading.estimatedTime} min
                   </span>
                 </div>
               </div>
@@ -244,7 +278,7 @@ function ReadingDetailPage() {
 
           {/* Tab Navigation */}
           <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl p-1">
-            {tabs.map(tab => (
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -257,11 +291,13 @@ function ReadingDetailPage() {
                 {tab.icon}
                 <span className="hidden sm:inline">{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    activeTab === tab.id
-                      ? "bg-primary/10 text-primary"
-                      : "bg-slate-200 dark:bg-slate-600"
-                  }`}>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      activeTab === tab.id
+                        ? "bg-primary/10 text-primary"
+                        : "bg-slate-200 dark:bg-slate-600"
+                    }`}
+                  >
                     {tab.count}
                   </span>
                 )}
@@ -273,13 +309,11 @@ function ReadingDetailPage() {
         {/* Main Content */}
         <div className="px-6 pb-8">
           <div className="flex flex-col lg:flex-row gap-6">
-            
             {/* LEFT COLUMN - Content Area */}
             <div className="lg:w-[60%] lg:border-r border-slate-200 dark:border-white/10">
               <div className="sticky top-[160px] h-[calc(100vh-160px)] lg:h-[calc(100vh-160px)] overflow-y-auto">
                 <div className="p-6 lg:p-8">
                   <div className="space-y-6">
-
                     {/* READING TAB */}
                     {activeTab === "reading" && (
                       <div className="space-y-6">
@@ -294,7 +328,7 @@ function ReadingDetailPage() {
 
                         {/* Japanese Text */}
                         <div className="bg-linear-to-br from-slate-50 to-blue-50/30 dark:from-slate-800/50 dark:to-blue-900/20 rounded-2xl p-6 border border-slate-200 dark:border-white/10">
-                          <div 
+                          <div
                             className="text-lg leading-relaxed text-slate-800 dark:text-slate-100 whitespace-pre-wrap font-medium"
                             style={{ fontFamily: "var(--font-japanese, serif)" }}
                           >
@@ -305,7 +339,9 @@ function ReadingDetailPage() {
                         {/* Romaji (if available) */}
                         {extendedData?.romaji && (
                           <div className="bg-slate-100 dark:bg-slate-800/30 rounded-xl p-4">
-                            <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Romaji</h4>
+                            <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">
+                              Romaji
+                            </h4>
                             <p className="text-sm text-slate-600 dark:text-slate-300 italic leading-relaxed">
                               {extendedData.romaji}
                             </p>
@@ -315,7 +351,9 @@ function ReadingDetailPage() {
                         {/* Translation (if available) */}
                         {extendedData?.translation && (
                           <div className="bg-green-50/50 dark:bg-green-900/20 rounded-xl p-4">
-                            <h4 className="text-xs font-semibold text-green-600 dark:text-green-400 mb-2 uppercase">English Translation</h4>
+                            <h4 className="text-xs font-semibold text-green-600 dark:text-green-400 mb-2 uppercase">
+                              English Translation
+                            </h4>
                             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                               {extendedData.translation}
                             </p>
@@ -324,7 +362,7 @@ function ReadingDetailPage() {
 
                         {/* Tags */}
                         <div className="flex flex-wrap gap-2">
-                          {tags.map(tag => (
+                          {tags.map((tag) => (
                             <span
                               key={tag}
                               className="px-3 py-1 rounded-full bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 text-xs font-medium"
@@ -358,7 +396,10 @@ function ReadingDetailPage() {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-1">
-                                      <span className="text-lg font-bold text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                                      <span
+                                        className="text-lg font-bold text-slate-800 dark:text-white"
+                                        style={{ fontFamily: "var(--font-japanese, serif)" }}
+                                      >
                                         {item.word}
                                       </span>
                                       <span className="text-sm text-muted-foreground">
@@ -417,7 +458,10 @@ function ReadingDetailPage() {
                                     {index + 1}
                                   </span>
                                   <div>
-                                    <h4 className="text-lg font-bold text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                                    <h4
+                                      className="text-lg font-bold text-slate-800 dark:text-white"
+                                      style={{ fontFamily: "var(--font-japanese, serif)" }}
+                                    >
                                       {point.grammar}
                                     </h4>
                                     <p className="text-sm text-muted-foreground mt-0.5">
@@ -425,10 +469,13 @@ function ReadingDetailPage() {
                                     </p>
                                   </div>
                                 </div>
-                                
+
                                 {/* Example */}
                                 <div className="bg-white/80 dark:bg-slate-800/50 rounded-lg p-4 mt-3">
-                                  <p className="text-sm text-slate-600 dark:text-slate-300 italic mb-1" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                                  <p
+                                    className="text-sm text-slate-600 dark:text-slate-300 italic mb-1"
+                                    style={{ fontFamily: "var(--font-japanese, serif)" }}
+                                  >
                                     {point.example}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
@@ -474,7 +521,9 @@ function ReadingDetailPage() {
                                 Sẵn sàng kiểm tra?
                               </h3>
                               <p className="text-sm text-muted-foreground mb-4">
-                                Bài kiểm tra gồm <span className="font-bold text-primary">{questions.length}</span> câu hỏi.
+                                Bài kiểm tra gồm{" "}
+                                <span className="font-bold text-primary">{questions.length}</span>{" "}
+                                câu hỏi.
                               </p>
                               <button
                                 onClick={() => setCurrentQuestion(0)}
@@ -494,7 +543,6 @@ function ReadingDetailPage() {
                         )}
                       </div>
                     )}
-
                   </div>
                 </div>
               </div>
@@ -512,11 +560,9 @@ function ReadingDetailPage() {
                         <span className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
                           {currentQuestion + 1}
                         </span>
-                        <h3 className="font-bold text-slate-800 dark:text-white">
-                          Câu hỏi
-                        </h3>
+                        <h3 className="font-bold text-slate-800 dark:text-white">Câu hỏi</h3>
                       </div>
-                      
+
                       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-sm">
                         <p className="text-base font-semibold text-slate-800 dark:text-white mb-4 leading-relaxed">
                           {question.question}
@@ -530,13 +576,17 @@ function ReadingDetailPage() {
                             const showCorrect = showResult && isCorrectOption;
                             const showIncorrect = showResult && isSelected && !isCorrectOption;
 
-                            let btnStyle = "bg-white/80 dark:bg-slate-700/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white hover:bg-white dark:hover:bg-slate-600";
+                            let btnStyle =
+                              "bg-white/80 dark:bg-slate-700/50 border-slate-200 dark:border-white/10 text-slate-800 dark:text-white hover:bg-white dark:hover:bg-slate-600";
                             if (showCorrect) {
-                              btnStyle = "bg-emerald-500/20 border-emerald-500/40 text-emerald-700 dark:text-emerald-300";
+                              btnStyle =
+                                "bg-emerald-500/20 border-emerald-500/40 text-emerald-700 dark:text-emerald-300";
                             } else if (showIncorrect) {
-                              btnStyle = "bg-red-500/20 border-red-500/40 text-red-700 dark:text-red-300";
+                              btnStyle =
+                                "bg-red-500/20 border-red-500/40 text-red-700 dark:text-red-300";
                             } else if (isSelected) {
-                              btnStyle = "bg-blue-500/20 border-blue-500/40 text-blue-700 dark:text-blue-300";
+                              btnStyle =
+                                "bg-blue-500/20 border-blue-500/40 text-blue-700 dark:text-blue-300";
                             }
 
                             return (
@@ -547,13 +597,19 @@ function ReadingDetailPage() {
                                 className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all text-sm font-medium ${btnStyle}`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
-                                    isSelected ? "border-current bg-current/10" : "border-slate-300 dark:border-slate-500"
-                                  }`}>
+                                  <span
+                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
+                                      isSelected
+                                        ? "border-current bg-current/10"
+                                        : "border-slate-300 dark:border-slate-500"
+                                    }`}
+                                  >
                                     {String.fromCharCode(65 + index)}
                                   </span>
                                   <span className="flex-1">{option}</span>
-                                  {showCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                                  {showCorrect && (
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                  )}
                                   {showIncorrect && <XCircle className="w-5 h-5 text-red-500" />}
                                 </div>
                               </button>
@@ -573,9 +629,13 @@ function ReadingDetailPage() {
                               : "bg-red-50/80 dark:bg-red-900/30 border-red-200 dark:border-red-800"
                           }`}
                         >
-                          <div className={`flex items-center gap-2 font-bold text-sm ${
-                            isCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                          }`}>
+                          <div
+                            className={`flex items-center gap-2 font-bold text-sm ${
+                              isCorrect
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
                             {isCorrect ? (
                               <>
                                 <CheckCircle2 className="w-5 h-5" />
@@ -590,7 +650,8 @@ function ReadingDetailPage() {
                           </div>
                           {!isCorrect && question.explanation && (
                             <p className="text-xs text-muted-foreground mt-2 p-2 bg-white/50 dark:bg-slate-800/50 rounded-lg">
-                              <span className="font-semibold">Giải thích:</span> {question.explanation}
+                              <span className="font-semibold">Giải thích:</span>{" "}
+                              {question.explanation}
                             </p>
                           )}
                         </motion.div>
@@ -611,7 +672,9 @@ function ReadingDetailPage() {
                             onClick={handleNextQuestion}
                             className="flex-1 py-3 rounded-2xl bg-linear-to-r from-blue-500 to-pink-500 text-white font-bold text-sm shadow-md hover:opacity-90 transition"
                           >
-                            {currentQuestion < questions.length - 1 ? "Câu tiếp theo" : "Xem kết quả"}
+                            {currentQuestion < questions.length - 1
+                              ? "Câu tiếp theo"
+                              : "Xem kết quả"}
                           </button>
                         )}
                       </div>
@@ -623,30 +686,33 @@ function ReadingDetailPage() {
                     <div className="w-20 h-20 rounded-full bg-linear-to-r from-blue-500 to-pink-500 flex items-center justify-center mx-auto shadow-lg">
                       <Trophy className="w-10 h-10 text-white" />
                     </div>
-                    
+
                     <div>
                       <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">
                         Hoàn thành!
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Bạn đã trả lời đúng <span className="font-bold text-primary">{score}</span> trên <span className="font-bold">{questions.length}</span> câu hỏi.
+                        Bạn đã trả lời đúng <span className="font-bold text-primary">{score}</span>{" "}
+                        trên <span className="font-bold">{questions.length}</span> câu hỏi.
                       </p>
                     </div>
 
                     {/* Score Progress */}
                     {questions.length > 0 && (
-                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-5 border border-slate-200 dark:border-white/10">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Điểm của bạn</span>
-                        <span className="font-bold text-slate-800 dark:text-white">{Math.round((score / questions.length) * 100)}%</span>
+                      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-5 border border-slate-200 dark:border-white/10">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Điểm của bạn</span>
+                          <span className="font-bold text-slate-800 dark:text-white">
+                            {Math.round((score / questions.length) * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-3 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-linear-to-r from-blue-400 to-pink-400 transition-all duration-500"
+                            style={{ width: `${(score / questions.length) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-3 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-linear-to-r from-blue-400 to-pink-400 transition-all duration-500"
-                          style={{ width: `${(score / questions.length) * 100}%` }}
-                        />
-                      </div>
-                    </div>
                     )}
 
                     {/* Answer Summary */}
@@ -658,8 +724,8 @@ function ReadingDetailPage() {
                           <div
                             key={q.id}
                             className={`flex items-center gap-3 p-3 rounded-xl ${
-                              isCorrect 
-                                ? "bg-emerald-50/50 dark:bg-emerald-900/20" 
+                              isCorrect
+                                ? "bg-emerald-50/50 dark:bg-emerald-900/20"
                                 : "bg-red-50/50 dark:bg-red-900/20"
                             }`}
                           >
@@ -672,11 +738,14 @@ function ReadingDetailPage() {
                               <p className="text-xs font-medium text-slate-700 dark:text-slate-200 line-clamp-1">
                                 {q.question}
                               </p>
-                              {!isCorrect && userAnswer !== null && q.options[userAnswer] !== undefined && (
-                                <p className="text-[10px] text-muted-foreground">
-                                  Đáp án của bạn: {q.options[userAnswer]} → Đáp án đúng: {q.options[q.correctAnswer]}
-                                </p>
-                              )}
+                              {!isCorrect &&
+                                userAnswer !== null &&
+                                q.options[userAnswer] !== undefined && (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Đáp án của bạn: {q.options[userAnswer]} → Đáp án đúng:{" "}
+                                    {q.options[q.correctAnswer]}
+                                  </p>
+                                )}
                             </div>
                           </div>
                         );
@@ -704,7 +773,9 @@ function ReadingDetailPage() {
                   /* Non-quiz tabs - Show reading preview */
                   <div className="space-y-4">
                     <div className="bg-white/80 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-white/10">
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Quick Preview</h4>
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">
+                        Quick Preview
+                      </h4>
                       <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-6">
                         {reading.passageText}
                       </p>
@@ -712,7 +783,9 @@ function ReadingDetailPage() {
 
                     <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-4 border border-primary/20">
                       <p className="text-sm text-center text-muted-foreground">
-                        Chuyển sang tab <span className="font-semibold text-primary">"Luyện tập"</span> để làm bài kiểm tra
+                        Chuyển sang tab{" "}
+                        <span className="font-semibold text-primary">"Luyện tập"</span> để làm bài
+                        kiểm tra
                       </p>
                     </div>
                   </div>

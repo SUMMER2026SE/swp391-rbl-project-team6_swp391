@@ -2,9 +2,22 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Search, Eye, Archive, Trash2, Plus, BookUser,
-  GraduationCap, Users, ChevronRight, AlertTriangle, Loader2,
-  MoreHorizontal, Filter, X, CheckCircle, RotateCcw
+  Search,
+  Eye,
+  Archive,
+  Trash2,
+  Plus,
+  BookUser,
+  GraduationCap,
+  Users,
+  ChevronRight,
+  AlertTriangle,
+  Loader2,
+  MoreHorizontal,
+  Filter,
+  X,
+  CheckCircle,
+  RotateCcw,
 } from "lucide-react";
 import {
   Dialog,
@@ -29,8 +42,16 @@ type ClassStatus = "ACTIVE" | "ARCHIVED";
 
 function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; color: string; bg: string }> = {
-    ACTIVE: { label: "Active", color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
-    ARCHIVED: { label: "Archived", color: "text-[var(--status-suspended)]", bg: "bg-[var(--status-suspended)]" },
+    ACTIVE: {
+      label: "Active",
+      color: "text-[var(--status-active)]",
+      bg: "bg-[var(--status-active)]",
+    },
+    ARCHIVED: {
+      label: "Archived",
+      color: "text-[var(--status-suspended)]",
+      bg: "bg-[var(--status-suspended)]",
+    },
   };
   const cfg = configs[status] || configs["ACTIVE"];
   return (
@@ -50,7 +71,9 @@ function JLPTBadge({ level }: { level: string }) {
     N1: "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border-[var(--status-rejected)]/20",
   };
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${colors[level] || colors["N5"]}`}>
+    <span
+      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${colors[level] || colors["N5"]}`}
+    >
       {level}
     </span>
   );
@@ -58,14 +81,94 @@ function JLPTBadge({ level }: { level: string }) {
 
 // Mock data for demonstration
 const mockClasses = [
-  { id: "cls-001", name: "N5 Beginner Japanese", teacher: "Sakura Tanaka", teacherId: "t001", level: "N5", students: 28, maxStudents: 30, status: "ACTIVE" as const, createdAt: "2024-01-15" },
-  { id: "cls-002", name: "N4 Grammar Intensive", teacher: "Kenji Yamamoto", teacherId: "t002", level: "N4", students: 22, maxStudents: 25, status: "ACTIVE" as const, createdAt: "2024-02-01" },
-  { id: "cls-003", name: "N3 Conversation Class", teacher: "Yuki Sato", teacherId: "t003", level: "N3", students: 18, maxStudents: 20, status: "ACTIVE" as const, createdAt: "2024-02-10" },
-  { id: "cls-004", name: "N2 Business Japanese", teacher: "Akiko Suzuki", teacherId: "t004", level: "N2", students: 15, maxStudents: 20, status: "ACTIVE" as const, createdAt: "2024-03-01" },
-  { id: "cls-005", name: "N1 Advanced Mastery", teacher: "Takeshi Kimura", teacherId: "t005", level: "N1", students: 10, maxStudents: 15, status: "ACTIVE" as const, createdAt: "2024-03-15" },
-  { id: "cls-006", name: "N5 Kanji Basics", teacher: "Sakura Tanaka", teacherId: "t001", level: "N5", students: 30, maxStudents: 30, status: "ARCHIVED" as const, createdAt: "2023-09-01" },
-  { id: "cls-007", name: "N4 Listening Practice", teacher: "Kenji Yamamoto", teacherId: "t002", level: "N4", students: 20, maxStudents: 25, status: "ACTIVE" as const, createdAt: "2024-04-01" },
-  { id: "cls-008", name: "N3 Reading Comprehension", teacher: "Yuki Sato", teacherId: "t003", level: "N3", students: 16, maxStudents: 20, status: "ACTIVE" as const, createdAt: "2024-04-10" },
+  {
+    id: "cls-001",
+    name: "N5 Beginner Japanese",
+    teacher: "Sakura Tanaka",
+    teacherId: "t001",
+    level: "N5",
+    students: 28,
+    maxStudents: 30,
+    status: "ACTIVE" as const,
+    createdAt: "2024-01-15",
+  },
+  {
+    id: "cls-002",
+    name: "N4 Grammar Intensive",
+    teacher: "Kenji Yamamoto",
+    teacherId: "t002",
+    level: "N4",
+    students: 22,
+    maxStudents: 25,
+    status: "ACTIVE" as const,
+    createdAt: "2024-02-01",
+  },
+  {
+    id: "cls-003",
+    name: "N3 Conversation Class",
+    teacher: "Yuki Sato",
+    teacherId: "t003",
+    level: "N3",
+    students: 18,
+    maxStudents: 20,
+    status: "ACTIVE" as const,
+    createdAt: "2024-02-10",
+  },
+  {
+    id: "cls-004",
+    name: "N2 Business Japanese",
+    teacher: "Akiko Suzuki",
+    teacherId: "t004",
+    level: "N2",
+    students: 15,
+    maxStudents: 20,
+    status: "ACTIVE" as const,
+    createdAt: "2024-03-01",
+  },
+  {
+    id: "cls-005",
+    name: "N1 Advanced Mastery",
+    teacher: "Takeshi Kimura",
+    teacherId: "t005",
+    level: "N1",
+    students: 10,
+    maxStudents: 15,
+    status: "ACTIVE" as const,
+    createdAt: "2024-03-15",
+  },
+  {
+    id: "cls-006",
+    name: "N5 Kanji Basics",
+    teacher: "Sakura Tanaka",
+    teacherId: "t001",
+    level: "N5",
+    students: 30,
+    maxStudents: 30,
+    status: "ARCHIVED" as const,
+    createdAt: "2023-09-01",
+  },
+  {
+    id: "cls-007",
+    name: "N4 Listening Practice",
+    teacher: "Kenji Yamamoto",
+    teacherId: "t002",
+    level: "N4",
+    students: 20,
+    maxStudents: 25,
+    status: "ACTIVE" as const,
+    createdAt: "2024-04-01",
+  },
+  {
+    id: "cls-008",
+    name: "N3 Reading Comprehension",
+    teacher: "Yuki Sato",
+    teacherId: "t003",
+    level: "N3",
+    students: 16,
+    maxStudents: 20,
+    status: "ACTIVE" as const,
+    createdAt: "2024-04-10",
+  },
 ];
 
 // Mock approved teachers
@@ -91,11 +194,11 @@ function ClassManagementPage() {
   const [page, setPage] = useState(0);
 
   // Archive Modal state
-  const [archiveClass, setArchiveClass] = useState<typeof mockClasses[0] | null>(null);
+  const [archiveClass, setArchiveClass] = useState<(typeof mockClasses)[0] | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
 
   // Restore Modal state
-  const [restoreClass, setRestoreClass] = useState<typeof mockClasses[0] | null>(null);
+  const [restoreClass, setRestoreClass] = useState<(typeof mockClasses)[0] | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
 
   // Create Class Modal state
@@ -117,7 +220,7 @@ function ClassManagementPage() {
     setError(null);
     try {
       // Use mock data for now - in production, this would call adminApi
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 500));
       setClasses(mockClasses);
     } catch (err: any) {
       setError(err.message || "Failed to load classes");
@@ -126,10 +229,13 @@ function ClassManagementPage() {
     }
   }, []);
 
-  useEffect(() => { fetchClasses(); }, [fetchClasses]);
+  useEffect(() => {
+    fetchClasses();
+  }, [fetchClasses]);
 
-  const filteredClasses = classes.filter(cls => {
-    const matchesSearch = !search ||
+  const filteredClasses = classes.filter((cls) => {
+    const matchesSearch =
+      !search ||
       cls.name.toLowerCase().includes(search.toLowerCase()) ||
       cls.teacher.toLowerCase().includes(search.toLowerCase());
     const matchesLevel = !levelFilter || cls.level === levelFilter;
@@ -137,8 +243,8 @@ function ClassManagementPage() {
     return matchesSearch && matchesLevel && matchesStatus;
   });
 
-  const activeCount = classes.filter(c => c.status === "ACTIVE").length;
-  const archivedCount = classes.filter(c => c.status === "ARCHIVED").length;
+  const activeCount = classes.filter((c) => c.status === "ACTIVE").length;
+  const archivedCount = classes.filter((c) => c.status === "ARCHIVED").length;
   const totalStudents = classes.reduce((sum, c) => sum + c.students, 0);
 
   const clearFilters = () => {
@@ -150,7 +256,7 @@ function ClassManagementPage() {
   const hasFilters = search || levelFilter || statusFilter;
 
   // Handlers
-  const handleArchiveClick = (cls: typeof mockClasses[0]) => {
+  const handleArchiveClick = (cls: (typeof mockClasses)[0]) => {
     setArchiveClass(cls);
   };
 
@@ -160,12 +266,12 @@ function ClassManagementPage() {
     setArchiveLoading(true);
     try {
       // Simulate API call
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 500));
 
       // Update local state
-      setClasses(prev => prev.map(c =>
-        c.id === archiveClass.id ? { ...c, status: "ARCHIVED" as const } : c
-      ));
+      setClasses((prev) =>
+        prev.map((c) => (c.id === archiveClass.id ? { ...c, status: "ARCHIVED" as const } : c)),
+      );
 
       setArchiveClass(null);
       setSuccessMessage("Class archived successfully.");
@@ -178,7 +284,7 @@ function ClassManagementPage() {
     }
   };
 
-  const handleRestoreClick = (cls: typeof mockClasses[0]) => {
+  const handleRestoreClick = (cls: (typeof mockClasses)[0]) => {
     setRestoreClass(cls);
   };
 
@@ -188,12 +294,12 @@ function ClassManagementPage() {
     setRestoreLoading(true);
     try {
       // Simulate API call
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 500));
 
       // Update local state
-      setClasses(prev => prev.map(c =>
-        c.id === restoreClass.id ? { ...c, status: "ACTIVE" as const } : c
-      ));
+      setClasses((prev) =>
+        prev.map((c) => (c.id === restoreClass.id ? { ...c, status: "ACTIVE" as const } : c)),
+      );
 
       setRestoreClass(null);
       setSuccessMessage("Class restored successfully.");
@@ -231,13 +337,13 @@ function ClassManagementPage() {
       return;
     }
 
-    const selectedTeacher = mockTeachers.find(t => t.id === createTeacherId);
+    const selectedTeacher = mockTeachers.find((t) => t.id === createTeacherId);
     if (!selectedTeacher) return;
 
     setCreateLoading(true);
     try {
       // Simulate API call
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 500));
 
       // Create new class
       const newClass = {
@@ -252,7 +358,7 @@ function ClassManagementPage() {
         createdAt: new Date().toISOString().split("T")[0],
       };
 
-      setClasses(prev => [newClass, ...prev]);
+      setClasses((prev) => [newClass, ...prev]);
       setShowCreateModal(false);
       setSuccessMessage("Class created successfully.");
       setShowSuccessToast(true);
@@ -270,7 +376,9 @@ function ClassManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-black text-primary-col">Class Management</h1>
-          <p className="text-sm text-secondary-col mt-0.5">Manage classes, teachers, and student enrollment</p>
+          <p className="text-sm text-secondary-col mt-0.5">
+            Manage classes, teachers, and student enrollment
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--status-active)]/10 text-[var(--status-active)] text-xs font-bold border border-[var(--status-active)]/20">
@@ -293,7 +401,9 @@ function ClassManagementPage() {
             <BookUser className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Classes</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Total Classes
+            </p>
             <p className="font-display font-black text-xl text-primary-col">{classes.length}</p>
           </div>
         </div>
@@ -302,7 +412,9 @@ function ClassManagementPage() {
             <GraduationCap className="w-5 h-5 text-[var(--status-active)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Active Classes</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Active Classes
+            </p>
             <p className="font-display font-black text-xl text-primary-col">{activeCount}</p>
           </div>
         </div>
@@ -311,7 +423,9 @@ function ClassManagementPage() {
             <Users className="w-5 h-5 text-[oklch(0.72_0.15_230)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Students</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Total Students
+            </p>
             <p className="font-display font-black text-xl text-primary-col">{totalStudents}</p>
           </div>
         </div>
@@ -320,7 +434,9 @@ function ClassManagementPage() {
             <Archive className="w-5 h-5 text-[var(--status-suspended)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Archived</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Archived
+            </p>
             <p className="font-display font-black text-xl text-primary-col">{archivedCount}</p>
           </div>
         </div>
@@ -396,7 +512,10 @@ function ClassManagementPage() {
             <div className="py-16 flex flex-col items-center gap-3">
               <AlertTriangle className="w-10 h-10 text-[var(--status-rejected)]/50" />
               <p className="text-sm font-bold text-[var(--status-rejected)]">{error}</p>
-              <button onClick={fetchClasses} className="px-3 py-1.5 rounded-lg bg-primary/12 text-primary text-xs font-bold">
+              <button
+                onClick={fetchClasses}
+                className="px-3 py-1.5 rounded-lg bg-primary/12 text-primary text-xs font-bold"
+              >
                 Retry
               </button>
             </div>
@@ -414,79 +533,89 @@ function ClassManagementPage() {
             </div>
           )}
 
-          {!loading && !error && filteredClasses.map((cls, i) => (
-            <motion.div
-              key={cls.id}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.025 }}
-              className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
-            >
-              <div className="col-span-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center shrink-0">
-                  <BookUser className="w-5 h-5 text-primary" />
+          {!loading &&
+            !error &&
+            filteredClasses.map((cls, i) => (
+              <motion.div
+                key={cls.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.025 }}
+                className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
+              >
+                <div className="col-span-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center shrink-0">
+                    <BookUser className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-primary-col truncate">
+                      {cls.name}
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-primary-col truncate">{cls.name}</div>
+
+                <div className="col-span-2 flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
+                    {cls.teacher
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </div>
+                  <span className="text-sm text-secondary-col truncate">{cls.teacher}</span>
                 </div>
-              </div>
 
-              <div className="col-span-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
-                  {cls.teacher.split(" ").map(n => n[0]).join("")}
+                <div className="col-span-1">
+                  <JLPTBadge level={cls.level} />
                 </div>
-                <span className="text-sm text-secondary-col truncate">{cls.teacher}</span>
-              </div>
 
-              <div className="col-span-1">
-                <JLPTBadge level={cls.level} />
-              </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <span className="text-sm font-medium">
+                    <span className="text-secondary-col">{cls.students}</span>
+                    <span className="text-muted-col">/{cls.maxStudents}</span>
+                  </span>
+                </div>
 
-              <div className="col-span-2 flex items-center gap-2">
-                <span className="text-sm font-medium">
-                  <span className="text-secondary-col">{cls.students}</span>
-                  <span className="text-muted-col">/{cls.maxStudents}</span>
-                </span>
-              </div>
+                <div className="col-span-1">
+                  <StatusBadge status={cls.status} />
+                </div>
 
-              <div className="col-span-1">
-                <StatusBadge status={cls.status} />
-              </div>
-
-              <div className="col-span-2 flex items-center justify-between">
-                <span className="text-xs text-muted-col">
-                  {new Date(cls.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Link
-                    to="/admin/class/$classId"
-                    params={{ classId: cls.id }}
-                    className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition"
-                    title="View Class"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Link>
-                  {cls.status === "ACTIVE" ? (
-                    <button
-                      onClick={() => handleArchiveClick(cls)}
-                      className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition"
-                      title="Archive Class"
+                <div className="col-span-2 flex items-center justify-between">
+                  <span className="text-xs text-muted-col">
+                    {new Date(cls.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Link
+                      to="/admin/class/$classId"
+                      params={{ classId: cls.id }}
+                      className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition"
+                      title="View Class"
                     >
-                      <Archive className="w-4 h-4" />
-                    </button>
-                  ) : cls.status === "ARCHIVED" ? (
-                    <button
-                      onClick={() => handleRestoreClick(cls)}
-                      className="p-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition"
-                      title="Restore Class"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                  ) : null}
+                      <Eye className="w-4 h-4" />
+                    </Link>
+                    {cls.status === "ACTIVE" ? (
+                      <button
+                        onClick={() => handleArchiveClick(cls)}
+                        className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 transition"
+                        title="Archive Class"
+                      >
+                        <Archive className="w-4 h-4" />
+                      </button>
+                    ) : cls.status === "ARCHIVED" ? (
+                      <button
+                        onClick={() => handleRestoreClick(cls)}
+                        className="p-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition"
+                        title="Restore Class"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
         </div>
       </div>
       {/* Success Toast */}
@@ -506,8 +635,10 @@ function ClassManagementPage() {
             <AlertDialogTitle>Archive Class</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to archive this class?
-              <br /><br />
-              Archived classes will no longer accept new students but historical data will be preserved.
+              <br />
+              <br />
+              Archived classes will no longer accept new students but historical data will be
+              preserved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -531,7 +662,8 @@ function ClassManagementPage() {
             <AlertDialogTitle>Restore Class</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to restore this class?
-              <br /><br />
+              <br />
+              <br />
               The class will be returned to active status and can accept new students.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -600,7 +732,7 @@ function ClassManagementPage() {
                 className="w-full px-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col focus:outline-none focus:border-primary/40 transition appearance-none"
               >
                 <option value="">Select a teacher</option>
-                {mockTeachers.map(teacher => (
+                {mockTeachers.map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>
                     {teacher.name} - {teacher.email}
                   </option>

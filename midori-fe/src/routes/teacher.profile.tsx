@@ -2,17 +2,40 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Edit3, BookOpen, GraduationCap, Award, Upload, Clock,
-  FileCheck, Eye, Calendar, MapPin, Globe, Mail, Edit, Save, X,
-  ChevronRight, Users, TrendingUp, CheckCircle, Camera, Trash2,
-  Image as ImageIcon, FileImage, Plus, Loader2, AlertCircle, CheckCheck,
-  Phone, Cake, FileText
+  User,
+  Edit3,
+  BookOpen,
+  GraduationCap,
+  Award,
+  Upload,
+  Clock,
+  FileCheck,
+  Eye,
+  Calendar,
+  MapPin,
+  Globe,
+  Mail,
+  Edit,
+  Save,
+  X,
+  ChevronRight,
+  Users,
+  TrendingUp,
+  CheckCircle,
+  Camera,
+  Trash2,
+  Image as ImageIcon,
+  FileImage,
+  Plus,
+  Loader2,
+  AlertCircle,
+  CheckCheck,
+  Phone,
+  Cake,
+  FileText,
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
-import {
-  teacherCertificatesApi,
-  type TeacherCertificate,
-} from "@/lib/api/teacherCertificates";
+import { teacherCertificatesApi, type TeacherCertificate } from "@/lib/api/teacherCertificates";
 import { ApiError } from "@/lib/api/client";
 import { useAuth, isAvatar } from "@/lib/auth";
 import { uploadAvatar, removeAvatar } from "@/lib/avatar";
@@ -124,7 +147,7 @@ function EditCertModal({
           exit={{ scale: 0.92, opacity: 0, y: 20 }}
           transition={{ duration: 0.2 }}
           className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full mx-4"
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-lg font-display font-black">Edit Certificate</h3>
@@ -143,7 +166,7 @@ function EditCertModal({
               </label>
               <input
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
                 placeholder="e.g. JLPT N1 Certified"
               />
@@ -154,7 +177,7 @@ function EditCertModal({
               </label>
               <input
                 value={issuer}
-                onChange={e => setIssuer(e.target.value)}
+                onChange={(e) => setIssuer(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
                 placeholder="e.g. Japan Foundation"
               />
@@ -163,8 +186,10 @@ function EditCertModal({
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
                 Certificate Image/File (optional)
               </label>
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-3 text-center hover:border-primary/50 transition cursor-pointer"
-                onClick={() => document.getElementById("edit-cert-file-input")?.click()}>
+              <div
+                className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-xl p-3 text-center hover:border-primary/50 transition cursor-pointer"
+                onClick={() => document.getElementById("edit-cert-file-input")?.click()}
+              >
                 <input
                   id="edit-cert-file-input"
                   type="file"
@@ -174,10 +199,18 @@ function EditCertModal({
                 />
                 {filePreview ? (
                   <div className="relative">
-                    <img src={filePreview} alt="Preview" className="w-full h-32 object-contain rounded-lg mx-auto" />
+                    <img
+                      src={filePreview}
+                      alt="Preview"
+                      className="w-full h-32 object-contain rounded-lg mx-auto"
+                    />
                     <button
                       type="button"
-                      onClick={e => { e.stopPropagation(); setSelectedFile(null); setFilePreview(null); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedFile(null);
+                        setFilePreview(null);
+                      }}
                       className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
                     >
                       <X className="w-3 h-3" />
@@ -190,27 +223,35 @@ function EditCertModal({
                     ) : (
                       <ImageIcon className="w-6 h-6 text-primary" />
                     )}
-                    <span className="text-xs text-slate-600 dark:text-slate-300">{selectedFile.name}</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-300">
+                      {selectedFile.name}
+                    </span>
                   </div>
                 ) : isCurrentPdf ? (
                   <div className="flex items-center justify-center gap-2 py-2">
                     <FileText className="w-6 h-6 text-red-400" />
-                    <span className="text-xs text-slate-600 dark:text-slate-300">Current: PDF file</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-300">
+                      Current: PDF file
+                    </span>
                   </div>
                 ) : currentImageUrl ? (
                   <div className="relative">
-                    <img src={currentImageUrl} alt="Current" className="w-full h-32 object-contain rounded-lg mx-auto" />
+                    <img
+                      src={currentImageUrl}
+                      alt="Current"
+                      className="w-full h-32 object-contain rounded-lg mx-auto"
+                    />
                   </div>
                 ) : (
                   <div className="py-2">
                     <Upload className="w-6 h-6 mx-auto text-slate-400 mb-1" />
-                    <span className="text-xs text-slate-500 dark:text-slate-400">Click to select image or PDF (max 5MB)</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      Click to select image or PDF (max 5MB)
+                    </span>
                   </div>
                 )}
               </div>
-              {uploadError && (
-                <p className="text-xs text-red-500 mt-1">{uploadError}</p>
-              )}
+              {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -218,7 +259,7 @@ function EditCertModal({
               </label>
               <textarea
                 value={description}
-                onChange={e => setDescription(e.target.value)}
+                onChange={(e) => setDescription(e.target.value)}
                 rows={2}
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition resize-none"
                 placeholder="Brief description of this certificate..."
@@ -239,7 +280,13 @@ function EditCertModal({
               disabled={!title.trim() || !issuer.trim() || isUploading}
               className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
             >
-              {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : "Save Changes"}
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </button>
           </div>
         </motion.div>
@@ -323,7 +370,7 @@ function AddCertModal({
         exit={{ scale: 0.92, opacity: 0, y: 20 }}
         transition={{ duration: 0.2 }}
         className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full mx-4"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-display font-black">Add Certificate</h3>
@@ -342,7 +389,7 @@ function AddCertModal({
             </label>
             <input
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
               placeholder="e.g. JLPT N1 Certified"
             />
@@ -353,7 +400,7 @@ function AddCertModal({
             </label>
             <input
               value={issuer}
-              onChange={e => setIssuer(e.target.value)}
+              onChange={(e) => setIssuer(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
               placeholder="e.g. Japan Foundation"
             />
@@ -375,10 +422,18 @@ function AddCertModal({
               />
               {filePreview ? (
                 <div className="relative">
-                  <img src={filePreview} alt="Preview" className="w-full h-32 object-contain rounded-lg mx-auto" />
+                  <img
+                    src={filePreview}
+                    alt="Preview"
+                    className="w-full h-32 object-contain rounded-lg mx-auto"
+                  />
                   <button
                     type="button"
-                    onClick={e => { e.stopPropagation(); setSelectedFile(null); setFilePreview(null); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                      setFilePreview(null);
+                    }}
                     className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
                   >
                     <X className="w-3 h-3" />
@@ -391,18 +446,20 @@ function AddCertModal({
                   ) : (
                     <ImageIcon className="w-6 h-6 text-primary" />
                   )}
-                  <span className="text-xs text-slate-600 dark:text-slate-300">{selectedFile.name}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-300">
+                    {selectedFile.name}
+                  </span>
                 </div>
               ) : (
                 <div className="py-2">
                   <Upload className="w-6 h-6 mx-auto text-slate-400 mb-1" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Click to select image or PDF (max 5MB)</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Click to select image or PDF (max 5MB)
+                  </span>
                 </div>
               )}
             </div>
-            {uploadError && (
-              <p className="text-xs text-red-500 mt-1">{uploadError}</p>
-            )}
+            {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
           </div>
           <div>
             <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -410,7 +467,7 @@ function AddCertModal({
             </label>
             <textarea
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value)}
               rows={2}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition resize-none"
               placeholder="Brief description of this certificate..."
@@ -431,7 +488,13 @@ function AddCertModal({
             disabled={!title.trim() || !issuer.trim() || isUploading}
             className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
           >
-            {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : "Add Certificate"}
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
+              </>
+            ) : (
+              "Add Certificate"
+            )}
           </button>
         </div>
       </motion.div>
@@ -455,11 +518,7 @@ function CertCard({
       <div className="relative flex-shrink-0">
         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 relative">
           {cert.imageUrl ? (
-            <img
-              src={cert.imageUrl}
-              alt={cert.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={cert.imageUrl} alt={cert.title} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-1.5">
               <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-400 flex items-center justify-center">
@@ -576,7 +635,9 @@ function TeacherProfilePage() {
     }
   }, [user]);
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const fetchCertificates = useCallback(async () => {
     setCertLoading(true);
@@ -595,13 +656,19 @@ function TeacherProfilePage() {
     }
   }, []);
 
-  useEffect(() => { fetchCertificates(); }, [fetchCertificates]);
+  useEffect(() => {
+    fetchCertificates();
+  }, [fetchCertificates]);
 
   const handleSave = async () => {
     setSaveError(null);
     setSaveSuccess(false);
     setIsProfileSaving(true);
-    if (!editName.trim()) { setSaveError("Display name is required."); setIsProfileSaving(false); return; }
+    if (!editName.trim()) {
+      setSaveError("Display name is required.");
+      setIsProfileSaving(false);
+      return;
+    }
     try {
       const updated = await profileApi.updateMyProfile({
         displayName: editName.trim(),
@@ -674,7 +741,7 @@ function TeacherProfilePage() {
     setCertSuccess(null);
     try {
       const created = await teacherCertificatesApi.createCertificate(cert);
-      setCertificates(prev => [...prev, created]);
+      setCertificates((prev) => [...prev, created]);
       setShowAddCert(false);
       setCertSuccess("Certificate added successfully.");
       setTimeout(() => setCertSuccess(null), 3000);
@@ -701,7 +768,7 @@ function TeacherProfilePage() {
         imageUrl: updated.imageUrl,
         description: updated.description,
       });
-      setCertificates(prev => prev.map(c => c.id === updated.id ? result : c));
+      setCertificates((prev) => prev.map((c) => (c.id === updated.id ? result : c)));
       setEditingCert(null);
       setCertSuccess("Certificate updated successfully.");
       setTimeout(() => setCertSuccess(null), 3000);
@@ -722,7 +789,7 @@ function TeacherProfilePage() {
     setCertSuccess(null);
     try {
       await teacherCertificatesApi.deleteCertificate(id);
-      setCertificates(prev => prev.filter(c => c.id !== id));
+      setCertificates((prev) => prev.filter((c) => c.id !== id));
       setShowRemoveCertConfirm(null);
       setCertSuccess("Certificate removed successfully.");
       setTimeout(() => setCertSuccess(null), 3000);
@@ -760,7 +827,10 @@ function TeacherProfilePage() {
             <AlertCircle className="w-6 h-6 text-red-500" />
           </div>
           <p className="text-sm text-red-500 font-medium">{loadError}</p>
-          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+          <button
+            onClick={fetchProfile}
+            className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition"
+          >
             Retry
           </button>
         </div>
@@ -776,9 +846,16 @@ function TeacherProfilePage() {
           <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto">
             <User className="w-6 h-6 text-slate-400" />
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">No profile data available.</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Please try refreshing the page.</p>
-          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+            No profile data available.
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Please try refreshing the page.
+          </p>
+          <button
+            onClick={fetchProfile}
+            className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition"
+          >
             Retry
           </button>
         </div>
@@ -819,7 +896,13 @@ function TeacherProfilePage() {
                   disabled={isProfileSaving}
                   className="px-3 py-1.5 rounded-lg bg-white text-purple-600 text-xs font-bold backdrop-blur-sm shadow hover:bg-white/90 transition disabled:opacity-60 flex items-center gap-1"
                 >
-                  {isProfileSaving ? <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</> : "Save Changes"}
+                  {isProfileSaving ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </button>
               </>
             ) : (
@@ -887,7 +970,9 @@ function TeacherProfilePage() {
                             ) : (
                               <Upload className="w-4 h-4 flex-shrink-0 text-indigo-500" />
                             )}
-                            <span className="font-medium">{isAvatarSaving ? "Uploading..." : "Change Avatar"}</span>
+                            <span className="font-medium">
+                              {isAvatarSaving ? "Uploading..." : "Change Avatar"}
+                            </span>
                             <input
                               type="file"
                               accept="image/jpeg,image/png,image/webp"
@@ -899,7 +984,10 @@ function TeacherProfilePage() {
                           {hasCustomAvatar && (
                             <button
                               disabled={isAvatarSaving}
-                              onClick={() => { setShowRemoveConfirm(true); setShowAvatarMenu(false); }}
+                              onClick={() => {
+                                setShowRemoveConfirm(true);
+                                setShowAvatarMenu(false);
+                              }}
                               className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition disabled:opacity-50"
                             >
                               <Trash2 className="w-4 h-4 flex-shrink-0" />
@@ -907,7 +995,9 @@ function TeacherProfilePage() {
                             </button>
                           )}
                           {avatarError && (
-                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">{avatarError}</p>
+                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">
+                              {avatarError}
+                            </p>
                           )}
                         </motion.div>
                       )}
@@ -921,7 +1011,7 @@ function TeacherProfilePage() {
                 {editing ? (
                   <input
                     value={editName}
-                    onChange={e => setEditName(e.target.value)}
+                    onChange={(e) => setEditName(e.target.value)}
                     className="text-2xl font-display font-black bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1 outline-none focus:ring-2 focus:ring-primary/40 w-full text-center sm:text-left mb-1"
                   />
                 ) : (
@@ -948,19 +1038,21 @@ function TeacherProfilePage() {
                   )}
                   {profile?.dateOfBirth && (
                     <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                      <Cake className="w-3 h-3" /> {new Date(profile.dateOfBirth).toLocaleDateString()}
+                      <Cake className="w-3 h-3" />{" "}
+                      {new Date(profile.dateOfBirth).toLocaleDateString()}
                     </span>
                   )}
                   {profile?.createdAt && (
                     <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                      <Calendar className="w-3 h-3" /> Joined {new Date(profile.createdAt).toLocaleDateString()}
+                      <Calendar className="w-3 h-3" /> Joined{" "}
+                      {new Date(profile.createdAt).toLocaleDateString()}
                     </span>
                   )}
                 </div>
                 {editing ? (
                   <textarea
                     value={editBio}
-                    onChange={e => setEditBio(e.target.value)}
+                    onChange={(e) => setEditBio(e.target.value)}
                     rows={2}
                     className="mt-2 w-full max-w-lg text-sm bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40 resize-none text-center sm:text-left"
                     placeholder="Tell us about yourself..."
@@ -973,19 +1065,39 @@ function TeacherProfilePage() {
                 {editing && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     <div>
-                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Location</label>
-                      <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" placeholder="Location" />
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={editLocation}
+                        onChange={(e) => setEditLocation(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36"
+                        placeholder="Location"
+                      />
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Phone</label>
-                      <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" placeholder="+84..." />
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36"
+                        placeholder="+84..."
+                      />
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">Date of Birth</label>
-                      <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36" />
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-1">
+                        Date of Birth
+                      </label>
+                      <input
+                        type="date"
+                        value={editDateOfBirth}
+                        onChange={(e) => setEditDateOfBirth(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-xs outline-none focus:ring-2 focus:ring-primary/40 w-36"
+                      />
                     </div>
                   </div>
                 )}
@@ -1048,12 +1160,12 @@ function TeacherProfilePage() {
         {/* Certificate list */}
         {!certLoading && !certError && (
           <div className="space-y-2.5">
-            {certificates.map(cert => (
+            {certificates.map((cert) => (
               <CertCard
                 key={cert.id}
                 cert={cert}
                 onEdit={setEditingCert}
-                onRemove={id => setShowRemoveCertConfirm(id)}
+                onRemove={(id) => setShowRemoveCertConfirm(id)}
               />
             ))}
             {certificates.length === 0 && (
@@ -1104,7 +1216,7 @@ function TeacherProfilePage() {
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full mx-4"
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-4">
                 <Trash2 className="w-6 h-6 text-red-500" />
@@ -1125,7 +1237,13 @@ function TeacherProfilePage() {
                   disabled={isAvatarSaving}
                   className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1"
                 >
-                  {isAvatarSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Removing...</> : "Remove"}
+                  {isAvatarSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Removing...
+                    </>
+                  ) : (
+                    "Remove"
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -1149,12 +1267,14 @@ function TeacherProfilePage() {
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full mx-4"
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-4">
                 <Trash2 className="w-6 h-6 text-red-500" />
               </div>
-              <h3 className="text-lg font-display font-black text-center mb-2">Remove Certificate?</h3>
+              <h3 className="text-lg font-display font-black text-center mb-2">
+                Remove Certificate?
+              </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
                 This certificate will be permanently removed from your profile.
               </p>

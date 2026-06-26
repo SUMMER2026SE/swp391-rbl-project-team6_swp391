@@ -2,8 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronLeft, CheckCircle2, XCircle, Trophy, RotateCcw,
-  BookOpen, Clock, Send, X
+  ChevronLeft,
+  CheckCircle2,
+  XCircle,
+  Trophy,
+  RotateCcw,
+  BookOpen,
+  Clock,
+  Send,
+  X,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { getReadingById } from "@/mock/reading";
@@ -77,7 +84,7 @@ function ReadingDetailPage() {
       { word: "朝", reading: "あさ", meaning: "morning", partOfSpeech: "noun" },
       { word: "起きる", reading: "おきる", meaning: "to wake up", partOfSpeech: "verb" },
     ];
-    return commonWords.filter(v => reading.passageText.includes(v.word));
+    return commonWords.filter((v) => reading.passageText.includes(v.word));
   }, [reading]);
 
   // Calculate score
@@ -167,7 +174,7 @@ function ReadingDetailPage() {
     setQuizState("testing");
   };
 
-  const answeredCount = selectedAnswers.filter(a => a !== null).length;
+  const answeredCount = selectedAnswers.filter((a) => a !== null).length;
   const allAnswered = answeredCount === questions.length;
 
   return (
@@ -187,7 +194,9 @@ function ReadingDetailPage() {
                 </Link>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${levelColors[reading.jlptLevel]}`}>
+                    <span
+                      className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${levelColors[reading.jlptLevel]}`}
+                    >
                       {reading.jlptLevel}
                     </span>
                     <h1 className="font-display font-bold text-slate-800 dark:text-white text-sm">
@@ -200,8 +209,7 @@ function ReadingDetailPage() {
                       {wordCount} words
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      ~{reading.estimatedTime} min
+                      <Clock className="w-3 h-3" />~{reading.estimatedTime} min
                     </span>
                   </div>
                 </div>
@@ -215,7 +223,7 @@ function ReadingDetailPage() {
                       {answeredCount}/{questions.length} câu
                     </span>
                     <div className="w-32 h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-linear-to-r from-blue-400 to-pink-400 transition-all"
                         style={{ width: `${(answeredCount / questions.length) * 100}%` }}
                       />
@@ -234,49 +242,47 @@ function ReadingDetailPage() {
         {/* Main Content */}
         <div className="max-w-[1800px] mx-auto">
           <div className="flex min-h-[calc(100vh-140px)]">
-            
             {/* LEFT - Reading Passage */}
             <div className="lg:w-1/2 lg:border-r border-slate-200 dark:border-white/10">
               <div className="sticky top-[140px] h-[calc(100vh-140px)] overflow-y-auto">
                 <div className="p-6 lg:p-8 space-y-6">
-                  
                   {/* Section Header */}
                   <div>
                     <h2 className="text-lg font-display font-bold text-slate-800 dark:text-white mb-1">
                       Bài đọc
                     </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Bôi đen từ để xem nghĩa
-                    </p>
+                    <p className="text-xs text-muted-foreground">Bôi đen từ để xem nghĩa</p>
                   </div>
 
                   {/* Japanese Text */}
                   <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
-                    <p 
+                    <p
                       className="text-lg leading-loose text-slate-800 dark:text-slate-100 whitespace-pre-wrap font-medium"
                       style={{ fontFamily: "var(--font-japanese, serif)" }}
                     >
-                      {reading.passageText.split(/((?:[^\s。、！？「」『』（）〔〕【】\n]+))/g).map((segment, i) => {
-                        const vocabItem = vocabulary.find(v => v.word === segment);
-                        if (vocabItem) {
-                          return (
-                            <span
-                              key={i}
-                              onClick={(e) => handleVocabClick(vocabItem, e)}
-                              className="inline-block px-1 py-0.5 -mx-1 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
-                            >
-                              {segment}
-                            </span>
-                          );
-                        }
-                        return segment;
-                      })}
+                      {reading.passageText
+                        .split(/((?:[^\s。、！？「」『』（）〔〕【】\n]+))/g)
+                        .map((segment, i) => {
+                          const vocabItem = vocabulary.find((v) => v.word === segment);
+                          if (vocabItem) {
+                            return (
+                              <span
+                                key={i}
+                                onClick={(e) => handleVocabClick(vocabItem, e)}
+                                className="inline-block px-1 py-0.5 -mx-1 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
+                              >
+                                {segment}
+                              </span>
+                            );
+                          }
+                          return segment;
+                        })}
                     </p>
                   </div>
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-2">
-                    {reading.tags.map(tag => (
+                    {reading.tags.map((tag) => (
                       <span
                         key={tag}
                         className="px-3 py-1 rounded-full bg-pink-50 dark:bg-pink-900/30 text-pink-500 dark:text-pink-300 text-xs font-medium"
@@ -292,7 +298,6 @@ function ReadingDetailPage() {
             {/* RIGHT - Questions */}
             <div className="lg:w-1/2 bg-slate-50/50 dark:bg-slate-800/30">
               <div className="p-6 lg:p-8 overflow-y-auto" style={{ height: "calc(100vh - 140px)" }}>
-                
                 {quizState === "testing" ? (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
@@ -304,7 +309,10 @@ function ReadingDetailPage() {
                     {/* Questions */}
                     <div className="space-y-4">
                       {questions.map((q, qIndex) => (
-                        <div key={q.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <div
+                          key={q.id}
+                          className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm"
+                        >
                           <div className="flex items-start gap-3 mb-4">
                             <span className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center text-sm font-bold shrink-0">
                               {qIndex + 1}
@@ -328,13 +336,19 @@ function ReadingDetailPage() {
                                   }`}
                                 >
                                   <div className="flex items-center gap-3">
-                                    <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
-                                      isSelected ? "border-blue-500 bg-blue-500 text-white" : "border-slate-300 dark:border-slate-500"
-                                    }`}>
+                                    <span
+                                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${
+                                        isSelected
+                                          ? "border-blue-500 bg-blue-500 text-white"
+                                          : "border-slate-300 dark:border-slate-500"
+                                      }`}
+                                    >
                                       {String.fromCharCode(65 + oIndex)}
                                     </span>
                                     <span className="flex-1">{option}</span>
-                                    {isSelected && <CheckCircle2 className="w-5 h-5 text-blue-500" />}
+                                    {isSelected && (
+                                      <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                                    )}
                                   </div>
                                 </button>
                               );
@@ -387,19 +401,17 @@ function ReadingDetailPage() {
 
                     {/* Answer Review */}
                     <div className="space-y-3">
-                      <h3 className="font-bold text-slate-800 dark:text-white text-sm">
-                        Đáp án
-                      </h3>
-                      
+                      <h3 className="font-bold text-slate-800 dark:text-white text-sm">Đáp án</h3>
+
                       {questions.map((q, qIndex) => {
                         const userAnswer = selectedAnswers[qIndex];
                         const isCorrect = userAnswer === q.correctAnswer;
                         return (
-                          <div 
-                            key={q.id} 
+                          <div
+                            key={q.id}
                             className={`rounded-2xl p-4 border ${
-                              isCorrect 
-                                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800" 
+                              isCorrect
+                                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
                                 : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
                             }`}
                           >
@@ -414,12 +426,20 @@ function ReadingDetailPage() {
                                   Câu {qIndex + 1}
                                 </p>
                                 <div className="text-xs space-y-0.5">
-                                  <p className={isCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
-                                    <span className="font-medium">Bạn chọn:</span> {q.options[userAnswer ?? 0] || "—"}
+                                  <p
+                                    className={
+                                      isCorrect
+                                        ? "text-emerald-600 dark:text-emerald-400"
+                                        : "text-red-600 dark:text-red-400"
+                                    }
+                                  >
+                                    <span className="font-medium">Bạn chọn:</span>{" "}
+                                    {q.options[userAnswer ?? 0] || "—"}
                                   </p>
                                   {!isCorrect && (
                                     <p className="text-emerald-600 dark:text-emerald-400">
-                                      <span className="font-medium">Đáp án đúng:</span> {q.options[q.correctAnswer]}
+                                      <span className="font-medium">Đáp án đúng:</span>{" "}
+                                      {q.options[q.correctAnswer]}
                                     </p>
                                   )}
                                 </div>
@@ -472,7 +492,10 @@ function ReadingDetailPage() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/20 p-4 w-72">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                  <h4
+                    className="text-lg font-bold text-slate-800 dark:text-white"
+                    style={{ fontFamily: "var(--font-japanese, serif)" }}
+                  >
                     {selectedWordData.word}
                   </h4>
                   <p className="text-sm text-muted-foreground">[{selectedWordData.reading}]</p>
@@ -484,7 +507,7 @@ function ReadingDetailPage() {
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
-              
+
               <div className="space-y-2">
                 <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-xs font-medium">
                   {selectedWordData.partOfSpeech}

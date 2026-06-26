@@ -29,18 +29,12 @@ function ResetPasswordPage() {
 
   const token =
     typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("token") ?? ""
+      ? (new URLSearchParams(window.location.search).get("token") ?? "")
       : "";
 
   const s = strength(password);
   const labels = ["Too weak", "Weak", "Okay", "Strong", "Excellent"];
-  const colors = [
-    "bg-destructive",
-    "bg-jp-red",
-    "bg-yellow-500",
-    "bg-sky-blue",
-    "bg-primary",
-  ];
+  const colors = ["bg-destructive", "bg-jp-red", "bg-yellow-500", "bg-sky-blue", "bg-primary"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,10 +63,7 @@ function ResetPasswordPage() {
   };
 
   return (
-    <AuthShell
-      title="Create new password"
-      subtitle="Make it strong — at least 8 characters."
-    >
+    <AuthShell title="Create new password" subtitle="Make it strong — at least 8 characters.">
       <form onSubmit={handleSubmit} className="space-y-3.5">
         <Field
           label="New password"
@@ -88,11 +79,7 @@ function ResetPasswordPage() {
               onClick={() => setShowPassword((v) => !v)}
               className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
             >
-              {showPassword ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           }
         />
@@ -100,9 +87,7 @@ function ResetPasswordPage() {
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className={`h-1.5 flex-1 rounded-full ${
-                i < s ? colors[s - 1] : "bg-muted"
-              }`}
+              className={`h-1.5 flex-1 rounded-full ${i < s ? colors[s - 1] : "bg-muted"}`}
             />
           ))}
         </div>
@@ -122,11 +107,7 @@ function ResetPasswordPage() {
               onClick={() => setShowConfirm((v) => !v)}
               className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-0.5"
             >
-              {showConfirm ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
+              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           }
         />
@@ -138,17 +119,10 @@ function ResetPasswordPage() {
             {err}
           </div>
         )}
-        <PrimaryBtn
-          type="submit"
-          disabled={!password || password !== confirm || s < 2 || loading}
-        >
+        <PrimaryBtn type="submit" disabled={!password || password !== confirm || s < 2 || loading}>
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <svg
-                className="animate-spin w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <circle
                   className="opacity-25"
                   cx="12"

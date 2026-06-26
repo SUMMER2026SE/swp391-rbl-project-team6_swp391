@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +18,12 @@ interface CreateLessonDialogProps {
   defaultClassId?: string;
 }
 
-export function CreateLessonDialog({ open, onOpenChange, onCreated, defaultClassId }: CreateLessonDialogProps) {
+export function CreateLessonDialog({
+  open,
+  onOpenChange,
+  onCreated,
+  defaultClassId,
+}: CreateLessonDialogProps) {
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,7 +61,9 @@ export function CreateLessonDialog({ open, onOpenChange, onCreated, defaultClass
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button onClick={handleCreate} disabled={submitting || !title.trim()}>
             {submitting ? "Creating..." : "Create Lesson"}
           </Button>

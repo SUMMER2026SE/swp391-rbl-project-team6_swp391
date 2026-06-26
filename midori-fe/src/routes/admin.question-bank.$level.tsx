@@ -20,8 +20,16 @@ import type { JLPTLevel } from "../services/questionBank.types";
 
 function StatusBadge({ status }: { status: "Active" | "Draft" }) {
   const configs = {
-    Active: { label: "Active", color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
-    Draft: { label: "Draft", color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
+    Active: {
+      label: "Active",
+      color: "text-[var(--status-active)]",
+      bg: "bg-[var(--status-active)]",
+    },
+    Draft: {
+      label: "Draft",
+      color: "text-[var(--status-pending)]",
+      bg: "bg-[var(--status-pending)]",
+    },
   };
   const cfg = configs[status];
   return (
@@ -52,7 +60,9 @@ function QuestionBankLessonListPage() {
     console.log(`[QB] LOAD: Fetching lessons and questions for ${level}`);
     const loadedLessons = questionBankService.getLessons(level);
     const loadedQuestions = questionBankService.getAllQuestions(level);
-    console.log(`[QB] LOAD: Got ${loadedLessons.length} lessons, ${loadedQuestions.length} questions`);
+    console.log(
+      `[QB] LOAD: Got ${loadedLessons.length} lessons, ${loadedQuestions.length} questions`,
+    );
     setLessons(loadedLessons);
     setQuestions(loadedQuestions);
     setIsLoading(false);
@@ -66,13 +76,16 @@ function QuestionBankLessonListPage() {
   useEffect(() => {
     if (!isLoading) {
       console.log(`[QB] RENDER: lessons=${lessons.length}, questions=${questions.length}`);
-      console.log(`[QB] RENDER: Lesson IDs:`, lessons.map(l => l.id));
+      console.log(
+        `[QB] RENDER: Lesson IDs:`,
+        lessons.map((l) => l.id),
+      );
     }
   }, [lessons, questions, isLoading]);
 
   // Calculate question count per lesson
   const getLessonStats = (lessonId: number) => {
-    return questions.filter(q => q.lesson === lessonId).length;
+    return questions.filter((q) => q.lesson === lessonId).length;
   };
 
   const totalQuestionsForLevel = questions;
@@ -98,7 +111,7 @@ function QuestionBankLessonListPage() {
     console.log(`[QB] CREATE: Creating lesson ${lessonNum} - ${newLessonName}`);
     setIsCreating(true);
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     questionBankService.createLesson(level, newLessonName.trim(), lessonNum);
 
@@ -130,8 +143,8 @@ function QuestionBankLessonListPage() {
   return (
     <div className="space-y-5">
       {/* Back Button - Left aligned */}
-      <Link 
-        to="/admin/question-bank" 
+      <Link
+        to="/admin/question-bank"
         className="inline-flex items-center gap-2 text-sm text-muted-col hover:text-primary-col transition"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -164,7 +177,9 @@ function QuestionBankLessonListPage() {
             <BookOpen className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Lessons</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Total Lessons
+            </p>
             <p className="font-display font-black text-lg text-primary-col">{lessons.length}</p>
           </div>
         </div>
@@ -173,8 +188,12 @@ function QuestionBankLessonListPage() {
             <BookOpen className="w-5 h-5 text-[var(--status-active)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Questions</p>
-            <p className="font-display font-black text-lg text-primary-col">{totalQuestionsForLevel.length}</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Total Questions
+            </p>
+            <p className="font-display font-black text-lg text-primary-col">
+              {totalQuestionsForLevel.length}
+            </p>
           </div>
         </div>
         <div className="card-base p-4 flex items-center gap-3">
@@ -182,8 +201,12 @@ function QuestionBankLessonListPage() {
             <BookOpen className="w-5 h-5 text-[var(--status-pending)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Active Lessons</p>
-            <p className="font-display font-black text-lg text-primary-col">{lessons.filter(l => getLessonStats(l.id) > 0).length}</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Active Lessons
+            </p>
+            <p className="font-display font-black text-lg text-primary-col">
+              {lessons.filter((l) => getLessonStats(l.id) > 0).length}
+            </p>
           </div>
         </div>
         <div className="card-base p-4 flex items-center gap-3">
@@ -191,7 +214,9 @@ function QuestionBankLessonListPage() {
             <BookOpen className="w-5 h-5 text-purple-500" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Memory Only</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Memory Only
+            </p>
             <p className="font-display font-black text-lg text-primary-col">No DB</p>
           </div>
         </div>
@@ -206,7 +231,9 @@ function QuestionBankLessonListPage() {
         <div className="card-base p-12 flex flex-col items-center justify-center">
           <BookOpen className="w-12 h-12 text-[var(--status-pending)]/40 mb-3" />
           <h3 className="text-primary-col font-semibold text-sm">No lessons yet</h3>
-          <p className="text-secondary-col text-xs mt-1">Create your first lesson to start adding questions</p>
+          <p className="text-secondary-col text-xs mt-1">
+            Create your first lesson to start adding questions
+          </p>
           <button
             onClick={() => setShowCreateModal(true)}
             className="mt-4 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
@@ -218,10 +245,18 @@ function QuestionBankLessonListPage() {
         <div className="card-base overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">Lesson</div>
-            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Questions</div>
-            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Status</div>
-            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">Actions</div>
+            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Lesson
+            </div>
+            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Questions
+            </div>
+            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Status
+            </div>
+            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Actions
+            </div>
           </div>
           {/* Table Rows */}
           <div className="divide-y divide-[var(--border)]">
@@ -248,7 +283,11 @@ function QuestionBankLessonListPage() {
                   </div>
                   <div className="col-span-3 flex justify-end gap-2">
                     <button
-                      onClick={() => navigate({ to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lesson.id}` })}
+                      onClick={() =>
+                        navigate({
+                          to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lesson.id}`,
+                        })
+                      }
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -286,14 +325,16 @@ function QuestionBankLessonListPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="relative z-10 w-full max-w-md glass-modal rounded-2xl shadow-2xl overflow-hidden"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b separator">
-                <h2 className="font-display font-bold text-primary-col text-base">Create New Lesson</h2>
-                <button 
-                  onClick={() => setShowCreateModal(false)} 
+                <h2 className="font-display font-bold text-primary-col text-base">
+                  Create New Lesson
+                </h2>
+                <button
+                  onClick={() => setShowCreateModal(false)}
                   disabled={isCreating}
                   className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition disabled:opacity-50"
                 >
@@ -304,7 +345,9 @@ function QuestionBankLessonListPage() {
               {/* Content */}
               <div className="p-6 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Lesson Number</label>
+                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                    Lesson Number
+                  </label>
                   <input
                     type="number"
                     value={newLessonNumber}
@@ -316,7 +359,9 @@ function QuestionBankLessonListPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Lesson Name</label>
+                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                    Lesson Name
+                  </label>
                   <input
                     type="text"
                     value={newLessonName}
@@ -361,10 +406,13 @@ function QuestionBankLessonListPage() {
       </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => {
-        setShowDeleteConfirm(open);
-        if (!open) setDeleteLessonId(null);
-      }}>
+      <AlertDialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open);
+          if (!open) setDeleteLessonId(null);
+        }}
+      >
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-2">
@@ -372,11 +420,14 @@ function QuestionBankLessonListPage() {
             </div>
             <AlertDialogTitle className="text-center">Delete Lesson</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Are you sure you want to delete this lesson? All questions in this lesson will also be deleted. This action cannot be undone.
+              Are you sure you want to delete this lesson? All questions in this lesson will also be
+              deleted. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteLesson}
               className="bg-red-500 hover:bg-red-600 text-white"

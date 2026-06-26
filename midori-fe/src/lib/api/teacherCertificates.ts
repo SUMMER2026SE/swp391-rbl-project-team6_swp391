@@ -29,8 +29,7 @@ export interface UpdateCertificateRequest {
 }
 
 export const teacherCertificatesApi = {
-  listCertificates: () =>
-    api.get<TeacherCertificate[]>("/teacher/certificates"),
+  listCertificates: () => api.get<TeacherCertificate[]>("/teacher/certificates"),
 
   getCertificate: (id: number | string) =>
     api.get<TeacherCertificate>(`/teacher/certificates/${id}`),
@@ -41,6 +40,5 @@ export const teacherCertificatesApi = {
   updateCertificate: (id: number | string, data: UpdateCertificateRequest) =>
     api.put<TeacherCertificate>(`/teacher/certificates/${id}`, data),
 
-  deleteCertificate: (id: number | string) =>
-    api.delete<void>(`/teacher/certificates/${id}`),
+  deleteCertificate: (id: number | string) => api.delete<void>(`/teacher/certificates/${id}`),
 };

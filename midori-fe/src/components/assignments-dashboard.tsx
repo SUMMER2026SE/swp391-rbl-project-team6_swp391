@@ -1,6 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { PageHeader, Card } from "@/components/page-ui";
-import { ClipboardList, Clock, Calendar, AlertCircle, CheckCircle2, FileSpreadsheet, Play, Check, Eye } from "lucide-react";
+import {
+  ClipboardList,
+  Clock,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
+  FileSpreadsheet,
+  Play,
+  Check,
+  Eye,
+} from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DoingAssignmentWorkspace } from "@/components/student/class-detail/DoingAssignmentWorkspace";
@@ -20,7 +30,11 @@ export interface Assignment {
   feedback?: string;
 }
 
-export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homework" | "upcoming" | "overdue" | "submitted" | "graded" }) {
+export function AssignmentsDashboard({
+  activeTab,
+}: {
+  activeTab: "all" | "homework" | "upcoming" | "overdue" | "submitted" | "graded";
+}) {
   const [assignments, setAssignments] = useState<Assignment[]>([
     {
       id: "a-1",
@@ -82,8 +96,8 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
       maxScore: 100,
       status: "Graded",
       score: 95,
-      feedback: "Excellent work! You mastered the particle usages perfectly."
-    }
+      feedback: "Excellent work! You mastered the particle usages perfectly.",
+    },
   ]);
 
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
@@ -102,8 +116,16 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
   // Filtering assignments based on the tab
   const filteredAssignments = assignments.filter((asg) => {
     if (activeTab === "all") return true;
-    if (activeTab === "homework") return asg.type === "Homework" && (asg.status === "Not Started" || asg.status === "In Progress" || asg.status === "Overdue");
-    if (activeTab === "upcoming") return asg.type === "Upcoming" || asg.status === "Not Started" && asg.assignedDate >= "2026-06-18";
+    if (activeTab === "homework")
+      return (
+        asg.type === "Homework" &&
+        (asg.status === "Not Started" || asg.status === "In Progress" || asg.status === "Overdue")
+      );
+    if (activeTab === "upcoming")
+      return (
+        asg.type === "Upcoming" ||
+        (asg.status === "Not Started" && asg.assignedDate >= "2026-06-18")
+      );
     if (activeTab === "overdue") return asg.status === "Overdue";
     if (activeTab === "submitted") return asg.status === "Submitted";
     if (activeTab === "graded") return asg.status === "Graded";
@@ -112,25 +134,25 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
 
   // Action Handlers
   const handleStart = (id: string) => {
-    setAssignments(prev =>
-      prev.map(asg => (asg.id === id ? { ...asg, status: "In Progress" } : asg))
+    setAssignments((prev) =>
+      prev.map((asg) => (asg.id === id ? { ...asg, status: "In Progress" } : asg)),
     );
-    const target = assignments.find(a => a.id === id);
+    const target = assignments.find((a) => a.id === id);
     if (target) {
       setDoingAssignment({ ...target, status: "In Progress" });
     }
   };
 
   const handleResume = (id: string) => {
-    const target = assignments.find(a => a.id === id);
+    const target = assignments.find((a) => a.id === id);
     if (target) {
       setDoingAssignment(target);
     }
   };
 
   const handleSubmit = (id: string) => {
-    setAssignments(prev =>
-      prev.map(asg => (asg.id === id ? { ...asg, status: "Submitted" } : asg))
+    setAssignments((prev) =>
+      prev.map((asg) => (asg.id === id ? { ...asg, status: "Submitted" } : asg)),
     );
     setDoingAssignment(null);
     setSelectedAssignment(null);
@@ -158,7 +180,7 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
           id: doingAssignment.id,
           title: doingAssignment.title,
           timeLimit: doingAssignment.timeLimit,
-          maxScore: doingAssignment.maxScore
+          maxScore: doingAssignment.maxScore,
         }}
         onClose={() => setDoingAssignment(null)}
         onSubmit={(id) => handleSubmit(id)}
@@ -183,7 +205,7 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
               "px-4 py-2 text-sm font-semibold border-b-2 transition-all whitespace-nowrap",
               tab.key === activeTab
                 ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
             {tab.label}
@@ -194,15 +216,25 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
       {/* Cards list */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAssignments.map((asg) => (
-          <Card key={asg.id} className="p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <Card
+            key={asg.id}
+            className="p-5 flex flex-col justify-between hover:shadow-md transition-shadow"
+          >
             <div>
               <div className="flex justify-between items-start mb-3">
-                <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-bold", getStatusStyle(asg.status))}>
+                <span
+                  className={cn(
+                    "px-2.5 py-0.5 rounded-full text-[10px] font-bold",
+                    getStatusStyle(asg.status),
+                  )}
+                >
                   {asg.status}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-semibold">{asg.type}</span>
               </div>
-              <h3 className="font-display font-bold text-base text-foreground mb-3 line-clamp-2">{asg.title}</h3>
+              <h3 className="font-display font-bold text-base text-foreground mb-3 line-clamp-2">
+                {asg.title}
+              </h3>
 
               <div className="space-y-2 mb-6 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
@@ -214,16 +246,22 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
                   <span>Deadline: {asg.deadline}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-[10px] uppercase tracking-wider text-primary">Limit</span>
+                  <span className="font-bold text-[10px] uppercase tracking-wider text-primary">
+                    Limit
+                  </span>
                   <span>Time Limit: {asg.timeLimit}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-[10px] uppercase tracking-wider text-primary">Score</span>
+                  <span className="font-bold text-[10px] uppercase tracking-wider text-primary">
+                    Score
+                  </span>
                   <span>Max Score: {asg.maxScore}</span>
                 </div>
                 {asg.status === "Graded" && (
                   <div className="flex items-center gap-1.5 mt-2 text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-lg">
-                    <span>Score Earned: {asg.score} / {asg.maxScore}</span>
+                    <span>
+                      Score Earned: {asg.score} / {asg.maxScore}
+                    </span>
                   </div>
                 )}
               </div>
@@ -281,26 +319,54 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
 
       {/* Details Modal */}
       {selectedAssignment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/60" onClick={() => setSelectedAssignment(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-black/60"
+          onClick={() => setSelectedAssignment(null)}
+        >
           <Card className="max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-start">
               <div>
-                <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", getStatusStyle(selectedAssignment.status))}>
+                <span
+                  className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                    getStatusStyle(selectedAssignment.status),
+                  )}
+                >
                   {selectedAssignment.status}
                 </span>
-                <h3 className="font-display font-black text-lg text-foreground mt-2">{selectedAssignment.title}</h3>
+                <h3 className="font-display font-black text-lg text-foreground mt-2">
+                  {selectedAssignment.title}
+                </h3>
               </div>
-              <button onClick={() => setSelectedAssignment(null)} className="text-muted-foreground hover:text-foreground text-sm">Close</button>
+              <button
+                onClick={() => setSelectedAssignment(null)}
+                className="text-muted-foreground hover:text-foreground text-sm"
+              >
+                Close
+              </button>
             </div>
 
             <div className="space-y-2 text-xs text-muted-foreground border-y border-border/50 py-3">
-              <p><strong>Type:</strong> {selectedAssignment.type}</p>
-              <p><strong>Assigned:</strong> {selectedAssignment.assignedDate}</p>
-              <p><strong>Deadline:</strong> {selectedAssignment.deadline}</p>
-              <p><strong>Time Limit:</strong> {selectedAssignment.timeLimit}</p>
-              <p><strong>Maximum Score:</strong> {selectedAssignment.maxScore}</p>
+              <p>
+                <strong>Type:</strong> {selectedAssignment.type}
+              </p>
+              <p>
+                <strong>Assigned:</strong> {selectedAssignment.assignedDate}
+              </p>
+              <p>
+                <strong>Deadline:</strong> {selectedAssignment.deadline}
+              </p>
+              <p>
+                <strong>Time Limit:</strong> {selectedAssignment.timeLimit}
+              </p>
+              <p>
+                <strong>Maximum Score:</strong> {selectedAssignment.maxScore}
+              </p>
               {selectedAssignment.score !== undefined && (
-                <p className="text-emerald-600 dark:text-emerald-400 font-bold"><strong>Score Earned:</strong> {selectedAssignment.score} / {selectedAssignment.maxScore}</p>
+                <p className="text-emerald-600 dark:text-emerald-400 font-bold">
+                  <strong>Score Earned:</strong> {selectedAssignment.score} /{" "}
+                  {selectedAssignment.maxScore}
+                </p>
               )}
             </div>
 
@@ -320,7 +386,10 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
               </button>
               {selectedAssignment.status === "Not Started" && (
                 <button
-                  onClick={() => { handleStart(selectedAssignment.id); setSelectedAssignment(null); }}
+                  onClick={() => {
+                    handleStart(selectedAssignment.id);
+                    setSelectedAssignment(null);
+                  }}
                   className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow hover:bg-primary/95"
                 >
                   Start Assignment
@@ -328,7 +397,10 @@ export function AssignmentsDashboard({ activeTab }: { activeTab: "all" | "homewo
               )}
               {selectedAssignment.status === "In Progress" && (
                 <button
-                  onClick={() => { handleResume(selectedAssignment.id); setSelectedAssignment(null); }}
+                  onClick={() => {
+                    handleResume(selectedAssignment.id);
+                    setSelectedAssignment(null);
+                  }}
                   className="px-4 py-2 rounded-xl bg-amber-500 text-white font-bold text-xs shadow hover:bg-amber-600"
                 >
                   Resume

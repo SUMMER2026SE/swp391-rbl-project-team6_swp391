@@ -2,10 +2,28 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Users, BookOpen, TrendingUp, Award, CheckCircle,
-  Clock, BarChart3, Calendar, Eye
+  ArrowLeft,
+  Users,
+  BookOpen,
+  TrendingUp,
+  Award,
+  CheckCircle,
+  Clock,
+  BarChart3,
+  Calendar,
+  Eye,
 } from "lucide-react";
-import { AreaChart, Area, BarChart, Bar, Tooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  Tooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -86,7 +104,7 @@ const AVATAR_COLORS = [
 function getAvatarColor(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash = (hash << 5) - hash + id.charCodeAt(i);
     hash |= 0;
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
@@ -102,7 +120,11 @@ function TeacherAnalyticsPage() {
   const { teacherId } = Route.useParams();
   const [teacher] = useState<TeacherInfo>(mockTeacher);
 
-  const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+  const initials = teacher.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2);
 
   // Find best and lowest performing classes
   const sortedByScore = [...classPerformance].sort((a, b) => b.avgScore - a.avgScore);
@@ -114,16 +136,24 @@ function TeacherAnalyticsPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <Link to="/admin/teachers/$teacherId" params={{ teacherId }} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary hover:bg-accent transition">
+          <Link
+            to="/admin/teachers/$teacherId"
+            params={{ teacherId }}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary hover:bg-accent transition"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
+              <div
+                className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}
+              >
                 {initials}
               </div>
               <div>
-                <h1 className="text-2xl font-display font-black text-primary-col">Teacher Analytics</h1>
+                <h1 className="text-2xl font-display font-black text-primary-col">
+                  Teacher Analytics
+                </h1>
                 <p className="text-sm text-secondary-col">{teacher.name}</p>
               </div>
             </div>
@@ -155,7 +185,9 @@ function TeacherAnalyticsPage() {
             <Users className="w-5 h-5 text-blue-500" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Students</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Students
+            </p>
             <p className="font-display font-black text-lg text-primary-col">96</p>
           </div>
         </div>
@@ -164,7 +196,9 @@ function TeacherAnalyticsPage() {
             <Award className="w-5 h-5 text-[oklch(0.62_0.18_270)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Avg Score</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Avg Score
+            </p>
             <p className="font-display font-black text-lg text-primary-col">82%</p>
           </div>
         </div>
@@ -173,7 +207,9 @@ function TeacherAnalyticsPage() {
             <CheckCircle className="w-5 h-5 text-[var(--status-active)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Completion</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Completion
+            </p>
             <p className="font-display font-black text-lg text-primary-col">88%</p>
           </div>
         </div>
@@ -182,7 +218,9 @@ function TeacherAnalyticsPage() {
             <Clock className="w-5 h-5 text-purple-500" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Attendance</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Attendance
+            </p>
             <p className="font-display font-black text-lg text-primary-col">93%</p>
           </div>
         </div>
@@ -191,7 +229,9 @@ function TeacherAnalyticsPage() {
             <TrendingUp className="w-5 h-5 text-green-500" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Homework</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Homework
+            </p>
             <p className="font-display font-black text-lg text-primary-col">87%</p>
           </div>
         </div>
@@ -200,7 +240,11 @@ function TeacherAnalyticsPage() {
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-5">
         {/* Student Progress Over Time */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-5">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card-base p-5"
+        >
           <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-primary" /> Student Progress Over Time
           </h2>
@@ -220,17 +264,50 @@ function TeacherAnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--muted-col)" }} />
                 <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "var(--muted-col)" }} />
-                <YAxis yAxisId="right" orientation="right" domain={[60, 100]} tick={{ fontSize: 12, fill: "var(--muted-col)" }} />
-                <Tooltip contentStyle={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
-                <Area yAxisId="left" type="monotone" dataKey="students" stroke="var(--status-active)" fillOpacity={1} fill="url(#colorStudents)" name="Students" />
-                <Area yAxisId="right" type="monotone" dataKey="score" stroke="var(--status-teacher)" fillOpacity={1} fill="url(#colorScore)" name="Score %" />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  domain={[60, 100]}
+                  tick={{ fontSize: 12, fill: "var(--muted-col)" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--card-bg)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                />
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="students"
+                  stroke="var(--status-active)"
+                  fillOpacity={1}
+                  fill="url(#colorStudents)"
+                  name="Students"
+                />
+                <Area
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="score"
+                  stroke="var(--status-teacher)"
+                  fillOpacity={1}
+                  fill="url(#colorScore)"
+                  name="Score %"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
         {/* Class Completion Rate */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-base p-5">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="card-base p-5"
+        >
           <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-primary" /> Class Completion Rate
           </h2>
@@ -238,10 +315,31 @@ function TeacherAnalyticsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={completionData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-col)" }} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: "var(--muted-col)" }} width={100} />
-                <Tooltip contentStyle={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
-                <Bar dataKey="rate" fill="var(--status-active)" radius={[0, 4, 4, 0]} name="Completion %" />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tick={{ fontSize: 12, fill: "var(--muted-col)" }}
+                />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fontSize: 12, fill: "var(--muted-col)" }}
+                  width={100}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--card-bg)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                />
+                <Bar
+                  dataKey="rate"
+                  fill="var(--status-active)"
+                  radius={[0, 4, 4, 0]}
+                  name="Completion %"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -250,7 +348,12 @@ function TeacherAnalyticsPage() {
 
       <div className="grid lg:grid-cols-2 gap-5">
         {/* Average Score by Class */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card-base p-5">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="card-base p-5"
+        >
           <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
             <Award className="w-4 h-4 text-primary" /> Average Score by Class
           </h2>
@@ -260,15 +363,32 @@ function TeacherAnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--muted-col)" }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: "var(--muted-col)" }} />
-                <Tooltip contentStyle={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
-                <Bar dataKey="score" fill="var(--status-teacher)" radius={[4, 4, 0, 0]} name="Avg Score" />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--card-bg)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                />
+                <Bar
+                  dataKey="score"
+                  fill="var(--status-teacher)"
+                  radius={[4, 4, 0, 0]}
+                  name="Avg Score"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
         {/* Attendance Trend */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="card-base p-5">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="card-base p-5"
+        >
           <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" /> Attendance Trend
           </h2>
@@ -284,8 +404,22 @@ function TeacherAnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--muted-col)" }} />
                 <YAxis domain={[70, 100]} tick={{ fontSize: 12, fill: "var(--muted-col)" }} />
-                <Tooltip contentStyle={{ background: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
-                <Area type="monotone" dataKey="rate" stroke="var(--status-teacher)" fillOpacity={1} fill="url(#colorAttendance)" name="Attendance %" />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--card-bg)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="rate"
+                  stroke="var(--status-teacher)"
+                  fillOpacity={1}
+                  fill="url(#colorAttendance)"
+                  name="Attendance %"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -293,7 +427,12 @@ function TeacherAnalyticsPage() {
       </div>
 
       {/* Performance Breakdown */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="card-base p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="card-base p-5"
+      >
         <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-primary" /> Performance Breakdown
         </h2>
@@ -303,25 +442,45 @@ function TeacherAnalyticsPage() {
           <div className="p-4 rounded-xl bg-[var(--status-active)]/8 border border-[var(--status-active)]/20">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-[var(--status-active)]" />
-              <span className="text-xs font-bold text-[var(--status-active)] uppercase">Best Performing Class</span>
+              <span className="text-xs font-bold text-[var(--status-active)] uppercase">
+                Best Performing Class
+              </span>
             </div>
             <p className="text-sm font-semibold text-primary-col">{bestClass.name}</p>
             <div className="flex gap-4 mt-2">
-              <span className="text-xs text-muted-col">Score: <span className="font-bold text-primary-col">{bestClass.avgScore}%</span></span>
-              <span className="text-xs text-muted-col">Completion: <span className="font-bold text-primary-col">{bestClass.completion}%</span></span>
-              <span className="text-xs text-muted-col">Attendance: <span className="font-bold text-primary-col">{bestClass.attendance}%</span></span>
+              <span className="text-xs text-muted-col">
+                Score: <span className="font-bold text-primary-col">{bestClass.avgScore}%</span>
+              </span>
+              <span className="text-xs text-muted-col">
+                Completion:{" "}
+                <span className="font-bold text-primary-col">{bestClass.completion}%</span>
+              </span>
+              <span className="text-xs text-muted-col">
+                Attendance:{" "}
+                <span className="font-bold text-primary-col">{bestClass.attendance}%</span>
+              </span>
             </div>
           </div>
           <div className="p-4 rounded-xl bg-[var(--status-pending)]/8 border border-[var(--status-pending)]/20">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-[var(--status-pending)]" />
-              <span className="text-xs font-bold text-[var(--status-pending)] uppercase">Needs Improvement</span>
+              <span className="text-xs font-bold text-[var(--status-pending)] uppercase">
+                Needs Improvement
+              </span>
             </div>
             <p className="text-sm font-semibold text-primary-col">{lowestClass.name}</p>
             <div className="flex gap-4 mt-2">
-              <span className="text-xs text-muted-col">Score: <span className="font-bold text-primary-col">{lowestClass.avgScore}%</span></span>
-              <span className="text-xs text-muted-col">Completion: <span className="font-bold text-primary-col">{lowestClass.completion}%</span></span>
-              <span className="text-xs text-muted-col">Attendance: <span className="font-bold text-primary-col">{lowestClass.attendance}%</span></span>
+              <span className="text-xs text-muted-col">
+                Score: <span className="font-bold text-primary-col">{lowestClass.avgScore}%</span>
+              </span>
+              <span className="text-xs text-muted-col">
+                Completion:{" "}
+                <span className="font-bold text-primary-col">{lowestClass.completion}%</span>
+              </span>
+              <span className="text-xs text-muted-col">
+                Attendance:{" "}
+                <span className="font-bold text-primary-col">{lowestClass.attendance}%</span>
+              </span>
             </div>
           </div>
         </div>
@@ -346,11 +505,17 @@ function TeacherAnalyticsPage() {
                 <p className="text-sm font-semibold text-primary-col truncate">{cls.name}</p>
               </div>
               <div className="text-center">
-                <span className={`text-sm font-bold ${
-                  cls.avgScore >= 80 ? "text-[var(--status-active)]" :
-                  cls.avgScore >= 70 ? "text-[var(--status-pending)]" :
-                  "text-[var(--status-rejected)]"
-                }`}>{cls.avgScore}%</span>
+                <span
+                  className={`text-sm font-bold ${
+                    cls.avgScore >= 80
+                      ? "text-[var(--status-active)]"
+                      : cls.avgScore >= 70
+                        ? "text-[var(--status-pending)]"
+                        : "text-[var(--status-rejected)]"
+                  }`}
+                >
+                  {cls.avgScore}%
+                </span>
               </div>
               <div className="text-center">
                 <span className="text-sm font-bold text-primary-col">{cls.completion}%</span>

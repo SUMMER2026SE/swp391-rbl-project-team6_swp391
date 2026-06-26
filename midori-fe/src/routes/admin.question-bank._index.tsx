@@ -7,11 +7,56 @@ export const Route = createFileRoute("/admin/question-bank/_index")({
 });
 
 const levels = [
-  { id: "N5", name: "Beginner", desc: "Basic vocabulary & grammar", gradient: "from-sakura/40 to-lavender/50", iconBg: "bg-sakura/30", iconText: "text-sakura", badgeBg: "bg-sakura/25", badgeText: "text-sakura" },
-  { id: "N4", name: "Elementary", desc: "Everyday expressions", gradient: "from-sky-blue/20 to-primary/30", iconBg: "bg-sky-blue/15", iconText: "text-sky-blue", badgeBg: "bg-sky-blue/15", badgeText: "text-sky-blue" },
-  { id: "N3", name: "Intermediate", desc: "Complex structures", gradient: "from-lavender/40 to-sky-blue/50", iconBg: "bg-lavender/30", iconText: "text-lavender", badgeBg: "bg-lavender/25", badgeText: "text-lavender" },
-  { id: "N2", name: "Upper-Int", desc: "Advanced expressions", gradient: "from-primary/20 to-lavender/30", iconBg: "bg-primary/15", iconText: "text-primary", badgeBg: "bg-primary/15", badgeText: "text-primary" },
-  { id: "N1", name: "Advanced", desc: "Native-level mastery", gradient: "from-jp-red/20 to-orange-500/30", iconBg: "bg-jp-red/15", iconText: "text-jp-red", badgeBg: "bg-jp-red/15", badgeText: "text-jp-red" },
+  {
+    id: "N5",
+    name: "Beginner",
+    desc: "Basic vocabulary & grammar",
+    gradient: "from-sakura/40 to-lavender/50",
+    iconBg: "bg-sakura/30",
+    iconText: "text-sakura",
+    badgeBg: "bg-sakura/25",
+    badgeText: "text-sakura",
+  },
+  {
+    id: "N4",
+    name: "Elementary",
+    desc: "Everyday expressions",
+    gradient: "from-sky-blue/20 to-primary/30",
+    iconBg: "bg-sky-blue/15",
+    iconText: "text-sky-blue",
+    badgeBg: "bg-sky-blue/15",
+    badgeText: "text-sky-blue",
+  },
+  {
+    id: "N3",
+    name: "Intermediate",
+    desc: "Complex structures",
+    gradient: "from-lavender/40 to-sky-blue/50",
+    iconBg: "bg-lavender/30",
+    iconText: "text-lavender",
+    badgeBg: "bg-lavender/25",
+    badgeText: "text-lavender",
+  },
+  {
+    id: "N2",
+    name: "Upper-Int",
+    desc: "Advanced expressions",
+    gradient: "from-primary/20 to-lavender/30",
+    iconBg: "bg-primary/15",
+    iconText: "text-primary",
+    badgeBg: "bg-primary/15",
+    badgeText: "text-primary",
+  },
+  {
+    id: "N1",
+    name: "Advanced",
+    desc: "Native-level mastery",
+    gradient: "from-jp-red/20 to-orange-500/30",
+    iconBg: "bg-jp-red/15",
+    iconText: "text-jp-red",
+    badgeBg: "bg-jp-red/15",
+    badgeText: "text-jp-red",
+  },
 ];
 
 function QuestionBankIndexPage() {
@@ -39,23 +84,33 @@ function QuestionBankIndexPage() {
             >
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--card)] to-[var(--card)] border border-[var(--border)] p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30">
                 {/* Gradient Accent */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${level.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${level.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                />
 
                 {/* Content */}
                 <div className="relative z-10">
                   {/* Level Badge */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl ${level.iconBg} flex items-center justify-center group-hover:bg-white/30 transition-colors`}>
-                      <GraduationCap className={`w-6 h-6 ${level.iconText} group-hover:text-white transition-colors`} />
+                    <div
+                      className={`w-12 h-12 rounded-xl ${level.iconBg} flex items-center justify-center group-hover:bg-white/30 transition-colors`}
+                    >
+                      <GraduationCap
+                        className={`w-6 h-6 ${level.iconText} group-hover:text-white transition-colors`}
+                      />
                     </div>
-                    <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${level.badgeBg} ${level.badgeText} group-hover:bg-white/30 group-hover:text-white transition-all`}>
+                    <div
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${level.badgeBg} ${level.badgeText} group-hover:bg-white/30 group-hover:text-white transition-all`}
+                    >
                       JLPT
                     </div>
                   </div>
 
                   {/* Level Number */}
                   <div className="mb-2">
-                    <span className={`text-4xl font-black ${level.iconText} group-hover:text-white transition-colors`}>
+                    <span
+                      className={`text-4xl font-black ${level.iconText} group-hover:text-white transition-colors`}
+                    >
                       {level.id}
                     </span>
                   </div>
@@ -76,15 +131,29 @@ function QuestionBankIndexPage() {
 
                   {/* Arrow Indicator */}
                   <div className="mt-4 flex items-center gap-1">
-                    <span className="text-xs font-medium text-primary-col/50 group-hover:text-white/70 transition-colors">View</span>
-                    <svg className="w-4 h-4 text-primary-col/50 group-hover:text-white/70 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <span className="text-xs font-medium text-primary-col/50 group-hover:text-white/70 transition-colors">
+                      View
+                    </span>
+                    <svg
+                      className="w-4 h-4 text-primary-col/50 group-hover:text-white/70 group-hover:translate-x-1 transition-all"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
                   </div>
                 </div>
 
                 {/* Decorative Circle */}
-                <div className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${level.iconBg} group-hover:bg-white/10 transition-colors`} />
+                <div
+                  className={`absolute -bottom-6 -right-6 w-20 h-20 rounded-full ${level.iconBg} group-hover:bg-white/10 transition-colors`}
+                />
               </div>
             </Link>
           </motion.div>

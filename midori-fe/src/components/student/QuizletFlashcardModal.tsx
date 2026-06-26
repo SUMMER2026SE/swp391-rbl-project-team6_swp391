@@ -3,8 +3,16 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
-  X, Volume2, FlipHorizontal, Shuffle, RotateCcw,
-  BookOpen, CheckCircle2, Star, BookmarkCheck, Loader2
+  X,
+  Volume2,
+  FlipHorizontal,
+  Shuffle,
+  RotateCcw,
+  BookOpen,
+  CheckCircle2,
+  Star,
+  BookmarkCheck,
+  Loader2,
 } from "lucide-react";
 
 interface FlashcardModalProps {
@@ -56,24 +64,24 @@ export function QuizletFlashcardModal({
   }, [isOpen]);
 
   const current = words[currentIndex];
-  const progress = words.length > 0 ? ((currentIndex) / words.length) * 100 : 0;
+  const progress = words.length > 0 ? (currentIndex / words.length) * 100 : 0;
 
   const handleFlip = () => setIsFlipped(!isFlipped);
 
   const handleNext = () => {
     if (currentIndex < words.length - 1) {
-      setStudiedIds(prev => new Set(prev).add(current.id));
-      setCurrentIndex(prev => prev + 1);
+      setStudiedIds((prev) => new Set(prev).add(current.id));
+      setCurrentIndex((prev) => prev + 1);
       setIsFlipped(false);
     } else {
       // Completed all cards
-      setStudiedIds(prev => new Set(prev).add(current.id));
+      setStudiedIds((prev) => new Set(prev).add(current.id));
     }
   };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex((prev) => prev - 1);
       setIsFlipped(false);
     }
   };
@@ -120,7 +128,7 @@ export function QuizletFlashcardModal({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
@@ -154,7 +162,9 @@ export function QuizletFlashcardModal({
           {/* Card */}
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>{currentIndex + 1} / {words.length}</span>
+              <span>
+                {currentIndex + 1} / {words.length}
+              </span>
               <span>{studiedIds.size} studied</span>
             </div>
 
@@ -174,18 +184,22 @@ export function QuizletFlashcardModal({
                   <span className="text-4xl font-bold text-slate-800 dark:text-white mb-2">
                     {current.japanese}
                   </span>
-                  <span className="text-lg text-muted-foreground mb-6">
-                    {current.reading}
-                  </span>
+                  <span className="text-lg text-muted-foreground mb-6">{current.reading}</span>
                   <div className="flex gap-2">
                     <button
-                      onClick={(e) => { e.stopPropagation(); speakWord(current.japanese); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        speakWord(current.japanese);
+                      }}
                       className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                     >
                       <Volume2 className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setIsFlipped(true); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsFlipped(true);
+                      }}
                       className="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
                     >
                       Show Answer
@@ -204,16 +218,15 @@ export function QuizletFlashcardModal({
                 } transition-opacity duration-200`}
               >
                 <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                  <span className="text-3xl font-bold text-primary mb-2">
-                    {current.meaning}
-                  </span>
+                  <span className="text-3xl font-bold text-primary mb-2">{current.meaning}</span>
                   {current.example && (
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {current.example}
-                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">{current.example}</p>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setIsFlipped(false); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsFlipped(false);
+                    }}
                     className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
                   >
                     Show Question

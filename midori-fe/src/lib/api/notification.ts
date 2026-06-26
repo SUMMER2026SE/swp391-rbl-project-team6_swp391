@@ -66,8 +66,7 @@ export const notificationApi = {
     api.get<Notification>(`/admin/notifications/${notificationId}`),
 
   // Get notification statistics
-  getStats: () =>
-    api.get<NotificationStats>("/admin/notifications/stats"),
+  getStats: () => api.get<NotificationStats>("/admin/notifications/stats"),
 
   // Create notification
   createNotification: (data: CreateNotificationRequest) =>
@@ -99,5 +98,7 @@ export const notificationApi = {
 
   // Get notification history
   getHistory: (notificationId: string) =>
-    api.get<{ sentAt: string; recipientCount: number }[]>(`/admin/notifications/${notificationId}/history`),
+    api.get<{ sentAt: string; recipientCount: number }[]>(
+      `/admin/notifications/${notificationId}/history`,
+    ),
 };

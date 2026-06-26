@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ClipboardCheck, Bell, AlertTriangle } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -51,17 +46,12 @@ export function HomeworkSubmissionsDrawer({
 
   useEffect(() => {
     if (homework && open) {
-      const students = getAllStudents().filter((s) =>
-        s.id.startsWith(homework.classId + "-")
-      );
+      const students = getAllStudents().filter((s) => s.id.startsWith(homework.classId + "-"));
       const submittedCount = Math.floor(students.length * 0.6);
       const mockSubs: MockSubmission[] = students.map((s, i) => ({
         student: s,
         submitted: i < submittedCount,
-        score:
-          i < submittedCount
-            ? Math.floor(Math.random() * 30) + 70
-            : null,
+        score: i < submittedCount ? Math.floor(Math.random() * 30) + 70 : null,
         submittedAt: i < submittedCount ? `2026-06-${20 + i}` : null,
       }));
       setSubmissions(mockSubs);
@@ -70,7 +60,7 @@ export function HomeworkSubmissionsDrawer({
 
   const submittedCount = submissions.filter((s) => s.submitted).length;
   const pendingGradingCount = submissions.filter(
-    (s) => s.submitted && (s.score ?? 0) < (homework?.maxScore ?? 100)
+    (s) => s.submitted && (s.score ?? 0) < (homework?.maxScore ?? 100),
   ).length;
   const totalCount = submissions.length;
   const submissionRate = totalCount > 0 ? (submittedCount / totalCount) * 100 : 0;
@@ -83,15 +73,12 @@ export function HomeworkSubmissionsDrawer({
 
   const handleSaveGrade = () => {
     if (!selectedStudent) return;
-    const studentName =
-      selectedStudent.student.name.split(" ")[0];
+    const studentName = selectedStudent.student.name.split(" ")[0];
     onGrade(selectedStudent.student.id, gradeInput);
     setSubmissions((prev) =>
       prev.map((s) =>
-        s.student.id === selectedStudent.student.id
-          ? { ...s, score: gradeInput }
-          : s
-      )
+        s.student.id === selectedStudent.student.id ? { ...s, score: gradeInput } : s,
+      ),
     );
     toast.success(`Grade saved for ${studentName}`);
     setGradeDialogOpen(false);
@@ -126,9 +113,7 @@ export function HomeworkSubmissionsDrawer({
               <span className="text-muted-foreground">
                 {submittedCount} / {totalCount} submitted
               </span>
-              <span className="font-medium">
-                {Math.round(submissionRate)}%
-              </span>
+              <span className="font-medium">{Math.round(submissionRate)}%</span>
             </div>
             <Progress value={submissionRate} className="h-2" />
 
@@ -152,7 +137,8 @@ export function HomeworkSubmissionsDrawer({
                 const initials = getAvatarInitial(student.name);
                 const isSubmitted = submission.submitted;
                 const hasScore = submission.score !== null;
-                const isPendingGrading = isSubmitted && (submission.score ?? 0) < (homework?.maxScore ?? 100);
+                const isPendingGrading =
+                  isSubmitted && (submission.score ?? 0) < (homework?.maxScore ?? 100);
 
                 return (
                   <div
@@ -161,7 +147,7 @@ export function HomeworkSubmissionsDrawer({
                       "flex items-center gap-3 rounded-xl border p-3 transition-colors",
                       isSubmitted
                         ? "bg-card"
-                        : "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/30"
+                        : "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/30",
                     )}
                   >
                     <Avatar className="h-9 w-9 flex-shrink-0">
@@ -172,9 +158,7 @@ export function HomeworkSubmissionsDrawer({
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">
-                          {student.name}
-                        </span>
+                        <span className="text-sm font-medium truncate">{student.name}</span>
                         {isSubmitted ? (
                           hasScore ? (
                             <span
@@ -182,7 +166,7 @@ export function HomeworkSubmissionsDrawer({
                                 "shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded-full",
                                 isPendingGrading
                                   ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
-                                  : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                                  : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
                               )}
                             >
                               {submission.score} / {homework?.maxScore ?? 100}
@@ -243,11 +227,7 @@ export function HomeworkSubmissionsDrawer({
           </div>
 
           <div className="mt-4 pt-4 border-t">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
               Close
             </Button>
           </div>
@@ -257,9 +237,7 @@ export function HomeworkSubmissionsDrawer({
       <Dialog open={gradeDialogOpen} onOpenChange={setGradeDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Grade — {selectedStudent?.student.name}
-            </DialogTitle>
+            <DialogTitle>Grade — {selectedStudent?.student.name}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
@@ -295,10 +273,7 @@ export function HomeworkSubmissionsDrawer({
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setGradeDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setGradeDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveGrade}>Save Grade</Button>

@@ -2,9 +2,29 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Bell, Palette, Shield, Camera, Save, Check,
-  Moon, Sun, Globe, Mail, MapPin, Link2, Clock, Lock, AlertCircle,
-  Eye, EyeOff, ChevronDown, X, Languages, Monitor, Loader2
+  User,
+  Bell,
+  Palette,
+  Shield,
+  Camera,
+  Save,
+  Check,
+  Moon,
+  Sun,
+  Globe,
+  Mail,
+  MapPin,
+  Link2,
+  Clock,
+  Lock,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  X,
+  Languages,
+  Monitor,
+  Loader2,
 } from "lucide-react";
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
@@ -38,15 +58,9 @@ export const Route = createFileRoute("/teacher/settings")({
   component: TeacherSettingsPage,
 });
 
-function LanguageDropdown({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
+function LanguageDropdown({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
-  const selected = LANGUAGES.find(l => l.value === value) ?? LANGUAGES[1];
+  const selected = LANGUAGES.find((l) => l.value === value) ?? LANGUAGES[1];
 
   useEffect(() => {
     const handler = () => setOpen(false);
@@ -57,7 +71,10 @@ function LanguageDropdown({
   return (
     <div className="relative">
       <button
-        onClick={e => { e.stopPropagation(); setOpen(!open); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(!open);
+        }}
         className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 transition"
       >
         <div className="flex items-center gap-2">
@@ -65,7 +82,9 @@ function LanguageDropdown({
           <span className="font-medium">{selected.native}</span>
           <span className="text-xs text-muted-foreground hidden sm:inline">({selected.label})</span>
         </div>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       <AnimatePresence>
@@ -77,10 +96,13 @@ function LanguageDropdown({
             transition={{ duration: 0.15 }}
             className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-20"
           >
-            {LANGUAGES.map(lang => (
+            {LANGUAGES.map((lang) => (
               <button
                 key={lang.value}
-                onClick={() => { onChange(lang.value); setOpen(false); }}
+                onClick={() => {
+                  onChange(lang.value);
+                  setOpen(false);
+                }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-primary/5 transition ${
                   value === lang.value
                     ? "bg-primary/5 text-primary font-semibold"
@@ -111,7 +133,12 @@ function ThemeSelector({
   value: "light" | "dark" | "system";
   onChange: (v: "light" | "dark" | "system") => void;
 }) {
-  const options: { id: "light" | "dark" | "system"; label: string; icon: typeof Sun; desc: string }[] = [
+  const options: {
+    id: "light" | "dark" | "system";
+    label: string;
+    icon: typeof Sun;
+    desc: string;
+  }[] = [
     { id: "light", label: "Light", icon: Sun, desc: "Always light" },
     { id: "dark", label: "Dark", icon: Moon, desc: "Always dark" },
     { id: "system", label: "System", icon: Monitor, desc: "Follow OS" },
@@ -119,7 +146,7 @@ function ThemeSelector({
 
   return (
     <div className="grid grid-cols-3 gap-2.5">
-      {options.map(opt => {
+      {options.map((opt) => {
         const Icon = opt.icon;
         const active = value === opt.id;
         return (
@@ -132,12 +159,18 @@ function ThemeSelector({
                 : "border-slate-200 dark:border-slate-700 hover:border-primary/40 bg-white dark:bg-slate-800"
             }`}
           >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-              active ? "bg-primary/15 text-primary" : "bg-slate-100 dark:bg-slate-700 text-slate-500"
-            }`}>
+            <div
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                active
+                  ? "bg-primary/15 text-primary"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-500"
+              }`}
+            >
               <Icon className="w-4 h-4" />
             </div>
-            <span className={`text-xs font-bold ${active ? "text-primary" : "text-slate-600 dark:text-slate-300"}`}>
+            <span
+              className={`text-xs font-bold ${active ? "text-primary" : "text-slate-600 dark:text-slate-300"}`}
+            >
               {opt.label}
             </span>
             <span className="text-[9px] text-muted-foreground hidden sm:block">{opt.desc}</span>
@@ -148,13 +181,7 @@ function ThemeSelector({
   );
 }
 
-function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       onClick={() => onChange(!checked)}
@@ -191,12 +218,14 @@ function NotifRow({
   );
 }
 
-function SectionCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`glass rounded-2xl p-5 ${className}`}>
-      {children}
-    </div>
-  );
+function SectionCard({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <div className={`glass rounded-2xl p-5 ${className}`}>{children}</div>;
 }
 
 function TeacherSettingsPage() {
@@ -205,7 +234,9 @@ function TeacherSettingsPage() {
   // Account state
   const [name, setName] = useState("Taro Yamamoto");
   const [email, setEmail] = useState("taro.sensei@midori.jp");
-  const [bio, setBio] = useState("Native Japanese teacher with 8 years of experience teaching JLPT preparation courses.");
+  const [bio, setBio] = useState(
+    "Native Japanese teacher with 8 years of experience teaching JLPT preparation courses.",
+  );
   const [location, setLocation] = useState("Tokyo, Japan");
   const [website, setWebsite] = useState("taro-sensei.jp");
   const [timezone, setTimezone] = useState("Asia/Tokyo (UTC+9)");
@@ -258,14 +289,16 @@ function TeacherSettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-display font-black">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Manage your account preferences and settings</p>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Manage your account preferences and settings
+        </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-5">
         {/* Tab navigation */}
         <div className="lg:w-56 flex-shrink-0">
           <div className="glass rounded-2xl p-2 space-y-1">
-            {tabs.map(tab => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -287,10 +320,13 @@ function TeacherSettingsPage() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-
           {/* ── ACCOUNT ── */}
           {activeTab === "account" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
               <SectionCard>
                 <h2 className="font-display font-bold text-lg mb-5">Account Information</h2>
 
@@ -299,7 +335,11 @@ function TeacherSettingsPage() {
                   <div className="relative group">
                     {avatarPreview ? (
                       <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white dark:border-slate-700 shadow-lg">
-                        <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                        <img
+                          src={avatarPreview}
+                          alt="Avatar"
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                     ) : (
                       <div className="w-20 h-20 rounded-2xl bg-gradient-hero flex items-center justify-center text-white text-3xl font-black shadow-lg border-4 border-white dark:border-slate-700">
@@ -307,7 +347,12 @@ function TeacherSettingsPage() {
                       </div>
                     )}
                     <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
                       <Camera className="w-6 h-6 text-white" />
                     </label>
                   </div>
@@ -322,52 +367,81 @@ function TeacherSettingsPage() {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Display Name</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Display Name
+                    </label>
                     <div className="relative">
                       <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input value={name} onChange={e => setName(e.target.value)} className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Email</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Email
+                    </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Location</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Location
+                    </label>
                     <div className="relative">
                       <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input value={location} onChange={e => setLocation(e.target.value)} className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+                      <input
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Website</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Website
+                    </label>
                     <div className="relative">
                       <Link2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <input value={website} onChange={e => setWebsite(e.target.value)} className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40" />
+                      <input
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Bio</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                    Bio
+                  </label>
                   <textarea
                     value={bio}
-                    onChange={e => setBio(e.target.value)}
+                    onChange={(e) => setBio(e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 resize-none"
                   />
                 </div>
 
                 <div className="mt-4">
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Timezone</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                    Timezone
+                  </label>
                   <div className="relative">
                     <Clock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <select
                       value={timezone}
-                      onChange={e => setTimezone(e.target.value)}
+                      onChange={(e) => setTimezone(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                     >
                       <option>Asia/Tokyo (UTC+9)</option>
@@ -383,7 +457,15 @@ function TeacherSettingsPage() {
                   onClick={handleSave}
                   className="mt-5 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition"
                 >
-                  {saved ? <><Check className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save Changes</>}
+                  {saved ? (
+                    <>
+                      <Check className="w-4 h-4" /> Saved!
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" /> Save Changes
+                    </>
+                  )}
                 </button>
               </SectionCard>
             </motion.div>
@@ -391,7 +473,11 @@ function TeacherSettingsPage() {
 
           {/* ── NOTIFICATIONS ── */}
           {activeTab === "notifications" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
               <SectionCard>
                 <h2 className="font-display font-bold text-lg mb-5">Notification Preferences</h2>
                 <div className="space-y-3">
@@ -432,13 +518,17 @@ function TeacherSettingsPage() {
                 <div className="space-y-5">
                   {/* Theme */}
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">Theme</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-3">
+                      Theme
+                    </label>
                     <ThemeSelector value={theme} onChange={setThemeState} />
                   </div>
 
                   {/* Language */}
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Interface Language</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Interface Language
+                    </label>
                     <LanguageDropdown value={language} onChange={setLanguage} />
                   </div>
                 </div>
@@ -448,86 +538,118 @@ function TeacherSettingsPage() {
 
           {/* ── SECURITY ── */}
           {activeTab === "security" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
               <SectionCard>
                 <h2 className="font-display font-bold text-lg mb-5">Security Settings</h2>
                 {pwSuccess && (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-green-50 dark:bg-green-500/15 border border-green-200 dark:border-green-500/30 text-green-600 dark:text-green-400 text-xs font-bold">
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-green-50 dark:bg-green-500/15 border border-green-200 dark:border-green-500/30 text-green-600 dark:text-green-400 text-xs font-bold"
+                  >
                     <Check className="w-4 h-4" /> Password updated successfully!
                   </motion.div>
                 )}
                 {pwError && (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30 text-red-500 dark:text-red-400 text-xs font-bold">
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30 text-red-500 dark:text-red-400 text-xs font-bold"
+                  >
                     <AlertCircle className="w-4 h-4" /> {pwError}
                   </motion.div>
                 )}
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Current Password</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Current Password
+                    </label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
                         value={pwCurrent}
-                        onChange={e => setPwCurrent(e.target.value)}
+                        onChange={(e) => setPwCurrent(e.target.value)}
                         placeholder="Enter current password"
                         className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPassword(v => !v)}
+                        onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
 
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">New Password</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                        New Password
+                      </label>
                       <div className="relative">
                         <input
                           type={showNewPassword ? "text" : "password"}
                           value={pwNew}
-                          onChange={e => setPwNew(e.target.value)}
+                          onChange={(e) => setPwNew(e.target.value)}
                           placeholder="New password"
                           className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                         />
                         <button
                           type="button"
-                          onClick={() => setShowNewPassword(v => !v)}
+                          onClick={() => setShowNewPassword((v) => !v)}
                           aria-label={showNewPassword ? "Hide password" : "Show password"}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
                         >
-                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showNewPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </div>
                     <div className="flex-1">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">Confirm</label>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                        Confirm
+                      </label>
                       <div className="relative">
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           value={pwConfirm}
-                          onChange={e => setPwConfirm(e.target.value)}
+                          onChange={(e) => setPwConfirm(e.target.value)}
                           placeholder="Confirm password"
                           className={`w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border text-sm outline-none focus:ring-2 focus:ring-primary/40 ${
-                            pwConfirm && pwNew !== pwConfirm ? "border-red-400 dark:border-red-500/50" : "border-slate-200 dark:border-slate-700"
+                            pwConfirm && pwNew !== pwConfirm
+                              ? "border-red-400 dark:border-red-500/50"
+                              : "border-slate-200 dark:border-slate-700"
                           }`}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowConfirmPassword(v => !v)}
+                          onClick={() => setShowConfirmPassword((v) => !v)}
                           aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
                         >
-                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showConfirmPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                       {pwConfirm && pwNew !== pwConfirm && (
-                        <p className="text-[10px] text-red-500 font-bold mt-1">Passwords do not match</p>
+                        <p className="text-[10px] text-red-500 font-bold mt-1">
+                          Passwords do not match
+                        </p>
                       )}
                     </div>
                   </div>
@@ -535,18 +657,44 @@ function TeacherSettingsPage() {
                   <button
                     onClick={async () => {
                       setPwError(null);
-                      if (!pwCurrent) { setPwError("Current password is required."); return; }
-                      if (pwNew === pwCurrent) { setPwError("New password must be different from current password."); return; }
-                      if (pwNew.length < 8) { setPwError("Min. 8 characters."); return; }
-                      if (!/[A-Z]/.test(pwNew)) { setPwError("Add at least one uppercase letter."); return; }
-                      if (!/[0-9]/.test(pwNew)) { setPwError("Add at least one number."); return; }
-                      if (!/[^A-Za-z0-9]/.test(pwNew)) { setPwError("Add at least one special character."); return; }
-                      if (pwNew !== pwConfirm) { setPwError("Passwords do not match."); return; }
+                      if (!pwCurrent) {
+                        setPwError("Current password is required.");
+                        return;
+                      }
+                      if (pwNew === pwCurrent) {
+                        setPwError("New password must be different from current password.");
+                        return;
+                      }
+                      if (pwNew.length < 8) {
+                        setPwError("Min. 8 characters.");
+                        return;
+                      }
+                      if (!/[A-Z]/.test(pwNew)) {
+                        setPwError("Add at least one uppercase letter.");
+                        return;
+                      }
+                      if (!/[0-9]/.test(pwNew)) {
+                        setPwError("Add at least one number.");
+                        return;
+                      }
+                      if (!/[^A-Za-z0-9]/.test(pwNew)) {
+                        setPwError("Add at least one special character.");
+                        return;
+                      }
+                      if (pwNew !== pwConfirm) {
+                        setPwError("Passwords do not match.");
+                        return;
+                      }
                       setPwLoading(true);
                       try {
-                        await authApi.changePassword({ currentPassword: pwCurrent, newPassword: pwNew });
+                        await authApi.changePassword({
+                          currentPassword: pwCurrent,
+                          newPassword: pwNew,
+                        });
                         setPwSuccess(true);
-                        setPwCurrent(""); setPwNew(""); setPwConfirm("");
+                        setPwCurrent("");
+                        setPwNew("");
+                        setPwConfirm("");
                         setTimeout(() => setPwSuccess(false), 4000);
                       } catch (err) {
                         if (err instanceof ApiError) {
@@ -561,9 +709,15 @@ function TeacherSettingsPage() {
                     disabled={pwLoading}
                     className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
                   >
-                    {pwLoading
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
-                      : <><Lock className="w-4 h-4" /> Update Password</>}
+                    {pwLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Updating…
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" /> Update Password
+                      </>
+                    )}
                   </button>
                 </div>
               </SectionCard>
@@ -572,7 +726,9 @@ function TeacherSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-semibold">Two-Factor Authentication</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">Add an extra layer of security to your account</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Add an extra layer of security to your account
+                    </div>
                   </div>
                   <Toggle checked={twoFactor} onChange={setTwoFactor} />
                 </div>
@@ -586,10 +742,8 @@ function TeacherSettingsPage() {
               </SectionCard>
             </motion.div>
           )}
-
         </div>
       </div>
-
     </div>
   );
 }

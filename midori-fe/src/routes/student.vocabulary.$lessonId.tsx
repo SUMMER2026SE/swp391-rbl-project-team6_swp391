@@ -99,10 +99,7 @@ function VocabStudyPage() {
   });
 
   // ── Query: Progress data ───────────────────────────────────
-  const {
-    data: progressList,
-    isLoading: progressLoading,
-  } = useQuery({
+  const { data: progressList, isLoading: progressLoading } = useQuery({
     queryKey: ["vocabulary-progress", lessonId],
     queryFn: () => studentProgressApi.getProgress({ contentType: "VOCABULARY" }),
     enabled: !!lessonId,
@@ -246,7 +243,10 @@ function VocabStudyPage() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if focus is on input/textarea
-      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA"
+      ) {
         return;
       }
 
@@ -448,8 +448,9 @@ function VocabStudyPage() {
             {/* Card Progress Bar */}
             <div className="flex items-center justify-between text-xs text-slate-600 dark:text-indigo-200/80 font-semibold px-2">
               <span>
-                Card <span className="font-bold text-slate-800 dark:text-white">{flashCardIdx + 1}</span> of{" "}
-                <span className="text-slate-500 dark:text-indigo-300/60">{words.length}</span>
+                Card{" "}
+                <span className="font-bold text-slate-800 dark:text-white">{flashCardIdx + 1}</span>{" "}
+                of <span className="text-slate-500 dark:text-indigo-300/60">{words.length}</span>
               </span>
               <span>{Math.round(((flashCardIdx + 1) / words.length) * 100)}%</span>
             </div>
@@ -484,11 +485,16 @@ function VocabStudyPage() {
                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-indigo-200/60">
                           Front · Japanese
                         </span>
-                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div
+                          className="flex items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              speakJapanese(words[flashCardIdx].furigana || words[flashCardIdx].word);
+                              speakJapanese(
+                                words[flashCardIdx].furigana || words[flashCardIdx].word,
+                              );
                             }}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white/70 hover:text-slate-800 dark:hover:text-white transition-all"
                           >
@@ -500,10 +506,14 @@ function VocabStudyPage() {
                               toggleBookmark(words[flashCardIdx].word);
                             }}
                             className={`p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 transition-colors ${
-                              isWordBookmarked(words[flashCardIdx].word) ? "text-amber-500 dark:text-amber-400" : "text-slate-400 dark:text-white/40 hover:text-slate-800 dark:hover:text-white"
+                              isWordBookmarked(words[flashCardIdx].word)
+                                ? "text-amber-500 dark:text-amber-400"
+                                : "text-slate-400 dark:text-white/40 hover:text-slate-800 dark:hover:text-white"
                             }`}
                           >
-                            <Star className={`w-4 h-4 ${isWordBookmarked(words[flashCardIdx].word) ? "fill-amber-500 dark:fill-amber-400 text-amber-500 dark:text-amber-400" : ""}`} />
+                            <Star
+                              className={`w-4 h-4 ${isWordBookmarked(words[flashCardIdx].word) ? "fill-amber-500 dark:fill-amber-400 text-amber-500 dark:text-amber-400" : ""}`}
+                            />
                           </button>
                         </div>
                       </div>
@@ -529,18 +539,21 @@ function VocabStudyPage() {
                     </div>
 
                     {/* BACK SIDE */}
-                    <div
-                      className="absolute inset-0 backface-hidden rounded-3xl bg-linear-to-br from-indigo-900/90 via-purple-950/90 to-slate-900/90 border border-white/20 shadow-2xl flex flex-col justify-between p-6 rotate-y-180"
-                    >
+                    <div className="absolute inset-0 backface-hidden rounded-3xl bg-linear-to-br from-indigo-900/90 via-purple-950/90 to-slate-900/90 border border-white/20 shadow-2xl flex flex-col justify-between p-6 rotate-y-180">
                       <div className="flex justify-between items-center w-full">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">
                           Back · Definition
                         </span>
-                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div
+                          className="flex items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              speakJapanese(words[flashCardIdx].furigana || words[flashCardIdx].word);
+                              speakJapanese(
+                                words[flashCardIdx].furigana || words[flashCardIdx].word,
+                              );
                             }}
                             className="p-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/15 transition-all"
                           >
@@ -552,10 +565,14 @@ function VocabStudyPage() {
                               toggleBookmark(words[flashCardIdx].word);
                             }}
                             className={`p-2 rounded-xl bg-white/5 border border-white/10 transition-colors ${
-                              isWordBookmarked(words[flashCardIdx].word) ? "text-amber-400" : "text-white/40 hover:text-white"
+                              isWordBookmarked(words[flashCardIdx].word)
+                                ? "text-amber-400"
+                                : "text-white/40 hover:text-white"
                             }`}
                           >
-                            <Star className={`w-4 h-4 ${isWordBookmarked(words[flashCardIdx].word) ? "fill-amber-400" : ""}`} />
+                            <Star
+                              className={`w-4 h-4 ${isWordBookmarked(words[flashCardIdx].word) ? "fill-amber-400" : ""}`}
+                            />
                           </button>
                         </div>
                       </div>
@@ -658,10 +675,14 @@ function VocabStudyPage() {
                 {/* Question Info */}
                 <div className="flex justify-between items-center text-xs text-slate-700 dark:text-indigo-200/80 font-semibold px-2">
                   <span>
-                    Question <span className="font-bold text-slate-800 dark:text-white">{quizIdx + 1}</span> of{" "}
+                    Question{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">{quizIdx + 1}</span>{" "}
+                    of{" "}
                     <span className="text-slate-600 dark:text-indigo-300/60">{words.length}</span>
                   </span>
-                  <span className="text-slate-800 dark:text-white font-bold">Score: {quizScore}</span>
+                  <span className="text-slate-800 dark:text-white font-bold">
+                    Score: {quizScore}
+                  </span>
                 </div>
                 <div className="h-1 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
                   <div
@@ -698,13 +719,16 @@ function VocabStudyPage() {
                     const showCorrect = quizAnswer !== null && opt.isCorrect;
                     const showIncorrect = quizAnswer !== null && isSelected && !opt.isCorrect;
 
-                    let btnStyle = "bg-white/60 dark:bg-white/10 border border-slate-200/80 dark:border-white/20 text-slate-800 dark:text-white hover:bg-white/80 dark:hover:bg-white/20";
+                    let btnStyle =
+                      "bg-white/60 dark:bg-white/10 border border-slate-200/80 dark:border-white/20 text-slate-800 dark:text-white hover:bg-white/80 dark:hover:bg-white/20";
                     if (showCorrect) {
-                      btnStyle = "bg-green-500/20 border-green-500/40 text-green-600 dark:text-green-300";
+                      btnStyle =
+                        "bg-green-500/20 border-green-500/40 text-green-600 dark:text-green-300";
                     } else if (showIncorrect) {
                       btnStyle = "bg-red-500/20 border-red-500/40 text-red-600 dark:text-red-300";
                     } else if (quizAnswer !== null) {
-                      btnStyle = "bg-slate-100/50 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 text-slate-400 dark:text-white/40 cursor-default";
+                      btnStyle =
+                        "bg-slate-100/50 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 text-slate-400 dark:text-white/40 cursor-default";
                     }
 
                     return (
@@ -738,7 +762,8 @@ function VocabStudyPage() {
                     }}
                     className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-linear-to-r from-blue-500 to-pink-500 text-white font-bold text-sm hover:opacity-90 transition mt-4"
                   >
-                    {quizIdx < words.length - 1 ? "Next Question" : "Finish Quiz"} <ArrowRight className="w-4 h-4" />
+                    {quizIdx < words.length - 1 ? "Next Question" : "Finish Quiz"}{" "}
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 )}
               </>
@@ -749,10 +774,15 @@ function VocabStudyPage() {
                   <Trophy className="w-10 h-10 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-black text-slate-800 dark:text-white">Quiz Completed!</h3>
+                  <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+                    Quiz Completed!
+                  </h3>
                   <p className="text-sm text-slate-600 dark:text-indigo-200/60">
-                    You got <span className="font-bold text-slate-800 dark:text-white">{quizScore}</span> out of{" "}
-                    <span className="font-bold text-slate-800 dark:text-white">{words.length}</span> correct.
+                    You got{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">{quizScore}</span>{" "}
+                    out of{" "}
+                    <span className="font-bold text-slate-800 dark:text-white">{words.length}</span>{" "}
+                    correct.
                   </p>
                 </div>
                 <div className="h-1.5 bg-slate-200 dark:bg-white/15 rounded-full overflow-hidden">
@@ -782,10 +812,30 @@ function VocabStudyPage() {
             {/* SRS Categories Tabs */}
             <div className="flex gap-2 border-b border-white/10 pb-2 overflow-x-auto">
               {[
-                { id: "new" as SRSCategory, label: "New", count: srsNewWords.length, color: "text-blue-400" },
-                { id: "learning" as SRSCategory, label: "Learning", count: srsLearningWords.length, color: "text-amber-400" },
-                { id: "review" as SRSCategory, label: "Review (Starred)", count: srsReviewWords.length, color: "text-red-400" },
-                { id: "mastered" as SRSCategory, label: "Mastered", count: srsMasteredWords.length, color: "text-green-400" },
+                {
+                  id: "new" as SRSCategory,
+                  label: "New",
+                  count: srsNewWords.length,
+                  color: "text-blue-400",
+                },
+                {
+                  id: "learning" as SRSCategory,
+                  label: "Learning",
+                  count: srsLearningWords.length,
+                  color: "text-amber-400",
+                },
+                {
+                  id: "review" as SRSCategory,
+                  label: "Review (Starred)",
+                  count: srsReviewWords.length,
+                  color: "text-red-400",
+                },
+                {
+                  id: "mastered" as SRSCategory,
+                  label: "Mastered",
+                  count: srsMasteredWords.length,
+                  color: "text-green-400",
+                },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -825,7 +875,9 @@ function VocabStudyPage() {
                         >
                           {word.word}
                         </div>
-                        <div className="text-xs text-cyan-300 font-bold">{word.furigana || word.romaji}</div>
+                        <div className="text-xs text-cyan-300 font-bold">
+                          {word.furigana || word.romaji}
+                        </div>
                         <div className="text-sm text-white/80 mt-0.5">{word.meaning}</div>
                       </div>
 
@@ -833,7 +885,9 @@ function VocabStudyPage() {
                         <button
                           onClick={() => toggleMastered(word.word)}
                           className={`p-1.5 rounded-lg border transition ${
-                            mastered ? "bg-green-500/20 text-green-400" : "text-white/40 hover:text-white"
+                            mastered
+                              ? "bg-green-500/20 text-green-400"
+                              : "text-white/40 hover:text-white"
                           }`}
                         >
                           <CheckCircle className="w-4 h-4" />
@@ -841,7 +895,9 @@ function VocabStudyPage() {
                         <button
                           onClick={() => toggleLearned(word.word)}
                           className={`p-1.5 rounded-lg border transition ${
-                            learned && !mastered ? "bg-blue-500/20 text-blue-400" : "text-white/40 hover:text-white"
+                            learned && !mastered
+                              ? "bg-blue-500/20 text-blue-400"
+                              : "text-white/40 hover:text-white"
                           }`}
                         >
                           <Bookmark className="w-4 h-4" />
@@ -850,7 +906,9 @@ function VocabStudyPage() {
                           onClick={() => toggleBookmark(word.word)}
                           className="p-1.5 rounded-lg text-white/40 hover:text-white"
                         >
-                          <Star className={`w-4 h-4 ${isFav ? "fill-amber-400 text-amber-400" : ""}`} />
+                          <Star
+                            className={`w-4 h-4 ${isFav ? "fill-amber-400 text-amber-400" : ""}`}
+                          />
                         </button>
                       </div>
                     </div>
@@ -866,7 +924,7 @@ function VocabStudyPage() {
         isOpen={isQuizletModalOpen}
         onClose={() => setIsQuizletModalOpen(false)}
         initialIndex={quizletInitialIdx}
-        words={words.map(w => ({
+        words={words.map((w) => ({
           word: w.word,
           furigana: w.furigana || w.romaji || "",
           meaning: w.meaning,

@@ -9,7 +9,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getClasses, getProgressByClass, getProgressOverview } from "@/data/teacher-data";
 import { LevelBadge, StatusBadge } from "@/components/teacher/badges";
 import { PreviewSheet, EmptyState } from "@/components/teacher/dialogs";
-import { Search, AlertTriangle, ArrowRight, TrendingUp, Download, Send, Star, Clock } from "lucide-react";
+import {
+  Search,
+  AlertTriangle,
+  ArrowRight,
+  TrendingUp,
+  Download,
+  Send,
+  Star,
+  Clock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { JLPTLevel, Student } from "@/data/teacher-data";
@@ -20,7 +29,12 @@ export const Route = createFileRoute("/teacher/progress")({
 
 const LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 
-function OverviewCards({ avgProgress, activeClasses, totalStudents, atRisk }: {
+function OverviewCards({
+  avgProgress,
+  activeClasses,
+  totalStudents,
+  atRisk,
+}: {
   avgProgress: number;
   activeClasses: number;
   totalStudents: number;
@@ -45,7 +59,16 @@ function OverviewCards({ avgProgress, activeClasses, totalStudents, atRisk }: {
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-info/10">
-              <svg className="h-5 w-5 text-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+              <svg
+                className="h-5 w-5 text-info"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
             </div>
             <div>
               <p className="text-2xl font-bold">{activeClasses}</p>
@@ -58,7 +81,17 @@ function OverviewCards({ avgProgress, activeClasses, totalStudents, atRisk }: {
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-success/10">
-              <svg className="h-5 w-5 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              <svg
+                className="h-5 w-5 text-success"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
             </div>
             <div>
               <p className="text-2xl font-bold">{totalStudents}</p>
@@ -85,7 +118,10 @@ function OverviewCards({ avgProgress, activeClasses, totalStudents, atRisk }: {
 }
 
 function StudentRow({ student, onPreview }: { student: Student; onPreview: (s: Student) => void }) {
-  const initials = student.name.split(" ").map((p) => p[0]).join("");
+  const initials = student.name
+    .split(" ")
+    .map((p) => p[0])
+    .join("");
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/40">
       <Avatar className="h-9 w-9">
@@ -112,13 +148,20 @@ function StudentRow({ student, onPreview }: { student: Student; onPreview: (s: S
   );
 }
 
-function StudentPreviewSheet({ student, open, onOpenChange }: {
+function StudentPreviewSheet({
+  student,
+  open,
+  onOpenChange,
+}: {
   student: Student | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
   if (!student) return null;
-  const initials = student.name.split(" ").map((p) => p[0]).join("");
+  const initials = student.name
+    .split(" ")
+    .map((p) => p[0])
+    .join("");
   return (
     <PreviewSheet
       open={open}
@@ -181,7 +224,13 @@ function StudentPreviewSheet({ student, open, onOpenChange }: {
 // Inline MessageSquare since not imported above
 function MessageSquare({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   );
@@ -196,7 +245,9 @@ function ClassDetailView({ classId, onBack }: { classId: string; onBack: () => v
   if (!data) {
     return (
       <div>
-        <Button variant="ghost" onClick={onBack} className="mb-4">← Back to Overview</Button>
+        <Button variant="ghost" onClick={onBack} className="mb-4">
+          ← Back to Overview
+        </Button>
         <EmptyState
           icon={AlertTriangle}
           title="Class not found"
@@ -206,7 +257,15 @@ function ClassDetailView({ classId, onBack }: { classId: string; onBack: () => v
     );
   }
 
-  const { class: cls, averageProgress, homeworkCompletion, examAverage, skills, students, atRisk } = data;
+  const {
+    class: cls,
+    averageProgress,
+    homeworkCompletion,
+    examAverage,
+    skills,
+    students,
+    atRisk,
+  } = data;
   const skillEntries = Object.entries(skills) as [string, number][];
 
   const sortedStudents = [...students].sort((a, b) => {
@@ -219,7 +278,9 @@ function ClassDetailView({ classId, onBack }: { classId: string; onBack: () => v
 
   return (
     <div>
-      <Button variant="ghost" onClick={onBack} className="mb-4">← Back to Overview</Button>
+      <Button variant="ghost" onClick={onBack} className="mb-4">
+        ← Back to Overview
+      </Button>
 
       <div className="mb-6">
         <div className="flex flex-wrap items-center gap-2">
@@ -310,17 +371,27 @@ function ClassDetailView({ classId, onBack }: { classId: string; onBack: () => v
                 <div
                   key={s.id}
                   className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/40"
-                  onClick={() => { setPreviewStudent(s); setPreviewOpen(true); }}
+                  onClick={() => {
+                    setPreviewStudent(s);
+                    setPreviewOpen(true);
+                  }}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={s.avatar} alt={s.name} />
-                    <AvatarFallback className="text-xs">{s.name.split(" ").map((p) => p[0]).join("")}</AvatarFallback>
+                    <AvatarFallback className="text-xs">
+                      {s.name
+                        .split(" ")
+                        .map((p) => p[0])
+                        .join("")}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{s.name}</p>
                     <div className="flex items-center gap-1.5">
                       <LevelBadge level={s.level} />
-                      <span className="text-xs text-muted-foreground">#{topStudents.indexOf(s) + 1}</span>
+                      <span className="text-xs text-muted-foreground">
+                        #{topStudents.indexOf(s) + 1}
+                      </span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -349,19 +420,33 @@ function ClassDetailView({ classId, onBack }: { classId: string; onBack: () => v
             </div>
             <div className="space-y-2">
               {atRisk.slice(0, 3).map((s) => (
-                <StudentRow key={s.id} student={s} onPreview={(st) => { setPreviewStudent(st); setPreviewOpen(true); }} />
+                <StudentRow
+                  key={s.id}
+                  student={s}
+                  onPreview={(st) => {
+                    setPreviewStudent(st);
+                    setPreviewOpen(true);
+                  }}
+                />
               ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-      <StudentPreviewSheet student={previewStudent} open={previewOpen} onOpenChange={setPreviewOpen} />
+      <StudentPreviewSheet
+        student={previewStudent}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
     </div>
   );
 }
 
-function BrowseAllSection({ classes, onSelectClass }: {
+function BrowseAllSection({
+  classes,
+  onSelectClass,
+}: {
   classes: ReturnType<typeof getClasses>;
   onSelectClass: (id: string) => void;
 }) {
@@ -369,8 +454,8 @@ function BrowseAllSection({ classes, onSelectClass }: {
   const [levelFilter, setLevelFilter] = useState<JLPTLevel | "All">("All");
 
   const filtered = classes.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.jpName.includes(search);
+    const matchesSearch =
+      c.name.toLowerCase().includes(search.toLowerCase()) || c.jpName.includes(search);
     const matchesLevel = levelFilter === "All" || c.level === levelFilter;
     return matchesSearch && matchesLevel;
   });
@@ -431,7 +516,9 @@ function BrowseAllSection({ classes, onSelectClass }: {
                 <Progress value={cls.progress} />
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{cls.studentCount} / {cls.capacity} students</span>
+                <span>
+                  {cls.studentCount} / {cls.capacity} students
+                </span>
                 <div className="flex items-center gap-1">
                   <StatusBadge status={cls.status} />
                   <ArrowRight className="h-3 w-3" />
@@ -464,9 +551,7 @@ function TeacherProgressPage() {
   }
 
   const activeClasses = allClasses.filter((c) => c.status === "Active");
-  const topPerforming = [...activeClasses]
-    .sort((a, b) => b.progress - a.progress)
-    .slice(0, 4);
+  const topPerforming = [...activeClasses].sort((a, b) => b.progress - a.progress).slice(0, 4);
   const needsAttention = activeClasses
     .filter((c) => c.attention > 0)
     .sort((a, b) => b.attention - a.attention)
@@ -544,7 +629,9 @@ function TeacherProgressPage() {
                       </div>
                       <div className="mt-1 flex items-center gap-2">
                         <Progress value={cls.progress} className="h-1.5 flex-1" />
-                        <span className="text-xs font-medium text-destructive">{cls.attention} alert{cls.attention > 1 ? "s" : ""}</span>
+                        <span className="text-xs font-medium text-destructive">
+                          {cls.attention} alert{cls.attention > 1 ? "s" : ""}
+                        </span>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />

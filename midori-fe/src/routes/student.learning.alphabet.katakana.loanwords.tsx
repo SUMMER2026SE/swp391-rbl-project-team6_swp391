@@ -84,7 +84,10 @@ function KatakanaLoanwordsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-slate-500 dark:text-indigo-200/60">Lesson not found</p>
-          <Link to="/student/learning/alphabet" className="text-primary hover:underline mt-2 inline-block">
+          <Link
+            to="/student/learning/alphabet"
+            className="text-primary hover:underline mt-2 inline-block"
+          >
             Back to Alphabet
           </Link>
         </div>
@@ -126,9 +129,7 @@ function KatakanaLoanwordsPage() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-2"
             >
-              <div className="text-2xl font-bold text-primary">
-                {currentWord.romaji}
-              </div>
+              <div className="text-2xl font-bold text-primary">{currentWord.romaji}</div>
               <div className="text-lg text-slate-600 dark:text-indigo-200/80">
                 {currentWord.meaning}
               </div>
@@ -295,7 +296,8 @@ function KatakanaLoanwordsPage() {
         {/* Progress */}
         <div className="flex justify-between text-sm mb-2">
           <span className="text-slate-600 dark:text-indigo-200/80">
-            Question <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
+            Question{" "}
+            <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
             <span className="text-slate-500">{lesson.loanwords.length}</span>
           </span>
           <span className="text-slate-800 dark:text-white font-bold">Score: {quizScore}</span>
@@ -351,7 +353,7 @@ function KatakanaLoanwordsPage() {
               "w-full p-4 rounded-xl text-left font-medium transition-all",
               quizAnswer
                 ? "bg-green-500/20 border-2 border-green-500 text-green-700 dark:text-green-300"
-                : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100/80"
+                : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100/80",
             )}
           >
             {word.meaning}
@@ -380,7 +382,7 @@ function KatakanaLoanwordsPage() {
                   completed: Math.round((finalScore / lesson.loanwords.length) * 100) >= 70,
                   score: Math.max(
                     progress.score,
-                    Math.round((finalScore / lesson.loanwords.length) * 100)
+                    Math.round((finalScore / lesson.loanwords.length) * 100),
                   ),
                   attempts: progress.attempts + 1,
                 });
@@ -410,7 +412,9 @@ function KatakanaLoanwordsPage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </Link>
               <div>
-                <h1 className="text-xl font-black text-slate-800 dark:text-white">{lesson.title}</h1>
+                <h1 className="text-xl font-black text-slate-800 dark:text-white">
+                  {lesson.title}
+                </h1>
                 <p className="text-xs text-slate-500 dark:text-indigo-200/60">
                   {lesson.loanwords.length} words
                   {progress.attempts > 0 && ` • Best: ${progress.score}%`}
@@ -435,7 +439,7 @@ function KatakanaLoanwordsPage() {
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   viewMode === mode.id
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90"
+                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90",
                 )}
               >
                 <mode.icon className="w-4 h-4" />

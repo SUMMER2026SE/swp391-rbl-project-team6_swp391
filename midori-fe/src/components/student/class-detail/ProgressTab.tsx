@@ -19,7 +19,7 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
     { name: "Listening", val: classInfo.progress.listening },
     { name: "Reading", val: classInfo.progress.reading },
     { name: "Shadowing", val: classInfo.progress.shadowing },
-    { name: "Writing", val: classInfo.progress.writing }
+    { name: "Writing", val: classInfo.progress.writing },
   ];
 
   const modules = [
@@ -28,7 +28,7 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
     { name: "Listening", val: classInfo.progress.listening, completed: "3/8 lessons" },
     { name: "Reading", val: classInfo.progress.reading, completed: "3/6 lessons" },
     { name: "Shadowing", val: classInfo.progress.shadowing, completed: "4/12 lessons" },
-    { name: "Writing", val: classInfo.progress.writing, completed: "1/5 lessons" }
+    { name: "Writing", val: classInfo.progress.writing, completed: "1/5 lessons" },
   ];
 
   return (
@@ -40,8 +40,12 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
             <Flame className="w-5 h-5 fill-current" />
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Learning Streak</div>
-            <div className="font-display font-black text-lg text-foreground mt-0.5">{currentStreak} Days</div>
+            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+              Learning Streak
+            </div>
+            <div className="font-display font-black text-lg text-foreground mt-0.5">
+              {currentStreak} Days
+            </div>
           </div>
         </Card>
 
@@ -50,8 +54,12 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
             <Award className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Average Score</div>
-            <div className="font-display font-black text-lg text-foreground mt-0.5">{avgScore} / 10</div>
+            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+              Average Score
+            </div>
+            <div className="font-display font-black text-lg text-foreground mt-0.5">
+              {avgScore} / 10
+            </div>
           </div>
         </Card>
 
@@ -60,8 +68,12 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
             <LineChart className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Syllabus Completion</div>
-            <div className="font-display font-black text-lg text-foreground mt-0.5">54% Completed</div>
+            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+              Syllabus Completion
+            </div>
+            <div className="font-display font-black text-lg text-foreground mt-0.5">
+              54% Completed
+            </div>
           </div>
         </Card>
       </div>
@@ -72,15 +84,34 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
           <h3 className="font-display font-bold text-sm text-foreground mb-1 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-primary" /> Skill Progress Chart (%)
           </h3>
-          <p className="text-[10px] text-muted-foreground mb-4">Completion percentage per language skill module.</p>
-          
+          <p className="text-[10px] text-muted-foreground mb-4">
+            Completion percentage per language skill module.
+          </p>
+
           <div className="h-[220px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={skillData} barCategoryGap="40%">
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.02 300)" opacity={0.25} vertical={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="oklch(0.9 0.02 300)"
+                  opacity={0.25}
+                  vertical={false}
+                />
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.08)", backgroundColor: "var(--card)" }} />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={[0, 100]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "none",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+                    backgroundColor: "var(--card)",
+                  }}
+                />
                 <Bar dataKey="val" fill="oklch(0.62 0.18 270)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -92,10 +123,13 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
           <h3 className="font-display font-bold text-sm text-foreground flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
             <CheckCircle className="w-4 h-4 text-green-500" /> Syllabus Modules
           </h3>
-          
+
           <div className="grid grid-cols-2 gap-3">
             {modules.map((m, idx) => (
-              <div key={idx} className="p-3 border border-slate-200/40 dark:border-white/5 bg-slate-50/10 dark:bg-white/[0.002] rounded-2xl flex flex-col justify-between min-h-[90px]">
+              <div
+                key={idx}
+                className="p-3 border border-slate-200/40 dark:border-white/5 bg-slate-50/10 dark:bg-white/[0.002] rounded-2xl flex flex-col justify-between min-h-[90px]"
+              >
                 <div>
                   <div className="flex justify-between items-center text-[10px] font-bold text-foreground dark:text-slate-300">
                     <span>{m.name}</span>
@@ -105,7 +139,9 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
                     <Progress value={m.val} />
                   </div>
                 </div>
-                <div className="text-[9px] text-muted-foreground mt-2 border-t border-slate-100 dark:border-white/5 pt-1.5">{m.completed}</div>
+                <div className="text-[9px] text-muted-foreground mt-2 border-t border-slate-100 dark:border-white/5 pt-1.5">
+                  {m.completed}
+                </div>
               </div>
             ))}
           </div>

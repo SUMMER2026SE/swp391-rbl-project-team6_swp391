@@ -28,7 +28,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "が"],
     correctAnswer: 1,
     explanation: "「に」indicates purpose of going somewhere.",
-    grammar: "Verb dictionary form + に行きます"
+    grammar: "Verb dictionary form + に行きます",
   },
   {
     id: "n4-q-002",
@@ -39,7 +39,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "へ"],
     correctAnswer: 1,
     explanation: "「に」indicates the recipient of giving.",
-    grammar: "に + あげます"
+    grammar: "に + あげます",
   },
   {
     id: "n4-q-003",
@@ -50,7 +50,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "から"],
     correctAnswer: 3,
     explanation: "「から」indicates the source of receiving.",
-    grammar: "から + もらいます"
+    grammar: "から + もらいます",
   },
   {
     id: "n4-q-004",
@@ -61,7 +61,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["する", "した", "話せる", "話した"],
     correctAnswer: 2,
     explanation: "「~ようになりました」means 'became able to'.",
-    grammar: "Verb dictionary form + ようになりました"
+    grammar: "Verb dictionary form + ようになりました",
   },
   {
     id: "n4-q-005",
@@ -72,7 +72,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "へ"],
     correctAnswer: 1,
     explanation: "「に」marks specific time.",
-    grammar: "Time + に"
+    grammar: "Time + に",
   },
   // Grammar - Intermediate
   {
@@ -84,7 +84,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "のに", "から", "ために"],
     correctAnswer: 1,
     explanation: "「のに」expresses contradiction or unexpected result.",
-    grammar: "Verb/N adj + のに"
+    grammar: "Verb/N adj + のに",
   },
   {
     id: "n4-q-007",
@@ -95,7 +95,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "ので", "ために"],
     correctAnswer: 2,
     explanation: "「ので」indicates reason/cause.",
-    grammar: "Verb/I adj + ので"
+    grammar: "Verb/I adj + ので",
   },
   {
     id: "n4-q-008",
@@ -106,7 +106,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["とき", "あいだ", "前に", "後で"],
     correctAnswer: 2,
     explanation: "「前に」means 'before'.",
-    grammar: "Verb dictionary form + 前に"
+    grammar: "Verb dictionary form + 前に",
   },
   {
     id: "n4-q-009",
@@ -117,7 +117,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["あいだ", "とき", "的最中", "最中"],
     correctAnswer: 0,
     explanation: "「間」means 'during/while'.",
-    grammar: "Verb/I adj + 間"
+    grammar: "Verb/I adj + 間",
   },
   {
     id: "n4-q-010",
@@ -128,7 +128,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["思って", "思って", "思って", "思って"],
     correctAnswer: 0,
     explanation: "「~てしまった」expresses regret or completed action with negative result.",
-    grammar: "Verb te-form + しまった"
+    grammar: "Verb te-form + しまった",
   },
   // Vocabulary - N4
   {
@@ -247,7 +247,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "から"],
     correctAnswer: 3,
     explanation: "「から」indicates the source of receiving.",
-    grammar: "から + もらいました"
+    grammar: "から + もらいました",
   },
   {
     id: "n4-q-022",
@@ -258,7 +258,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "ため"],
     correctAnswer: 3,
     explanation: "「ため」indicates purpose or cause.",
-    grammar: "Verb dictionary form + ため"
+    grammar: "Verb dictionary form + ため",
   },
   {
     id: "n4-q-023",
@@ -270,7 +270,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "あいだ", "前に", "後で"],
     correctAnswer: 1,
     explanation: "「間に」means 'during/while' (action in progress).",
-    grammar: "Verb I-form + 間に"
+    grammar: "Verb I-form + 間に",
   },
   {
     id: "n4-q-024",
@@ -281,7 +281,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "のに"],
     correctAnswer: 3,
     explanation: "「のに」expresses contradictory feelings.",
-    grammar: "Verb/I adj + のに"
+    grammar: "Verb/I adj + のに",
   },
   {
     id: "n4-q-025",
@@ -292,7 +292,7 @@ export const n4QuizQuestions: QuizQuestion[] = [
     options: ["で", "に", "を", "へ"],
     correctAnswer: 1,
     explanation: "「に」indicates ability的对象.",
-    grammar: "に + できます"
+    grammar: "に + できます",
   },
   // More Vocabulary - N4
   {

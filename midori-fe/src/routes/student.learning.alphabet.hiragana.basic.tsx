@@ -7,10 +7,5 @@ export const Route = createFileRoute("/student/learning/alphabet/hiragana/basic"
 });
 
 function HiraganaBasicPage() {
-  return (
-    <AlphabetLessonPage
-      lesson={hiraganaBasicLesson}
-      progressKey="hiragana-basic"
-    />
-  );
+  return <AlphabetLessonPage lesson={hiraganaBasicLesson} progressKey="hiragana-basic" />;
 }

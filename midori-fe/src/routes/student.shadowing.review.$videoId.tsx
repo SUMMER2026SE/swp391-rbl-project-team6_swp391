@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home
-} from "lucide-react";
+import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { getVideoById, getTopicForVideo, generateMockAIFeedback, type ShadowingSentence } from "@/mock/shadowing-student";
+import {
+  getVideoById,
+  getTopicForVideo,
+  generateMockAIFeedback,
+  type ShadowingSentence,
+} from "@/mock/shadowing-student";
 
 export const Route = createFileRoute("/student/shadowing/review/$videoId")({
   component: ReviewPage,
@@ -35,7 +38,7 @@ function ReviewPage() {
   // Generate mock review data
   const [reviewData] = useState<SentenceReview[]>(() => {
     if (!video) return [];
-    return video.sentences.map(sentence => {
+    return video.sentences.map((sentence) => {
       const feedback = generateMockAIFeedback(sentence.text);
       return {
         sentence,
@@ -68,9 +71,10 @@ function ReviewPage() {
     );
   }
 
-  const overallScore = reviewData.length > 0
-    ? Math.round(reviewData.reduce((acc, r) => acc + r.score, 0) / reviewData.length)
-    : 0;
+  const overallScore =
+    reviewData.length > 0
+      ? Math.round(reviewData.reduce((acc, r) => acc + r.score, 0) / reviewData.length)
+      : 0;
 
   return (
     <div className="min-h-screen relative flex flex-col">
@@ -97,9 +101,7 @@ function ReviewPage() {
                     Xem lại bài luyện tập
                   </h1>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {video.title}
-                </p>
+                <p className="text-sm text-muted-foreground">{video.title}</p>
               </div>
 
               {/* Overall Score */}
@@ -114,12 +116,9 @@ function ReviewPage() {
         {/* Content */}
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="grid lg:grid-cols-2 gap-8">
-            
             {/* LEFT - Sentence List */}
             <div className="space-y-4">
-              <h2 className="font-bold text-lg text-slate-800 dark:text-white">
-                Danh sách câu
-              </h2>
+              <h2 className="font-bold text-lg text-slate-800 dark:text-white">Danh sách câu</h2>
 
               <div className="space-y-2">
                 {reviewData.map((review, index) => (
@@ -136,34 +135,45 @@ function ReviewPage() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        selectedIndex === index
-                          ? "bg-white/20"
-                          : review.score >= 80
-                          ? "bg-green-100 text-green-600"
-                          : "bg-red-100 text-red-600"
-                      }`}>
+                      <span
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          selectedIndex === index
+                            ? "bg-white/20"
+                            : review.score >= 80
+                              ? "bg-green-100 text-green-600"
+                              : "bg-red-100 text-red-600"
+                        }`}
+                      >
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${
-                          selectedIndex === index ? "text-white" : "text-slate-800 dark:text-white"
-                        }`} style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                        <p
+                          className={`text-sm font-medium truncate ${
+                            selectedIndex === index
+                              ? "text-white"
+                              : "text-slate-800 dark:text-white"
+                          }`}
+                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                        >
                           {review.sentence.text}
                         </p>
-                        <p className={`text-xs truncate ${
-                          selectedIndex === index ? "text-white/70" : "text-muted-foreground"
-                        }`}>
+                        <p
+                          className={`text-xs truncate ${
+                            selectedIndex === index ? "text-white/70" : "text-muted-foreground"
+                          }`}
+                        >
                           {review.sentence.translation}
                         </p>
                       </div>
-                      <span className={`text-lg font-bold ${
-                        selectedIndex === index
-                          ? "text-white"
-                          : review.score >= 80
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}>
+                      <span
+                        className={`text-lg font-bold ${
+                          selectedIndex === index
+                            ? "text-white"
+                            : review.score >= 80
+                              ? "text-green-500"
+                              : "text-red-500"
+                        }`}
+                      >
                         {review.score}
                       </span>
                     </div>
@@ -174,7 +184,7 @@ function ReviewPage() {
               {/* Navigation */}
               <div className="flex items-center justify-between pt-4">
                 <button
-                  onClick={() => setSelectedIndex(prev => Math.max(0, prev - 1))}
+                  onClick={() => setSelectedIndex((prev) => Math.max(0, prev - 1))}
                   disabled={selectedIndex === 0}
                   className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
@@ -185,7 +195,9 @@ function ReviewPage() {
                   {selectedIndex + 1} / {reviewData.length}
                 </span>
                 <button
-                  onClick={() => setSelectedIndex(prev => Math.min(reviewData.length - 1, prev + 1))}
+                  onClick={() =>
+                    setSelectedIndex((prev) => Math.min(reviewData.length - 1, prev + 1))
+                  }
                   disabled={selectedIndex === reviewData.length - 1}
                   className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
@@ -208,24 +220,28 @@ function ReviewPage() {
                   {/* Sentence Card */}
                   <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-white/10">
                     <div className="flex items-center gap-2 mb-4">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        currentReview.score >= 80
-                          ? "bg-green-100 text-green-600"
-                          : "bg-red-100 text-red-600"
-                      }`}>
+                      <span
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          currentReview.score >= 80
+                            ? "bg-green-100 text-green-600"
+                            : "bg-red-100 text-red-600"
+                        }`}
+                      >
                         {selectedIndex + 1}
                       </span>
                       <span className="text-sm text-muted-foreground">Câu</span>
-                      <span className={`ml-auto text-2xl font-black ${
-                        currentReview.score >= 80 ? "text-green-500" : "text-red-500"
-                      }`}>
+                      <span
+                        className={`ml-auto text-2xl font-black ${
+                          currentReview.score >= 80 ? "text-green-500" : "text-red-500"
+                        }`}
+                      >
                         {currentReview.score}
                       </span>
                     </div>
 
                     {/* Japanese */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl mb-4">
-                      <p 
+                      <p
                         className="text-xl text-slate-800 dark:text-white leading-relaxed"
                         style={{ fontFamily: "var(--font-japanese, serif)" }}
                       >
@@ -284,14 +300,19 @@ function ReviewPage() {
 
                     {/* AI Feedback */}
                     <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-2">AI Phản hồi</h4>
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-2">
+                        AI Phản hồi
+                      </h4>
                       <p className="text-sm text-slate-600 dark:text-slate-300">
                         {currentReview.feedback.feedback}
                       </p>
                       {currentReview.feedback.tips.length > 0 && (
                         <div className="mt-3 space-y-1">
                           {currentReview.feedback.tips.map((tip, i) => (
-                            <p key={i} className="text-xs text-muted-foreground flex items-start gap-1">
+                            <p
+                              key={i}
+                              className="text-xs text-muted-foreground flex items-start gap-1"
+                            >
                               <CheckCircle className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
                               {tip}
                             </p>
@@ -309,12 +330,20 @@ function ReviewPage() {
                       </h4>
                       <div className="space-y-2">
                         {currentReview.sentence.vocabulary.map((vocab, i) => (
-                          <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-700 last:border-0">
+                          <div
+                            key={i}
+                            className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-700 last:border-0"
+                          >
                             <div>
-                              <span className="text-sm font-medium text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                              <span
+                                className="text-sm font-medium text-slate-800 dark:text-white"
+                                style={{ fontFamily: "var(--font-japanese, serif)" }}
+                              >
                                 {vocab.word}
                               </span>
-                              <span className="text-xs text-muted-foreground ml-2">[{vocab.reading}]</span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                [{vocab.reading}]
+                              </span>
                             </div>
                             <span className="text-xs text-slate-500 dark:text-slate-400">
                               {vocab.meaning}

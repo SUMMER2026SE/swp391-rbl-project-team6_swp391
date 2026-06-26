@@ -129,9 +129,7 @@ export const adminGrammarApi = {
     if (params?.search) searchParams.set("search", params.search);
     if (params?.status) searchParams.set("status", params.status);
     const qs = searchParams.toString();
-    const grammars = await api.get<GrammarResponse[]>(
-      `/teacher/grammar${qs ? `?${qs}` : ""}`
-    );
+    const grammars = await api.get<GrammarResponse[]>(`/teacher/grammar${qs ? `?${qs}` : ""}`);
     return grammars.map(toAdminGrammarItem);
   },
 
@@ -158,15 +156,9 @@ export const adminGrammarApi = {
    * PUT /api/teacher/grammar/{grammarId}
    * Updates an existing grammar lesson
    */
-  update: async (
-    grammarId: string,
-    data: UpdateGrammarInput
-  ): Promise<AdminGrammarItem> => {
+  update: async (grammarId: string, data: UpdateGrammarInput): Promise<AdminGrammarItem> => {
     const request = toUpdateRequest(data);
-    const grammar = await api.put<GrammarResponse>(
-      `/teacher/grammar/${grammarId}`,
-      request
-    );
+    const grammar = await api.put<GrammarResponse>(`/teacher/grammar/${grammarId}`, request);
     return toAdminGrammarItem(grammar);
   },
 
@@ -174,15 +166,16 @@ export const adminGrammarApi = {
    * DELETE /api/teacher/grammar/{grammarId}
    * Deletes a grammar lesson
    */
-  delete: (grammarId: string): Promise<void> =>
-    api.delete<void>(`/teacher/grammar/${grammarId}`),
+  delete: (grammarId: string): Promise<void> => api.delete<void>(`/teacher/grammar/${grammarId}`),
 
   /**
    * PATCH /api/teacher/grammar/{grammarId}/publish
    * Publishes a grammar lesson (sets status to APPROVED)
    */
   publish: (grammarId: string): Promise<AdminGrammarItem> => {
-    return api.patch<GrammarResponse>(`/teacher/grammar/${grammarId}/publish`).then(toAdminGrammarItem);
+    return api
+      .patch<GrammarResponse>(`/teacher/grammar/${grammarId}/publish`)
+      .then(toAdminGrammarItem);
   },
 
   /**
@@ -190,6 +183,8 @@ export const adminGrammarApi = {
    * Unpublishes a grammar lesson (sets status to DRAFT)
    */
   unpublish: (grammarId: string): Promise<AdminGrammarItem> => {
-    return api.patch<GrammarResponse>(`/teacher/grammar/${grammarId}/unpublish`).then(toAdminGrammarItem);
+    return api
+      .patch<GrammarResponse>(`/teacher/grammar/${grammarId}/unpublish`)
+      .then(toAdminGrammarItem);
   },
 };

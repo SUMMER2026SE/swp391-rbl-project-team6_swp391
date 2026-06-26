@@ -7,7 +7,17 @@ import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 
-export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode }) {
+export function AuthShell({
+  title,
+  subtitle,
+  children,
+  footer,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <SakuraBg count={16} />
@@ -55,7 +65,8 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
             way 🌸
           </h2>
           <p className="mt-4 text-white/85 leading-relaxed text-base">
-            AI shadowing, listening dictation, grammar lessons and JLPT exam prep — all in one elegant platform.
+            AI shadowing, listening dictation, grammar lessons and JLPT exam prep — all in one
+            elegant platform.
           </p>
 
           <motion.div
@@ -63,9 +74,13 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
             transition={{ duration: 5, repeat: Infinity }}
             className="mt-12 p-6 rounded-2xl bg-white/10 backdrop-blur border border-white/20"
           >
-            <div className="text-[10px] uppercase tracking-widest opacity-80 font-semibold">Featured grammar</div>
+            <div className="text-[10px] uppercase tracking-widest opacity-80 font-semibold">
+              Featured grammar
+            </div>
             <div className="font-display font-bold text-3xl mt-2">〜たことがあります</div>
-            <div className="text-sm opacity-85 mt-1.5 leading-relaxed">"have the experience of doing something"</div>
+            <div className="text-sm opacity-85 mt-1.5 leading-relaxed">
+              "have the experience of doing something"
+            </div>
           </motion.div>
 
           {/* Stats row */}
@@ -132,9 +147,7 @@ export function Field({
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="block">
-      <span className="text-xs font-bold text-foreground/70 uppercase tracking-wider">
-        {label}
-      </span>
+      <span className="text-xs font-bold text-foreground/70 uppercase tracking-wider">{label}</span>
       <div className="relative">
         <input
           {...props}
@@ -144,9 +157,7 @@ export function Field({
           }
         />
         {endAdornment && (
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3.5">
-            {endAdornment}
-          </div>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3.5">{endAdornment}</div>
         )}
       </div>
     </label>
@@ -164,7 +175,11 @@ export function PrimaryBtn({ children, ...props }: React.ButtonHTMLAttributes<HT
   );
 }
 
-export function GoogleBtn({ onSuccess, onError, disabled }: {
+export function GoogleBtn({
+  onSuccess,
+  onError,
+  disabled,
+}: {
   onSuccess: (credential: string) => void;
   onError?: (error: Error | null) => void;
   disabled?: boolean;
@@ -179,10 +194,22 @@ export function GoogleBtn({ onSuccess, onError, disabled }: {
         className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-white/5 border border-border font-semibold text-sm flex items-center justify-center gap-3 text-gray-400 cursor-not-allowed"
       >
         <svg width="18" height="18" viewBox="0 0 48 48">
-          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35.5 24 35.5c-6.3 0-11.5-5.2-11.5-11.5S17.7 12.5 24 12.5c2.9 0 5.5 1.1 7.5 2.9l5.7-5.7C33.5 6.5 28.9 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.4-3.5z" />
-          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12.5 24 12.5c2.9 0 5.5 1.1 7.5 2.9l5.7-5.7C33.5 6.5 28.9 4.5 24 4.5 16.3 4.5 9.7 8.8 6.3 14.7z" />
-          <path fill="#4CAF50" d="M24 43.5c4.8 0 9.2-1.8 12.5-4.8l-5.8-4.9C28.9 35.4 26.6 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.6 39.1 16.3 43.5 24 43.5z" />
-          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.5l5.8 4.9C40.1 35.6 43.5 30.2 43.5 24c0-1.2-.1-2.4-.4-3.5z" />
+          <path
+            fill="#FFC107"
+            d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35.5 24 35.5c-6.3 0-11.5-5.2-11.5-11.5S17.7 12.5 24 12.5c2.9 0 5.5 1.1 7.5 2.9l5.7-5.7C33.5 6.5 28.9 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.4-.4-3.5z"
+          />
+          <path
+            fill="#FF3D00"
+            d="M6.3 14.7l6.6 4.8C14.7 16 19 12.5 24 12.5c2.9 0 5.5 1.1 7.5 2.9l5.7-5.7C33.5 6.5 28.9 4.5 24 4.5 16.3 4.5 9.7 8.8 6.3 14.7z"
+          />
+          <path
+            fill="#4CAF50"
+            d="M24 43.5c4.8 0 9.2-1.8 12.5-4.8l-5.8-4.9C28.9 35.4 26.6 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.6 39.1 16.3 43.5 24 43.5z"
+          />
+          <path
+            fill="#1976D2"
+            d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.5l5.8 4.9C40.1 35.6 43.5 30.2 43.5 24c0-1.2-.1-2.4-.4-3.5z"
+          />
         </svg>
         Google not configured
       </button>

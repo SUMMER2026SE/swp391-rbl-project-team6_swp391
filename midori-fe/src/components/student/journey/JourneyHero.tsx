@@ -60,12 +60,8 @@ export function JourneyHero({
         </div>
 
         {/* Title */}
-        <h1 className="font-display font-bold text-xl md:text-2xl mb-1">
-          Learning Journey
-        </h1>
-        <p className="text-white/70 text-xs md:text-sm mb-4">
-          Your path to mastering Japanese
-        </p>
+        <h1 className="font-display font-bold text-xl md:text-2xl mb-1">Learning Journey</h1>
+        <p className="text-white/70 text-xs md:text-sm mb-4">Your path to mastering Japanese</p>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-4 gap-2 md:gap-3 mb-4">
@@ -73,7 +69,9 @@ export function JourneyHero({
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 md:p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <BookOpen className="w-3 h-3 text-white/60" />
-              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">Level</span>
+              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">
+                Level
+              </span>
             </div>
             <div className="font-bold text-sm md:text-base">N5</div>
           </div>
@@ -82,7 +80,9 @@ export function JourneyHero({
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 md:p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Zap className="w-3 h-3 text-white/60" />
-              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">Progress</span>
+              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">
+                Progress
+              </span>
             </div>
             <div className="font-bold text-sm md:text-base">{overallProgress}%</div>
           </div>
@@ -91,16 +91,22 @@ export function JourneyHero({
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 md:p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Sparkles className="w-3 h-3 text-white/60" />
-              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">Total XP</span>
+              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">
+                Total XP
+              </span>
             </div>
-            <div className="font-bold text-sm md:text-base">{progress.totalXp.toLocaleString()}</div>
+            <div className="font-bold text-sm md:text-base">
+              {progress.totalXp.toLocaleString()}
+            </div>
           </div>
 
           {/* Lessons */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 md:p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Trophy className="w-3 h-3 text-white/60" />
-              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">Lessons</span>
+              <span className="text-[9px] md:text-[10px] text-white/60 uppercase tracking-wide">
+                Lessons
+              </span>
             </div>
             <div className="font-bold text-sm md:text-base">
               {progress.completedLessons}/{progress.totalLessons}
@@ -135,7 +141,7 @@ export function JourneyHero({
             className={cn(
               "w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold transition-all text-sm",
               "bg-white text-primary hover:bg-white/95",
-              "focus:outline-none focus:ring-2 focus:ring-white/50"
+              "focus:outline-none focus:ring-2 focus:ring-white/50",
             )}
           >
             <Play className="w-3.5 h-3.5" />

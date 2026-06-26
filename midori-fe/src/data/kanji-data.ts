@@ -23,9 +23,7 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
       kunyomi: "ひと-つ (hito-tsu)",
       mnemonic: "Hình ảnh một ngón tay nằm ngang hoặc một vạch kẻ duy nhất.",
       radical: "Nhất (一)",
-      svgPaths: [
-        "M 20,50 C 35,46 65,46 80,50"
-      ]
+      svgPaths: ["M 20,50 C 35,46 65,46 80,50"],
     },
     {
       char: "二",
@@ -36,10 +34,7 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
       kunyomi: "ふta-つ (futa-tsu)",
       mnemonic: "Hai vạch kẻ ngang song song biểu thị số hai.",
       radical: "Nhị (二)",
-      svgPaths: [
-        "M 30,35 C 40,32 60,32 70,35",
-        "M 20,68 C 35,63 65,63 80,68"
-      ]
+      svgPaths: ["M 30,35 C 40,32 60,32 70,35", "M 20,68 C 35,63 65,63 80,68"],
     },
     {
       char: "三",
@@ -53,8 +48,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
       svgPaths: [
         "M 28,26 C 38,23 62,23 72,26",
         "M 33,48 C 43,45 57,45 67,48",
-        "M 18,72 C 33,67 67,67 82,72"
-      ]
+        "M 18,72 C 33,67 67,67 82,72",
+      ],
     },
     {
       char: "川",
@@ -65,11 +60,7 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
       kunyomi: "かわ (kawa)",
       mnemonic: "Hình ảnh dòng sông chảy với 3 làn nước song song.",
       radical: "Xuyên (巛)",
-      svgPaths: [
-        "M 32,22 C 32,35 30,65 24,78",
-        "M 50,22 L 50,75",
-        "M 72,16 L 72,82"
-      ]
+      svgPaths: ["M 32,22 C 32,35 30,65 24,78", "M 50,22 L 50,75", "M 72,16 L 72,82"],
     },
     {
       char: "日",
@@ -84,8 +75,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 30,20 L 30,80",
         "M 30,22 L 70,22 L 70,80",
         "M 30,50 L 70,50",
-        "M 30,78 L 70,78"
-      ]
+        "M 30,78 L 70,78",
+      ],
     },
     {
       char: "月",
@@ -100,8 +91,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 32,18 C 32,32 30,62 20,82",
         "M 32,20 L 68,20 L 68,82",
         "M 32,45 L 68,45",
-        "M 32,65 L 68,65"
-      ]
+        "M 32,65 L 68,65",
+      ],
     },
     {
       char: "火",
@@ -116,8 +107,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 28,38 C 24,42 20,50 18,58",
         "M 72,36 C 76,41 80,48 82,56",
         "M 48,16 C 48,45 35,68 18,78",
-        "M 48,46 C 56,54 70,68 84,78"
-      ]
+        "M 48,46 C 56,54 70,68 84,78",
+      ],
     },
     {
       char: "水",
@@ -132,8 +123,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 50,15 L 50,75 C 50,82 45,82 40,78",
         "M 24,38 L 50,38",
         "M 20,72 L 50,38",
-        "M 76,38 L 50,54 L 80,76"
-      ]
+        "M 76,38 L 50,54 L 80,76",
+      ],
     },
     {
       char: "木",
@@ -148,8 +139,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 20,38 L 80,38",
         "M 50,15 L 50,82",
         "M 50,38 C 42,50 28,68 16,78",
-        "M 50,38 C 58,50 72,68 84,78"
-      ]
+        "M 50,38 C 58,50 72,68 84,78",
+      ],
     },
     {
       char: "金",
@@ -168,9 +159,9 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 51,44 L 51,74",
         "M 38,65 C 37,69 35,73 33,76",
         "M 67,62 C 71,64 76,71 77,75",
-        "M 14,81 L 86,81"
-      ]
-    }
+        "M 14,81 L 86,81",
+      ],
+    },
   ],
   N4: [
     {
@@ -188,8 +179,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 36,46 L 64,46",
         "M 30,56 L 70,56",
         "M 36,56 L 36,78",
-        "M 64,56 L 64,78"
-      ]
+        "M 64,56 L 64,78",
+      ],
     },
     {
       char: "社",
@@ -207,8 +198,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 30,48 L 42,78",
         "M 48,32 L 80,32",
         "M 64,18 L 64,82",
-        "M 44,80 L 86,80"
-      ]
+        "M 44,80 L 86,80",
+      ],
     },
     {
       char: "店",
@@ -227,9 +218,9 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 44,38 L 44,56 L 74,56",
         "M 40,68 L 78,68",
         "M 48,68 L 48,82 L 72,82",
-        "M 72,68 L 72,82"
-      ]
-    }
+        "M 72,68 L 72,82",
+      ],
+    },
   ],
   N3: [
     {
@@ -252,8 +243,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 15,68 L 85,68",
         "M 50,12 L 50,90",
         "M 32,80 L 32,90",
-        "M 68,80 L 68,90"
-      ]
+        "M 68,80 L 68,90",
+      ],
     },
     {
       char: "薬",
@@ -272,9 +263,9 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 24,48 L 76,48",
         "M 50,32 L 50,78",
         "M 28,62 Q 22,62 18,65",
-        "M 72,62 Q 78,62 82,65"
-      ]
-    }
+        "M 72,62 Q 78,62 82,65",
+      ],
+    },
   ],
   N2: [
     {
@@ -293,9 +284,9 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 60,18 L 60,38",
         "M 38,45 L 82,45",
         "M 46,58 C 42,66 36,74 28,82",
-        "M 64,58 C 68,66 76,74 86,82"
-      ]
-    }
+        "M 64,58 C 68,66 76,74 86,82",
+      ],
+    },
   ],
   N1: [
     {
@@ -314,9 +305,9 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 55,20 L 85,20",
         "M 70,20 L 70,82",
         "M 55,50 L 85,50",
-        "M 55,80 L 85,80"
-      ]
-    }
+        "M 55,80 L 85,80",
+      ],
+    },
   ],
   "214 Bộ thủ": [
     {
@@ -328,9 +319,7 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
       kunyomi: "ひと-つ (hito-tsu)",
       mnemonic: "Hình ảnh một ngón tay nằm ngang hoặc một vạch kẻ duy nhất.",
       radical: "Nhất (一)",
-      svgPaths: [
-        "M 20,50 C 35,46 65,46 80,50"
-      ]
+      svgPaths: ["M 20,50 C 35,46 65,46 80,50"],
     },
     {
       char: "二",
@@ -341,10 +330,7 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
       kunyomi: "ふta-つ (futa-tsu)",
       mnemonic: "Hai vạch kẻ ngang song song biểu thị số hai.",
       radical: "Nhị (二)",
-      svgPaths: [
-        "M 30,35 C 40,32 60,32 70,35",
-        "M 20,68 C 35,63 65,63 80,68"
-      ]
+      svgPaths: ["M 30,35 C 40,32 60,32 70,35", "M 20,68 C 35,63 65,63 80,68"],
     },
     {
       char: "川",
@@ -355,11 +341,7 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
       kunyomi: "かわ (kawa)",
       mnemonic: "Hình ảnh dòng sông chảy với 3 làn nước song song.",
       radical: "Xuyên (巛)",
-      svgPaths: [
-        "M 32,22 C 32,35 30,65 24,78",
-        "M 50,22 L 50,75",
-        "M 72,16 L 72,82"
-      ]
+      svgPaths: ["M 32,22 C 32,35 30,65 24,78", "M 50,22 L 50,75", "M 72,16 L 72,82"],
     },
     {
       char: "日",
@@ -374,8 +356,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 30,20 L 30,80",
         "M 30,22 L 70,22 L 70,80",
         "M 30,50 L 70,50",
-        "M 30,78 L 70,78"
-      ]
+        "M 30,78 L 70,78",
+      ],
     },
     {
       char: "月",
@@ -390,8 +372,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 32,18 C 32,32 30,62 20,82",
         "M 32,20 L 68,20 L 68,82",
         "M 32,45 L 68,45",
-        "M 32,65 L 68,65"
-      ]
+        "M 32,65 L 68,65",
+      ],
     },
     {
       char: "火",
@@ -406,8 +388,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 28,38 C 24,42 20,50 18,58",
         "M 72,36 C 76,41 80,48 82,56",
         "M 48,16 C 48,45 35,68 18,78",
-        "M 48,46 C 56,54 70,68 84,78"
-      ]
+        "M 48,46 C 56,54 70,68 84,78",
+      ],
     },
     {
       char: "水",
@@ -422,8 +404,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 50,15 L 50,75 C 50,82 45,82 40,78",
         "M 24,38 L 50,38",
         "M 20,72 L 50,38",
-        "M 76,38 L 50,54 L 80,76"
-      ]
+        "M 76,38 L 50,54 L 80,76",
+      ],
     },
     {
       char: "木",
@@ -438,8 +420,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 20,38 L 80,38",
         "M 50,15 L 50,82",
         "M 50,38 C 42,50 28,68 16,78",
-        "M 50,38 C 58,50 72,68 84,78"
-      ]
+        "M 50,38 C 58,50 72,68 84,78",
+      ],
     },
     {
       char: "金",
@@ -458,8 +440,8 @@ export const KANJI_DATA: Record<string, KanjiCharacter[]> = {
         "M 51,44 L 51,74",
         "M 38,65 C 37,69 35,73 33,76",
         "M 67,62 C 71,64 76,71 77,75",
-        "M 14,81 L 86,81"
-      ]
-    }
-  ]
+        "M 14,81 L 86,81",
+      ],
+    },
+  ],
 };

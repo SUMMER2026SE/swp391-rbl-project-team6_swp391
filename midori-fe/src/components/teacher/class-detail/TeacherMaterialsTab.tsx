@@ -27,9 +27,7 @@ export function TeacherMaterialsTab({ classInfo }: TeacherMaterialsTabProps) {
               <h4 className="font-display font-bold text-base text-foreground dark:text-white leading-tight">
                 {mat.moduleName}
               </h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                {mat.totalLessons} Total Lessons
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">{mat.totalLessons} Total Lessons</p>
 
               <div className="flex gap-4 mt-3 text-xs">
                 <span className="flex items-center gap-1 text-green-500 font-bold">

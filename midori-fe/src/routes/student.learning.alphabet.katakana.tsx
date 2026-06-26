@@ -13,7 +13,8 @@ export const Route = createFileRoute("/student/learning/alphabet/katakana")({
 
 function KatakanaOverviewPage() {
   const routerState = useRouterState();
-  const isChildRouteActive = routerState.location.pathname !== "/student/learning/alphabet/katakana";
+  const isChildRouteActive =
+    routerState.location.pathname !== "/student/learning/alphabet/katakana";
 
   const getLessonProgress = (lessonId: string) => {
     return loadLessonProgress(lessonId);
@@ -37,33 +38,30 @@ function KatakanaOverviewPage() {
             Back to Alphabet
           </Link>
 
-          <PageHeader
-            title="Katakana"
-            subtitle="Master the character set for foreign words"
-          />
+          <PageHeader title="Katakana" subtitle="Master the character set for foreign words" />
 
           {/* Katakana lessons */}
           <div className="grid md:grid-cols-1 gap-4">
             {KATAKANA_LESSONS.map((lesson, index) => {
               const progress = getLessonProgress(lesson.id);
               return (
-                <Link
-                  key={lesson.id}
-                  to={lesson.path}
-                  className="group block"
-                >
-                  <Card className={cn(
-                    "p-6 h-full transition-all duration-200",
-                    "hover:shadow-xl hover:-translate-y-1",
-                    progress.completed
-                      ? "border-green-300 dark:border-green-500/30"
-                      : "border-slate-200 dark:border-white/10"
-                  )}>
+                <Link key={lesson.id} to={lesson.path} className="group block">
+                  <Card
+                    className={cn(
+                      "p-6 h-full transition-all duration-200",
+                      "hover:shadow-xl hover:-translate-y-1",
+                      progress.completed
+                        ? "border-green-300 dark:border-green-500/30"
+                        : "border-slate-200 dark:border-white/10",
+                    )}
+                  >
                     <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-16 h-16 rounded-2xl bg-linear-to-br flex items-center justify-center text-3xl font-bold text-white shadow-lg",
-                        lesson.color
-                      )}>
+                      <div
+                        className={cn(
+                          "w-16 h-16 rounded-2xl bg-linear-to-br flex items-center justify-center text-3xl font-bold text-white shadow-lg",
+                          lesson.color,
+                        )}
+                      >
                         {lesson.icon}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -71,17 +69,19 @@ function KatakanaOverviewPage() {
                           <span className="text-xs text-muted-foreground font-medium">
                             Lesson {index + 1}
                           </span>
-                          <span className={cn(
-                            "px-2 py-0.5 rounded-full text-[10px] font-bold border",
-                            lesson.difficulty === 1 ? "text-green-500 bg-green-500/10 border-green-500/20" :
-                            lesson.difficulty === 2 ? "text-blue-500 bg-blue-500/10 border-blue-500/20" :
-                            "text-amber-500 bg-amber-500/10 border-amber-500/20"
-                          )}>
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                              lesson.difficulty === 1
+                                ? "text-green-500 bg-green-500/10 border-green-500/20"
+                                : lesson.difficulty === 2
+                                  ? "text-blue-500 bg-blue-500/10 border-blue-500/20"
+                                  : "text-amber-500 bg-amber-500/10 border-amber-500/20",
+                            )}
+                          >
                             Level {lesson.difficulty}
                           </span>
-                          {progress.completed && (
-                            <Trophy className="w-4 h-4 text-amber-500" />
-                          )}
+                          {progress.completed && <Trophy className="w-4 h-4 text-amber-500" />}
                         </div>
                         <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
                           {lesson.title}

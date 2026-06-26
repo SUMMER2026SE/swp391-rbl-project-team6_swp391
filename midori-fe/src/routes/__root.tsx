@@ -76,10 +76,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "MIDORI — Learn Japanese with AI" },
-      { name: "description", content: "MIDORI is a modern AI-powered Japanese learning platform — grammar, listening dictation, AI shadowing, and JLPT exam practice." },
+      {
+        name: "description",
+        content:
+          "MIDORI is a modern AI-powered Japanese learning platform — grammar, listening dictation, AI shadowing, and JLPT exam practice.",
+      },
       { name: "author", content: "MIDORI" },
       { property: "og:title", content: "MIDORI — Learn Japanese with AI" },
-      { property: "og:description", content: "Master Japanese with AI shadowing, dictation and JLPT mock exams." },
+      {
+        property: "og:description",
+        content: "Master Japanese with AI shadowing, dictation and JLPT mock exams.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -96,7 +103,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -150,9 +160,5 @@ function RootComponent() {
     return app;
   }
 
-  return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      {app}
-    </GoogleOAuthProvider>
-  );
+  return <GoogleOAuthProvider clientId={googleClientId}>{app}</GoogleOAuthProvider>;
 }

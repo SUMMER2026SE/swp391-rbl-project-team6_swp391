@@ -87,7 +87,13 @@ export interface TeacherClass {
   openExams: number;
   pendingInvitations: number;
   recentActivity: { id: string; text: string; time: string }[];
-  upcomingWork: { id: string; title: string; due: string; type: string; priority: "High" | "Medium" | "Low" }[];
+  upcomingWork: {
+    id: string;
+    title: string;
+    due: string;
+    type: string;
+    priority: "High" | "Medium" | "Low";
+  }[];
   invitations: StudentInvitation[];
   lessonList: Lesson[];
   homeworkList: Homework[];
@@ -116,9 +122,27 @@ export const MOCK_CLASSES: TeacherClass[] = [
       { id: "a5", text: "Admin replied to your content report", time: "3 days ago" },
     ],
     upcomingWork: [
-      { id: "u1", title: "Homework 8 due", due: "Dec 18, 2025", type: "Homework", priority: "High" },
-      { id: "u2", title: "Midterm Exam opens", due: "Dec 20, 2025", type: "Exam", priority: "Medium" },
-      { id: "u3", title: "Lesson 9 draft needs review", due: "Dec 22, 2025", type: "Lesson", priority: "Low" },
+      {
+        id: "u1",
+        title: "Homework 8 due",
+        due: "Dec 18, 2025",
+        type: "Homework",
+        priority: "High",
+      },
+      {
+        id: "u2",
+        title: "Midterm Exam opens",
+        due: "Dec 20, 2025",
+        type: "Exam",
+        priority: "Medium",
+      },
+      {
+        id: "u3",
+        title: "Lesson 9 draft needs review",
+        due: "Dec 22, 2025",
+        type: "Lesson",
+        priority: "Low",
+      },
     ],
     invitations: [
       {
@@ -346,8 +370,20 @@ export const MOCK_CLASSES: TeacherClass[] = [
       { id: "b3", text: "New student invitation pending: pham@example.com", time: "3 days ago" },
     ],
     upcomingWork: [
-      { id: "u4", title: "Homework 6 due", due: "Dec 19, 2025", type: "Homework", priority: "High" },
-      { id: "u5", title: "Lesson 7 draft", due: "Dec 21, 2025", type: "Lesson", priority: "Medium" },
+      {
+        id: "u4",
+        title: "Homework 6 due",
+        due: "Dec 19, 2025",
+        type: "Homework",
+        priority: "High",
+      },
+      {
+        id: "u5",
+        title: "Lesson 7 draft",
+        due: "Dec 21, 2025",
+        type: "Lesson",
+        priority: "Medium",
+      },
     ],
     invitations: [
       {

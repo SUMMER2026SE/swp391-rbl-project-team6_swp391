@@ -11,7 +11,13 @@ const levelColors: Record<JLPTLevel, string> = {
 
 export function LevelBadge({ level, className }: { level: JLPTLevel; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold tracking-wide", levelColors[level], className)}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold tracking-wide",
+        levelColors[level],
+        className,
+      )}
+    >
       {level}
     </span>
   );
@@ -25,7 +31,13 @@ const diffColors: Record<Difficulty, string> = {
 
 export function DifficultyBadge({ d, className }: { d: Difficulty; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", diffColors[d], className)}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+        diffColors[d],
+        className,
+      )}
+    >
       {d}
     </span>
   );
@@ -47,7 +59,12 @@ export function StatusBadge({ status }: { status: string }) {
     Resolved: "bg-success/15 text-success border-success/30",
   };
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium", map[status] ?? "bg-muted text-muted-foreground border-border")}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        map[status] ?? "bg-muted text-muted-foreground border-border",
+      )}
+    >
       {status}
     </span>
   );

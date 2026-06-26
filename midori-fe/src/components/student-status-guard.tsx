@@ -14,12 +14,12 @@ type StudentStatusGuardProps = {
 
 /**
  * Guard component that protects learning routes from guest students.
- * 
+ *
  * Guest students (not joined any class) will be redirected to the landing page.
  * Only active students (joined a class) can access protected learning routes.
- * 
+ *
  * Public routes (profile, settings, etc.) are always accessible.
- * 
+ *
  * Usage:
  * <StudentStatusGuard>
  *   <ProtectedContent />
@@ -38,7 +38,7 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
     "/student/settings/language",
     "/student/settings/notifications",
   ];
-  
+
   const allPublicRoutes = [...defaultPublicRoutes, ...publicRoutes];
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
     // Check if current route is a public route
     const currentPath = routerState.location.pathname;
     const isPublicRoute = allPublicRoutes.some(
-      (route) => currentPath === route || currentPath.startsWith(route + "/")
+      (route) => currentPath === route || currentPath.startsWith(route + "/"),
     );
 
     // Guest students (not joined any class) cannot access protected routes
@@ -82,7 +82,7 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
   // Allow access to public routes for all students
   const currentPath = routerState.location.pathname;
   const isPublicRoute = allPublicRoutes.some(
-    (route) => currentPath === route || currentPath.startsWith(route + "/")
+    (route) => currentPath === route || currentPath.startsWith(route + "/"),
   );
 
   // Block guest students from protected routes
@@ -95,7 +95,7 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
 
 /**
  * Hook to check if current user can access protected student content.
- * 
+ *
  * @returns true if student is active (can access learning content)
  * @returns false if student is guest (cannot access learning content)
  */

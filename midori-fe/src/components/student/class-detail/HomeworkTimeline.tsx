@@ -121,7 +121,9 @@ export function HomeworkTimeline({ assignments, onViewResult }: HomeworkTimeline
                       <span className="text-[9px] font-black uppercase text-primary">
                         {item.moduleType}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${getStatusColor(item.status)}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${getStatusColor(item.status)}`}
+                      >
                         {item.status}
                       </span>
                     </div>

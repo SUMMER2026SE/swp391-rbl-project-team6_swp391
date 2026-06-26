@@ -1,10 +1,28 @@
 import { type ReactNode, useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  Bell, ChevronLeft, ChevronRight, Menu, Moon, Search, Sun,
-  LayoutDashboard, School, BookOpen, ClipboardList, ClipboardCheck,
-  TrendingUp, FolderOpen, HelpCircle, FileBadge, MessageSquare,
-  LogOut, User, ChevronDown, Flame, Sparkles,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  Moon,
+  Search,
+  Sun,
+  LayoutDashboard,
+  School,
+  BookOpen,
+  ClipboardList,
+  ClipboardCheck,
+  TrendingUp,
+  FolderOpen,
+  HelpCircle,
+  FileBadge,
+  MessageSquare,
+  LogOut,
+  User,
+  ChevronDown,
+  Flame,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -54,15 +72,18 @@ const teacherGroups: NavGroup[] = [
   },
   {
     label: "Account",
-    items: [
-      { to: "/teacher/profile", label: "Profile", icon: User },
-    ],
+    items: [{ to: "/teacher/profile", label: "Profile", icon: User }],
   },
 ];
 
 // ─── Page header ─────────────────────────────────────────────────
 export function PageHeader({
-  title, subtitle, actions, eyebrow, showBack, onBack,
+  title,
+  subtitle,
+  actions,
+  eyebrow,
+  showBack,
+  onBack,
 }: {
   title: string;
   subtitle?: string;
@@ -79,7 +100,18 @@ export function PageHeader({
             onClick={onBack}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1.5 shrink-0"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
             Back
           </button>
         )}
@@ -126,12 +158,18 @@ export function TeacherShell({ children }: { children: ReactNode }) {
   // Close dropdowns on outside click
   useEffect(() => {
     if (!notifOpen && !userMenuOpen) return;
-    const handler = () => { setNotifOpen(false); setUserMenuOpen(false); };
+    const handler = () => {
+      setNotifOpen(false);
+      setUserMenuOpen(false);
+    };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [notifOpen, userMenuOpen]);
 
-  const handleLogout = () => { logout(); navigate({ to: "/login" }); };
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   const renderNavItem = (item: NavItem, isCollapsed: boolean) => {
     const active = isActive(item.to, item.exact);
@@ -164,7 +202,9 @@ export function TeacherShell({ children }: { children: ReactNode }) {
         >
           {item.label}
         </span>
-        {!isCollapsed && active && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
+        {!isCollapsed && active && (
+          <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />
+        )}
       </Link>
     );
   };
@@ -194,7 +234,12 @@ export function TeacherShell({ children }: { children: ReactNode }) {
         )}
       >
         {/* Logo area + collapse button */}
-        <div className={cn("mb-2 flex items-start justify-between gap-3", collapsed ? "flex-col items-center gap-1.5" : "")}>
+        <div
+          className={cn(
+            "mb-2 flex items-start justify-between gap-3",
+            collapsed ? "flex-col items-center gap-1.5" : "",
+          )}
+        >
           <Link
             to="/"
             className={cn(
@@ -212,8 +257,12 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                 collapsed ? "hidden w-0 opacity-0 pointer-events-none" : "block w-auto opacity-100",
               )}
             >
-              <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col whitespace-nowrap">MIDORI</div>
-              <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold whitespace-nowrap">Teacher</div>
+              <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col whitespace-nowrap">
+                MIDORI
+              </div>
+              <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold whitespace-nowrap">
+                Teacher
+              </div>
             </div>
           </Link>
           <button
@@ -228,7 +277,9 @@ export function TeacherShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav className={cn("flex-1 overflow-y-auto overflow-x-hidden", collapsed ? "mt-1" : "mt-2")}>
+        <nav
+          className={cn("flex-1 overflow-y-auto overflow-x-hidden", collapsed ? "mt-1" : "mt-2")}
+        >
           {teacherGroups.map((g) => renderNavGroup(g, collapsed))}
         </nav>
 
@@ -255,17 +306,28 @@ export function TeacherShell({ children }: { children: ReactNode }) {
 
       {/* ── Mobile drawer ── */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 overlay-dark" onClick={() => setMobileOpen(false)}>
+        <div
+          className="lg:hidden fixed inset-0 z-50 overlay-dark"
+          onClick={() => setMobileOpen(false)}
+        >
           <aside
             className="absolute left-0 top-0 bottom-0 w-72 glass-sidebar p-4 rounded-r-3xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <Link to="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
+              <Link
+                to="/"
+                className="flex items-center gap-2.5"
+                onClick={() => setMobileOpen(false)}
+              >
                 <Logo size={36} />
                 <div>
-                  <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col">MIDORI</div>
-                  <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold">Teacher</div>
+                  <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col">
+                    MIDORI
+                  </div>
+                  <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold">
+                    Teacher
+                  </div>
                 </div>
               </Link>
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl nav-item">
@@ -308,7 +370,6 @@ export function TeacherShell({ children }: { children: ReactNode }) {
         {/* Header */}
         <header className="sticky top-0 z-40 mx-3 mt-3">
           <div className="glass-nav rounded-2xl px-5 py-3 flex items-center gap-3">
-
             {/* Mobile menu */}
             <button
               className="lg:hidden p-2 -ml-1 rounded-xl nav-item"
@@ -343,7 +404,11 @@ export function TeacherShell({ children }: { children: ReactNode }) {
               {/* Notifications */}
               <div className="relative">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); setUserMenuOpen(false); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNotifOpen(!notifOpen);
+                    setUserMenuOpen(false);
+                  }}
                   className="relative p-2 rounded-xl nav-item"
                 >
                   <Bell className="w-5 h-5 text-secondary-col" />
@@ -358,10 +423,14 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                     className="fixed w-80 rounded-2xl shadow-2xl z-[200] flex flex-col overflow-hidden"
                     style={{ top: "72px", right: "24px" }}
                   >
-                    <div className="bg-white dark:bg-[#0f1117] border border-gray-200 dark:border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden"
-                      style={{ maxHeight: "520px" }}>
+                    <div
+                      className="bg-white dark:bg-[#0f1117] border border-gray-200 dark:border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden"
+                      style={{ maxHeight: "520px" }}
+                    >
                       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
-                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Notifications</span>
+                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">
+                          Notifications
+                        </span>
                         <button
                           onClick={() => setNotifOpen(false)}
                           className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
@@ -369,7 +438,10 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                           Close
                         </button>
                       </div>
-                      <div className="overflow-y-auto flex-1" style={{ maxHeight: "calc(520px - 116px)" }}>
+                      <div
+                        className="overflow-y-auto flex-1"
+                        style={{ maxHeight: "calc(520px - 116px)" }}
+                      >
                         <div className="p-2 space-y-1">
                           {mockNotifs.slice(0, 5).map((n) => (
                             <div
@@ -381,19 +453,31 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                                   : "hover:bg-gray-50 dark:hover:bg-white/[0.04]",
                               )}
                             >
-                              <div className={cn(
-                                "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5",
-                                !n.read ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400",
-                              )}>
+                              <div
+                                className={cn(
+                                  "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5",
+                                  !n.read
+                                    ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400"
+                                    : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400",
+                                )}
+                              >
                                 <Bell className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{n.title}</span>
-                                  {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />}
+                                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                                    {n.title}
+                                  </span>
+                                  {!n.read && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />
+                                  )}
                                 </div>
-                                <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">{n.message}</p>
-                                <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">{n.time}</span>
+                                <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
+                                  {n.message}
+                                </p>
+                                <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">
+                                  {n.time}
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -416,7 +500,11 @@ export function TeacherShell({ children }: { children: ReactNode }) {
               {/* User avatar */}
               <div className="relative">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUserMenuOpen(!userMenuOpen);
+                    setNotifOpen(false);
+                  }}
                   className="flex items-center gap-2 p-1 pr-3 rounded-full nav-item ml-1"
                 >
                   {avatar ? (
@@ -431,7 +519,9 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                     </div>
                   )}
                   <div className="hidden sm:block text-left">
-                    <div className="text-xs font-semibold leading-tight text-primary-col">{user?.name ?? "Teacher"}</div>
+                    <div className="text-xs font-semibold leading-tight text-primary-col">
+                      {user?.name ?? "Teacher"}
+                    </div>
                     <div className="text-[10px] text-muted-col leading-tight">Teacher</div>
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-col hidden sm:block" />

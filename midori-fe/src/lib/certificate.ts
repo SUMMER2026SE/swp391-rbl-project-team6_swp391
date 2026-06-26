@@ -13,13 +13,16 @@ export interface CertificateUploadError {
 
 function sanitizeFileName(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase() ?? "bin";
-  const base = name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 50);
+  const base = name
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_\-]/g, "_")
+    .slice(0, 50);
   return `${base}.${ext}`;
 }
 
 export async function uploadCertificateFile(
   file: File,
-  teacherId?: string
+  teacherId?: string,
 ): Promise<CertificateUploadResult> {
   const { supabase } = await import("./api/supabase");
 
@@ -44,12 +47,10 @@ export async function uploadCertificateFile(
   const folder = teacherId ?? "guest";
   const fileName = `${folder}/${Date.now()}-${safeFileName}`;
 
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: true,
-    });
+  const { data, error } = await supabase.storage.from(bucket).upload(fileName, file, {
+    cacheControl: "3600",
+    upsert: true,
+  });
 
   if (error) {
     return Promise.reject({ message: error.message });

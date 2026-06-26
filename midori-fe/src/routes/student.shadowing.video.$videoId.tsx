@@ -2,11 +2,27 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronLeft, Play, Pause, Volume2, Clock, BookOpen,
-  FileText, X, CheckCircle, Eye, Mic, Languages
+  ChevronLeft,
+  Play,
+  Pause,
+  Volume2,
+  Clock,
+  BookOpen,
+  FileText,
+  X,
+  CheckCircle,
+  Eye,
+  Mic,
+  Languages,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { getVideoById, getTopicForVideo, type VocabularyItem, type GrammarPoint, type TranscriptSegment } from "@/mock/shadowing-student";
+import {
+  getVideoById,
+  getTopicForVideo,
+  type VocabularyItem,
+  type GrammarPoint,
+  type TranscriptSegment,
+} from "@/mock/shadowing-student";
 
 type TranscriptMode = "japanese" | "japanese-vn";
 
@@ -120,9 +136,7 @@ function VideoLearningPage() {
                     {video.title}
                   </h1>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {video.titleVn}
-                </p>
+                <p className="text-sm text-muted-foreground">{video.titleVn}</p>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -136,11 +150,9 @@ function VideoLearningPage() {
         {/* Main Content */}
         <div className="max-w-[1800px] mx-auto">
           <div className="flex min-h-[calc(100vh-140px)]">
-            
             {/* LEFT COLUMN - Video */}
             <div className="lg:w-1/2 lg:border-r border-slate-200 dark:border-white/10">
               <div className="sticky top-[140px] h-[calc(100vh-140px)] overflow-y-auto p-6 lg:p-8">
-                
                 {/* Video Player */}
                 <div className="aspect-video rounded-2xl overflow-hidden bg-slate-900 relative">
                   <img
@@ -181,7 +193,6 @@ function VideoLearningPage() {
             {/* RIGHT COLUMN - Transcript */}
             <div className="lg:w-1/2">
               <div className="sticky top-[140px] h-[calc(100vh-140px)] overflow-y-auto p-6 lg:p-8">
-                
                 {/* Transcript Mode Toggle */}
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2">
@@ -230,33 +241,33 @@ function VideoLearningPage() {
                             {index + 1}
                           </span>
                           <div className="flex-1">
-                            <p 
+                            <p
                               className="text-lg text-slate-800 dark:text-white leading-relaxed mb-1"
                               style={{ fontFamily: "var(--font-japanese, serif)" }}
                             >
-                              {segment.text.split(/([^\s。、！？「」『』（）〔〕【】]+)/g).map((part, i) => {
-                                const vocab = segment.vocabulary.find(v => v.word === part);
-                                if (vocab) {
-                                  return (
-                                    <span
-                                      key={i}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleWordClick(vocab, e);
-                                      }}
-                                      className="inline-block px-0.5 py-0.5 -mx-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
-                                    >
-                                      {part}
-                                    </span>
-                                  );
-                                }
-                                return part;
-                              })}
+                              {segment.text
+                                .split(/([^\s。、！？「」『』（）〔〕【】]+)/g)
+                                .map((part, i) => {
+                                  const vocab = segment.vocabulary.find((v) => v.word === part);
+                                  if (vocab) {
+                                    return (
+                                      <span
+                                        key={i}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleWordClick(vocab, e);
+                                        }}
+                                        className="inline-block px-0.5 py-0.5 -mx-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
+                                      >
+                                        {part}
+                                      </span>
+                                    );
+                                  }
+                                  return part;
+                                })}
                             </p>
                             {transcriptMode === "japanese-vn" && (
-                              <p className="text-sm text-muted-foreground">
-                                {segment.translation}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{segment.translation}</p>
                             )}
                           </div>
                           <span className="text-[10px] text-muted-foreground shrink-0">
@@ -291,7 +302,10 @@ function VideoLearningPage() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/20 p-4 w-72">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                  <h4
+                    className="text-lg font-bold text-slate-800 dark:text-white"
+                    style={{ fontFamily: "var(--font-japanese, serif)" }}
+                  >
                     {selectedWord.word}
                   </h4>
                   <p className="text-sm text-muted-foreground">[{selectedWord.reading}]</p>
@@ -303,22 +317,21 @@ function VideoLearningPage() {
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
-              
+
               <div className="space-y-2">
                 <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-xs font-medium">
                   {selectedWord.partOfSpeech}
                 </span>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {selectedWord.meaning}
-                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">{selectedWord.meaning}</p>
                 {selectedWord.example && (
                   <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-xs">
-                    <p className="text-slate-600 dark:text-slate-400" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                    <p
+                      className="text-slate-600 dark:text-slate-400"
+                      style={{ fontFamily: "var(--font-japanese, serif)" }}
+                    >
                       {selectedWord.example}
                     </p>
-                    <p className="text-muted-foreground mt-1">
-                      {selectedWord.exampleMeaning}
-                    </p>
+                    <p className="text-muted-foreground mt-1">{selectedWord.exampleMeaning}</p>
                   </div>
                 )}
               </div>
@@ -348,7 +361,7 @@ function VideoLearningPage() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
-                    {video.script.findIndex(s => s.id === selectedSegment.id) + 1}
+                    {video.script.findIndex((s) => s.id === selectedSegment.id) + 1}
                   </span>
                   <h4 className="font-bold text-slate-800 dark:text-white">Chi tiết câu</h4>
                 </div>
@@ -359,21 +372,22 @@ function VideoLearningPage() {
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
-              
+
               {/* Original Sentence */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl mb-3" style={{ fontFamily: "var(--font-japanese, serif)" }}>
-                <p className="text-lg text-slate-800 dark:text-white">
-                  {selectedSegment.text}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedSegment.translation}
-                </p>
+              <div
+                className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl mb-3"
+                style={{ fontFamily: "var(--font-japanese, serif)" }}
+              >
+                <p className="text-lg text-slate-800 dark:text-white">{selectedSegment.text}</p>
+                <p className="text-sm text-muted-foreground mt-1">{selectedSegment.translation}</p>
               </div>
 
               {/* Grammar */}
               {selectedSegment.grammar && (
                 <div className="mb-3">
-                  <h5 className="text-xs font-bold text-muted-foreground uppercase mb-1">Ngữ pháp</h5>
+                  <h5 className="text-xs font-bold text-muted-foreground uppercase mb-1">
+                    Ngữ pháp
+                  </h5>
                   <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                     <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
                       {selectedSegment.grammar.grammar}
@@ -392,12 +406,20 @@ function VideoLearningPage() {
                 </h5>
                 <div className="space-y-1">
                   {selectedSegment.vocabulary.map((vocab, i) => (
-                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-700 last:border-0">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-700 last:border-0"
+                    >
                       <div>
-                        <span className="text-sm font-medium text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                        <span
+                          className="text-sm font-medium text-slate-800 dark:text-white"
+                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                        >
                           {vocab.word}
                         </span>
-                        <span className="text-xs text-muted-foreground ml-2">[{vocab.reading}]</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          [{vocab.reading}]
+                        </span>
                       </div>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         {vocab.meaning}

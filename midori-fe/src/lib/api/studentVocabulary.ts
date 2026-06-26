@@ -32,7 +32,7 @@ export const studentVocabularyApi = {
     if (params?.search) searchParams.set("search", params.search);
     const qs = searchParams.toString();
     const lessons = await api.get<VocabularyLessonResponse[]>(
-      `/vocabulary/lessons${qs ? `?${qs}` : ""}`
+      `/vocabulary/lessons${qs ? `?${qs}` : ""}`,
     );
     return lessons.map(normalizeLesson);
   },
@@ -42,9 +42,7 @@ export const studentVocabularyApi = {
    * Returns published lesson detail including its words list.
    */
   getPublishedLessonDetail: async (lessonId: string) => {
-    const lesson = await api.get<VocabularyLessonDetailResponse>(
-      `/vocabulary/lessons/${lessonId}`
-    );
+    const lesson = await api.get<VocabularyLessonDetailResponse>(`/vocabulary/lessons/${lessonId}`);
     return normalizeLessonDetail(lesson);
   },
 };

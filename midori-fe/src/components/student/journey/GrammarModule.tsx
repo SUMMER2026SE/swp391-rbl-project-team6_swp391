@@ -2,7 +2,17 @@
 
 import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, ChevronRight, ChevronLeft, Check, X, Sparkles, Lock, Unlock, AlertCircle } from "lucide-react";
+import {
+  GraduationCap,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  X,
+  Sparkles,
+  Lock,
+  Unlock,
+  AlertCircle,
+} from "lucide-react";
 import { type GrammarPattern } from "@/mock/student-learning-journey";
 import { cn } from "@/lib/utils";
 import { createShuffledOptions, type AnswerOption } from "@/lib/quiz-utils";
@@ -54,24 +64,24 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
     if (isLastTheoryPattern) {
       setLearningStep("theory_complete");
     } else {
-      setTheoryIndex(prev => prev + 1);
+      setTheoryIndex((prev) => prev + 1);
     }
   };
 
   const handleTheoryPrevious = () => {
     if (!isFirstTheoryPattern) {
-      setTheoryIndex(prev => prev - 1);
+      setTheoryIndex((prev) => prev - 1);
     }
   };
 
   const handleQuizAnswer = (optionId: string) => {
     if (selectedAnswerId !== null) return;
     setSelectedAnswerId(optionId);
-    const selectedOption = shuffledOptions.find(opt => opt.id === optionId);
+    const selectedOption = shuffledOptions.find((opt) => opt.id === optionId);
     const correct = selectedOption?.isCorrect ?? false;
     setIsCorrect(correct);
     if (correct) {
-      setCorrectQuizAnswers(prev => prev + 1);
+      setCorrectQuizAnswers((prev) => prev + 1);
     }
   };
 
@@ -87,7 +97,7 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
       }
       setLearningStep("complete");
     } else {
-      setQuizIndex(prev => prev + 1);
+      setQuizIndex((prev) => prev + 1);
       setSelectedAnswerId(null);
       setIsCorrect(null);
     }
@@ -95,7 +105,7 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
 
   const handleQuizPrevious = () => {
     if (!isFirstQuiz) {
-      setQuizIndex(prev => prev + 1);
+      setQuizIndex((prev) => prev + 1);
       setSelectedAnswerId(null);
       setIsCorrect(null);
     }
@@ -132,13 +142,18 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
             <GraduationCap className="w-3.5 h-3.5" />
             Grammar Pattern
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-foreground" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+          <div
+            className="text-2xl md:text-3xl font-bold text-foreground"
+            style={{ fontFamily: "var(--font-japanese, serif)" }}
+          >
             {currentPattern.pattern}
           </div>
         </div>
 
         <div className="border-t border-border/50 pt-4">
-          <div className="text-[10px] text-lavender font-semibold uppercase tracking-wide mb-2">Explanation</div>
+          <div className="text-[10px] text-lavender font-semibold uppercase tracking-wide mb-2">
+            Explanation
+          </div>
           <div className="text-sm text-foreground leading-relaxed">
             {currentPattern.explanation}
           </div>
@@ -147,7 +162,9 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
 
       {/* Examples Card */}
       <div className="bg-card rounded-xl p-4 border border-border/50">
-        <div className="text-[10px] text-lavender font-semibold uppercase tracking-wide mb-3">Examples</div>
+        <div className="text-[10px] text-lavender font-semibold uppercase tracking-wide mb-3">
+          Examples
+        </div>
         <div className="space-y-2">
           {currentPattern.examples.map((example, index) => (
             <motion.div
@@ -157,7 +174,10 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
               transition={{ delay: index * 0.1 }}
               className="p-2.5 rounded-lg bg-muted/50"
             >
-              <div className="text-sm font-medium text-foreground mb-0.5" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+              <div
+                className="text-sm font-medium text-foreground mb-0.5"
+                style={{ fontFamily: "var(--font-japanese, serif)" }}
+              >
                 {example.split("(")[0].trim()}
               </div>
               {example.includes("(") && (
@@ -178,7 +198,7 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
             "flex-1 py-2.5 rounded-lg font-semibold transition flex items-center justify-center gap-1.5 text-sm",
             isFirstTheoryPattern
               ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-secondary text-foreground hover:bg-muted"
+              : "bg-secondary text-foreground hover:bg-muted",
           )}
         >
           <ChevronLeft className="w-4 h-4" />
@@ -222,7 +242,7 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
   );
 
   const QuizView = memo(() => {
-    const correctOptionId = shuffledOptions.find(opt => opt.isCorrect)?.id;
+    const correctOptionId = shuffledOptions.find((opt) => opt.isCorrect)?.id;
 
     return (
       <div className="space-y-4">
@@ -241,8 +261,13 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
         </div>
 
         <div className="bg-card rounded-xl p-4 border border-border/50 text-center">
-          <div className="text-[10px] text-lavender font-semibold uppercase tracking-wide mb-1">Which sentence uses this pattern correctly?</div>
-          <div className="text-xl md:text-2xl font-bold text-foreground" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+          <div className="text-[10px] text-lavender font-semibold uppercase tracking-wide mb-1">
+            Which sentence uses this pattern correctly?
+          </div>
+          <div
+            className="text-xl md:text-2xl font-bold text-foreground"
+            style={{ fontFamily: "var(--font-japanese, serif)" }}
+          >
             {currentPattern.pattern}
           </div>
         </div>
@@ -260,19 +285,21 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
                 disabled={selectedAnswerId !== null}
                 className={cn(
                   "p-3 rounded-lg border transition-all text-left font-medium text-sm",
-                  selectedAnswerId === null && "border-border/50 hover:border-lavender/30 bg-card hover:bg-accent/30",
+                  selectedAnswerId === null &&
+                    "border-border/50 hover:border-lavender/30 bg-card hover:bg-accent/30",
                   showCorrect && "border-primary bg-primary/10 text-primary",
-                  showWrong && "border-destructive bg-destructive/10 text-destructive"
+                  showWrong && "border-destructive bg-destructive/10 text-destructive",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span style={{ fontFamily: "var(--font-japanese, serif)" }}>{option.text}</span>
-                  {isSelected && (
-                    isCorrect ? <Check className="w-4 h-4 text-primary" /> : <X className="w-4 h-4 text-destructive" />
-                  )}
-                  {showCorrect && !isSelected && (
-                    <Check className="w-4 h-4 text-primary" />
-                  )}
+                  {isSelected &&
+                    (isCorrect ? (
+                      <Check className="w-4 h-4 text-primary" />
+                    ) : (
+                      <X className="w-4 h-4 text-destructive" />
+                    ))}
+                  {showCorrect && !isSelected && <Check className="w-4 h-4 text-primary" />}
                 </div>
               </button>
             );
@@ -288,7 +315,7 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
                 "flex-1 py-2.5 rounded-lg font-semibold transition flex items-center justify-center text-sm",
                 isFirstQuiz
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-secondary text-foreground hover:bg-muted"
+                  : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
               Previous
@@ -313,10 +340,12 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
       animate={{ opacity: 1, scale: 1 }}
       className="text-center py-8"
     >
-      <div className={cn(
-        "w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center",
-        isPassingScore ? "bg-lavender/20" : "bg-red-100 dark:bg-red-950/30"
-      )}>
+      <div
+        className={cn(
+          "w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center",
+          isPassingScore ? "bg-lavender/20" : "bg-red-100 dark:bg-red-950/30",
+        )}
+      >
         {isPassingScore ? (
           <Sparkles className="w-8 h-8 text-lavender" />
         ) : (
@@ -324,10 +353,12 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
         )}
       </div>
 
-      <h2 className={cn(
-        "text-xl font-bold mb-1",
-        isPassingScore ? "text-foreground" : "text-red-600 dark:text-red-400"
-      )}>
+      <h2
+        className={cn(
+          "text-xl font-bold mb-1",
+          isPassingScore ? "text-foreground" : "text-red-600 dark:text-red-400",
+        )}
+      >
         {isPassingScore ? "Grammar Mastered!" : "Not Quite There"}
       </h2>
 
@@ -372,17 +403,25 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
               setLearningStep("theory");
             }
           }}
-          disabled={learningStep !== "theory" && learningStep !== "theory_complete" && learningStep !== "complete"}
+          disabled={
+            learningStep !== "theory" &&
+            learningStep !== "theory_complete" &&
+            learningStep !== "complete"
+          }
           className={cn(
             "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1",
             learningStep === "theory"
               ? "bg-card text-foreground shadow-sm"
-              : learningStep === "theory_complete" || learningStep === "quiz" || learningStep === "complete"
+              : learningStep === "theory_complete" ||
+                  learningStep === "quiz" ||
+                  learningStep === "complete"
                 ? "bg-lavender/20 text-lavender"
-                : "text-muted-foreground cursor-not-allowed"
+                : "text-muted-foreground cursor-not-allowed",
           )}
         >
-          {learningStep === "theory_complete" || learningStep === "quiz" || learningStep === "complete" ? (
+          {learningStep === "theory_complete" ||
+          learningStep === "quiz" ||
+          learningStep === "complete" ? (
             <Check className="w-3 h-3" />
           ) : (
             <GraduationCap className="w-3 h-3" />
@@ -405,7 +444,7 @@ export function GrammarModule({ grammar, onComplete }: GrammarModuleProps) {
               ? "bg-card text-foreground shadow-sm"
               : learningStep === "complete"
                 ? "bg-lavender/20 text-lavender"
-                : "text-muted-foreground cursor-not-allowed"
+                : "text-muted-foreground cursor-not-allowed",
           )}
         >
           {learningStep === "complete" ? (

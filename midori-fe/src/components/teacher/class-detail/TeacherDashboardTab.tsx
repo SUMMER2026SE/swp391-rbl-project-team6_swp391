@@ -1,8 +1,18 @@
 import React from "react";
 import { Card } from "@/components/page-ui";
 import {
-  Users, ClipboardList, CheckSquare, Clock, Award, LineChart,
-  AlertTriangle, ArrowRight, Play, BookOpen, PlusCircle, MessageSquare
+  Users,
+  ClipboardList,
+  CheckSquare,
+  Clock,
+  Award,
+  LineChart,
+  AlertTriangle,
+  ArrowRight,
+  Play,
+  BookOpen,
+  PlusCircle,
+  MessageSquare,
 } from "lucide-react";
 import type { TeacherClassInfo } from "@/types/teacher-class";
 
@@ -13,21 +23,48 @@ interface TeacherDashboardTabProps {
 
 export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboardTabProps) {
   // Count stats
-  const needGradingCount = classInfo.assignments.filter(a => a.status === "Active" && a.totalSubmissions > 0).length;
+  const needGradingCount = classInfo.assignments.filter(
+    (a) => a.status === "Active" && a.totalSubmissions > 0,
+  ).length;
   const overdueCount = classInfo.students.reduce((acc, s) => acc + (s.overdueCount || 0), 0);
-  const lowScoreCount = classInfo.students.filter(s => s.avgScore < 7).length;
+  const lowScoreCount = classInfo.students.filter((s) => s.avgScore < 7).length;
 
   const stats = [
-    { label: "Students", value: classInfo.members, icon: Users, color: "text-blue-500 bg-blue-500/10" },
-    { label: "Assignments", value: classInfo.assignmentCount, icon: ClipboardList, color: "text-purple-500 bg-purple-500/10" },
-    { label: "Need Grading", value: needGradingCount, icon: CheckSquare, color: "text-amber-500 bg-amber-500/10" },
+    {
+      label: "Students",
+      value: classInfo.members,
+      icon: Users,
+      color: "text-blue-500 bg-blue-500/10",
+    },
+    {
+      label: "Assignments",
+      value: classInfo.assignmentCount,
+      icon: ClipboardList,
+      color: "text-purple-500 bg-purple-500/10",
+    },
+    {
+      label: "Need Grading",
+      value: needGradingCount,
+      icon: CheckSquare,
+      color: "text-amber-500 bg-amber-500/10",
+    },
     { label: "Overdue", value: overdueCount, icon: Clock, color: "text-red-500 bg-red-500/10" },
-    { label: "Average Score", value: `${classInfo.avgScore}/10`, icon: Award, color: "text-green-500 bg-green-500/10" },
-    { label: "Completion Rate", value: `${classInfo.analytics.submissionRate}%`, icon: LineChart, color: "text-cyan-500 bg-cyan-500/10" }
+    {
+      label: "Average Score",
+      value: `${classInfo.avgScore}/10`,
+      icon: Award,
+      color: "text-green-500 bg-green-500/10",
+    },
+    {
+      label: "Completion Rate",
+      value: `${classInfo.analytics.submissionRate}%`,
+      icon: LineChart,
+      color: "text-cyan-500 bg-cyan-500/10",
+    },
   ];
 
   // Need Attention students list
-  const needyStudents = classInfo.students.filter(s => s.needSupport).slice(0, 3);
+  const needyStudents = classInfo.students.filter((s) => s.needSupport).slice(0, 3);
 
   return (
     <div className="space-y-6">
@@ -36,7 +73,10 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
         {stats.map((stat, idx) => {
           const Icon = stat.icon;
           return (
-            <Card key={idx} className="p-4 flex flex-col justify-between min-h-[100px] shadow-sm hover:scale-[1.01] transition-all">
+            <Card
+              key={idx}
+              className="p-4 flex flex-col justify-between min-h-[100px] shadow-sm hover:scale-[1.01] transition-all"
+            >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider leading-none">
                   {stat.label}
@@ -60,9 +100,11 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
           <Card className="p-5 space-y-4">
             <h3 className="font-display font-black text-base text-foreground dark:text-white flex items-center justify-between">
               <span>Recent Activities</span>
-              <span className="text-[10px] text-muted-foreground font-semibold">Real-time Feed</span>
+              <span className="text-[10px] text-muted-foreground font-semibold">
+                Real-time Feed
+              </span>
             </h3>
-            
+
             <div className="space-y-4 pl-3 relative border-l border-slate-100 dark:border-white/5">
               {classInfo.activities.map((act) => (
                 <div key={act.id} className="relative pl-4">
@@ -77,7 +119,9 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
                 </div>
               ))}
               {classInfo.activities.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-6">No recent classroom actions.</p>
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  No recent classroom actions.
+                </p>
               )}
             </div>
           </Card>
@@ -89,14 +133,19 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
             </h3>
             <div className="space-y-2.5">
               {needyStudents.map((s) => (
-                <div key={s.id} className="p-3 rounded-xl border border-red-500/10 bg-white dark:bg-slate-900/50 flex items-center justify-between gap-3 text-xs">
+                <div
+                  key={s.id}
+                  className="p-3 rounded-xl border border-red-500/10 bg-white dark:bg-slate-900/50 flex items-center justify-between gap-3 text-xs"
+                >
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-red-500/10 text-red-500 grid place-items-center font-bold text-[10px]">
                       {s.avatar}
                     </div>
                     <div>
                       <div className="font-bold text-foreground dark:text-white">{s.name}</div>
-                      <div className="text-[10px] text-muted-foreground">Avg Score: {s.avgScore} · Completion: {s.completionRate}%</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Avg Score: {s.avgScore} · Completion: {s.completionRate}%
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -114,7 +163,9 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
                 </div>
               ))}
               {needyStudents.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-4">All students are in good standing.</p>
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  All students are in good standing.
+                </p>
               )}
             </div>
           </Card>
@@ -124,13 +175,31 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
         <div className="space-y-6">
           {/* Quick Actions Panel */}
           <Card className="p-5 space-y-4 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/20">
-            <h3 className="font-display font-black text-sm text-foreground dark:text-white">Quick Classroom Actions</h3>
+            <h3 className="font-display font-black text-sm text-foreground dark:text-white">
+              Quick Classroom Actions
+            </h3>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { label: "Create Assignment", icon: PlusCircle, onClick: () => onSelectTab("assignments") },
-                { label: "Create Vocabulary", icon: BookOpen, onClick: () => onSelectTab("materials") },
-                { label: "Create Grammar", icon: PlusCircle, onClick: () => onSelectTab("materials") },
-                { label: "Post Announcement", icon: MessageSquare, onClick: () => onSelectTab("announcements") }
+                {
+                  label: "Create Assignment",
+                  icon: PlusCircle,
+                  onClick: () => onSelectTab("assignments"),
+                },
+                {
+                  label: "Create Vocabulary",
+                  icon: BookOpen,
+                  onClick: () => onSelectTab("materials"),
+                },
+                {
+                  label: "Create Grammar",
+                  icon: PlusCircle,
+                  onClick: () => onSelectTab("materials"),
+                },
+                {
+                  label: "Post Announcement",
+                  icon: MessageSquare,
+                  onClick: () => onSelectTab("announcements"),
+                },
               ].map((act, idx) => (
                 <button
                   key={idx}
@@ -149,7 +218,9 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
 
           {/* Quick class diagnostics */}
           <Card className="p-5 space-y-3">
-            <h3 className="font-display font-black text-xs uppercase tracking-wider text-primary">Class Diagnostics</h3>
+            <h3 className="font-display font-black text-xs uppercase tracking-wider text-primary">
+              Class Diagnostics
+            </h3>
             <div className="space-y-2 text-xs text-muted-foreground">
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
                 <span>Difficult assignments</span>

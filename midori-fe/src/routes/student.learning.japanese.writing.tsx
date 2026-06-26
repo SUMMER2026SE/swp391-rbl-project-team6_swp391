@@ -49,22 +49,38 @@ const CHARACTER_SETS: { id: string; name: string; data: CharacterSet }[] = [
   {
     id: "hiragana-dakuten",
     name: "Hiragana Dakuten",
-    data: { name: "Hiragana Dakuten", chars: HIRAGANA_DAKUTEN, color: "from-purple-400 to-violet-500" },
+    data: {
+      name: "Hiragana Dakuten",
+      chars: HIRAGANA_DAKUTEN,
+      color: "from-purple-400 to-violet-500",
+    },
   },
   {
     id: "katakana-dakuten",
     name: "Katakana Dakuten",
-    data: { name: "Katakana Dakuten", chars: KATAKANA_DAKUTEN, color: "from-indigo-400 to-blue-500" },
+    data: {
+      name: "Katakana Dakuten",
+      chars: KATAKANA_DAKUTEN,
+      color: "from-indigo-400 to-blue-500",
+    },
   },
   {
     id: "hiragana-combination",
     name: "Hiragana Combinations",
-    data: { name: "Hiragana Combinations", chars: HIRAGANA_COMBINATION, color: "from-emerald-400 to-teal-500" },
+    data: {
+      name: "Hiragana Combinations",
+      chars: HIRAGANA_COMBINATION,
+      color: "from-emerald-400 to-teal-500",
+    },
   },
   {
     id: "katakana-combination",
     name: "Katakana Combinations",
-    data: { name: "Katakana Combinations", chars: KATAKANA_COMBINATION, color: "from-cyan-400 to-sky-500" },
+    data: {
+      name: "Katakana Combinations",
+      chars: KATAKANA_COMBINATION,
+      color: "from-cyan-400 to-sky-500",
+    },
   },
 ];
 
@@ -127,30 +143,39 @@ function WritingPracticePage() {
     };
   }, []);
 
-  const startDrawing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const coords = getCoordinates(e);
-    setIsDrawing(true);
-    setCurrentStroke([coords]);
-  }, [getCoordinates]);
+  const startDrawing = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault();
+      const coords = getCoordinates(e);
+      setIsDrawing(true);
+      setCurrentStroke([coords]);
+    },
+    [getCoordinates],
+  );
 
-  const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    if (!isDrawing) return;
+  const draw = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault();
+      if (!isDrawing) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!ctx || !canvas) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!ctx || !canvas) return;
 
-    const coords = getCoordinates(e);
+      const coords = getCoordinates(e);
 
-    ctx.beginPath();
-    ctx.moveTo(currentStroke[currentStroke.length - 1]?.x || coords.x, currentStroke[currentStroke.length - 1]?.y || coords.y);
-    ctx.lineTo(coords.x, coords.y);
-    ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(
+        currentStroke[currentStroke.length - 1]?.x || coords.x,
+        currentStroke[currentStroke.length - 1]?.y || coords.y,
+      );
+      ctx.lineTo(coords.x, coords.y);
+      ctx.stroke();
 
-    setCurrentStroke((prev) => [...prev, coords]);
-  }, [isDrawing, currentStroke, getCoordinates]);
+      setCurrentStroke((prev) => [...prev, coords]);
+    },
+    [isDrawing, currentStroke, getCoordinates],
+  );
 
   const stopDrawing = useCallback(() => {
     if (isDrawing && currentStroke.length > 0) {
@@ -229,8 +254,12 @@ function WritingPracticePage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </Link>
               <div>
-                <h1 className="text-2xl font-black text-slate-800 dark:text-white">Writing Practice</h1>
-                <p className="text-sm text-slate-500 dark:text-indigo-200/60">Practice writing characters</p>
+                <h1 className="text-2xl font-black text-slate-800 dark:text-white">
+                  Writing Practice
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                  Practice writing characters
+                </p>
               </div>
             </div>
 
@@ -250,15 +279,22 @@ function WritingPracticePage() {
                   }}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-2xl bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 hover:shadow-xl hover:-translate-y-1 transition-all text-left",
-                    selectedSetId === set.id && "ring-2 ring-primary"
+                    selectedSetId === set.id && "ring-2 ring-primary",
                   )}
                 >
-                  <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg", set.data.color)}>
+                  <div
+                    className={cn(
+                      "w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg",
+                      set.data.color,
+                    )}
+                  >
                     {set.data.chars[0]?.char}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800 dark:text-white">{set.name}</h3>
-                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">{set.data.chars.length} characters</p>
+                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                      {set.data.chars.length} characters
+                    </p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </motion.button>
@@ -289,7 +325,9 @@ function WritingPracticePage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </button>
               <div>
-                <h1 className="text-xl font-black text-slate-800 dark:text-white">{selectedSet.name}</h1>
+                <h1 className="text-xl font-black text-slate-800 dark:text-white">
+                  {selectedSet.name}
+                </h1>
                 <p className="text-xs text-slate-500 dark:text-indigo-200/60">
                   {completedChars.size} / {selectedSet.chars.length} completed
                 </p>
@@ -301,7 +339,7 @@ function WritingPracticePage() {
                 "flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm transition",
                 showGuide
                   ? "bg-primary/10 text-primary"
-                  : "bg-white/60 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200/80"
+                  : "bg-white/60 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200/80",
               )}
             >
               {showGuide ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -312,7 +350,8 @@ function WritingPracticePage() {
           {/* Progress */}
           <div className="flex justify-between text-sm mb-2">
             <span className="text-slate-600 dark:text-indigo-200/80">
-              Character <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
+              Character{" "}
+              <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
               <span className="text-slate-500">{selectedSet.chars.length}</span>
             </span>
           </div>
@@ -338,7 +377,9 @@ function WritingPracticePage() {
                 <Volume2 className="w-5 h-5" />
               </button>
             </div>
-            <div className="text-lg text-slate-500 dark:text-indigo-200/60 mt-1">{currentChar.romaji}</div>
+            <div className="text-lg text-slate-500 dark:text-indigo-200/60 mt-1">
+              {currentChar.romaji}
+            </div>
           </div>
 
           {/* Canvas Area */}
@@ -417,7 +458,7 @@ function WritingPracticePage() {
               "w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all",
               isCorrect === true
                 ? "bg-green-500 text-white"
-                : "bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:opacity-90"
+                : "bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:opacity-90",
             )}
           >
             {isCorrect === true ? (
@@ -444,15 +485,17 @@ function WritingPracticePage() {
                   idx === currentIdx
                     ? "bg-primary text-white shadow-lg"
                     : completedChars.has(char.char)
-                    ? "bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30"
-                    : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200/80 hover:bg-slate-100"
+                      ? "bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30"
+                      : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200/80 hover:bg-slate-100",
                 )}
               >
                 <span style={{ fontFamily: "var(--font-japanese)" }}>{char.char}</span>
               </button>
             ))}
             {selectedSet.chars.length > 15 && (
-              <span className="text-xs text-slate-500 shrink-0">+{selectedSet.chars.length - 15} more</span>
+              <span className="text-xs text-slate-500 shrink-0">
+                +{selectedSet.chars.length - 15} more
+              </span>
             )}
           </div>
 

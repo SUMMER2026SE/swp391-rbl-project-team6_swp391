@@ -2,12 +2,42 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  CheckCircle, XCircle, Clock, Eye, AlertTriangle,
-  MapPin, Mail, Calendar, Briefcase, BookOpen, Award,
-  Download, X, ChevronLeft, ZoomIn, Loader2, UserCheck,
-  InboxIcon, AlertCircle, Ban, AlertOctagon, Lock, Unlock,
-  Search, SlidersHorizontal, Users as UsersIcon, BookOpen as BookOpenIcon, BookUser, BarChart3, MoreVertical, ChevronDown,
-  GraduationCap, UserPen, User, FileText, FileImage
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye,
+  AlertTriangle,
+  MapPin,
+  Mail,
+  Calendar,
+  Briefcase,
+  BookOpen,
+  Award,
+  Download,
+  X,
+  ChevronLeft,
+  ZoomIn,
+  Loader2,
+  UserCheck,
+  InboxIcon,
+  AlertCircle,
+  Ban,
+  AlertOctagon,
+  Lock,
+  Unlock,
+  Search,
+  SlidersHorizontal,
+  Users as UsersIcon,
+  BookOpen as BookOpenIcon,
+  BookUser,
+  BarChart3,
+  MoreVertical,
+  ChevronDown,
+  GraduationCap,
+  UserPen,
+  User,
+  FileText,
+  FileImage,
 } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
@@ -49,12 +79,11 @@ function mapToTeacherApplication(teacher: AdminTeacherResponse): TeacherApplicat
   const displayName = teacher.displayName;
   const emailName = teacher.email.split("@")[0];
   const nameParts = displayName
-    ? displayName.split(/[.\s_]+/).filter(Boolean).map(p =>
-        p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
-      )
-    : emailName.split(/[._]/).map(p =>
-        p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
-      );
+    ? displayName
+        .split(/[.\s_]+/)
+        .filter(Boolean)
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+    : emailName.split(/[._]/).map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase());
   return {
     id: teacher.id,
     name: nameParts.join(" ") || emailName || "Teacher",
@@ -66,7 +95,11 @@ function mapToTeacherApplication(teacher: AdminTeacherResponse): TeacherApplicat
     specialization: "â€”",
     jlptLevel: "â€”",
     appliedDate: teacher.createdAt
-      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(teacher.createdAt))
+      ? new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }).format(new Date(teacher.createdAt))
       : "â€”",
     status: "pending",
     accountStatus: (teacher as any).accountStatus || "ACTIVE",
@@ -82,9 +115,11 @@ function mapApiCertificate(apiCert: AdminTeacherCertificateResponse): Certificat
     : apiCert.createdAt
       ? new Date(apiCert.createdAt).getFullYear()
       : new Date().getFullYear();
-  const isPdf = apiCert.certificateUrl
-    && !apiCert.imageUrl
-    && (apiCert.certificateUrl.endsWith(".pdf") || !apiCert.certificateUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i));
+  const isPdf =
+    apiCert.certificateUrl &&
+    !apiCert.imageUrl &&
+    (apiCert.certificateUrl.endsWith(".pdf") ||
+      !apiCert.certificateUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i));
   return {
     id: apiCert.id,
     name: apiCert.title,
@@ -109,7 +144,7 @@ const AVATAR_COLORS = [
 function getAvatarColor(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash = (hash << 5) - hash + id.charCodeAt(i);
     hash |= 0;
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
@@ -141,7 +176,9 @@ function CertificatePreviewModal({
       >
         <div className="flex items-center justify-between px-6 py-4 border-b separator">
           <div>
-            <h3 className="font-display font-bold text-primary-col text-base">{certificate.name}</h3>
+            <h3 className="font-display font-bold text-primary-col text-base">
+              {certificate.name}
+            </h3>
             <p className="text-xs text-muted-col mt-0.5">
               {certificate.issuedBy} Â· {certificate.issuedYear}
             </p>
@@ -175,7 +212,9 @@ function CertificatePreviewModal({
           ) : (
             <div className="w-full h-80 flex flex-col items-center justify-center rounded-xl border border-glass-border glass-surface gap-4">
               <div className="w-16 h-16 rounded-2xl bg-(--status-rejected)/15 flex items-center justify-center">
-                <span className="text-(--status-rejected) font-black text-xl font-display">PDF</span>
+                <span className="text-(--status-rejected) font-black text-xl font-display">
+                  PDF
+                </span>
               </div>
               <p className="text-muted-col text-sm">PDF preview not available in browser.</p>
               <a
@@ -220,9 +259,7 @@ function RejectModal({
   const [detail, setDetail] = useState("");
 
   const toggleReason = (r: string) => {
-    setSelectedReasons(prev =>
-      prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]
-    );
+    setSelectedReasons((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   };
 
   const isOtherSelected = selectedReasons.includes("Other");
@@ -231,7 +268,7 @@ function RejectModal({
   const handleConfirm = async () => {
     if (!isValid) return;
     const reason = [
-      ...selectedReasons.filter(r => r !== "Other"),
+      ...selectedReasons.filter((r) => r !== "Other"),
       isOtherSelected && detail.trim() ? `Other: ${detail}` : "",
     ]
       .filter(Boolean)
@@ -242,7 +279,9 @@ function RejectModal({
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
@@ -257,7 +296,10 @@ function RejectModal({
             <h3 className="font-display font-bold text-primary-col text-lg">Reject Application</h3>
             <p className="text-muted-col text-xs mt-0.5">{teacher.name}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -265,8 +307,14 @@ function RejectModal({
         <div className="flex-1 overflow-auto p-6 space-y-5">
           {/* Teacher Info */}
           <div className="flex items-center gap-3 p-3 rounded-xl glass-surface">
-            <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-              {teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+            <div
+              className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}
+            >
+              {teacher.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .slice(0, 2)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-primary-col font-semibold text-sm truncate">{teacher.name}</p>
@@ -280,7 +328,7 @@ function RejectModal({
               Select reason <span className="text-(--status-rejected)">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {REJECT_REASONS.map(reason => {
+              {REJECT_REASONS.map((reason) => {
                 const checked = selectedReasons.includes(reason);
                 return (
                   <button
@@ -293,9 +341,13 @@ function RejectModal({
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                        checked ? "bg-(--status-rejected) border-(--status-rejected)" : "border-border"
-                      }`}>
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                          checked
+                            ? "bg-(--status-rejected) border-(--status-rejected)"
+                            : "border-border"
+                        }`}
+                      >
                         {checked && <CheckCircle className="w-3 h-3 text-white" />}
                       </div>
                       {reason}
@@ -313,11 +365,12 @@ function RejectModal({
               animate={{ opacity: 1, height: "auto" }}
             >
               <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
-                Description <span className="text-(--status-rejected) normal-case font-normal">*</span>
+                Description{" "}
+                <span className="text-(--status-rejected) normal-case font-normal">*</span>
               </label>
               <textarea
                 value={detail}
-                onChange={e => setDetail(e.target.value)}
+                onChange={(e) => setDetail(e.target.value)}
                 placeholder="Please describe the issue in detail..."
                 rows={3}
                 className="w-full px-4 py-3 rounded-xl input-glass text-sm placeholder:text-muted-col resize-none"
@@ -339,10 +392,15 @@ function RejectModal({
             disabled={!isValid || loading}
             className="flex-1 py-2.5 rounded-xl bg-(--status-rejected)/15 text-(--status-rejected) text-sm font-bold border border-(--status-rejected)/25 hover:bg-(--status-rejected)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Rejecting...</>
-              : <><XCircle className="w-4 h-4" /> Confirm Reject</>
-            }
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Rejecting...
+              </>
+            ) : (
+              <>
+                <XCircle className="w-4 h-4" /> Confirm Reject
+              </>
+            )}
           </button>
         </div>
       </motion.div>
@@ -366,7 +424,9 @@ function ApproveModal({
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
@@ -385,11 +445,13 @@ function ApproveModal({
 
         {/* Content */}
         <div className="px-6 pb-2 text-center">
-          <h3 className="font-display font-bold text-primary-col text-lg">Approve Teacher Application</h3>
+          <h3 className="font-display font-bold text-primary-col text-lg">
+            Approve Teacher Application
+          </h3>
           <p className="text-secondary-col text-sm mt-2 leading-relaxed">
             Are you sure you want to approve{" "}
-            <span className="font-semibold text-primary-col">{teacher.name}</span>
-            {" "}as a teacher? Their account will be activated and they can start using the platform.
+            <span className="font-semibold text-primary-col">{teacher.name}</span> as a teacher?
+            Their account will be activated and they can start using the platform.
           </p>
         </div>
 
@@ -407,10 +469,15 @@ function ApproveModal({
             disabled={loading}
             className="flex-1 py-2.5 rounded-xl bg-(--status-active)/15 text-(--status-active) text-sm font-bold border border-(--status-active)/25 hover:bg-(--status-active)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Approving...</>
-              : <><CheckCircle className="w-4 h-4" /> Approve</>
-            }
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Approving...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" /> Approve
+              </>
+            )}
           </button>
         </div>
       </motion.div>
@@ -434,7 +501,9 @@ function LockAccountModal({
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
@@ -478,10 +547,15 @@ function LockAccountModal({
             disabled={loading}
             className="flex-1 py-2.5 rounded-xl bg-(--status-rejected)/15 text-(--status-rejected) text-sm font-bold border border-(--status-rejected)/25 hover:bg-(--status-rejected)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Locking...</>
-              : <><Lock className="w-4 h-4" /> Lock Account</>
-            }
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Locking...
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4" /> Lock Account
+              </>
+            )}
           </button>
         </div>
       </motion.div>
@@ -505,7 +579,9 @@ function UnlockAccountModal({
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
@@ -524,7 +600,9 @@ function UnlockAccountModal({
 
         {/* Content */}
         <div className="px-6 pb-2 text-center">
-          <h3 className="font-display font-bold text-primary-col text-lg">Unlock Teacher Account?</h3>
+          <h3 className="font-display font-bold text-primary-col text-lg">
+            Unlock Teacher Account?
+          </h3>
           <p className="text-secondary-col text-sm mt-2 leading-relaxed">
             Are you sure you want to unlock the account for{" "}
             <span className="font-semibold text-primary-col">{teacher.name}</span>?
@@ -549,10 +627,15 @@ function UnlockAccountModal({
             disabled={loading}
             className="flex-1 py-2.5 rounded-xl bg-(--status-active)/15 text-(--status-active) text-sm font-bold border border-(--status-active)/25 hover:bg-(--status-active)/25 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Unlocking...</>
-              : <><Unlock className="w-4 h-4" /> Unlock Account</>
-            }
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Unlocking...
+              </>
+            ) : (
+              <>
+                <Unlock className="w-4 h-4" /> Unlock Account
+              </>
+            )}
           </button>
         </div>
       </motion.div>
@@ -581,14 +664,20 @@ function ProfileModal({
 }) {
   const safeCerts: Certificate[] = Array.isArray(certificates) ? certificates : [];
   const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
-  const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+  const initials = teacher.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2);
   const avatarColor = getAvatarColor(teacher.id);
 
   return (
     <>
       <motion.div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
       >
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
         <motion.div
@@ -601,22 +690,37 @@ function ProfileModal({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b separator">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
+              <div
+                className={`w-10 h-10 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-sm shrink-0`}
+              >
                 {initials}
               </div>
               <div>
-                <h3 className="font-display font-bold text-primary-col text-base">{teacher.name}</h3>
+                <h3 className="font-display font-bold text-primary-col text-base">
+                  {teacher.name}
+                </h3>
                 <p className="text-muted-col text-xs">{teacher.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                teacher.status === "active" ? "bg-(--status-active)/12 text-(--status-active) border-(--status-active)/25" :
-                teacher.status === "inactive" ? "bg-muted-col/12 text-muted-col border-muted-col/25" :
-                teacher.status === "pending" ? "bg-(--status-pending)/12 text-(--status-pending) border-(--status-pending)/25" :
-                "bg-(--status-rejected)/12 text-(--status-rejected) border-(--status-rejected)/25"
-              }`}>
-                {teacher.status === "active" ? "Active" : teacher.status === "inactive" ? "Inactive" : teacher.status === "pending" ? "Pending" : "Rejected"}
+              <span
+                className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                  teacher.status === "active"
+                    ? "bg-(--status-active)/12 text-(--status-active) border-(--status-active)/25"
+                    : teacher.status === "inactive"
+                      ? "bg-muted-col/12 text-muted-col border-muted-col/25"
+                      : teacher.status === "pending"
+                        ? "bg-(--status-pending)/12 text-(--status-pending) border-(--status-pending)/25"
+                        : "bg-(--status-rejected)/12 text-(--status-rejected) border-(--status-rejected)/25"
+                }`}
+              >
+                {teacher.status === "active"
+                  ? "Active"
+                  : teacher.status === "inactive"
+                    ? "Inactive"
+                    : teacher.status === "pending"
+                      ? "Pending"
+                      : "Rejected"}
               </span>
               <button
                 onClick={onClose}
@@ -643,9 +747,13 @@ function ProfileModal({
                   <div key={label} className="p-3 rounded-xl glass-surface">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Icon className="w-3 h-3 text-primary" />
-                      <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">{label}</span>
+                      <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                        {label}
+                      </span>
                     </div>
-                    <p className="text-primary-col text-sm font-semibold leading-tight truncate">{value}</p>
+                    <p className="text-primary-col text-sm font-semibold leading-tight truncate">
+                      {value}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -664,7 +772,9 @@ function ProfileModal({
                   <div key={label} className="p-3 rounded-xl glass-surface">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Icon className="w-3 h-3 text-primary" />
-                      <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">{label}</span>
+                      <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                        {label}
+                      </span>
                     </div>
                     <p className="text-primary-col text-sm font-semibold leading-tight">{value}</p>
                   </div>
@@ -674,7 +784,9 @@ function ProfileModal({
                 <div className="mt-3 p-3 rounded-xl glass-surface">
                   <div className="flex items-center gap-1.5 mb-1">
                     <BookOpen className="w-3 h-3 text-primary" />
-                    <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">Specialization</span>
+                    <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                      Specialization
+                    </span>
                   </div>
                   <p className="text-primary-col text-sm font-semibold">{teacher.specialization}</p>
                 </div>
@@ -705,20 +817,33 @@ function ProfileModal({
                 <p className="text-muted-col text-xs italic px-1">No certificates uploaded</p>
               ) : (
                 <div className="space-y-2">
-                  {safeCerts.map(cert => (
-                    <div key={cert.id} className="flex items-center gap-3 p-3 rounded-xl border border-glass-border glass-surface hover:border-primary/25 transition">
+                  {safeCerts.map((cert) => (
+                    <div
+                      key={cert.id}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-glass-border glass-surface hover:border-primary/25 transition"
+                    >
                       <div className="shrink-0">
                         {cert.type === "image" ? (
-                          <img src={cert.thumbnailUrl || cert.url} alt={cert.name} className="w-12 h-8 rounded-lg object-cover" />
+                          <img
+                            src={cert.thumbnailUrl || cert.url}
+                            alt={cert.name}
+                            className="w-12 h-8 rounded-lg object-cover"
+                          />
                         ) : (
                           <div className="w-12 h-8 rounded-lg bg-(--status-rejected)/15 flex items-center justify-center">
-                            <span className="text-(--status-rejected) font-black text-[10px] font-display">PDF</span>
+                            <span className="text-(--status-rejected) font-black text-[10px] font-display">
+                              PDF
+                            </span>
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-primary-col text-xs font-semibold truncate">{cert.name}</p>
-                        <p className="text-muted-col text-[10px]">{cert.issuedBy} Â· {cert.issuedYear}</p>
+                        <p className="text-primary-col text-xs font-semibold truncate">
+                          {cert.name}
+                        </p>
+                        <p className="text-muted-col text-[10px]">
+                          {cert.issuedBy} Â· {cert.issuedYear}
+                        </p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
@@ -761,14 +886,24 @@ function ProfileModal({
                   disabled={actionLoading}
                   className="flex-1 py-2.5 rounded-xl bg-(--status-rejected)/12 text-(--status-rejected) text-sm font-bold border border-(--status-rejected)/20 hover:bg-(--status-rejected)/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
                 >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Reject
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4" />
+                  )}{" "}
+                  Reject
                 </button>
                 <button
                   onClick={() => onApprove(teacher.id)}
                   disabled={actionLoading}
                   className="flex-1 py-2.5 rounded-xl bg-(--status-active)/12 text-(--status-active) text-sm font-bold border border-(--status-active)/20 hover:bg-(--status-active)/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
                 >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}{" "}
+                  Approve
                 </button>
               </>
             )}
@@ -779,10 +914,7 @@ function ProfileModal({
       {/* Certificate Preview */}
       <AnimatePresence>
         {previewCert && (
-          <CertificatePreviewModal
-            certificate={previewCert}
-            onClose={() => setPreviewCert(null)}
-          />
+          <CertificatePreviewModal certificate={previewCert} onClose={() => setPreviewCert(null)} />
         )}
       </AnimatePresence>
     </>
@@ -816,7 +948,11 @@ function TeacherViewDrawer({
 }) {
   const safeCerts: Certificate[] = Array.isArray(certificates) ? certificates : [];
   const [previewCert, setPreviewCert] = useState<Certificate | null>(null);
-  const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+  const initials = teacher.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2);
 
   return (
     <>
@@ -845,10 +981,18 @@ function TeacherViewDrawer({
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs font-bold text-muted-col uppercase tracking-wider">View Profile</span>
+            <span className="text-xs font-bold text-muted-col uppercase tracking-wider">
+              View Profile
+            </span>
           </div>
           <span className="px-2.5 py-1 rounded-full text-xs font-bold border bg-(--status-active)/12 text-(--status-active) border-(--status-active)/25">
-            {teacher.status === "pending" ? "Pending" : teacher.status === "approved" ? "Approved" : teacher.status === "rejected" ? "Rejected" : teacher.status}
+            {teacher.status === "pending"
+              ? "Pending"
+              : teacher.status === "approved"
+                ? "Approved"
+                : teacher.status === "rejected"
+                  ? "Rejected"
+                  : teacher.status}
           </span>
         </div>
 
@@ -858,25 +1002,34 @@ function TeacherViewDrawer({
           <div className="relative px-6 pt-6 pb-5">
             <div className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-primary/20 to-transparent rounded-b-3xl" />
             <div className="relative flex items-end gap-4">
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-white font-black text-2xl shrink-0 shadow-lg ring-4 ring-glass-border overflow-hidden ${
-                teacher.avatarUrl
-                  ? "bg-transparent"
-                  : `bg-linear-to-br ${getAvatarColor(teacher.id)}`
-              }`}>
+              <div
+                className={`w-20 h-20 rounded-2xl flex items-center justify-center text-white font-black text-2xl shrink-0 shadow-lg ring-4 ring-glass-border overflow-hidden ${
+                  teacher.avatarUrl
+                    ? "bg-transparent"
+                    : `bg-linear-to-br ${getAvatarColor(teacher.id)}`
+                }`}
+              >
                 {teacher.avatarUrl ? (
                   <img
                     src={teacher.avatarUrl}
                     alt={teacher.name}
                     className="w-full h-full object-cover"
-                    onError={e => {
+                    onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
-                      (e.target as HTMLImageElement).parentElement!.classList.add(`bg-linear-to-br`, ...getAvatarColor(teacher.id).split(" "));
+                      (e.target as HTMLImageElement).parentElement!.classList.add(
+                        `bg-linear-to-br`,
+                        ...getAvatarColor(teacher.id).split(" "),
+                      );
                     }}
                   />
-                ) : initials}
+                ) : (
+                  initials
+                )}
               </div>
               <div className="pb-1">
-                <h2 className="font-display font-black text-primary-col text-xl leading-tight">{teacher.name}</h2>
+                <h2 className="font-display font-black text-primary-col text-xl leading-tight">
+                  {teacher.name}
+                </h2>
                 <div className="flex items-center gap-1.5 mt-1 text-muted-col text-xs">
                   <Mail className="w-3 h-3" />
                   <span>{teacher.email}</span>
@@ -897,7 +1050,9 @@ function TeacherViewDrawer({
                 <div key={label} className="p-3 rounded-xl glass-surface">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Icon className="w-3 h-3 text-primary" />
-                    <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">{label}</span>
+                    <span className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                      {label}
+                    </span>
                   </div>
                   <p className="text-primary-col text-sm font-semibold leading-tight">{value}</p>
                 </div>
@@ -907,23 +1062,30 @@ function TeacherViewDrawer({
 
           {/* Specialization */}
           <div className="px-6 pb-5">
-            <h4 className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-2">Teaching Specialization</h4>
+            <h4 className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-2">
+              Teaching Specialization
+            </h4>
             <p className="text-primary-col text-sm">{teacher.specialization}</p>
           </div>
 
           {/* Bio */}
           <div className="px-6 pb-5">
-            <h4 className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-2">Bio / Introduction</h4>
+            <h4 className="text-[10px] font-bold text-muted-col uppercase tracking-wider mb-2">
+              Bio / Introduction
+            </h4>
             <p className="text-secondary-col text-sm leading-relaxed">{teacher.bio}</p>
           </div>
 
           {/* Rejection Reason */}
-          {(teacherStatus === "rejected" || teacher.status === "rejected") && (rejectionReason ?? teacher.rejectionReason) ? (
+          {(teacherStatus === "rejected" || teacher.status === "rejected") &&
+          (rejectionReason ?? teacher.rejectionReason) ? (
             <div className="px-6 pb-5">
               <div className="flex items-start gap-3 p-4 rounded-xl bg-(--status-rejected)/10 border border-(--status-rejected)/20">
                 <AlertOctagon className="w-5 h-5 text-(--status-rejected) shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold text-(--status-rejected) mb-1">Rejection Reason</h4>
+                  <h4 className="text-xs font-bold text-(--status-rejected) mb-1">
+                    Rejection Reason
+                  </h4>
                   <p className="text-sm text-secondary-col leading-relaxed wrap-break-word">
                     {rejectionReason ?? teacher.rejectionReason}
                   </p>
@@ -936,7 +1098,9 @@ function TeacherViewDrawer({
           <div className="px-6 pb-6">
             <div className="flex items-center gap-2 mb-3">
               <Award className="w-4 h-4 text-primary" />
-              <h4 className="text-xs font-bold text-secondary-col uppercase tracking-wider">Certificates</h4>
+              <h4 className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                Certificates
+              </h4>
               <span className="ml-auto px-2 py-0.5 rounded-full bg-glass-surface text-muted-col text-[10px] font-bold border border-glass-border">
                 {safeCerts.length}
               </span>
@@ -946,7 +1110,7 @@ function TeacherViewDrawer({
               <p className="text-muted-col text-xs italic">No certificates available</p>
             ) : (
               <div className="space-y-3">
-                {safeCerts.map(cert => (
+                {safeCerts.map((cert) => (
                   <div
                     key={cert.id}
                     className="rounded-xl border border-glass-border overflow-hidden glass-surface hover:border-primary/25 transition"
@@ -961,7 +1125,9 @@ function TeacherViewDrawer({
                           />
                         ) : (
                           <div className="w-14 h-10 rounded-lg bg-(--status-rejected)/15 flex items-center justify-center">
-                            <span className="text-(--status-rejected) font-black text-[10px] font-display">PDF</span>
+                            <span className="text-(--status-rejected) font-black text-[10px] font-display">
+                              PDF
+                            </span>
                           </div>
                         )}
                         <button
@@ -973,7 +1139,9 @@ function TeacherViewDrawer({
                         </button>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-primary-col text-xs font-semibold leading-tight truncate">{cert.name}</p>
+                        <p className="text-primary-col text-xs font-semibold leading-tight truncate">
+                          {cert.name}
+                        </p>
                         <p className="text-muted-col text-[10px] mt-0.5">{cert.issuedBy}</p>
                         <p className="text-muted-col/60 text-[10px]">{cert.issuedYear}</p>
                       </div>
@@ -1009,14 +1177,24 @@ function TeacherViewDrawer({
                     disabled={actionLoading}
                     className="flex-1 py-2.5 rounded-xl bg-(--status-rejected)/12 text-(--status-rejected) text-sm font-bold border border-(--status-rejected)/20 hover:bg-(--status-rejected)/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
                   >
-                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Reject
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}{" "}
+                    Reject
                   </button>
                   <button
                     onClick={() => onApprove(teacher.id)}
                     disabled={actionLoading}
                     className="flex-1 py-2.5 rounded-xl bg-(--status-active)/12 text-(--status-active) text-sm font-bold border border-(--status-active)/20 hover:bg-(--status-active)/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
                   >
-                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}{" "}
+                    Approve
                   </button>
                 </>
               )}
@@ -1026,7 +1204,12 @@ function TeacherViewDrawer({
                   disabled={actionLoading}
                   className="flex-1 py-2.5 rounded-xl bg-(--status-rejected)/12 text-(--status-rejected) text-sm font-bold border border-(--status-rejected)/20 hover:bg-(--status-rejected)/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
                 >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />} Deactivate
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Ban className="w-4 h-4" />
+                  )}{" "}
+                  Deactivate
                 </button>
               )}
             </div>
@@ -1048,10 +1231,7 @@ function TeacherViewDrawer({
       {/* Certificate Preview */}
       <AnimatePresence>
         {previewCert && (
-          <CertificatePreviewModal
-            certificate={previewCert}
-            onClose={() => setPreviewCert(null)}
-          />
+          <CertificatePreviewModal certificate={previewCert} onClose={() => setPreviewCert(null)} />
         )}
       </AnimatePresence>
     </>
@@ -1073,7 +1253,11 @@ function TeacherCard({
   onView: (teacher: TeacherApplication) => void;
   loadingId: string | null;
 }) {
-  const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+  const initials = teacher.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2);
   const isLoading = loadingId === teacher.id;
 
   return (
@@ -1086,7 +1270,9 @@ function TeacherCard({
     >
       <div className="flex items-start gap-4">
         {/* Avatar */}
-        <div className={`w-14 h-14 rounded-2xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-black text-xl shrink-0`}>
+        <div
+          className={`w-14 h-14 rounded-2xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-black text-xl shrink-0`}
+        >
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : initials}
         </div>
 
@@ -1104,12 +1290,18 @@ function TeacherCard({
           </div>
 
           {/* Bio snippet */}
-          <div className="mt-2 text-sm text-secondary-col leading-relaxed line-clamp-2">{teacher.bio}</div>
+          <div className="mt-2 text-sm text-secondary-col leading-relaxed line-clamp-2">
+            {teacher.bio}
+          </div>
 
           {/* Tags */}
           <div className="mt-3 flex flex-wrap gap-2">
-            <span className="px-2 py-0.5 rounded-full bg-(--status-teacher)/12 text-(--status-teacher) text-[10px] font-bold">{teacher.experience}</span>
-            <span className="px-2 py-0.5 rounded-full bg-primary/12 text-primary text-[10px] font-bold">{teacher.jlptLevel}</span>
+            <span className="px-2 py-0.5 rounded-full bg-(--status-teacher)/12 text-(--status-teacher) text-[10px] font-bold">
+              {teacher.experience}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-primary/12 text-primary text-[10px] font-bold">
+              {teacher.jlptLevel}
+            </span>
             <span className="px-2 py-0.5 rounded-full bg-(--status-pending)/10 text-(--status-pending) text-[10px] font-bold">
               0 certs
             </span>
@@ -1122,14 +1314,24 @@ function TeacherCard({
               disabled={isLoading}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-(--status-active)/10 text-(--status-active) text-xs font-bold border border-(--status-active)/20 hover:bg-(--status-active)/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />} Approve
+              {isLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle className="w-3.5 h-3.5" />
+              )}{" "}
+              Approve
             </button>
             <button
               onClick={() => onReject(teacher.id)}
               disabled={isLoading}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-(--status-rejected)/10 text-(--status-rejected) text-xs font-bold border border-(--status-rejected)/20 hover:bg-(--status-rejected)/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />} Reject
+              {isLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <XCircle className="w-3.5 h-3.5" />
+              )}{" "}
+              Reject
             </button>
             <button
               onClick={() => onView(teacher)}
@@ -1317,23 +1519,124 @@ function TeachersPage() {
 
   const mockTeacherClasses: Record<string, TeacherClassInfo[]> = {
     "00000000-0000-0000-0000-000000000011": [
-      { id: "cls-001", name: "JLPT N5 Intensive", level: "N5", students: 28, completionRate: 92, avgScore: 85, status: "active", startDate: "Jan 15, 2026" },
-      { id: "cls-002", name: "JLPT N4 Prep Course", level: "N4", students: 22, completionRate: 85, avgScore: 78, status: "active", startDate: "Feb 1, 2026" },
-      { id: "cls-003", name: "Business Japanese", level: "N2", students: 18, completionRate: 78, avgScore: 82, status: "active", startDate: "Mar 10, 2026" },
-      { id: "cls-004", name: "Advanced Grammar", level: "N1", students: 28, completionRate: 88, avgScore: 80, status: "active", startDate: "Apr 5, 2026" },
+      {
+        id: "cls-001",
+        name: "JLPT N5 Intensive",
+        level: "N5",
+        students: 28,
+        completionRate: 92,
+        avgScore: 85,
+        status: "active",
+        startDate: "Jan 15, 2026",
+      },
+      {
+        id: "cls-002",
+        name: "JLPT N4 Prep Course",
+        level: "N4",
+        students: 22,
+        completionRate: 85,
+        avgScore: 78,
+        status: "active",
+        startDate: "Feb 1, 2026",
+      },
+      {
+        id: "cls-003",
+        name: "Business Japanese",
+        level: "N2",
+        students: 18,
+        completionRate: 78,
+        avgScore: 82,
+        status: "active",
+        startDate: "Mar 10, 2026",
+      },
+      {
+        id: "cls-004",
+        name: "Advanced Grammar",
+        level: "N1",
+        students: 28,
+        completionRate: 88,
+        avgScore: 80,
+        status: "active",
+        startDate: "Apr 5, 2026",
+      },
     ],
     "00000000-0000-0000-0000-000000000012": [
-      { id: "cls-005", name: "Conversational Japanese", level: "Mixed", students: 24, completionRate: 95, avgScore: 88, status: "active", startDate: "Jan 20, 2026" },
-      { id: "cls-006", name: "Japanese Culture & Customs", level: "Mixed", students: 20, completionRate: 88, avgScore: 85, status: "active", startDate: "Feb 15, 2026" },
-      { id: "cls-007", name: "Beginner Japanese", level: "N5", students: 28, completionRate: 90, avgScore: 82, status: "active", startDate: "Mar 1, 2026" },
+      {
+        id: "cls-005",
+        name: "Conversational Japanese",
+        level: "Mixed",
+        students: 24,
+        completionRate: 95,
+        avgScore: 88,
+        status: "active",
+        startDate: "Jan 20, 2026",
+      },
+      {
+        id: "cls-006",
+        name: "Japanese Culture & Customs",
+        level: "Mixed",
+        students: 20,
+        completionRate: 88,
+        avgScore: 85,
+        status: "active",
+        startDate: "Feb 15, 2026",
+      },
+      {
+        id: "cls-007",
+        name: "Beginner Japanese",
+        level: "N5",
+        students: 28,
+        completionRate: 90,
+        avgScore: 82,
+        status: "active",
+        startDate: "Mar 1, 2026",
+      },
     ],
     "00000000-0000-0000-0000-000000000013": [
-      { id: "cls-008", name: "Beginner Japanese A1", level: "N5", students: 24, completionRate: 85, avgScore: 80, status: "active", startDate: "Feb 1, 2026" },
-      { id: "cls-009", name: "Listening Practice", level: "N4", students: 24, completionRate: 80, avgScore: 78, status: "active", startDate: "Mar 15, 2026" },
+      {
+        id: "cls-008",
+        name: "Beginner Japanese A1",
+        level: "N5",
+        students: 24,
+        completionRate: 85,
+        avgScore: 80,
+        status: "active",
+        startDate: "Feb 1, 2026",
+      },
+      {
+        id: "cls-009",
+        name: "Listening Practice",
+        level: "N4",
+        students: 24,
+        completionRate: 80,
+        avgScore: 78,
+        status: "active",
+        startDate: "Mar 15, 2026",
+      },
     ],
     "00000000-0000-0000-0000-000000000014": [
-      { id: "cls-010", name: "Grammar Masterclass", level: "N3", students: 18, completionRate: 72, avgScore: 75, status: "completed", startDate: "Oct 1, 2025", endDate: "Dec 31, 2025" },
-      { id: "cls-011", name: "JLPT Reading Prep", level: "N2", students: 18, completionRate: 78, avgScore: 72, status: "completed", startDate: "Oct 1, 2025", endDate: "Dec 31, 2025" },
+      {
+        id: "cls-010",
+        name: "Grammar Masterclass",
+        level: "N3",
+        students: 18,
+        completionRate: 72,
+        avgScore: 75,
+        status: "completed",
+        startDate: "Oct 1, 2025",
+        endDate: "Dec 31, 2025",
+      },
+      {
+        id: "cls-011",
+        name: "JLPT Reading Prep",
+        level: "N2",
+        students: 18,
+        completionRate: 78,
+        avgScore: 72,
+        status: "completed",
+        startDate: "Oct 1, 2025",
+        endDate: "Dec 31, 2025",
+      },
     ],
   };
 
@@ -1355,11 +1658,12 @@ function TeachersPage() {
         setLoading(false);
       }, 500);
     } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : err instanceof Error
+      const message =
+        err instanceof ApiError
           ? err.message
-          : "Failed to load pending teachers. Please try again.";
+          : err instanceof Error
+            ? err.message
+            : "Failed to load pending teachers. Please try again.";
       setError(message);
       setPendingTeachers([]);
     } finally {
@@ -1450,11 +1754,12 @@ function TeachersPage() {
         setListLoading(false);
       }, 500);
     } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : err instanceof Error
+      const message =
+        err instanceof ApiError
           ? err.message
-          : "Failed to load teacher list. Please try again.";
+          : err instanceof Error
+            ? err.message
+            : "Failed to load teacher list. Please try again.";
       setListError(message);
       setListTeachers([]);
     } finally {
@@ -1481,173 +1786,199 @@ function TeachersPage() {
     }
   }, [tab, listTeachers.length, listLoading, listError, fetchListTeachers]);
 
-  const handleApprove = useCallback(async (id: string) => {
-    setActionLoadingId(id);
-    try {
-      // Skip API call for mock data
-      if (id.startsWith("00000000-")) {
-        // Update local state for mock data
-        setPendingTeachers(prev => prev.filter(t => t.id !== id));
-        setListTeachers(prev => {
-          const teacher = pendingTeachers.find(t => t.id === id);
-          if (teacher) {
-            return [...prev, { ...teacher, status: "active" as const }];
-          }
-          return prev;
-        });
-        showToast("Teacher approved successfully!", "success");
-      } else {
-        await adminApi.approveTeacher(id);
-        showToast("Teacher approved successfully!", "success");
-        await Promise.all([fetchPendingTeachers(), fetchListTeachers()]);
+  const handleApprove = useCallback(
+    async (id: string) => {
+      setActionLoadingId(id);
+      try {
+        // Skip API call for mock data
+        if (id.startsWith("00000000-")) {
+          // Update local state for mock data
+          setPendingTeachers((prev) => prev.filter((t) => t.id !== id));
+          setListTeachers((prev) => {
+            const teacher = pendingTeachers.find((t) => t.id === id);
+            if (teacher) {
+              return [...prev, { ...teacher, status: "active" as const }];
+            }
+            return prev;
+          });
+          showToast("Teacher approved successfully!", "success");
+        } else {
+          await adminApi.approveTeacher(id);
+          showToast("Teacher approved successfully!", "success");
+          await Promise.all([fetchPendingTeachers(), fetchListTeachers()]);
+        }
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to approve teacher. Please try again.";
+        showToast(message, "error");
+      } finally {
+        setActionLoadingId(null);
       }
-    } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : err instanceof Error
-          ? err.message
-          : "Failed to approve teacher. Please try again.";
-      showToast(message, "error");
-    } finally {
-      setActionLoadingId(null);
-    }
-  }, [pendingTeachers, showToast]);
+    },
+    [pendingTeachers, showToast],
+  );
 
-  const handleReject = useCallback(async (id: string, reason: string) => {
-    setActionLoadingId(id);
-    try {
-      // Skip API call for mock data
-      if (id.startsWith("00000000-")) {
-        // Update local state for mock data - just remove from pending
-        setPendingTeachers(prev => prev.filter(t => t.id !== id));
-        showToast("Teacher application rejected.", "error");
-      } else {
-        await adminApi.rejectTeacher(id, { reason });
-        showToast("Teacher application rejected.", "error");
-        await fetchPendingTeachers();
+  const handleReject = useCallback(
+    async (id: string, reason: string) => {
+      setActionLoadingId(id);
+      try {
+        // Skip API call for mock data
+        if (id.startsWith("00000000-")) {
+          // Update local state for mock data - just remove from pending
+          setPendingTeachers((prev) => prev.filter((t) => t.id !== id));
+          showToast("Teacher application rejected.", "error");
+        } else {
+          await adminApi.rejectTeacher(id, { reason });
+          showToast("Teacher application rejected.", "error");
+          await fetchPendingTeachers();
+        }
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to reject teacher. Please try again.";
+        showToast(message, "error");
+      } finally {
+        setActionLoadingId(null);
       }
-    } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : err instanceof Error
-          ? err.message
-          : "Failed to reject teacher. Please try again.";
-      showToast(message, "error");
-    } finally {
-      setActionLoadingId(null);
-    }
-  }, [showToast]);
+    },
+    [showToast],
+  );
 
-  const handleRejectConfirm = useCallback(async (id: string, reason: string) => {
-    await handleReject(id, reason);
-    setRejectTarget(null);
-  }, [handleReject]);
+  const handleRejectConfirm = useCallback(
+    async (id: string, reason: string) => {
+      await handleReject(id, reason);
+      setRejectTarget(null);
+    },
+    [handleReject],
+  );
 
-  const handleSuspend = useCallback(async (id: string) => {
-    setActionLoadingId(id);
-    try {
-      // Skip API call for mock data
-      if (!id.startsWith("00000000-")) {
-        await adminApi.suspendTeacher(id);
+  const handleSuspend = useCallback(
+    async (id: string) => {
+      setActionLoadingId(id);
+      try {
+        // Skip API call for mock data
+        if (!id.startsWith("00000000-")) {
+          await adminApi.suspendTeacher(id);
+        }
+        showToast("Teacher deactivated.", "success");
+        setViewingApproved(null);
+        await fetchListTeachers();
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to deactivate teacher. Please try again.";
+        showToast(message, "error");
+      } finally {
+        setActionLoadingId(null);
       }
-      showToast("Teacher deactivated.", "success");
-      setViewingApproved(null);
-      await fetchListTeachers();
-    } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : err instanceof Error
-          ? err.message
-          : "Failed to deactivate teacher. Please try again.";
-      showToast(message, "error");
-    } finally {
-      setActionLoadingId(null);
-    }
-  }, [showToast, fetchListTeachers]);
+    },
+    [showToast, fetchListTeachers],
+  );
 
-  const handleLock = useCallback(async (id: string) => {
-    setActionLoadingId(id);
-    try {
-      // Skip API call for mock data
-      if (!id.startsWith("00000000-")) {
-        // TODO: Call adminApi.lockTeacher(id) when available
+  const handleLock = useCallback(
+    async (id: string) => {
+      setActionLoadingId(id);
+      try {
+        // Skip API call for mock data
+        if (!id.startsWith("00000000-")) {
+          // TODO: Call adminApi.lockTeacher(id) when available
+        }
+        // Update local state
+        setListTeachers((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, accountStatus: "LOCKED" as const } : t)),
+        );
+        showToast("Teacher account has been locked.", "success");
+        setLockTarget(null);
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to lock teacher account. Please try again.";
+        showToast(message, "error");
+      } finally {
+        setActionLoadingId(null);
       }
-      // Update local state
-      setListTeachers(prev => prev.map(t =>
-        t.id === id ? { ...t, accountStatus: "LOCKED" as const } : t
-      ));
-      showToast("Teacher account has been locked.", "success");
-      setLockTarget(null);
-    } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : err instanceof Error
-          ? err.message
-          : "Failed to lock teacher account. Please try again.";
-      showToast(message, "error");
-    } finally {
-      setActionLoadingId(null);
-    }
-  }, [showToast]);
+    },
+    [showToast],
+  );
 
-  const handleUnlock = useCallback(async (id: string) => {
-    setActionLoadingId(id);
-    try {
-      // Skip API call for mock data
-      if (!id.startsWith("00000000-")) {
-        // TODO: Call adminApi.unlockTeacher(id) when available
+  const handleUnlock = useCallback(
+    async (id: string) => {
+      setActionLoadingId(id);
+      try {
+        // Skip API call for mock data
+        if (!id.startsWith("00000000-")) {
+          // TODO: Call adminApi.unlockTeacher(id) when available
+        }
+        // Update local state
+        setListTeachers((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, accountStatus: "ACTIVE" as const } : t)),
+        );
+        showToast("Teacher account has been unlocked.", "success");
+        setUnlockTarget(null);
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to unlock teacher account. Please try again.";
+        showToast(message, "error");
+      } finally {
+        setActionLoadingId(null);
       }
-      // Update local state
-      setListTeachers(prev => prev.map(t =>
-        t.id === id ? { ...t, accountStatus: "ACTIVE" as const } : t
-      ));
-      showToast("Teacher account has been unlocked.", "success");
-      setUnlockTarget(null);
-    } catch (err) {
-      const message = err instanceof ApiError
-        ? err.message
-        : err instanceof Error
-          ? err.message
-          : "Failed to unlock teacher account. Please try again.";
-      showToast(message, "error");
-    } finally {
-      setActionLoadingId(null);
-    }
-  }, [showToast]);
+    },
+    [showToast],
+  );
 
-  const fetchTeacherCertificates = useCallback(async (teacherId: string): Promise<Certificate[]> => {
-    // Skip API call for mock data
-    if (teacherId.startsWith("00000000-")) {
-      return [];
-    }
-    const certs = await adminApi.getTeacherCertificates(teacherId);
-    return certs.map(mapApiCertificate);
-  }, []);
+  const fetchTeacherCertificates = useCallback(
+    async (teacherId: string): Promise<Certificate[]> => {
+      // Skip API call for mock data
+      if (teacherId.startsWith("00000000-")) {
+        return [];
+      }
+      const certs = await adminApi.getTeacherCertificates(teacherId);
+      return certs.map(mapApiCertificate);
+    },
+    [],
+  );
 
   const pendingCount = pendingTeachers.length;
 
   // Filtered teachers for pending tab
-  const filteredPendingTeachers = pendingTeachers.filter(teacher => {
-    const matchesSearch = teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredPendingTeachers = pendingTeachers.filter((teacher) => {
+    const matchesSearch =
+      teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       teacher.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || teacher.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   // Filtered teachers for list view
-  const filteredListTeachers = listTeachers.filter(teacher => {
-    const matchesSearch = teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredListTeachers = listTeachers.filter((teacher) => {
+    const matchesSearch =
+      teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       teacher.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || teacher.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const totalTeachers = listTeachers.length;
-  const activeTeachers = listTeachers.filter(t => t.status === "active").length;
+  const activeTeachers = listTeachers.filter((t) => t.status === "active").length;
   const totalClasses = listTeachers.reduce((sum, t) => sum + (t as any).totalClasses || 0, 0);
   const totalStudents = listTeachers.reduce((sum, t) => sum + (t as any).totalStudents || 0, 0);
-
-
 
   return (
     <div className="space-y-5">
@@ -1655,20 +1986,21 @@ function TeachersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-black text-primary-col">Teacher Management</h1>
-          <p className="text-sm text-secondary-col mt-0.5">Manage teachers and review applications</p>
+          <p className="text-sm text-secondary-col mt-0.5">
+            Manage teachers and review applications
+          </p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 glass-card p-1 w-fit">
-        {(["pending", "list"] as const).map(t => (
+        {(["pending", "list"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${tab === t
-              ? "bg-gradient-hero text-white shadow-md"
-              : "text-secondary-col nav-item"
-              }`}
+            className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${
+              tab === t ? "bg-gradient-hero text-white shadow-md" : "text-secondary-col nav-item"
+            }`}
           >
             {t === "pending" ? `Teacher Approval` : "Teacher List"}
           </button>
@@ -1685,7 +2017,9 @@ function TeachersPage() {
                 <Clock className="w-5 h-5 text-(--status-pending)" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Pending</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  Pending
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">{pendingCount}</p>
               </div>
             </div>
@@ -1694,12 +2028,16 @@ function TeachersPage() {
                 <UsersIcon className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Today</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  Today
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">
-                  {pendingTeachers.filter(t => {
-                    const today = new Date().toDateString();
-                    return new Date(t.appliedDate).toDateString() === today;
-                  }).length}
+                  {
+                    pendingTeachers.filter((t) => {
+                      const today = new Date().toDateString();
+                      return new Date(t.appliedDate).toDateString() === today;
+                    }).length
+                  }
                 </p>
               </div>
             </div>
@@ -1708,14 +2046,18 @@ function TeachersPage() {
                 <CheckCircle className="w-5 h-5 text-(--status-active)" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">This Week</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  This Week
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">
-                  {pendingTeachers.filter(t => {
-                    const d = new Date(t.appliedDate);
-                    const now = new Date();
-                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    return d >= weekAgo;
-                  }).length}
+                  {
+                    pendingTeachers.filter((t) => {
+                      const d = new Date(t.appliedDate);
+                      const now = new Date();
+                      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                      return d >= weekAgo;
+                    }).length
+                  }
                 </p>
               </div>
             </div>
@@ -1724,9 +2066,11 @@ function TeachersPage() {
                 <Award className="w-5 h-5 text-purple-500" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Certified</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  Certified
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">
-                  {pendingTeachers.filter(t => t.jlptLevel && t.jlptLevel !== "â€”").length}
+                  {pendingTeachers.filter((t) => t.jlptLevel && t.jlptLevel !== "â€”").length}
                 </p>
               </div>
             </div>
@@ -1762,8 +2106,12 @@ function TeachersPage() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4 animate-pulse">
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
-              <p className="text-secondary-col font-semibold text-sm">Loading pending teachers...</p>
-              <p className="text-muted-col text-xs">Please wait while information is being prepared.</p>
+              <p className="text-secondary-col font-semibold text-sm">
+                Loading pending teachers...
+              </p>
+              <p className="text-muted-col text-xs">
+                Please wait while information is being prepared.
+              </p>
             </div>
           )}
 
@@ -1784,18 +2132,27 @@ function TeachersPage() {
           {!loading && !error && pendingTeachers.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
               <InboxIcon className="w-12 h-12 text-(--status-pending)/40 mb-3" />
-              <p className="text-secondary-col font-semibold text-sm">All caught up â€” no pending applications!</p>
-              <p className="text-muted-col text-xs mt-1">There are currently no records to review.</p>
+              <p className="text-secondary-col font-semibold text-sm">
+                All caught up â€” no pending applications!
+              </p>
+              <p className="text-muted-col text-xs mt-1">
+                There are currently no records to review.
+              </p>
             </div>
           )}
 
-          {!loading && !error && filteredPendingTeachers.length === 0 && pendingTeachers.length > 0 && (
-            <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
-              <Search className="w-10 h-10 text-muted-col/40 mb-3" />
-              <p className="text-secondary-col font-semibold text-sm">No results found.</p>
-              <p className="text-muted-col text-xs mt-1">Try adjusting your search or filter criteria.</p>
-            </div>
-          )}
+          {!loading &&
+            !error &&
+            filteredPendingTeachers.length === 0 &&
+            pendingTeachers.length > 0 && (
+              <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
+                <Search className="w-10 h-10 text-muted-col/40 mb-3" />
+                <p className="text-secondary-col font-semibold text-sm">No results found.</p>
+                <p className="text-muted-col text-xs mt-1">
+                  Try adjusting your search or filter criteria.
+                </p>
+              </div>
+            )}
 
           {!loading && !error && filteredPendingTeachers.length > 0 && (
             <div className="card-base overflow-hidden">
@@ -1811,7 +2168,11 @@ function TeachersPage() {
 
               {/* Table Rows */}
               {filteredPendingTeachers.map((teacher) => {
-                const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+                const initials = teacher.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2);
                 const avatarColor = getAvatarColor(teacher.id);
                 const isLoading = actionLoadingId === teacher.id;
                 const statusColors: Record<string, string> = {
@@ -1831,12 +2192,18 @@ function TeachersPage() {
                   >
                     {/* Teacher */}
                     <div className="col-span-3 flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}>
+                      <div
+                        className={`w-9 h-9 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}
+                      >
                         {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : initials}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-primary-col font-semibold text-sm truncate">{teacher.name}</p>
-                        <p className="text-muted-col text-[10px] truncate">{teacher.jlptLevel !== "â€”" ? teacher.jlptLevel : "â€”"}</p>
+                        <p className="text-primary-col font-semibold text-sm truncate">
+                          {teacher.name}
+                        </p>
+                        <p className="text-muted-col text-[10px] truncate">
+                          {teacher.jlptLevel !== "â€”" ? teacher.jlptLevel : "â€”"}
+                        </p>
                       </div>
                     </div>
 
@@ -1859,7 +2226,9 @@ function TeachersPage() {
 
                     {/* Status */}
                     <div className="col-span-1 text-center">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${statusColors[teacher.status] || statusColors.pending}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-[10px] font-bold ${statusColors[teacher.status] || statusColors.pending}`}
+                      >
                         {statusLabels[teacher.status] || "Pending"}
                       </span>
                     </div>
@@ -1920,7 +2289,9 @@ function TeachersPage() {
                 <UsersIcon className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Teachers</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  Total Teachers
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">{totalTeachers}</p>
               </div>
             </div>
@@ -1929,7 +2300,9 @@ function TeachersPage() {
                 <CheckCircle className="w-5 h-5 text-[var(--status-active)]" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Active Teachers</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  Active Teachers
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">{activeTeachers}</p>
               </div>
             </div>
@@ -1938,7 +2311,9 @@ function TeachersPage() {
                 <BookOpenIcon className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Classes</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  Total Classes
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">{totalClasses}</p>
               </div>
             </div>
@@ -1947,7 +2322,9 @@ function TeachersPage() {
                 <BookUser className="w-5 h-5 text-purple-500" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Total Students</p>
+                <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                  Total Students
+                </p>
                 <p className="font-display font-black text-lg text-primary-col">{totalStudents}</p>
               </div>
             </div>
@@ -1984,7 +2361,9 @@ function TeachersPage() {
             <div className="flex flex-col items-center justify-center py-20 rounded-2xl empty-state gap-4 animate-pulse">
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
               <p className="text-secondary-col font-semibold text-sm">Loading teacher list...</p>
-              <p className="text-muted-col text-xs">Please wait while information is being prepared.</p>
+              <p className="text-muted-col text-xs">
+                Please wait while information is being prepared.
+              </p>
             </div>
           ) : listError ? (
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state gap-3">
@@ -2002,7 +2381,9 @@ function TeachersPage() {
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
               <UsersIcon className="w-12 h-12 text-(--status-active)/40 mb-3" />
               <p className="text-secondary-col font-semibold text-sm">No teachers found.</p>
-              <p className="text-muted-col text-xs mt-1">Try adjusting your search or filter criteria.</p>
+              <p className="text-muted-col text-xs mt-1">
+                Try adjusting your search or filter criteria.
+              </p>
             </div>
           ) : (
             <div className="card-base overflow-hidden">
@@ -2013,15 +2394,20 @@ function TeachersPage() {
                 <div className="col-span-2 text-center">Account</div>
                 <div className="col-span-3 text-right">Actions</div>
               </div>
-              {filteredListTeachers.map(teacher => {
-                const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+              {filteredListTeachers.map((teacher) => {
+                const initials = teacher.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2);
                 const avatarColor = getAvatarColor(teacher.id);
                 const teacherClasses = (teacher as any).totalClasses || 0;
                 const teacherStudents = (teacher as any).totalStudents || 0;
                 const accountStatus = teacher.accountStatus;
-                const accountStatusColor = accountStatus === "ACTIVE"
-                  ? "text-(--status-active) bg-(--status-active)/12"
-                  : "text-(--status-rejected) bg-(--status-rejected)/12";
+                const accountStatusColor =
+                  accountStatus === "ACTIVE"
+                    ? "text-(--status-active) bg-(--status-active)/12"
+                    : "text-(--status-rejected) bg-(--status-rejected)/12";
                 const accountStatusLabel = accountStatus === "ACTIVE" ? "Active" : "Locked";
 
                 return (
@@ -2030,11 +2416,15 @@ function TeachersPage() {
                     className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-border hover:bg-accent transition items-center"
                   >
                     <div className="col-span-3 flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}>
+                      <div
+                        className={`w-9 h-9 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}
+                      >
                         {initials}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-primary-col font-semibold text-sm truncate">{teacher.name}</p>
+                        <p className="text-primary-col font-semibold text-sm truncate">
+                          {teacher.name}
+                        </p>
                         <p className="text-muted-col text-[10px] truncate">{teacher.email}</p>
                       </div>
                     </div>
@@ -2045,7 +2435,9 @@ function TeachersPage() {
                       {teacherStudents}
                     </div>
                     <div className="col-span-2 text-center">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${accountStatusColor}`}>
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${accountStatusColor}`}
+                      >
                         {accountStatus === "ACTIVE" ? (
                           <span className="w-1.5 h-1.5 rounded-full bg-current" />
                         ) : (
@@ -2117,13 +2509,13 @@ function TeachersPage() {
           <TeacherViewDrawer
             teacher={viewing}
             onClose={() => setViewing(null)}
-            onApprove={id => {
+            onApprove={(id) => {
               handleApprove(id);
               setViewing(null);
             }}
-            onReject={id => {
+            onReject={(id) => {
               setViewing(null);
-              const t = pendingTeachers.find(x => x.id === id);
+              const t = pendingTeachers.find((x) => x.id === id);
               if (t) setRejectTarget(t);
             }}
             showActions
@@ -2206,7 +2598,7 @@ function TeachersPage() {
             onReject={(id) => {
               setViewProfileTarget(null);
               setViewProfileCerts([]);
-              const t = pendingTeachers.find(x => x.id === id);
+              const t = pendingTeachers.find((x) => x.id === id);
               if (t) setRejectTarget(t);
             }}
             actionLoading={actionLoadingId !== null}
@@ -2237,18 +2629,27 @@ function TeachersPage() {
         {classesDrawerOpen && classesDrawerTeacher && (
           <motion.div
             className="fixed inset-0 z-50 flex"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setClassesDrawerOpen(false)} />
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setClassesDrawerOpen(false)}
+            />
             <motion.div
               className="relative z-10 ml-auto h-full w-full max-w-2xl glass-modal shadow-2xl flex flex-col overflow-hidden"
-              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b separator">
                 <div>
-                  <h3 className="font-display font-bold text-primary-col text-lg">Teacher Classes</h3>
+                  <h3 className="font-display font-bold text-primary-col text-lg">
+                    Teacher Classes
+                  </h3>
                   <p className="text-muted-col text-sm mt-0.5">{classesDrawerTeacher.name}</p>
                 </div>
                 <button
@@ -2280,11 +2681,15 @@ function TeachersPage() {
                               <h4 className="font-semibold text-primary-col">{cls.name}</h4>
                               <p className="text-xs text-muted-col mt-0.5">{cls.level} Level</p>
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                              cls.status === "active" ? "bg-(--status-active)/12 text-(--status-active)" :
-                              cls.status === "completed" ? "bg-blue-500/12 text-blue-500" :
-                              "bg-muted-col/12 text-muted-col"
-                            }`}>
+                            <span
+                              className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                                cls.status === "active"
+                                  ? "bg-(--status-active)/12 text-(--status-active)"
+                                  : cls.status === "completed"
+                                    ? "bg-blue-500/12 text-blue-500"
+                                    : "bg-muted-col/12 text-muted-col"
+                              }`}
+                            >
                               {cls.status.charAt(0).toUpperCase() + cls.status.slice(1)}
                             </span>
                           </div>
@@ -2294,7 +2699,9 @@ function TeachersPage() {
                               <p className="text-[10px] text-muted-col">Students</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-lg font-bold text-primary-col">{cls.completionRate}%</p>
+                              <p className="text-lg font-bold text-primary-col">
+                                {cls.completionRate}%
+                              </p>
                               <p className="text-[10px] text-muted-col">Completion</p>
                             </div>
                             <div className="text-center">
@@ -2302,7 +2709,9 @@ function TeachersPage() {
                               <p className="text-[10px] text-muted-col">Avg Score</p>
                             </div>
                           </div>
-                          <p className="text-[10px] text-muted-col mt-3">Started: {cls.startDate}</p>
+                          <p className="text-[10px] text-muted-col mt-3">
+                            Started: {cls.startDate}
+                          </p>
                         </div>
                       ))}
                     </div>

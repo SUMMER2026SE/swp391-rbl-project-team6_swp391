@@ -11,7 +11,13 @@ export interface DataBankItem {
   lastUpdated: string;
 }
 
-export type DataBankType = "Vocabulary" | "Grammar" | "Listening" | "Shadowing" | "Question" | "Exam";
+export type DataBankType =
+  | "Vocabulary"
+  | "Grammar"
+  | "Listening"
+  | "Shadowing"
+  | "Question"
+  | "Exam";
 
 export const DATA_BANK_ITEMS: DataBankItem[] = [
   {

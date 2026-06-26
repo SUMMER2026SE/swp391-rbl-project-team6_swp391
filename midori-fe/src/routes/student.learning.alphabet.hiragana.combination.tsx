@@ -8,9 +8,6 @@ export const Route = createFileRoute("/student/learning/alphabet/hiragana/combin
 
 function HiraganaCombinationPage() {
   return (
-    <AlphabetLessonPage
-      lesson={hiraganaCombinationLesson}
-      progressKey="hiragana-combination"
-    />
+    <AlphabetLessonPage lesson={hiraganaCombinationLesson} progressKey="hiragana-combination" />
   );
 }

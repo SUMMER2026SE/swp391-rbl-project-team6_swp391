@@ -32,20 +32,20 @@ export function QuestionBankStickyHeader({
   const handleBackClick = () => {
     // Resolve the back href with params if present
     let resolvedHref = backHref;
-    
+
     if (resolvedHref?.includes("$level") && level) {
       resolvedHref = resolvedHref.replace("$level", level.toLowerCase());
     }
-    
+
     if (resolvedHref?.includes("$lessonId") && lessonId) {
       resolvedHref = resolvedHref.replace("$lessonId", String(lessonId));
     }
-    
+
     // For lesson-detail pages, construct proper URL with query params
     if (resolvedHref === "/admin/question-bank/lesson-detail" && level && lessonId) {
       resolvedHref = `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`;
     }
-    
+
     if (window.history.length > 1) {
       window.history.back();
     } else if (resolvedHref) {
@@ -69,7 +69,7 @@ export function QuestionBankStickyHeader({
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">{backLabel}</span>
             </button>
-            
+
             {/* Breadcrumbs */}
             {breadcrumbs.length > 0 && (
               <div className="flex items-center gap-1 text-xs text-muted-col overflow-x-auto scrollbar-hide">
@@ -84,7 +84,9 @@ export function QuestionBankStickyHeader({
                         {item.label}
                       </a>
                     ) : (
-                      <span className="text-primary-col font-medium whitespace-nowrap">{item.label}</span>
+                      <span className="text-primary-col font-medium whitespace-nowrap">
+                        {item.label}
+                      </span>
                     )}
                   </div>
                 ))}
@@ -102,7 +104,7 @@ export function QuestionBankStickyHeader({
                 <p className="text-sm text-secondary-col mt-0.5 hidden sm:block">{subtitle}</p>
               )}
             </div>
-            
+
             {actionButtons && (
               <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
                 {actionButtons}
@@ -111,11 +113,7 @@ export function QuestionBankStickyHeader({
           </div>
 
           {/* Stats Row (if provided) */}
-          {stats && (
-            <div className="pb-4">
-              {stats}
-            </div>
-          )}
+          {stats && <div className="pb-4">{stats}</div>}
         </div>
       </div>
     </div>
@@ -158,12 +156,14 @@ export function QuestionBankCompactHeader({
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            
+
             {breadcrumbs.length > 0 && (
               <div className="flex items-center gap-1 text-xs text-muted-col overflow-x-auto scrollbar-hide min-w-0">
                 {breadcrumbs.map((item, index) => (
                   <div key={index} className="flex items-center gap-1 shrink-0">
-                    {index > 0 && <ChevronRight className="w-3 h-3 text-[var(--border)] shrink-0" />}
+                    {index > 0 && (
+                      <ChevronRight className="w-3 h-3 text-[var(--border)] shrink-0" />
+                    )}
                     {item.href ? (
                       <a
                         href={item.href}
@@ -172,7 +172,9 @@ export function QuestionBankCompactHeader({
                         {item.label}
                       </a>
                     ) : (
-                      <span className="text-primary-col font-medium whitespace-nowrap truncate">{item.label}</span>
+                      <span className="text-primary-col font-medium whitespace-nowrap truncate">
+                        {item.label}
+                      </span>
                     )}
                   </div>
                 ))}
@@ -181,11 +183,7 @@ export function QuestionBankCompactHeader({
           </div>
 
           {/* Right: Action Buttons */}
-          {actionButtons && (
-            <div className="flex items-center gap-2 shrink-0">
-              {actionButtons}
-            </div>
-          )}
+          {actionButtons && <div className="flex items-center gap-2 shrink-0">{actionButtons}</div>}
         </div>
       </div>
     </div>

@@ -1,5 +1,17 @@
-import { MOCK_CLASSES, type TeacherClass, type Lesson, type Homework, type Exam } from "@/data/teacher-classes";
-import { QUESTION_TOPICS, JLPT_EXAM_SETS, getTopicsByLevel, getQuestionsByTopic, getJlptByLevel } from "@/data/teacher-banks";
+import {
+  MOCK_CLASSES,
+  type TeacherClass,
+  type Lesson,
+  type Homework,
+  type Exam,
+} from "@/data/teacher-classes";
+import {
+  QUESTION_TOPICS,
+  JLPT_EXAM_SETS,
+  getTopicsByLevel,
+  getQuestionsByTopic,
+  getJlptByLevel,
+} from "@/data/teacher-banks";
 import { MOCK_REPORTS, type TeacherReport } from "@/data/teacher-reports";
 import { TEACHER_NOTIFICATIONS, type TeacherNotification } from "@/data/teacher-notifications";
 
@@ -35,7 +47,12 @@ export function createLesson(data: { title: string; classId?: string; level?: st
 }
 
 // Homework
-export function createHomework(data: { title: string; classId?: string; lessonId?: string; dueDate?: string }) {
+export function createHomework(data: {
+  title: string;
+  classId?: string;
+  lessonId?: string;
+  dueDate?: string;
+}) {
   const homework: Homework = {
     id: `hw-${Date.now()}`,
     classId: data.classId ?? "",
@@ -128,18 +145,16 @@ export interface StudentProgressRecord {
 }
 
 export function getProgressData(classId?: string): ClassProgressRecord[] {
-  return MOCK_CLASSES
-    .filter((c) => !classId || c.id === classId)
-    .map((c) => ({
-      classId: c.id,
-      className: c.name,
-      level: c.level,
-      avgProgress: Math.round(50 + Math.random() * 40),
-      activeCount: c.studentList.length,
-      examAvg: Math.round(60 + Math.random() * 30),
-      atRiskCount: Math.floor(Math.random() * 3),
-      totalStudents: c.studentList.length,
-    }));
+  return MOCK_CLASSES.filter((c) => !classId || c.id === classId).map((c) => ({
+    classId: c.id,
+    className: c.name,
+    level: c.level,
+    avgProgress: Math.round(50 + Math.random() * 40),
+    activeCount: c.studentList.length,
+    examAvg: Math.round(60 + Math.random() * 30),
+    atRiskCount: Math.floor(Math.random() * 3),
+    totalStudents: c.studentList.length,
+  }));
 }
 
 // Reports

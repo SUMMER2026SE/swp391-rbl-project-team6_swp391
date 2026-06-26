@@ -36,12 +36,52 @@ type CharacterSet = {
 };
 
 const CHARACTER_SETS: { id: string; name: string; data: CharacterSet }[] = [
-  { id: "hiragana-basic", name: "Hiragana Basic", data: { name: "Hiragana Basic", chars: HIRAGANA_BASIC, color: "from-pink-400 to-rose-500" } },
-  { id: "katakana-basic", name: "Katakana Basic", data: { name: "Katakana Basic", chars: KATAKANA_BASIC, color: "from-blue-400 to-cyan-500" } },
-  { id: "hiragana-dakuten", name: "Hiragana Dakuten", data: { name: "Hiragana Dakuten", chars: HIRAGANA_DAKUTEN, color: "from-purple-400 to-violet-500" } },
-  { id: "katakana-dakuten", name: "Katakana Dakuten", data: { name: "Katakana Dakuten", chars: KATAKANA_DAKUTEN, color: "from-indigo-400 to-blue-500" } },
-  { id: "hiragana-combination", name: "Hiragana Combinations", data: { name: "Hiragana Combinations", chars: HIRAGANA_COMBINATION, color: "from-emerald-400 to-teal-500" } },
-  { id: "katakana-combination", name: "Katakana Combinations", data: { name: "Katakana Combinations", chars: KATAKANA_COMBINATION, color: "from-cyan-400 to-sky-500" } },
+  {
+    id: "hiragana-basic",
+    name: "Hiragana Basic",
+    data: { name: "Hiragana Basic", chars: HIRAGANA_BASIC, color: "from-pink-400 to-rose-500" },
+  },
+  {
+    id: "katakana-basic",
+    name: "Katakana Basic",
+    data: { name: "Katakana Basic", chars: KATAKANA_BASIC, color: "from-blue-400 to-cyan-500" },
+  },
+  {
+    id: "hiragana-dakuten",
+    name: "Hiragana Dakuten",
+    data: {
+      name: "Hiragana Dakuten",
+      chars: HIRAGANA_DAKUTEN,
+      color: "from-purple-400 to-violet-500",
+    },
+  },
+  {
+    id: "katakana-dakuten",
+    name: "Katakana Dakuten",
+    data: {
+      name: "Katakana Dakuten",
+      chars: KATAKANA_DAKUTEN,
+      color: "from-indigo-400 to-blue-500",
+    },
+  },
+  {
+    id: "hiragana-combination",
+    name: "Hiragana Combinations",
+    data: {
+      name: "Hiragana Combinations",
+      chars: HIRAGANA_COMBINATION,
+      color: "from-emerald-400 to-teal-500",
+    },
+  },
+  {
+    id: "katakana-combination",
+    name: "Katakana Combinations",
+    data: {
+      name: "Katakana Combinations",
+      chars: KATAKANA_COMBINATION,
+      color: "from-cyan-400 to-sky-500",
+    },
+  },
 ];
 
 function ListeningPracticePage() {
@@ -136,8 +176,12 @@ function ListeningPracticePage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </Link>
               <div>
-                <h1 className="text-2xl font-black text-slate-800 dark:text-white">Listening Practice</h1>
-                <p className="text-sm text-slate-500 dark:text-indigo-200/60">Train your ear to recognize characters</p>
+                <h1 className="text-2xl font-black text-slate-800 dark:text-white">
+                  Listening Practice
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                  Train your ear to recognize characters
+                </p>
               </div>
             </div>
 
@@ -172,15 +216,22 @@ function ListeningPracticePage() {
                   }}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-2xl bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 hover:shadow-xl hover:-translate-y-1 transition-all text-left",
-                    selectedSetId === set.id && "ring-2 ring-primary"
+                    selectedSetId === set.id && "ring-2 ring-primary",
                   )}
                 >
-                  <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg", set.data.color)}>
+                  <div
+                    className={cn(
+                      "w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg",
+                      set.data.color,
+                    )}
+                  >
                     {set.data.chars[0]?.char}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800 dark:text-white">{set.name}</h3>
-                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">{set.data.chars.length} characters</p>
+                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                      {set.data.chars.length} characters
+                    </p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </motion.button>
@@ -211,7 +262,9 @@ function ListeningPracticePage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </button>
               <div>
-                <h1 className="text-xl font-black text-slate-800 dark:text-white">{selectedSet.name}</h1>
+                <h1 className="text-xl font-black text-slate-800 dark:text-white">
+                  {selectedSet.name}
+                </h1>
                 <p className="text-xs text-slate-500 dark:text-indigo-200/60">Listening Practice</p>
               </div>
             </div>
@@ -221,22 +274,33 @@ function ListeningPracticePage() {
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className="bg-white/70 dark:bg-indigo-950/50 rounded-xl p-3 text-center border border-slate-200/60 dark:border-white/10">
               <div className="text-2xl font-black text-slate-800 dark:text-white">{score}</div>
-              <div className="text-[10px] text-slate-500 dark:text-indigo-200/60 uppercase">Correct</div>
+              <div className="text-[10px] text-slate-500 dark:text-indigo-200/60 uppercase">
+                Correct
+              </div>
             </div>
             <div className="bg-white/70 dark:bg-indigo-950/50 rounded-xl p-3 text-center border border-slate-200/60 dark:border-white/10">
-              <div className="text-2xl font-black text-slate-800 dark:text-white">{totalPlayed}</div>
-              <div className="text-[10px] text-slate-500 dark:text-indigo-200/60 uppercase">Played</div>
+              <div className="text-2xl font-black text-slate-800 dark:text-white">
+                {totalPlayed}
+              </div>
+              <div className="text-[10px] text-slate-500 dark:text-indigo-200/60 uppercase">
+                Played
+              </div>
             </div>
             <div className="bg-white/70 dark:bg-indigo-950/50 rounded-xl p-3 text-center border border-slate-200/60 dark:border-white/10">
-              <div className="text-2xl font-black text-slate-800 dark:text-white">{correctStreak}</div>
-              <div className="text-[10px] text-slate-500 dark:text-indigo-200/60 uppercase">Streak</div>
+              <div className="text-2xl font-black text-slate-800 dark:text-white">
+                {correctStreak}
+              </div>
+              <div className="text-[10px] text-slate-500 dark:text-indigo-200/60 uppercase">
+                Streak
+              </div>
             </div>
           </div>
 
           {/* Progress */}
           <div className="flex justify-between text-sm mb-2">
             <span className="text-slate-600 dark:text-indigo-200/80">
-              Question <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
+              Question{" "}
+              <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
               <span className="text-slate-500">{selectedSet.chars.length}</span>
             </span>
             <span className="text-slate-600 dark:text-indigo-200/80">
@@ -258,7 +322,9 @@ function ListeningPracticePage() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white/80 dark:bg-indigo-950/50 backdrop-blur-xl rounded-3xl p-8 text-center border border-slate-200/60 dark:border-white/20 shadow-xl mb-6"
           >
-            <p className="text-sm text-slate-500 dark:text-indigo-200/60 mb-6">Listen and select the correct character</p>
+            <p className="text-sm text-slate-500 dark:text-indigo-200/60 mb-6">
+              Listen and select the correct character
+            </p>
 
             <motion.button
               onClick={playSound}
@@ -267,7 +333,7 @@ function ListeningPracticePage() {
                 "w-24 h-24 rounded-full flex items-center justify-center mx-auto transition-all shadow-2xl",
                 isPlaying
                   ? "bg-gradient-to-br from-blue-500 to-purple-500 animate-pulse"
-                  : "bg-gradient-to-br from-pink-500 to-purple-500 hover:opacity-90"
+                  : "bg-gradient-to-br from-pink-500 to-purple-500 hover:opacity-90",
               )}
             >
               <Volume2 className="w-12 h-12 text-white" />
@@ -297,11 +363,14 @@ function ListeningPracticePage() {
               const showCorrect = showResult && isCorrect;
               const showIncorrect = showResult && isSelected && !isCorrect;
 
-              let btnStyle = "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white";
+              let btnStyle =
+                "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white";
               if (showCorrect) {
-                btnStyle = "bg-green-500/20 border-2 border-green-500/40 text-green-600 dark:text-green-300";
+                btnStyle =
+                  "bg-green-500/20 border-2 border-green-500/40 text-green-600 dark:text-green-300";
               } else if (showIncorrect) {
-                btnStyle = "bg-red-500/20 border-2 border-red-500/40 text-red-600 dark:text-red-300";
+                btnStyle =
+                  "bg-red-500/20 border-2 border-red-500/40 text-red-600 dark:text-red-300";
               } else if (showResult) {
                 btnStyle = "bg-slate-100/50 dark:bg-white/5 text-slate-400 cursor-default";
               } else {
@@ -313,10 +382,7 @@ function ListeningPracticePage() {
                   key={option}
                   onClick={() => handleAnswer(option)}
                   disabled={showResult}
-                  className={cn(
-                    "py-6 rounded-2xl font-bold text-3xl transition-all",
-                    btnStyle
-                  )}
+                  className={cn("py-6 rounded-2xl font-bold text-3xl transition-all", btnStyle)}
                   style={{ fontFamily: "var(--font-japanese)" }}
                 >
                   {option}

@@ -97,9 +97,20 @@ function JapaneseLearningPage() {
   const renderTabContent = () => {
     switch (activeTab) {
       case "lessons":
-        return <LessonsTab lessons={LESSONS} progress={progress} onSelectLesson={setSelectedLesson} onStartLesson={(lesson) => navigate({ to: `/student/learning/japanese/lesson/${lesson.id}` })} />;
+        return (
+          <LessonsTab
+            lessons={LESSONS}
+            progress={progress}
+            onSelectLesson={setSelectedLesson}
+            onStartLesson={(lesson) =>
+              navigate({ to: `/student/learning/japanese/lesson/${lesson.id}` })
+            }
+          />
+        );
       case "practice":
-        return <PracticeTab lessons={LESSONS} progress={progress} onSelectLesson={setSelectedLesson} />;
+        return (
+          <PracticeTab lessons={LESSONS} progress={progress} onSelectLesson={setSelectedLesson} />
+        );
       case "quizzes":
         return <QuizzesTab lessons={LESSONS} progress={progress} />;
       default:
@@ -122,8 +133,12 @@ function JapaneseLearningPage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </Link>
               <div>
-                <h1 className="text-2xl font-display font-black text-slate-800 dark:text-white">Japanese Writing</h1>
-                <p className="text-sm text-slate-500 dark:text-indigo-200/60">Master Hiragana & Katakana</p>
+                <h1 className="text-2xl font-display font-black text-slate-800 dark:text-white">
+                  Japanese Writing
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                  Master Hiragana & Katakana
+                </p>
               </div>
             </div>
           </div>
@@ -142,7 +157,7 @@ function JapaneseLearningPage() {
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   activeTab === tab.id
                     ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg"
-                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90 dark:hover:bg-white/20"
+                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90 dark:hover:bg-white/20",
                 )}
               >
                 <tab.icon className="w-4 h-4" />
@@ -202,12 +217,18 @@ function LessonsTab({
 
   const getDifficultyColor = (difficulty: number) => {
     switch (difficulty) {
-      case 1: return "text-green-500 bg-green-500/10 border-green-500/20";
-      case 2: return "text-blue-500 bg-blue-500/10 border-blue-500/20";
-      case 3: return "text-amber-500 bg-amber-500/10 border-amber-500/20";
-      case 4: return "text-orange-500 bg-orange-500/10 border-orange-500/20";
-      case 5: return "text-red-500 bg-red-500/10 border-red-500/20";
-      default: return "text-slate-500 bg-slate-500/10 border-slate-500/20";
+      case 1:
+        return "text-green-500 bg-green-500/10 border-green-500/20";
+      case 2:
+        return "text-blue-500 bg-blue-500/10 border-blue-500/20";
+      case 3:
+        return "text-amber-500 bg-amber-500/10 border-amber-500/20";
+      case 4:
+        return "text-orange-500 bg-orange-500/10 border-orange-500/20";
+      case 5:
+        return "text-red-500 bg-red-500/10 border-red-500/20";
+      default:
+        return "text-slate-500 bg-slate-500/10 border-slate-500/20";
     }
   };
 
@@ -217,8 +238,16 @@ function LessonsTab({
       <div className="flex gap-2">
         {[
           { id: "all" as const, label: "All", count: lessons.length },
-          { id: "hiragana" as const, label: "Hiragana", count: lessons.filter((l) => l.script === "hiragana").length },
-          { id: "katakana" as const, label: "Katakana", count: lessons.filter((l) => l.script === "katakana").length },
+          {
+            id: "hiragana" as const,
+            label: "Hiragana",
+            count: lessons.filter((l) => l.script === "hiragana").length,
+          },
+          {
+            id: "katakana" as const,
+            label: "Katakana",
+            count: lessons.filter((l) => l.script === "katakana").length,
+          },
         ].map((f) => (
           <button
             key={f.id}
@@ -227,7 +256,7 @@ function LessonsTab({
               "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
               filter === f.id
                 ? "bg-primary text-white"
-                : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90"
+                : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90",
             )}
           >
             {f.label} ({f.count})
@@ -251,24 +280,38 @@ function LessonsTab({
                 "group bg-white/80 dark:bg-indigo-950/40 backdrop-blur-sm rounded-2xl p-5 border transition-all cursor-pointer",
                 isCompleted
                   ? "border-green-300 dark:border-green-500/30 hover:shadow-lg hover:shadow-green-500/10"
-                  : "border-slate-200/60 dark:border-white/10 hover:shadow-lg hover:-translate-y-1"
+                  : "border-slate-200/60 dark:border-white/10 hover:shadow-lg hover:-translate-y-1",
               )}
               onClick={() => onSelectLesson(lesson)}
             >
               <div className="flex items-start gap-4">
-                <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg", lesson.color)}>
+                <div
+                  className={cn(
+                    "w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg",
+                    lesson.color,
+                  )}
+                >
                   {lesson.icon}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors truncate">{lesson.title}</h3>
+                    <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors truncate">
+                      {lesson.title}
+                    </h3>
                     {isCompleted && <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />}
                   </div>
-                  <p className="text-sm text-slate-500 dark:text-indigo-200/60">{lesson.subtitle}</p>
+                  <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                    {lesson.subtitle}
+                  </p>
 
                   {/* Meta info */}
                   <div className="flex items-center gap-3 mt-3">
-                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border", getDifficultyColor(lesson.difficulty))}>
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold border",
+                        getDifficultyColor(lesson.difficulty),
+                      )}
+                    >
                       Level {lesson.difficulty}
                     </span>
                     <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-indigo-200/60">
@@ -380,12 +423,21 @@ function PracticeTab({
               className="group block bg-white/80 dark:bg-indigo-950/40 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 dark:border-white/10 hover:shadow-xl hover:-translate-y-1 transition-all"
             >
               <div className="flex items-center gap-4">
-                <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg", mode.color)}>
+                <div
+                  className={cn(
+                    "w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+                    mode.color,
+                  )}
+                >
                   <mode.icon className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-lg text-slate-800 dark:text-white group-hover:text-primary transition-colors">{mode.title}</h3>
-                  <p className="text-sm text-slate-500 dark:text-indigo-200/60">{mode.description}</p>
+                  <h3 className="font-bold text-lg text-slate-800 dark:text-white group-hover:text-primary transition-colors">
+                    {mode.title}
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                    {mode.description}
+                  </p>
                 </div>
                 <ChevronRight className="w-6 h-6 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </div>
@@ -396,7 +448,9 @@ function PracticeTab({
 
       {/* Character Sets */}
       <div>
-        <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-4">Character Sets to Practice</h3>
+        <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-4">
+          Character Sets to Practice
+        </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: "あ行", chars: "あいうえお", script: "hiragana" },
@@ -414,7 +468,10 @@ function PracticeTab({
               className="group bg-white/60 dark:bg-white/5 rounded-xl p-4 border border-slate-200/60 dark:border-white/10 hover:bg-white/80 hover:shadow-lg transition-all"
             >
               <div className="text-center">
-                <span className="text-2xl font-bold text-slate-700 dark:text-white tracking-wider" style={{ fontFamily: "var(--font-japanese)" }}>
+                <span
+                  className="text-2xl font-bold text-slate-700 dark:text-white tracking-wider"
+                  style={{ fontFamily: "var(--font-japanese)" }}
+                >
                   {set.chars}
                 </span>
                 <p className="text-xs text-slate-500 dark:text-indigo-200/60 mt-2">{set.label}</p>
@@ -488,12 +545,21 @@ function QuizzesTab({ lessons, progress }: { lessons: Lesson[]; progress: UserPr
               className="group block bg-white/80 dark:bg-indigo-950/40 backdrop-blur-sm rounded-2xl p-5 border border-slate-200/60 dark:border-white/10 hover:shadow-xl hover:-translate-y-1 transition-all"
             >
               <div className="flex items-center gap-3 mb-3">
-                <div className={cn("w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-md", quiz.color)}>
+                <div
+                  className={cn(
+                    "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-md",
+                    quiz.color,
+                  )}
+                >
                   <quiz.icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{quiz.title}</h3>
-                  <p className="text-xs text-slate-500 dark:text-indigo-200/60">{quiz.questionCount} questions</p>
+                  <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">
+                    {quiz.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-indigo-200/60">
+                    {quiz.questionCount} questions
+                  </p>
                 </div>
               </div>
               <p className="text-sm text-slate-600 dark:text-indigo-200/80">{quiz.description}</p>
@@ -519,19 +585,37 @@ function QuizzesTab({ lessons, progress }: { lessons: Lesson[]; progress: UserPr
               .map(([lessonId, data]) => {
                 const lesson = getLessonById(lessonId);
                 return (
-                  <div key={lessonId} className="flex items-center gap-3 p-3 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200/40 dark:border-white/10">
-                    <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg", lesson?.color)}>
+                  <div
+                    key={lessonId}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-100/50 dark:bg-white/5 border border-slate-200/40 dark:border-white/10"
+                  >
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg",
+                        lesson?.color,
+                      )}
+                    >
                       {lesson?.icon}
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-slate-800 dark:text-white text-sm">{lesson?.title}</div>
-                      <div className="text-xs text-slate-500 dark:text-indigo-200/60">{data.attempts} attempts</div>
+                      <div className="font-semibold text-slate-800 dark:text-white text-sm">
+                        {lesson?.title}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-indigo-200/60">
+                        {data.attempts} attempts
+                      </div>
                     </div>
                     <div className="text-right">
-                      <div className={cn(
-                        "text-lg font-black",
-                        data.score >= 80 ? "text-green-500" : data.score >= 60 ? "text-amber-500" : "text-red-500"
-                      )}>
+                      <div
+                        className={cn(
+                          "text-lg font-black",
+                          data.score >= 80
+                            ? "text-green-500"
+                            : data.score >= 60
+                              ? "text-amber-500"
+                              : "text-red-500",
+                        )}
+                      >
                         {data.score}%
                       </div>
                     </div>
@@ -581,7 +665,12 @@ function LessonDetailModal({
       >
         {/* Header */}
         <div className="flex items-center gap-4 mb-4">
-          <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center text-3xl font-bold text-white shadow-lg", lesson.color)}>
+          <div
+            className={cn(
+              "w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center text-3xl font-bold text-white shadow-lg",
+              lesson.color,
+            )}
+          >
             {lesson.icon}
           </div>
           <div className="flex-1">
@@ -625,7 +714,9 @@ function LessonDetailModal({
                 style={{ width: `${progress.score}%` }}
               />
             </div>
-            <p className="text-xs text-slate-500 dark:text-indigo-200/60 mt-1">{progress.attempts} attempts</p>
+            <p className="text-xs text-slate-500 dark:text-indigo-200/60 mt-1">
+              {progress.attempts} attempts
+            </p>
           </div>
         )}
 
@@ -635,7 +726,9 @@ function LessonDetailModal({
           className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100/60 dark:bg-white/5 border border-slate-200/40 dark:border-white/10 text-sm font-semibold text-slate-600 dark:text-indigo-200/80 hover:bg-slate-200/60 transition mb-4"
         >
           <span>{showPreview ? "Hide" : "Show"} Character Preview</span>
-          <ChevronRight className={cn("w-4 h-4 transition-transform", showPreview && "rotate-90")} />
+          <ChevronRight
+            className={cn("w-4 h-4 transition-transform", showPreview && "rotate-90")}
+          />
         </button>
 
         {showPreview && (
@@ -647,10 +740,15 @@ function LessonDetailModal({
                 className="p-2 rounded-xl bg-white/80 dark:bg-white/5 border border-slate-200/40 dark:border-white/10 hover:bg-slate-100/60 dark:hover:bg-white/10 transition"
               >
                 <div className="text-center">
-                  <div className="text-lg font-bold text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese)" }}>
+                  <div
+                    className="text-lg font-bold text-slate-800 dark:text-white"
+                    style={{ fontFamily: "var(--font-japanese)" }}
+                  >
                     {char.char}
                   </div>
-                  <div className="text-[10px] text-slate-500 dark:text-indigo-200/60">{char.romaji}</div>
+                  <div className="text-[10px] text-slate-500 dark:text-indigo-200/60">
+                    {char.romaji}
+                  </div>
                 </div>
               </button>
             ))}

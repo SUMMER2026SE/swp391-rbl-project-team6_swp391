@@ -62,22 +62,23 @@ export function SkillCard({ skill, isActive, onSelect, progress = 0 }: SkillCard
         isActive
           ? `${colors.bg} ${colors.border} shadow-sm`
           : "bg-card border-border/50 hover:border-primary/30 hover:shadow-sm",
-        isCompleted && !isActive && "opacity-70"
+        isCompleted && !isActive && "opacity-70",
       )}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "w-10 h-10 rounded-lg flex items-center justify-center",
-            isActive ? colors.bg : "bg-muted"
-          )}>
+          <div
+            className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center",
+              isActive ? colors.bg : "bg-muted",
+            )}
+          >
             <Icon className={cn("w-5 h-5", isActive ? colors.icon : "text-muted-foreground")} />
           </div>
           <div>
-            <div className={cn(
-              "font-semibold text-sm",
-              isActive ? colors.text : "text-foreground"
-            )}>
+            <div
+              className={cn("font-semibold text-sm", isActive ? colors.text : "text-foreground")}
+            >
               {skill.type.charAt(0) + skill.type.slice(1).toLowerCase()}
             </div>
             <div className="text-xs text-muted-foreground">

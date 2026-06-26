@@ -77,9 +77,7 @@ export function HomeworkEditDialog({
             <PenLine className="w-4 h-4" />
             Edit Homework
           </DialogTitle>
-          <DialogDescription>
-            Update the details for this homework assignment.
-          </DialogDescription>
+          <DialogDescription>Update the details for this homework assignment.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

@@ -8,7 +8,12 @@ interface TopicComboboxProps {
   placeholder?: string;
 }
 
-export function TopicCombobox({ value, onChange, options, placeholder = "Select..." }: TopicComboboxProps) {
+export function TopicCombobox({
+  value,
+  onChange,
+  options,
+  placeholder = "Select...",
+}: TopicComboboxProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -16,12 +21,12 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Filter options based on input
-  const filteredOptions = options.filter(opt => 
-    opt.toLowerCase().includes(inputValue.toLowerCase())
+  const filteredOptions = options.filter((opt) =>
+    opt.toLowerCase().includes(inputValue.toLowerCase()),
   );
 
   // Check if input matches existing option
-  const inputMatchesOption = options.some(opt => opt.toLowerCase() === inputValue.toLowerCase());
+  const inputMatchesOption = options.some((opt) => opt.toLowerCase() === inputValue.toLowerCase());
 
   // Focus input when creating
   useEffect(() => {
@@ -75,7 +80,7 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
       {/* Trigger button */}
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
           value
             ? "bg-primary/5 border-primary/30 text-primary"
@@ -85,7 +90,9 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
         <span className={value ? "text-primary" : "text-muted-foreground"}>
           {value || placeholder}
         </span>
-        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {/* Dropdown */}
@@ -99,7 +106,7 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
                   ref={inputRef}
                   type="text"
                   value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
+                  onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="New topic name..."
                   className="flex-1 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40"
@@ -112,7 +119,10 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
                   <Check className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => { setIsCreating(false); setInputValue(""); }}
+                  onClick={() => {
+                    setIsCreating(false);
+                    setInputValue("");
+                  }}
                   className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                 >
                   <X className="w-4 h-4" />
@@ -122,7 +132,7 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
               <input
                 type="text"
                 value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
+                onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && inputValue.trim()) {
                     e.preventDefault();
@@ -142,7 +152,7 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
           {/* Options list */}
           <div className="max-h-48 overflow-y-auto py-1">
             {filteredOptions.length > 0 ? (
-              filteredOptions.map(opt => (
+              filteredOptions.map((opt) => (
                 <button
                   key={opt}
                   onClick={() => handleSelect(opt)}
@@ -166,7 +176,9 @@ export function TopicCombobox({ value, onChange, options, placeholder = "Select.
                 className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-primary hover:bg-primary/5 transition"
               >
                 <Plus className="w-4 h-4" />
-                <span>Create "<strong>{inputValue.trim()}</strong>"</span>
+                <span>
+                  Create "<strong>{inputValue.trim()}</strong>"
+                </span>
               </button>
             ) : (
               <div className="px-3 py-4 text-center text-sm text-muted-foreground">

@@ -19,7 +19,7 @@ import {
   Plus,
   Printer,
   Loader2,
-  X
+  X,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,7 @@ interface ExtendedKanjiCharacter extends KanjiCharacter {
 }
 
 const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> = {
-  "今": {
+  今: {
     sinoVietnamese: "KIM",
     meaning: "Bây giờ (Now)",
     strokes: 4,
@@ -50,14 +50,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 52,15 C 46,28 36,40 20,48", // Stroke 1: Roof left diagonal
       "M 52,15 C 58,28 68,40 82,48", // Stroke 2: Roof right diagonal
       "M 36,46 C 45,44 55,44 68,46", // Stroke 3: Horizontal line
-      "M 35,64 L 54,64 L 47,85 C 45,88 40,88 38,82" // Stroke 4: Curved hook
+      "M 35,64 L 54,64 L 47,85 C 45,88 40,88 38,82", // Stroke 4: Curved hook
     ],
     examples: [
       { word: "今日 (きょう - kyou)", meaning: "Hôm nay" },
-      { word: "今月 (こんげつ - kongetsu)", meaning: "Tháng này" }
-    ]
+      { word: "今月 (こんげつ - kongetsu)", meaning: "Tháng này" },
+    ],
   },
-  "玉": {
+  玉: {
     sinoVietnamese: "NGỌC",
     meaning: "Đá quý (Gem, Jade)",
     strokes: 5,
@@ -70,14 +70,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 50,25 L 50,75",
       "M 30,50 L 70,50",
       "M 20,78 L 80,78",
-      "M 65,65 A 4,4 0 1,1 65,64.9"
+      "M 65,65 A 4,4 0 1,1 65,64.9",
     ],
     examples: [
       { word: "玉子 (たまご - tamago)", meaning: "Quả trứng" },
-      { word: "お玉 (おたま - otama)", meaning: "Cái muôi múc canh" }
-    ]
+      { word: "お玉 (おたま - otama)", meaning: "Cái muôi múc canh" },
+    ],
   },
-  "交": {
+  交: {
     sinoVietnamese: "GIAO",
     meaning: "Giao nhau, trao đổi (Cross, Intersect)",
     strokes: 6,
@@ -91,14 +91,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 45,45 C 40,55 30,70 20,80",
       "M 55,45 C 60,55 70,70 80,80",
       "M 35,55 L 65,55",
-      "M 35,68 L 65,68"
+      "M 35,68 L 65,68",
     ],
     examples: [
       { word: "交番 (こうばん - kouban)", meaning: "Đồn cảnh sát" },
-      { word: "交通 (こうつう - koutsuu)", meaning: "Giao thông" }
-    ]
+      { word: "交通 (こうつう - koutsuu)", meaning: "Giao thông" },
+    ],
   },
-  "合": {
+  合: {
     sinoVietnamese: "HỢP",
     meaning: "Hợp, vừa vặn (Fit, Join)",
     strokes: 6,
@@ -112,14 +112,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 30,42 L 70,42",
       "M 35,55 L 35,80",
       "M 35,57 L 65,57 L 65,80",
-      "M 35,78 L 65,78"
+      "M 35,78 L 65,78",
     ],
     examples: [
       { word: "合格 (ごうかく - goukaku)", meaning: "Đỗ, thi đỗ" },
-      { word: "試合 (しあい - shiai)", meaning: "Trận đấu" }
-    ]
+      { word: "試合 (しあい - shiai)", meaning: "Trận đấu" },
+    ],
   },
-  "歩": {
+  歩: {
     sinoVietnamese: "BỘ",
     meaning: "Bước đi (Step)",
     strokes: 7,
@@ -134,14 +134,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 25,60 L 75,60",
       "M 40,60 L 30,80",
       "M 60,60 L 70,80",
-      "M 50,70 L 50,85"
+      "M 50,70 L 50,85",
     ],
     examples: [
       { word: "歩行者 (ほこうしゃ - hokousha)", meaning: "Người đi bộ" },
-      { word: "散歩 (さんぽ - sanpo)", meaning: "Đi dạo" }
-    ]
+      { word: "散歩 (さんぽ - sanpo)", meaning: "Đi dạo" },
+    ],
   },
-  "步": {
+  步: {
     sinoVietnamese: "BỘ",
     meaning: "Bước đi (Step)",
     strokes: 7,
@@ -156,14 +156,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 25,60 L 75,60",
       "M 40,60 L 30,80",
       "M 60,60 L 70,80",
-      "M 50,70 L 50,85"
+      "M 50,70 L 50,85",
     ],
     examples: [
       { word: "歩行者 (ほこうしゃ - hokousha)", meaning: "Người đi bộ" },
-      { word: "散歩 (さんぽ - sanpo)", meaning: "Đi dạo" }
-    ]
+      { word: "散歩 (さんぽ - sanpo)", meaning: "Đi dạo" },
+    ],
   },
-  "茶": {
+  茶: {
     sinoVietnamese: "TRÀ",
     meaning: "Trà, chè (Tea)",
     strokes: 9,
@@ -180,14 +180,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 50,48 L 50,85",
       "M 50,55 L 25,65",
       "M 50,55 L 75,65",
-      "M 25,82 L 75,82"
+      "M 25,82 L 75,82",
     ],
     examples: [
       { word: "お茶 (おちゃ - ocha)", meaning: "Trà xanh" },
-      { word: "紅茶 (こうちゃ - koucha)", meaning: "Hồng trà" }
-    ]
+      { word: "紅茶 (こうちゃ - koucha)", meaning: "Hồng trà" },
+    ],
   },
-  "弓": {
+  弓: {
     sinoVietnamese: "CUNG",
     meaning: "Cái cung (Bow)",
     strokes: 3,
@@ -198,14 +198,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
     svgPaths: [
       "M 25,20 L 70,20 C 70,20 70,40 55,40",
       "M 55,40 L 55,55 L 75,55",
-      "M 75,55 C 75,70 60,85 25,85"
+      "M 75,55 C 75,70 60,85 25,85",
     ],
     examples: [
       { word: "弓道 (きゅうどう - kyuudou)", meaning: "Cung đạo" },
-      { word: "半弓 (はんきゅう - hankyuu)", meaning: "Cung ngắn" }
-    ]
+      { word: "半弓 (はんきゅう - hankyuu)", meaning: "Cung ngắn" },
+    ],
   },
-  "雲": {
+  雲: {
     sinoVietnamese: "VÂN",
     meaning: "Mây (Cloud)",
     strokes: 12,
@@ -223,14 +223,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 65,48 A 3,3 0 1,1 65,47.9",
       "M 30,68 C 45,64 55,64 70,68",
       "M 45,68 L 30,85",
-      "M 55,68 C 65,75 75,80 80,85"
+      "M 55,68 C 65,75 75,80 80,85",
     ],
     examples: [
       { word: "雨雲 (あまぐも - amagumo)", meaning: "Mây mưa" },
-      { word: "雲海 (うんかい - unkai)", meaning: "Biển mây" }
-    ]
+      { word: "雲海 (うんかい - unkai)", meaning: "Biển mây" },
+    ],
   },
-  "算": {
+  算: {
     sinoVietnamese: "TOÁN",
     meaning: "Tính toán (Calculate)",
     strokes: 14,
@@ -252,14 +252,14 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
       "M 35,72 L 35,88",
       "M 65,72 L 65,88",
       "M 20,88 L 80,88",
-      "M 50,72 L 50,88"
+      "M 50,72 L 50,88",
     ],
     examples: [
       { word: "計算 (けいさん - keisan)", meaning: "Tính toán" },
-      { word: "予算 (よさん - yosan)", meaning: "Ngân sách" }
-    ]
+      { word: "予算 (よさん - yosan)", meaning: "Ngân sách" },
+    ],
   },
-  "小": {
+  小: {
     sinoVietnamese: "TIỂU",
     meaning: "Nhỏ (Small)",
     strokes: 3,
@@ -270,13 +270,13 @@ const MOCK_KANJI_DATABASE: Record<string, Omit<ExtendedKanjiCharacter, "char">> 
     svgPaths: [
       "M 50,15 L 50,80 C 50,80 48,85 40,80",
       "M 25,45 C 23,55 18,65 12,70",
-      "M 75,45 C 77,55 82,65 88,70"
+      "M 75,45 C 77,55 82,65 88,70",
     ],
     examples: [
       { word: "小学生 (しょうがくせい - shougakusei)", meaning: "Học sinh tiểu học" },
-      { word: "小説 (しょうせつ - shousetsu)", meaning: "Tiểu thuyết" }
-    ]
-  }
+      { word: "小説 (しょうせつ - shousetsu)", meaning: "Tiểu thuyết" },
+    ],
+  },
 };
 
 function findKanjiCharacter(char: string): ExtendedKanjiCharacter | undefined {
@@ -285,7 +285,7 @@ function findKanjiCharacter(char: string): ExtendedKanjiCharacter | undefined {
     return { char, ...mockFound };
   }
   for (const level in KANJI_DATA) {
-    const found = KANJI_DATA[level].find(k => k.char === char.trim());
+    const found = KANJI_DATA[level].find((k) => k.char === char.trim());
     if (found) return found;
   }
   return undefined;
@@ -296,10 +296,10 @@ function getStrokeAnimationProps(idx: number, totalStrokes: number) {
   const strokeDuration = 0.8;
   const pauseDuration = 1.5;
   const totalPeriod = totalStrokes * strokeDuration + pauseDuration;
-  
+
   const tStart = (idx * strokeDuration) / totalPeriod;
   const tEnd = ((idx + 1) * strokeDuration) / totalPeriod;
-  
+
   return {
     animate: {
       pathLength: [0, 0, 1, 1],
@@ -309,7 +309,7 @@ function getStrokeAnimationProps(idx: number, totalStrokes: number) {
       duration: totalPeriod,
       repeat: Infinity,
       ease: "linear" as const,
-    }
+    },
   };
 }
 
@@ -329,13 +329,13 @@ function getProcessedLabels(svgPaths: string[]) {
   return raw.map((lbl, i) => {
     let finalX = lbl.x;
     let finalY = lbl.y;
-    
+
     // If Stroke 2 starts exactly where Stroke 1 starts (like roof peak)
     if (i === 1 && Math.abs(lbl.x - raw[0].x) < 5 && Math.abs(lbl.y - raw[0].y) < 5) {
       finalX += 9; // Shift down-right along Stroke 2 line
       finalY += 6;
     }
-    
+
     return { x: finalX, y: finalY, idx: lbl.idx };
   });
 }
@@ -343,19 +343,19 @@ function getProcessedLabels(svgPaths: string[]) {
 function generateStrokeOrderImages(kanji: KanjiCharacter): string[] {
   const images: string[] = [];
   const size = 100;
-  
+
   kanji.svgPaths.forEach((path, idx) => {
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
+
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, size, size);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    
+
     // Draw previous strokes in light gray
     const prevPathStr = kanji.svgPaths.slice(0, idx).join(" ");
     if (prevPathStr) {
@@ -365,17 +365,17 @@ function generateStrokeOrderImages(kanji: KanjiCharacter): string[] {
       const prevP2D = new Path2D(prevPathStr);
       ctx.stroke(prevP2D);
     }
-    
+
     // Draw current stroke in deep indigo
     ctx.beginPath();
     ctx.strokeStyle = "#4f46e5";
     ctx.lineWidth = 6;
     const currentP2D = new Path2D(path);
     ctx.stroke(currentP2D);
-    
+
     images.push(canvas.toDataURL("image/png"));
   });
-  
+
   return images;
 }
 
@@ -392,7 +392,7 @@ function KanjiLearningPage() {
   const parseTextToKanji = (text: string) => {
     const chars = Array.from(text.replace(/\s+/g, ""));
     const list: KanjiCharacter[] = [];
-    chars.forEach(char => {
+    chars.forEach((char) => {
       const found = findKanjiCharacter(char);
       if (found) {
         list.push(found);
@@ -406,12 +406,7 @@ function KanjiLearningPage() {
           kunyomi: "kun",
           radical: "Bộ " + char,
           mnemonic: "Mẹo nhớ cho chữ " + char,
-          svgPaths: [
-            "M 20,20 L 80,80",
-            "M 80,20 L 20,80",
-            "M 20,50 L 80,50",
-            "M 50,20 L 50,80"
-          ]
+          svgPaths: ["M 20,20 L 80,80", "M 80,20 L 20,80", "M 20,50 L 80,50", "M 50,20 L 50,80"],
         });
       }
     });
@@ -424,7 +419,7 @@ function KanjiLearningPage() {
   const getSearchResult = (): ExtendedKanjiCharacter | null => {
     if (!searchQuery.trim()) return null;
     const query = searchQuery.trim().toLowerCase();
-    
+
     // 1. Search in KANJI_DATA database (Sino-Vietnamese matches, meaning matches, etc.)
     for (const level in KANJI_DATA) {
       const found = KANJI_DATA[level].find(
@@ -434,17 +429,17 @@ function KanjiLearningPage() {
           k.sinoVietnamese.toLowerCase().includes(query) ||
           k.meaning.toLowerCase().includes(query) ||
           k.onyomi.toLowerCase().includes(query) ||
-          k.kunyomi.toLowerCase().includes(query)
+          k.kunyomi.toLowerCase().includes(query),
       );
       if (found) return found;
     }
-    
+
     // 2. Search in local MOCK_KANJI_DATABASE
     const charToMock = Array.from(searchQuery.trim())[0];
     if (charToMock && MOCK_KANJI_DATABASE[charToMock]) {
       return { char: charToMock, ...MOCK_KANJI_DATABASE[charToMock] };
     }
-    
+
     // 3. Fallback mock ONLY if the query starts with a Kanji character (CJK Unified Ideographs range)
     const isKanji = (str: string) => /[\u4e00-\u9faf\u3400-\u4dbf]/.test(str);
     if (charToMock && isKanji(charToMock)) {
@@ -461,11 +456,11 @@ function KanjiLearningPage() {
           "M 20,20 C 35,20 65,20 80,20",
           "M 50,20 L 50,80",
           "M 20,50 C 35,50 65,50 80,50",
-          "M 20,80 C 35,80 65,80 80,80"
-        ]
+          "M 20,80 C 35,80 65,80 80,80",
+        ],
       };
     }
-    
+
     return null;
   };
 
@@ -482,7 +477,7 @@ function KanjiLearningPage() {
   const toggleFavorite = (char: string) => {
     let nextFavorites = [...favorites];
     if (favorites.includes(char)) {
-      nextFavorites = nextFavorites.filter(f => f !== char);
+      nextFavorites = nextFavorites.filter((f) => f !== char);
     } else {
       nextFavorites.push(char);
     }
@@ -495,31 +490,34 @@ function KanjiLearningPage() {
       alert("Vui lòng nhập ít nhất một chữ Kanji để xuất PDF!");
       return;
     }
-    
+
     setIsExporting(true);
     try {
-      const kanjiListDTO = previewKanjiList.map(k => ({
+      const kanjiListDTO = previewKanjiList.map((k) => ({
         character: k.char,
         hanViet: k.sinoVietnamese,
         meaning: k.meaning,
         mnemonic: k.mnemonic || "Hình ảnh tượng hình cho chữ " + k.char,
         svgPaths: k.svgPaths,
-        strokeOrderImages: generateStrokeOrderImages(k)
+        strokeOrderImages: generateStrokeOrderImages(k),
       }));
-      
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api"}/kanji/pdf`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("midori_access_token")}`
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api"}/kanji/pdf`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("midori_access_token")}`,
+          },
+          body: JSON.stringify(kanjiListDTO),
         },
-        body: JSON.stringify(kanjiListDTO)
-      });
-      
+      );
+
       if (!response.ok) {
         throw new Error(`Server returned status ${response.status}`);
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -548,7 +546,6 @@ function KanjiLearningPage() {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         {/* Back button */}
         <Link
           to="/student/learning/japanese"
@@ -557,14 +554,12 @@ function KanjiLearningPage() {
           <ChevronLeft className="w-4 h-4" />
           Back to Learning
         </Link>
-        
+
         {/* Main Header */}
         <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-[#EEF2F7] dark:border-white/10 rounded-[32px] p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.04)] mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-[#0F172A] dark:text-white">
-                Kanji Practice
-              </h1>
+              <h1 className="text-3xl font-bold text-[#0F172A] dark:text-white">Kanji Practice</h1>
               <p className="text-sm text-[#475569] dark:text-slate-400 mt-1">
                 Luyện viết và tra cứu chữ Kanji tiện lợi, xuất bản A4 PDF chuẩn chuyên nghiệp.
               </p>
@@ -572,7 +567,9 @@ function KanjiLearningPage() {
 
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
-              <span className="text-[#111827] dark:text-slate-200">Trình độ hiện tại: {STUDENT_LEVEL}</span>
+              <span className="text-[#111827] dark:text-slate-200">
+                Trình độ hiện tại: {STUDENT_LEVEL}
+              </span>
             </div>
           </div>
         </div>
@@ -586,7 +583,7 @@ function KanjiLearningPage() {
                 "flex-1 md:flex-none px-6 py-3 text-xs font-black rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider",
                 activeTab === "search"
                   ? "bg-gradient-to-r from-violet-500 to-blue-400 text-white shadow-md shadow-violet-500/20"
-                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white",
               )}
             >
               TÌM KIẾM KANJI
@@ -597,15 +594,19 @@ function KanjiLearningPage() {
                 "flex-1 md:flex-none px-6 py-3 text-xs font-black rounded-xl transition-all cursor-pointer text-center uppercase tracking-wider flex items-center justify-center gap-2",
                 activeTab === "worksheet"
                   ? "bg-gradient-to-r from-violet-500 to-blue-400 text-white shadow-md shadow-violet-500/20"
-                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white",
               )}
             >
               DANH SÁCH TỰ VIẾT
               {previewKanjiList.length > 0 && (
-                <span className={cn(
-                  "text-[10px] px-2 py-0.5 rounded-full font-black",
-                  activeTab === "worksheet" ? "bg-white text-violet-600" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                )}>
+                <span
+                  className={cn(
+                    "text-[10px] px-2 py-0.5 rounded-full font-black",
+                    activeTab === "worksheet"
+                      ? "bg-white text-violet-600"
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                  )}
+                >
                   {previewKanjiList.length}
                 </span>
               )}
@@ -623,7 +624,7 @@ function KanjiLearningPage() {
                 <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/80 dark:border-white/10 rounded-[32px] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] relative overflow-hidden text-center space-y-6">
                   <div className="absolute -top-24 -left-24 w-48 h-48 bg-pink-500/5 rounded-full blur-2xl pointer-events-none" />
                   <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
-                  
+
                   <div className="max-w-md mx-auto space-y-2 relative z-10">
                     <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white flex items-center justify-center gap-2">
                       <Search className="w-6 h-6 text-violet-500 dark:text-violet-400" />
@@ -671,7 +672,11 @@ function KanjiLearningPage() {
                         Không tìm thấy chữ Kanji nào trùng khớp
                       </h4>
                       <p className="text-xs text-[#475569] dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-                        Không tìm thấy kết quả nào cho "<span className="font-bold text-pink-600 dark:text-pink-400">{searchQuery}</span>". Hãy thử tìm bằng chữ Kanji (ví dụ: 今) hoặc âm đọc khác.
+                        Không tìm thấy kết quả nào cho "
+                        <span className="font-bold text-pink-600 dark:text-pink-400">
+                          {searchQuery}
+                        </span>
+                        ". Hãy thử tìm bằng chữ Kanji (ví dụ: 今) hoặc âm đọc khác.
                       </p>
                     </motion.div>
                   )}
@@ -699,18 +704,22 @@ function KanjiLearningPage() {
                         {/* Animated Kanji visualizer */}
                         <div className="flex flex-col items-center">
                           <div
-                            onClick={() => setSearchReplayKey(prev => prev + 1)}
+                            onClick={() => setSearchReplayKey((prev) => prev + 1)}
                             className="relative w-40 h-40 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-[24px] flex items-center justify-center overflow-hidden shadow-sm cursor-pointer hover:border-pink-300 transition-colors group"
                           >
                             <div className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-white/10 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <div className="absolute inset-0 border-l border-dashed border-slate-200 dark:border-white/10 left-1/2 -translate-x-1/2 pointer-events-none" />
-                            
+
                             <div className="absolute bottom-2 right-2 text-[9px] text-pink-500 font-extrabold bg-pink-50 dark:bg-pink-950/20 border border-pink-100 px-1.5 py-0.5 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Play className="w-2.5 h-2.5 fill-pink-500" />
                               Xem lại
                             </div>
 
-                            <svg key={searchReplayKey} viewBox="0 0 100 100" className="w-32 h-32 fill-none relative z-10">
+                            <svg
+                              key={searchReplayKey}
+                              viewBox="0 0 100 100"
+                              className="w-32 h-32 fill-none relative z-10"
+                            >
                               {/* Static light gray watermark representing the final shape */}
                               {searchResult.svgPaths.map((path, idx) => (
                                 <path
@@ -727,7 +736,10 @@ function KanjiLearningPage() {
 
                               {/* Animated active paths drawing the strokes in perfect sequence */}
                               {searchResult.svgPaths.map((path, idx) => {
-                                const animProps = getStrokeAnimationProps(idx, searchResult.svgPaths.length);
+                                const animProps = getStrokeAnimationProps(
+                                  idx,
+                                  searchResult.svgPaths.length,
+                                );
                                 return (
                                   <motion.path
                                     key={`${searchResult.char}-${idx}`}
@@ -770,9 +782,9 @@ function KanjiLearningPage() {
                               ))}
                             </svg>
                           </div>
-                          
+
                           <button
-                            onClick={() => setSearchReplayKey(prev => prev + 1)}
+                            onClick={() => setSearchReplayKey((prev) => prev + 1)}
                             className="mt-2.5 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800/40 text-[#111827] dark:text-slate-200 text-[10px] font-bold rounded-lg transition active:scale-95 cursor-pointer"
                           >
                             <Play className="w-3 h-3 fill-[#111827] dark:fill-slate-200 text-[#111827] dark:text-slate-200" />
@@ -788,14 +800,30 @@ function KanjiLearningPage() {
                         </span>
                         <div className="flex gap-3 overflow-x-auto justify-start sm:justify-center pb-1">
                           {searchResult.svgPaths.map((path, idx) => (
-                            <div key={idx} className="flex-shrink-0 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 relative flex items-center justify-center shadow-sm">
+                            <div
+                              key={idx}
+                              className="flex-shrink-0 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 relative flex items-center justify-center shadow-sm"
+                            >
                               <svg viewBox="0 0 100 100" className="w-12 h-12 fill-none">
                                 {/* Watermark for previous strokes */}
                                 {searchResult.svgPaths.slice(0, idx).map((p, pIdx) => (
-                                  <path key={pIdx} d={p} stroke="currentColor" className="text-slate-100 dark:text-slate-800/50" strokeWidth={4.5} strokeLinecap="round" />
+                                  <path
+                                    key={pIdx}
+                                    d={p}
+                                    stroke="currentColor"
+                                    className="text-slate-100 dark:text-slate-800/50"
+                                    strokeWidth={4.5}
+                                    strokeLinecap="round"
+                                  />
                                 ))}
                                 {/* Active stroke */}
-                                <path d={path} stroke="currentColor" className="text-[#111827] dark:text-white" strokeWidth={6} strokeLinecap="round" />
+                                <path
+                                  d={path}
+                                  stroke="currentColor"
+                                  className="text-[#111827] dark:text-white"
+                                  strokeWidth={6}
+                                  strokeLinecap="round"
+                                />
                               </svg>
                               <span className="absolute bottom-1 right-2 text-[9px] text-slate-400 font-extrabold bg-white/80 dark:bg-slate-900/80 px-1 rounded">
                                 Nét {idx + 1}
@@ -807,40 +835,73 @@ function KanjiLearningPage() {
 
                       <div className="space-y-3 text-xs border-t border-slate-100 dark:border-white/5 pt-4">
                         <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                          <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">Ý nghĩa Hán Việt</span>
+                          <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
+                            Ý nghĩa Hán Việt
+                          </span>
                           <span className="font-extrabold text-base text-[#111827] dark:text-white uppercase tracking-wide">
                             {searchResult.sinoVietnamese}
                           </span>
-                          <p className="text-[#111827] dark:text-slate-350 mt-1 font-semibold text-sm">{searchResult.meaning}</p>
+                          <p className="text-[#111827] dark:text-slate-350 mt-1 font-semibold text-sm">
+                            {searchResult.meaning}
+                          </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                           <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">Âm Onyomi (ON)</span>
-                            <span className="text-[#111827] dark:text-slate-200 font-semibold">{searchResult.onyomi}</span>
+                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
+                              Âm Onyomi (ON)
+                            </span>
+                            <span className="text-[#111827] dark:text-slate-200 font-semibold">
+                              {searchResult.onyomi}
+                            </span>
                           </div>
                           <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">Âm Kunyomi (KUN)</span>
-                            <span className="text-[#111827] dark:text-slate-200 font-semibold">{searchResult.kunyomi}</span>
+                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
+                              Âm Kunyomi (KUN)
+                            </span>
+                            <span className="text-[#111827] dark:text-slate-200 font-semibold">
+                              {searchResult.kunyomi}
+                            </span>
                           </div>
                         </div>
 
                         <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                          <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">Cách nhớ</span>
-                          <p className="text-[#111827] dark:text-slate-350 italic leading-relaxed font-semibold">{searchResult.mnemonic}</p>
+                          <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
+                            Cách nhớ
+                          </span>
+                          <p className="text-[#111827] dark:text-slate-350 italic leading-relaxed font-semibold">
+                            {searchResult.mnemonic}
+                          </p>
                         </div>
 
                         {/* Vocabulary Examples Section */}
                         <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5 space-y-2">
-                          <span className="font-bold text-slate-400 dark:text-slate-550 text-[10px] block uppercase">Ví dụ từ vựng (Examples)</span>
+                          <span className="font-bold text-slate-400 dark:text-slate-550 text-[10px] block uppercase">
+                            Ví dụ từ vựng (Examples)
+                          </span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {(searchResult.examples || [
-                              { word: `${searchResult.char}人 (${searchResult.sinoVietnamese} nhân)`, meaning: `Người liên quan đến ${searchResult.sinoVietnamese}` },
-                              { word: `日本${searchResult.char} (Nhật Bản ${searchResult.sinoVietnamese})`, meaning: `Khái niệm ${searchResult.sinoVietnamese} Nhật Bản` }
-                            ]).map((ex, exIdx) => (
-                              <div key={exIdx} className="flex justify-between items-center text-xs bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-150/40 dark:border-white/5">
-                                <span className="font-medium text-[#111827] dark:text-slate-200 font-japanese">{ex.word}</span>
-                                <span className="text-[#475569] dark:text-slate-450 font-medium">{ex.meaning}</span>
+                            {(
+                              searchResult.examples || [
+                                {
+                                  word: `${searchResult.char}人 (${searchResult.sinoVietnamese} nhân)`,
+                                  meaning: `Người liên quan đến ${searchResult.sinoVietnamese}`,
+                                },
+                                {
+                                  word: `日本${searchResult.char} (Nhật Bản ${searchResult.sinoVietnamese})`,
+                                  meaning: `Khái niệm ${searchResult.sinoVietnamese} Nhật Bản`,
+                                },
+                              ]
+                            ).map((ex, exIdx) => (
+                              <div
+                                key={exIdx}
+                                className="flex justify-between items-center text-xs bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-150/40 dark:border-white/5"
+                              >
+                                <span className="font-medium text-[#111827] dark:text-slate-200 font-japanese">
+                                  {ex.word}
+                                </span>
+                                <span className="text-[#475569] dark:text-slate-450 font-medium">
+                                  {ex.meaning}
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -854,7 +915,9 @@ function KanjiLearningPage() {
                             alert(`Chữ ${searchResult.char} đã có trong danh sách luyện viết!`);
                             return;
                           }
-                          setInputKanjiText(prev => prev ? `${prev} ${searchResult.char}` : searchResult.char);
+                          setInputKanjiText((prev) =>
+                            prev ? `${prev} ${searchResult.char}` : searchResult.char,
+                          );
                           alert(`Đã thêm chữ ${searchResult.char} vào danh sách tự viết!`);
                         }}
                         className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-gradient-to-r from-violet-500 to-blue-400 hover:opacity-90 text-white font-bold text-sm transition-all duration-300 shadow-md shadow-violet-500/25 active:scale-95 cursor-pointer"
@@ -900,15 +963,13 @@ function KanjiLearningPage() {
                 {/* Workspace canvas container */}
                 <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/80 dark:border-white/10 rounded-[32px] overflow-hidden">
                   <div className="flex font-japanese text-slate-800 dark:text-slate-100 min-h-[600px]">
-                    
-
-
                     {/* Main Workspace background with grid blueprint */}
-                    <div 
+                    <div
                       className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 p-6 overflow-y-auto"
                       style={{
-                        backgroundImage: "linear-gradient(rgba(226, 232, 240, 0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.4) 1px, transparent 1px)",
-                        backgroundSize: "24px 24px"
+                        backgroundImage:
+                          "linear-gradient(rgba(226, 232, 240, 0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.4) 1px, transparent 1px)",
+                        backgroundSize: "24px 24px",
                       }}
                     >
                       {/* Top Navigation Controls */}
@@ -940,12 +1001,12 @@ function KanjiLearningPage() {
                       </div>
 
                       {/* White Canvas preview rendering WorksheetPreviewComponent */}
-                      <WorksheetPreviewComponent 
+                      <WorksheetPreviewComponent
                         kanjiList={previewKanjiList}
                         onRemoveKanji={(char) => {
-                          setInputKanjiText(prev => {
+                          setInputKanjiText((prev) => {
                             const chars = Array.from(prev.replace(/\s+/g, ""));
-                            const filtered = chars.filter(c => c !== char);
+                            const filtered = chars.filter((c) => c !== char);
                             return filtered.join(" ");
                           });
                         }}
@@ -953,7 +1014,6 @@ function KanjiLearningPage() {
                         onDownloadPDF={handleExportWorksheetPDF}
                         isExporting={isExporting}
                       />
-
                     </div>
                   </div>
                 </div>
@@ -962,10 +1022,7 @@ function KanjiLearningPage() {
           </div>
         ) : (
           /* WRITING PRACTICE VIEW */
-          <WritingPracticeView
-            kanji={selectedKanji!}
-            onBack={() => setShowPractice(false)}
-          />
+          <WritingPracticeView kanji={selectedKanji!} onBack={() => setShowPractice(false)} />
         )}
 
         {/* KANJI DETAIL MODAL */}
@@ -985,14 +1042,13 @@ function KanjiLearningPage() {
                   alert(`Chữ ${k.char} đã có trong danh sách tự viết!`);
                   return;
                 }
-                setInputKanjiText(prev => prev ? `${prev} ${k.char}` : k.char);
+                setInputKanjiText((prev) => (prev ? `${prev} ${k.char}` : k.char));
                 alert(`Đã thêm chữ ${k.char} vào danh sách tự viết!`);
               }}
               isInWorksheet={inputKanjiText.replace(/\s+/g, "").includes(selectedKanji.char)}
             />
           )}
         </AnimatePresence>
-
       </div>
     </div>
   );
@@ -1011,20 +1067,20 @@ interface DetailModalProps {
   isInWorksheet: boolean;
 }
 
-function KanjiDetailModal({ 
-  kanji, 
-  favorites, 
-  onClose, 
-  onToggleFav, 
+function KanjiDetailModal({
+  kanji,
+  favorites,
+  onClose,
+  onToggleFav,
   onOpenPractice,
   onAddToWorksheet,
-  isInWorksheet
+  isInWorksheet,
 }: DetailModalProps) {
   const isFav = favorites.includes(kanji.char);
   const [animationKey, setAnimationKey] = useState(0);
 
   const handleReplayAnimation = () => {
-    setAnimationKey(prev => prev + 1);
+    setAnimationKey((prev) => prev + 1);
   };
 
   const handleSpeak = () => {
@@ -1102,7 +1158,7 @@ function KanjiDetailModal({
     ctx.lineWidth = 5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    kanji.svgPaths.forEach(pathStr => {
+    kanji.svgPaths.forEach((pathStr) => {
       const p2d = new Path2D(pathStr);
       ctx.stroke(p2d);
     });
@@ -1265,7 +1321,7 @@ function KanjiDetailModal({
           ctx.lineWidth = 4;
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
-          kanji.svgPaths.forEach(pathStr => {
+          kanji.svgPaths.forEach((pathStr) => {
             const p2d = new Path2D(pathStr);
             ctx.stroke(p2d);
           });
@@ -1284,17 +1340,23 @@ function KanjiDetailModal({
     ctx.fillStyle = "#94a3b8";
     ctx.font = "13px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Bản quyền thuộc về Midori Japanese Platform © 2026. Tất cả các quyền được bảo lưu.", canvas.width / 2, 1660);
+    ctx.fillText(
+      "Bản quyền thuộc về Midori Japanese Platform © 2026. Tất cả các quyền được bảo lưu.",
+      canvas.width / 2,
+      1660,
+    );
 
-    import("jspdf").then(({ jsPDF }) => {
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
-      pdf.save(`midori-kanji-${kanji.char}.pdf`);
-    }).catch(err => {
-      console.error("Failed to load jsPDF library dynamically:", err);
-      alert("Đã xảy ra lỗi khi tải thư viện xuất PDF!");
-    });
+    import("jspdf")
+      .then(({ jsPDF }) => {
+        const pdf = new jsPDF("p", "mm", "a4");
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+        pdf.save(`midori-kanji-${kanji.char}.pdf`);
+      })
+      .catch((err) => {
+        console.error("Failed to load jsPDF library dynamically:", err);
+        alert("Đã xảy ra lỗi khi tải thư viện xuất PDF!");
+      });
   };
 
   return (
@@ -1323,7 +1385,7 @@ function KanjiDetailModal({
             </button>
           </div>
 
-          <div 
+          <div
             onClick={handleReplayAnimation}
             title="Nhấp để xem lại hướng dẫn"
             className="relative w-48 h-48 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center cursor-pointer hover:border-pink-300 transition-colors group"
@@ -1398,7 +1460,10 @@ function KanjiDetailModal({
           </div>
 
           <div className="w-full text-center mt-4">
-            <h2 className="text-4xl font-extrabold text-[#0F172A]" style={{ fontFamily: "var(--font-japanese)" }}>
+            <h2
+              className="text-4xl font-extrabold text-[#0F172A]"
+              style={{ fontFamily: "var(--font-japanese)" }}
+            >
               {kanji.char}
             </h2>
             <p className="text-sm text-pink-600 font-extrabold tracking-widest mt-1">
@@ -1411,9 +1476,9 @@ function KanjiDetailModal({
               onClick={() => onAddToWorksheet(kanji)}
               className={cn(
                 "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-bold transition shadow-sm",
-                isInWorksheet 
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 cursor-not-allowed" 
-                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                isInWorksheet
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 cursor-not-allowed"
+                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700",
               )}
               disabled={isInWorksheet}
             >
@@ -1451,25 +1516,34 @@ function KanjiDetailModal({
                   Bộ: {kanji.radical}
                 </span>
               </div>
-              <button onClick={onClose} className="text-slate-400 hover:text-[#0F172A] text-xs font-semibold transition">
+              <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-[#0F172A] text-xs font-semibold transition"
+              >
                 Đóng
               </button>
             </div>
 
             <div>
-              <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Ý nghĩa</h4>
+              <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Ý nghĩa
+              </h4>
               <p className="text-sm text-[#111827] mt-1 font-semibold">{kanji.meaning}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Âm Onyomi</h4>
+                <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Âm Onyomi
+                </h4>
                 <p className="text-xs text-slate-700 mt-1 bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono">
                   {kanji.onyomi}
                 </p>
               </div>
               <div>
-                <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Âm Kunyomi</h4>
+                <h4 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Âm Kunyomi
+                </h4>
                 <p className="text-xs text-slate-700 mt-1 bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono">
                   {kanji.kunyomi}
                 </p>
@@ -1556,7 +1630,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
 
     return {
       x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
+      y: (clientY - rect.top) * scaleY,
     };
   };
 
@@ -1577,16 +1651,19 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
 
     const coords = getCoords(e);
     ctx.beginPath();
-    ctx.moveTo(currentStroke[currentStroke.length - 1]?.x || coords.x, currentStroke[currentStroke.length - 1]?.y || coords.y);
+    ctx.moveTo(
+      currentStroke[currentStroke.length - 1]?.x || coords.x,
+      currentStroke[currentStroke.length - 1]?.y || coords.y,
+    );
     ctx.lineTo(coords.x, coords.y);
     ctx.stroke();
 
-    setCurrentStroke(prev => [...prev, coords]);
+    setCurrentStroke((prev) => [...prev, coords]);
   };
 
   const stopDraw = () => {
     if (isDrawing && currentStroke.length > 0) {
-      setStrokes(prev => [...prev, currentStroke]);
+      setStrokes((prev) => [...prev, currentStroke]);
     }
     setIsDrawing(false);
     setCurrentStroke([]);
@@ -1618,11 +1695,11 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    remaining.forEach(stroke => {
+    remaining.forEach((stroke) => {
       if (stroke.length < 2) return;
       ctx.beginPath();
       ctx.moveTo(stroke[0].x, stroke[0].y);
-      stroke.slice(1).forEach(pt => ctx.lineTo(pt.x, pt.y));
+      stroke.slice(1).forEach((pt) => ctx.lineTo(pt.x, pt.y));
       ctx.stroke();
     });
   };
@@ -1630,7 +1707,10 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
-        <button onClick={onBack} className="flex items-center gap-1 text-slate-500 hover:text-slate-900 transition font-semibold text-sm">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 text-slate-500 hover:text-slate-900 transition font-semibold text-sm"
+        >
           <ArrowLeft className="w-4 h-4" /> Quay lại Chi tiết
         </button>
 
@@ -1645,10 +1725,20 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
         </h4>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {kanji.svgPaths.map((path, idx) => (
-            <div key={idx} className="flex-shrink-0 w-16 h-16 rounded-xl bg-slate-50 border border-slate-200 relative flex items-center justify-center">
+            <div
+              key={idx}
+              className="flex-shrink-0 w-16 h-16 rounded-xl bg-slate-50 border border-slate-200 relative flex items-center justify-center"
+            >
               <svg viewBox="0 0 100 100" className="w-12 h-12">
                 {kanji.svgPaths.slice(0, idx).map((p, pIdx) => (
-                  <path key={pIdx} d={p} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth={4} strokeLinecap="round" />
+                  <path
+                    key={pIdx}
+                    d={p}
+                    fill="none"
+                    stroke="rgba(0,0,0,0.1)"
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                  />
                 ))}
                 <path d={path} fill="none" stroke="#10b981" strokeWidth={5} strokeLinecap="round" />
               </svg>
@@ -1668,9 +1758,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
 
         {showGuide && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-            <span className="text-[250px] font-bold text-slate-300 select-none">
-              {kanji.char}
-            </span>
+            <span className="text-[250px] font-bold text-slate-300 select-none">{kanji.char}</span>
           </div>
         )}
 
@@ -1694,7 +1782,9 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
           onClick={() => setShowGuide(!showGuide)}
           className={cn(
             "flex-1 py-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm",
-            showGuide ? "bg-pink-50 border-pink-200 text-pink-600" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+            showGuide
+              ? "bg-pink-50 border-pink-200 text-pink-600"
+              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50",
           )}
         >
           {showGuide ? "Ẩn nét vẽ mờ" : "Hiện nét vẽ mờ"}
@@ -1739,9 +1829,7 @@ function WritingPracticeView({ kanji, onBack }: PracticeViewProps) {
             <div className="text-4xl font-black bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-2">
               {score}%
             </div>
-            <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">
-              {feedback}
-            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{feedback}</p>
             <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
               Số nét đã viết: {strokes.length} / {kanji.strokes} nét
             </div>

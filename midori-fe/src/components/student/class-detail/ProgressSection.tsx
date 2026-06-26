@@ -9,7 +9,12 @@ interface ProgressSectionProps {
 
 export function ProgressSection({ classInfo }: ProgressSectionProps) {
   const modules = [
-    { name: "Vocabulary", val: classInfo.progress.vocabulary, completed: "12/15 lessons", streak: 5 },
+    {
+      name: "Vocabulary",
+      val: classInfo.progress.vocabulary,
+      completed: "12/15 lessons",
+      streak: 5,
+    },
     { name: "Grammar", val: classInfo.progress.grammar, completed: "6/10 lessons", streak: 3 },
     { name: "Listening", val: classInfo.progress.listening, completed: "3/8 lessons", streak: 0 },
     { name: "Reading", val: classInfo.progress.reading, completed: "3/6 lessons", streak: 2 },

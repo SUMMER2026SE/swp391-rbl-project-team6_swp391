@@ -10,10 +10,7 @@ export interface AvatarUploadError {
   message: string;
 }
 
-export async function uploadAvatar(
-  userId: string,
-  file: File
-): Promise<AvatarUploadResult> {
+export async function uploadAvatar(userId: string, file: File): Promise<AvatarUploadResult> {
   const { supabase } = await import("./api/supabase");
 
   if (!userId) {
@@ -38,12 +35,10 @@ export async function uploadAvatar(
 
   const bucket = (import.meta.env.VITE_SUPABASE_AVATAR_BUCKET as string) || "avatars";
 
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: true,
-    });
+  const { data, error } = await supabase.storage.from(bucket).upload(fileName, file, {
+    cacheControl: "3600",
+    upsert: true,
+  });
 
   if (error) {
     return Promise.reject({ message: error.message });
@@ -54,9 +49,7 @@ export async function uploadAvatar(
   return { avatarUrl: urlData.publicUrl };
 }
 
-export async function removeAvatar(
-  avatarUrl: string | null | undefined
-): Promise<void> {
+export async function removeAvatar(avatarUrl: string | null | undefined): Promise<void> {
   if (!avatarUrl || avatarUrl.trim() === "") return;
 
   const { supabase } = await import("./api/supabase");

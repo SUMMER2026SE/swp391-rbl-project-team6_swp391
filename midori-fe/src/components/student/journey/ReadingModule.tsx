@@ -43,9 +43,11 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
   const [completedPassages, setCompletedPassages] = useState<Set<string>>(new Set());
   const [passageScores, setPassageScores] = useState<Map<string, number>>(new Map());
   const [xpAwarded, setXpAwarded] = useState(false);
-  const [shuffledQuestions, setShuffledQuestions] = useState<Map<string, { options: AnswerOption[] }>>(new Map());
+  const [shuffledQuestions, setShuffledQuestions] = useState<
+    Map<string, { options: AnswerOption[] }>
+  >(new Map());
 
-  const selectedPassage = passages.find(p => p.id === selectedPassageId);
+  const selectedPassage = passages.find((p) => p.id === selectedPassageId);
   const questions = selectedPassage?.questions ?? [];
 
   const answeredCount = selectedAnswers.size;
@@ -66,8 +68,11 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
   useEffect(() => {
     if (selectedPassage && viewState === "detail") {
       const newShuffled = new Map<string, { options: AnswerOption[] }>();
-      selectedPassage.questions.forEach(q => {
-        const shuffled = createShuffledOptions(q.correctAnswer, q.options?.filter(o => o !== q.correctAnswer) ?? []);
+      selectedPassage.questions.forEach((q) => {
+        const shuffled = createShuffledOptions(
+          q.correctAnswer,
+          q.options?.filter((o) => o !== q.correctAnswer) ?? [],
+        );
         newShuffled.set(q.id, { options: shuffled });
       });
       setShuffledQuestions(newShuffled);
@@ -91,10 +96,10 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
     if (!selectedPassage) return;
 
     let correctCount = 0;
-    selectedPassage.questions.forEach(q => {
+    selectedPassage.questions.forEach((q) => {
       const selectedId = selectedAnswers.get(q.id);
       const questionOptions = shuffledQuestions.get(q.id)?.options ?? [];
-      const selectedOption = questionOptions.find(opt => opt.id === selectedId);
+      const selectedOption = questionOptions.find((opt) => opt.id === selectedId);
       if (selectedOption?.isCorrect) {
         correctCount++;
       }
@@ -134,7 +139,7 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
     if (viewState !== "submitted" || !selectedPassage) return 0;
     const selectedId = selectedAnswers.get(questionId);
     const questionOptions = shuffledQuestions.get(questionId)?.options ?? [];
-    const selectedOption = questionOptions.find(opt => opt.id === selectedId);
+    const selectedOption = questionOptions.find((opt) => opt.id === selectedId);
     return selectedOption?.isCorrect ? 1 : 0;
   };
 
@@ -159,7 +164,11 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
         </div>
         {passageScores.size > 0 && (
           <div className="mt-2 text-xs text-muted-foreground">
-            Average score: {Math.round(Array.from(passageScores.values()).reduce((a, b) => a + b, 0) / passageScores.size)}% (minimum: 75%)
+            Average score:{" "}
+            {Math.round(
+              Array.from(passageScores.values()).reduce((a, b) => a + b, 0) / passageScores.size,
+            )}
+            % (minimum: 75%)
           </div>
         )}
       </div>
@@ -183,18 +192,20 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                   ? passageScore !== undefined && passageScore >= 75
                     ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800"
                     : "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
-                  : "bg-card border-border/50 hover:border-sky-blue/30 hover:shadow-md"
+                  : "bg-card border-border/50 hover:border-sky-blue/30 hover:shadow-md",
               )}
             >
               <div className="flex items-start gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                  isCompleted
-                    ? passageScore !== undefined && passageScore >= 75
-                      ? "bg-emerald-500 text-white"
-                      : "bg-red-500 text-white"
-                    : "bg-sky-blue/15 text-sky-blue"
-                )}>
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                    isCompleted
+                      ? passageScore !== undefined && passageScore >= 75
+                        ? "bg-emerald-500 text-white"
+                        : "bg-red-500 text-white"
+                      : "bg-sky-blue/15 text-sky-blue",
+                  )}
+                >
                   {isCompleted ? (
                     passageScore !== undefined && passageScore >= 75 ? (
                       <CheckCircle2 className="w-5 h-5" />
@@ -212,12 +223,14 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                       {passage.title}
                     </h3>
                     {isCompleted && (
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0",
-                        passageScore !== undefined && passageScore >= 75
-                          ? "bg-emerald-500/15 text-emerald-600"
-                          : "bg-red-500/15 text-red-600"
-                      )}>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0",
+                          passageScore !== undefined && passageScore >= 75
+                            ? "bg-emerald-500/15 text-emerald-600"
+                            : "bg-red-500/15 text-red-600",
+                        )}
+                      >
                         {passageScore !== undefined && passageScore >= 75 ? "Passed" : "Retry"}
                       </span>
                     )}
@@ -226,8 +239,7 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     {passage.estimatedTime && (
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        ~{passage.estimatedTime} min
+                        <Clock className="w-3 h-3" />~{passage.estimatedTime} min
                       </span>
                     )}
                     <span className="flex items-center gap-1">
@@ -240,10 +252,12 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                       </span>
                     )}
                     {passageScore !== undefined && (
-                      <span className={cn(
-                        "font-semibold",
-                        passageScore >= 75 ? "text-emerald-600" : "text-red-600"
-                      )}>
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          passageScore >= 75 ? "text-emerald-600" : "text-red-600",
+                        )}
+                      >
                         Score: {passageScore}%
                       </span>
                     )}
@@ -277,7 +291,9 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
         {/* Progress */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{selectedPassage.title}</span>
-          <span>{answeredCount}/{questions.length} answered</span>
+          <span>
+            {answeredCount}/{questions.length} answered
+          </span>
         </div>
 
         {/* Split Layout */}
@@ -337,18 +353,25 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                                 "w-full text-left px-3 py-2 rounded-lg border text-sm transition-all",
                                 !isSubmitted && "border-border/50 hover:border-sky-blue/30 bg-card",
                                 isSubmitted && option.isCorrect && "border-sky-blue bg-sky-blue/15",
-                                isSelected && !option.isCorrect && isSubmitted && "border-red-500 bg-red-50 dark:bg-red-950/30",
-                                isSelected && !isSubmitted && "border-sky-blue bg-sky-blue/15"
+                                isSelected &&
+                                  !option.isCorrect &&
+                                  isSubmitted &&
+                                  "border-red-500 bg-red-50 dark:bg-red-950/30",
+                                isSelected && !isSubmitted && "border-sky-blue bg-sky-blue/15",
                               )}
                             >
                               <div className="flex items-center gap-2">
-                                <span className={cn(
-                                  "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0",
-                                  isSelected
-                                    ? "border-sky-blue bg-sky-blue text-white"
-                                    : "border-border"
-                                )}>
-                                  {String.fromCharCode(65 + questionOptions.findIndex(o => o.id === option.id))}
+                                <span
+                                  className={cn(
+                                    "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0",
+                                    isSelected
+                                      ? "border-sky-blue bg-sky-blue text-white"
+                                      : "border-border",
+                                  )}
+                                >
+                                  {String.fromCharCode(
+                                    65 + questionOptions.findIndex((o) => o.id === option.id),
+                                  )}
                                 </span>
                                 <span className="flex-1">{option.text}</span>
                                 {isSubmitted && option.isCorrect && (
@@ -379,7 +402,7 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
               "w-full py-3 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2",
               allAnswered
                 ? "bg-gradient-hero text-white hover:opacity-90"
-                : "bg-muted text-muted-foreground cursor-not-allowed"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
           >
             <Send className="w-4 h-4" />
@@ -408,12 +431,14 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
         </button>
 
         {/* Score Card */}
-        <div className={cn(
-          "rounded-xl p-5 text-center shadow-lg",
-          isPassing
-            ? "bg-gradient-to-r from-sky-blue to-pink-400 text-white"
-            : "bg-gradient-to-r from-red-500 to-orange-500 text-white"
-        )}>
+        <div
+          className={cn(
+            "rounded-xl p-5 text-center shadow-lg",
+            isPassing
+              ? "bg-gradient-to-r from-sky-blue to-pink-400 text-white"
+              : "bg-gradient-to-r from-red-500 to-orange-500 text-white",
+          )}
+        >
           <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
             {isPassing ? (
               <Trophy className="w-7 h-7 text-white" />
@@ -421,15 +446,10 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
               <AlertCircle className="w-7 h-7 text-white" />
             )}
           </div>
-          <h3 className={cn(
-            "text-lg font-bold mb-1",
-            isPassing ? "text-white" : "text-white"
-          )}>
+          <h3 className={cn("text-lg font-bold mb-1", isPassing ? "text-white" : "text-white")}>
             {isPassing ? "Passage Complete!" : "Not Quite There"}
           </h3>
-          <div className="text-3xl font-black my-2">
-            {passageScores.get(selectedPassage.id)}%
-          </div>
+          <div className="text-3xl font-black my-2">{passageScores.get(selectedPassage.id)}%</div>
           <p className="text-white/80 text-sm">
             {isPassing ? "Great reading comprehension!" : "Minimum required: 75%"}
           </p>
@@ -441,8 +461,8 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
           {questions.map((q, qIndex) => {
             const userAnswerId = selectedAnswers.get(q.id);
             const questionOptions = shuffledQuestions.get(q.id)?.options ?? [];
-            const userAnswerOption = questionOptions.find(opt => opt.id === userAnswerId);
-            const correctOption = questionOptions.find(opt => opt.isCorrect);
+            const userAnswerOption = questionOptions.find((opt) => opt.id === userAnswerId);
+            const correctOption = questionOptions.find((opt) => opt.isCorrect);
             const isCorrect = userAnswerOption?.isCorrect ?? false;
 
             return (
@@ -452,7 +472,7 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                   "rounded-xl p-3 border",
                   isCorrect
                     ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
                 )}
               >
                 <div className="flex items-start gap-2">
@@ -466,7 +486,13 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                       Q{qIndex + 1}: {q.question}
                     </p>
                     <div className="text-xs space-y-0.5">
-                      <p className={isCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+                      <p
+                        className={
+                          isCorrect
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-red-600 dark:text-red-400"
+                        }
+                      >
                         Your answer: {userAnswerOption?.text ?? "—"}
                       </p>
                       {!isCorrect && correctOption && (
@@ -524,7 +550,7 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
               ? "bg-card text-foreground shadow-sm"
               : completedCount === passages.length && isPassingScore
                 ? "bg-sky-blue/15 text-sky-blue"
-                : "text-muted-foreground"
+                : "text-muted-foreground",
           )}
         >
           {completedCount === passages.length && isPassingScore ? (
@@ -545,7 +571,7 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
                 ? "bg-card text-foreground shadow-sm"
                 : completedPassages.has(selectedPassage.id)
                   ? "bg-sky-blue/15 text-sky-blue"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground",
             )}
           >
             {completedPassages.has(selectedPassage.id) ? (
@@ -565,17 +591,23 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
         <div className="flex items-center gap-4 text-xs text-muted-foreground bg-card rounded-lg p-3 border border-border/50">
           <div className="flex items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5 text-sky-blue" />
-            <span>Passages: {completedCount}/{passages.length}</span>
+            <span>
+              Passages: {completedCount}/{passages.length}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
             <BookText className="w-3.5 h-3.5 text-sky-blue" />
-            <span>Questions: {totalQuestions}/{totalQuestions}</span>
+            <span>
+              Questions: {totalQuestions}/{totalQuestions}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Trophy className={cn(
-              "w-3.5 h-3.5",
-              isPassingScore ? "text-emerald-500" : "text-muted-foreground"
-            )} />
+            <Trophy
+              className={cn(
+                "w-3.5 h-3.5",
+                isPassingScore ? "text-emerald-500" : "text-muted-foreground",
+              )}
+            />
             <span className={isPassingScore ? "text-emerald-600 font-semibold" : ""}>
               {isPassingScore ? "Passed" : "Min 75%"}
             </span>

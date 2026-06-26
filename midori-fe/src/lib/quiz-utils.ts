@@ -26,10 +26,7 @@ export function shuffleArray<T>(array: T[]): T[] {
  * @param wrongOptions - Array of wrong answer texts
  * @returns Shuffled array of AnswerOption objects
  */
-export function createShuffledOptions(
-  correctText: string,
-  wrongOptions: string[]
-): AnswerOption[] {
+export function createShuffledOptions(correctText: string, wrongOptions: string[]): AnswerOption[] {
   const allOptions = [
     { id: `correct-${correctText}`, text: correctText, isCorrect: true },
     ...wrongOptions.map((text, index) => ({

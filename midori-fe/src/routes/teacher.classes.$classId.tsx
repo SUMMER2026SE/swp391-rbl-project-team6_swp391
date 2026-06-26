@@ -1,6 +1,16 @@
 import React, { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, LayoutDashboard, ClipboardList, Users, BookOpen, Megaphone, Calendar as CalendarIcon, Award, ShieldAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  LayoutDashboard,
+  ClipboardList,
+  Users,
+  BookOpen,
+  Megaphone,
+  Calendar as CalendarIcon,
+  Award,
+  ShieldAlert,
+} from "lucide-react";
 import { mockTeacherClasses } from "@/mock/teacherClasses";
 import { Card } from "@/components/page-ui";
 
@@ -85,9 +95,14 @@ function TeacherClassDetailPage() {
             { label: "Next Deadline", value: classInfo.nextDeadline },
             { label: "Created Date", value: classInfo.createdDate },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white/40 dark:bg-slate-900/40 border border-slate-200/40 dark:border-white/5 p-2 rounded-xl min-w-[90px]">
+            <div
+              key={idx}
+              className="bg-white/40 dark:bg-slate-900/40 border border-slate-200/40 dark:border-white/5 p-2 rounded-xl min-w-[90px]"
+            >
               <div className="text-xs font-black text-foreground dark:text-white">{stat.value}</div>
-              <div className="text-[9px] text-muted-foreground font-semibold mt-0.5 uppercase tracking-wider">{stat.label}</div>
+              <div className="text-[9px] text-muted-foreground font-semibold mt-0.5 uppercase tracking-wider">
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
@@ -128,24 +143,12 @@ function TeacherClassDetailPage() {
         {activeTab === "overview" && (
           <TeacherDashboardTab classInfo={classInfo} onSelectTab={setActiveTab} />
         )}
-        {activeTab === "assignments" && (
-          <TeacherAssignmentsTab classInfo={classInfo} />
-        )}
-        {activeTab === "students" && (
-          <TeacherStudentsTab classInfo={classInfo} />
-        )}
-        {activeTab === "materials" && (
-          <TeacherMaterialsTab classInfo={classInfo} />
-        )}
-        {activeTab === "announcements" && (
-          <TeacherAnnouncementsTab classInfo={classInfo} />
-        )}
-        {activeTab === "calendar" && (
-          <TeacherCalendarTab classInfo={classInfo} />
-        )}
-        {activeTab === "analytics" && (
-          <TeacherAnalyticsTab classInfo={classInfo} />
-        )}
+        {activeTab === "assignments" && <TeacherAssignmentsTab classInfo={classInfo} />}
+        {activeTab === "students" && <TeacherStudentsTab classInfo={classInfo} />}
+        {activeTab === "materials" && <TeacherMaterialsTab classInfo={classInfo} />}
+        {activeTab === "announcements" && <TeacherAnnouncementsTab classInfo={classInfo} />}
+        {activeTab === "calendar" && <TeacherCalendarTab classInfo={classInfo} />}
+        {activeTab === "analytics" && <TeacherAnalyticsTab classInfo={classInfo} />}
       </div>
     </div>
   );

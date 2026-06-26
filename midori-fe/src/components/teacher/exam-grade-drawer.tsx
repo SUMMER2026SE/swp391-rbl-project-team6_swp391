@@ -1,10 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -53,15 +48,10 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function generateMockAttempts(
-  exam: Exam | null,
-  allStudents: Student[]
-): ExamAttempt[] {
+function generateMockAttempts(exam: Exam | null, allStudents: Student[]): ExamAttempt[] {
   if (!exam) return [];
 
-  const classStudents = allStudents.filter((s) =>
-    s.id.startsWith(exam.classId + "-")
-  );
+  const classStudents = allStudents.filter((s) => s.id.startsWith(exam.classId + "-"));
 
   if (classStudents.length === 0) {
     return [];
@@ -73,16 +63,12 @@ function generateMockAttempts(
 
   return classStudents.map((s, i) => {
     const isSubmitted = i < submittedCount;
-    const score = isSubmitted
-      ? Math.max(0, Math.min(100, baseAvg + (i % 7) * 5 - 15))
-      : null;
+    const score = isSubmitted ? Math.max(0, Math.min(100, baseAvg + (i % 7) * 5 - 15)) : null;
 
     const daysAgo = Math.floor(Math.random() * 3) + 1;
     const date = new Date();
     date.setDate(date.getDate() - daysAgo);
-    const submittedAt = isSubmitted
-      ? date.toISOString().split("T")[0]
-      : null;
+    const submittedAt = isSubmitted ? date.toISOString().split("T")[0] : null;
 
     return {
       studentId: s.id,
@@ -104,14 +90,9 @@ export function ExamGradeDrawer({
   const allStudents = getAllStudents();
   const [gradeStudentId, setGradeStudentId] = useState<string | null>(null);
   const [gradeScore, setGradeScore] = useState("");
-  const [submittedScores, setSubmittedScores] = useState<
-    Record<string, number>
-  >({});
+  const [submittedScores, setSubmittedScores] = useState<Record<string, number>>({});
 
-  const attempts = useMemo(
-    () => generateMockAttempts(exam, allStudents),
-    [exam, allStudents]
-  );
+  const attempts = useMemo(() => generateMockAttempts(exam, allStudents), [exam, allStudents]);
 
   const stats = useMemo(() => {
     const submitted = attempts.filter((a) => a.submitted);
@@ -119,9 +100,7 @@ export function ExamGradeDrawer({
     const scores = scored.map((a) => a.score as number);
 
     const avg =
-      scores.length > 0
-        ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
-        : 0;
+      scores.length > 0 ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : 0;
     const highest = scores.length > 0 ? Math.max(...scores) : 0;
     const lowest = scores.length > 0 ? Math.min(...scores) : 0;
     const pending = attempts.filter((a) => !a.submitted).length;
@@ -194,9 +173,7 @@ export function ExamGradeDrawer({
                 </div>
                 <div className="text-xl font-bold">
                   {stats.submitted}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    /{stats.total}
-                  </span>
+                  <span className="text-sm font-normal text-muted-foreground">/{stats.total}</span>
                 </div>
               </div>
 
@@ -230,8 +207,7 @@ export function ExamGradeDrawer({
                 <Clock className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-warning-foreground">
-                    {stats.pending} student{stats.pending !== 1 ? "s" : ""} have
-                    not submitted
+                    {stats.pending} student{stats.pending !== 1 ? "s" : ""} have not submitted
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Send reminders to encourage completion.
@@ -251,9 +227,7 @@ export function ExamGradeDrawer({
               {attempts.length === 0 ? (
                 <div className="rounded-lg border border-dashed p-8 text-center">
                   <ClipboardCheck className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    No students found for this exam.
-                  </p>
+                  <p className="text-sm text-muted-foreground">No students found for this exam.</p>
                 </div>
               ) : (
                 <div className="divide-y rounded-lg border">
@@ -274,9 +248,7 @@ export function ExamGradeDrawer({
                         </Avatar>
 
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {attempt.studentName}
-                          </p>
+                          <p className="text-sm font-medium truncate">{attempt.studentName}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {attempt.submitted ? (
                               <>
@@ -288,16 +260,13 @@ export function ExamGradeDrawer({
                                         displayScore >= 80
                                           ? "text-success"
                                           : displayScore >= 60
-                                          ? "text-warning"
-                                          : "text-destructive"
+                                            ? "text-warning"
+                                            : "text-destructive",
                                       )}
                                     >
                                       {displayScore}/100
                                     </span>
-                                    <Progress
-                                      value={displayScore}
-                                      className="h-1.5 w-20"
-                                    />
+                                    <Progress value={displayScore} className="h-1.5 w-20" />
                                   </>
                                 ) : (
                                   <span className="text-xs text-muted-foreground italic">
@@ -319,9 +288,7 @@ export function ExamGradeDrawer({
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                handleOpenGrade(attempt.studentId)
-                              }
+                              onClick={() => handleOpenGrade(attempt.studentId)}
                             >
                               {displayScore !== null ? "Edit" : "Grade"}
                             </Button>
@@ -359,9 +326,7 @@ export function ExamGradeDrawer({
             <DialogTitle>Grade Exam</DialogTitle>
             <DialogDescription>
               Enter the score for{" "}
-              <span className="font-medium text-foreground">
-                {gradeStudent?.studentName ?? ""}
-              </span>
+              <span className="font-medium text-foreground">{gradeStudent?.studentName ?? ""}</span>
               . Score is out of 100 points.
             </DialogDescription>
           </DialogHeader>

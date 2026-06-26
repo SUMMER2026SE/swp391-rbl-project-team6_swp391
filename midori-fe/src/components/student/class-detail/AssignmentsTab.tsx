@@ -1,6 +1,18 @@
 import React, { useState, useMemo } from "react";
 import { Card } from "@/components/page-ui";
-import { Search, List, Grid, Calendar, Clock, Award, Play, ChevronRight, CheckCircle, HelpCircle, FileText } from "lucide-react";
+import {
+  Search,
+  List,
+  Grid,
+  Calendar,
+  Clock,
+  Award,
+  Play,
+  ChevronRight,
+  CheckCircle,
+  HelpCircle,
+  FileText,
+} from "lucide-react";
 import { ScoreDetailDialog } from "./dialogs/ScoreDetailDialog";
 import { DoingAssignmentWorkspace } from "./DoingAssignmentWorkspace";
 import type { DetailedClassInfo, Assignment, ScoreBreakdown } from "@/types/class-detail";
@@ -30,9 +42,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
     const list = classInfo.assignments;
     return {
       All: list.length,
-      Pending: list.filter(a => a.status === "Not Started" || a.status === "In Progress").length,
-      Overdue: list.filter(a => a.status === "Overdue").length,
-      Completed: list.filter(a => a.status === "Submitted" || a.status === "Graded").length
+      Pending: list.filter((a) => a.status === "Not Started" || a.status === "In Progress").length,
+      Overdue: list.filter((a) => a.status === "Overdue").length,
+      Completed: list.filter((a) => a.status === "Submitted" || a.status === "Graded").length,
     };
   }, [classInfo.assignments]);
 
@@ -43,7 +55,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
-        (a) => a.title.toLowerCase().includes(q) || a.moduleType.toLowerCase().includes(q)
+        (a) => a.title.toLowerCase().includes(q) || a.moduleType.toLowerCase().includes(q),
       );
     }
 
@@ -113,10 +125,13 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           id: activeAssignment.id,
           title: activeAssignment.title,
           timeLimit: activeAssignment.timeLimit,
-          maxScore: activeAssignment.maxScore
+          maxScore: activeAssignment.maxScore,
         }}
         reviewMode={isReview}
-        onClose={() => { setDoingAssignment(null); setReviewingAssignment(null); }}
+        onClose={() => {
+          setDoingAssignment(null);
+          setReviewingAssignment(null);
+        }}
         onSubmit={(id) => {
           if (doingAssignment) doingAssignment.status = "Submitted";
           setDoingAssignment(null);
@@ -159,9 +174,13 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                   }`}
                 >
                   <span>{name}</span>
-                  <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold ${
-                    isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
-                  }`}>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
+                    }`}
+                  >
                     {count}
                   </span>
                 </button>
@@ -200,7 +219,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
 
           {/* Sort selection */}
           <div className="flex items-center gap-1.5 h-8">
-            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Sort:</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+              Sort:
+            </span>
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
@@ -233,7 +254,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                 }`}
               >
                 <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                  <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border shrink-0 ${getStatusStyle(item.status)}`}>
+                  <div
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border shrink-0 ${getStatusStyle(item.status)}`}
+                  >
                     {item.status}
                   </div>
                   <div className="min-w-0">
@@ -243,7 +266,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                     <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground flex-wrap">
                       <span className="font-bold text-primary">{item.moduleType}</span>
                       <span>•</span>
-                      <span className="flex items-center gap-0.5"><Calendar className="w-3 h-3" /> Due: {item.deadline}</span>
+                      <span className="flex items-center gap-0.5">
+                        <Calendar className="w-3 h-3" /> Due: {item.deadline}
+                      </span>
                       <span>•</span>
                       <span>Time: {item.timeLimit > 0 ? `${item.timeLimit}m` : "Unlimited"}</span>
                     </div>
@@ -261,11 +286,15 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                       item.status === "Graded" || item.status === "Submitted"
                         ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
                         : item.status === "Overdue"
-                        ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
-                        : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
+                          ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
+                          : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
                     }`}
                   >
-                    {item.status === "Graded" || item.status === "Submitted" ? "View Result" : item.status === "Overdue" ? "Locked" : "Start"}
+                    {item.status === "Graded" || item.status === "Submitted"
+                      ? "View Result"
+                      : item.status === "Overdue"
+                        ? "Locked"
+                        : "Start"}
                   </button>
                   <ChevronRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
                 </div>
@@ -276,7 +305,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           {sortedAndFiltered.length === 0 && (
             <div className="text-center py-12">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground/55 mb-3" />
-              <p className="text-sm text-muted-foreground font-semibold">No homework matches search or filter.</p>
+              <p className="text-sm text-muted-foreground font-semibold">
+                No homework matches search or filter.
+              </p>
             </div>
           )}
         </Card>
@@ -300,7 +331,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                   <span className="text-[10px] uppercase font-black tracking-widest text-primary">
                     {item.moduleType}
                   </span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusStyle(item.status)}`}>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusStyle(item.status)}`}
+                  >
                     {item.status}
                   </span>
                 </div>
@@ -314,7 +347,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" /> Deadline
                     </span>
-                    <span className="font-semibold text-foreground dark:text-white">{item.deadline}</span>
+                    <span className="font-semibold text-foreground dark:text-white">
+                      {item.deadline}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Time Limit</span>
@@ -337,11 +372,15 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                     item.status === "Graded" || item.status === "Submitted"
                       ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
                       : item.status === "Overdue"
-                      ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
-                      : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
+                        ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
+                        : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
                   }`}
                 >
-                  {item.status === "Graded" || item.status === "Submitted" ? "View Result" : item.status === "Overdue" ? "Locked" : "Start"}
+                  {item.status === "Graded" || item.status === "Submitted"
+                    ? "View Result"
+                    : item.status === "Overdue"
+                      ? "Locked"
+                      : "Start"}
                 </button>
               </div>
             </Card>
@@ -350,7 +389,9 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           {sortedAndFiltered.length === 0 && (
             <div className="sm:col-span-2 text-center py-12 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-sm text-muted-foreground font-semibold">No homework matches search or filter.</p>
+              <p className="text-sm text-muted-foreground font-semibold">
+                No homework matches search or filter.
+              </p>
             </div>
           )}
         </div>
@@ -361,7 +402,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           score={selectedScore}
           onClose={() => setSelectedScore(null)}
           onReview={() => {
-            const item = classInfo.assignments.find(a => a.id === selectedScore.assignmentId);
+            const item = classInfo.assignments.find((a) => a.id === selectedScore.assignmentId);
             if (item) setReviewingAssignment(item);
           }}
         />

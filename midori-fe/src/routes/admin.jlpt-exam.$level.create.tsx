@@ -67,7 +67,15 @@ const SECTION_COLORS: Record<string, { bg: string; text: string }> = {
   Listening: { bg: "bg-[oklch(0.6_0.22_25)]/10", text: "text-[oklch(0.6_0.22_25)]" },
 };
 
-const REQUIRED_COLUMNS = ["TYPE", "QUESTION", "ANSWERA", "ANSWERB", "ANSWERC", "ANSWERD", "CORRECTANSWER"];
+const REQUIRED_COLUMNS = [
+  "TYPE",
+  "QUESTION",
+  "ANSWERA",
+  "ANSWERB",
+  "ANSWERC",
+  "ANSWERD",
+  "CORRECTANSWER",
+];
 
 function JLPTBadge({ level }: { level: JLPTLevel }) {
   const colors: Record<string, string> = {
@@ -78,7 +86,9 @@ function JLPTBadge({ level }: { level: JLPTLevel }) {
     N1: "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border-[var(--status-rejected)]/20",
   };
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${colors[level] || colors["N5"]}`}>
+    <span
+      className={`px-2.5 py-1 rounded-full text-xs font-bold border ${colors[level] || colors["N5"]}`}
+    >
       {level}
     </span>
   );
@@ -86,9 +96,21 @@ function JLPTBadge({ level }: { level: JLPTLevel }) {
 
 function StatusBadge({ status }: { status: ExamStatus }) {
   const configs: Record<ExamStatus, { label: string; color: string; bg: string }> = {
-    Active: { label: "Active", color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
-    Draft: { label: "Draft", color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
-    Archived: { label: "Archived", color: "text-[var(--status-suspended)]", bg: "bg-[var(--status-suspended)]" },
+    Active: {
+      label: "Active",
+      color: "text-[var(--status-active)]",
+      bg: "bg-[var(--status-active)]",
+    },
+    Draft: {
+      label: "Draft",
+      color: "text-[var(--status-pending)]",
+      bg: "bg-[var(--status-pending)]",
+    },
+    Archived: {
+      label: "Archived",
+      color: "text-[var(--status-suspended)]",
+      bg: "bg-[var(--status-suspended)]",
+    },
   };
   const cfg = configs[status];
   return (
@@ -198,15 +220,15 @@ function ExcelTemplateDownload() {
     const ws = XLSX.utils.json_to_sheet(template);
 
     ws["!cols"] = [
-      { wch: 12 },  // TYPE
-      { wch: 40 },  // QUESTION
-      { wch: 15 },  // ANSWERA
-      { wch: 15 },  // ANSWERB
-      { wch: 15 },  // ANSWERC
-      { wch: 15 },  // ANSWERD
-      { wch: 15 },  // CORRECTANSWER
-      { wch: 30 },  // EXPLANATION
-      { wch: 20 },  // AUDIOFILENAME
+      { wch: 12 }, // TYPE
+      { wch: 40 }, // QUESTION
+      { wch: 15 }, // ANSWERA
+      { wch: 15 }, // ANSWERB
+      { wch: 15 }, // ANSWERC
+      { wch: 15 }, // ANSWERD
+      { wch: 15 }, // CORRECTANSWER
+      { wch: 30 }, // EXPLANATION
+      { wch: 20 }, // AUDIOFILENAME
     ];
 
     const wb = XLSX.utils.book_new();
@@ -321,55 +343,61 @@ function CreateExamPage() {
     return missing;
   }, []);
 
-  const parseExcelFile = useCallback((file: File): Promise<{ questions: ParsedQuestion[]; missingColumns: string[] }> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
+  const parseExcelFile = useCallback(
+    (file: File): Promise<{ questions: ParsedQuestion[]; missingColumns: string[] }> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
 
-          if (jsonData.length === 0) {
-            reject(new Error("Excel file is empty"));
-            return;
+            if (jsonData.length === 0) {
+              reject(new Error("Excel file is empty"));
+              return;
+            }
+
+            const headers = Object.keys(jsonData[0]);
+            const missing = validateColumns(headers);
+
+            const questions: ParsedQuestion[] = jsonData.map((row, index) => {
+              const type = (row["TYPE"] || row["type"] || "Vocabulary") as string;
+              const correctAnswerStr = row["CORRECTANSWER"] || row["correctAnswer"] || "A";
+              const correctAnswerIndex = ["A", "B", "C", "D"].indexOf(
+                correctAnswerStr.toString().toUpperCase().trim(),
+              );
+
+              return {
+                id: `imported-${Date.now()}-${index}`,
+                type,
+                question: row["QUESTION"] || row["question"] || "",
+                options: [
+                  row["ANSWERA"] || row["answera"] || "",
+                  row["ANSWERB"] || row["answerb"] || "",
+                  row["ANSWERC"] || row["answerc"] || "",
+                  row["ANSWERD"] || row["answerd"] || "",
+                ].filter((o) => o.trim()),
+                correctAnswer: correctAnswerIndex >= 0 ? correctAnswerIndex : 0,
+                explanation: row["EXPLANATION"] || row["explanation"] || undefined,
+                audioFileName:
+                  row["AUDIOFILENAME"] || row["audioFileName"] || row["audiofilename"] || undefined,
+              };
+            });
+
+            resolve({ questions, missingColumns: missing });
+          } catch (err) {
+            reject(new Error("Failed to parse Excel file"));
           }
-
-          const headers = Object.keys(jsonData[0]);
-          const missing = validateColumns(headers);
-
-          const questions: ParsedQuestion[] = jsonData.map((row, index) => {
-            const type = (row["TYPE"] || row["type"] || "Vocabulary") as string;
-            const correctAnswerStr = row["CORRECTANSWER"] || row["correctAnswer"] || "A";
-            const correctAnswerIndex = ["A", "B", "C", "D"].indexOf(correctAnswerStr.toString().toUpperCase().trim());
-
-            return {
-              id: `imported-${Date.now()}-${index}`,
-              type,
-              question: row["QUESTION"] || row["question"] || "",
-              options: [
-                row["ANSWERA"] || row["answera"] || "",
-                row["ANSWERB"] || row["answerb"] || "",
-                row["ANSWERC"] || row["answerc"] || "",
-                row["ANSWERD"] || row["answerd"] || "",
-              ].filter((o) => o.trim()),
-              correctAnswer: correctAnswerIndex >= 0 ? correctAnswerIndex : 0,
-              explanation: row["EXPLANATION"] || row["explanation"] || undefined,
-              audioFileName: row["AUDIOFILENAME"] || row["audioFileName"] || row["audiofilename"] || undefined,
-            };
-          });
-
-          resolve({ questions, missingColumns: missing });
-        } catch (err) {
-          reject(new Error("Failed to parse Excel file"));
-        }
-      };
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsArrayBuffer(file);
-    });
-  }, [validateColumns]);
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsArrayBuffer(file);
+      });
+    },
+    [validateColumns],
+  );
 
   const validateQuestions = useCallback((questions: ParsedQuestion[]): string[] => {
     const errors: string[] = [];
@@ -506,8 +534,13 @@ function CreateExamPage() {
       <div className="flex flex-col items-center justify-center py-20">
         <AlertTriangle className="w-16 h-16 text-[var(--status-rejected)]/50 mb-4" />
         <h2 className="text-xl font-bold text-primary-col mb-2">Invalid Level</h2>
-        <p className="text-sm text-secondary-col mb-4">The level "{level}" is not a valid JLPT level.</p>
-        <Link to="/admin/jlpt-exam" className="px-4 py-2.5 rounded-xl bg-primary/12 text-primary text-sm font-bold hover:bg-primary/20 transition">
+        <p className="text-sm text-secondary-col mb-4">
+          The level "{level}" is not a valid JLPT level.
+        </p>
+        <Link
+          to="/admin/jlpt-exam"
+          className="px-4 py-2.5 rounded-xl bg-primary/12 text-primary text-sm font-bold hover:bg-primary/20 transition"
+        >
           Back to JLPT Exam Management
         </Link>
       </div>
@@ -546,7 +579,11 @@ function CreateExamPage() {
               disabled={creating || importedQuestions.length === 0}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
             >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              {creating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4" />
+              )}
               Create Exam
             </button>
           </div>
@@ -558,7 +595,9 @@ function CreateExamPage() {
         <h2 className="font-display font-bold text-primary-col mb-4">Exam Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-1.5 md:col-span-2">
-            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Exam Name</label>
+            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+              Exam Name
+            </label>
             <input
               type="text"
               value={examName}
@@ -568,7 +607,9 @@ function CreateExamPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Duration (min)</label>
+            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+              Duration (min)
+            </label>
             <input
               type="number"
               value={duration}
@@ -579,7 +620,9 @@ function CreateExamPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Status</label>
+            <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+              Status
+            </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ExamStatus)}
@@ -604,30 +647,42 @@ function CreateExamPage() {
 
         <div
           className={`border-2 border-dashed rounded-xl p-8 text-center transition ${
-            importing ? "border-[oklch(0.62_0.18_270)] bg-[oklch(0.62_0.18_270)]/5" : "border-[var(--border)] hover:border-[oklch(0.62_0.18_270)]/40"
+            importing
+              ? "border-[oklch(0.62_0.18_270)] bg-[oklch(0.62_0.18_270)]/5"
+              : "border-[var(--border)] hover:border-[oklch(0.62_0.18_270)]/40"
           }`}
         >
           {importedQuestions.length > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-2 text-[var(--status-active)]">
                 <CheckCircle className="w-6 h-6" />
-                <span className="font-bold text-lg">{importedQuestions.length} questions imported</span>
+                <span className="font-bold text-lg">
+                  {importedQuestions.length} questions imported
+                </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-md mx-auto">
                 <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[oklch(0.62_0.18_270)]">{importStats?.vocabulary || 0}</p>
+                  <p className="text-lg font-black text-[oklch(0.62_0.18_270)]">
+                    {importStats?.vocabulary || 0}
+                  </p>
                   <p className="text-[10px] text-muted-col">Vocabulary</p>
                 </div>
                 <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[oklch(0.72_0.15_230)]">{importStats?.grammar || 0}</p>
+                  <p className="text-lg font-black text-[oklch(0.72_0.15_230)]">
+                    {importStats?.grammar || 0}
+                  </p>
                   <p className="text-[10px] text-muted-col">Grammar</p>
                 </div>
                 <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[var(--status-pending)]">{importStats?.reading || 0}</p>
+                  <p className="text-lg font-black text-[var(--status-pending)]">
+                    {importStats?.reading || 0}
+                  </p>
                   <p className="text-[10px] text-muted-col">Reading</p>
                 </div>
                 <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[oklch(0.6_0.22_25)]">{importStats?.listening || 0}</p>
+                  <p className="text-lg font-black text-[oklch(0.6_0.22_25)]">
+                    {importStats?.listening || 0}
+                  </p>
                   <p className="text-[10px] text-muted-col">Listening</p>
                 </div>
               </div>
@@ -686,7 +741,9 @@ function CreateExamPage() {
         <div className="card-base overflow-hidden">
           <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
             <h2 className="font-display font-bold text-primary-col">Question Preview</h2>
-            <span className="text-xs text-muted-col">{importedQuestions.length} total questions</span>
+            <span className="text-xs text-muted-col">
+              {importedQuestions.length} total questions
+            </span>
           </div>
           <div className="overflow-x-auto max-h-96">
             <table className="w-full">

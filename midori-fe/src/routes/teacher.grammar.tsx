@@ -897,9 +897,7 @@ function GrammarPage() {
         </div>
 
         {/* Rejection notice */}
-        {g.status === "REJECTED" && (
-          <RejectReasonBox reason={g.rejectReason} />
-        )}
+        {g.status === "REJECTED" && <RejectReasonBox reason={g.rejectReason} />}
 
         {/* Metadata Grid */}
         <div className="grid md:grid-cols-3 gap-5">
@@ -1117,37 +1115,59 @@ function GrammarPage() {
                 <div className="space-y-4">
                   {g.pendingTitle && (
                     <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
-                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Title</div>
-                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">{g.pendingTitle}</div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">
+                        Title
+                      </div>
+                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                        {g.pendingTitle}
+                      </div>
                     </div>
                   )}
                   {g.pendingPattern && (
                     <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
-                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Pattern</div>
-                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">{g.pendingPattern}</div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">
+                        Pattern
+                      </div>
+                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                        {g.pendingPattern}
+                      </div>
                     </div>
                   )}
                   {g.pendingMeaning && (
                     <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
-                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Meaning</div>
-                      <div className="text-sm text-purple-700 dark:text-purple-300">{g.pendingMeaning}</div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">
+                        Meaning
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300">
+                        {g.pendingMeaning}
+                      </div>
                     </div>
                   )}
                   {g.pendingStructure && (
                     <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
-                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Structure</div>
-                      <div className="text-sm text-purple-700 dark:text-purple-300 font-mono">{g.pendingStructure}</div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">
+                        Structure
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300 font-mono">
+                        {g.pendingStructure}
+                      </div>
                     </div>
                   )}
                   {g.pendingUsage && (
                     <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
-                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Usage</div>
-                      <div className="text-sm text-purple-700 dark:text-purple-300">{g.pendingUsage}</div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">
+                        Usage
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300">
+                        {g.pendingUsage}
+                      </div>
                     </div>
                   )}
                   {g.pendingLevel && (
                     <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
-                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">Level</div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-1">
+                        Level
+                      </div>
                       <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
                         {g.pendingLevel}
                       </span>
@@ -1155,15 +1175,22 @@ function GrammarPage() {
                   )}
                   {g.pendingExamples && g.pendingExamples.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-2">Example Sentences</div>
+                      <div className="text-[10px] font-bold text-purple-500 uppercase tracking-wider mb-2">
+                        Example Sentences
+                      </div>
                       <div className="space-y-2">
                         {g.pendingExamples.map((ex, i) => (
-                          <div key={i} className="flex gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30">
+                          <div
+                            key={i}
+                            className="flex gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/30"
+                          >
                             <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-500 flex items-center justify-center flex-shrink-0 font-bold text-sm">
                               {i + 1}
                             </div>
                             <div className="flex-1">
-                              <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">{ex}</div>
+                              <div className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                                {ex}
+                              </div>
                               {g.pendingExampleMeanings?.[i] && (
                                 <div className="text-xs text-purple-500 dark:text-purple-400 mt-0.5">
                                   {g.pendingExampleMeanings[i]}
@@ -1236,7 +1263,8 @@ function GrammarPage() {
                   Editing an approved lesson
                 </p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-0.5">
-                  Your changes will be saved as a pending update and sent for admin review. Students will continue seeing the current approved version until the update is approved.
+                  Your changes will be saved as a pending update and sent for admin review. Students
+                  will continue seeing the current approved version until the update is approved.
                 </p>
               </div>
             </div>

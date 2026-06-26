@@ -2,10 +2,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Search, Edit3, Trash2, Eye, BookOpen, Layers,
-  X, Save, BookText, Tag, Star, FlipHorizontal,
-  GripVertical, AlertTriangle, EyeOff, ListChecks, Volume2,
-  Loader2, Send, Upload
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  Eye,
+  BookOpen,
+  Layers,
+  X,
+  Save,
+  BookText,
+  Tag,
+  Star,
+  FlipHorizontal,
+  GripVertical,
+  AlertTriangle,
+  EyeOff,
+  ListChecks,
+  Volume2,
+  Loader2,
+  Send,
+  Upload,
 } from "lucide-react";
 import { teacherFlashcardApi } from "../lib/api/teacherFlashcard";
 import {
@@ -213,9 +230,13 @@ function CardForm({ mode, onSave, onCancel, form, setForm }: CardFormProps) {
             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition flex items-center justify-center gap-2"
           >
             {mode === "add" ? (
-              <><Plus className="w-4 h-4" /> Add card</>
+              <>
+                <Plus className="w-4 h-4" /> Add card
+              </>
             ) : (
-              <><Save className="w-4 h-4" /> Update</>
+              <>
+                <Save className="w-4 h-4" /> Update
+              </>
             )}
           </button>
         </div>
@@ -293,7 +314,10 @@ const DELIMITER_PATTERN: Record<Exclude<BulkDelimiter, "\t">, RegExp> = {
 };
 
 function parseLines(text: string, delimiter: BulkDelimiter): ParsedResult {
-  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   const cards: ParsedCard[] = [];
   let invalidRows = 0;
 
@@ -301,7 +325,9 @@ function parseLines(text: string, delimiter: BulkDelimiter): ParsedResult {
     const parts =
       delimiter === "\t"
         ? autoSplit(line)
-        : line.split(DELIMITER_PATTERN[delimiter as Exclude<BulkDelimiter, "\t">]).map((p) => p.trim());
+        : line
+            .split(DELIMITER_PATTERN[delimiter as Exclude<BulkDelimiter, "\t">])
+            .map((p) => p.trim());
 
     const part0 = parts[0]?.trim() || "";
     const part1 = parts[1]?.trim() || "";
@@ -389,14 +415,22 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
     editCards.some(
       (c) =>
         (c.kana || "").trim().toLowerCase() === kana.trim().toLowerCase() &&
-        ((c as { meaning?: string }).meaning || c.backText || "").trim().toLowerCase() === meaning.trim().toLowerCase()
+        ((c as { meaning?: string }).meaning || c.backText || "").trim().toLowerCase() ===
+          meaning.trim().toLowerCase(),
     );
 
-  const newCount = parsedResult ? parsedResult.cards.filter((p) => !alreadyExists(p.kana, p.meaning)).length : 0;
-  const dupCount = parsedResult ? parsedResult.cards.filter((p) => alreadyExists(p.kana, p.meaning)).length : 0;
+  const newCount = parsedResult
+    ? parsedResult.cards.filter((p) => !alreadyExists(p.kana, p.meaning)).length
+    : 0;
+  const dupCount = parsedResult
+    ? parsedResult.cards.filter((p) => alreadyExists(p.kana, p.meaning)).length
+    : 0;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -413,10 +447,15 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
             </div>
             <div>
               <h2 className="text-base font-bold text-foreground">Bulk Import Flashcards</h2>
-              <p className="text-xs text-muted-foreground">Paste vocabulary from PDFs, websites, Quizlet, Excel</p>
+              <p className="text-xs text-muted-foreground">
+                Paste vocabulary from PDFs, websites, Quizlet, Excel
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition text-muted-foreground">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition text-muted-foreground"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -432,7 +471,10 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                 {DELIMITER_CONFIGS.map(({ key, label, hint }) => (
                   <button
                     key={key}
-                    onClick={() => { setDelimiter(key); setParsedResult(null); }}
+                    onClick={() => {
+                      setDelimiter(key);
+                      setParsedResult(null);
+                    }}
                     title={hint}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
                       delimiter === key
@@ -461,7 +503,9 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                   <span className="text-[11px] text-muted-foreground">
                     Detected:{" "}
                     <span className="font-semibold text-primary">
-                      {delimiter === "\t" ? "Auto-detect" : DELIMITER_CONFIGS.find((d) => d.key === delimiter)?.label}
+                      {delimiter === "\t"
+                        ? "Auto-detect"
+                        : DELIMITER_CONFIGS.find((d) => d.key === delimiter)?.label}
                     </span>
                   </span>
                 )}
@@ -496,21 +540,24 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-blue-400" />
                   <span className="text-xs text-muted-foreground">
-                    Total: <span className="font-bold text-foreground">{parsedResult.totalRows}</span>
+                    Total:{" "}
+                    <span className="font-bold text-foreground">{parsedResult.totalRows}</span>
                   </span>
                 </div>
                 <div className="w-px h-3 bg-slate-300 dark:bg-slate-600" />
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-green-400" />
                   <span className="text-xs text-muted-foreground">
-                    Valid: <span className="font-bold text-green-600">{parsedResult.cards.length}</span>
+                    Valid:{" "}
+                    <span className="font-bold text-green-600">{parsedResult.cards.length}</span>
                   </span>
                 </div>
                 <div className="w-px h-3 bg-slate-300 dark:bg-slate-600" />
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-red-400" />
                   <span className="text-xs text-muted-foreground">
-                    Invalid: <span className="font-bold text-red-500">{parsedResult.invalidRows}</span>
+                    Invalid:{" "}
+                    <span className="font-bold text-red-500">{parsedResult.invalidRows}</span>
                   </span>
                 </div>
                 {dupCount > 0 && (
@@ -519,7 +566,8 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full bg-amber-400" />
                       <span className="text-xs text-muted-foreground">
-                        Duplicates in set: <span className="font-bold text-amber-600">{dupCount}</span>
+                        Duplicates in set:{" "}
+                        <span className="font-bold text-amber-600">{dupCount}</span>
                       </span>
                     </div>
                   </>
@@ -532,7 +580,8 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                   <span className="text-xs font-bold text-foreground">
-                    Preview — {parsedResult.cards.length} card{parsedResult.cards.length !== 1 ? "s" : ""} to import
+                    Preview — {parsedResult.cards.length} card
+                    {parsedResult.cards.length !== 1 ? "s" : ""} to import
                   </span>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
@@ -558,10 +607,18 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                             }`}
                           >
                             <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-2 font-semibold text-foreground leading-relaxed">{card.kanji || "—"}</td>
-                            <td className="px-3 py-2 text-foreground leading-relaxed">{card.kana}</td>
-                            <td className="px-3 py-2 text-foreground leading-relaxed">{card.meaning}</td>
-                            <td className="px-3 py-2 italic text-muted-foreground leading-relaxed">{card.example || "—"}</td>
+                            <td className="px-3 py-2 font-semibold text-foreground leading-relaxed">
+                              {card.kanji || "—"}
+                            </td>
+                            <td className="px-3 py-2 text-foreground leading-relaxed">
+                              {card.kana}
+                            </td>
+                            <td className="px-3 py-2 text-foreground leading-relaxed">
+                              {card.meaning}
+                            </td>
+                            <td className="px-3 py-2 italic text-muted-foreground leading-relaxed">
+                              {card.example || "—"}
+                            </td>
                             <td className="px-3 py-2">
                               {isDup ? (
                                 <span className="text-[10px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 rounded-full">
@@ -593,7 +650,11 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setParsedResult(null); setText(""); setImportError(null); }}
+                  onClick={() => {
+                    setParsedResult(null);
+                    setText("");
+                    setImportError(null);
+                  }}
                   className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 transition"
                 >
                   Clear
@@ -603,8 +664,14 @@ function BulkImportModal({ onClose, onImport, currentCards }: BulkImportModalPro
                   disabled={importing || newCount === 0}
                   className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition disabled:opacity-40"
                 >
-                  {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {importing ? "Importing..." : `Import ${newCount} card${newCount !== 1 ? "s" : ""}`}
+                  {importing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  {importing
+                    ? "Importing..."
+                    : `Import ${newCount} card${newCount !== 1 ? "s" : ""}`}
                 </button>
               </div>
             </div>
@@ -653,7 +720,12 @@ function TeacherFlashcardsPage() {
   const [addCardForm, setAddCardForm] = useState({ kanji: "", kana: "", meaning: "", example: "" });
   const [addingCard, setAddingCard] = useState(false);
   const [editingCard, setEditingCard] = useState<FlashcardCardResponse | null>(null);
-  const [editCardForm, setEditCardForm] = useState({ kanji: "", kana: "", meaning: "", example: "" });
+  const [editCardForm, setEditCardForm] = useState({
+    kanji: "",
+    kana: "",
+    meaning: "",
+    example: "",
+  });
   const [savingCard, setSavingCard] = useState(false);
   const [deletingCard, setDeletingCard] = useState<FlashcardCardResponse | null>(null);
   const [deletingCardLoading, setDeletingCardLoading] = useState(false);
@@ -662,7 +734,9 @@ function TeacherFlashcardsPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkDelimiter, setBulkDelimiter] = useState<"\t" | "|" | "," | ";">("\t");
-  const [bulkPreview, setBulkPreview] = useState<{ kanji: string; kana: string; meaning: string; example: string }[] | null>(null);
+  const [bulkPreview, setBulkPreview] = useState<
+    { kanji: string; kana: string; meaning: string; example: string }[] | null
+  >(null);
   const [bulkImporting, setBulkImporting] = useState(false);
 
   // ── Delete set ──────────────────────────────────────────────────────────────
@@ -852,10 +926,13 @@ function TeacherFlashcardsPage() {
   };
 
   // Bulk import cards
-  const handleBulkImport = async (parsedCards: { kanji: string; kana: string; meaning: string; example: string }[]) => {
+  const handleBulkImport = async (
+    parsedCards: { kanji: string; kana: string; meaning: string; example: string }[],
+  ) => {
     if (!editSetId) return;
-    const existing = editCards.map((c) =>
-      `${(c.kana || "").trim().toLowerCase()}||${(c.meaning || c.backText || "").trim().toLowerCase()}`
+    const existing = editCards.map(
+      (c) =>
+        `${(c.kana || "").trim().toLowerCase()}||${(c.meaning || c.backText || "").trim().toLowerCase()}`,
     );
     const seen = new Set<string>(existing);
     const toCreate = parsedCards.filter((p) => {
@@ -890,7 +967,7 @@ function TeacherFlashcardsPage() {
       }
       showToast(
         `Imported ${imported} card${imported !== 1 ? "s" : ""} successfully!${failed > 0 ? ` ${failed} failed.` : ""}`,
-        "success"
+        "success",
       );
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Bulk import failed.";
@@ -1067,9 +1144,7 @@ function TeacherFlashcardsPage() {
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <div
-                    className={`font-display font-black text-xl leading-none ${stat.color}`}
-                  >
+                  <div className={`font-display font-black text-xl leading-none ${stat.color}`}>
                     {stat.label === "Levels" ? stat.value : stat.value.toLocaleString()}
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">{stat.label}</div>
@@ -1137,10 +1212,7 @@ function TeacherFlashcardsPage() {
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <Layers className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
           <p className="font-semibold text-base text-muted-foreground">No flashcard sets found</p>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="mt-3 text-primary underline text-sm"
-          >
+          <button onClick={() => setShowAdd(true)} className="mt-3 text-primary underline text-sm">
             + Create your first set
           </button>
         </div>
@@ -1170,10 +1242,14 @@ function TeacherFlashcardsPage() {
                           <h3 className="font-display font-black text-sm text-foreground leading-tight truncate">
                             {s.title}
                           </h3>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(s.level)}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(s.level)}`}
+                          >
                             {s.level ?? "—"}
                           </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${st.cls}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${st.cls}`}
+                          >
                             {st.label}
                           </span>
                         </div>
@@ -1509,9 +1585,7 @@ function TeacherFlashcardsPage() {
                                 </span>
                               )}
                               {card.kana && card.kana !== card.frontText && (
-                                <span className="text-sm text-muted-foreground">
-                                  {card.kana}
-                                </span>
+                                <span className="text-sm text-muted-foreground">{card.kana}</span>
                               )}
                               <button
                                 onClick={(e) => {
@@ -1680,9 +1754,7 @@ function TeacherFlashcardsPage() {
                         </label>
                         <input
                           value={editSetInfo.title}
-                          onChange={(e) =>
-                            setEditSetInfo((i) => ({ ...i, title: e.target.value }))
-                          }
+                          onChange={(e) => setEditSetInfo((i) => ({ ...i, title: e.target.value }))}
                           className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
                         />
                       </div>
@@ -1692,9 +1764,7 @@ function TeacherFlashcardsPage() {
                         </label>
                         <select
                           value={editSetInfo.level}
-                          onChange={(e) =>
-                            setEditSetInfo((i) => ({ ...i, level: e.target.value }))
-                          }
+                          onChange={(e) => setEditSetInfo((i) => ({ ...i, level: e.target.value }))}
                           className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                         >
                           {["N5", "N4", "N3", "N2", "N1"].map((l) => (
@@ -1741,8 +1811,8 @@ function TeacherFlashcardsPage() {
                           onCancel={() => {
                             setShowAddCard(false);
                             setEditingCard(null);
-                          setAddCardForm({ kanji: "", kana: "", meaning: "", example: "" });
-                          setEditCardForm({ kanji: "", kana: "", meaning: "", example: "" });
+                            setAddCardForm({ kanji: "", kana: "", meaning: "", example: "" });
+                            setEditCardForm({ kanji: "", kana: "", meaning: "", example: "" });
                           }}
                           form={editingCard ? editCardForm : addCardForm}
                           setForm={editingCard ? setEditCardForm : setAddCardForm}
@@ -1857,7 +1927,10 @@ function TeacherFlashcardsPage() {
                               return;
                             }
                             if (editCards.length === 0) {
-                              showToast("Please add at least one card before resubmitting.", "error");
+                              showToast(
+                                "Please add at least one card before resubmitting.",
+                                "error",
+                              );
                               return;
                             }
                             handleSaveEditSet().then(() => {

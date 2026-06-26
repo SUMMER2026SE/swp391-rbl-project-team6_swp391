@@ -6,7 +6,12 @@ export interface Achievement {
   description: string;
   icon: string;
   requirement: {
-    type: "characters_learned" | "lessons_completed" | "quiz_score" | "streak" | "alphabet_complete";
+    type:
+      | "characters_learned"
+      | "lessons_completed"
+      | "quiz_score"
+      | "streak"
+      | "alphabet_complete";
     count: number;
   };
 }

@@ -1,9 +1,5 @@
 import { api } from "./client";
-import type {
-  GrammarResponse,
-  GrammarListParams,
-  GrammarLevel,
-} from "./types";
+import type { GrammarResponse, GrammarListParams, GrammarLevel } from "./types";
 
 // Re-export types for consumers
 export type { GrammarResponse, GrammarListParams, GrammarLevel };
@@ -21,9 +17,7 @@ export const studentGrammarApi = {
     if (params?.level) searchParams.set("level", params.level);
     if (params?.search) searchParams.set("search", params.search);
     const qs = searchParams.toString();
-    return api.get<GrammarResponse[]>(
-      `/student/grammar${qs ? `?${qs}` : ""}`
-    );
+    return api.get<GrammarResponse[]>(`/student/grammar${qs ? `?${qs}` : ""}`);
   },
 
   /**

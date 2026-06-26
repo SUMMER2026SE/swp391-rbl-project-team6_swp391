@@ -7,10 +7,5 @@ export const Route = createFileRoute("/student/learning/alphabet/hiragana/dakute
 });
 
 function HiraganaDakutenPage() {
-  return (
-    <AlphabetLessonPage
-      lesson={hiraganaDakutenLesson}
-      progressKey="hiragana-dakuten"
-    />
-  );
+  return <AlphabetLessonPage lesson={hiraganaDakutenLesson} progressKey="hiragana-dakuten" />;
 }

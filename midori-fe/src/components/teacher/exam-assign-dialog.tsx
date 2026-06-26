@@ -24,12 +24,7 @@ interface ExamAssignDialogProps {
   onAssign: (classId: string, scheduledAt: string) => void;
 }
 
-export function ExamAssignDialog({
-  open,
-  onOpenChange,
-  exam,
-  onAssign,
-}: ExamAssignDialogProps) {
+export function ExamAssignDialog({ open, onOpenChange, exam, onAssign }: ExamAssignDialogProps) {
   const allClasses = getClasses();
   const activeClasses = allClasses.filter((c) => c.status === "Active");
 
@@ -70,9 +65,7 @@ export function ExamAssignDialog({
           <DialogDescription>
             Select a class and schedule date to assign this exam.
             {exam && (
-              <span className="block mt-1 font-medium text-foreground">
-                Exam: {exam.title}
-              </span>
+              <span className="block mt-1 font-medium text-foreground">Exam: {exam.title}</span>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -99,14 +92,10 @@ export function ExamAssignDialog({
                       "hover:border-primary/50 hover:bg-muted/50",
                       selectedClassId === cls.id
                         ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : "border-border bg-card"
+                        : "border-border bg-card",
                     )}
                   >
-                    <RadioGroupItem
-                      value={cls.id}
-                      id={`class-${cls.id}`}
-                      className="mt-0.5"
-                    />
+                    <RadioGroupItem value={cls.id} id={`class-${cls.id}`} className="mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{cls.name}</span>
@@ -152,8 +141,7 @@ export function ExamAssignDialog({
                 <LevelBadge level={selectedClass.level} />
               </div>
               <p className="text-xs text-muted-foreground">
-                {selectedClass.studentCount} students &bull; Scheduled:{" "}
-                {scheduledAt || "—"}
+                {selectedClass.studentCount} students &bull; Scheduled: {scheduledAt || "—"}
               </p>
             </div>
           )}

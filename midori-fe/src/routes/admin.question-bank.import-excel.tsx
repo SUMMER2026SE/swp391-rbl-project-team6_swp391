@@ -3,9 +3,22 @@ import { useState, useRef } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import * as XLSX from "xlsx";
-import { 
-  ChevronRight, Loader2, Upload, FileSpreadsheet, Check, AlertCircle, 
-  Trash2, ArrowLeft, FileText, Download, X, CheckCircle2, Music, Clock, HelpCircle
+import {
+  ChevronRight,
+  Loader2,
+  Upload,
+  FileSpreadsheet,
+  Check,
+  AlertCircle,
+  Trash2,
+  ArrowLeft,
+  FileText,
+  Download,
+  X,
+  CheckCircle2,
+  Music,
+  Clock,
+  HelpCircle,
 } from "lucide-react";
 import { questionBankService } from "../services/questionBankService";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
@@ -37,7 +50,18 @@ interface ImportedQuestion {
 }
 
 // Expected columns in Excel
-const EXCEL_COLUMNS = ["type", "difficulty", "question", "answerA", "answerB", "answerC", "answerD", "correctAnswer", "explanation", "audioFileName"];
+const EXCEL_COLUMNS = [
+  "type",
+  "difficulty",
+  "question",
+  "answerA",
+  "answerB",
+  "answerC",
+  "answerD",
+  "correctAnswer",
+  "explanation",
+  "audioFileName",
+];
 
 function ExcelTemplateDownload() {
   const handleDownload = () => {
@@ -95,16 +119,16 @@ function ExcelTemplateDownload() {
     const ws = XLSX.utils.json_to_sheet(template);
 
     ws["!cols"] = [
-      { wch: 12 },  // TYPE
-      { wch: 10 },  // DIFFICULTY
-      { wch: 40 },  // QUESTION
-      { wch: 15 },  // ANSWERA
-      { wch: 15 },  // ANSWERB
-      { wch: 15 },  // ANSWERC
-      { wch: 15 },  // ANSWERD
-      { wch: 15 },  // CORRECTANSWER
-      { wch: 30 },  // EXPLANATION
-      { wch: 20 },  // AUDIOFILENAME
+      { wch: 12 }, // TYPE
+      { wch: 10 }, // DIFFICULTY
+      { wch: 40 }, // QUESTION
+      { wch: 15 }, // ANSWERA
+      { wch: 15 }, // ANSWERB
+      { wch: 15 }, // ANSWERC
+      { wch: 15 }, // ANSWERD
+      { wch: 15 }, // CORRECTANSWER
+      { wch: 30 }, // EXPLANATION
+      { wch: 20 }, // AUDIOFILENAME
     ];
 
     const wb = XLSX.utils.book_new();
@@ -137,9 +161,15 @@ function ExcelFormatGuide() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)]">
-              <th className="px-3 py-2 text-left font-medium text-muted-col text-xs uppercase tracking-wider">Column</th>
-              <th className="px-3 py-2 text-left font-medium text-muted-col text-xs uppercase tracking-wider">Description</th>
-              <th className="px-3 py-2 text-left font-medium text-muted-col text-xs uppercase tracking-wider">Example</th>
+              <th className="px-3 py-2 text-left font-medium text-muted-col text-xs uppercase tracking-wider">
+                Column
+              </th>
+              <th className="px-3 py-2 text-left font-medium text-muted-col text-xs uppercase tracking-wider">
+                Description
+              </th>
+              <th className="px-3 py-2 text-left font-medium text-muted-col text-xs uppercase tracking-wider">
+                Example
+              </th>
             </tr>
           </thead>
           <tbody className="text-muted-col text-xs">
@@ -186,10 +216,13 @@ function ExcelFormatGuide() {
 }
 
 function ImportExcelPage() {
-  const search = useSearch({ from: "/admin/question-bank/import-excel" }) as { level?: string; lessonId?: string };
+  const search = useSearch({ from: "/admin/question-bank/import-excel" }) as {
+    level?: string;
+    lessonId?: string;
+  };
   const navigate = useNavigate();
 
-  const level = ((search.level?.toUpperCase()) || "N5") as JLPTLevel;
+  const level = (search.level?.toUpperCase() || "N5") as JLPTLevel;
   const lessonId = parseInt(search.lessonId || "1");
 
   // Get lesson data from service
@@ -209,20 +242,29 @@ function ImportExcelPage() {
 
     // Validate type
     const validTypes = ["Vocabulary", "Grammar", "Reading", "Listening"];
-    const type = row.type as string || row.Type as string || row.TYPE as string;
+    const type = (row.type as string) || (row.Type as string) || (row.TYPE as string);
     if (!validTypes.includes(type)) {
       errors.push(`Invalid type: "${type}"`);
     }
 
     // Validate difficulty
     const validDifficulties = ["Easy", "Medium", "Hard"];
-    const difficulty = row.difficulty as string || row.Difficulty as string || row.DIFFICULTY as string || "Easy";
+    const difficulty =
+      (row.difficulty as string) ||
+      (row.Difficulty as string) ||
+      (row.DIFFICULTY as string) ||
+      "Easy";
     if (!validDifficulties.includes(difficulty)) {
       errors.push(`Invalid difficulty: "${difficulty}"`);
     }
 
     // Validate question
-    const questionText = row.question as string || row.Question as string || row.QUESTION as string || row.q as string || row.Q as string;
+    const questionText =
+      (row.question as string) ||
+      (row.Question as string) ||
+      (row.QUESTION as string) ||
+      (row.q as string) ||
+      (row.Q as string);
     if (!questionText?.trim()) {
       errors.push("Missing question text");
     }
@@ -235,17 +277,38 @@ function ImportExcelPage() {
       row.answerD || row.AnswerD || row.ANSWERD || row.optionD,
     ] as string[];
 
-    if (options.some(opt => !opt?.trim())) {
+    if (options.some((opt) => !opt?.trim())) {
       errors.push("Missing one or more options");
     }
 
     // Validate correct answer
-    const correctAnswer = row.correctAnswer as string || row.correctanswer as string || row.CorrectAnswer as string || row.CORRECTANSWER as string || row.answer as string;
+    const correctAnswer =
+      (row.correctAnswer as string) ||
+      (row.correctanswer as string) ||
+      (row.CorrectAnswer as string) ||
+      (row.CORRECTANSWER as string) ||
+      (row.answer as string);
     const correctIndexMap: Record<string, number> = {
-      "A": 0, "a": 0, "1": 0, "Answer A": 0, "answerA": 0,
-      "B": 1, "b": 1, "2": 1, "Answer B": 1, "answerB": 1,
-      "C": 2, "c": 2, "3": 2, "Answer C": 2, "answerC": 2,
-      "D": 3, "d": 3, "4": 3, "Answer D": 3, "answerD": 3,
+      A: 0,
+      a: 0,
+      "1": 0,
+      "Answer A": 0,
+      answerA: 0,
+      B: 1,
+      b: 1,
+      "2": 1,
+      "Answer B": 1,
+      answerB: 1,
+      C: 2,
+      c: 2,
+      "3": 2,
+      "Answer C": 2,
+      answerC: 2,
+      D: 3,
+      d: 3,
+      "4": 3,
+      "Answer D": 3,
+      answerD: 3,
     };
     const correctIndex = correctIndexMap[correctAnswer] ?? -1;
     if (correctIndex === -1) {
@@ -253,7 +316,11 @@ function ImportExcelPage() {
     }
 
     // Validate audio for Listening questions
-    const audioFileName = row.audioFileName as string || row.audiofilename as string || row.AudioFileName as string || row.AudioFilename as string;
+    const audioFileName =
+      (row.audioFileName as string) ||
+      (row.audiofilename as string) ||
+      (row.AudioFileName as string) ||
+      (row.AudioFilename as string);
     if (type === "Listening" && !audioFileName?.trim()) {
       errors.push("Listening questions require audioFileName");
     }
@@ -262,9 +329,13 @@ function ImportExcelPage() {
       type: (type || "Vocabulary") as QuestionType,
       difficulty: (difficulty || "Easy") as Difficulty,
       questionText: questionText || "",
-      options: options.map(opt => opt || ""),
+      options: options.map((opt) => opt || ""),
       correctIndex: correctIndex >= 0 ? correctIndex : 0,
-      explanation: (row.explanation as string) || (row.Explanation as string) || (row.EXPLANATION as string) || "",
+      explanation:
+        (row.explanation as string) ||
+        (row.Explanation as string) ||
+        (row.EXPLANATION as string) ||
+        "",
       audioFileName: audioFileName || "",
       audioUrl: audioFileName ? `https://example.com/audio/${audioFileName}` : undefined, // Mock URL for demo
       audioDuration: audioFileName ? Math.floor(Math.random() * 180) + 30 : undefined,
@@ -281,13 +352,54 @@ function ImportExcelPage() {
       try {
         // Demo data for preview - includes Listening questions
         const sampleData = [
-          { type: "Vocabulary", difficulty: "Easy", question: "「山」の読み方正确的是？", answerA: "やま", answerB: "さめ", answerC: "たけ", answerD: "たかさ", correctAnswer: "A", explanation: "「山」は「やま」と読みます" },
-          { type: "Grammar", difficulty: "Easy", question: "「これ」は何读みますか？", answerA: "これ", answerB: "それ", answerC: "あれ", answerD: "どれ", correctAnswer: "A", explanation: "「これ」は「これ」と読みます" },
-          { type: "Listening", difficulty: "Medium", question: "Listen and select the correct response", answerA: "Good morning", answerB: "Good afternoon", answerC: "Good evening", answerD: "Goodbye", correctAnswer: "B", explanation: "The audio contains こんにちは (konnichiwa)", audioFileName: "greeting_dialogue.mp3" },
-          { type: "Reading", difficulty: "Medium", question: "本文の内容と一致するのはどれですか？", answerA: "記述1", answerB: "記述2", answerC: "記述3", answerD: "記述4", correctAnswer: "B", explanation: "本文の内容と一致するのは記述2です" },
+          {
+            type: "Vocabulary",
+            difficulty: "Easy",
+            question: "「山」の読み方正确的是？",
+            answerA: "やま",
+            answerB: "さめ",
+            answerC: "たけ",
+            answerD: "たかさ",
+            correctAnswer: "A",
+            explanation: "「山」は「やま」と読みます",
+          },
+          {
+            type: "Grammar",
+            difficulty: "Easy",
+            question: "「これ」は何读みますか？",
+            answerA: "これ",
+            answerB: "それ",
+            answerC: "あれ",
+            answerD: "どれ",
+            correctAnswer: "A",
+            explanation: "「これ」は「これ」と読みます",
+          },
+          {
+            type: "Listening",
+            difficulty: "Medium",
+            question: "Listen and select the correct response",
+            answerA: "Good morning",
+            answerB: "Good afternoon",
+            answerC: "Good evening",
+            answerD: "Goodbye",
+            correctAnswer: "B",
+            explanation: "The audio contains こんにちは (konnichiwa)",
+            audioFileName: "greeting_dialogue.mp3",
+          },
+          {
+            type: "Reading",
+            difficulty: "Medium",
+            question: "本文の内容と一致するのはどれですか？",
+            answerA: "記述1",
+            answerB: "記述2",
+            answerC: "記述3",
+            answerD: "記述4",
+            correctAnswer: "B",
+            explanation: "本文の内容と一致するのは記述2です",
+          },
         ];
 
-        const validated = sampleData.map(row => validateQuestion(row as Record<string, unknown>));
+        const validated = sampleData.map((row) => validateQuestion(row as Record<string, unknown>));
         setQuestions(validated);
         setStep("preview");
       } catch {
@@ -308,7 +420,10 @@ function ImportExcelPage() {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && (file.name.endsWith(".xlsx") || file.name.endsWith(".xls") || file.name.endsWith(".csv"))) {
+    if (
+      file &&
+      (file.name.endsWith(".xlsx") || file.name.endsWith(".xls") || file.name.endsWith(".csv"))
+    ) {
       parseExcelFile(file);
     } else {
       alert("Please upload an Excel file (.xlsx, .xls, or .csv)");
@@ -316,14 +431,14 @@ function ImportExcelPage() {
   };
 
   const removeQuestion = (index: number) => {
-    setQuestions(prev => prev.filter((_, i) => i !== index));
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleImport = async () => {
     setStep("importing");
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const validQuestions = questions.filter(q => q.isValid);
+    const validQuestions = questions.filter((q) => q.isValid);
 
     validQuestions.forEach((q) => {
       if (q.type === "Listening" && q.audioUrl) {
@@ -357,24 +472,31 @@ function ImportExcelPage() {
   };
 
   const getDifficultyColor = (diff: Difficulty) => {
-    switch(diff) {
-      case "Easy": return "bg-green-500/12 text-green-600 border-green-500/20";
-      case "Medium": return "bg-yellow-500/12 text-yellow-600 border-yellow-500/20";
-      case "Hard": return "bg-red-500/12 text-red-600 border-red-500/20";
+    switch (diff) {
+      case "Easy":
+        return "bg-green-500/12 text-green-600 border-green-500/20";
+      case "Medium":
+        return "bg-yellow-500/12 text-yellow-600 border-yellow-500/20";
+      case "Hard":
+        return "bg-red-500/12 text-red-600 border-red-500/20";
     }
   };
 
   const getTypeColor = (type: QuestionType) => {
-    switch(type) {
-      case "Vocabulary": return "bg-blue-500/12 text-blue-600 border-blue-500/20";
-      case "Grammar": return "bg-purple-500/12 text-purple-600 border-purple-500/20";
-      case "Reading": return "bg-orange-500/12 text-orange-600 border-orange-500/20";
-      case "Listening": return "bg-pink-500/12 text-pink-600 border-pink-500/20";
+    switch (type) {
+      case "Vocabulary":
+        return "bg-blue-500/12 text-blue-600 border-blue-500/20";
+      case "Grammar":
+        return "bg-purple-500/12 text-purple-600 border-purple-500/20";
+      case "Reading":
+        return "bg-orange-500/12 text-orange-600 border-orange-500/20";
+      case "Listening":
+        return "bg-pink-500/12 text-pink-600 border-pink-500/20";
     }
   };
 
-  const validCount = questions.filter(q => q.isValid).length;
-  const invalidCount = questions.filter(q => !q.isValid).length;
+  const validCount = questions.filter((q) => q.isValid).length;
+  const invalidCount = questions.filter((q) => !q.isValid).length;
 
   return (
     <div className="space-y-6">
@@ -387,7 +509,10 @@ function ImportExcelPage() {
         breadcrumbs={[
           { label: "Question Bank", href: "/admin/question-bank" },
           { label: level, href: `/admin/question-bank/${level.toLowerCase()}` },
-          { label: lessonName, href: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}` },
+          {
+            label: lessonName,
+            href: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+          },
           { label: "Import Excel" },
         ]}
         title="Import Questions from Excel"
@@ -401,7 +526,9 @@ function ImportExcelPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h2 className="font-display font-bold text-primary-col">{lessonName}</h2>
-                  <span className="px-2 py-0.5 rounded-full bg-primary/12 text-primary text-xs font-semibold">{level}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-primary/12 text-primary text-xs font-semibold">
+                    {level}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-col">Lesson {lessonId}</p>
               </div>
@@ -413,20 +540,29 @@ function ImportExcelPage() {
       {/* Step Indicator */}
       <div className="card-base p-4">
         <div className="flex items-center justify-center gap-2">
-          {([
-            { key: "upload", label: "Upload" },
-            { key: "preview", label: "Preview" },
-            { key: "complete", label: "Complete" },
-          ] as const).map((s, i) => (
+          {(
+            [
+              { key: "upload", label: "Upload" },
+              { key: "preview", label: "Preview" },
+              { key: "complete", label: "Complete" },
+            ] as const
+          ).map((s, i) => (
             <div key={s.key} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                step === s.key ? "bg-gradient-hero text-white" :
-                (step === "importing" && s.key === "preview") || (step === "complete" && i < 2) ? "bg-green-500 text-white" :
-                "bg-muted text-muted-foreground"
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                  step === s.key
+                    ? "bg-gradient-hero text-white"
+                    : (step === "importing" && s.key === "preview") ||
+                        (step === "complete" && i < 2)
+                      ? "bg-green-500 text-white"
+                      : "bg-muted text-muted-foreground"
+                }`}
+              >
                 {i + 1}
               </div>
-              <span className={`text-sm font-medium ${step === s.key ? "text-primary-col" : "text-muted-col"}`}>
+              <span
+                className={`text-sm font-medium ${step === s.key ? "text-primary-col" : "text-muted-col"}`}
+              >
                 {s.label}
               </span>
               {i < 2 && <ChevronRight className="w-4 h-4 text-muted-col mx-2" />}
@@ -444,7 +580,10 @@ function ImportExcelPage() {
         >
           {/* Upload Area */}
           <div
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
             className="card-base p-12 border-2 border-dashed cursor-pointer transition text-center"
@@ -459,9 +598,13 @@ function ImportExcelPage() {
             <div className="w-16 h-16 rounded-2xl bg-green-500/12 flex items-center justify-center mx-auto mb-5">
               <Upload className="w-8 h-8 text-green-600" />
             </div>
-            <h3 className="font-semibold text-primary-col text-lg mb-2">Drop your Excel file here</h3>
+            <h3 className="font-semibold text-primary-col text-lg mb-2">
+              Drop your Excel file here
+            </h3>
             <p className="text-sm text-muted-col mb-4">or click to browse files</p>
-            <p className="text-xs text-muted-foreground mb-5">Supports .xlsx, .xls, and .csv files</p>
+            <p className="text-xs text-muted-foreground mb-5">
+              Supports .xlsx, .xls, and .csv files
+            </p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
@@ -495,7 +638,11 @@ function ImportExcelPage() {
               </div>
             </div>
             <button
-              onClick={() => { setStep("upload"); setQuestions([]); setFileName(""); }}
+              onClick={() => {
+                setStep("upload");
+                setQuestions([]);
+                setFileName("");
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-col hover:text-primary hover:bg-muted transition"
             >
               <X className="w-4 h-4" />
@@ -534,32 +681,56 @@ function ImportExcelPage() {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-[var(--card)]">
                   <tr className="border-b border-[var(--border)]">
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-12">#</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider">Question</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-24">Type</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-20">Difficulty</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-16">Answer</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-32">Audio</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-20">Status</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold text-muted-col uppercase tracking-wider w-16">Action</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-12">
+                      #
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider">
+                      Question
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-24">
+                      Type
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-20">
+                      Difficulty
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-16">
+                      Answer
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-32">
+                      Audio
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-muted-col uppercase tracking-wider w-20">
+                      Status
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-semibold text-muted-col uppercase tracking-wider w-16">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
                   {questions.map((q, i) => (
                     <tr key={i} className="hover:bg-muted/30 transition">
                       <td className="px-4 py-3 font-mono text-muted-col text-xs">{i + 1}</td>
-                      <td className="px-4 py-3 font-medium text-sm line-clamp-2">{q.questionText}</td>
+                      <td className="px-4 py-3 font-medium text-sm line-clamp-2">
+                        {q.questionText}
+                      </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getTypeColor(q.type)}`}>
+                        <span
+                          className={`px-2 py-1 rounded-lg text-xs font-medium border ${getTypeColor(q.type)}`}
+                        >
                           {q.type}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getDifficultyColor(q.difficulty)}`}>
+                        <span
+                          className={`px-2 py-1 rounded-lg text-xs font-medium border ${getDifficultyColor(q.difficulty)}`}
+                        >
                           {q.difficulty}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-bold">{String.fromCharCode(65 + q.correctIndex)}</td>
+                      <td className="px-4 py-3 font-bold">
+                        {String.fromCharCode(65 + q.correctIndex)}
+                      </td>
                       <td className="px-4 py-3">
                         {q.type === "Listening" ? (
                           <span className="flex items-center gap-1.5 text-xs text-pink-600">
@@ -572,9 +743,14 @@ function ImportExcelPage() {
                       </td>
                       <td className="px-4 py-3">
                         {q.isValid ? (
-                          <span className="px-2 py-1 rounded-lg bg-green-500/12 text-green-600 text-xs font-medium border border-green-500/20">Valid</span>
+                          <span className="px-2 py-1 rounded-lg bg-green-500/12 text-green-600 text-xs font-medium border border-green-500/20">
+                            Valid
+                          </span>
                         ) : (
-                          <span className="px-2 py-1 rounded-lg bg-red-500/12 text-red-600 text-xs font-medium border border-red-500/20" title={q.errors.join(", ")}>
+                          <span
+                            className="px-2 py-1 rounded-lg bg-red-500/12 text-red-600 text-xs font-medium border border-red-500/20"
+                            title={q.errors.join(", ")}
+                          >
                             Invalid
                           </span>
                         )}
@@ -597,7 +773,11 @@ function ImportExcelPage() {
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
-              onClick={() => navigate({ to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}` })}
+              onClick={() =>
+                navigate({
+                  to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+                })
+              }
               className="px-5 py-2.5 rounded-xl bg-muted text-muted-col text-sm font-semibold hover:bg-muted/80 transition"
             >
               Cancel
@@ -641,11 +821,16 @@ function ImportExcelPage() {
           </div>
           <h3 className="font-display font-bold text-primary-col text-xl mb-2">Import Complete!</h3>
           <p className="text-muted-col mb-6">
-            Successfully imported {importCount} question{importCount !== 1 ? "s" : ""} to {lessonName}
+            Successfully imported {importCount} question{importCount !== 1 ? "s" : ""} to{" "}
+            {lessonName}
           </p>
           <div className="flex items-center justify-center gap-3">
             <button
-              onClick={() => navigate({ to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}` })}
+              onClick={() =>
+                navigate({
+                  to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+                })
+              }
               className="px-6 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
             >
               View Questions

@@ -2,10 +2,37 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, User, Mail, Phone, MapPin, Calendar, Briefcase, GraduationCap,
-  Award, BookOpen, Star, Clock, Users, TrendingUp, CheckCircle, AlertCircle,
-  Eye, Edit, Ban, Key, Trash2, BarChart3, BookUser, Plus, X, Loader2,
-  ExternalLink, CalendarDays, ClipboardCheck, FileText, Download
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Briefcase,
+  GraduationCap,
+  Award,
+  BookOpen,
+  Star,
+  Clock,
+  Users,
+  TrendingUp,
+  CheckCircle,
+  AlertCircle,
+  Eye,
+  Edit,
+  Ban,
+  Key,
+  Trash2,
+  BarChart3,
+  BookUser,
+  Plus,
+  X,
+  Loader2,
+  ExternalLink,
+  CalendarDays,
+  ClipboardCheck,
+  FileText,
+  Download,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -76,15 +103,61 @@ const MOCK_TEACHERS: Record<string, TeacherProfile> = {
     completionRate: 88,
     attendanceRate: 94,
     classes: [
-      { id: "cls-001", name: "JLPT N5 Intensive", level: "N5", students: 28, completionRate: 92, status: "active" },
-      { id: "cls-002", name: "JLPT N4 Prep Course", level: "N4", students: 22, completionRate: 85, status: "active" },
-      { id: "cls-003", name: "Business Japanese", level: "N2", students: 18, completionRate: 78, status: "active" },
-      { id: "cls-004", name: "Advanced Grammar", level: "N1", students: 28, completionRate: 88, status: "active" },
+      {
+        id: "cls-001",
+        name: "JLPT N5 Intensive",
+        level: "N5",
+        students: 28,
+        completionRate: 92,
+        status: "active",
+      },
+      {
+        id: "cls-002",
+        name: "JLPT N4 Prep Course",
+        level: "N4",
+        students: 22,
+        completionRate: 85,
+        status: "active",
+      },
+      {
+        id: "cls-003",
+        name: "Business Japanese",
+        level: "N2",
+        students: 18,
+        completionRate: 78,
+        status: "active",
+      },
+      {
+        id: "cls-004",
+        name: "Advanced Grammar",
+        level: "N1",
+        students: 28,
+        completionRate: 88,
+        status: "active",
+      },
     ],
     recentActivity: [
-      { id: "act-001", action: "Created", description: "Created JLPT N5 Intensive class", timestamp: "2 hours ago", icon: "book" },
-      { id: "act-002", action: "Assigned", description: "Assigned homework to 28 students", timestamp: "Yesterday", icon: "clipboard" },
-      { id: "act-003", action: "Published", description: "Published new announcement", timestamp: "2 days ago", icon: "megaphone" },
+      {
+        id: "act-001",
+        action: "Created",
+        description: "Created JLPT N5 Intensive class",
+        timestamp: "2 hours ago",
+        icon: "book",
+      },
+      {
+        id: "act-002",
+        action: "Assigned",
+        description: "Assigned homework to 28 students",
+        timestamp: "Yesterday",
+        icon: "clipboard",
+      },
+      {
+        id: "act-003",
+        action: "Published",
+        description: "Published new announcement",
+        timestamp: "2 days ago",
+        icon: "megaphone",
+      },
     ],
   },
   "00000000-0000-0000-0000-000000000012": {
@@ -109,13 +182,46 @@ const MOCK_TEACHERS: Record<string, TeacherProfile> = {
     completionRate: 92,
     attendanceRate: 96,
     classes: [
-      { id: "cls-005", name: "Conversational Japanese", level: "Mixed", students: 24, completionRate: 95, status: "active" },
-      { id: "cls-006", name: "Japanese Culture & Customs", level: "Mixed", students: 20, completionRate: 88, status: "active" },
-      { id: "cls-007", name: "Beginner Japanese", level: "N5", students: 28, completionRate: 90, status: "active" },
+      {
+        id: "cls-005",
+        name: "Conversational Japanese",
+        level: "Mixed",
+        students: 24,
+        completionRate: 95,
+        status: "active",
+      },
+      {
+        id: "cls-006",
+        name: "Japanese Culture & Customs",
+        level: "Mixed",
+        students: 20,
+        completionRate: 88,
+        status: "active",
+      },
+      {
+        id: "cls-007",
+        name: "Beginner Japanese",
+        level: "N5",
+        students: 28,
+        completionRate: 90,
+        status: "active",
+      },
     ],
     recentActivity: [
-      { id: "act-004", action: "Uploaded", description: "Uploaded new lesson content", timestamp: "1 hour ago", icon: "upload" },
-      { id: "act-005", action: "Created", description: "Created conversation practice session", timestamp: "3 hours ago", icon: "book" },
+      {
+        id: "act-004",
+        action: "Uploaded",
+        description: "Uploaded new lesson content",
+        timestamp: "1 hour ago",
+        icon: "upload",
+      },
+      {
+        id: "act-005",
+        action: "Created",
+        description: "Created conversation practice session",
+        timestamp: "3 hours ago",
+        icon: "book",
+      },
     ],
   },
   "00000000-0000-0000-0000-000000000013": {
@@ -140,11 +246,31 @@ const MOCK_TEACHERS: Record<string, TeacherProfile> = {
     completionRate: 85,
     attendanceRate: 91,
     classes: [
-      { id: "cls-008", name: "Beginner Japanese A1", level: "N5", students: 24, completionRate: 85, status: "active" },
-      { id: "cls-009", name: "Listening Practice", level: "N4", students: 24, completionRate: 80, status: "active" },
+      {
+        id: "cls-008",
+        name: "Beginner Japanese A1",
+        level: "N5",
+        students: 24,
+        completionRate: 85,
+        status: "active",
+      },
+      {
+        id: "cls-009",
+        name: "Listening Practice",
+        level: "N4",
+        students: 24,
+        completionRate: 80,
+        status: "active",
+      },
     ],
     recentActivity: [
-      { id: "act-006", action: "Assigned", description: "Assigned listening exercises", timestamp: "5 hours ago", icon: "clipboard" },
+      {
+        id: "act-006",
+        action: "Assigned",
+        description: "Assigned listening exercises",
+        timestamp: "5 hours ago",
+        icon: "clipboard",
+      },
     ],
   },
   "00000000-0000-0000-0000-000000000014": {
@@ -169,11 +295,31 @@ const MOCK_TEACHERS: Record<string, TeacherProfile> = {
     completionRate: 75,
     attendanceRate: 88,
     classes: [
-      { id: "cls-010", name: "Grammar Masterclass", level: "N3", students: 18, completionRate: 72, status: "inactive" },
-      { id: "cls-011", name: "JLPT Reading Prep", level: "N2", students: 18, completionRate: 78, status: "inactive" },
+      {
+        id: "cls-010",
+        name: "Grammar Masterclass",
+        level: "N3",
+        students: 18,
+        completionRate: 72,
+        status: "inactive",
+      },
+      {
+        id: "cls-011",
+        name: "JLPT Reading Prep",
+        level: "N2",
+        students: 18,
+        completionRate: 78,
+        status: "inactive",
+      },
     ],
     recentActivity: [
-      { id: "act-007", action: "Updated", description: "Updated course materials", timestamp: "1 week ago", icon: "upload" },
+      {
+        id: "act-007",
+        action: "Updated",
+        description: "Updated course materials",
+        timestamp: "1 week ago",
+        icon: "upload",
+      },
     ],
   },
 };
@@ -211,7 +357,7 @@ const AVATAR_COLORS = [
 function getAvatarColor(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash = (hash << 5) - hash + id.charCodeAt(i);
     hash |= 0;
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
@@ -219,11 +365,16 @@ function getAvatarColor(id: string) {
 
 const getActivityIcon = (icon: string) => {
   switch (icon) {
-    case "book": return <BookOpen className="w-4 h-4" />;
-    case "clipboard": return <ClipboardCheck className="w-4 h-4" />;
-    case "megaphone": return <FileText className="w-4 h-4" />;
-    case "upload": return <Download className="w-4 h-4" />;
-    default: return <Clock className="w-4 h-4" />;
+    case "book":
+      return <BookOpen className="w-4 h-4" />;
+    case "clipboard":
+      return <ClipboardCheck className="w-4 h-4" />;
+    case "megaphone":
+      return <FileText className="w-4 h-4" />;
+    case "upload":
+      return <Download className="w-4 h-4" />;
+    default:
+      return <Clock className="w-4 h-4" />;
   }
 };
 
@@ -242,7 +393,7 @@ function AssignClassModal({ teacher, onClose }: { teacher: TeacherProfile; onClo
   const handleAssign = async () => {
     if (!selectedClass) return;
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
     setLoading(false);
     onClose();
   };
@@ -250,7 +401,9 @@ function AssignClassModal({ teacher, onClose }: { teacher: TeacherProfile; onClo
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
@@ -262,15 +415,24 @@ function AssignClassModal({ teacher, onClose }: { teacher: TeacherProfile; onClo
       >
         <div className="flex items-center justify-between px-6 py-4 border-b separator">
           <h3 className="font-display font-bold text-primary-col text-lg">Assign Class</h3>
-          <button onClick={onClose} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-3 p-3 rounded-xl glass-surface">
-            <div className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
-              {teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+            <div
+              className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}
+            >
+              {teacher.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .slice(0, 2)}
             </div>
             <div>
               <p className="text-sm font-semibold text-primary-col">{teacher.name}</p>
@@ -279,22 +441,30 @@ function AssignClassModal({ teacher, onClose }: { teacher: TeacherProfile; onClo
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">Select Class</label>
+            <label className="block text-xs font-bold text-muted-col uppercase tracking-wider mb-2">
+              Select Class
+            </label>
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl input-glass text-sm"
             >
               <option value="">Choose a class...</option>
-              {availableClasses.map(c => (
-                <option key={c.id} value={c.id}>{c.name} ({c.level})</option>
+              {availableClasses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.level})
+                </option>
               ))}
             </select>
           </div>
         </div>
 
         <div className="px-6 py-4 border-t separator flex gap-3">
-          <button onClick={onClose} disabled={loading} className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-accent transition">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-accent transition"
+          >
             Cancel
           </button>
           <button
@@ -302,7 +472,15 @@ function AssignClassModal({ teacher, onClose }: { teacher: TeacherProfile; onClo
             disabled={!selectedClass || loading}
             className="flex-1 py-2.5 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition flex items-center justify-center gap-2 disabled:opacity-40"
           >
-            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Assigning...</> : <><Plus className="w-4 h-4" /> Assign</>}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Assigning...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" /> Assign
+              </>
+            )}
           </button>
         </div>
       </motion.div>
@@ -312,12 +490,18 @@ function AssignClassModal({ teacher, onClose }: { teacher: TeacherProfile; onClo
 
 // ─── Reset Password Modal ────────────────────────────────────────────────────
 
-function ResetPasswordModal({ teacher, onClose }: { teacher: TeacherProfile; onClose: () => void }) {
+function ResetPasswordModal({
+  teacher,
+  onClose,
+}: {
+  teacher: TeacherProfile;
+  onClose: () => void;
+}) {
   const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
     setLoading(false);
     onClose();
   };
@@ -325,7 +509,9 @@ function ResetPasswordModal({ teacher, onClose }: { teacher: TeacherProfile; onC
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <motion.div
@@ -340,12 +526,17 @@ function ResetPasswordModal({ teacher, onClose }: { teacher: TeacherProfile; onC
           </div>
           <h3 className="font-display font-bold text-primary-col text-xl mb-2">Reset Password</h3>
           <p className="text-secondary-col text-sm">
-            Send password reset link to <span className="font-semibold text-primary-col">{teacher.email}</span>?
+            Send password reset link to{" "}
+            <span className="font-semibold text-primary-col">{teacher.email}</span>?
           </p>
         </div>
 
         <div className="px-6 py-4 border-t separator flex gap-3">
-          <button onClick={onClose} disabled={loading} className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-accent transition">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-accent transition"
+          >
             Cancel
           </button>
           <button
@@ -353,7 +544,15 @@ function ResetPasswordModal({ teacher, onClose }: { teacher: TeacherProfile; onC
             disabled={loading}
             className="flex-1 py-2.5 rounded-xl bg-[var(--status-pending)]/12 text-[var(--status-pending)] text-sm font-bold border border-[var(--status-pending)]/20 hover:bg-[var(--status-pending)]/20 transition flex items-center justify-center gap-2"
           >
-            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : <><Key className="w-4 h-4" /> Send Link</>}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Sending...
+              </>
+            ) : (
+              <>
+                <Key className="w-4 h-4" /> Send Link
+              </>
+            )}
           </button>
         </div>
       </motion.div>
@@ -379,24 +578,35 @@ function TeacherProfilePage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const initials = teacher.name.split(" ").map(n => n[0]).join("").slice(0, 2);
+  const initials = teacher.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2);
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <Link to="/admin/teachers" className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary hover:bg-accent transition">
+          <Link
+            to="/admin/teachers"
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary hover:bg-accent transition"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-display font-black text-primary-col">Teacher Profile</h1>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                teacher.status === "ACTIVE" ? "bg-[var(--status-active)]/12 text-[var(--status-active)] border border-[var(--status-active)]/20" :
-                teacher.status === "INACTIVE" ? "bg-[var(--status-pending)]/12 text-[var(--status-pending)] border border-[var(--status-pending)]/20" :
-                "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border border-[var(--status-rejected)]/20"
-              }`}>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  teacher.status === "ACTIVE"
+                    ? "bg-[var(--status-active)]/12 text-[var(--status-active)] border border-[var(--status-active)]/20"
+                    : teacher.status === "INACTIVE"
+                      ? "bg-[var(--status-pending)]/12 text-[var(--status-pending)] border border-[var(--status-pending)]/20"
+                      : "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border border-[var(--status-rejected)]/20"
+                }`}
+              >
                 {teacher.status.charAt(0) + teacher.status.slice(1).toLowerCase()}
               </span>
             </div>
@@ -426,7 +636,11 @@ function TeacherProfilePage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-5">
           {/* Personal Information */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card-base p-5"
+          >
             <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
               <User className="w-4 h-4 text-primary" /> Personal Information
             </h2>
@@ -436,7 +650,9 @@ function TeacherProfilePage() {
                   <User className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Full Name</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Full Name
+                  </p>
                   <p className="text-sm font-semibold text-primary-col">{teacher.name}</p>
                 </div>
               </div>
@@ -445,7 +661,9 @@ function TeacherProfilePage() {
                   <Mail className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Email</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Email
+                  </p>
                   <p className="text-sm font-semibold text-primary-col">{teacher.email}</p>
                 </div>
               </div>
@@ -454,7 +672,9 @@ function TeacherProfilePage() {
                   <Phone className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Phone</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Phone
+                  </p>
                   <p className="text-sm font-semibold text-primary-col">{teacher.phone || "—"}</p>
                 </div>
               </div>
@@ -463,8 +683,12 @@ function TeacherProfilePage() {
                   <MapPin className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Address</p>
-                  <p className="text-sm font-semibold text-primary-col truncate">{teacher.address || "—"}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Address
+                  </p>
+                  <p className="text-sm font-semibold text-primary-col truncate">
+                    {teacher.address || "—"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -472,8 +696,18 @@ function TeacherProfilePage() {
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Date of Birth</p>
-                  <p className="text-sm font-semibold text-primary-col">{teacher.dateOfBirth ? new Date(teacher.dateOfBirth).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "—"}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Date of Birth
+                  </p>
+                  <p className="text-sm font-semibold text-primary-col">
+                    {teacher.dateOfBirth
+                      ? new Date(teacher.dateOfBirth).toLocaleDateString("en-US", {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -481,7 +715,9 @@ function TeacherProfilePage() {
                   <CalendarDays className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Join Date</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Join Date
+                  </p>
                   <p className="text-sm font-semibold text-primary-col">{teacher.joinDate}</p>
                 </div>
               </div>
@@ -489,7 +725,12 @@ function TeacherProfilePage() {
           </motion.div>
 
           {/* Professional Information */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-base p-5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="card-base p-5"
+          >
             <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-primary" /> Professional Information
             </h2>
@@ -499,8 +740,12 @@ function TeacherProfilePage() {
                   <GraduationCap className="w-5 h-5 text-[var(--status-teacher)]" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Qualification</p>
-                  <p className="text-sm font-semibold text-primary-col">{teacher.qualification || "—"}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Qualification
+                  </p>
+                  <p className="text-sm font-semibold text-primary-col">
+                    {teacher.qualification || "—"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -508,7 +753,9 @@ function TeacherProfilePage() {
                   <Award className="w-5 h-5 text-[var(--status-teacher)]" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Experience</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Experience
+                  </p>
                   <p className="text-sm font-semibold text-primary-col">{teacher.experience}</p>
                 </div>
               </div>
@@ -517,7 +764,9 @@ function TeacherProfilePage() {
                   <Star className="w-5 h-5 text-[var(--status-teacher)]" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">JLPT Level</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    JLPT Level
+                  </p>
                   <p className="text-sm font-semibold text-primary-col">{teacher.jlptLevel}</p>
                 </div>
               </div>
@@ -526,18 +775,28 @@ function TeacherProfilePage() {
                   <BookOpen className="w-5 h-5 text-[var(--status-teacher)]" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Specialization</p>
-                  <p className="text-sm font-semibold text-primary-col">{teacher.specialization || "—"}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                    Specialization
+                  </p>
+                  <p className="text-sm font-semibold text-primary-col">
+                    {teacher.specialization || "—"}
+                  </p>
                 </div>
               </div>
             </div>
           </motion.div>
 
           {/* Current Classes */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card-base p-5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="card-base p-5"
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-bold text-sm text-primary-col flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-primary" /> Current Classes ({teacher.classes.length})
+                <BookOpen className="w-4 h-4 text-primary" /> Current Classes (
+                {teacher.classes.length})
               </h2>
               <button
                 onClick={() => setShowAssignModal(true)}
@@ -575,9 +834,14 @@ function TeacherProfilePage() {
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2">
                       <div className="flex-1 h-1.5 glass-surface rounded-full overflow-hidden max-w-[60px]">
-                        <div className="h-full rounded-full bg-[var(--status-active)]" style={{ width: `${cls.completionRate}%` }} />
+                        <div
+                          className="h-full rounded-full bg-[var(--status-active)]"
+                          style={{ width: `${cls.completionRate}%` }}
+                        />
                       </div>
-                      <span className="text-[10px] font-bold text-primary-col w-7">{cls.completionRate}%</span>
+                      <span className="text-[10px] font-bold text-primary-col w-7">
+                        {cls.completionRate}%
+                      </span>
                     </div>
                   </div>
                 </motion.div>
@@ -586,7 +850,12 @@ function TeacherProfilePage() {
           </motion.div>
 
           {/* Recent Activity */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="card-base p-5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="card-base p-5"
+          >
             <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" /> Recent Activity
             </h2>
@@ -603,7 +872,9 @@ function TeacherProfilePage() {
                     {getActivityIcon(activity.icon)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-primary-col truncate">{activity.description}</p>
+                    <p className="text-sm font-semibold text-primary-col truncate">
+                      {activity.description}
+                    </p>
                     <p className="text-[10px] text-muted-col">{activity.timestamp}</p>
                   </div>
                 </motion.div>
@@ -615,9 +886,15 @@ function TeacherProfilePage() {
         {/* Sidebar */}
         <div className="space-y-5">
           {/* Avatar & Stats */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card-base p-5"
+          >
             <div className="flex flex-col items-center text-center">
-              <div className={`w-24 h-24 rounded-2xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-black text-3xl mb-3`}>
+              <div
+                className={`w-24 h-24 rounded-2xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-black text-3xl mb-3`}
+              >
                 {initials}
               </div>
               <h3 className="font-display font-bold text-primary-col text-lg">{teacher.name}</h3>
@@ -640,11 +917,15 @@ function TeacherProfilePage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-col">Completion</span>
-                <span className="text-sm font-bold text-primary-col">{teacher.completionRate}%</span>
+                <span className="text-sm font-bold text-primary-col">
+                  {teacher.completionRate}%
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-col">Attendance</span>
-                <span className="text-sm font-bold text-primary-col">{teacher.attendanceRate}%</span>
+                <span className="text-sm font-bold text-primary-col">
+                  {teacher.attendanceRate}%
+                </span>
               </div>
             </div>
 
@@ -678,11 +959,20 @@ function TeacherProfilePage() {
           </motion.div>
 
           {/* JLPT Badge */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-base p-5">
-            <h3 className="text-xs font-bold text-muted-col uppercase tracking-wider mb-3">JLPT Certification</h3>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="card-base p-5"
+          >
+            <h3 className="text-xs font-bold text-muted-col uppercase tracking-wider mb-3">
+              JLPT Certification
+            </h3>
             <div className="flex items-center justify-center p-4 rounded-xl bg-[var(--status-teacher)]/8 border border-[var(--status-teacher)]/20">
               <div className="text-center">
-                <p className="text-3xl font-black text-[var(--status-teacher)]">{teacher.jlptLevel}</p>
+                <p className="text-3xl font-black text-[var(--status-teacher)]">
+                  {teacher.jlptLevel}
+                </p>
                 <p className="text-[10px] text-muted-col mt-1">JLPT Certified</p>
               </div>
             </div>
@@ -716,7 +1006,11 @@ function TeacherProfilePage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
           >
-            {toast.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {toast.type === "success" ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
             {toast.message}
           </motion.div>
         )}

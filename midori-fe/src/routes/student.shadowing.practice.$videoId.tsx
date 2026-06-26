@@ -2,11 +2,27 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronLeft, Play, Pause, Volume2, RotateCcw, Mic, 
-  CheckCircle, XCircle, ArrowRight, Home, Eye, Star
+  ChevronLeft,
+  Play,
+  Pause,
+  Volume2,
+  RotateCcw,
+  Mic,
+  CheckCircle,
+  XCircle,
+  ArrowRight,
+  Home,
+  Eye,
+  Star,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { getVideoById, getTopicForVideo, generateMockAIFeedback, type AIFeedback, type ShadowingSentence } from "@/mock/shadowing-student";
+import {
+  getVideoById,
+  getTopicForVideo,
+  generateMockAIFeedback,
+  type AIFeedback,
+  type ShadowingSentence,
+} from "@/mock/shadowing-student";
 
 type PracticeState = "intro" | "practicing" | "recording" | "feedback" | "result";
 
@@ -30,8 +46,10 @@ function scoreColor(score: number) {
 }
 
 function scoreBg(score: number) {
-  if (score >= 85) return "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/40";
-  if (score >= 70) return "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/40";
+  if (score >= 85)
+    return "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/40";
+  if (score >= 70)
+    return "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/40";
   return "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/40";
 }
 
@@ -49,7 +67,7 @@ function ShadowingPracticePage() {
   const [isRecording, setIsRecording] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [sentenceResults, setSentenceResults] = useState<SentenceResult[]>([]);
-  
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentSentence = video?.sentences[currentSentenceIndex];
@@ -81,7 +99,7 @@ function ShadowingPracticePage() {
           score: feedback.overallScore,
           feedback,
         };
-        setSentenceResults(prev => [...prev, result]);
+        setSentenceResults((prev) => [...prev, result]);
         setShowFeedback(true);
       }
     }, 3000);
@@ -92,7 +110,7 @@ function ShadowingPracticePage() {
     if (isLastSentence) {
       setPracticeState("result");
     } else {
-      setCurrentSentenceIndex(prev => prev + 1);
+      setCurrentSentenceIndex((prev) => prev + 1);
       setPracticeState("practicing");
     }
   }, [isLastSentence]);
@@ -127,7 +145,9 @@ function ShadowingPracticePage() {
             <XCircle className="w-8 h-8 text-red-400" />
           </div>
           <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Video not found</h3>
-          <p className="text-sm text-muted-foreground mb-4">The video you're looking for doesn't exist.</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            The video you're looking for doesn't exist.
+          </p>
           <Link
             to="/student/shadowing"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/60 dark:bg-white/10 backdrop-blur-md border border-slate-200 dark:border-white/20 text-slate-700 dark:text-white text-sm font-semibold hover:bg-white/80 transition"
@@ -146,7 +166,6 @@ function ShadowingPracticePage() {
     <div className="min-h-screen relative flex flex-col">
       <SakuraBg count={14} />
       <div className="relative z-10 flex-1">
-
         {/* Header */}
         <div className="border-b border-slate-200/60 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto px-4 py-4">
@@ -181,8 +200,8 @@ function ShadowingPracticePage() {
                         i < currentSentenceIndex
                           ? "w-2.5 h-2.5 bg-pink-500"
                           : i === currentSentenceIndex
-                          ? "w-3 h-3 bg-pink-400 ring-2 ring-pink-300"
-                          : "w-2 h-2 bg-slate-300 dark:bg-slate-600"
+                            ? "w-3 h-3 bg-pink-400 ring-2 ring-pink-300"
+                            : "w-2 h-2 bg-slate-300 dark:bg-slate-600"
                       }`}
                     />
                   ))}
@@ -197,108 +216,117 @@ function ShadowingPracticePage() {
 
         {/* Content */}
         <div className="max-w-3xl mx-auto px-4 py-10">
-
           <AnimatePresence mode="wait">
-
             {/* PRACTICING STATE */}
-            {(practiceState === "practicing" || practiceState === "recording") && currentSentence && !showFeedback && (
-              <motion.div
-                key={`practice-${currentSentenceIndex}`}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-10"
-              >
-                {/* Sentence display */}
-                <div className="text-center space-y-3">
-                  <span className="text-xs font-medium text-pink-500 dark:text-pink-400 uppercase tracking-widest">
-                    Câu {currentSentenceIndex + 1} / {video.sentences.length}
-                  </span>
-                  <p
-                    className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white leading-relaxed"
-                    style={{ fontFamily: "var(--font-japanese, serif)" }}
-                  >
-                    {currentSentence.text}
-                  </p>
-                  <p className="text-base text-muted-foreground">
-                    {currentSentence.translation}
-                  </p>
-                </div>
-
-                {/* Recording status */}
-                {isRecording && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center"
-                  >
-                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/40">
-                      <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-sm font-semibold text-red-600 dark:text-red-400">Đang ghi âm...</span>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex items-center justify-center gap-8">
-                  {/* Listen */}
-                  <button
-                    onClick={handlePlayAudio}
-                    disabled={isPlaying || isRecording}
-                    className="group flex flex-col items-center gap-2"
-                  >
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-md transition-all ${
-                      isPlaying
-                        ? "bg-blue-500 shadow-blue-300 scale-95"
-                        : "bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:shadow-lg"
-                    }`}>
-                      {isPlaying ? (
-                        <Volume2 className="w-7 h-7 text-white animate-pulse" />
-                      ) : (
-                        <Play className="w-7 h-7 text-blue-500 ml-0.5" />
-                      )}
-                    </div>
-                    <span className="text-xs font-medium text-muted-foreground group-hover:text-slate-700 dark:group-hover:text-white transition">Nghe</span>
-                  </button>
-
-                  {/* Record */}
-                  <button
-                    onClick={handleRecord}
-                    disabled={isRecording || isPlaying}
-                    className="group flex flex-col items-center gap-2"
-                  >
-                    <div className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all ${
-                      isRecording
-                        ? "bg-red-500 scale-105 shadow-red-300"
-                        : "bg-gradient-to-br from-pink-500 to-purple-600 hover:shadow-pink-300 hover:scale-105"
-                    }`}>
-                      <Mic className="w-9 h-9 text-white" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-white">
-                      {isRecording ? "Đang ghi..." : "Ghi âm"}
+            {(practiceState === "practicing" || practiceState === "recording") &&
+              currentSentence &&
+              !showFeedback && (
+                <motion.div
+                  key={`practice-${currentSentenceIndex}`}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -24 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-10"
+                >
+                  {/* Sentence display */}
+                  <div className="text-center space-y-3">
+                    <span className="text-xs font-medium text-pink-500 dark:text-pink-400 uppercase tracking-widest">
+                      Câu {currentSentenceIndex + 1} / {video.sentences.length}
                     </span>
-                  </button>
+                    <p
+                      className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white leading-relaxed"
+                      style={{ fontFamily: "var(--font-japanese, serif)" }}
+                    >
+                      {currentSentence.text}
+                    </p>
+                    <p className="text-base text-muted-foreground">{currentSentence.translation}</p>
+                  </div>
 
-                  {/* Replay */}
-                  <button
-                    onClick={handlePlayAudio}
-                    disabled={isPlaying || isRecording}
-                    className="group flex flex-col items-center gap-2"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center shadow-md hover:bg-slate-50 dark:hover:bg-slate-600 hover:shadow-lg transition-all">
-                      <RotateCcw className="w-7 h-7 text-slate-500 dark:text-slate-300" />
-                    </div>
-                    <span className="text-xs font-medium text-muted-foreground group-hover:text-slate-700 dark:group-hover:text-white transition">Nghe lại</span>
-                  </button>
-                </div>
+                  {/* Recording status */}
+                  {isRecording && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-center"
+                    >
+                      <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/40">
+                        <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                          Đang ghi âm...
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
 
-                {/* Hint */}
-                <p className="text-center text-xs text-muted-foreground">
-                  Nhấn <strong>Nghe</strong> để nghe câu mẫu, sau đó nhấn <strong>Ghi âm</strong> để luyện tập
-                </p>
-              </motion.div>
-            )}
+                  {/* Action buttons */}
+                  <div className="flex items-center justify-center gap-8">
+                    {/* Listen */}
+                    <button
+                      onClick={handlePlayAudio}
+                      disabled={isPlaying || isRecording}
+                      className="group flex flex-col items-center gap-2"
+                    >
+                      <div
+                        className={`w-16 h-16 rounded-full flex items-center justify-center shadow-md transition-all ${
+                          isPlaying
+                            ? "bg-blue-500 shadow-blue-300 scale-95"
+                            : "bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:shadow-lg"
+                        }`}
+                      >
+                        {isPlaying ? (
+                          <Volume2 className="w-7 h-7 text-white animate-pulse" />
+                        ) : (
+                          <Play className="w-7 h-7 text-blue-500 ml-0.5" />
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground group-hover:text-slate-700 dark:group-hover:text-white transition">
+                        Nghe
+                      </span>
+                    </button>
+
+                    {/* Record */}
+                    <button
+                      onClick={handleRecord}
+                      disabled={isRecording || isPlaying}
+                      className="group flex flex-col items-center gap-2"
+                    >
+                      <div
+                        className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all ${
+                          isRecording
+                            ? "bg-red-500 scale-105 shadow-red-300"
+                            : "bg-gradient-to-br from-pink-500 to-purple-600 hover:shadow-pink-300 hover:scale-105"
+                        }`}
+                      >
+                        <Mic className="w-9 h-9 text-white" />
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700 dark:text-white">
+                        {isRecording ? "Đang ghi..." : "Ghi âm"}
+                      </span>
+                    </button>
+
+                    {/* Replay */}
+                    <button
+                      onClick={handlePlayAudio}
+                      disabled={isPlaying || isRecording}
+                      className="group flex flex-col items-center gap-2"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center shadow-md hover:bg-slate-50 dark:hover:bg-slate-600 hover:shadow-lg transition-all">
+                        <RotateCcw className="w-7 h-7 text-slate-500 dark:text-slate-300" />
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground group-hover:text-slate-700 dark:group-hover:text-white transition">
+                        Nghe lại
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Hint */}
+                  <p className="text-center text-xs text-muted-foreground">
+                    Nhấn <strong>Nghe</strong> để nghe câu mẫu, sau đó nhấn <strong>Ghi âm</strong>{" "}
+                    để luyện tập
+                  </p>
+                </motion.div>
+              )}
 
             {/* FEEDBACK STATE */}
             {showFeedback && lastResult && (
@@ -324,7 +352,8 @@ function ShadowingPracticePage() {
                 {/* ─── Word-level comparison ─── */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-bold text-slate-700 dark:text-white text-center">
-                    📢 Câu bạn nói — từ đúng <span className="text-emerald-500">xanh</span>, sai <span className="text-red-500">đỏ</span>
+                    📢 Câu bạn nói — từ đúng <span className="text-emerald-500">xanh</span>, sai{" "}
+                    <span className="text-red-500">đỏ</span>
                   </h3>
 
                   {/* What user said (word-colored) */}
@@ -346,7 +375,9 @@ function ShadowingPracticePage() {
 
                   {/* Correct sentence reference */}
                   <div className="mt-3">
-                    <p className="text-xs text-center text-muted-foreground mb-2 font-medium">✅ Câu chuẩn</p>
+                    <p className="text-xs text-center text-muted-foreground mb-2 font-medium">
+                      ✅ Câu chuẩn
+                    </p>
                     <div className="text-center">
                       <p
                         className="text-2xl text-slate-800 dark:text-white font-bold"
@@ -361,14 +392,36 @@ function ShadowingPracticePage() {
 
                 {/* AI breakdown scores */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-center">AI Phân tích</h3>
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-center">
+                    AI Phân tích
+                  </h3>
                   <div className="grid grid-cols-4 gap-3">
                     {[
-                      { label: "Phát âm", value: lastResult.feedback.pronunciation, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
-                      { label: "Lưu loát", value: lastResult.feedback.fluency, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-                      { label: "Thanh điệu", value: lastResult.feedback.pitchAccent, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-900/20" },
-                      { label: "Tốc độ", value: lastResult.feedback.speed, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
-                    ].map(item => (
+                      {
+                        label: "Phát âm",
+                        value: lastResult.feedback.pronunciation,
+                        color: "text-blue-600 dark:text-blue-400",
+                        bg: "bg-blue-50 dark:bg-blue-900/20",
+                      },
+                      {
+                        label: "Lưu loát",
+                        value: lastResult.feedback.fluency,
+                        color: "text-emerald-600 dark:text-emerald-400",
+                        bg: "bg-emerald-50 dark:bg-emerald-900/20",
+                      },
+                      {
+                        label: "Thanh điệu",
+                        value: lastResult.feedback.pitchAccent,
+                        color: "text-purple-600 dark:text-purple-400",
+                        bg: "bg-purple-50 dark:bg-purple-900/20",
+                      },
+                      {
+                        label: "Tốc độ",
+                        value: lastResult.feedback.speed,
+                        color: "text-amber-600 dark:text-amber-400",
+                        bg: "bg-amber-50 dark:bg-amber-900/20",
+                      },
+                    ].map((item) => (
                       <div key={item.label} className={`${item.bg} rounded-2xl p-3 text-center`}>
                         <div className={`text-2xl font-black ${item.color}`}>{item.value}</div>
                         <div className="text-[10px] text-muted-foreground mt-0.5">{item.label}</div>
@@ -404,11 +457,13 @@ function ShadowingPracticePage() {
               >
                 {/* Overall score */}
                 <div className="text-center space-y-4">
-                  <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center shadow-xl ${
-                    passed
-                      ? "bg-gradient-to-br from-emerald-400 to-green-500"
-                      : "bg-gradient-to-br from-red-400 to-orange-500"
-                  }`}>
+                  <div
+                    className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center shadow-xl ${
+                      passed
+                        ? "bg-gradient-to-br from-emerald-400 to-green-500"
+                        : "bg-gradient-to-br from-red-400 to-orange-500"
+                    }`}
+                  >
                     {passed ? (
                       <CheckCircle className="w-12 h-12 text-white" />
                     ) : (
@@ -416,34 +471,45 @@ function ShadowingPracticePage() {
                     )}
                   </div>
                   <div>
-                    <h2 className={`text-3xl font-black ${passed ? "text-emerald-500" : "text-red-500"}`}>
+                    <h2
+                      className={`text-3xl font-black ${passed ? "text-emerald-500" : "text-red-500"}`}
+                    >
                       {passed ? "ĐẠT 🎉" : "CHƯA ĐẠT"}
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {passed ? "Xuất sắc! Bạn đã hoàn thành bài luyện tập." : "Hãy tiếp tục luyện tập để đạt điểm cao hơn!"}
+                      {passed
+                        ? "Xuất sắc! Bạn đã hoàn thành bài luyện tập."
+                        : "Hãy tiếp tục luyện tập để đạt điểm cao hơn!"}
                     </p>
                   </div>
-                  <div className={`text-7xl font-black ${passed ? "text-emerald-500" : "text-red-500"}`}>
+                  <div
+                    className={`text-7xl font-black ${passed ? "text-emerald-500" : "text-red-500"}`}
+                  >
                     {overallScore}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {sentenceResults.filter(r => r.score >= 80).length}/{sentenceResults.length} câu đạt yêu cầu
+                    {sentenceResults.filter((r) => r.score >= 80).length}/{sentenceResults.length}{" "}
+                    câu đạt yêu cầu
                   </p>
                 </div>
 
                 {/* Per-sentence summary */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-slate-700 dark:text-white">Kết quả từng câu</h3>
+                  <h3 className="text-sm font-bold text-slate-700 dark:text-white">
+                    Kết quả từng câu
+                  </h3>
                   {sentenceResults.map((result, i) => (
                     <div
                       key={result.sentenceId}
                       className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${scoreBg(result.score)}`}
                     >
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                        result.score >= 80
-                          ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400"
-                          : "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"
-                      }`}>
+                      <span
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                          result.score >= 80
+                            ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400"
+                            : "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"
+                        }`}
+                      >
                         {i + 1}
                       </span>
                       <p

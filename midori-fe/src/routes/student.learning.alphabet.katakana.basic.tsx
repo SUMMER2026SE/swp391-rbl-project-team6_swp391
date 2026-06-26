@@ -7,10 +7,5 @@ export const Route = createFileRoute("/student/learning/alphabet/katakana/basic"
 });
 
 function KatakanaBasicPage() {
-  return (
-    <AlphabetLessonPage
-      lesson={katakanaBasicLesson}
-      progressKey="katakana-basic"
-    />
-  );
+  return <AlphabetLessonPage lesson={katakanaBasicLesson} progressKey="katakana-basic" />;
 }

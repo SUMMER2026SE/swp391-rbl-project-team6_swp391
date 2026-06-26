@@ -34,7 +34,9 @@ export function ClassInfoCard({ classInfo }: ClassInfoCardProps) {
           {classInfo.teacherAvatarInitials}
         </div>
         <div>
-          <div className="font-bold text-xs text-foreground dark:text-white">{classInfo.teacher}</div>
+          <div className="font-bold text-xs text-foreground dark:text-white">
+            {classInfo.teacher}
+          </div>
           <div className="text-[10px] text-muted-foreground">Class Instructor</div>
         </div>
       </div>
@@ -58,13 +60,17 @@ export function ClassInfoCard({ classInfo }: ClassInfoCardProps) {
           <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-500" /> Next Deadline
           </span>
-          <span className="font-semibold text-foreground dark:text-white">{classInfo.nextDeadline}</span>
+          <span className="font-semibold text-foreground dark:text-white">
+            {classInfo.nextDeadline}
+          </span>
         </div>
         <div className="flex justify-between items-center">
           <span className="flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5" /> Join Date
           </span>
-          <span className="font-semibold text-foreground dark:text-white">{classInfo.joinDate}</span>
+          <span className="font-semibold text-foreground dark:text-white">
+            {classInfo.joinDate}
+          </span>
         </div>
       </div>
 

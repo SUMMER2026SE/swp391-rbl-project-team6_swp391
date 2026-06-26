@@ -2,10 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Search, Edit3, Trash2, Eye,
-  BookOpen, Layers, X, Save, ChevronDown,
-  BookText, Tag, Volume2, Loader2,
-  Globe, User, Star, Users, Cpu,
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  Eye,
+  BookOpen,
+  Layers,
+  X,
+  Save,
+  ChevronDown,
+  BookText,
+  Tag,
+  Volume2,
+  Loader2,
+  Globe,
+  User,
+  Star,
+  Users,
+  Cpu,
 } from "lucide-react";
 import {
   teacherVocabularyApi,
@@ -77,10 +92,20 @@ function sortLessonsByNumber(lessons: VocabularyLessonResponse[]): VocabularyLes
   });
 }
 
-export const Route = createFileRoute("/teacher/vocabulary")({ component: VocabularyManagementPage });
+export const Route = createFileRoute("/teacher/vocabulary")({
+  component: VocabularyManagementPage,
+});
 
 // ─── Pagination component ────────────────────────────────────────────────────
-function PaginationUI({ current, total, onPage }: { current: number; total: number; onPage: (p: number) => void }) {
+function PaginationUI({
+  current,
+  total,
+  onPage,
+}: {
+  current: number;
+  total: number;
+  onPage: (p: number) => void;
+}) {
   const pages = Math.ceil(total / PAGE_SIZE);
   if (pages <= 1) return null;
 
@@ -88,9 +113,13 @@ function PaginationUI({ current, total, onPage }: { current: number; total: numb
     <div className="flex items-center justify-between pt-4">
       <span className="text-xs text-muted-foreground">
         Showing{" "}
-        <span className="font-semibold text-foreground">{Math.min((current - 1) * PAGE_SIZE + 1, total)}</span>
+        <span className="font-semibold text-foreground">
+          {Math.min((current - 1) * PAGE_SIZE + 1, total)}
+        </span>
         {" – "}
-        <span className="font-semibold text-foreground">{Math.min(current * PAGE_SIZE, total)}</span>
+        <span className="font-semibold text-foreground">
+          {Math.min(current * PAGE_SIZE, total)}
+        </span>
         {" of "}
         <span className="font-semibold text-foreground">{total}</span>
         {" lessons"}
@@ -103,14 +132,15 @@ function PaginationUI({ current, total, onPage }: { current: number; total: numb
         >
           ‹
         </button>
-        {Array.from({ length: pages }, (_, i) => i + 1).map(p => (
+        {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
           <button
             key={p}
             onClick={() => onPage(p)}
-            className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${p === current
-              ? "bg-gradient-hero text-white shadow"
-              : "border border-slate-200 dark:border-slate-700 text-muted-foreground hover:bg-muted"
-              }`}
+            className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${
+              p === current
+                ? "bg-gradient-hero text-white shadow"
+                : "border border-slate-200 dark:border-slate-700 text-muted-foreground hover:bg-muted"
+            }`}
           >
             {p}
           </button>
@@ -146,13 +176,14 @@ function TopicFilter({
   }, [open]);
 
   return (
-    <div className="relative" onClick={e => e.stopPropagation()}>
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${selected !== "All"
-          ? "bg-primary/10 border-primary/30 text-primary"
-          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground hover:text-foreground"
-          }`}
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+          selected !== "All"
+            ? "bg-primary/10 border-primary/30 text-primary"
+            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-muted-foreground hover:text-foreground"
+        }`}
       >
         <Tag className="w-4 h-4" />
         {selected === "All" ? "All Topics" : selected}
@@ -169,22 +200,30 @@ function TopicFilter({
             className="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl z-50 py-2 max-h-72 overflow-y-auto"
           >
             <button
-              onClick={() => { onSelect("All"); setOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${selected === "All"
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+              onClick={() => {
+                onSelect("All");
+                setOpen(false);
+              }}
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${
+                selected === "All"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
             >
               All Topics
             </button>
-            {topics.map(topic => (
+            {topics.map((topic) => (
               <button
                 key={topic}
-                onClick={() => { onSelect(topic); setOpen(false); }}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${selected === topic
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
+                onClick={() => {
+                  onSelect(topic);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition ${
+                  selected === topic
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
               >
                 <Tag className="w-3.5 h-3.5 opacity-60" />
                 {topic}
@@ -241,7 +280,11 @@ function VocabularyManagementPage() {
   const [showCustomTopic, setShowCustomTopic] = useState(false);
   const [customTopicInput, setCustomTopicInput] = useState("");
   const [wordForm, setWordForm] = useState({
-    word: "", furigana: "", romaji: "", meaning: "", examples: "",
+    word: "",
+    furigana: "",
+    romaji: "",
+    meaning: "",
+    examples: "",
   });
 
   // Edit modal vocabulary state
@@ -253,7 +296,11 @@ function VocabularyManagementPage() {
   const [editCustomTopicInput, setEditCustomTopicInput] = useState("");
   const [editDeletedWordIds, setEditDeletedWordIds] = useState<Set<string>>(new Set());
   const [editWordForm, setEditWordForm] = useState({
-    word: "", furigana: "", romaji: "", meaning: "", examples: "",
+    word: "",
+    furigana: "",
+    romaji: "",
+    meaning: "",
+    examples: "",
   });
 
   // Create lesson loading
@@ -286,7 +333,9 @@ function VocabularyManagementPage() {
       const allSorted = sortLessonsByNumber(allData);
       const filteredSorted = sortLessonsByNumber(filteredData);
 
-      const topics = Array.from(new Set(allSorted.map(l => l.topic).filter(Boolean) as string[])).sort();
+      const topics = Array.from(
+        new Set(allSorted.map((l) => l.topic).filter(Boolean) as string[]),
+      ).sort();
       setAllTopics(topics);
       setLessons(filteredSorted);
     } catch (err) {
@@ -303,9 +352,19 @@ function VocabularyManagementPage() {
   const totalWords = lessons.reduce((s, l) => s + (l.wordCount ?? 0), 0);
 
   // Group lessons by ownership after filtering
-  const myLessons = lessons.filter(l => l.ownedByMe === true);
-  const otherLessons = lessons.filter(l => l.ownedByMe === false && l.teacherName && l.teacherName !== "MIDORI" && l.teacherName !== "System");
-  const systemLessons = lessons.filter(l => l.ownedByMe === false && (!l.teacherName || l.teacherName === "MIDORI" || l.teacherName === "System"));
+  const myLessons = lessons.filter((l) => l.ownedByMe === true);
+  const otherLessons = lessons.filter(
+    (l) =>
+      l.ownedByMe === false &&
+      l.teacherName &&
+      l.teacherName !== "MIDORI" &&
+      l.teacherName !== "System",
+  );
+  const systemLessons = lessons.filter(
+    (l) =>
+      l.ownedByMe === false &&
+      (!l.teacherName || l.teacherName === "MIDORI" || l.teacherName === "System"),
+  );
 
   // Pagination per group
   const [myPage, setMyPage] = useState(1);
@@ -314,11 +373,22 @@ function VocabularyManagementPage() {
   const GROUP_PAGE_SIZE = 12;
 
   const paginatedMy = myLessons.slice((myPage - 1) * GROUP_PAGE_SIZE, myPage * GROUP_PAGE_SIZE);
-  const paginatedOther = otherLessons.slice((otherPage - 1) * GROUP_PAGE_SIZE, otherPage * GROUP_PAGE_SIZE);
-  const paginatedSystem = systemLessons.slice((systemPage - 1) * GROUP_PAGE_SIZE, systemPage * GROUP_PAGE_SIZE);
+  const paginatedOther = otherLessons.slice(
+    (otherPage - 1) * GROUP_PAGE_SIZE,
+    otherPage * GROUP_PAGE_SIZE,
+  );
+  const paginatedSystem = systemLessons.slice(
+    (systemPage - 1) * GROUP_PAGE_SIZE,
+    systemPage * GROUP_PAGE_SIZE,
+  );
 
   // Reset pages when filter/search changes
-  useEffect(() => { setPage(1); setMyPage(1); setOtherPage(1); setSystemPage(1); }, [levelFilter, topicFilter, search]);
+  useEffect(() => {
+    setPage(1);
+    setMyPage(1);
+    setOtherPage(1);
+    setSystemPage(1);
+  }, [levelFilter, topicFilter, search]);
 
   // Helper to render lesson card
   const renderLessonCard = (lesson: VocabularyLessonResponse, index: number, groupOffset = 0) => (
@@ -343,7 +413,9 @@ function VocabularyManagementPage() {
                 {lesson.title}
               </h3>
               {lesson.level && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(lesson.level)}`}>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${levelBadge(lesson.level)}`}
+                >
                   {lesson.level}
                 </span>
               )}
@@ -376,7 +448,10 @@ function VocabularyManagementPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); openViewLesson(lesson); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              openViewLesson(lesson);
+            }}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all"
           >
             <Eye className="w-3.5 h-3.5" />
@@ -385,14 +460,20 @@ function VocabularyManagementPage() {
           {lesson.ownedByMe && (
             <>
               <button
-                onClick={(e) => { e.stopPropagation(); openEdit(lesson); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openEdit(lesson);
+                }}
                 className="px-3.5 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
                 title="Edit lesson"
               >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); setDeleting(lesson); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleting(lesson);
+                }}
                 className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-400 text-xs font-bold transition-all"
                 title="Delete lesson"
               >
@@ -413,20 +494,24 @@ function VocabularyManagementPage() {
     page: number,
     setPage: (p: number) => void,
     badge: string,
-    emptyText: string
+    emptyText: string,
   ) => (
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-4">
         {icon}
         <h2 className="text-base font-bold text-foreground">{title}</h2>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${badge}`}>{lessons.length}</span>
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${badge}`}>
+          {lessons.length}
+        </span>
       </div>
       {lessons.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground/50 text-sm italic">{emptyText}</div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {paginated.map((lesson, i) => renderLessonCard(lesson, i, (page - 1) * GROUP_PAGE_SIZE))}
+            {paginated.map((lesson, i) =>
+              renderLessonCard(lesson, i, (page - 1) * GROUP_PAGE_SIZE),
+            )}
           </div>
           {Math.ceil(lessons.length / GROUP_PAGE_SIZE) > 1 && (
             <div className="flex justify-center mt-4">
@@ -438,9 +523,15 @@ function VocabularyManagementPage() {
     </div>
   );
 
-  const handleSearch = (val: string) => { setSearch(val); };
-  const handleLevel = (val: string) => { setLevelFilter(val); };
-  const handleTopic = (val: string) => { setTopicFilter(val); };
+  const handleSearch = (val: string) => {
+    setSearch(val);
+  };
+  const handleLevel = (val: string) => {
+    setLevelFilter(val);
+  };
+  const handleTopic = (val: string) => {
+    setTopicFilter(val);
+  };
 
   const levelBadge = (l: string) => {
     const map: Record<string, string> = {
@@ -455,7 +546,9 @@ function VocabularyManagementPage() {
 
   // Open view modal — fetch lesson detail (with words) from backend
   const openViewLesson = async (lesson: VocabularyLessonResponse) => {
-    setViewingLesson((prev) => prev?.id === lesson.id ? prev : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse));
+    setViewingLesson((prev) =>
+      prev?.id === lesson.id ? prev : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse),
+    );
     setViewLoading(true);
     setViewError(null);
     try {
@@ -463,7 +556,11 @@ function VocabularyManagementPage() {
       setViewingLesson(detail);
     } catch (err) {
       setViewError(err instanceof ApiError ? err.message : "Failed to load lesson details.");
-      setViewingLesson((prev) => prev?.id === lesson.id ? prev : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse));
+      setViewingLesson((prev) =>
+        prev?.id === lesson.id
+          ? prev
+          : ({ ...lesson, words: [] } as VocabularyLessonDetailResponse),
+      );
     } finally {
       setViewLoading(false);
     }
@@ -486,7 +583,7 @@ function VocabularyManagementPage() {
     setEditSaveError(null);
     setEditDetailError(null);
     setEditDetailLoading(true);
-    
+
     try {
       const detail = await teacherVocabularyApi.getTeacherLessonDetail(l.id);
       setEditTempWords(detail.words || []);
@@ -511,12 +608,10 @@ function VocabularyManagementPage() {
       // Delete removed words
       if (editDeletedWordIds.size > 0) {
         await Promise.all(
-          Array.from(editDeletedWordIds).map(wordId =>
-            teacherVocabularyApi.deleteWord(wordId)
-          )
+          Array.from(editDeletedWordIds).map((wordId) => teacherVocabularyApi.deleteWord(wordId)),
         );
       }
-      
+
       await teacherVocabularyApi.updateLesson(editing.id, {
         title: editName.trim(),
         level: editLevel,
@@ -558,24 +653,43 @@ function VocabularyManagementPage() {
     if (!hasWord && !hasFurigana && !hasRomaji && !hasMeaning && !hasExamples) return;
 
     const newWord: VocabularyWordResponse = {
-      id: editingWordIdx !== null ? (lessonWordsRef.current[editingWordIdx]?.id ?? `temp-${Date.now()}`) : `temp-${Date.now()}`,
+      id:
+        editingWordIdx !== null
+          ? (lessonWordsRef.current[editingWordIdx]?.id ?? `temp-${Date.now()}`)
+          : `temp-${Date.now()}`,
       lessonId: "",
-      word: hasWord ? wordForm.word.trim() : (hasFurigana ? wordForm.furigana.trim() : hasRomaji ? wordForm.romaji.trim() : ""),
+      word: hasWord
+        ? wordForm.word.trim()
+        : hasFurigana
+          ? wordForm.furigana.trim()
+          : hasRomaji
+            ? wordForm.romaji.trim()
+            : "",
       furigana: hasFurigana ? wordForm.furigana.trim() : undefined,
       romaji: hasRomaji ? wordForm.romaji.trim() : undefined,
-      meaning: hasMeaning ? wordForm.meaning.trim() : (hasWord ? wordForm.word.trim() : hasFurigana ? wordForm.furigana.trim() : hasRomaji ? wordForm.romaji.trim() : ""),
+      meaning: hasMeaning
+        ? wordForm.meaning.trim()
+        : hasWord
+          ? wordForm.word.trim()
+          : hasFurigana
+            ? wordForm.furigana.trim()
+            : hasRomaji
+              ? wordForm.romaji.trim()
+              : "",
       exampleJapanese: hasExamples ? wordForm.examples.trim() : undefined,
       exampleMeaning: undefined,
       audioUrl: undefined,
-      displayOrder: editingWordIdx !== null ? editingWordIdx + 1 : lessonWordsRef.current.length + 1,
+      displayOrder:
+        editingWordIdx !== null ? editingWordIdx + 1 : lessonWordsRef.current.length + 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    setLessonWords(prev => {
-      const next = editingWordIdx !== null
-        ? prev.map((w, i) => i === editingWordIdx ? newWord : w)
-        : [...prev, newWord];
+    setLessonWords((prev) => {
+      const next =
+        editingWordIdx !== null
+          ? prev.map((w, i) => (i === editingWordIdx ? newWord : w))
+          : [...prev, newWord];
       lessonWordsRef.current = next;
       return next;
     });
@@ -660,7 +774,9 @@ function VocabularyManagementPage() {
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <BookOpen className="w-10 h-10 text-primary animate-pulse" />
         <p className="text-foreground font-semibold text-sm">Loading vocabulary...</p>
-        <p className="text-muted-foreground text-xs">Please wait while information is being prepared.</p>
+        <p className="text-muted-foreground text-xs">
+          Please wait while information is being prepared.
+        </p>
       </div>
     );
   }
@@ -670,13 +786,23 @@ function VocabularyManagementPage() {
       {/* ── Page header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-black text-foreground">Vocabulary Management</h1>
+          <h1 className="text-2xl font-display font-black text-foreground">
+            Vocabulary Management
+          </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {lessons.length} lessons · {totalWords} words
           </p>
         </div>
         <button
-          onClick={() => { setShowAdd(true); setLessonWords([]); lessonWordsRef.current = []; setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); setCreateError(null); }}
+          onClick={() => {
+            setShowAdd(true);
+            setLessonWords([]);
+            lessonWordsRef.current = [];
+            setShowWordForm(false);
+            setEditingWordIdx(null);
+            setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
+            setCreateError(null);
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-lg hover:opacity-90 transition active:scale-95"
         >
           <Plus className="w-4 h-4" /> Add lesson
@@ -689,13 +815,17 @@ function VocabularyManagementPage() {
           { label: "Lessons", value: lessons.length, icon: BookText, color: "text-blue-500" },
           { label: "Words", value: totalWords, icon: Layers, color: "text-green-500" },
           { label: "Levels", value: "N5 – N1", icon: Tag, color: "text-purple-500", noNum: true },
-        ].map(stat => {
+        ].map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label}
-              className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 px-4 py-3 shadow-sm">
+            <div
+              key={stat.label}
+              className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 px-4 py-3 shadow-sm"
+            >
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-700 ${stat.color}`}>
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-700 ${stat.color}`}
+                >
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
@@ -718,7 +848,7 @@ function VocabularyManagementPage() {
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
-              onChange={e => handleSearch(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search lessons..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground"
             />
@@ -727,14 +857,15 @@ function VocabularyManagementPage() {
 
         {/* Level pills */}
         <div className="flex gap-1 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
-          {JLPT_LEVELS.map(lvl => (
+          {JLPT_LEVELS.map((lvl) => (
             <button
               key={lvl}
               onClick={() => handleLevel(lvl)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${levelFilter === lvl
-                ? "bg-gradient-hero text-white shadow"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                levelFilter === lvl
+                  ? "bg-gradient-hero text-white shadow"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
             >
               {lvl}
             </button>
@@ -758,7 +889,9 @@ function VocabularyManagementPage() {
       {!loading && error && (
         <div className="text-center py-16 rounded-2xl border border-dashed border-red-200 dark:border-red-800">
           <p className="font-semibold text-red-500 mb-2">{error}</p>
-          <button onClick={fetchLessons} className="text-sm text-primary underline">Try again</button>
+          <button onClick={fetchLessons} className="text-sm text-primary underline">
+            Try again
+          </button>
         </div>
       )}
 
@@ -766,8 +899,21 @@ function VocabularyManagementPage() {
         <div className="text-center py-20 text-muted-foreground rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
           <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-semibold text-base">No lessons found.</p>
-          <p className="text-sm mt-1">Nothing to display at the moment. Try adjusting your filters.</p>
-          <button onClick={() => { setShowAdd(true); setLessonWords([]); lessonWordsRef.current = []; setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); setCreateError(null); }} className="mt-3 text-primary underline text-sm">
+          <p className="text-sm mt-1">
+            Nothing to display at the moment. Try adjusting your filters.
+          </p>
+          <button
+            onClick={() => {
+              setShowAdd(true);
+              setLessonWords([]);
+              lessonWordsRef.current = [];
+              setShowWordForm(false);
+              setEditingWordIdx(null);
+              setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
+              setCreateError(null);
+            }}
+            className="mt-3 text-primary underline text-sm"
+          >
             + Create your first lesson
           </button>
         </div>
@@ -785,7 +931,7 @@ function VocabularyManagementPage() {
             myPage,
             setMyPage,
             "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-            "You haven't created any lessons yet."
+            "You haven't created any lessons yet.",
           )}
 
           {/* Other Teachers' Lessons */}
@@ -797,7 +943,7 @@ function VocabularyManagementPage() {
             otherPage,
             setOtherPage,
             "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-            "No lessons from other teachers."
+            "No lessons from other teachers.",
           )}
 
           {/* System Lessons */}
@@ -809,7 +955,7 @@ function VocabularyManagementPage() {
             systemPage,
             setSystemPage,
             "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
-            "No system lessons."
+            "No system lessons.",
           )}
         </>
       )}
@@ -819,19 +965,25 @@ function VocabularyManagementPage() {
       ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {showAdd && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setShowAdd(false)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowAdd(false)}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.97, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97, y: 10 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col"
-              style={{ maxWidth: 760, maxHeight: "90vh" }}>
+              style={{ maxWidth: 760, maxHeight: "90vh" }}
+            >
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-5 shrink-0">
                 <h2 className="font-display font-black text-lg text-foreground">Add new lesson</h2>
-                <button onClick={() => setShowAdd(false)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <button
+                  onClick={() => setShowAdd(false)}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -851,7 +1003,7 @@ function VocabularyManagementPage() {
                   </label>
                   <input
                     value={newName}
-                    onChange={e => setNewName(e.target.value)}
+                    onChange={(e) => setNewName(e.target.value)}
                     placeholder="e.g. Lesson 4 — Numbers"
                     className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
                   />
@@ -863,15 +1015,16 @@ function VocabularyManagementPage() {
                     JLPT Level
                   </label>
                   <div className="flex gap-1">
-                    {["N5", "N4", "N3", "N2", "N1"].map(lvl => (
+                    {["N5", "N4", "N3", "N2", "N1"].map((lvl) => (
                       <button
                         key={lvl}
                         type="button"
                         onClick={() => setNewLevel(lvl)}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${newLevel === lvl
-                          ? "bg-gradient-hero text-white shadow"
-                          : "bg-slate-50 dark:bg-slate-800 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
-                          }`}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                          newLevel === lvl
+                            ? "bg-gradient-hero text-white shadow"
+                            : "bg-slate-50 dark:bg-slate-800 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-700"
+                        }`}
                       >
                         {lvl}
                       </button>
@@ -895,17 +1048,21 @@ function VocabularyManagementPage() {
                 {/* ── Publish Toggle ───────────────────────────── */}
                 <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-3">
-                    <Globe className={`w-5 h-5 ${newIsPublished ? "text-green-500" : "text-muted-foreground"}`} />
+                    <Globe
+                      className={`w-5 h-5 ${newIsPublished ? "text-green-500" : "text-muted-foreground"}`}
+                    />
                     <div>
                       <div className="text-sm font-semibold text-foreground">Publish lesson</div>
                       <div className="text-xs text-muted-foreground">
-                        {newIsPublished ? "Students can see this lesson" : "Only you can see this lesson"}
+                        {newIsPublished
+                          ? "Students can see this lesson"
+                          : "Only you can see this lesson"}
                       </div>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setNewIsPublished(p => !p)}
+                    onClick={() => setNewIsPublished((p) => !p)}
                     className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-[3px] transition-colors overflow-hidden border ${
                       newIsPublished
                         ? "bg-green-500 border-green-400"
@@ -950,7 +1107,17 @@ function VocabularyManagementPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
+                          onClick={() => {
+                            setShowWordForm(false);
+                            setEditingWordIdx(null);
+                            setWordForm({
+                              word: "",
+                              furigana: "",
+                              romaji: "",
+                              meaning: "",
+                              examples: "",
+                            });
+                          }}
                           className="text-muted-foreground hover:text-foreground transition"
                         >
                           <X className="w-4 h-4" />
@@ -961,46 +1128,64 @@ function VocabularyManagementPage() {
                       <div className="p-4 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Word <span className="text-red-400">*</span></label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                              Word <span className="text-red-400">*</span>
+                            </label>
                             <input
                               value={wordForm.word}
-                              onChange={e => setWordForm(f => ({ ...f, word: e.target.value }))}
+                              onChange={(e) => setWordForm((f) => ({ ...f, word: e.target.value }))}
                               placeholder="環境"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Reading (Hiragana)</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                              Reading (Hiragana)
+                            </label>
                             <input
                               value={wordForm.furigana}
-                              onChange={e => setWordForm(f => ({ ...f, furigana: e.target.value }))}
+                              onChange={(e) =>
+                                setWordForm((f) => ({ ...f, furigana: e.target.value }))
+                              }
                               placeholder="かんきょう"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">ROMAJI</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                              ROMAJI
+                            </label>
                             <input
                               value={wordForm.romaji}
-                              onChange={e => setWordForm(f => ({ ...f, romaji: e.target.value }))}
+                              onChange={(e) =>
+                                setWordForm((f) => ({ ...f, romaji: e.target.value }))
+                              }
                               placeholder="e.g. kankyou"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                              Meaning <span className="text-red-400">*</span>
+                            </label>
                             <input
                               value={wordForm.meaning}
-                              onChange={e => setWordForm(f => ({ ...f, meaning: e.target.value }))}
+                              onChange={(e) =>
+                                setWordForm((f) => ({ ...f, meaning: e.target.value }))
+                              }
                               placeholder="e.g. Environment"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
                           </div>
                           <div className="col-span-2">
-                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example Japanese</label>
+                            <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                              Example Japanese
+                            </label>
                             <input
                               value={wordForm.examples}
-                              onChange={e => setWordForm(f => ({ ...f, examples: e.target.value }))}
+                              onChange={(e) =>
+                                setWordForm((f) => ({ ...f, examples: e.target.value }))
+                              }
                               placeholder="環境の大切さを学んだ"
                               className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                             />
@@ -1009,15 +1194,31 @@ function VocabularyManagementPage() {
                         <div className="flex gap-2 pt-1">
                           <button
                             type="button"
-                            onClick={() => { setShowWordForm(false); setEditingWordIdx(null); setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
+                            onClick={() => {
+                              setShowWordForm(false);
+                              setEditingWordIdx(null);
+                              setWordForm({
+                                word: "",
+                                furigana: "",
+                                romaji: "",
+                                meaning: "",
+                                examples: "",
+                              });
+                            }}
                             className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                           >
                             Cancel
                           </button>
                           <button
                             type="button"
-                              onClick={handleAddWord}
-                            disabled={!wordForm.word.trim() && !wordForm.meaning.trim() && !wordForm.furigana.trim() && !wordForm.romaji.trim() && !wordForm.examples.trim()}
+                            onClick={handleAddWord}
+                            disabled={
+                              !wordForm.word.trim() &&
+                              !wordForm.meaning.trim() &&
+                              !wordForm.furigana.trim() &&
+                              !wordForm.romaji.trim() &&
+                              !wordForm.examples.trim()
+                            }
                             className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
                           >
                             {editingWordIdx !== null ? "Update word" : "Add word"}
@@ -1051,19 +1252,28 @@ function VocabularyManagementPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-sm text-foreground">{w.word}</span>
-                              <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  speakJapanese(w.furigana || w.word);
+                                }}
                                 title="Play pronunciation"
-                                className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0">
+                                className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0"
+                              >
                                 <Volume2 className="w-3.5 h-3.5" />
                               </button>
                               {w.furigana && (
                                 <span className="text-xs text-sky-500">{w.furigana}</span>
                               )}
                               {w.romaji && (
-                                <span className="text-xs text-muted-foreground italic">/ {w.romaji}</span>
+                                <span className="text-xs text-muted-foreground italic">
+                                  / {w.romaji}
+                                </span>
                               )}
                               <span className="text-xs text-muted-foreground">→</span>
-                              <span className="text-xs font-semibold text-foreground">{w.meaning}</span>
+                              <span className="text-xs font-semibold text-foreground">
+                                {w.meaning}
+                              </span>
                             </div>
                           </div>
 
@@ -1089,7 +1299,9 @@ function VocabularyManagementPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setLessonWords(prev => prev.filter((_, i) => i !== idx))}
+                              onClick={() =>
+                                setLessonWords((prev) => prev.filter((_, i) => i !== idx))
+                              }
                               className="w-7 h-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
                               title="Delete"
                             >
@@ -1106,7 +1318,9 @@ function VocabularyManagementPage() {
               {/* Footer actions */}
               <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-slate-700 shrink-0">
                 <span className="text-xs text-muted-foreground">
-                  {lessonWords.length > 0 ? `${lessonWords.length} words will be saved` : "No words added yet"}
+                  {lessonWords.length > 0
+                    ? `${lessonWords.length} words will be saved`
+                    : "No words added yet"}
                 </span>
                 <div className="flex gap-2">
                   <button
@@ -1117,7 +1331,13 @@ function VocabularyManagementPage() {
                       lessonWordsRef.current = [];
                       setShowWordForm(false);
                       setEditingWordIdx(null);
-                      setWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
+                      setWordForm({
+                        word: "",
+                        furigana: "",
+                        romaji: "",
+                        meaning: "",
+                        examples: "",
+                      });
                       setCreateError(null);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
@@ -1145,19 +1365,25 @@ function VocabularyManagementPage() {
       ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {editing && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setEditing(null)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setEditing(null)}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.97, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97, y: 10 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col"
-              style={{ maxWidth: 760, maxHeight: "90vh" }}>
+              style={{ maxWidth: 760, maxHeight: "90vh" }}
+            >
               {/* Header */}
               <div className="flex items-center justify-between mb-5 shrink-0">
                 <h2 className="font-display font-black text-lg text-foreground">Edit lesson</h2>
-                <button onClick={() => setEditing(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <button
+                  onClick={() => setEditing(null)}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1176,7 +1402,12 @@ function VocabularyManagementPage() {
                 {!editDetailLoading && editDetailError && (
                   <div className="text-center py-12">
                     <p className="font-semibold text-red-500 mb-2">{editDetailError}</p>
-                    <button onClick={() => setEditing(null)} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold">Close</button>
+                    <button
+                      onClick={() => setEditing(null)}
+                      className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold"
+                    >
+                      Close
+                    </button>
                   </div>
                 )}
 
@@ -1196,7 +1427,7 @@ function VocabularyManagementPage() {
                       </label>
                       <input
                         value={editName}
-                        onChange={e => setEditName(e.target.value)}
+                        onChange={(e) => setEditName(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-400/50"
                       />
                     </div>
@@ -1205,7 +1436,7 @@ function VocabularyManagementPage() {
                         Level JLPT
                       </label>
                       <div className="flex gap-1">
-                        {["N5","N4","N3","N2","N1"].map(lvl => (
+                        {["N5", "N4", "N3", "N2", "N1"].map((lvl) => (
                           <button
                             key={lvl}
                             type="button"
@@ -1230,7 +1461,9 @@ function VocabularyManagementPage() {
                       <TopicCombobox
                         value={editTopic}
                         onChange={setEditTopic}
-                        options={[...allTopics, ...editTempTopics].filter((t, i, a) => a.indexOf(t) === i)}
+                        options={[...allTopics, ...editTempTopics].filter(
+                          (t, i, a) => a.indexOf(t) === i,
+                        )}
                         placeholder="Select topic..."
                       />
                     </div>
@@ -1238,17 +1471,23 @@ function VocabularyManagementPage() {
                     {/* ── Publish Toggle ───────────────────────────── */}
                     <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                       <div className="flex items-center gap-3">
-                        <Globe className={`w-5 h-5 shrink-0 ${editIsPublished ? "text-green-500" : "text-slate-400"}`} />
+                        <Globe
+                          className={`w-5 h-5 shrink-0 ${editIsPublished ? "text-green-500" : "text-slate-400"}`}
+                        />
                         <div>
-                          <div className="text-sm font-semibold text-foreground">Publish lesson</div>
+                          <div className="text-sm font-semibold text-foreground">
+                            Publish lesson
+                          </div>
                           <div className="text-xs text-muted-foreground">
-                            {editIsPublished ? "Students can see this lesson" : "Only you can see this lesson"}
+                            {editIsPublished
+                              ? "Students can see this lesson"
+                              : "Only you can see this lesson"}
                           </div>
                         </div>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setEditIsPublished(p => !p)}
+                        onClick={() => setEditIsPublished((p) => !p)}
                         className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-[3px] transition-colors overflow-hidden border ${
                           editIsPublished
                             ? "bg-green-500 border-green-400"
@@ -1293,7 +1532,17 @@ function VocabularyManagementPage() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
+                              onClick={() => {
+                                setEditShowWordForm(false);
+                                setEditEditingIdx(null);
+                                setEditWordForm({
+                                  word: "",
+                                  furigana: "",
+                                  romaji: "",
+                                  meaning: "",
+                                  examples: "",
+                                });
+                              }}
                               className="text-muted-foreground hover:text-foreground transition"
                             >
                               <X className="w-4 h-4" />
@@ -1304,46 +1553,66 @@ function VocabularyManagementPage() {
                           <div className="p-4 space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Word <span className="text-red-400">*</span></label>
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                                  Word <span className="text-red-400">*</span>
+                                </label>
                                 <input
                                   value={editWordForm.word}
-                                  onChange={e => setEditWordForm(f => ({ ...f, word: e.target.value }))}
+                                  onChange={(e) =>
+                                    setEditWordForm((f) => ({ ...f, word: e.target.value }))
+                                  }
                                   placeholder="環境"
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Reading (Hiragana)</label>
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                                  Reading (Hiragana)
+                                </label>
                                 <input
                                   value={editWordForm.furigana}
-                                  onChange={e => setEditWordForm(f => ({ ...f, furigana: e.target.value }))}
+                                  onChange={(e) =>
+                                    setEditWordForm((f) => ({ ...f, furigana: e.target.value }))
+                                  }
                                   placeholder="かんきょう"
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">ROMAJI</label>
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                                  ROMAJI
+                                </label>
                                 <input
                                   value={editWordForm.romaji}
-                                  onChange={e => setEditWordForm(f => ({ ...f, romaji: e.target.value }))}
+                                  onChange={(e) =>
+                                    setEditWordForm((f) => ({ ...f, romaji: e.target.value }))
+                                  }
                                   placeholder="e.g. kankyou"
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Meaning <span className="text-red-400">*</span></label>
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                                  Meaning <span className="text-red-400">*</span>
+                                </label>
                                 <input
                                   value={editWordForm.meaning}
-                                  onChange={e => setEditWordForm(f => ({ ...f, meaning: e.target.value }))}
+                                  onChange={(e) =>
+                                    setEditWordForm((f) => ({ ...f, meaning: e.target.value }))
+                                  }
                                   placeholder="e.g. Environment"
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                               </div>
                               <div className="col-span-2">
-                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">Example Japanese</label>
+                                <label className="block text-[10px] font-bold text-muted-foreground uppercase mb-1 tracking-wide">
+                                  Example Japanese
+                                </label>
                                 <input
                                   value={editWordForm.examples}
-                                  onChange={e => setEditWordForm(f => ({ ...f, examples: e.target.value }))}
+                                  onChange={(e) =>
+                                    setEditWordForm((f) => ({ ...f, examples: e.target.value }))
+                                  }
                                   placeholder="環境の大切さを学んだ"
                                   className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
                                 />
@@ -1352,7 +1621,17 @@ function VocabularyManagementPage() {
                             <div className="flex gap-2 pt-1">
                               <button
                                 type="button"
-                                onClick={() => { setEditShowWordForm(false); setEditEditingIdx(null); setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" }); }}
+                                onClick={() => {
+                                  setEditShowWordForm(false);
+                                  setEditEditingIdx(null);
+                                  setEditWordForm({
+                                    word: "",
+                                    furigana: "",
+                                    romaji: "",
+                                    meaning: "",
+                                    examples: "",
+                                  });
+                                }}
                                 className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-muted-foreground hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                               >
                                 Cancel
@@ -1360,16 +1639,23 @@ function VocabularyManagementPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (!editWordForm.word.trim() || !editWordForm.meaning.trim()) return;
+                                  if (!editWordForm.word.trim() || !editWordForm.meaning.trim())
+                                    return;
                                   const w: VocabularyWordResponse = {
-                                    id: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.id ?? "") : `temp-${Date.now()}`,
+                                    id:
+                                      editEditingIdx !== null
+                                        ? (editTempWords[editEditingIdx]?.id ?? "")
+                                        : `temp-${Date.now()}`,
                                     lessonId: editing?.id ?? "",
                                     word: editWordForm.word.trim(),
                                     furigana: editWordForm.furigana.trim() || undefined,
                                     romaji: editWordForm.romaji.trim() || undefined,
                                     meaning: editWordForm.meaning.trim(),
                                     exampleJapanese: editWordForm.examples.trim() || undefined,
-                                    displayOrder: editEditingIdx !== null ? (editTempWords[editEditingIdx]?.displayOrder ?? 0) : editTempWords.length,
+                                    displayOrder:
+                                      editEditingIdx !== null
+                                        ? (editTempWords[editEditingIdx]?.displayOrder ?? 0)
+                                        : editTempWords.length,
                                     createdAt: new Date().toISOString(),
                                     updatedAt: new Date().toISOString(),
                                   };
@@ -1378,11 +1664,17 @@ function VocabularyManagementPage() {
                                     updated[editEditingIdx] = w;
                                     setEditTempWords(updated);
                                   } else {
-                                    setEditTempWords(prev => [...prev, w]);
+                                    setEditTempWords((prev) => [...prev, w]);
                                   }
                                   setEditShowWordForm(false);
                                   setEditEditingIdx(null);
-                                  setEditWordForm({ word: "", furigana: "", romaji: "", meaning: "", examples: "" });
+                                  setEditWordForm({
+                                    word: "",
+                                    furigana: "",
+                                    romaji: "",
+                                    meaning: "",
+                                    examples: "",
+                                  });
                                 }}
                                 disabled={!editWordForm.word.trim() || !editWordForm.meaning.trim()}
                                 className="flex-1 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow disabled:opacity-40 transition"
@@ -1417,18 +1709,31 @@ function VocabularyManagementPage() {
                               {/* Word info */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-bold text-sm text-foreground">{w.word}</span>
-                                  <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
+                                  <span className="font-bold text-sm text-foreground">
+                                    {w.word}
+                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      speakJapanese(w.furigana || w.word);
+                                    }}
                                     title="Play pronunciation"
-                                    className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0">
+                                    className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0"
+                                  >
                                     <Volume2 className="w-3.5 h-3.5" />
                                   </button>
-                                  {w.furigana && <span className="text-xs text-sky-500">{w.furigana}</span>}
+                                  {w.furigana && (
+                                    <span className="text-xs text-sky-500">{w.furigana}</span>
+                                  )}
                                   {w.romaji && (
-                                    <span className="text-xs text-muted-foreground italic">/ {w.romaji}</span>
+                                    <span className="text-xs text-muted-foreground italic">
+                                      / {w.romaji}
+                                    </span>
                                   )}
                                   <span className="text-xs text-muted-foreground">→</span>
-                                  <span className="text-xs font-semibold text-foreground">{w.meaning}</span>
+                                  <span className="text-xs font-semibold text-foreground">
+                                    {w.meaning}
+                                  </span>
                                 </div>
                               </div>
 
@@ -1438,7 +1743,13 @@ function VocabularyManagementPage() {
                                   type="button"
                                   onClick={() => {
                                     setEditEditingIdx(idx);
-                                    setEditWordForm({ word: w.word, furigana: w.furigana ?? "", romaji: w.romaji ?? "", meaning: w.meaning, examples: w.exampleJapanese ?? "" });
+                                    setEditWordForm({
+                                      word: w.word,
+                                      furigana: w.furigana ?? "",
+                                      romaji: w.romaji ?? "",
+                                      meaning: w.meaning,
+                                      examples: w.exampleJapanese ?? "",
+                                    });
                                     setEditShowWordForm(true);
                                   }}
                                   className="w-7 h-7 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 flex items-center justify-center text-blue-400 hover:text-blue-600 transition"
@@ -1451,9 +1762,9 @@ function VocabularyManagementPage() {
                                   onClick={() => {
                                     const wordId = editTempWords[idx]?.id;
                                     if (wordId && !wordId.startsWith("temp-")) {
-                                      setEditDeletedWordIds(prev => new Set([...prev, wordId]));
+                                      setEditDeletedWordIds((prev) => new Set([...prev, wordId]));
                                     }
-                                    setEditTempWords(prev => prev.filter((_, i) => i !== idx));
+                                    setEditTempWords((prev) => prev.filter((_, i) => i !== idx));
                                   }}
                                   className="w-7 h-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center text-red-400 hover:text-red-500 transition"
                                   title="Delete"
@@ -1467,7 +1778,9 @@ function VocabularyManagementPage() {
                       ) : (
                         <div className="py-8 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                           <BookOpen className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                          <p className="text-xs text-muted-foreground">No words in this lesson yet</p>
+                          <p className="text-xs text-muted-foreground">
+                            No words in this lesson yet
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1483,7 +1796,13 @@ function VocabularyManagementPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => { setEditing(null); setEditTempWords([]); setEditDeletedWordIds(new Set()); setEditShowWordForm(false); setEditEditingIdx(null); }}
+                    onClick={() => {
+                      setEditing(null);
+                      setEditTempWords([]);
+                      setEditDeletedWordIds(new Set());
+                      setEditShowWordForm(false);
+                      setEditEditingIdx(null);
+                    }}
                     className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                   >
                     Cancel
@@ -1510,16 +1829,19 @@ function VocabularyManagementPage() {
       ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {viewingLesson !== null && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setViewingLesson(null)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setViewingLesson(null)}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.97, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97, y: 10 }}
               transition={{ duration: 0.2 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col"
-              style={{ maxWidth: 800, maxHeight: "90vh" }}>
+              style={{ maxWidth: 800, maxHeight: "90vh" }}
+            >
               {/* Loading */}
               {viewLoading && (
                 <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -1532,7 +1854,12 @@ function VocabularyManagementPage() {
               {!viewLoading && viewError && (
                 <div className="text-center py-16">
                   <p className="font-semibold text-red-500 mb-2">{viewError}</p>
-                  <button onClick={() => openViewLesson(viewingLesson)} className="text-sm text-primary underline">Try again</button>
+                  <button
+                    onClick={() => openViewLesson(viewingLesson)}
+                    className="text-sm text-primary underline"
+                  >
+                    Try again
+                  </button>
                 </div>
               )}
 
@@ -1543,21 +1870,31 @@ function VocabularyManagementPage() {
                   <div className="flex items-center justify-between mb-5 shrink-0">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h2 className="font-display font-black text-lg text-foreground">{viewingLesson.title}</h2>
+                        <h2 className="font-display font-black text-lg text-foreground">
+                          {viewingLesson.title}
+                        </h2>
                         {viewingLesson.level && (
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${levelBadge(viewingLesson.level)}`}>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-black border ${levelBadge(viewingLesson.level)}`}
+                          >
                             {viewingLesson.level}
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {viewingLesson.words?.length ?? 0} words · Created {viewingLesson.createdAt ? new Date(viewingLesson.createdAt).toLocaleDateString() : "—"}
+                        {viewingLesson.words?.length ?? 0} words · Created{" "}
+                        {viewingLesson.createdAt
+                          ? new Date(viewingLesson.createdAt).toLocaleDateString()
+                          : "—"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {viewingLesson.ownedByMe && (
                         <button
-                          onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
+                          onClick={() => {
+                            setViewingLesson(null);
+                            openEdit(viewingLesson);
+                          }}
                           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-500 text-xs font-bold transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -1579,10 +1916,15 @@ function VocabularyManagementPage() {
                       <div className="py-20 text-center">
                         <BookOpen className="w-14 h-14 mx-auto mb-4 text-muted-foreground/20" />
                         <p className="font-semibold text-base text-foreground mb-1">No words yet</p>
-                        <p className="text-sm text-muted-foreground">This lesson has no vocabulary added yet.</p>
+                        <p className="text-sm text-muted-foreground">
+                          This lesson has no vocabulary added yet.
+                        </p>
                         {viewingLesson.ownedByMe && (
                           <button
-                            onClick={() => { setViewingLesson(null); openEdit(viewingLesson); }}
+                            onClick={() => {
+                              setViewingLesson(null);
+                              openEdit(viewingLesson);
+                            }}
                             className="mt-4 px-4 py-2 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow hover:opacity-90 transition"
                           >
                             + Add vocabulary
@@ -1613,29 +1955,44 @@ function VocabularyManagementPage() {
                                 <div className="flex-1 min-w-0">
                                   {/* Word + Reading */}
                                   <div className="flex items-center gap-2 flex-wrap mb-2">
-                                    <span className="font-display font-black text-xl text-foreground">{w.word}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); speakJapanese(w.furigana || w.word); }}
+                                    <span className="font-display font-black text-xl text-foreground">
+                                      {w.word}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        speakJapanese(w.furigana || w.word);
+                                      }}
                                       title="Play pronunciation"
-                                      className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0">
+                                      className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-500 flex items-center justify-center transition shrink-0"
+                                    >
                                       <Volume2 className="w-4 h-4" />
                                     </button>
                                     {w.furigana && (
-                                      <span className="text-base text-sky-500 font-medium">{w.furigana}</span>
+                                      <span className="text-base text-sky-500 font-medium">
+                                        {w.furigana}
+                                      </span>
                                     )}
                                     {w.romaji && (
-                                      <span className="text-xs text-muted-foreground italic">{w.romaji}</span>
+                                      <span className="text-xs text-muted-foreground italic">
+                                        {w.romaji}
+                                      </span>
                                     )}
                                   </div>
 
                                   {/* Meaning */}
                                   <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-sm font-semibold text-foreground">{w.meaning}</span>
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {w.meaning}
+                                    </span>
                                   </div>
 
                                   {/* Example */}
                                   {w.exampleJapanese && (
                                     <div className="mt-2 text-xs text-muted-foreground">
-                                      <span className="font-semibold text-foreground/60">Example:</span>{" "}
+                                      <span className="font-semibold text-foreground/60">
+                                        Example:
+                                      </span>{" "}
                                       {w.exampleJapanese}
                                     </div>
                                   )}
@@ -1676,34 +2033,42 @@ function VocabularyManagementPage() {
       ═══════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {deleting && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setDeleting(null)}>
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setDeleting(null)}
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full shadow-2xl text-center border border-slate-200 dark:border-slate-700"
-              style={{ maxWidth: 420 }}>
+              style={{ maxWidth: 420 }}
+            >
               <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-500/20 grid place-items-center mx-auto mb-3">
                 <Trash2 className="w-7 h-7 text-red-500" />
               </div>
               <h2 className="font-display font-black text-lg mb-1">Delete lesson?</h2>
               <p className="text-sm text-muted-foreground mb-2">
-                Lesson <strong className="text-foreground">{deleting.title}</strong> will be permanently deleted.
+                Lesson <strong className="text-foreground">{deleting.title}</strong> will be
+                permanently deleted.
               </p>
               <p className="text-xs text-red-400 mb-5">
                 This will also delete {deleting.wordCount ?? deleting.word_count ?? 0} words inside.
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleting(null)}
+                <button
+                  onClick={() => setDeleting(null)}
                   className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                  disabled={deletingInProgress}>
+                  disabled={deletingInProgress}
+                >
                   Cancel
                 </button>
-                <button onClick={handleDelete}
+                <button
+                  onClick={handleDelete}
                   disabled={deletingInProgress}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
                   {deletingInProgress && <Loader2 className="w-4 h-4 animate-spin" />}
                   {deletingInProgress ? "Deleting..." : "Delete"}
                 </button>

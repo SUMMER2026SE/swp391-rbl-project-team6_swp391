@@ -29,12 +29,7 @@ interface ExamEditDialogProps {
 
 const JLPT_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 
-export function ExamEditDialog({
-  open,
-  onOpenChange,
-  exam,
-  onSave,
-}: ExamEditDialogProps) {
+export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDialogProps) {
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState<JLPTLevel>("N5");
   const [duration, setDuration] = useState(60);
@@ -94,8 +89,7 @@ export function ExamEditDialog({
         <DialogHeader>
           <DialogTitle>Edit Exam</DialogTitle>
           <DialogDescription>
-            Update the exam details below. Click Save Changes when you are
-            done.
+            Update the exam details below. Click Save Changes when you are done.
           </DialogDescription>
         </DialogHeader>
 
@@ -112,10 +106,7 @@ export function ExamEditDialog({
 
           <div className="space-y-2">
             <Label htmlFor="exam-level">Level</Label>
-            <Select
-              value={level}
-              onValueChange={(v) => setLevel(v as JLPTLevel)}
-            >
+            <Select value={level} onValueChange={(v) => setLevel(v as JLPTLevel)}>
               <SelectTrigger id="exam-level">
                 <SelectValue placeholder="Select level" />
               </SelectTrigger>
@@ -151,9 +142,7 @@ export function ExamEditDialog({
               max={200}
               placeholder="30"
               value={totalQuestions}
-              onChange={(e) =>
-                setTotalQuestions(parseInt(e.target.value, 10) || 0)
-              }
+              onChange={(e) => setTotalQuestions(parseInt(e.target.value, 10) || 0)}
             />
           </div>
 

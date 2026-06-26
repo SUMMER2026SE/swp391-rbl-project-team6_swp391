@@ -8,21 +8,21 @@ import { cn } from "@/lib/utils";
 function generateStrokeOrderImages(kanji: KanjiCharacter): string[] {
   const images: string[] = [];
   const size = 100; // High resolution for premium printing
-  
+
   kanji.svgPaths.forEach((path, idx) => {
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
+
     // Fill white background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, size, size);
-    
+
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    
+
     // Draw previous strokes in light gray
     const prevPathStr = kanji.svgPaths.slice(0, idx).join(" ");
     if (prevPathStr) {
@@ -32,17 +32,17 @@ function generateStrokeOrderImages(kanji: KanjiCharacter): string[] {
       const prevP2D = new Path2D(prevPathStr);
       ctx.stroke(prevP2D);
     }
-    
+
     // Draw current stroke in deep indigo
     ctx.beginPath();
     ctx.strokeStyle = "#4f46e5";
     ctx.lineWidth = 7;
     const currentP2D = new Path2D(path);
     ctx.stroke(currentP2D);
-    
+
     images.push(canvas.toDataURL("image/png"));
   });
-  
+
   return images;
 }
 
@@ -126,20 +126,28 @@ export function WorksheetPreviewComponent({
       {/* Main A4 Print / Preview Canvas */}
       {kanjiList.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-slate-250 dark:border-white/10 rounded-2xl bg-white dark:bg-slate-900 w-full max-w-[750px] mx-auto shadow-[0_8px_30px_rgb(0,0,0,0.02)] no-print">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Chưa có chữ Kanji nào được thêm vào Worksheet.</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Chọn từ danh sách hoặc nhập nhanh bên trái để xem trước.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+            Chưa có chữ Kanji nào được thêm vào Worksheet.
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            Chọn từ danh sách hoặc nhập nhanh bên trái để xem trước.
+          </p>
         </div>
       ) : (
-        <div 
-          id="worksheet-print-area" 
+        <div
+          id="worksheet-print-area"
           className="w-full max-w-[750px] mx-auto border border-slate-200/80 dark:border-white/10 rounded-[24px] p-6 sm:p-10 bg-white dark:bg-slate-900 shadow-[0_15px_50px_rgba(0,0,0,0.05)] dark:shadow-2xl space-y-6 text-[#111827] dark:text-slate-100 font-japanese"
         >
           {/* Sheet Header Area */}
           <div className="mb-6">
             <div className="flex justify-between items-end pb-3">
               <div>
-                <h1 className="text-2xl font-black tracking-widest text-[#0F172A] dark:text-white">LUYỆN VIẾT KANJI</h1>
-                <span className="text-[10px] text-slate-400 font-semibold">midori-japanese.pages.dev</span>
+                <h1 className="text-2xl font-black tracking-widest text-[#0F172A] dark:text-white">
+                  LUYỆN VIẾT KANJI
+                </h1>
+                <span className="text-[10px] text-slate-400 font-semibold">
+                  midori-japanese.pages.dev
+                </span>
               </div>
               <div className="flex gap-6 text-xs font-semibold text-slate-500 dark:text-slate-400 pb-1">
                 <span>Họ tên: _________________</span>
@@ -152,8 +160,8 @@ export function WorksheetPreviewComponent({
           {/* Kanji Rows */}
           <div className="space-y-6">
             {kanjiList.map((kanji) => (
-              <div 
-                key={kanji.char} 
+              <div
+                key={kanji.char}
                 className="print-row border border-slate-150/80 dark:border-white/5 p-5 rounded-2xl bg-slate-50/20 dark:bg-slate-900/10 space-y-4 relative group"
               >
                 {/* Individual delete button (hidden in print) */}
@@ -176,16 +184,21 @@ export function WorksheetPreviewComponent({
                       </span>
                     </div>
                     <p className="text-[10px] text-[#475569] dark:text-slate-400 leading-relaxed font-medium">
-                      <span className="font-bold text-[#111827] dark:text-slate-350">Mẹo nhớ:</span> {kanji.mnemonic || "Hình dáng giống như một mái nhà che chở cho những người ở bên trong hiện tại."}
+                      <span className="font-bold text-[#111827] dark:text-slate-350">Mẹo nhớ:</span>{" "}
+                      {kanji.mnemonic ||
+                        "Hình dáng giống như một mái nhà che chở cho những người ở bên trong hiện tại."}
                     </p>
                   </div>
-                  
+
                   {/* Stroke Order Sequence */}
                   <div className="flex gap-1.5 items-center flex-wrap">
                     {strokeImages[kanji.char]?.map((imgSrc, sIdx) => (
-                      <div key={sIdx} className="w-8 h-8 rounded border border-slate-200 dark:border-white/10 bg-white flex items-center justify-center shrink-0 shadow-sm">
-                        <img 
-                          src={imgSrc} 
+                      <div
+                        key={sIdx}
+                        className="w-8 h-8 rounded border border-slate-200 dark:border-white/10 bg-white flex items-center justify-center shrink-0 shadow-sm"
+                      >
+                        <img
+                          src={imgSrc}
                           alt={`Nét ${sIdx + 1}`}
                           className="w-7 h-7 object-contain"
                         />
@@ -206,40 +219,55 @@ export function WorksheetPreviewComponent({
                           const isFirst = cIdx === 0;
                           const isTracing = cIdx > 0 && cIdx <= 3;
                           return (
-                            <td 
-                              key={cIdx} 
+                            <td
+                              key={cIdx}
                               className={cn(
                                 "relative aspect-square p-0 text-center align-middle border-r border-slate-200 dark:border-slate-800 last:border-r-0",
-                                isFirst ? "border-2 border-slate-950 dark:border-white z-20" : ""
+                                isFirst ? "border-2 border-slate-950 dark:border-white z-20" : "",
                               )}
                               style={{ width: "10%" }}
                             >
                               {/* Inner cross guidelines */}
-                              <div className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-slate-850/60 top-1/2 -translate-y-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
-                              <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-slate-200 dark:border-slate-850/60 -translate-x-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
-                              
+                              <div
+                                className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-slate-850/60 top-1/2 -translate-y-1/2 z-10 pointer-events-none"
+                                style={{ borderStyle: "dashed" }}
+                              />
+                              <div
+                                className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-slate-200 dark:border-slate-850/60 -translate-x-1/2 z-10 pointer-events-none"
+                                style={{ borderStyle: "dashed" }}
+                              />
+
                               {isFirst && (
-                                <span className="relative z-20 text-[2rem] sm:text-[2.2rem] font-bold text-[#111827] dark:text-white leading-none select-none" style={{ fontFamily: "var(--font-japanese), 'Arial', sans-serif" }}>
+                                <span
+                                  className="relative z-20 text-[2rem] sm:text-[2.2rem] font-bold text-[#111827] dark:text-white leading-none select-none"
+                                  style={{
+                                    fontFamily: "var(--font-japanese), 'Arial', sans-serif",
+                                  }}
+                                >
                                   {kanji.char}
                                 </span>
                               )}
-                              {!isFirst && (
-                                <div className="w-full aspect-square" />
-                              )}
+                              {!isFirst && <div className="w-full aspect-square" />}
                             </td>
                           );
                         })}
                       </tr>
                       <tr>
                         {Array.from({ length: 10 }).map((_, cIdx) => (
-                          <td 
-                            key={cIdx} 
+                          <td
+                            key={cIdx}
                             className="relative aspect-square border-r border-slate-200 dark:border-slate-800 last:border-r-0 p-0 text-center align-middle"
                             style={{ width: "10%" }}
                           >
                             {/* Inner cross guidelines */}
-                            <div className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-slate-850/60 top-1/2 -translate-y-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
-                            <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-slate-200 dark:border-slate-850/60 -translate-x-1/2 z-10 pointer-events-none" style={{ borderStyle: "dashed" }} />
+                            <div
+                              className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-slate-850/60 top-1/2 -translate-y-1/2 z-10 pointer-events-none"
+                              style={{ borderStyle: "dashed" }}
+                            />
+                            <div
+                              className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-slate-200 dark:border-slate-850/60 -translate-x-1/2 z-10 pointer-events-none"
+                              style={{ borderStyle: "dashed" }}
+                            />
                             <div className="w-full aspect-square" />
                           </td>
                         ))}

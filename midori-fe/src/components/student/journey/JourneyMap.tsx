@@ -14,7 +14,9 @@ interface JourneyMapProps {
 
 export function JourneyMap({ lessons, progress }: JourneyMapProps) {
   const navigate = useNavigate();
-  const currentLesson = lessons.find(l => l.status === "IN_PROGRESS") || lessons.find(l => l.status === "AVAILABLE");
+  const currentLesson =
+    lessons.find((l) => l.status === "IN_PROGRESS") ||
+    lessons.find((l) => l.status === "AVAILABLE");
   const overallProgress = Math.round((progress.completedLessons / progress.totalLessons) * 100);
 
   const handleLessonClick = (lessonId: string, status: string) => {
@@ -71,9 +73,7 @@ export function JourneyMap({ lessons, progress }: JourneyMapProps) {
             <div className="text-xs text-muted-foreground">
               {progress.completedLessons} of {progress.totalLessons} lessons completed
             </div>
-            <div className="text-base font-bold text-foreground">
-              {overallProgress}% Complete
-            </div>
+            <div className="text-base font-bold text-foreground">{overallProgress}% Complete</div>
           </div>
 
           <div className="flex items-center gap-4 text-xs">

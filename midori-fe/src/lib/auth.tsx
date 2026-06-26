@@ -12,14 +12,14 @@ export type StudentStatus = "GUEST" | "ACTIVE";
 // Helper to check if student is active (joined a class)
 export function isStudentActive(user: Pick<User, "role" | "status" | "classId"> | null): boolean {
   if (!user || user.role !== "student") return false;
-  
+
   // Student must have ACTIVE status AND (optionally) a classId to be considered active
   // If status is not ACTIVE, student is considered GUEST
   if (user.status !== "ACTIVE") return false;
-  
+
   // If student has classId, definitely active
   if ("classId" in user && user.classId) return true;
-  
+
   // If status is ACTIVE (backend sets this when student joins a class)
   return user.status === "ACTIVE";
 }
@@ -27,16 +27,18 @@ export function isStudentActive(user: Pick<User, "role" | "status" | "classId"> 
 // Helper to check if user is a guest student (not joined any class)
 export function isStudentGuest(user: Pick<User, "role" | "status" | "classId"> | null): boolean {
   if (!user || user.role !== "student") return false;
-  
+
   // Guest if: no classId OR status is not ACTIVE
   const hasClassId = "classId" in user && user.classId;
   const isActiveStatus = user.status === "ACTIVE";
-  
+
   return !hasClassId || !isActiveStatus;
 }
 
 // Get redirect path based on student status
-export function getStudentStatusRedirect(user: Pick<User, "role" | "status" | "classId"> | null): string | null {
+export function getStudentStatusRedirect(
+  user: Pick<User, "role" | "status" | "classId"> | null,
+): string | null {
   if (!user) {
     return "/login";
   }
@@ -172,14 +174,20 @@ export function rolePath(role: FrontendRole) {
 }
 
 export function getDashboardPath(user: Pick<User, "role" | "status">) {
-  if (user.role === "teacher" && (user.status === "PENDING_APPROVAL" || user.status === "REJECTED")) {
+  if (
+    user.role === "teacher" &&
+    (user.status === "PENDING_APPROVAL" || user.status === "REJECTED")
+  ) {
     return "/teacher-pending";
   }
 
   return rolePath(user.role);
 }
 
-export function getRouteGuardRedirect(user: Pick<User, "role" | "status"> | null, routeRole: FrontendRole) {
+export function getRouteGuardRedirect(
+  user: Pick<User, "role" | "status"> | null,
+  routeRole: FrontendRole,
+) {
   if (!user) {
     return "/login";
   }
@@ -229,8 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshCurrentUser = async () => {
     const userResponse = await authApi.getMe();
-    const storedRaw =
-      typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+    const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
     const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
     const apiUser = userResponseToUser(userResponse);
     const merged = mergeUser(storedUser, apiUser);

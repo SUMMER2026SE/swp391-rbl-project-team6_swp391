@@ -47,7 +47,7 @@ export const teacherFlashcardApi = {
     if (params?.search) searchParams.set("search", params.search);
     const qs = searchParams.toString();
     const sets = await api.get<FlashcardSetResponse[]>(
-      `/teacher/flashcard-sets${qs ? `?${qs}` : ""}`
+      `/teacher/flashcard-sets${qs ? `?${qs}` : ""}`,
     );
     return sets.map(normalizeFlashcardSet);
   },
@@ -68,7 +68,7 @@ export const teacherFlashcardApi = {
   createFlashcardSet: async (data: FlashcardSetCreateRequest): Promise<FlashcardSetResponse> => {
     const set = await api.post<FlashcardSetResponse>(
       "/teacher/flashcard-sets",
-      normalizeCreateSetPayload(data)
+      normalizeCreateSetPayload(data),
     );
     return normalizeFlashcardSet(set);
   },
@@ -79,11 +79,11 @@ export const teacherFlashcardApi = {
    */
   updateFlashcardSet: async (
     setId: string,
-    data: FlashcardSetUpdateRequest
+    data: FlashcardSetUpdateRequest,
   ): Promise<FlashcardSetResponse> => {
     const set = await api.put<FlashcardSetResponse>(
       `/teacher/flashcard-sets/${setId}`,
-      normalizeUpdateSetPayload(data)
+      normalizeUpdateSetPayload(data),
     );
     return normalizeFlashcardSet(set);
   },
@@ -100,9 +100,7 @@ export const teacherFlashcardApi = {
    * Submits the set for approval workflow (DRAFT → PENDING).
    */
   submitFlashcardSet: async (setId: string): Promise<FlashcardSetResponse> => {
-    const set = await api.post<FlashcardSetResponse>(
-      `/teacher/flashcard-sets/${setId}/submit`
-    );
+    const set = await api.post<FlashcardSetResponse>(`/teacher/flashcard-sets/${setId}/submit`);
     return normalizeFlashcardSet(set);
   },
 
@@ -114,11 +112,11 @@ export const teacherFlashcardApi = {
    */
   createCard: async (
     setId: string,
-    data: FlashcardCardCreateRequest
+    data: FlashcardCardCreateRequest,
   ): Promise<FlashcardCardResponse> => {
     const card = await api.post<FlashcardCardResponse>(
       `/teacher/flashcard-sets/${setId}/cards`,
-      normalizeCreateCardPayload(data)
+      normalizeCreateCardPayload(data),
     );
     return card;
   },
@@ -129,11 +127,11 @@ export const teacherFlashcardApi = {
    */
   updateCard: async (
     cardId: string,
-    data: FlashcardCardUpdateRequest
+    data: FlashcardCardUpdateRequest,
   ): Promise<FlashcardCardResponse> => {
     const card = await api.put<FlashcardCardResponse>(
       `/teacher/flashcard-cards/${cardId}`,
-      normalizeUpdateCardPayload(data)
+      normalizeUpdateCardPayload(data),
     );
     return card;
   },
