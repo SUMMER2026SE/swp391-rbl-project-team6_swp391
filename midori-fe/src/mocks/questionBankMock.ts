@@ -2,7 +2,14 @@
 // This file contains mock data for development
 // Later this will be replaced with real backend API calls
 
-import type { JLPTLevel, QuestionType, Difficulty, ListeningQuestion, StandardQuestion, Question } from "../services/questionBank.types";
+import type {
+  JLPTLevel,
+  QuestionType,
+  Difficulty,
+  ListeningQuestion,
+  StandardQuestion,
+  Question,
+} from "../services/questionBank.types";
 
 export interface MockLesson {
   id: number;
@@ -31,28 +38,112 @@ export interface MockListeningQuestion {
 // Base mock data - used as initial seed
 export const baseMockData: Record<JLPTLevel, MockLesson[]> = {
   N5: [
-    { id: 1, lessonNumber: 1, lessonName: "Introduction to Japanese", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 2, lessonNumber: 2, lessonName: "Basic Greetings", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 3, lessonNumber: 3, lessonName: "Numbers and Counting", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 4, lessonNumber: 4, lessonName: "Colors and Shapes", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 5, lessonNumber: 5, lessonName: "Days and Months", questionCount: 0, createdAt: new Date().toISOString() },
+    {
+      id: 1,
+      lessonNumber: 1,
+      lessonName: "Introduction to Japanese",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      lessonNumber: 2,
+      lessonName: "Basic Greetings",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 3,
+      lessonNumber: 3,
+      lessonName: "Numbers and Counting",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 4,
+      lessonNumber: 4,
+      lessonName: "Colors and Shapes",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 5,
+      lessonNumber: 5,
+      lessonName: "Days and Months",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
   ],
   N4: [
-    { id: 1, lessonNumber: 1, lessonName: "Daily Conversations", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 2, lessonNumber: 2, lessonName: "Travel Japanese", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 3, lessonNumber: 3, lessonName: "Shopping and Dining", questionCount: 0, createdAt: new Date().toISOString() },
+    {
+      id: 1,
+      lessonNumber: 1,
+      lessonName: "Daily Conversations",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      lessonNumber: 2,
+      lessonName: "Travel Japanese",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 3,
+      lessonNumber: 3,
+      lessonName: "Shopping and Dining",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
   ],
   N3: [
-    { id: 1, lessonNumber: 1, lessonName: "Intermediate Grammar", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 2, lessonNumber: 2, lessonName: "Reading Comprehension", questionCount: 0, createdAt: new Date().toISOString() },
+    {
+      id: 1,
+      lessonNumber: 1,
+      lessonName: "Intermediate Grammar",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      lessonNumber: 2,
+      lessonName: "Reading Comprehension",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
   ],
   N2: [
-    { id: 1, lessonNumber: 1, lessonName: "Advanced Grammar Patterns", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 2, lessonNumber: 2, lessonName: "Business Japanese", questionCount: 0, createdAt: new Date().toISOString() },
+    {
+      id: 1,
+      lessonNumber: 1,
+      lessonName: "Advanced Grammar Patterns",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      lessonNumber: 2,
+      lessonName: "Business Japanese",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
   ],
   N1: [
-    { id: 1, lessonNumber: 1, lessonName: "Advanced Expressions", questionCount: 0, createdAt: new Date().toISOString() },
-    { id: 2, lessonNumber: 2, lessonName: "Academic Japanese", questionCount: 0, createdAt: new Date().toISOString() },
+    {
+      id: 1,
+      lessonNumber: 1,
+      lessonName: "Advanced Expressions",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      lessonNumber: 2,
+      lessonName: "Academic Japanese",
+      questionCount: 0,
+      createdAt: new Date().toISOString(),
+    },
   ],
 };
 
@@ -134,7 +225,8 @@ export const sampleQuestions: (MockListeningQuestion | Omit<Question, "audio">)[
     questionText: "Listen to the dialogue and select the correct response.",
     options: ["Good morning", "Good afternoon", "Good evening", "Goodbye"],
     correctIndex: 1,
-    explanation: "The audio contains a greeting during the daytime, which is こんにちは (konnichiwa).",
+    explanation:
+      "The audio contains a greeting during the daytime, which is こんにちは (konnichiwa).",
     createdAt: new Date().toISOString(),
   },
   {
@@ -187,7 +279,12 @@ export const sampleQuestions: (MockListeningQuestion | Omit<Question, "audio">)[
     type: "Grammar",
     difficulty: "Medium",
     questionText: "Which sentence uses the conditional form correctly?",
-    options: ["食べたら、行きます", "食べったら、行きます", "食べるたら、行きます", "食べたなら、行きます"],
+    options: [
+      "食べたら、行きます",
+      "食べったら、行きます",
+      "食べるたら、行きます",
+      "食べたなら、行きます",
+    ],
     correctIndex: 0,
     explanation: "たら is the past conditional form of verbs.",
     createdAt: new Date().toISOString(),
@@ -251,7 +348,12 @@ export const sampleQuestions: (MockListeningQuestion | Omit<Question, "audio">)[
     type: "Reading",
     difficulty: "Hard",
     questionText: "What can be inferred about the author's opinion?",
-    options: ["Agrees with the policy", "Disagrees with the policy", "Is neutral about the policy", "Does not mention the policy"],
+    options: [
+      "Agrees with the policy",
+      "Disagrees with the policy",
+      "Is neutral about the policy",
+      "Does not mention the policy",
+    ],
     correctIndex: 1,
     explanation: "The author uses critical language and provides counterarguments.",
     createdAt: new Date().toISOString(),
@@ -295,7 +397,7 @@ export const sampleQuestions: (MockListeningQuestion | Omit<Question, "audio">)[
       "雨にもかかわらず、試合は行われた",
       "雨ににもかかわらず、試合は行われた",
       "雨をにもかかわらず、試合は行われた",
-      "雨でのにもかかわらず、試合は行われた"
+      "雨でのにもかかわらず、試合は行われた",
     ],
     correctIndex: 0,
     explanation: "にもかかわらず uses the dictionary form + にもかかわらず.",
@@ -308,7 +410,12 @@ export const sampleQuestions: (MockListeningQuestion | Omit<Question, "audio">)[
     type: "Reading",
     difficulty: "Hard",
     questionText: "What is the purpose of this business email?",
-    options: ["To request information", "To apologize", "To confirm a meeting", "To reject an offer"],
+    options: [
+      "To request information",
+      "To apologize",
+      "To confirm a meeting",
+      "To reject an offer",
+    ],
     correctIndex: 2,
     explanation: "The email is confirming the date and time of a scheduled meeting.",
     createdAt: new Date().toISOString(),
@@ -375,7 +482,12 @@ export const sampleQuestions: (MockListeningQuestion | Omit<Question, "audio">)[
     audioFileName: "academic_lecture.mp3",
     audioDuration: 180,
     questionText: "What is the professor's main argument?",
-    options: ["Technology improves education", "Traditional methods are better", "Balance is needed", "Change is unnecessary"],
+    options: [
+      "Technology improves education",
+      "Traditional methods are better",
+      "Balance is needed",
+      "Change is unnecessary",
+    ],
     correctIndex: 2,
     explanation: "The professor argues that a balanced approach is necessary.",
     createdAt: new Date().toISOString(),

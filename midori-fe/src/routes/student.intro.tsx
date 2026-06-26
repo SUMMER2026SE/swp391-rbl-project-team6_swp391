@@ -47,7 +47,9 @@ function StudentIntroPage() {
                 <span className="text-white font-bold text-lg">M</span>
               </div>
               <div>
-                <span className="font-display font-extrabold text-xl tracking-[0.1em] text-primary">MIDORI</span>
+                <span className="font-display font-extrabold text-xl tracking-[0.1em] text-primary">
+                  MIDORI
+                </span>
                 <span className="text-xs text-muted-foreground block -mt-1">Japanese Learning</span>
               </div>
             </Link>
@@ -84,7 +86,7 @@ function StudentIntroPage() {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-              Join thousands of learners mastering Japanese through our comprehensive program 
+              Join thousands of learners mastering Japanese through our comprehensive program
               designed by certified teachers from Japan.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -117,7 +119,8 @@ function StudentIntroPage() {
               What Our Teachers Say
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Hear from certified Japanese teachers about our comprehensive curriculum and teaching methodology.
+              Hear from certified Japanese teachers about our comprehensive curriculum and teaching
+              methodology.
             </p>
           </div>
 
@@ -130,9 +133,9 @@ function StudentIntroPage() {
                 ))}
               </div>
               <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                "Midori's curriculum follows the JF Standard for Japanese education, ensuring students 
-                develop practical communication skills from day one. The structured progression from 
-                Hiragana to advanced grammar is excellent."
+                "Midori's curriculum follows the JF Standard for Japanese education, ensuring
+                students develop practical communication skills from day one. The structured
+                progression from Hiragana to advanced grammar is excellent."
               </p>
               <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white font-bold">
@@ -140,7 +143,9 @@ function StudentIntroPage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-foreground">Yuki Kobayashi</h4>
-                  <p className="text-sm text-muted-foreground">JLPT N1 Certified • 12 years experience</p>
+                  <p className="text-sm text-muted-foreground">
+                    JLPT N1 Certified • 12 years experience
+                  </p>
                 </div>
               </div>
             </div>
@@ -153,9 +158,9 @@ function StudentIntroPage() {
                 ))}
               </div>
               <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                "The shadowing exercises with native speakers are incredibly effective. Students develop 
-                natural pronunciation and intonation. The AI-powered feedback system helps them improve 
-                faster than traditional methods."
+                "The shadowing exercises with native speakers are incredibly effective. Students
+                develop natural pronunciation and intonation. The AI-powered feedback system helps
+                them improve faster than traditional methods."
               </p>
               <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-white font-bold">
@@ -163,7 +168,9 @@ function StudentIntroPage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-foreground">Takeshi Suzuki</h4>
-                  <p className="text-sm text-muted-foreground">Native Speaker • Speech Therapy Background</p>
+                  <p className="text-sm text-muted-foreground">
+                    Native Speaker • Speech Therapy Background
+                  </p>
                 </div>
               </div>
             </div>
@@ -176,8 +183,8 @@ function StudentIntroPage() {
                 ))}
               </div>
               <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                "Vocabulary retention techniques used here are based on cognitive science research. 
-                The spaced repetition system combined with contextual learning ensures long-term 
+                "Vocabulary retention techniques used here are based on cognitive science research.
+                The spaced repetition system combined with contextual learning ensures long-term
                 retention. My students love the flashcard system."
               </p>
               <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
@@ -186,7 +193,9 @@ function StudentIntroPage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-foreground">Mei Hayashi</h4>
-                  <p className="text-sm text-muted-foreground">PhD in Linguistics • Curriculum Designer</p>
+                  <p className="text-sm text-muted-foreground">
+                    PhD in Linguistics • Curriculum Designer
+                  </p>
                 </div>
               </div>
             </div>
@@ -199,9 +208,9 @@ function StudentIntroPage() {
                 ))}
               </div>
               <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                "The listening exercises cover real-world Japanese conversations, not textbook Japanese. 
-                From train announcements to casual conversations, students build practical comprehension 
-                skills that prepare them for Japan."
+                "The listening exercises cover real-world Japanese conversations, not textbook
+                Japanese. From train announcements to casual conversations, students build practical
+                comprehension skills that prepare them for Japan."
               </p>
               <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-500 flex items-center justify-center text-white font-bold">
@@ -222,9 +231,9 @@ function StudentIntroPage() {
                 ))}
               </div>
               <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                "Reading practice with authentic Japanese texts, from simple tweets to newspaper articles, 
-                helps students understand different writing styles. The difficulty progression is 
-                perfectly calibrated."
+                "Reading practice with authentic Japanese texts, from simple tweets to newspaper
+                articles, helps students understand different writing styles. The difficulty
+                progression is perfectly calibrated."
               </p>
               <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold">
@@ -232,7 +241,9 @@ function StudentIntroPage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-foreground">Akiko Yamamoto</h4>
-                  <p className="text-sm text-muted-foreground">Literature Professor • N1 Examiner</p>
+                  <p className="text-sm text-muted-foreground">
+                    Literature Professor • N1 Examiner
+                  </p>
                 </div>
               </div>
             </div>
@@ -245,8 +256,8 @@ function StudentIntroPage() {
                 ))}
               </div>
               <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                "Kanji mastery is systematic here. Students learn components, patterns, and remember 
-                characters through stories. The writing practice with AI feedback accelerates the 
+                "Kanji mastery is systematic here. Students learn components, patterns, and remember
+                characters through stories. The writing practice with AI feedback accelerates the
                 learning curve significantly."
               </p>
               <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
@@ -255,7 +266,9 @@ function StudentIntroPage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-foreground">Rei Sato</h4>
-                  <p className="text-sm text-muted-foreground">Calligraphy Instructor • Kanji Expert</p>
+                  <p className="text-sm text-muted-foreground">
+                    Calligraphy Instructor • Kanji Expert
+                  </p>
                 </div>
               </div>
             </div>
@@ -280,13 +293,15 @@ function StudentIntroPage() {
               {
                 icon: BookText,
                 title: "Hiragana & Katakana",
-                description: "Master the two Japanese syllabaries with interactive exercises and mnemonics.",
+                description:
+                  "Master the two Japanese syllabaries with interactive exercises and mnemonics.",
                 color: "from-pink-500 to-rose-500",
               },
               {
                 icon: Volume2,
                 title: "Listening Comprehension",
-                description: "Train your ear with native speakers, from basic phrases to natural conversations.",
+                description:
+                  "Train your ear with native speakers, from basic phrases to natural conversations.",
                 color: "from-blue-500 to-cyan-500",
               },
               {
@@ -298,19 +313,22 @@ function StudentIntroPage() {
               {
                 icon: BookOpen,
                 title: "Reading Skills",
-                description: "Progress from simple texts to authentic Japanese literature and articles.",
+                description:
+                  "Progress from simple texts to authentic Japanese literature and articles.",
                 color: "from-emerald-500 to-teal-500",
               },
               {
                 icon: PenTool,
                 title: "Writing & Kanji",
-                description: "Learn to write Kanji characters with stroke order guidance and practice.",
+                description:
+                  "Learn to write Kanji characters with stroke order guidance and practice.",
                 color: "from-amber-500 to-orange-500",
               },
               {
                 icon: GraduationCap,
                 title: "Grammar & Vocabulary",
-                description: "Build a solid foundation with structured lessons and spaced repetition.",
+                description:
+                  "Build a solid foundation with structured lessons and spaced repetition.",
                 color: "from-indigo-500 to-violet-500",
               },
             ].map((feature, index) => (
@@ -321,7 +339,7 @@ function StudentIntroPage() {
                 <div
                   className={cn(
                     "w-12 h-12 rounded-xl bg-gradient-to-br p-3 mb-4 shadow-lg",
-                    feature.color
+                    feature.color,
                   )}
                 >
                   <feature.icon className="w-full h-full text-white" />
@@ -345,7 +363,8 @@ function StudentIntroPage() {
             Ready to Start Your Journey?
           </h2>
           <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
-            Join a class today and begin your path to Japanese fluency with guidance from certified teachers.
+            Join a class today and begin your path to Japanese fluency with guidance from certified
+            teachers.
           </p>
           <button
             onClick={handleJoinClass}

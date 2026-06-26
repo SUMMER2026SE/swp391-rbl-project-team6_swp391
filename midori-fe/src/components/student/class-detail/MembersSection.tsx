@@ -18,12 +18,16 @@ export function MembersSection({ classInfo }: MembersSectionProps) {
       <div className="space-y-4">
         {/* Teacher */}
         <div>
-          <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2">Teacher</h4>
+          <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2">
+            Teacher
+          </h4>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-xs">
               {classInfo.teacherAvatarInitials}
             </div>
-            <span className="text-xs font-bold text-foreground dark:text-white">{classInfo.teacher}</span>
+            <span className="text-xs font-bold text-foreground dark:text-white">
+              {classInfo.teacher}
+            </span>
           </div>
         </div>
 

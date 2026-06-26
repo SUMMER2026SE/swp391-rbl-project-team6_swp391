@@ -3,16 +3,32 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
-  BookOpen, GraduationCap, Headphones, Mic,
-  Plus, Search, Edit3, Trash2,
-  Upload, ArrowLeft as ArrowLeftIcon, Save, X,
-  Eye, Download, ChevronDown,
+  BookOpen,
+  GraduationCap,
+  Headphones,
+  Mic,
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  Upload,
+  ArrowLeft as ArrowLeftIcon,
+  Save,
+  X,
+  Eye,
+  Download,
+  ChevronDown,
 } from "lucide-react";
 import { useContentLibrary } from "@/services/contentLibraryService";
 import {
-  type JLPTLevel, type ContentSkill,
-  type VocabularyLesson, type GrammarLesson, type ListeningLesson, type ShadowingItem,
-  type VocabularyItem, type GrammarItem,
+  type JLPTLevel,
+  type ContentSkill,
+  type VocabularyLesson,
+  type GrammarLesson,
+  type ListeningLesson,
+  type ShadowingItem,
+  type VocabularyItem,
+  type GrammarItem,
   generateId,
 } from "@/mocks/contentLibraryMock";
 
@@ -20,11 +36,49 @@ export const Route = createFileRoute("/admin/content-library/$level/$skill/_inde
   component: SkillDetailPage,
 });
 
-const SKILL_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string; border: string; accent: string }> = {
-  vocabulary: { label: "Vocabulary", icon: BookOpen, color: "text-sakura", bg: "bg-sakura/15", border: "border-sakura/20", accent: "sakura" },
-  grammar: { label: "Grammar", icon: GraduationCap, color: "text-lavender", bg: "bg-lavender/15", border: "border-lavender/20", accent: "lavender" },
-  listening: { label: "Listening", icon: Headphones, color: "text-sky-blue", bg: "bg-sky-blue/15", border: "border-sky-blue/20", accent: "sky-blue" },
-  shadowing: { label: "Shadowing", icon: Mic, color: "text-jp-red", bg: "bg-jp-red/15", border: "border-jp-red/20", accent: "jp-red" },
+const SKILL_CONFIG: Record<
+  string,
+  {
+    label: string;
+    icon: React.ElementType;
+    color: string;
+    bg: string;
+    border: string;
+    accent: string;
+  }
+> = {
+  vocabulary: {
+    label: "Vocabulary",
+    icon: BookOpen,
+    color: "text-sakura",
+    bg: "bg-sakura/15",
+    border: "border-sakura/20",
+    accent: "sakura",
+  },
+  grammar: {
+    label: "Grammar",
+    icon: GraduationCap,
+    color: "text-lavender",
+    bg: "bg-lavender/15",
+    border: "border-lavender/20",
+    accent: "lavender",
+  },
+  listening: {
+    label: "Listening",
+    icon: Headphones,
+    color: "text-sky-blue",
+    bg: "bg-sky-blue/15",
+    border: "border-sky-blue/20",
+    accent: "sky-blue",
+  },
+  shadowing: {
+    label: "Shadowing",
+    icon: Mic,
+    color: "text-jp-red",
+    bg: "bg-jp-red/15",
+    border: "border-jp-red/20",
+    accent: "jp-red",
+  },
 };
 
 // Skill color helper - will be overridden in main page component
@@ -52,8 +106,18 @@ function StatusBadge({ status }: { status?: string }) {
 
 // ─── Modal Component (Match Question Bank) ───────────────────────────────────
 
-function Modal({ open, onClose, title, children, size = "lg" }: {
-  open: boolean; onClose: () => void; title: string; children: React.ReactNode; size?: "md" | "lg" | "xl" | "2xl";
+function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  size = "lg",
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  size?: "md" | "lg" | "xl" | "2xl";
 }) {
   if (!open) return null;
 
@@ -75,13 +139,14 @@ function Modal({ open, onClose, title, children, size = "lg" }: {
       >
         <div className="flex items-center justify-between px-6 py-4 border-b separator shrink-0">
           <h2 className="font-display font-bold text-primary-col text-base">{title}</h2>
-          <button onClick={onClose} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto min-h-0">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto min-h-0">{children}</div>
       </motion.div>
     </div>
   );
@@ -89,8 +154,18 @@ function Modal({ open, onClose, title, children, size = "lg" }: {
 
 // ─── Delete Confirmation (Match Question Bank AlertDialog) ─────────────────────
 
-function ConfirmDialog({ open, onClose, onConfirm, title, message }: {
-  open: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string;
+function ConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  message,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
 }) {
   if (!open) return null;
   return (
@@ -109,10 +184,16 @@ function ConfirmDialog({ open, onClose, onConfirm, title, message }: {
           <p className="text-secondary-col text-sm text-center">{message}</p>
         </div>
         <div className="flex gap-3 px-6 py-4 border-t separator">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+          >
             Cancel
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow-md hover:bg-red-600 transition">
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow-md hover:bg-red-600 transition"
+          >
             Delete
           </button>
         </div>
@@ -123,8 +204,14 @@ function ConfirmDialog({ open, onClose, onConfirm, title, message }: {
 
 // ─── Vocabulary Edit Form (Match Question Bank styles) ─────────────────────────
 
-function VocabEditForm({ lesson, onSave, onCancel }: {
-  lesson: VocabularyLesson; onSave: (data: Partial<VocabularyLesson>) => void; onCancel: () => void;
+function VocabEditForm({
+  lesson,
+  onSave,
+  onCancel,
+}: {
+  lesson: VocabularyLesson;
+  onSave: (data: Partial<VocabularyLesson>) => void;
+  onCancel: () => void;
 }) {
   const [form, setForm] = useState({
     lessonNumber: lesson.lessonNumber,
@@ -139,28 +226,30 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
   const addItem = () => {
     const newItem = {
       id: generateId("v"),
-      word: "", kanji: "", meaningVietnamese: "", meaningJapanese: "",
-      exampleSentence: "", audioUrl: "",
+      word: "",
+      kanji: "",
+      meaningVietnamese: "",
+      meaningJapanese: "",
+      exampleSentence: "",
+      audioUrl: "",
     };
-    setForm(f => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems(prev => new Set([...prev, newItem.id]));
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
   };
 
   const updateItem = (index: number, field: string, value: string) => {
-    setForm(f => {
-      const items = f.items.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      );
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
       return { ...f, items } as typeof f;
     });
   };
 
   const removeItem = (index: number) => {
-    setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -188,16 +277,34 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
           </div>
           <div className="grid grid-cols-[120px_1fr_180px] gap-4">
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
-              <input type="number" value={form.lessonNumber} onChange={e => setForm(f => ({ ...f, lessonNumber: +e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={1} />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer">
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
                 <option value="inactive">Inactive</option>
@@ -205,8 +312,14 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
             </div>
           </div>
           <div className="mt-4">
-            <label className="block text-xs font-medium text-secondary-col mb-1.5">Description</label>
-            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[100px]" />
+            <label className="block text-xs font-medium text-secondary-col mb-1.5">
+              Description
+            </label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[100px]"
+            />
           </div>
         </div>
 
@@ -214,19 +327,26 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Vocabulary Items</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.items.length} item{form.items.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.items.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No vocabulary items yet. Click "Add Item" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No vocabulary items yet. Click "Add Item" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.items.map((item, i) => {
                 const isExpanded = expandedItems.has(item.id);
                 return (
-                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Item Header */}
                     <button
                       type="button"
@@ -234,26 +354,37 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{item.kanji || item.word || "New Item"}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {item.kanji || item.word || "New Item"}
+                          </span>
                           {item.word && item.word !== item.kanji && (
                             <span className="text-xs text-muted-col ml-2">{item.word}</span>
                           )}
                         </div>
                         {item.meaningVietnamese && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— {item.meaningVietnamese}</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — {item.meaningVietnamese}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeItem(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -262,25 +393,58 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Word (Hiragana)</label>
-                            <input value={item.word} onChange={e => updateItem(i, "word", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Word" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Word (Hiragana)
+                            </label>
+                            <input
+                              value={item.word}
+                              onChange={(e) => updateItem(i, "word", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Word"
+                            />
                           </div>
                           <div>
                             <label className="block text-xs text-muted-col mb-1">Kanji</label>
-                            <input value={item.kanji} onChange={e => updateItem(i, "kanji", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Kanji" />
+                            <input
+                              value={item.kanji}
+                              onChange={(e) => updateItem(i, "kanji", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Kanji"
+                            />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Meaning (Vietnamese)</label>
-                          <input value={item.meaningVietnamese} onChange={e => updateItem(i, "meaningVietnamese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Meaning (Vietnamese)" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Meaning (Vietnamese)
+                          </label>
+                          <input
+                            value={item.meaningVietnamese}
+                            onChange={(e) => updateItem(i, "meaningVietnamese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Meaning (Vietnamese)"
+                          />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Meaning (Japanese)</label>
-                          <input value={item.meaningJapanese} onChange={e => updateItem(i, "meaningJapanese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Meaning (Japanese)" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Meaning (Japanese)
+                          </label>
+                          <input
+                            value={item.meaningJapanese}
+                            onChange={(e) => updateItem(i, "meaningJapanese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Meaning (Japanese)"
+                          />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Example Sentence</label>
-                          <input value={item.exampleSentence} onChange={e => updateItem(i, "exampleSentence", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Example sentence" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Example Sentence
+                          </label>
+                          <input
+                            value={item.exampleSentence}
+                            onChange={(e) => updateItem(i, "exampleSentence", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Example sentence"
+                          />
                         </div>
                       </div>
                     )}
@@ -292,7 +456,11 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
 
           {/* Add Item Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addItem} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Item
             </button>
           </div>
@@ -301,10 +469,17 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={handleSave} disabled={saving || !form.title.trim()} className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25">
+        <button
+          onClick={handleSave}
+          disabled={saving || !form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25"
+        >
           <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
@@ -314,8 +489,14 @@ function VocabEditForm({ lesson, onSave, onCancel }: {
 
 // ─── Grammar Edit Form ─────────────────────────────────────────────────────────
 
-function GrammarEditForm({ lesson, onSave, onCancel }: {
-  lesson: GrammarLesson; onSave: (data: Partial<GrammarLesson>) => void; onCancel: () => void;
+function GrammarEditForm({
+  lesson,
+  onSave,
+  onCancel,
+}: {
+  lesson: GrammarLesson;
+  onSave: (data: Partial<GrammarLesson>) => void;
+  onCancel: () => void;
 }) {
   const [form, setForm] = useState({
     lessonNumber: lesson.lessonNumber,
@@ -329,28 +510,30 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
   const addItem = () => {
     const newItem = {
       id: generateId("g"),
-      grammarPoint: "", meaningVietnamese: "", meaningJapanese: "",
-      explanation: "", exampleSentence: "", notes: "",
+      grammarPoint: "",
+      meaningVietnamese: "",
+      meaningJapanese: "",
+      explanation: "",
+      exampleSentence: "",
+      notes: "",
     };
-    setForm(f => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems(prev => new Set([...prev, newItem.id]));
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
   };
 
   const updateItem = (index: number, field: string, value: string) => {
-    setForm(f => {
-      const items = f.items.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      );
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
       return { ...f, items } as typeof f;
     });
   };
 
   const removeItem = (index: number) => {
-    setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -378,16 +561,34 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
           </div>
           <div className="grid grid-cols-[120px_1fr_180px] gap-4">
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
-              <input type="number" value={form.lessonNumber} onChange={e => setForm(f => ({ ...f, lessonNumber: +e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={1} />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer">
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
                 <option value="inactive">Inactive</option>
@@ -400,19 +601,26 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Grammar Points</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.items.length} point{form.items.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} point{form.items.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.items.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No grammar points yet. Click "Add Point" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No grammar points yet. Click "Add Point" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.items.map((item, i) => {
                 const isExpanded = expandedItems.has(item.id);
                 return (
-                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Item Header */}
                     <button
                       type="button"
@@ -420,23 +628,34 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{item.grammarPoint || "New Point"}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {item.grammarPoint || "New Point"}
+                          </span>
                         </div>
                         {item.meaningVietnamese && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— {item.meaningVietnamese}</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — {item.meaningVietnamese}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeItem(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -445,21 +664,45 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Grammar Point</label>
-                          <input value={item.grammarPoint} onChange={e => updateItem(i, "grammarPoint", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="e.g. 〜ます" />
+                          <input
+                            value={item.grammarPoint}
+                            onChange={(e) => updateItem(i, "grammarPoint", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="e.g. 〜ます"
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Meaning (Vietnamese)</label>
-                            <input value={item.meaningVietnamese} onChange={e => updateItem(i, "meaningVietnamese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Meaning" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Meaning (Vietnamese)
+                            </label>
+                            <input
+                              value={item.meaningVietnamese}
+                              onChange={(e) => updateItem(i, "meaningVietnamese", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Meaning"
+                            />
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Example Sentence</label>
-                            <input value={item.exampleSentence} onChange={e => updateItem(i, "exampleSentence", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Example" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Example Sentence
+                            </label>
+                            <input
+                              value={item.exampleSentence}
+                              onChange={(e) => updateItem(i, "exampleSentence", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Example"
+                            />
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Explanation</label>
-                          <input value={item.explanation} onChange={e => updateItem(i, "explanation", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Explanation" />
+                          <input
+                            value={item.explanation}
+                            onChange={(e) => updateItem(i, "explanation", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Explanation"
+                          />
                         </div>
                       </div>
                     )}
@@ -471,7 +714,11 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
 
           {/* Add Point Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addItem} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Point
             </button>
           </div>
@@ -480,10 +727,17 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={handleSave} disabled={saving || !form.title.trim()} className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25">
+        <button
+          onClick={handleSave}
+          disabled={saving || !form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25"
+        >
           <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
@@ -493,8 +747,14 @@ function GrammarEditForm({ lesson, onSave, onCancel }: {
 
 // ─── Listening Edit Form ───────────────────────────────────────────────────────
 
-function ListeningEditForm({ lesson, onSave, onCancel }: {
-  lesson: ListeningLesson; onSave: (data: Partial<ListeningLesson>) => void; onCancel: () => void;
+function ListeningEditForm({
+  lesson,
+  onSave,
+  onCancel,
+}: {
+  lesson: ListeningLesson;
+  onSave: (data: Partial<ListeningLesson>) => void;
+  onCancel: () => void;
 }) {
   const [form, setForm] = useState({
     lessonNumber: lesson.lessonNumber,
@@ -508,27 +768,29 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
   const addItem = () => {
     const newItem = {
       id: generateId("list"),
-      title: "", audioUrl: "", transcriptJapanese: "", translationVietnamese: "", questions: [],
+      title: "",
+      audioUrl: "",
+      transcriptJapanese: "",
+      translationVietnamese: "",
+      questions: [],
     };
-    setForm(f => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems(prev => new Set([...prev, newItem.id]));
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
   };
 
   const updateItem = (index: number, field: string, value: string) => {
-    setForm(f => {
-      const items = f.items.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      );
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
       return { ...f, items } as typeof f;
     });
   };
 
   const removeItem = (index: number) => {
-    setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -556,16 +818,34 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
           </div>
           <div className="grid grid-cols-[120px_1fr_180px] gap-4">
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
-              <input type="number" value={form.lessonNumber} onChange={e => setForm(f => ({ ...f, lessonNumber: +e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={1} />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer">
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
                 <option value="inactive">Inactive</option>
@@ -578,19 +858,26 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Listening Items</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.items.length} item{form.items.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.items.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No listening items yet. Click "Add Item" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No listening items yet. Click "Add Item" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.items.map((item, i) => {
                 const isExpanded = expandedItems.has(item.id);
                 return (
-                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Item Header */}
                     <button
                       type="button"
@@ -598,23 +885,34 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{item.title || "New Item"}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {item.title || "New Item"}
+                          </span>
                         </div>
                         {item.audioUrl && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— Audio attached</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — Audio attached
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeItem(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -623,13 +921,26 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Item Title</label>
-                          <input value={item.title} onChange={e => updateItem(i, "title", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Item title" />
+                          <input
+                            value={item.title}
+                            onChange={(e) => updateItem(i, "title", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Item title"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Upload Audio</label>
                           <div className="flex items-center gap-2">
-                            <input type="file" accept=".mp3,.wav,.m4a" className="hidden" id={`audio-upload-${item.id}`} />
-                            <label htmlFor={`audio-upload-${item.id}`} className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col cursor-pointer hover:bg-[var(--accent)] transition flex items-center gap-2">
+                            <input
+                              type="file"
+                              accept=".mp3,.wav,.m4a"
+                              className="hidden"
+                              id={`audio-upload-${item.id}`}
+                            />
+                            <label
+                              htmlFor={`audio-upload-${item.id}`}
+                              className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col cursor-pointer hover:bg-[var(--accent)] transition flex items-center gap-2"
+                            >
                               <Upload className="w-4 h-4" />
                               {item.audioUrl || "Choose file..."}
                             </label>
@@ -637,12 +948,26 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
                           <p className="text-xs text-muted-col mt-1">Supported: .mp3, .wav, .m4a</p>
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Japanese Transcript</label>
-                          <textarea value={item.transcriptJapanese} onChange={e => updateItem(i, "transcriptJapanese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]" placeholder="Japanese transcript" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Japanese Transcript
+                          </label>
+                          <textarea
+                            value={item.transcriptJapanese}
+                            onChange={(e) => updateItem(i, "transcriptJapanese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                            placeholder="Japanese transcript"
+                          />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
-                          <textarea value={item.translationVietnamese} onChange={e => updateItem(i, "translationVietnamese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]" placeholder="Vietnamese translation" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Vietnamese Translation
+                          </label>
+                          <textarea
+                            value={item.translationVietnamese}
+                            onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                            placeholder="Vietnamese translation"
+                          />
                         </div>
                       </div>
                     )}
@@ -654,7 +979,11 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
 
           {/* Add Item Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addItem} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Item
             </button>
           </div>
@@ -663,10 +992,17 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={handleSave} disabled={saving || !form.title.trim()} className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25">
+        <button
+          onClick={handleSave}
+          disabled={saving || !form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25"
+        >
           <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
@@ -676,8 +1012,14 @@ function ListeningEditForm({ lesson, onSave, onCancel }: {
 
 // ─── Shadowing Edit Form ─────────────────────────────────────────────────────
 
-function ShadowingEditForm({ item, onSave, onCancel }: {
-  item: ShadowingItem; onSave: (data: Partial<ShadowingItem>) => void; onCancel: () => void;
+function ShadowingEditForm({
+  item,
+  onSave,
+  onCancel,
+}: {
+  item: ShadowingItem;
+  onSave: (data: Partial<ShadowingItem>) => void;
+  onCancel: () => void;
 }) {
   const [form, setForm] = useState({
     title: item.title,
@@ -693,28 +1035,28 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
   const addSegment = () => {
     const newSeg = {
       id: generateId("seg"),
-      startTime: 0, endTime: 0,
-      japaneseText: "", vietnameseTranslation: "",
+      startTime: 0,
+      endTime: 0,
+      japaneseText: "",
+      vietnameseTranslation: "",
     };
-    setForm(f => ({ ...f, segments: [...f.segments, newSeg] }));
-    setExpandedSegs(prev => new Set([...prev, newSeg.id]));
+    setForm((f) => ({ ...f, segments: [...f.segments, newSeg] }));
+    setExpandedSegs((prev) => new Set([...prev, newSeg.id]));
   };
 
   const updateSegment = (index: number, field: string, value: string | number) => {
-    setForm(f => {
-      const segments = f.segments.map((seg, i) =>
-        i === index ? { ...seg, [field]: value } : seg
-      );
+    setForm((f) => {
+      const segments = f.segments.map((seg, i) => (i === index ? { ...seg, [field]: value } : seg));
       return { ...f, segments } as typeof f;
     });
   };
 
   const removeSegment = (index: number) => {
-    setForm(f => ({ ...f, segments: f.segments.filter((_, i) => i !== index) }));
+    setForm((f) => ({ ...f, segments: f.segments.filter((_, i) => i !== index) }));
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedSegs(prev => {
+    setExpandedSegs((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -743,16 +1085,32 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" />
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Video URL</label>
-              <input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Video URL
+              </label>
+              <input
+                value={form.videoUrl}
+                onChange={(e) => setForm((f) => ({ ...f, videoUrl: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+              />
             </div>
           </div>
           <div className="mt-4">
-            <label className="block text-xs font-medium text-secondary-col mb-1.5">Japanese Transcript</label>
-            <textarea value={form.transcriptJapanese} onChange={e => setForm(f => ({ ...f, transcriptJapanese: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]" />
+            <label className="block text-xs font-medium text-secondary-col mb-1.5">
+              Japanese Transcript
+            </label>
+            <textarea
+              value={form.transcriptJapanese}
+              onChange={(e) => setForm((f) => ({ ...f, transcriptJapanese: e.target.value }))}
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+            />
           </div>
         </div>
 
@@ -760,19 +1118,26 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Segments</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.segments.length} segment{form.segments.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.segments.length} segment{form.segments.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.segments.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No segments yet. Click "Add Segment" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No segments yet. Click "Add Segment" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.segments.map((seg, i) => {
                 const isExpanded = expandedSegs.has(seg.id);
                 return (
-                  <div key={seg.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={seg.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Segment Header */}
                     <button
                       type="button"
@@ -780,12 +1145,18 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{seg.japaneseText || "New Segment"}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {seg.japaneseText || "New Segment"}
+                          </span>
                         </div>
                         {seg.vietnameseTranslation && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— {seg.vietnameseTranslation}</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — {seg.vietnameseTranslation}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -794,12 +1165,17 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
                         </span>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeSegment(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSegment(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -808,22 +1184,54 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Japanese Text</label>
-                            <input value={seg.japaneseText} onChange={e => updateSegment(i, "japaneseText", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Japanese text" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Japanese Text
+                            </label>
+                            <input
+                              value={seg.japaneseText}
+                              onChange={(e) => updateSegment(i, "japaneseText", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Japanese text"
+                            />
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
-                            <input value={seg.vietnameseTranslation} onChange={e => updateSegment(i, "vietnameseTranslation", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Vietnamese" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Vietnamese Translation
+                            </label>
+                            <input
+                              value={seg.vietnameseTranslation}
+                              onChange={(e) =>
+                                updateSegment(i, "vietnameseTranslation", e.target.value)
+                              }
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Vietnamese"
+                            />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Start Time (s)</label>
-                            <input type="number" value={seg.startTime} onChange={e => updateSegment(i, "startTime", +e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={0} />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Start Time (s)
+                            </label>
+                            <input
+                              type="number"
+                              value={seg.startTime}
+                              onChange={(e) => updateSegment(i, "startTime", +e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              min={0}
+                            />
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">End Time (s)</label>
-                            <input type="number" value={seg.endTime} onChange={e => updateSegment(i, "endTime", +e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={0} />
+                            <label className="block text-xs text-muted-col mb-1">
+                              End Time (s)
+                            </label>
+                            <input
+                              type="number"
+                              value={seg.endTime}
+                              onChange={(e) => updateSegment(i, "endTime", +e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              min={0}
+                            />
                           </div>
                         </div>
                       </div>
@@ -836,7 +1244,11 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
 
           {/* Add Segment Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addSegment} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/10 transition text-sm font-medium">
+            <button
+              onClick={addSegment}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Segment
             </button>
           </div>
@@ -845,10 +1257,17 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={handleSave} disabled={saving || !form.title.trim()} className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25">
+        <button
+          onClick={handleSave}
+          disabled={saving || !form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25"
+        >
           <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
@@ -858,35 +1277,62 @@ function ShadowingEditForm({ item, onSave, onCancel }: {
 
 // ─── Create Lesson Forms ──────────────────────────────────────────────────────
 
-function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<VocabularyLesson>) => void; onCancel: () => void }) {
+function VocabLessonForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (data: Partial<VocabularyLesson>) => void;
+  onCancel: () => void;
+}) {
   const [form, setForm] = useState({
-    lessonNumber: 1, title: "", description: "", status: "active",
-    items: [{ id: generateId("v"), word: "", kanji: "", meaningVietnamese: "", meaningJapanese: "", exampleSentence: "", audioUrl: "" }],
+    lessonNumber: 1,
+    title: "",
+    description: "",
+    status: "active",
+    items: [
+      {
+        id: generateId("v"),
+        word: "",
+        kanji: "",
+        meaningVietnamese: "",
+        meaningJapanese: "",
+        exampleSentence: "",
+        audioUrl: "",
+      },
+    ],
   });
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const updateItem = (index: number, field: string, value: string) => {
-    setForm(f => {
-      const items = f.items.map((item, i) => i === index ? { ...item, [field]: value } : item);
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
       return { ...f, items } as typeof f;
     });
   };
 
   const addItem = () => {
-    const newItem = { id: generateId("v"), word: "", kanji: "", meaningVietnamese: "", meaningJapanese: "", exampleSentence: "", audioUrl: "" };
-    setForm(f => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems(prev => new Set([...prev, newItem.id]));
+    const newItem = {
+      id: generateId("v"),
+      word: "",
+      kanji: "",
+      meaningVietnamese: "",
+      meaningJapanese: "",
+      exampleSentence: "",
+      audioUrl: "",
+    };
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
   };
 
   const removeItem = (index: number) => {
-    setForm(f => {
+    setForm((f) => {
       const newItems = f.items.filter((_, i) => i !== index);
       return { ...f, items: newItems };
     });
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -906,24 +1352,50 @@ function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Vocabula
           </div>
           <div className="grid grid-cols-[120px_1fr_180px] gap-4">
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
-              <input type="number" value={form.lessonNumber} onChange={e => setForm(f => ({ ...f, lessonNumber: +e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={1} />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Enter lesson title" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter lesson title"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer">
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
               </select>
             </div>
           </div>
           <div className="mt-4">
-            <label className="block text-xs font-medium text-secondary-col mb-1.5">Description</label>
-            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]" placeholder="Describe lesson objectives, content overview, and learning outcomes..." />
+            <label className="block text-xs font-medium text-secondary-col mb-1.5">
+              Description
+            </label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]"
+              placeholder="Describe lesson objectives, content overview, and learning outcomes..."
+            />
           </div>
         </div>
 
@@ -931,19 +1403,26 @@ function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Vocabula
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Vocabulary Items</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.items.length} item{form.items.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.items.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No vocabulary items yet. Click "Add Item" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No vocabulary items yet. Click "Add Item" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.items.map((item, i) => {
                 const isExpanded = expandedItems.has(item.id);
                 return (
-                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Item Header */}
                     <button
                       type="button"
@@ -951,24 +1430,37 @@ function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Vocabula
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{item.kanji || item.word || "New Item"}</span>
-                          <span className="text-xs text-muted-col ml-2">{item.word && item.word !== item.kanji ? item.word : ""}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {item.kanji || item.word || "New Item"}
+                          </span>
+                          <span className="text-xs text-muted-col ml-2">
+                            {item.word && item.word !== item.kanji ? item.word : ""}
+                          </span>
                         </div>
                         {item.meaningVietnamese && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— {item.meaningVietnamese}</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — {item.meaningVietnamese}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeItem(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -977,21 +1469,47 @@ function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Vocabula
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Word (Hiragana)</label>
-                            <input value={item.word} onChange={e => updateItem(i, "word", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Word" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Word (Hiragana)
+                            </label>
+                            <input
+                              value={item.word}
+                              onChange={(e) => updateItem(i, "word", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Word"
+                            />
                           </div>
                           <div>
                             <label className="block text-xs text-muted-col mb-1">Kanji</label>
-                            <input value={item.kanji} onChange={e => updateItem(i, "kanji", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Kanji" />
+                            <input
+                              value={item.kanji}
+                              onChange={(e) => updateItem(i, "kanji", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Kanji"
+                            />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Meaning (Vietnamese)</label>
-                          <input value={item.meaningVietnamese} onChange={e => updateItem(i, "meaningVietnamese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Meaning (Vietnamese)" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Meaning (Vietnamese)
+                          </label>
+                          <input
+                            value={item.meaningVietnamese}
+                            onChange={(e) => updateItem(i, "meaningVietnamese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Meaning (Vietnamese)"
+                          />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Example Sentence</label>
-                          <input value={item.exampleSentence} onChange={e => updateItem(i, "exampleSentence", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Example sentence" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Example Sentence
+                          </label>
+                          <input
+                            value={item.exampleSentence}
+                            onChange={(e) => updateItem(i, "exampleSentence", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Example sentence"
+                          />
                         </div>
                       </div>
                     )}
@@ -1003,7 +1521,11 @@ function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Vocabula
 
           {/* Add Item Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addItem} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Item
             </button>
           </div>
@@ -1012,10 +1534,17 @@ function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Vocabula
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={() => onSave(form)} disabled={!form.title.trim()} className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40">
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+        >
           Create Lesson
         </button>
       </div>
@@ -1023,32 +1552,58 @@ function VocabLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Vocabula
   );
 }
 
-function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<GrammarLesson>) => void; onCancel: () => void }) {
+function GrammarLessonForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (data: Partial<GrammarLesson>) => void;
+  onCancel: () => void;
+}) {
   const [form, setForm] = useState({
-    lessonNumber: 1, title: "", status: "active",
-    items: [{ id: generateId("g"), grammarPoint: "", meaningVietnamese: "", meaningJapanese: "", explanation: "", exampleSentence: "", notes: "" }],
+    lessonNumber: 1,
+    title: "",
+    status: "active",
+    items: [
+      {
+        id: generateId("g"),
+        grammarPoint: "",
+        meaningVietnamese: "",
+        meaningJapanese: "",
+        explanation: "",
+        exampleSentence: "",
+        notes: "",
+      },
+    ],
   });
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const updateItem = (index: number, field: string, value: string) => {
-    setForm(f => {
-      const items = f.items.map((item, i) => i === index ? { ...item, [field]: value } : item);
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
       return { ...f, items } as typeof f;
     });
   };
 
   const addItem = () => {
-    const newItem = { id: generateId("g"), grammarPoint: "", meaningVietnamese: "", meaningJapanese: "", explanation: "", exampleSentence: "", notes: "" };
-    setForm(f => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems(prev => new Set([...prev, newItem.id]));
+    const newItem = {
+      id: generateId("g"),
+      grammarPoint: "",
+      meaningVietnamese: "",
+      meaningJapanese: "",
+      explanation: "",
+      exampleSentence: "",
+      notes: "",
+    };
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
   };
 
   const removeItem = (index: number) => {
-    setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -1068,16 +1623,35 @@ function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Gramma
           </div>
           <div className="grid grid-cols-[120px_1fr_180px] gap-4">
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
-              <input type="number" value={form.lessonNumber} onChange={e => setForm(f => ({ ...f, lessonNumber: +e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={1} />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Enter lesson title" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter lesson title"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer">
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
               </select>
@@ -1089,19 +1663,26 @@ function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Gramma
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Grammar Points</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.items.length} point{form.items.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} point{form.items.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.items.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No grammar points yet. Click "Add Point" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No grammar points yet. Click "Add Point" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.items.map((item, i) => {
                 const isExpanded = expandedItems.has(item.id);
                 return (
-                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Item Header */}
                     <button
                       type="button"
@@ -1109,23 +1690,34 @@ function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Gramma
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{item.grammarPoint || "New Point"}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {item.grammarPoint || "New Point"}
+                          </span>
                         </div>
                         {item.meaningVietnamese && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— {item.meaningVietnamese}</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — {item.meaningVietnamese}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeItem(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -1134,21 +1726,45 @@ function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Gramma
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Grammar Point</label>
-                          <input value={item.grammarPoint} onChange={e => updateItem(i, "grammarPoint", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="e.g. 〜ます" />
+                          <input
+                            value={item.grammarPoint}
+                            onChange={(e) => updateItem(i, "grammarPoint", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="e.g. 〜ます"
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Meaning (Vietnamese)</label>
-                            <input value={item.meaningVietnamese} onChange={e => updateItem(i, "meaningVietnamese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Meaning" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Meaning (Vietnamese)
+                            </label>
+                            <input
+                              value={item.meaningVietnamese}
+                              onChange={(e) => updateItem(i, "meaningVietnamese", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Meaning"
+                            />
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Example Sentence</label>
-                            <input value={item.exampleSentence} onChange={e => updateItem(i, "exampleSentence", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Example" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Example Sentence
+                            </label>
+                            <input
+                              value={item.exampleSentence}
+                              onChange={(e) => updateItem(i, "exampleSentence", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Example"
+                            />
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Explanation</label>
-                          <input value={item.explanation} onChange={e => updateItem(i, "explanation", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Explanation" />
+                          <input
+                            value={item.explanation}
+                            onChange={(e) => updateItem(i, "explanation", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Explanation"
+                          />
                         </div>
                       </div>
                     )}
@@ -1160,7 +1776,11 @@ function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Gramma
 
           {/* Add Point Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addItem} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Point
             </button>
           </div>
@@ -1169,10 +1789,17 @@ function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Gramma
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={() => onSave(form)} disabled={!form.title.trim()} className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40">
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+        >
           Create Lesson
         </button>
       </div>
@@ -1180,32 +1807,56 @@ function GrammarLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Gramma
   );
 }
 
-function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<ListeningLesson>) => void; onCancel: () => void }) {
+function ListeningLessonForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (data: Partial<ListeningLesson>) => void;
+  onCancel: () => void;
+}) {
   const [form, setForm] = useState({
-    lessonNumber: 1, title: "", status: "active",
-    items: [{ id: generateId("list"), title: "", audioUrl: "", transcriptJapanese: "", translationVietnamese: "", questions: [] }],
+    lessonNumber: 1,
+    title: "",
+    status: "active",
+    items: [
+      {
+        id: generateId("list"),
+        title: "",
+        audioUrl: "",
+        transcriptJapanese: "",
+        translationVietnamese: "",
+        questions: [],
+      },
+    ],
   });
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const updateItem = (index: number, field: string, value: string) => {
-    setForm(f => {
-      const items = f.items.map((item, i) => i === index ? { ...item, [field]: value } : item);
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
       return { ...f, items } as typeof f;
     });
   };
 
   const addItem = () => {
-    const newItem = { id: generateId("list"), title: "", audioUrl: "", transcriptJapanese: "", translationVietnamese: "", questions: [] };
-    setForm(f => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems(prev => new Set([...prev, newItem.id]));
+    const newItem = {
+      id: generateId("list"),
+      title: "",
+      audioUrl: "",
+      transcriptJapanese: "",
+      translationVietnamese: "",
+      questions: [],
+    };
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
   };
 
   const removeItem = (index: number) => {
-    setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -1225,16 +1876,35 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
           </div>
           <div className="grid grid-cols-[120px_1fr_180px] gap-4">
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
-              <input type="number" value={form.lessonNumber} onChange={e => setForm(f => ({ ...f, lessonNumber: +e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={1} />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Enter lesson title" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter lesson title"
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer">
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
               </select>
@@ -1246,19 +1916,26 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Listening Items</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.items.length} item{form.items.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.items.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No listening items yet. Click "Add Item" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No listening items yet. Click "Add Item" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.items.map((item, i) => {
                 const isExpanded = expandedItems.has(item.id);
                 return (
-                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Item Header */}
                     <button
                       type="button"
@@ -1266,23 +1943,34 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{item.title || "New Item"}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {item.title || "New Item"}
+                          </span>
                         </div>
                         {item.audioUrl && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— Audio attached</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — Audio attached
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeItem(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -1291,13 +1979,26 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Item Title</label>
-                          <input value={item.title} onChange={e => updateItem(i, "title", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Item title" />
+                          <input
+                            value={item.title}
+                            onChange={(e) => updateItem(i, "title", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Item title"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs text-muted-col mb-1">Upload Audio</label>
                           <div className="flex items-center gap-2">
-                            <input type="file" accept=".mp3,.wav,.m4a" className="hidden" id={`create-audio-${i}`} />
-                            <label htmlFor={`create-audio-${i}`} className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col cursor-pointer hover:bg-[var(--accent)] transition flex items-center gap-2">
+                            <input
+                              type="file"
+                              accept=".mp3,.wav,.m4a"
+                              className="hidden"
+                              id={`create-audio-${i}`}
+                            />
+                            <label
+                              htmlFor={`create-audio-${i}`}
+                              className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col cursor-pointer hover:bg-[var(--accent)] transition flex items-center gap-2"
+                            >
                               <Upload className="w-4 h-4" />
                               {item.audioUrl || "Choose file..."}
                             </label>
@@ -1305,8 +2006,15 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
                           <p className="text-xs text-muted-col mt-1">Supported: .mp3, .wav, .m4a</p>
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Japanese Transcript</label>
-                          <textarea value={item.transcriptJapanese} onChange={e => updateItem(i, "transcriptJapanese", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]" placeholder="Japanese transcript" />
+                          <label className="block text-xs text-muted-col mb-1">
+                            Japanese Transcript
+                          </label>
+                          <textarea
+                            value={item.transcriptJapanese}
+                            onChange={(e) => updateItem(i, "transcriptJapanese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                            placeholder="Japanese transcript"
+                          />
                         </div>
                       </div>
                     )}
@@ -1318,7 +2026,11 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
 
           {/* Add Item Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addItem} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Item
             </button>
           </div>
@@ -1327,10 +2039,17 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={() => onSave(form)} disabled={!form.title.trim()} className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40">
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+        >
           Create Lesson
         </button>
       </div>
@@ -1338,33 +2057,56 @@ function ListeningLessonForm({ onSave, onCancel }: { onSave: (data: Partial<List
   );
 }
 
-function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<ShadowingItem>) => void; onCancel: () => void }) {
+function ShadowingLessonForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (data: Partial<ShadowingItem>) => void;
+  onCancel: () => void;
+}) {
   const [form, setForm] = useState({
-    title: "", videoUrl: "", thumbnailUrl: "",
-    transcriptJapanese: "", translationVietnamese: "",
-    segments: [{ id: generateId("seg"), startTime: 0, endTime: 0, japaneseText: "", vietnameseTranslation: "" }],
+    title: "",
+    videoUrl: "",
+    thumbnailUrl: "",
+    transcriptJapanese: "",
+    translationVietnamese: "",
+    segments: [
+      {
+        id: generateId("seg"),
+        startTime: 0,
+        endTime: 0,
+        japaneseText: "",
+        vietnameseTranslation: "",
+      },
+    ],
   });
   const [expandedSegs, setExpandedSegs] = useState<Set<string>>(new Set());
 
   const updateSegment = (index: number, field: string, value: string | number) => {
-    setForm(f => {
-      const segments = f.segments.map((seg, i) => i === index ? { ...seg, [field]: value } : seg);
+    setForm((f) => {
+      const segments = f.segments.map((seg, i) => (i === index ? { ...seg, [field]: value } : seg));
       return { ...f, segments } as typeof f;
     });
   };
 
   const addSegment = () => {
-    const newSeg = { id: generateId("seg"), startTime: 0, endTime: 0, japaneseText: "", vietnameseTranslation: "" };
-    setForm(f => ({ ...f, segments: [...f.segments, newSeg] }));
-    setExpandedSegs(prev => new Set([...prev, newSeg.id]));
+    const newSeg = {
+      id: generateId("seg"),
+      startTime: 0,
+      endTime: 0,
+      japaneseText: "",
+      vietnameseTranslation: "",
+    };
+    setForm((f) => ({ ...f, segments: [...f.segments, newSeg] }));
+    setExpandedSegs((prev) => new Set([...prev, newSeg.id]));
   };
 
   const removeSegment = (index: number) => {
-    setForm(f => ({ ...f, segments: f.segments.filter((_, i) => i !== index) }));
+    setForm((f) => ({ ...f, segments: f.segments.filter((_, i) => i !== index) }));
   };
 
   const toggleExpand = (id: string) => {
-    setExpandedSegs(prev => {
+    setExpandedSegs((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -1385,15 +2127,34 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Enter title" />
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter title"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Video URL</label>
-              <input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Video URL" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Video URL
+              </label>
+              <input
+                value={form.videoUrl}
+                onChange={(e) => setForm((f) => ({ ...f, videoUrl: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Video URL"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Thumbnail URL</label>
-              <input value={form.thumbnailUrl} onChange={e => setForm(f => ({ ...f, thumbnailUrl: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Thumbnail URL" />
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Thumbnail URL
+              </label>
+              <input
+                value={form.thumbnailUrl}
+                onChange={(e) => setForm((f) => ({ ...f, thumbnailUrl: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Thumbnail URL"
+              />
             </div>
           </div>
         </div>
@@ -1402,19 +2163,26 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-primary-col">Segments</h3>
-            <p className="text-xs text-muted-col mt-0.5">{form.segments.length} segment{form.segments.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.segments.length} segment{form.segments.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           {form.segments.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-muted-col">No segments yet. Click "Add Segment" below to add one.</p>
+              <p className="text-sm text-muted-col">
+                No segments yet. Click "Add Segment" below to add one.
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
               {form.segments.map((seg, i) => {
                 const isExpanded = expandedSegs.has(seg.id);
                 return (
-                  <div key={seg.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                  <div
+                    key={seg.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
                     {/* Segment Header */}
                     <button
                       type="button"
@@ -1422,12 +2190,18 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
                         <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">{seg.japaneseText || "New Segment"}</span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {seg.japaneseText || "New Segment"}
+                          </span>
                         </div>
                         {seg.vietnameseTranslation && (
-                          <span className="text-xs text-muted-col hidden sm:inline">— {seg.vietnameseTranslation}</span>
+                          <span className="text-xs text-muted-col hidden sm:inline">
+                            — {seg.vietnameseTranslation}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -1436,12 +2210,17 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
                         </span>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); removeSegment(i); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSegment(i);
+                          }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                        <ChevronDown className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </div>
                     </button>
 
@@ -1450,22 +2229,54 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Japanese Text</label>
-                            <input value={seg.japaneseText} onChange={e => updateSegment(i, "japaneseText", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Japanese text" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Japanese Text
+                            </label>
+                            <input
+                              value={seg.japaneseText}
+                              onChange={(e) => updateSegment(i, "japaneseText", e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Japanese text"
+                            />
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
-                            <input value={seg.vietnameseTranslation} onChange={e => updateSegment(i, "vietnameseTranslation", e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" placeholder="Vietnamese" />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Vietnamese Translation
+                            </label>
+                            <input
+                              value={seg.vietnameseTranslation}
+                              onChange={(e) =>
+                                updateSegment(i, "vietnameseTranslation", e.target.value)
+                              }
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              placeholder="Vietnamese"
+                            />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">Start Time (s)</label>
-                            <input type="number" value={seg.startTime} onChange={e => updateSegment(i, "startTime", +e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={0} />
+                            <label className="block text-xs text-muted-col mb-1">
+                              Start Time (s)
+                            </label>
+                            <input
+                              type="number"
+                              value={seg.startTime}
+                              onChange={(e) => updateSegment(i, "startTime", +e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              min={0}
+                            />
                           </div>
                           <div>
-                            <label className="block text-xs text-muted-col mb-1">End Time (s)</label>
-                            <input type="number" value={seg.endTime} onChange={e => updateSegment(i, "endTime", +e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition" min={0} />
+                            <label className="block text-xs text-muted-col mb-1">
+                              End Time (s)
+                            </label>
+                            <input
+                              type="number"
+                              value={seg.endTime}
+                              onChange={(e) => updateSegment(i, "endTime", +e.target.value)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                              min={0}
+                            />
                           </div>
                         </div>
                       </div>
@@ -1478,7 +2289,11 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
 
           {/* Add Segment Button - At Bottom */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button onClick={addSegment} type="button" className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/10 transition text-sm font-medium">
+            <button
+              onClick={addSegment}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-[oklch(0.62_0.18_270)] hover:bg-[oklch(0.62_0.18_270)]/10 transition text-sm font-medium"
+            >
               <Plus className="w-4 h-4" /> Add Segment
             </button>
           </div>
@@ -1487,10 +2302,17 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
 
       {/* Footer */}
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button onClick={onCancel} className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
           Cancel
         </button>
-        <button onClick={() => onSave(form)} disabled={!form.title.trim() || !form.videoUrl.trim()} className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40">
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.title.trim() || !form.videoUrl.trim()}
+          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+        >
           Create Lesson
         </button>
       </div>
@@ -1500,8 +2322,18 @@ function ShadowingLessonForm({ onSave, onCancel }: { onSave: (data: Partial<Shad
 
 // ─── Excel Import Modal (Match Question Bank) ─────────────────────────────────
 
-function ExcelImportModal({ skill, level, onClose, onImport }: {
-  skill: string; level: JLPTLevel; onClose: () => void; onImport: (data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>) => void;
+function ExcelImportModal({
+  skill,
+  level,
+  onClose,
+  onImport,
+}: {
+  skill: string;
+  level: JLPTLevel;
+  onClose: () => void;
+  onImport: (
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+  ) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -1519,20 +2351,86 @@ function ExcelImportModal({ skill, level, onClose, onImport }: {
   const getTemplateColumns = () => {
     const templates: Record<string, { columns: string[]; example: string[] }> = {
       vocabulary: {
-        columns: ["Lesson Number", "Lesson Title", "Word", "Kanji", "Meaning Vietnamese", "Meaning Japanese", "Example Sentence", "Audio"],
-        example: ["1", "Greetings", "こんにちは", "今日", "Xin chào", "こんにちは", "こんにちは、元気ですか", "greeting.mp3"],
+        columns: [
+          "Lesson Number",
+          "Lesson Title",
+          "Word",
+          "Kanji",
+          "Meaning Vietnamese",
+          "Meaning Japanese",
+          "Example Sentence",
+          "Audio",
+        ],
+        example: [
+          "1",
+          "Greetings",
+          "こんにちは",
+          "今日",
+          "Xin chào",
+          "こんにちは",
+          "こんにちは、元気ですか",
+          "greeting.mp3",
+        ],
       },
       grammar: {
-        columns: ["Lesson Number", "Lesson Title", "Grammar Point", "Meaning", "Explanation", "Example Sentence", "Notes"],
-        example: ["1", "Potential Form", "〜ことができる", "Can do", "Express ability", "日本語を話すことができます", "N5 Grammar"],
+        columns: [
+          "Lesson Number",
+          "Lesson Title",
+          "Grammar Point",
+          "Meaning",
+          "Explanation",
+          "Example Sentence",
+          "Notes",
+        ],
+        example: [
+          "1",
+          "Potential Form",
+          "〜ことができる",
+          "Can do",
+          "Express ability",
+          "日本語を話すことができます",
+          "N5 Grammar",
+        ],
       },
       listening: {
-        columns: ["Lesson Number", "Lesson Title", "Audio File Name", "Transcript Japanese", "Translation Vietnamese", "Question", "Correct Answer"],
-        example: ["1", "Daily Conversation", "daily01.mp3", "おはようございます", "Chào buổi sáng", "What did the speaker say?", "Good Morning"],
+        columns: [
+          "Lesson Number",
+          "Lesson Title",
+          "Audio File Name",
+          "Transcript Japanese",
+          "Translation Vietnamese",
+          "Question",
+          "Correct Answer",
+        ],
+        example: [
+          "1",
+          "Daily Conversation",
+          "daily01.mp3",
+          "おはようございます",
+          "Chào buổi sáng",
+          "What did the speaker say?",
+          "Good Morning",
+        ],
       },
       shadowing: {
-        columns: ["Lesson Number", "Lesson Title", "Video URL", "Japanese Script", "Vietnamese Translation", "Segment Start", "Segment End"],
-        example: ["1", "Shadowing Basic", "youtube.com/...", "おはようございます", "Chào buổi sáng", "00:05", "00:10"],
+        columns: [
+          "Lesson Number",
+          "Lesson Title",
+          "Video URL",
+          "Japanese Script",
+          "Vietnamese Translation",
+          "Segment Start",
+          "Segment End",
+        ],
+        example: [
+          "1",
+          "Shadowing Basic",
+          "youtube.com/...",
+          "おはようございます",
+          "Chào buổi sáng",
+          "00:05",
+          "00:10",
+        ],
       },
     };
     return templates[skill] || templates.vocabulary;
@@ -1540,10 +2438,7 @@ function ExcelImportModal({ skill, level, onClose, onImport }: {
 
   const handleDownloadTemplate = () => {
     const template = getTemplateColumns();
-    const csvContent = [
-      template.columns.join(","),
-      template.example.join(","),
-    ].join("\n");
+    const csvContent = [template.columns.join(","), template.example.join(",")].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -1560,11 +2455,38 @@ function ExcelImportModal({ skill, level, onClose, onImport }: {
     if (!file) return;
     setImporting(true);
     setTimeout(() => {
-      const mockData: Record<string, Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>> = {
-        vocabulary: { id: generateId("vocab"), lessonNumber: 99, title: `Imported ${skill} lesson`, status: "active", items: [] },
-        grammar: { id: generateId("gram"), lessonNumber: 99, title: `Imported ${skill} lesson`, status: "active", items: [] },
-        listening: { id: generateId("list"), lessonNumber: 99, title: `Imported ${skill} lesson`, status: "active", items: [] },
-        shadowing: { id: generateId("shadow"), title: `Imported ${skill} lesson`, videoUrl: "", thumbnailUrl: "", segments: [] },
+      const mockData: Record<
+        string,
+        Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>
+      > = {
+        vocabulary: {
+          id: generateId("vocab"),
+          lessonNumber: 99,
+          title: `Imported ${skill} lesson`,
+          status: "active",
+          items: [],
+        },
+        grammar: {
+          id: generateId("gram"),
+          lessonNumber: 99,
+          title: `Imported ${skill} lesson`,
+          status: "active",
+          items: [],
+        },
+        listening: {
+          id: generateId("list"),
+          lessonNumber: 99,
+          title: `Imported ${skill} lesson`,
+          status: "active",
+          items: [],
+        },
+        shadowing: {
+          id: generateId("shadow"),
+          title: `Imported ${skill} lesson`,
+          videoUrl: "",
+          thumbnailUrl: "",
+          segments: [],
+        },
       };
       onImport(mockData[skill] || mockData.vocabulary);
       setImporting(false);
@@ -1580,7 +2502,9 @@ function ExcelImportModal({ skill, level, onClose, onImport }: {
         <div className="flex items-center justify-between">
           <div>
             <h4 className="text-sm font-medium text-primary-col">Excel Template</h4>
-            <p className="text-xs text-muted-col mt-1">Download the template with required columns</p>
+            <p className="text-xs text-muted-col mt-1">
+              Download the template with required columns
+            </p>
           </div>
           <button
             onClick={handleDownloadTemplate}
@@ -1599,19 +2523,37 @@ function ExcelImportModal({ skill, level, onClose, onImport }: {
       {/* File Upload */}
       <div className="border-2 border-dashed border-[var(--border)] rounded-xl p-8 text-center">
         <Upload className="w-10 h-10 mx-auto text-muted-col mb-3" />
-        <p className="text-sm text-secondary-col mb-2">Drop your Excel file here or click to browse</p>
-        <input type="file" accept=".xlsx,.xls,.csv" onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" id="excel-upload" />
-        <label htmlFor="excel-upload" className="inline-block px-4 py-2 text-sm rounded-xl border border-[var(--border)] text-secondary-col hover:bg-[var(--accent)] cursor-pointer transition">
+        <p className="text-sm text-secondary-col mb-2">
+          Drop your Excel file here or click to browse
+        </p>
+        <input
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          className="hidden"
+          id="excel-upload"
+        />
+        <label
+          htmlFor="excel-upload"
+          className="inline-block px-4 py-2 text-sm rounded-xl border border-[var(--border)] text-secondary-col hover:bg-[var(--accent)] cursor-pointer transition"
+        >
           Select File
         </label>
         {file && <p className="mt-2 text-sm text-primary-col">{file.name}</p>}
       </div>
 
       <div className="flex gap-3 pt-4 border-t border-[var(--border)]">
-        <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition flex items-center justify-center">
+        <button
+          onClick={onClose}
+          className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition flex items-center justify-center"
+        >
           Cancel
         </button>
-        <button onClick={handleImport} disabled={!file || importing} className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center justify-center disabled:opacity-40">
+        <button
+          onClick={handleImport}
+          disabled={!file || importing}
+          className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center justify-center disabled:opacity-40"
+        >
           {importing ? "Importing..." : "Import"}
         </button>
       </div>
@@ -1623,31 +2565,46 @@ function ExcelImportModal({ skill, level, onClose, onImport }: {
 
 function SkillDetailPage() {
   console.log("[SKILL INDEX MOUNTED] /admin/content-library/$level/$skill");
-  
+
   const { level, skill } = Route.useParams();
   const navigate = useNavigate();
   const upperLevel = level.toUpperCase() as JLPTLevel;
   const config = SKILL_CONFIG[skill];
 
-  const { lessons, createLesson, updateLesson, deleteLesson } = useContentLibrary(upperLevel, skill as ContentSkill);
-  
-  console.log("[LESSON LIST]", { level, skill, upperLevel, lessonsLength: lessons?.length, lessons });
+  const { lessons, createLesson, updateLesson, deleteLesson } = useContentLibrary(
+    upperLevel,
+    skill as ContentSkill,
+  );
+
+  console.log("[LESSON LIST]", {
+    level,
+    skill,
+    upperLevel,
+    lessonsLength: lessons?.length,
+    lessons,
+  });
 
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<
+    VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | null
+  >(null);
 
-  const filtered = lessons.filter(item => {
+  const filtered = lessons.filter((item) => {
     if (!search.trim()) return true;
     const s = search.toLowerCase();
-    return ("title" in item && item.title?.toLowerCase().includes(s)) ||
-           ("lessonNumber" in item && String((item as VocabularyLesson).lessonNumber).includes(s));
+    return (
+      ("title" in item && item.title?.toLowerCase().includes(s)) ||
+      ("lessonNumber" in item && String((item as VocabularyLesson).lessonNumber).includes(s))
+    );
   });
 
-  const handleCreate = (data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>) => {
+  const handleCreate = (
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+  ) => {
     createLesson(data);
     toast.success("Lesson created successfully");
     setShowCreateModal(false);
@@ -1658,7 +2615,9 @@ function SkillDetailPage() {
     setShowEditModal(true);
   };
 
-  const handleUpdate = (data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>) => {
+  const handleUpdate = (
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+  ) => {
     if (!selectedItem) return;
     updateLesson(selectedItem.id, data);
     toast.success("Lesson updated successfully");
@@ -1666,7 +2625,9 @@ function SkillDetailPage() {
     setSelectedItem(null);
   };
 
-  const handleImport = (data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>) => {
+  const handleImport = (
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+  ) => {
     createLesson(data);
     toast.success("Lesson imported successfully");
     setShowImportModal(false);
@@ -1680,7 +2641,9 @@ function SkillDetailPage() {
     setSelectedItem(null);
   };
 
-  const getItemCount = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem): number => {
+  const getItemCount = (
+    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem,
+  ): number => {
     if ("items" in item && Array.isArray(item.items)) return item.items.length;
     if ("segments" in item && Array.isArray(item.segments)) return item.segments.length;
     return 0;
@@ -1704,7 +2667,9 @@ function SkillDetailPage() {
             <ArrowLeftIcon className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-2xl font-display font-black text-primary-col">{config.label} Library</h1>
+            <h1 className="text-2xl font-display font-black text-primary-col">
+              {config.label} Library
+            </h1>
             <p className="text-sm text-secondary-col mt-0.5">{upperLevel} Level</p>
           </div>
         </div>
@@ -1729,7 +2694,7 @@ function SkillDetailPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-col" />
         <input
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search ${config.label.toLowerCase()} lessons...`}
           className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-[var(--border)] bg-[var(--card)] text-primary-col placeholder:text-muted-col focus:outline-none focus:ring-2 focus:ring-[oklch(0.62_0.18_270)]/30"
         />
@@ -1739,16 +2704,40 @@ function SkillDetailPage() {
       <div className="card-base overflow-hidden">
         {/* Table Header */}
         <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-          <div className={skill === "listening" ? "col-span-1 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold" : "col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"}>Lesson</div>
-          <div className={skill === "listening" ? "col-span-3 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold" : "col-span-4 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"}>Title</div>
+          <div
+            className={
+              skill === "listening"
+                ? "col-span-1 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
+                : "col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
+            }
+          >
+            Lesson
+          </div>
+          <div
+            className={
+              skill === "listening"
+                ? "col-span-3 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
+                : "col-span-4 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
+            }
+          >
+            Title
+          </div>
           {skill === "listening" && (
-            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">Audio File</div>
+            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Audio File
+            </div>
           )}
           {skill !== "shadowing" && skill !== "listening" && (
-            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Items</div>
+            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Items
+            </div>
           )}
-          <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">Status</div>
-          <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">Actions</div>
+          <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            Status
+          </div>
+          <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            Actions
+          </div>
         </div>
         {/* Table Rows */}
         <div className="divide-y divide-[var(--border)]">
@@ -1760,7 +2749,13 @@ function SkillDetailPage() {
               transition={{ delay: i * 0.03 }}
               className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-[var(--accent)]/50 transition items-center"
             >
-              <div className={skill === "listening" ? "col-span-1 text-sm font-medium text-muted-col whitespace-nowrap" : "col-span-2 text-sm font-medium text-muted-col whitespace-nowrap"}>
+              <div
+                className={
+                  skill === "listening"
+                    ? "col-span-1 text-sm font-medium text-muted-col whitespace-nowrap"
+                    : "col-span-2 text-sm font-medium text-muted-col whitespace-nowrap"
+                }
+              >
                 #{(item as VocabularyLesson).lessonNumber || "-"}
               </div>
               <div className={skill === "listening" ? "col-span-3" : "col-span-4"}>
@@ -1770,7 +2765,9 @@ function SkillDetailPage() {
                 <div className="col-span-2">
                   <div className="flex items-center gap-1.5 text-sm text-muted-col">
                     <Headphones className="w-3.5 h-3.5" />
-                    <span className="truncate">{(item as ListeningLesson).items?.[0]?.audioUrl || "No audio"}</span>
+                    <span className="truncate">
+                      {(item as ListeningLesson).items?.[0]?.audioUrl || "No audio"}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1791,7 +2788,10 @@ function SkillDetailPage() {
                   View
                 </button>
                 <button
-                  onClick={() => { setSelectedItem(item); setShowDeleteConfirm(true); }}
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setShowDeleteConfirm(true);
+                  }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1802,7 +2802,9 @@ function SkillDetailPage() {
           ))}
           {filtered.length === 0 && (
             <div className="px-5 py-12 text-center">
-              <p className="text-sm text-muted-col">No {config.label.toLowerCase()} content found{search ? " matching your search" : ""}</p>
+              <p className="text-sm text-muted-col">
+                No {config.label.toLowerCase()} content found{search ? " matching your search" : ""}
+              </p>
             </div>
           )}
         </div>
@@ -1811,34 +2813,99 @@ function SkillDetailPage() {
       {/* Delete Confirmation */}
       <ConfirmDialog
         open={showDeleteConfirm}
-        onClose={() => { setShowDeleteConfirm(false); setSelectedItem(null); }}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setSelectedItem(null);
+        }}
         onConfirm={handleDelete}
         title="Delete Lesson"
         message={`Are you sure you want to delete "${selectedItem?.title}"? This action cannot be undone.`}
       />
 
       {/* Edit Modal */}
-      <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setSelectedItem(null); }} title={`Edit ${config.label} Lesson`} size="xl">
+      <Modal
+        open={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedItem(null);
+        }}
+        title={`Edit ${config.label} Lesson`}
+        size="xl"
+      >
         {selectedItem && (
           <>
-            {skill === "vocabulary" && <VocabEditForm lesson={selectedItem as VocabularyLesson} onSave={handleUpdate} onCancel={() => { setShowEditModal(false); setSelectedItem(null); }} />}
-            {skill === "grammar" && <GrammarEditForm lesson={selectedItem as GrammarLesson} onSave={handleUpdate} onCancel={() => { setShowEditModal(false); setSelectedItem(null); }} />}
-            {skill === "listening" && <ListeningEditForm lesson={selectedItem as ListeningLesson} onSave={handleUpdate} onCancel={() => { setShowEditModal(false); setSelectedItem(null); }} />}
-            {skill === "shadowing" && <ShadowingEditForm item={selectedItem as ShadowingItem} onSave={handleUpdate} onCancel={() => { setShowEditModal(false); setSelectedItem(null); }} />}
+            {skill === "vocabulary" && (
+              <VocabEditForm
+                lesson={selectedItem as VocabularyLesson}
+                onSave={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
+            {skill === "grammar" && (
+              <GrammarEditForm
+                lesson={selectedItem as GrammarLesson}
+                onSave={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
+            {skill === "listening" && (
+              <ListeningEditForm
+                lesson={selectedItem as ListeningLesson}
+                onSave={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
+            {skill === "shadowing" && (
+              <ShadowingEditForm
+                item={selectedItem as ShadowingItem}
+                onSave={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
           </>
         )}
       </Modal>
 
       {/* Create Modal */}
-      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title={`Create ${config.label} Lesson`} size="xl">
-        {skill === "vocabulary" && <VocabLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />}
-        {skill === "grammar" && <GrammarLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />}
-        {skill === "listening" && <ListeningLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />}
-        {skill === "shadowing" && <ShadowingLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />}
+      <Modal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={`Create ${config.label} Lesson`}
+        size="xl"
+      >
+        {skill === "vocabulary" && (
+          <VocabLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
+        )}
+        {skill === "grammar" && (
+          <GrammarLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
+        )}
+        {skill === "listening" && (
+          <ListeningLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
+        )}
+        {skill === "shadowing" && (
+          <ShadowingLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
+        )}
       </Modal>
 
       {/* Import Excel Modal */}
-      <Modal open={showImportModal} onClose={() => setShowImportModal(false)} title={`Import ${config.label} from Excel`} size="md">
+      <Modal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        title={`Import ${config.label} from Excel`}
+        size="md"
+      >
         <ExcelImportModal
           skill={skill}
           level={upperLevel}

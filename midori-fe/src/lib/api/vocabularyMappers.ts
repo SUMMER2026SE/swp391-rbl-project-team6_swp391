@@ -91,7 +91,11 @@ export function normalizeLesson<T extends VocabularyLessonResponse>(lesson: T): 
   return {
     ...lesson,
     estimatedMinutes: lesson.estimatedMinutes ?? lesson.estimated_minutes,
-    wordCount: lesson.wordCount ?? lesson.word_count ?? ((lesson as T & { words?: unknown[] }).words?.length ?? 0),
+    wordCount:
+      lesson.wordCount ??
+      lesson.word_count ??
+      (lesson as T & { words?: unknown[] }).words?.length ??
+      0,
     isPublished: lesson.isPublished ?? lesson.is_published ?? false,
     teacherName:
       lesson.teacherName ??
@@ -108,7 +112,7 @@ export function normalizeLesson<T extends VocabularyLessonResponse>(lesson: T): 
 }
 
 export function normalizeLessonDetail(
-  lesson: VocabularyLessonDetailResponse
+  lesson: VocabularyLessonDetailResponse,
 ): VocabularyLessonDetailResponse {
   const normalizedLesson = normalizeLesson(lesson);
   return {

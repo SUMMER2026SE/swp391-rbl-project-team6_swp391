@@ -2,10 +2,26 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Edit, Save, Shield, Clock,
-  CheckCircle, Mail, Calendar, MapPin, Phone, Cake,
-  Eye, EyeOff, Key, AlertTriangle, Loader2, CheckCheck,
-  Camera, Upload, Trash2
+  User,
+  Edit,
+  Save,
+  Shield,
+  Clock,
+  CheckCircle,
+  Mail,
+  Calendar,
+  MapPin,
+  Phone,
+  Cake,
+  Eye,
+  EyeOff,
+  Key,
+  AlertTriangle,
+  Loader2,
+  CheckCheck,
+  Camera,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import { profileApi, type ProfileResponse } from "@/lib/api/profile";
 import { ApiError } from "@/lib/api/client";
@@ -32,7 +48,9 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       onClick={onToggle}
       className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
     >
-      <div className={`absolute inset-0 rounded-full transition-colors ${on ? "bg-primary" : "bg-[var(--border)]"}`} />
+      <div
+        className={`absolute inset-0 rounded-full transition-colors ${on ? "bg-primary" : "bg-[var(--border)]"}`}
+      />
       <motion.div
         animate={{ x: on ? 20 : 2 }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
@@ -161,7 +179,11 @@ function AdminProfilePage() {
     setSaveError(null);
     setSaveSuccess(false);
     setIsProfileSaving(true);
-    if (!editName.trim()) { setSaveError("Display name is required."); setIsProfileSaving(false); return; }
+    if (!editName.trim()) {
+      setSaveError("Display name is required.");
+      setIsProfileSaving(false);
+      return;
+    }
     try {
       const updated = await profileApi.updateMyProfile({
         displayName: editName.trim(),
@@ -228,7 +250,9 @@ function AdminProfilePage() {
     }
   };
 
-  const avatarLetter = (editName || profile?.displayName || user?.name || "?").charAt(0).toUpperCase();
+  const avatarLetter = (editName || profile?.displayName || user?.name || "?")
+    .charAt(0)
+    .toUpperCase();
 
   if (loading) {
     return (
@@ -249,7 +273,10 @@ function AdminProfilePage() {
             <AlertTriangle className="w-6 h-6 text-destructive" />
           </div>
           <p className="text-sm text-destructive font-medium">{loadError}</p>
-          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+          <button
+            onClick={fetchProfile}
+            className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition"
+          >
             Retry
           </button>
         </div>
@@ -264,9 +291,16 @@ function AdminProfilePage() {
           <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto">
             <User className="w-6 h-6 text-slate-400" />
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">No profile data available.</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Please try refreshing the page.</p>
-          <button onClick={fetchProfile} className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+            No profile data available.
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            Please try refreshing the page.
+          </p>
+          <button
+            onClick={fetchProfile}
+            className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90 transition"
+          >
             Retry
           </button>
         </div>
@@ -282,25 +316,50 @@ function AdminProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl overflow-hidden"
       >
-        <div className="h-32 relative" style={{ background: "linear-gradient(135deg, oklch(0.62 0.18 270 / 0.15) 0%, oklch(0.72 0.15 230 / 0.10) 50%, oklch(0.55 0.18 340 / 0.08) 100%)" }}>
-          <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 25% 50%, oklch(0.62 0.18 270 / 0.25) 0%, transparent 50%), radial-gradient(circle at 75% 50%, oklch(0.72 0.15 230 / 0.2) 0%, transparent 50%)" }} />
+        <div
+          className="h-32 relative"
+          style={{
+            background:
+              "linear-gradient(135deg, oklch(0.62 0.18 270 / 0.15) 0%, oklch(0.72 0.15 230 / 0.10) 50%, oklch(0.55 0.18 340 / 0.08) 100%)",
+          }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 25% 50%, oklch(0.62 0.18 270 / 0.25) 0%, transparent 50%), radial-gradient(circle at 75% 50%, oklch(0.72 0.15 230 / 0.2) 0%, transparent 50%)",
+            }}
+          />
           <div className="absolute top-4 right-6 flex gap-2">
-                {editing ? (
-                  <>
-                    <button onClick={() => { setEditing(false); setEditName(profile?.displayName || user?.name || ""); setEditBio(profile?.bio || ""); setEditLocation(profile?.location || ""); setEditPhone(profile?.phone || ""); setEditDateOfBirth(profile?.dateOfBirth || ""); }}
-                      disabled={isProfileSaving}
-                      className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition disabled:opacity-50">
-                      Cancel
-                    </button>
-                <button onClick={handleSave}
+            {editing ? (
+              <>
+                <button
+                  onClick={() => {
+                    setEditing(false);
+                    setEditName(profile?.displayName || user?.name || "");
+                    setEditBio(profile?.bio || "");
+                    setEditLocation(profile?.location || "");
+                    setEditPhone(profile?.phone || "");
+                    setEditDateOfBirth(profile?.dateOfBirth || "");
+                  }}
                   disabled={isProfileSaving}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition disabled:opacity-70 flex items-center gap-1">
+                  className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isProfileSaving}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-hero text-white text-xs font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition disabled:opacity-70 flex items-center gap-1"
+                >
                   <Save className="w-3 h-3" /> Save Changes
                 </button>
               </>
             ) : (
-              <button onClick={() => setEditing(true)}
-                className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition flex items-center gap-1">
+              <button
+                onClick={() => setEditing(true)}
+                className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col text-xs font-semibold backdrop-blur-sm hover:bg-[var(--accent)] transition flex items-center gap-1"
+              >
                 <Edit className="w-3 h-3" /> Edit Profile
               </button>
             )}
@@ -349,7 +408,9 @@ function AdminProfilePage() {
                             ) : (
                               <Upload className="w-4 h-4 flex-shrink-0 text-indigo-500" />
                             )}
-                            <span className="font-medium">{isAvatarSaving ? "Uploading..." : "Change Avatar"}</span>
+                            <span className="font-medium">
+                              {isAvatarSaving ? "Uploading..." : "Change Avatar"}
+                            </span>
                             <input
                               type="file"
                               accept="image/jpeg,image/png,image/webp"
@@ -361,7 +422,10 @@ function AdminProfilePage() {
                           {avatarPreview && (
                             <button
                               disabled={isAvatarSaving}
-                              onClick={() => { setShowAvatarMenu(false); setShowRemoveConfirm(true); }}
+                              onClick={() => {
+                                setShowAvatarMenu(false);
+                                setShowRemoveConfirm(true);
+                              }}
                               className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition disabled:opacity-50"
                             >
                               <Trash2 className="w-4 h-4 flex-shrink-0" />
@@ -369,7 +433,9 @@ function AdminProfilePage() {
                             </button>
                           )}
                           {avatarError && (
-                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">{avatarError}</p>
+                            <p className="px-4 py-2 text-[10px] text-red-500 border-t border-slate-100 dark:border-slate-700">
+                              {avatarError}
+                            </p>
                           )}
                         </motion.div>
                       )}
@@ -379,25 +445,33 @@ function AdminProfilePage() {
               </div>
               <div className="flex-1 w-full text-center sm:text-left">
                 {saveSuccess && (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-bold">
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-bold"
+                  >
                     <CheckCheck className="w-3.5 h-3.5" /> Profile saved!
                   </motion.div>
                 )}
                 {saveError && (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold">
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold"
+                  >
                     <AlertTriangle className="w-3.5 h-3.5" /> {saveError}
                   </motion.div>
                 )}
                 {editing ? (
                   <input
                     value={editName}
-                    onChange={e => setEditName(e.target.value)}
+                    onChange={(e) => setEditName(e.target.value)}
                     className="text-2xl font-display font-black bg-transparent border-b-2 border-primary outline-none w-full text-center sm:text-left mb-1 text-primary-col"
                   />
                 ) : (
-                  <h1 className="text-2xl font-display font-black text-primary-col">{profile?.displayName || user?.name || "User"}</h1>
+                  <h1 className="text-2xl font-display font-black text-primary-col">
+                    {profile?.displayName || user?.name || "User"}
+                  </h1>
                 )}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full glass-surface text-secondary-col text-xs font-bold border border-glass-border">
@@ -415,37 +489,50 @@ function AdminProfilePage() {
                   )}
                   {profile?.dateOfBirth && (
                     <span className="text-xs text-muted-col flex items-center gap-1">
-                      <Cake className="w-3 h-3" /> {new Date(profile.dateOfBirth).toLocaleDateString()}
+                      <Cake className="w-3 h-3" />{" "}
+                      {new Date(profile.dateOfBirth).toLocaleDateString()}
                     </span>
                   )}
                   {profile?.createdAt && (
                     <span className="text-xs text-muted-col flex items-center gap-1">
-                      <Calendar className="w-3 h-3" /> {new Date(profile.createdAt).toLocaleDateString()}
+                      <Calendar className="w-3 h-3" />{" "}
+                      {new Date(profile.createdAt).toLocaleDateString()}
                     </span>
                   )}
                 </div>
                 {editing ? (
                   <textarea
                     value={editBio}
-                    onChange={e => setEditBio(e.target.value)}
+                    onChange={(e) => setEditBio(e.target.value)}
                     rows={2}
                     placeholder="Tell us about yourself..."
                     className="mt-2 w-full max-w-lg text-sm bg-transparent border border-glass-border rounded-xl p-3 outline-none focus:border-primary/50 resize-none text-center sm:text-left text-secondary-col"
                   />
                 ) : profile?.bio ? (
-                  <p className="text-sm text-secondary-col mt-1.5 max-w-lg leading-relaxed">{profile.bio}</p>
+                  <p className="text-sm text-secondary-col mt-1.5 max-w-lg leading-relaxed">
+                    {profile.bio}
+                  </p>
                 ) : null}
                 {editing && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     <div>
                       <label className="text-[10px] text-muted-col block mb-1">Phone</label>
-                      <input type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-glass-border bg-transparent text-xs text-secondary-col outline-none focus:border-primary/50 w-36" placeholder="+84..." />
+                      <input
+                        type="tel"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-glass-border bg-transparent text-xs text-secondary-col outline-none focus:border-primary/50 w-36"
+                        placeholder="+84..."
+                      />
                     </div>
                     <div>
                       <label className="text-[10px] text-muted-col block mb-1">Date of Birth</label>
-                      <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg border border-glass-border bg-transparent text-xs text-secondary-col outline-none focus:border-primary/50 w-36" />
+                      <input
+                        type="date"
+                        value={editDateOfBirth}
+                        onChange={(e) => setEditDateOfBirth(e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-glass-border bg-transparent text-xs text-secondary-col outline-none focus:border-primary/50 w-36"
+                      />
                     </div>
                   </div>
                 )}
@@ -468,18 +555,26 @@ function AdminProfilePage() {
                 { icon: Mail, label: "Email", value: user?.email },
                 { icon: Shield, label: "Role", value: "Administrator" },
                 { icon: MapPin, label: "Location", value: profile?.location },
-                { icon: Calendar, label: "Member Since", value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : null },
-              ].map(({ icon: Icon, label, value }) => (
+                {
+                  icon: Calendar,
+                  label: "Member Since",
+                  value: profile?.createdAt
+                    ? new Date(profile.createdAt).toLocaleDateString()
+                    : null,
+                },
+              ].map(({ icon: Icon, label, value }) =>
                 value ? (
-                <div key={label} className="flex items-center gap-3 p-3 rounded-xl glass-surface">
-                  <Icon className="w-4 h-4 text-secondary-col flex-shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold">{label}</div>
-                    <div className="text-sm font-medium text-primary-col truncate">{value}</div>
+                  <div key={label} className="flex items-center gap-3 p-3 rounded-xl glass-surface">
+                    <Icon className="w-4 h-4 text-secondary-col flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+                        {label}
+                      </div>
+                      <div className="text-sm font-medium text-primary-col truncate">{value}</div>
+                    </div>
                   </div>
-                </div>
-                ) : null
-              ))}
+                ) : null,
+              )}
             </div>
           </ProfileCard>
 
@@ -494,9 +589,13 @@ function AdminProfilePage() {
               {permissionsState.status === "error" && (
                 <p className="text-sm text-red-500 py-2">{permissionsState.error}</p>
               )}
-              {permissionsState.status === "success" && permissionsState.data && (
-                permissionsState.data.map(perm => (
-                  <div key={perm.label} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
+              {permissionsState.status === "success" &&
+                permissionsState.data &&
+                permissionsState.data.map((perm) => (
+                  <div
+                    key={perm.label}
+                    className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0"
+                  >
                     <span className="text-sm text-secondary-col">{perm.label}</span>
                     {perm.granted ? (
                       <CheckCircle className="w-4 h-4 text-[var(--status-active)]" />
@@ -504,8 +603,7 @@ function AdminProfilePage() {
                       <div className="w-4 h-4 rounded-full border-2 border-[var(--border)]" />
                     )}
                   </div>
-                ))
-              )}
+                ))}
             </div>
           </ProfileCard>
 
@@ -520,17 +618,19 @@ function AdminProfilePage() {
               {activityState.status === "error" && (
                 <p className="text-sm text-red-500 py-2">{activityState.error}</p>
               )}
-              {activityState.status === "success" && activityState.data && (
+              {activityState.status === "success" &&
+                activityState.data &&
                 activityState.data.map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-[var(--status-active)] flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-primary-col truncate">{item.action}</div>
+                      <div className="text-sm font-medium text-primary-col truncate">
+                        {item.action}
+                      </div>
                       <div className="text-[10px] text-muted-col">{item.time}</div>
                     </div>
                   </div>
-                ))
-              )}
+                ))}
             </div>
           </ProfileCard>
         </div>
@@ -543,16 +643,24 @@ function AdminProfilePage() {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-muted-col uppercase tracking-wider block mb-2">Change Password</label>
+                <label className="text-xs font-semibold text-muted-col uppercase tracking-wider block mb-2">
+                  Change Password
+                </label>
                 {pwSuccess && (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className="mb-2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-bold">
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-bold"
+                  >
                     <CheckCheck className="w-3.5 h-3.5" /> Password updated successfully!
                   </motion.div>
                 )}
                 {pwError && (
-                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className="mb-2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold"
+                  >
                     <AlertTriangle className="w-3.5 h-3.5" /> {pwError}
                   </motion.div>
                 )}
@@ -560,7 +668,7 @@ function AdminProfilePage() {
                   <input
                     type={showPassword ? "text" : "password"}
                     value={pwCurrent}
-                    onChange={e => setPwCurrent(e.target.value)}
+                    onChange={(e) => setPwCurrent(e.target.value)}
                     placeholder="Current password"
                     className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
                   />
@@ -577,7 +685,7 @@ function AdminProfilePage() {
                   <input
                     type={showNewPassword ? "text" : "password"}
                     value={pwNew}
-                    onChange={e => setPwNew(e.target.value)}
+                    onChange={(e) => setPwNew(e.target.value)}
                     placeholder="New password"
                     className="w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40"
                   />
@@ -594,10 +702,14 @@ function AdminProfilePage() {
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     value={pwConfirm}
-                    onChange={e => setPwConfirm(e.target.value)}
+                    onChange={(e) => setPwConfirm(e.target.value)}
                     placeholder="Confirm new password"
                     className={`w-full pl-3 pr-10 py-2.5 text-sm rounded-xl input-glass outline-none focus:ring-2 focus:ring-primary/40 ${
-                      pwConfirm && pwNew !== pwConfirm ? "border-red-400/40" : pwConfirm && pwNew === pwConfirm ? "border-green-400/40" : ""
+                      pwConfirm && pwNew !== pwConfirm
+                        ? "border-red-400/40"
+                        : pwConfirm && pwNew === pwConfirm
+                          ? "border-green-400/40"
+                          : ""
                     }`}
                   />
                   <button
@@ -606,24 +718,54 @@ function AdminProfilePage() {
                     aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-col hover:text-primary-col transition"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
                 <button
                   onClick={async () => {
                     setPwError(null);
-                    if (!pwCurrent) { setPwError("Current password is required."); return; }
-                    if (pwNew === pwCurrent) { setPwError("New password must be different from current password."); return; }
-                    if (pwNew.length < 8) { setPwError("Min. 8 characters."); return; }
-                    if (!/[A-Z]/.test(pwNew)) { setPwError("Add at least one uppercase letter."); return; }
-                    if (!/[0-9]/.test(pwNew)) { setPwError("Add at least one number."); return; }
-                    if (!/[^A-Za-z0-9]/.test(pwNew)) { setPwError("Add at least one special character."); return; }
-                    if (pwNew !== pwConfirm) { setPwError("Passwords do not match."); return; }
+                    if (!pwCurrent) {
+                      setPwError("Current password is required.");
+                      return;
+                    }
+                    if (pwNew === pwCurrent) {
+                      setPwError("New password must be different from current password.");
+                      return;
+                    }
+                    if (pwNew.length < 8) {
+                      setPwError("Min. 8 characters.");
+                      return;
+                    }
+                    if (!/[A-Z]/.test(pwNew)) {
+                      setPwError("Add at least one uppercase letter.");
+                      return;
+                    }
+                    if (!/[0-9]/.test(pwNew)) {
+                      setPwError("Add at least one number.");
+                      return;
+                    }
+                    if (!/[^A-Za-z0-9]/.test(pwNew)) {
+                      setPwError("Add at least one special character.");
+                      return;
+                    }
+                    if (pwNew !== pwConfirm) {
+                      setPwError("Passwords do not match.");
+                      return;
+                    }
                     setPwLoading(true);
                     try {
-                      await authApi.changePassword({ currentPassword: pwCurrent, newPassword: pwNew });
+                      await authApi.changePassword({
+                        currentPassword: pwCurrent,
+                        newPassword: pwNew,
+                      });
                       setPwSuccess(true);
-                      setPwCurrent(""); setPwNew(""); setPwConfirm("");
+                      setPwCurrent("");
+                      setPwNew("");
+                      setPwConfirm("");
                       setTimeout(() => setPwSuccess(false), 4000);
                     } catch (err) {
                       if (err instanceof ApiError) {
@@ -638,9 +780,15 @@ function AdminProfilePage() {
                   disabled={pwLoading}
                   className="w-full py-2.5 rounded-xl text-white text-sm font-bold shadow-lg shadow-primary/25 hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-hero"
                 >
-                  {pwLoading
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating…</>
-                    : <><Key className="w-4 h-4" /> Update Password</>}
+                  {pwLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Updating…
+                    </>
+                  ) : (
+                    <>
+                      <Key className="w-4 h-4" /> Update Password
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -658,28 +806,49 @@ function AdminProfilePage() {
       {/* Avatar Remove Confirm Dialog */}
       <AnimatePresence>
         {showRemoveConfirm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowRemoveConfirm(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+            onClick={() => setShowRemoveConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl p-5 shadow-2xl border border-white/60 dark:border-white/10 max-w-xs w-full mx-4"
-              onClick={e => e.stopPropagation()}>
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="w-10 h-10 rounded-full bg-red-50/80 dark:bg-red-500/15 flex items-center justify-center mx-auto mb-3">
                 <Trash2 className="w-5 h-5 text-red-500" />
               </div>
-              <h3 className="text-base font-black text-slate-900 dark:text-white text-center mb-1.5">Remove Avatar?</h3>
+              <h3 className="text-base font-black text-slate-900 dark:text-white text-center mb-1.5">
+                Remove Avatar?
+              </h3>
               <p className="text-xs text-slate-400 dark:text-slate-500 text-center mb-4">
                 Your profile will return to the default avatar.
               </p>
               <div className="flex gap-2">
-                <button onClick={() => setShowRemoveConfirm(false)}
-                  className="flex-1 py-2 rounded-lg border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                <button
+                  onClick={() => setShowRemoveConfirm(false)}
+                  className="flex-1 py-2 rounded-lg border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
                   Cancel
                 </button>
-                <button onClick={handleRemoveAvatar} disabled={isAvatarSaving}
-                  className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1">
-                  {isAvatarSaving ? <><Loader2 className="w-3 h-3 animate-spin" /> Removing...</> : "Remove"}
+                <button
+                  onClick={handleRemoveAvatar}
+                  disabled={isAvatarSaving}
+                  className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  {isAvatarSaving ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" /> Removing...
+                    </>
+                  ) : (
+                    "Remove"
+                  )}
                 </button>
               </div>
             </motion.div>

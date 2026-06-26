@@ -15,10 +15,7 @@ import {
   ArrowLeft,
   Play,
 } from "lucide-react";
-import {
-  getLessonById,
-  type SkillType,
-} from "@/mock/student-learning-journey";
+import { getLessonById, type SkillType } from "@/mock/student-learning-journey";
 import { SkillCard } from "@/components/student/journey/SkillCard";
 import { ProgressCircle } from "@/components/student/journey/ProgressCircle";
 import { XPCard, LessonCompleteCard } from "@/components/student/journey/XPCard";
@@ -75,13 +72,11 @@ function LessonDetailPage() {
     LISTENING: isCompleted ? 100 : completedSkills.has("LISTENING") ? 100 : 0,
   };
 
-  const overallProgress = Math.round(
-    (Object.values(skillProgress).reduce((a, b) => a + b, 0) / 4)
-  );
+  const overallProgress = Math.round(Object.values(skillProgress).reduce((a, b) => a + b, 0) / 4);
 
   const handleSkillComplete = (skillType: SkillType, xp: number) => {
-    setXpEarned(prev => prev + xp);
-    setCompletedSkills(prev => new Set(prev).add(skillType));
+    setXpEarned((prev) => prev + xp);
+    setCompletedSkills((prev) => new Set(prev).add(skillType));
   };
 
   const skillIcons: Record<SkillType, React.ElementType> = {
@@ -92,7 +87,7 @@ function LessonDetailPage() {
   };
 
   const getSkillModule = (skillType: SkillType) => {
-    const skill = lesson.skills.find(s => s.type === skillType);
+    const skill = lesson.skills.find((s) => s.type === skillType);
     if (!skill) return null;
 
     switch (skillType) {
@@ -160,11 +155,7 @@ function LessonDetailPage() {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-5"
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
         <Link
           to="/student/journey"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-4 group"
@@ -178,12 +169,12 @@ function LessonDetailPage() {
             <div className="flex-1">
               {/* Lesson Badge */}
               <div className="flex items-center gap-2 mb-3">
-                <span className={cn(
-                  "px-3 py-1 rounded-lg text-xs font-bold",
-                  isCompleted
-                    ? "bg-primary text-white"
-                    : "bg-sky-blue text-white"
-                )}>
+                <span
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-bold",
+                    isCompleted ? "bg-primary text-white" : "bg-sky-blue text-white",
+                  )}
+                >
                   Lesson {lesson.number.toString().padStart(2, "0")}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-lg bg-primary/15 text-primary text-xs font-semibold">
@@ -197,19 +188,13 @@ function LessonDetailPage() {
               </div>
 
               {/* Title */}
-              <h1 className="text-xl md:text-2xl font-bold text-foreground mb-1">
-                {lesson.title}
-              </h1>
-              <p className="text-sm text-muted-foreground mb-3">
-                {lesson.description}
-              </p>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground mb-1">{lesson.title}</h1>
+              <p className="text-sm text-muted-foreground mb-3">{lesson.description}</p>
 
               {/* Japanese Title */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
                 <span className="text-lg">🇯🇵</span>
-                <span className="text-sm text-foreground font-medium">
-                  {lesson.titleJapanese}
-                </span>
+                <span className="text-sm text-foreground font-medium">{lesson.titleJapanese}</span>
               </div>
             </div>
 
@@ -300,10 +285,7 @@ function LessonDetailPage() {
 
           {/* XP Card */}
           {xpEarned > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
               <XPCard xpGained={xpEarned} completedSkill={activeSkill || undefined} />
             </motion.div>
           )}
@@ -350,13 +332,15 @@ function LessonDetailPage() {
               >
                 {/* Skill Header */}
                 <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border/50">
-                  <div className={cn(
-                    "w-11 h-11 rounded-lg flex items-center justify-center",
-                    activeSkill === "VOCABULARY" && "bg-primary/15",
-                    activeSkill === "GRAMMAR" && "bg-lavender/20",
-                    activeSkill === "READING" && "bg-sky-blue/15",
-                    activeSkill === "LISTENING" && "bg-sakura/20"
-                  )}>
+                  <div
+                    className={cn(
+                      "w-11 h-11 rounded-lg flex items-center justify-center",
+                      activeSkill === "VOCABULARY" && "bg-primary/15",
+                      activeSkill === "GRAMMAR" && "bg-lavender/20",
+                      activeSkill === "READING" && "bg-sky-blue/15",
+                      activeSkill === "LISTENING" && "bg-sakura/20",
+                    )}
+                  >
                     {(() => {
                       const Icon = skillIcons[activeSkill];
                       return <Icon className="w-5 h-5 text-primary" />;
@@ -386,9 +370,7 @@ function LessonDetailPage() {
                 </div>
 
                 {/* Skill Module */}
-                <div className="min-h-[300px]">
-                  {getSkillModule(activeSkill)}
-                </div>
+                <div className="min-h-[300px]">{getSkillModule(activeSkill)}</div>
               </motion.div>
             ) : (
               <motion.div
@@ -407,7 +389,8 @@ function LessonDetailPage() {
                 </motion.div>
                 <h3 className="text-lg font-bold text-foreground mb-2">Ready to Learn?</h3>
                 <p className="text-sm text-muted-foreground max-w-xs mb-5">
-                  Choose a skill from the left panel to begin learning. Each skill includes theory and practice sections.
+                  Choose a skill from the left panel to begin learning. Each skill includes theory
+                  and practice sections.
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap justify-center">
                   <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary">
@@ -422,9 +405,7 @@ function LessonDetailPage() {
                     Reading
                   </span>
                   <span>+</span>
-                  <span className="px-2 py-0.5 rounded-md bg-sakura/20 text-sakura">
-                    Listening
-                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-sakura/20 text-sakura">Listening</span>
                 </div>
               </motion.div>
             )}

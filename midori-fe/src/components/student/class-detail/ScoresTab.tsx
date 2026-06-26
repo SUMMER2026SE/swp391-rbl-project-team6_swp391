@@ -49,7 +49,9 @@ export function ScoresTab({ classInfo }: ScoresTabProps) {
         {classInfo.scores.length === 0 && (
           <div className="sm:col-span-2 text-center py-12 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
             <FileSpreadsheet className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-sm text-muted-foreground font-semibold">No graded assignment records found</p>
+            <p className="text-sm text-muted-foreground font-semibold">
+              No graded assignment records found
+            </p>
           </div>
         )}
       </div>

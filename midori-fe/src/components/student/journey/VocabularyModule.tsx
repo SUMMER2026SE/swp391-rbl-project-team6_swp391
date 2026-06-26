@@ -2,7 +2,18 @@
 
 import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Volume2, ChevronRight, ChevronLeft, Check, X, Sparkles, Lock, Unlock, AlertCircle } from "lucide-react";
+import {
+  BookOpen,
+  Volume2,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  X,
+  Sparkles,
+  Lock,
+  Unlock,
+  AlertCircle,
+} from "lucide-react";
 import { type VocabularyItem } from "@/mock/student-learning-journey";
 import { cn } from "@/lib/utils";
 import { createShuffledOptions, type AnswerOption } from "@/lib/quiz-utils";
@@ -12,7 +23,13 @@ interface VocabularyModuleProps {
   onComplete: (xpEarned: number) => void;
 }
 
-type LearningStep = "theory" | "theory_complete" | "flashcard" | "flashcard_complete" | "quiz" | "complete";
+type LearningStep =
+  | "theory"
+  | "theory_complete"
+  | "flashcard"
+  | "flashcard_complete"
+  | "quiz"
+  | "complete";
 type QuizState = "not_started" | "in_progress" | "complete";
 
 export function VocabularyModule({ vocabulary, onComplete }: VocabularyModuleProps) {
@@ -51,7 +68,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
       const wrongOptions = vocabulary
         .filter((_, i) => i !== quizIndex)
         .slice(0, 3)
-        .map(v => v.meaning);
+        .map((v) => v.meaning);
       const shuffled = createShuffledOptions(quizWord.meaning, wrongOptions);
       setShuffledOptions(shuffled);
     }
@@ -71,13 +88,13 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
     if (isLastTheoryWord) {
       setLearningStep("theory_complete");
     } else {
-      setTheoryIndex(prev => prev + 1);
+      setTheoryIndex((prev) => prev + 1);
     }
   };
 
   const handleTheoryPrevious = () => {
     if (!isFirstTheoryWord) {
-      setTheoryIndex(prev => prev - 1);
+      setTheoryIndex((prev) => prev - 1);
     }
   };
 
@@ -85,14 +102,14 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
     if (isLastFlashcard) {
       setLearningStep("flashcard_complete");
     } else {
-      setFlashcardIndex(prev => prev + 1);
+      setFlashcardIndex((prev) => prev + 1);
       setIsFlipped(false);
     }
   };
 
   const handleFlashcardPrevious = () => {
     if (!isFirstFlashcard) {
-      setFlashcardIndex(prev => prev - 1);
+      setFlashcardIndex((prev) => prev - 1);
       setIsFlipped(false);
     }
   };
@@ -100,11 +117,11 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
   const handleQuizAnswer = (optionId: string) => {
     if (selectedAnswerId !== null) return;
     setSelectedAnswerId(optionId);
-    const selectedOption = shuffledOptions.find(opt => opt.id === optionId);
+    const selectedOption = shuffledOptions.find((opt) => opt.id === optionId);
     const correct = selectedOption?.isCorrect ?? false;
     setIsCorrect(correct);
     if (correct) {
-      setCorrectQuizAnswers(prev => prev + 1);
+      setCorrectQuizAnswers((prev) => prev + 1);
     }
   };
 
@@ -120,7 +137,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
       }
       setLearningStep("complete");
     } else {
-      setQuizIndex(prev => prev + 1);
+      setQuizIndex((prev) => prev + 1);
       setSelectedAnswerId(null);
       setIsCorrect(null);
     }
@@ -128,7 +145,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
 
   const handleQuizPrevious = () => {
     if (!isFirstQuiz) {
-      setQuizIndex(prev => prev + 1);
+      setQuizIndex((prev) => prev + 1);
       setSelectedAnswerId(null);
       setIsCorrect(null);
     }
@@ -172,27 +189,28 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
               {currentWord.word}
             </div>
-            <div className="text-base text-muted-foreground">
-              {currentWord.furigana}
-            </div>
+            <div className="text-base text-muted-foreground">{currentWord.furigana}</div>
           </div>
 
           <div className="py-4 border-y border-border/50 mb-4">
-            <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-1">Meaning</div>
-            <div className="text-xl font-bold text-foreground">
-              {currentWord.meaning}
+            <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-1">
+              Meaning
             </div>
+            <div className="text-xl font-bold text-foreground">{currentWord.meaning}</div>
           </div>
 
           <div className="text-left">
-            <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-2">Example</div>
+            <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-2">
+              Example
+            </div>
             <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-3">
-              <div className="text-base font-medium text-foreground mb-1" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+              <div
+                className="text-base font-medium text-foreground mb-1"
+                style={{ fontFamily: "var(--font-japanese, serif)" }}
+              >
                 {currentWord.example}
               </div>
-              <div className="text-xs text-muted-foreground">
-                {currentWord.exampleMeaning}
-              </div>
+              <div className="text-xs text-muted-foreground">{currentWord.exampleMeaning}</div>
             </div>
           </div>
         </div>
@@ -206,7 +224,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
             "flex-1 py-2.5 rounded-lg font-semibold transition flex items-center justify-center gap-1.5 text-sm",
             isFirstTheoryWord
               ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-secondary text-foreground hover:bg-muted"
+              : "bg-secondary text-foreground hover:bg-muted",
           )}
         >
           <ChevronLeft className="w-4 h-4" />
@@ -276,9 +294,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
             whileTap={{ scale: 0.99 }}
             className={cn(
               "w-full max-w-[650px] rounded-xl border transition-all duration-300 flex flex-col items-center justify-center cursor-pointer",
-              !isFlipped
-                ? "bg-card border-border/50"
-                : "bg-card border-primary/30"
+              !isFlipped ? "bg-card border-border/50" : "bg-card border-primary/30",
             )}
             style={{ minHeight: "300px", height: "340px" }}
           >
@@ -307,14 +323,10 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
                     <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">
                       {flashcardWord.word}
                     </div>
-                    <div className="text-base text-muted-foreground">
-                      {flashcardWord.furigana}
-                    </div>
+                    <div className="text-base text-muted-foreground">{flashcardWord.furigana}</div>
                   </div>
 
-                  <div className="mt-3 text-xs text-muted-foreground">
-                    Tap to reveal meaning
-                  </div>
+                  <div className="mt-3 text-xs text-muted-foreground">Tap to reveal meaning</div>
                 </motion.div>
               ) : (
                 <motion.div
@@ -335,14 +347,16 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
                   </div>
 
                   <div className="py-4 border-y border-border/50 mb-4">
-                    <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-1">Meaning</div>
-                    <div className="text-xl font-bold text-foreground">
-                      {flashcardWord.meaning}
+                    <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-1">
+                      Meaning
                     </div>
+                    <div className="text-xl font-bold text-foreground">{flashcardWord.meaning}</div>
                   </div>
 
                   <div className="text-left w-full max-w-[90%] mx-auto">
-                    <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-2">Example</div>
+                    <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-2">
+                      Example
+                    </div>
                     <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-3">
                       <div className="text-base font-medium text-foreground mb-1">
                         {flashcardWord.example}
@@ -366,7 +380,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
               "flex-1 py-2.5 rounded-lg font-semibold transition flex items-center justify-center gap-1.5 text-sm",
               isFirstFlashcard
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-secondary text-foreground hover:bg-muted"
+                : "bg-secondary text-foreground hover:bg-muted",
             )}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -413,7 +427,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
 
   const QuizView = memo(() => {
     const quizWord = vocabulary[quizIndex];
-    const correctOptionId = shuffledOptions.find(opt => opt.isCorrect)?.id;
+    const correctOptionId = shuffledOptions.find((opt) => opt.isCorrect)?.id;
 
     return (
       <div className="space-y-4">
@@ -432,10 +446,10 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
         </div>
 
         <div className="bg-card rounded-xl p-4 border border-border/50 text-center">
-          <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-1">What does this word mean?</div>
-          <div className="text-3xl md:text-4xl font-bold text-foreground">
-            {quizWord.word}
+          <div className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-1">
+            What does this word mean?
           </div>
+          <div className="text-3xl md:text-4xl font-bold text-foreground">{quizWord.word}</div>
         </div>
 
         <div className="grid grid-cols-1 gap-2">
@@ -451,19 +465,21 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
                 disabled={selectedAnswerId !== null}
                 className={cn(
                   "p-3 rounded-lg border transition-all text-left font-medium text-sm",
-                  selectedAnswerId === null && "border-border/50 hover:border-primary/30 bg-card hover:bg-accent/30",
+                  selectedAnswerId === null &&
+                    "border-border/50 hover:border-primary/30 bg-card hover:bg-accent/30",
                   showCorrect && "border-primary bg-primary/10 text-primary",
-                  showWrong && "border-destructive bg-destructive/10 text-destructive"
+                  showWrong && "border-destructive bg-destructive/10 text-destructive",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span>{option.text}</span>
-                  {isSelected && (
-                    isCorrect ? <Check className="w-4 h-4 text-primary" /> : <X className="w-4 h-4 text-destructive" />
-                  )}
-                  {showCorrect && !isSelected && (
-                    <Check className="w-4 h-4 text-primary" />
-                  )}
+                  {isSelected &&
+                    (isCorrect ? (
+                      <Check className="w-4 h-4 text-primary" />
+                    ) : (
+                      <X className="w-4 h-4 text-destructive" />
+                    ))}
+                  {showCorrect && !isSelected && <Check className="w-4 h-4 text-primary" />}
                 </div>
               </button>
             );
@@ -479,7 +495,7 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
                 "flex-1 py-2.5 rounded-lg font-semibold transition flex items-center justify-center text-sm",
                 isFirstQuiz
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-secondary text-foreground hover:bg-muted"
+                  : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
               Previous
@@ -504,10 +520,12 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
       animate={{ opacity: 1, scale: 1 }}
       className="text-center py-8"
     >
-      <div className={cn(
-        "w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center",
-        isPassingScore ? "bg-primary/15" : "bg-red-100 dark:bg-red-950/30"
-      )}>
+      <div
+        className={cn(
+          "w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center",
+          isPassingScore ? "bg-primary/15" : "bg-red-100 dark:bg-red-950/30",
+        )}
+      >
         {isPassingScore ? (
           <Sparkles className="w-8 h-8 text-primary" />
         ) : (
@@ -515,10 +533,12 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
         )}
       </div>
 
-      <h2 className={cn(
-        "text-xl font-bold mb-1",
-        isPassingScore ? "text-foreground" : "text-red-600 dark:text-red-400"
-      )}>
+      <h2
+        className={cn(
+          "text-xl font-bold mb-1",
+          isPassingScore ? "text-foreground" : "text-red-600 dark:text-red-400",
+        )}
+      >
         {isPassingScore ? "Vocabulary Mastered!" : "Not Quite There"}
       </h2>
 
@@ -563,17 +583,29 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
               setLearningStep("theory");
             }
           }}
-          disabled={learningStep !== "theory" && learningStep !== "theory_complete" && learningStep !== "complete"}
+          disabled={
+            learningStep !== "theory" &&
+            learningStep !== "theory_complete" &&
+            learningStep !== "complete"
+          }
           className={cn(
             "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1",
             learningStep === "theory"
               ? "bg-card text-foreground shadow-sm"
-              : learningStep === "theory_complete" || learningStep === "flashcard" || learningStep === "flashcard_complete" || learningStep === "quiz" || learningStep === "complete"
+              : learningStep === "theory_complete" ||
+                  learningStep === "flashcard" ||
+                  learningStep === "flashcard_complete" ||
+                  learningStep === "quiz" ||
+                  learningStep === "complete"
                 ? "bg-primary/20 text-primary"
-                : "text-muted-foreground cursor-not-allowed"
+                : "text-muted-foreground cursor-not-allowed",
           )}
         >
-          {learningStep === "theory_complete" || learningStep === "flashcard" || learningStep === "flashcard_complete" || learningStep === "quiz" || learningStep === "complete" ? (
+          {learningStep === "theory_complete" ||
+          learningStep === "flashcard" ||
+          learningStep === "flashcard_complete" ||
+          learningStep === "quiz" ||
+          learningStep === "complete" ? (
             <Check className="w-3 h-3" />
           ) : (
             <BookOpen className="w-3 h-3" />
@@ -584,7 +616,11 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
         {/* Flashcard Step */}
         <button
           onClick={() => {
-            if (learningStep === "flashcard" || learningStep === "flashcard_complete" || learningStep === "complete") {
+            if (
+              learningStep === "flashcard" ||
+              learningStep === "flashcard_complete" ||
+              learningStep === "complete"
+            ) {
               setFlashcardIndex(0);
               setIsFlipped(false);
               setLearningStep("flashcard");
@@ -595,12 +631,16 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
             "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1",
             learningStep === "flashcard"
               ? "bg-card text-foreground shadow-sm"
-              : learningStep === "flashcard_complete" || learningStep === "quiz" || learningStep === "complete"
+              : learningStep === "flashcard_complete" ||
+                  learningStep === "quiz" ||
+                  learningStep === "complete"
                 ? "bg-primary/20 text-primary"
-                : "text-muted-foreground cursor-not-allowed"
+                : "text-muted-foreground cursor-not-allowed",
           )}
         >
-          {learningStep === "flashcard_complete" || learningStep === "quiz" || learningStep === "complete" ? (
+          {learningStep === "flashcard_complete" ||
+          learningStep === "quiz" ||
+          learningStep === "complete" ? (
             <Check className="w-3 h-3" />
           ) : (
             <Lock className="w-3 h-3" />
@@ -617,14 +657,18 @@ export function VocabularyModule({ vocabulary, onComplete }: VocabularyModulePro
               setLearningStep("quiz");
             }
           }}
-          disabled={learningStep !== "quiz" && learningStep !== "complete" && learningStep !== "flashcard_complete"}
+          disabled={
+            learningStep !== "quiz" &&
+            learningStep !== "complete" &&
+            learningStep !== "flashcard_complete"
+          }
           className={cn(
             "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1",
             learningStep === "quiz"
               ? "bg-card text-foreground shadow-sm"
               : learningStep === "complete"
                 ? "bg-primary/20 text-primary"
-                : "text-muted-foreground cursor-not-allowed"
+                : "text-muted-foreground cursor-not-allowed",
           )}
         >
           {learningStep === "complete" ? (

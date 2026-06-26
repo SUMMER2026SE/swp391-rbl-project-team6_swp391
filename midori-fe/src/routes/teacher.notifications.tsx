@@ -5,7 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { notifications as raw } from "@/data/teacher-data";
 import { PreviewSheet } from "@/components/teacher/dialogs";
-import { Bell, Check, CheckCheck, ClipboardList, FileText, User, Settings, ArrowRight } from "lucide-react";
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  ClipboardList,
+  FileText,
+  User,
+  Settings,
+  ArrowRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Notification } from "@/data/teacher-data";
@@ -39,7 +48,11 @@ const typeColors: Record<string, string> = {
   system: "bg-muted text-muted-foreground",
 };
 
-function NotificationCard({ notification, onMarkRead, onPreview }: {
+function NotificationCard({
+  notification,
+  onMarkRead,
+  onPreview,
+}: {
   notification: Notification;
   onMarkRead: (id: string) => void;
   onPreview: (n: Notification) => void;
@@ -51,7 +64,7 @@ function NotificationCard({ notification, onMarkRead, onPreview }: {
     <Card
       className={cn(
         "cursor-pointer transition-all hover:shadow-md",
-        !notification.read && "border-l-4 border-l-primary bg-primary/5"
+        !notification.read && "border-l-4 border-l-primary bg-primary/5",
       )}
       onClick={() => {
         onPreview(notification);
@@ -62,7 +75,12 @@ function NotificationCard({ notification, onMarkRead, onPreview }: {
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div className={cn("mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl", colorClass)}>
+          <div
+            className={cn(
+              "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl",
+              colorClass,
+            )}
+          >
             <Icon className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -84,9 +102,7 @@ function NotificationCard({ notification, onMarkRead, onPreview }: {
                 <span className="whitespace-nowrap text-xs text-muted-foreground">
                   {notification.time}
                 </span>
-                {notification.link && (
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                )}
+                {notification.link && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
               </div>
             </div>
           </div>
@@ -96,7 +112,11 @@ function NotificationCard({ notification, onMarkRead, onPreview }: {
   );
 }
 
-function NotificationPreviewSheet({ notification, open, onOpenChange }: {
+function NotificationPreviewSheet({
+  notification,
+  open,
+  onOpenChange,
+}: {
   notification: Notification | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -171,9 +191,7 @@ function TeacherNotificationsPage() {
   });
 
   const handleMarkRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     toast.success("Marked as read");
   };
 
@@ -222,9 +240,7 @@ function TeacherNotificationsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 "relative px-3 py-2 text-sm font-medium transition-colors hover:text-foreground",
-                activeTab === tab.id
-                  ? "text-foreground"
-                  : "text-muted-foreground"
+                activeTab === tab.id ? "text-foreground" : "text-muted-foreground",
               )}
             >
               <span>{tab.label}</span>
@@ -234,7 +250,7 @@ function TeacherNotificationsPage() {
                     "ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
                     activeTab === tab.id
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
+                      : "bg-muted text-muted-foreground",
                   )}
                 >
                   {count}

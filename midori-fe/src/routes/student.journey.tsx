@@ -1,9 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { JourneyMap } from "@/components/student/journey";
-import {
-  JOURNEY_LESSONS,
-  JOURNEY_PROGRESS,
-} from "@/mock/student-learning-journey";
+import { JOURNEY_LESSONS, JOURNEY_PROGRESS } from "@/mock/student-learning-journey";
 import { useLocation } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-ui";
 
@@ -13,7 +10,8 @@ export const Route = createFileRoute("/student/journey")({
 
 function JourneyLayout() {
   const location = useLocation();
-  const isIndex = location.pathname === "/student/journey" || location.pathname === "/student/journey/";
+  const isIndex =
+    location.pathname === "/student/journey" || location.pathname === "/student/journey/";
 
   if (isIndex) {
     const progress = JOURNEY_PROGRESS;

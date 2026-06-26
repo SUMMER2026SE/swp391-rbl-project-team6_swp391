@@ -122,10 +122,10 @@ export const readingProgressStore = {
 
     allProgress[lessonId] = updatedProgress;
     setLocalStorage(STORAGE_KEY, allProgress);
-    
+
     // Update stats after progress change
     readingStatsStore.calculateStats();
-    
+
     return updatedProgress;
   },
 
@@ -154,8 +154,8 @@ export const readingProgressStore = {
     if (!progress) return;
 
     const answers = progress.answers || [];
-    const existingIndex = answers.findIndex(a => a.questionId === answer.questionId);
-    
+    const existingIndex = answers.findIndex((a) => a.questionId === answer.questionId);
+
     if (existingIndex >= 0) {
       answers[existingIndex] = answer;
     } else {
@@ -174,13 +174,13 @@ export const readingProgressStore = {
   // Get progress by level
   getProgressByLevel: (level: JLPTLevel): ReadingProgress[] => {
     const allProgress = readingProgressStore.getAllProgress();
-    return Object.values(allProgress).filter(p => p.jlptLevel === level);
+    return Object.values(allProgress).filter((p) => p.jlptLevel === level);
   },
 
   // Get completed lessons
   getCompletedLessons: (): ReadingProgress[] => {
     const allProgress = readingProgressStore.getAllProgress();
-    return Object.values(allProgress).filter(p => p.status === "completed");
+    return Object.values(allProgress).filter((p) => p.status === "completed");
   },
 };
 
@@ -272,14 +272,14 @@ export const readingStatsStore = {
     const allProgress = readingProgressStore.getAllProgress();
     const progressValues = Object.values(allProgress);
 
-    const completedLessons = progressValues.filter(p => p.status === "completed");
-    const lessonsWithScores = completedLessons.filter(p => p.score !== undefined && p.maxScore);
+    const completedLessons = progressValues.filter((p) => p.status === "completed");
+    const lessonsWithScores = completedLessons.filter((p) => p.score !== undefined && p.maxScore);
 
     // Calculate average score
     let averageScore = 0;
     if (lessonsWithScores.length > 0) {
       const totalScore = lessonsWithScores.reduce((sum, p) => {
-        return sum + ((p.score || 0) / (p.maxScore || 1) * 100);
+        return sum + ((p.score || 0) / (p.maxScore || 1)) * 100;
       }, 0);
       averageScore = Math.round(totalScore / lessonsWithScores.length);
     }
@@ -290,15 +290,18 @@ export const readingStatsStore = {
     // Calculate level progress
     const levelProgress: ReadingStats["levelProgress"] = {};
     const levels: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
-    
-    levels.forEach(level => {
-      const levelProgress_ = progressValues.filter(p => p.jlptLevel === level);
-      const completed = levelProgress_.filter(p => p.status === "completed");
-      const withScores = completed.filter(p => p.score !== undefined);
-      
+
+    levels.forEach((level) => {
+      const levelProgress_ = progressValues.filter((p) => p.jlptLevel === level);
+      const completed = levelProgress_.filter((p) => p.status === "completed");
+      const withScores = completed.filter((p) => p.score !== undefined);
+
       let avgScore = 0;
       if (withScores.length > 0) {
-        const total = withScores.reduce((sum, p) => sum + ((p.score || 0) / (p.maxScore || 1) * 100), 0);
+        const total = withScores.reduce(
+          (sum, p) => sum + ((p.score || 0) / (p.maxScore || 1)) * 100,
+          0,
+        );
         avgScore = Math.round(total / withScores.length);
       }
 
@@ -314,10 +317,18 @@ export const readingStatsStore = {
 
     // Calculate streaks (simplified)
     const stats = readingStatsStore.getStats();
-    const { currentStreak, longestStreak } = readingStatsStore.calculateStreaks(progressValues, stats.longestStreak);
+    const { currentStreak, longestStreak } = readingStatsStore.calculateStreaks(
+      progressValues,
+      stats.longestStreak,
+    );
 
     // Update achievements
-    const achievements = readingStatsStore.updateAchievements(completedLessons.length, averageScore, currentStreak, stats.achievements);
+    const achievements = readingStatsStore.updateAchievements(
+      completedLessons.length,
+      averageScore,
+      currentStreak,
+      stats.achievements,
+    );
 
     const newStats: ReadingStats = {
       totalLessons: progressValues.length,
@@ -340,7 +351,7 @@ export const readingStatsStore = {
   // Calculate streaks
   calculateStreaks: (
     progressValues: ReadingProgress[],
-    currentLongestStreak: number
+    currentLongestStreak: number,
   ): { currentStreak: number; longestStreak: number } => {
     if (progressValues.length === 0) {
       return { currentStreak: 0, longestStreak: currentLongestStreak };
@@ -348,8 +359,8 @@ export const readingStatsStore = {
 
     // Get unique dates of activity
     const activityDates = progressValues
-      .filter(p => p.lastAccessedAt)
-      .map(p => new Date(p.lastAccessedAt).toISOString().split("T")[0])
+      .filter((p) => p.lastAccessedAt)
+      .map((p) => new Date(p.lastAccessedAt).toISOString().split("T")[0])
       .filter((date, index, self) => self.indexOf(date) === index)
       .sort()
       .reverse();
@@ -361,7 +372,7 @@ export const readingStatsStore = {
     // Check if there's activity today or yesterday
     const today = new Date().toISOString().split("T")[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-    
+
     let currentStreak = 0;
     if (activityDates[0] === today || activityDates[0] === yesterday) {
       currentStreak = 1;
@@ -369,7 +380,7 @@ export const readingStatsStore = {
         const prevDate = new Date(activityDates[i - 1]);
         const currDate = new Date(activityDates[i]);
         const diffDays = (prevDate.getTime() - currDate.getTime()) / 86400000;
-        
+
         if (diffDays === 1) {
           currentStreak++;
         } else {
@@ -387,9 +398,9 @@ export const readingStatsStore = {
     completedLessons: number,
     averageScore: number,
     currentStreak: number,
-    existingAchievements: Achievement[]
+    existingAchievements: Achievement[],
   ): Achievement[] => {
-    return existingAchievements.map(achievement => {
+    return existingAchievements.map((achievement) => {
       let currentProgress = 0;
       let unlocked = false;
 
@@ -427,7 +438,8 @@ export const readingStatsStore = {
       return {
         ...achievement,
         currentProgress,
-        unlockedAt: unlocked && !achievement.unlockedAt ? new Date().toISOString() : achievement.unlockedAt,
+        unlockedAt:
+          unlocked && !achievement.unlockedAt ? new Date().toISOString() : achievement.unlockedAt,
       };
     });
   },

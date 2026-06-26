@@ -13,7 +13,9 @@ export function TodayTasks({ assignments }: TodayTasksProps) {
     const today = new Date(todayStr);
 
     return assignments
-      .filter((a) => a.status === "Not Started" || a.status === "In Progress" || a.status === "Overdue")
+      .filter(
+        (a) => a.status === "Not Started" || a.status === "In Progress" || a.status === "Overdue",
+      )
       .map((a) => {
         const dlDate = new Date(a.deadline);
         const diffTime = dlDate.getTime() - today.getTime();
@@ -46,7 +48,9 @@ export function TodayTasks({ assignments }: TodayTasksProps) {
         };
       })
       .filter(Boolean)
-      .sort((a, b) => a!.diffDays - b!.diffDays) as Array<Assignment & { label: string; statusType: string }>;
+      .sort((a, b) => a!.diffDays - b!.diffDays) as Array<
+      Assignment & { label: string; statusType: string }
+    >;
   }, [assignments]);
 
   const getStyle = (type: string) => {

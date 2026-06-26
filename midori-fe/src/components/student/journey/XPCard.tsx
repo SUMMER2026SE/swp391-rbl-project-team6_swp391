@@ -40,9 +40,7 @@ export function XPCard({ xpGained, completedSkill }: XPCardProps) {
           <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wide">
             XP Earned
           </div>
-          <div className="font-bold text-lg text-amber-600 dark:text-amber-400">
-            +{xpGained} XP
-          </div>
+          <div className="font-bold text-lg text-amber-600 dark:text-amber-400">+{xpGained} XP</div>
         </div>
       </div>
 
@@ -58,7 +56,9 @@ export function XPCard({ xpGained, completedSkill }: XPCardProps) {
                   <span className="text-xs font-semibold text-foreground">
                     {completedSkill.charAt(0) + completedSkill.slice(1).toLowerCase()}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">+{skillXP[completedSkill]} XP</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    +{skillXP[completedSkill]} XP
+                  </span>
                 </>
               );
             })()}

@@ -1,6 +1,15 @@
 import React, { useState, useMemo } from "react";
 import { Card } from "@/components/page-ui";
-import { ClipboardList, Calendar, Users, Award, Eye, Edit, Trash2, CheckSquare } from "lucide-react";
+import {
+  ClipboardList,
+  Calendar,
+  Users,
+  Award,
+  Eye,
+  Edit,
+  Trash2,
+  CheckSquare,
+} from "lucide-react";
 import type { TeacherClassInfo, TeacherAssignment } from "@/types/teacher-class";
 
 interface TeacherAssignmentsTabProps {
@@ -15,7 +24,7 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
   const sortOptions = [
     { value: "deadline", label: "Nearest Deadline" },
     { value: "created", label: "Latest Created" },
-    { value: "completion", label: "Lowest Completion Rate" }
+    { value: "completion", label: "Lowest Completion Rate" },
   ];
 
   const processedAssignments = useMemo(() => {
@@ -119,7 +128,7 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
                   </span>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(
-                      assignment.status
+                      assignment.status,
                     )}`}
                   >
                     {assignment.status}
@@ -132,28 +141,44 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
 
                 <div className="space-y-2 text-xs text-muted-foreground mb-6">
                   <div className="flex justify-between">
-                    <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Assigned</span>
-                    <span className="font-semibold text-foreground dark:text-white">{assignment.assignedDate}</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" /> Assigned
+                    </span>
+                    <span className="font-semibold text-foreground dark:text-white">
+                      {assignment.assignedDate}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-red-500" /> Deadline</span>
-                    <span className="font-semibold text-foreground dark:text-white">{assignment.deadline}</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-red-500" /> Deadline
+                    </span>
+                    <span className="font-semibold text-foreground dark:text-white">
+                      {assignment.deadline}
+                    </span>
                   </div>
                   <div className="flex justify-between border-t border-dashed border-border/50 pt-2 mt-2">
-                    <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> Submissions</span>
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5" /> Submissions
+                    </span>
                     <span className="font-semibold text-foreground dark:text-white">
                       {assignment.totalSubmissions} / {totalStudents} ({compRate}%)
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="flex items-center gap-1"><CheckSquare className="w-3.5 h-3.5 text-amber-500" /> Needs Grading</span>
+                    <span className="flex items-center gap-1">
+                      <CheckSquare className="w-3.5 h-3.5 text-amber-500" /> Needs Grading
+                    </span>
                     <span className="font-semibold text-amber-500">
                       {assignment.status === "Active" ? assignment.totalSubmissions : 0} tasks
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-green-500" /> Avg Score</span>
-                    <span className="font-semibold text-green-500">{assignment.avgScore ? `${assignment.avgScore}/10` : "—"}</span>
+                    <span className="flex items-center gap-1">
+                      <Award className="w-3.5 h-3.5 text-green-500" /> Avg Score
+                    </span>
+                    <span className="font-semibold text-green-500">
+                      {assignment.avgScore ? `${assignment.avgScore}/10` : "—"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -180,7 +205,9 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
         {processedAssignments.length === 0 && (
           <div className="sm:col-span-2 text-center py-12 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
             <ClipboardList className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-sm text-muted-foreground font-semibold">No assignments match the selected filter.</p>
+            <p className="text-sm text-muted-foreground font-semibold">
+              No assignments match the selected filter.
+            </p>
           </div>
         )}
       </div>

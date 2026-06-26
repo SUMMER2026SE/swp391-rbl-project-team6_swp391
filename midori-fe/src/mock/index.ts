@@ -26,8 +26,8 @@ export const getMockDataCount = () => ({
 });
 
 export const getMockDataByLevel = (level: JLPTLevel) => ({
-  vocabulary: mockVocabulary.filter(item => item.jlptLevel === level),
-  listening: mockListening.filter(item => item.jlptLevel === level),
-  reading: mockReading.filter(item => item.jlptLevel === level),
-  shadowing: mockShadowing.filter(item => item.jlptLevel === level),
+  vocabulary: mockVocabulary.filter((item) => item.jlptLevel === level),
+  listening: mockListening.filter((item) => item.jlptLevel === level),
+  reading: mockReading.filter((item) => item.jlptLevel === level),
+  shadowing: mockShadowing.filter((item) => item.jlptLevel === level),
 });

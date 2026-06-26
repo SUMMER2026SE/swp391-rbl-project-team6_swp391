@@ -1,9 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import {
-  ChevronLeft, Play, Clock, BookOpen, FileText, Mic, XCircle
-} from "lucide-react";
+import { ChevronLeft, Play, Clock, BookOpen, FileText, Mic, XCircle } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { getTopicById, type JLPTLevel } from "@/mock/shadowing-student";
 
@@ -54,9 +52,9 @@ function TopicDetailPage() {
   return (
     <div className="min-h-screen relative flex flex-col">
       <SakuraBg count={14} />
-      <div className="relative z-10 bg-white dark:bg-slate-900 flex-1">
+      <div className="relative z-10 flex-1">
         {/* Header */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
+        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center gap-4">
               <Link
@@ -68,16 +66,16 @@ function TopicDetailPage() {
 
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[topic.jlptLevel]}`}>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[topic.jlptLevel]}`}
+                  >
                     JLPT {topic.jlptLevel}
                   </span>
                   <h1 className="font-display font-bold text-lg text-slate-800 dark:text-white">
                     {topic.title}
                   </h1>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {topic.titleVn}
-                </p>
+                <p className="text-sm text-muted-foreground">{topic.titleVn}</p>
               </div>
             </div>
           </div>
@@ -88,16 +86,10 @@ function TopicDetailPage() {
           {/* Topic Info */}
           <div className="mb-8">
             <div className="relative rounded-2xl overflow-hidden mb-6">
-              <img
-                src={topic.thumbnail}
-                alt={topic.title}
-                className="w-full h-48 object-cover"
-              />
+              <img src={topic.thumbnail} alt={topic.title} className="w-full h-48 object-cover" />
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
-                <p className="text-white text-sm">
-                  {topic.description}
-                </p>
+                <p className="text-white text-sm">{topic.description}</p>
                 <div className="flex items-center gap-4 mt-2 text-white/80 text-xs">
                   <span className="flex items-center gap-1">
                     <Play className="w-3.5 h-3.5" />
@@ -157,15 +149,15 @@ function TopicDetailPage() {
                             <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-pink-500 transition-colors">
                               {video.title}
                             </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {video.titleVn}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{video.titleVn}</p>
                           </div>
                         </div>
 
                         {/* Badges */}
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${difficultyColors[video.difficulty]}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${difficultyColors[video.difficulty]}`}
+                          >
                             {video.difficulty}
                           </span>
                           {video.transcriptAvailable && (

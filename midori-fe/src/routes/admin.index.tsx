@@ -2,13 +2,35 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
-  Users, BookOpen, GraduationCap, ClipboardCheck,
-  Activity, Bot, Zap, AlertTriangle, TrendingUp, Award, BookUser,
-  Clock, Bell, Plus, ChevronRight
+  Users,
+  BookOpen,
+  GraduationCap,
+  ClipboardCheck,
+  Activity,
+  Bot,
+  Zap,
+  AlertTriangle,
+  TrendingUp,
+  Award,
+  BookUser,
+  Clock,
+  Bell,
+  Plus,
+  ChevronRight,
 } from "lucide-react";
 import {
-  AreaChart, Area, BarChart, Bar, Tooltip, ResponsiveContainer,
-  XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  Tooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { useState, useEffect } from "react";
 import { adminApi, type AdminDashboardSummaryResponse } from "@/lib/api/admin";
@@ -22,8 +44,13 @@ const platformStats = {
   activeClasses: 45,
   learningCompletionRate: 72,
   dailyActiveUsers: [
-    { day: "Mon", users: 3200 }, { day: "Tue", users: 3650 }, { day: "Wed", users: 3400 },
-    { day: "Thu", users: 3890 }, { day: "Fri", users: 4100 }, { day: "Sat", users: 2950 }, { day: "Sun", users: 2200 },
+    { day: "Mon", users: 3200 },
+    { day: "Tue", users: 3650 },
+    { day: "Wed", users: 3400 },
+    { day: "Thu", users: 3890 },
+    { day: "Fri", users: 4100 },
+    { day: "Sat", users: 2950 },
+    { day: "Sun", users: 2200 },
   ],
   jlptDistribution: [
     { name: "N5", value: 35, color: "oklch(0.62 0.18 270)" },
@@ -33,11 +60,51 @@ const platformStats = {
     { name: "N1", value: 5, color: "oklch(0.6 0.2 25)" },
   ],
   recentActivities: [
-    { id: 1, type: "teacher", action: "Teacher created class", detail: "N5 Beginner Japanese", time: "2 min ago", icon: GraduationCap, color: "text-[var(--status-teacher)]" },
-    { id: 2, type: "student", action: "Student completed lesson", detail: "Hiragana Basics", time: "5 min ago", icon: Award, color: "text-[var(--status-active)]" },
-    { id: 3, type: "content", action: "Teacher uploaded content", detail: "JLPT N5 Grammar Quiz", time: "15 min ago", icon: BookOpen, color: "text-primary" },
-    { id: 4, type: "student", action: "New student enrolled", detail: "Minato Aquo joined", time: "30 min ago", icon: Users, color: "text-[oklch(0.72_0.15_230)]" },
-    { id: 5, type: "exam", action: "Exam completed", detail: "N4 Listening Test", time: "1 hour ago", icon: ClipboardCheck, color: "text-[var(--status-pending)]" },
+    {
+      id: 1,
+      type: "teacher",
+      action: "Teacher created class",
+      detail: "N5 Beginner Japanese",
+      time: "2 min ago",
+      icon: GraduationCap,
+      color: "text-[var(--status-teacher)]",
+    },
+    {
+      id: 2,
+      type: "student",
+      action: "Student completed lesson",
+      detail: "Hiragana Basics",
+      time: "5 min ago",
+      icon: Award,
+      color: "text-[var(--status-active)]",
+    },
+    {
+      id: 3,
+      type: "content",
+      action: "Teacher uploaded content",
+      detail: "JLPT N5 Grammar Quiz",
+      time: "15 min ago",
+      icon: BookOpen,
+      color: "text-primary",
+    },
+    {
+      id: 4,
+      type: "student",
+      action: "New student enrolled",
+      detail: "Minato Aquo joined",
+      time: "30 min ago",
+      icon: Users,
+      color: "text-[oklch(0.72_0.15_230)]",
+    },
+    {
+      id: 5,
+      type: "exam",
+      action: "Exam completed",
+      detail: "N4 Listening Test",
+      time: "1 hour ago",
+      icon: ClipboardCheck,
+      color: "text-[var(--status-pending)]",
+    },
   ],
   learningProgress: [
     { week: "W1", vocabulary: 820, grammar: 640, listening: 420, completion: 65 },
@@ -53,8 +120,16 @@ const platformStats = {
 
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function MetricCard({ label, value, icon, trend }: {
-  label: string; value: string | number; icon: React.ElementType; trend?: { value: number; positive: boolean };
+function MetricCard({
+  label,
+  value,
+  icon,
+  trend,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  trend?: { value: number; positive: boolean };
 }) {
   const Icon = icon;
   return (
@@ -68,13 +143,21 @@ function MetricCard({ label, value, icon, trend }: {
           <Icon className="w-4 h-4 text-primary" />
         </div>
         {trend && (
-          <div className={`flex items-center gap-0.5 text-[10px] font-bold ${trend.positive ? "text-[var(--status-active)]" : "text-[var(--status-rejected)]"}`}>
-            {trend.positive ? <TrendingUp className="w-3 h-3" /> : <TrendingUp className="w-3 h-3 rotate-180" />}
+          <div
+            className={`flex items-center gap-0.5 text-[10px] font-bold ${trend.positive ? "text-[var(--status-active)]" : "text-[var(--status-rejected)]"}`}
+          >
+            {trend.positive ? (
+              <TrendingUp className="w-3 h-3" />
+            ) : (
+              <TrendingUp className="w-3 h-3 rotate-180" />
+            )}
             {Math.abs(trend.value)}%
           </div>
         )}
       </div>
-      <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold leading-tight">{label}</span>
+      <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold leading-tight">
+        {label}
+      </span>
       <div className="font-display font-black text-xl text-primary-col mt-auto pt-1">{value}</div>
     </motion.div>
   );
@@ -120,7 +203,9 @@ function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-black text-primary-col">Academic Dashboard</h1>
-          <p className="text-sm text-secondary-col mt-0.5">Monitor platform performance and manage academic operations</p>
+          <p className="text-sm text-secondary-col mt-0.5">
+            Monitor platform performance and manage academic operations
+          </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl glass-card text-secondary-col text-xs font-bold">
           <span className="w-2 h-2 rounded-full bg-[var(--status-active)] shadow-sm shadow-[var(--status-active)]/50" />
@@ -132,13 +217,17 @@ function AdminDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard
           label="Total Students"
-          value={summary?.totalStudents?.toLocaleString() ?? platformStats.totalStudents.toLocaleString()}
+          value={
+            summary?.totalStudents?.toLocaleString() ?? platformStats.totalStudents.toLocaleString()
+          }
           icon={Users}
           trend={{ value: 12, positive: true }}
         />
         <MetricCard
           label="Total Teachers"
-          value={summary?.totalTeachers?.toLocaleString() ?? platformStats.totalTeachers.toLocaleString()}
+          value={
+            summary?.totalTeachers?.toLocaleString() ?? platformStats.totalTeachers.toLocaleString()
+          }
           icon={GraduationCap}
           trend={{ value: 8, positive: true }}
         />
@@ -166,9 +255,15 @@ function AdminDashboard() {
               Learning Progress
             </h2>
             <div className="flex gap-3 text-[10px] text-secondary-col">
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[oklch(0.62_0.18_270)]" /> Vocabulary</span>
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[oklch(0.72_0.15_230)]" /> Grammar</span>
-              <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[oklch(0.72_0.18_340)]" /> Listening</span>
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-[oklch(0.62_0.18_270)]" /> Vocabulary
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-[oklch(0.72_0.15_230)]" /> Grammar
+              </span>
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-[oklch(0.72_0.18_340)]" /> Listening
+              </span>
             </div>
           </div>
           <div className="h-[260px] min-h-[240px] w-full min-w-0">
@@ -185,12 +280,49 @@ function AdminDashboard() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 0.05)" />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "oklch(0.55 0.02 300)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: "rgba(15,20,40,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, color: "#F3F4F6", backdropFilter: "blur(12px)" }} />
-                <Area type="monotone" dataKey="vocabulary" stroke="oklch(0.62 0.18 270)" fill="url(#vocabFill)" strokeWidth={2} name="Vocabulary" />
-                <Area type="monotone" dataKey="grammar" stroke="oklch(0.72 0.15 230)" fill="url(#grammarFill)" strokeWidth={2} name="Grammar" />
-                <Area type="monotone" dataKey="listening" stroke="oklch(0.72 0.18 340)" strokeWidth={2} name="Listening" />
+                <XAxis
+                  dataKey="week"
+                  tick={{ fontSize: 11, fill: "oklch(0.55 0.02 300)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "oklch(0.55 0.02 300)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "rgba(15,20,40,0.9)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 12,
+                    color: "#F3F4F6",
+                    backdropFilter: "blur(12px)",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="vocabulary"
+                  stroke="oklch(0.62 0.18 270)"
+                  fill="url(#vocabFill)"
+                  strokeWidth={2}
+                  name="Vocabulary"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="grammar"
+                  stroke="oklch(0.72 0.15 230)"
+                  fill="url(#grammarFill)"
+                  strokeWidth={2}
+                  name="Grammar"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="listening"
+                  stroke="oklch(0.72 0.18 340)"
+                  strokeWidth={2}
+                  name="Listening"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -218,7 +350,16 @@ function AdminDashboard() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ background: "rgba(15,20,40,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, color: "#F3F4F6", backdropFilter: "blur(12px)" }} formatter={(value) => [`${value}%`, "Students"]} />
+                <Tooltip
+                  contentStyle={{
+                    background: "rgba(15,20,40,0.9)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 12,
+                    color: "#F3F4F6",
+                    backdropFilter: "blur(12px)",
+                  }}
+                  formatter={(value) => [`${value}%`, "Students"]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -226,7 +367,10 @@ function AdminDashboard() {
             {platformStats.jlptDistribution.map((item) => (
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
                   <span className="text-xs text-secondary-col">{item.name}</span>
                 </div>
                 <span className="text-xs font-bold text-primary-col">{item.value}%</span>
@@ -255,7 +399,9 @@ function AdminDashboard() {
                   transition={{ delay: i * 0.05 }}
                   className="flex items-start gap-3"
                 >
-                  <div className={`w-8 h-8 rounded-xl glass-surface flex items-center justify-center shrink-0`}>
+                  <div
+                    className={`w-8 h-8 rounded-xl glass-surface flex items-center justify-center shrink-0`}
+                  >
                     <Icon className={`w-4 h-4 ${activity.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -277,8 +423,18 @@ function AdminDashboard() {
           </h2>
           <div className="space-y-2">
             {[
-              { key: "Teachers", value: summary?.pendingTeachers ?? platformStats.pendingApprovals.teachers, link: "/admin/teachers", color: "text-[var(--status-teacher)]" },
-              { key: "Content", value: summary?.pendingContent ?? platformStats.pendingApprovals.content, link: "/admin/grammar", color: "text-primary" },
+              {
+                key: "Teachers",
+                value: summary?.pendingTeachers ?? platformStats.pendingApprovals.teachers,
+                link: "/admin/teachers",
+                color: "text-[var(--status-teacher)]",
+              },
+              {
+                key: "Content",
+                value: summary?.pendingContent ?? platformStats.pendingApprovals.content,
+                link: "/admin/grammar",
+                color: "text-primary",
+              },
             ].map(({ key, value, link, color }) => (
               <Link
                 key={key}

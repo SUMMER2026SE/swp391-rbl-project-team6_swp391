@@ -23,7 +23,7 @@ export function useClassDetail(classId: string) {
 
   const markAnnouncementAsRead = (annId: string) => {
     setAnnouncements((prev) =>
-      prev.map((ann) => (ann.id === annId ? { ...ann, read: true } : ann))
+      prev.map((ann) => (ann.id === annId ? { ...ann, read: true } : ann)),
     );
   };
 
@@ -36,7 +36,8 @@ export function useClassDetail(classId: string) {
     if (assignmentFilter !== "All") {
       list = list.filter((a) => {
         if (assignmentFilter === "Homework") return a.status !== "Overdue" && a.status !== "Graded";
-        if (assignmentFilter === "Upcoming") return a.status === "Not Started" || a.status === "In Progress";
+        if (assignmentFilter === "Upcoming")
+          return a.status === "Not Started" || a.status === "In Progress";
         if (assignmentFilter === "Submitted") return a.status === "Submitted";
         if (assignmentFilter === "Graded") return a.status === "Graded";
         if (assignmentFilter === "Overdue") return a.status === "Overdue";

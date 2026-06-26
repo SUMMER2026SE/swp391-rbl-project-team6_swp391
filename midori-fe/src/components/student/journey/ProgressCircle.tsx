@@ -58,12 +58,7 @@ export function ProgressCircle({
       {/* Label */}
       {showLabel && (
         <div className="relative z-10">
-          <span className={cn(
-            "font-bold text-primary",
-            config.fontSize
-          )}>
-            {progress}%
-          </span>
+          <span className={cn("font-bold text-primary", config.fontSize)}>{progress}%</span>
         </div>
       )}
     </div>

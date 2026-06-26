@@ -7,11 +7,28 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LevelBadge } from "@/components/teacher/badges";
 import {
-  getClasses, getHomework, getExams, getAllStudents, getNotifications, teacherProfile, getProgressOverview,
+  getClasses,
+  getHomework,
+  getExams,
+  getAllStudents,
+  getNotifications,
+  teacherProfile,
+  getProgressOverview,
 } from "@/data/teacher-data";
 import {
-  GraduationCap, Users, ClipboardList, FileText, BookOpen, AlertTriangle, ArrowRight,
-  Plus, Library, HelpCircle, TrendingUp, CheckCircle2, Clock,
+  GraduationCap,
+  Users,
+  ClipboardList,
+  FileText,
+  BookOpen,
+  AlertTriangle,
+  ArrowRight,
+  Plus,
+  Library,
+  HelpCircle,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/teacher/")({
@@ -34,15 +51,49 @@ function Dashboard() {
   const atRisk = students.filter((s) => s.status === "at-risk");
   const attention = classes.filter((c) => c.attention > 0);
 
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   const stats = [
-    { label: "Active classes", value: activeClasses.length, icon: GraduationCap, tone: "bg-primary/10 text-primary" },
-    { label: "Total students", value: overview.totalStudents, icon: Users, tone: "bg-info/10 text-info" },
-    { label: "Homework due soon", value: dueSoon.length, icon: ClipboardList, tone: "bg-warning/15 text-foreground dark:text-warning" },
-    { label: "Exams scheduled", value: upcomingExams.length, icon: FileText, tone: "bg-success/10 text-success" },
-    { label: "Pending grading", value: pendingGrading, icon: Clock, tone: "bg-sakura/30 text-foreground" },
-    { label: "Students at risk", value: atRisk.length, icon: AlertTriangle, tone: "bg-destructive/10 text-destructive" },
+    {
+      label: "Active classes",
+      value: activeClasses.length,
+      icon: GraduationCap,
+      tone: "bg-primary/10 text-primary",
+    },
+    {
+      label: "Total students",
+      value: overview.totalStudents,
+      icon: Users,
+      tone: "bg-info/10 text-info",
+    },
+    {
+      label: "Homework due soon",
+      value: dueSoon.length,
+      icon: ClipboardList,
+      tone: "bg-warning/15 text-foreground dark:text-warning",
+    },
+    {
+      label: "Exams scheduled",
+      value: upcomingExams.length,
+      icon: FileText,
+      tone: "bg-success/10 text-success",
+    },
+    {
+      label: "Pending grading",
+      value: pendingGrading,
+      icon: Clock,
+      tone: "bg-sakura/30 text-foreground",
+    },
+    {
+      label: "Students at risk",
+      value: atRisk.length,
+      icon: AlertTriangle,
+      tone: "bg-destructive/10 text-destructive",
+    },
   ];
 
   const quickActions = [
@@ -62,8 +113,18 @@ function Dashboard() {
         subtitle="Here's what needs your attention today across your classes and students."
         actions={
           <>
-            <Button asChild variant="outline"><Link to="/teacher/classes"><GraduationCap className="mr-2 h-4 w-4" />My classes</Link></Button>
-            <Button asChild><Link to="/teacher/lessons/create"><Plus className="mr-2 h-4 w-4" />New lesson</Link></Button>
+            <Button asChild variant="outline">
+              <Link to="/teacher/classes">
+                <GraduationCap className="mr-2 h-4 w-4" />
+                My classes
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/teacher/lessons/create">
+                <Plus className="mr-2 h-4 w-4" />
+                New lesson
+              </Link>
+            </Button>
           </>
         }
       />
@@ -102,7 +163,11 @@ function Dashboard() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base">Classes needing attention</CardTitle>
-            <Button asChild variant="ghost" size="sm"><Link to="/teacher/classes">View all <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link></Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/teacher/classes">
+                View all <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             {attention.length === 0 ? (
@@ -110,44 +175,60 @@ function Dashboard() {
                 <CheckCircle2 className="mx-auto mb-2 h-6 w-6 text-success" />
                 All classes are on track.
               </div>
-            ) : attention.map((c) => (
-              <Link
-                key={c.id}
-                to="/teacher/classes/$classId"
-                params={{ classId: c.id }}
-                className="flex items-center gap-4 rounded-lg border border-border/60 bg-card p-3 transition-all hover:border-primary/40 hover:shadow-sm"
-              >
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary font-bold">
-                  {c.level}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="truncate font-medium">{c.name}</div>
-                    {c.attention > 0 && <Badge variant="destructive" className="shrink-0">{c.attention} alerts</Badge>}
+            ) : (
+              attention.map((c) => (
+                <Link
+                  key={c.id}
+                  to="/teacher/classes/$classId"
+                  params={{ classId: c.id }}
+                  className="flex items-center gap-4 rounded-lg border border-border/60 bg-card p-3 transition-all hover:border-primary/40 hover:shadow-sm"
+                >
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary font-bold">
+                    {c.level}
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{c.schedule}</div>
-                  <Progress value={c.progress} className="mt-2 h-1.5" />
-                </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </Link>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="truncate font-medium">{c.name}</div>
+                      {c.attention > 0 && (
+                        <Badge variant="destructive" className="shrink-0">
+                          {c.attention} alerts
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">{c.schedule}</div>
+                    <Progress value={c.progress} className="mt-2 h-1.5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              ))
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base">Notifications</CardTitle>
-            <Button asChild variant="ghost" size="sm"><Link to="/teacher/notifications">All <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link></Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/teacher/notifications">
+                All <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-2">
             {notifs.map((n) => (
-              <Link key={n.id} to={n.link ?? "/teacher/notifications"} className="block rounded-lg border border-border/60 p-3 transition-colors hover:bg-accent/40">
+              <Link
+                key={n.id}
+                to={n.link ?? "/teacher/notifications"}
+                className="block rounded-lg border border-border/60 p-3 transition-colors hover:bg-accent/40"
+              >
                 <div className="flex items-start gap-2">
                   {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{n.title}</div>
                     <div className="line-clamp-2 text-xs text-muted-foreground">{n.message}</div>
-                    <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{n.time}</div>
+                    <div className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {n.time}
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -158,18 +239,36 @@ function Dashboard() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-base">Upcoming deadlines</CardTitle></CardHeader>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Upcoming deadlines</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-2">
-            {[...dueSoon, ...upcomingExams.slice(0, 2).map((e) => ({ id: e.id, classId: e.classId, title: e.title, dueDate: e.scheduledAt, status: "Scheduled" }))].map((d) => {
+            {[
+              ...dueSoon,
+              ...upcomingExams
+                .slice(0, 2)
+                .map((e) => ({
+                  id: e.id,
+                  classId: e.classId,
+                  title: e.title,
+                  dueDate: e.scheduledAt,
+                  status: "Scheduled",
+                })),
+            ].map((d) => {
               const cls = classes.find((c) => c.id === d.classId);
               return (
-                <div key={d.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+                <div
+                  key={d.id}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 p-3"
+                >
                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-warning/15 text-foreground dark:text-warning">
                     <Clock className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{d.title}</div>
-                    <div className="text-xs text-muted-foreground">{cls?.name} · due {d.dueDate}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {cls?.name} · due {d.dueDate}
+                    </div>
                   </div>
                   {cls && <LevelBadge level={cls.level} />}
                 </div>
@@ -179,26 +278,35 @@ function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-base">Students at risk</CardTitle></CardHeader>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Students at risk</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-2">
             {atRisk.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
                 <CheckCircle2 className="mx-auto mb-2 h-6 w-6 text-success" />
                 No students currently at risk.
               </div>
-            ) : atRisk.slice(0, 5).map((s) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarImage src={s.avatar} alt={s.name} />
-                  <AvatarFallback>{s.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{s.name}</div>
-                  <div className="text-xs text-muted-foreground">Progress {s.progress}% · Weak: {s.weakSkill}</div>
+            ) : (
+              atRisk.slice(0, 5).map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 p-3"
+                >
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarImage src={s.avatar} alt={s.name} />
+                    <AvatarFallback>{s.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{s.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Progress {s.progress}% · Weak: {s.weakSkill}
+                    </div>
+                  </div>
+                  <LevelBadge level={s.level} />
                 </div>
-                <LevelBadge level={s.level} />
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

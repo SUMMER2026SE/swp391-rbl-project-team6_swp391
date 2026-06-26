@@ -58,7 +58,9 @@ export function TeacherCalendarTab({ classInfo }: TeacherCalendarTabProps) {
 
               <div className="flex items-center gap-2 self-end sm:self-center">
                 <span className="text-xs font-semibold text-muted-foreground mr-2">{evt.date}</span>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${getEventBadge(evt.type)}`}>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${getEventBadge(evt.type)}`}
+                >
                   {evt.type}
                 </span>
               </div>

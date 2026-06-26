@@ -15,14 +15,16 @@ export function SakuraBg({ count = 18 }: { count?: number }) {
           <span
             key={i}
             className="sakura-petal dark:opacity-0"
-            style={{
-              left: `${left}%`,
-              width: size,
-              height: size,
-              animationDuration: `${dur}s`,
-              animationDelay: `${delay}s`,
-              ["--drift" as string]: `${drift}px`,
-            } as React.CSSProperties}
+            style={
+              {
+                left: `${left}%`,
+                width: size,
+                height: size,
+                animationDuration: `${dur}s`,
+                animationDelay: `${delay}s`,
+                ["--drift" as string]: `${drift}px`,
+              } as React.CSSProperties
+            }
           />
         );
       })}

@@ -62,7 +62,7 @@ export const createDefaultOverallProgress = (): OverallProgress => ({
 // Load lesson progress
 export function loadLessonProgress(lessonId: string): LessonProgress {
   if (typeof window === "undefined") return createDefaultLessonProgress(lessonId);
-  
+
   try {
     const saved = localStorage.getItem(`${PROGRESS_STORAGE_KEY}_${lessonId}`);
     if (saved) {
@@ -77,7 +77,7 @@ export function loadLessonProgress(lessonId: string): LessonProgress {
 // Save lesson progress
 export function saveLessonProgress(progress: LessonProgress): void {
   if (typeof window === "undefined") return;
-  
+
   try {
     localStorage.setItem(`${PROGRESS_STORAGE_KEY}_${progress.lessonId}`, JSON.stringify(progress));
   } catch (e) {
@@ -88,7 +88,7 @@ export function saveLessonProgress(progress: LessonProgress): void {
 // Load overall progress
 export function loadOverallProgress(): OverallProgress {
   if (typeof window === "undefined") return createDefaultOverallProgress();
-  
+
   try {
     const saved = localStorage.getItem(OVERALL_STORAGE_KEY);
     if (saved) {
@@ -103,7 +103,7 @@ export function loadOverallProgress(): OverallProgress {
 // Save overall progress
 export function saveOverallProgress(progress: OverallProgress): void {
   if (typeof window === "undefined") return;
-  
+
   try {
     localStorage.setItem(OVERALL_STORAGE_KEY, JSON.stringify(progress));
   } catch (e) {
@@ -119,20 +119,22 @@ export function markLessonComplete(lessonId: string, score: number): void {
   progress.attempts += 1;
   progress.lastAttempt = new Date().toISOString();
   saveLessonProgress(progress);
-  
+
   // Update overall progress
   const overall = loadOverallProgress();
   const completedLessons = Object.keys(overall.achievements).length || 0;
   overall.lessonsCompleted = completedLessons + 1;
-  
+
   // Update streak
   const today = new Date().toDateString();
   if (overall.lastStudyDate !== today) {
     const lastDate = overall.lastStudyDate ? new Date(overall.lastStudyDate) : null;
     const todayDate = new Date(today);
-    
+
     if (lastDate) {
-      const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+      const diffDays = Math.floor(
+        (todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
       if (diffDays === 1) {
         overall.streak += 1;
       } else if (diffDays > 1) {
@@ -143,13 +145,13 @@ export function markLessonComplete(lessonId: string, score: number): void {
     }
     overall.lastStudyDate = today;
   }
-  
+
   overall.quizzesTaken += 1;
-  
+
   // Calculate new average
   const totalScores = overall.averageScore * (overall.quizzesTaken - 1) + score;
   overall.averageScore = Math.round(totalScores / overall.quizzesTaken);
-  
+
   saveOverallProgress(overall);
 }
 
@@ -159,7 +161,7 @@ export function markCharacterLearned(lessonId: string, characterId: string): voi
   if (!progress.charactersLearned.includes(characterId)) {
     progress.charactersLearned.push(characterId);
     saveLessonProgress(progress);
-    
+
     // Update overall
     const overall = loadOverallProgress();
     overall.totalCharactersLearned += 1;
@@ -176,7 +178,7 @@ export function markCharacterMastered(lessonId: string, characterId: string): vo
       progress.charactersLearned.push(characterId);
     }
     saveLessonProgress(progress);
-    
+
     // Update overall
     const overall = loadOverallProgress();
     overall.totalCharactersMastered += 1;

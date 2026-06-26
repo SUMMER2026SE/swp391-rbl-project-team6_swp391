@@ -137,7 +137,10 @@ export const mockGrammar: GrammarItemLocal[] = [
     grammarStructure: "～そうだ",
     meaning: "Nghe nói rằng... (nguồn tin)",
     exampleSentences: [
-      { sentence: "天気予報によると、明日は雨そうだ。", meaning: "Theo dự báo thời tiết, nghe nói ngày mai trời mưa." },
+      {
+        sentence: "天気予報によると、明日は雨そうだ。",
+        meaning: "Theo dự báo thời tiết, nghe nói ngày mai trời mưa.",
+      },
       { sentence: "彼が合格したそうだ。", meaning: "Nghe nói anh ấy đã đỗ." },
     ],
     jlptLevel: "N4",
@@ -164,7 +167,10 @@ export const mockGrammar: GrammarItemLocal[] = [
     meaning: "Được cho là... / Được nói rằng...",
     exampleSentences: [
       { sentence: "日本語は難しいと言われている。", meaning: "Tiếng Nhật được cho là khó." },
-      { sentence: "この映画は素晴らしいと言われている。", meaning: "Bộ phim này được nói là tuyệt vời." },
+      {
+        sentence: "この映画は素晴らしいと言われている。",
+        meaning: "Bộ phim này được nói là tuyệt vời.",
+      },
     ],
     jlptLevel: "N3",
     tags: ["passive", "hearsay", "cultural"],
@@ -177,7 +183,10 @@ export const mockGrammar: GrammarItemLocal[] = [
     meaning: "Liên quan đến... / Về...",
     exampleSentences: [
       { sentence: "環境問題に関して議論した。", meaning: "Đã thảo luận về vấn đề môi trường." },
-      { sentence: "この事件に関して情報がない。", meaning: "Không có thông tin liên quan đến vụ việc này." },
+      {
+        sentence: "この事件に関して情報がない。",
+        meaning: "Không có thông tin liên quan đến vụ việc này.",
+      },
     ],
     jlptLevel: "N2",
     tags: ["topic", "regarding", "formal"],
@@ -189,8 +198,14 @@ export const mockGrammar: GrammarItemLocal[] = [
     grammarStructure: "～にもかかわらず",
     meaning: "Mặc dù... / Dù... (có sự đối lập)",
     exampleSentences: [
-      { sentence: "雨にもかかわらず、試合は続けた。", meaning: "Mặc dù trời mưa, trận đấu vẫn tiếp tục." },
-      { sentence: "眠いにもかかわらず、仕事を続けた。", meaning: "Dù buồn ngủ, vẫn tiếp tục làm việc." },
+      {
+        sentence: "雨にもかかわらず、試合は続けた。",
+        meaning: "Mặc dù trời mưa, trận đấu vẫn tiếp tục.",
+      },
+      {
+        sentence: "眠いにもかかわらず、仕事を続けた。",
+        meaning: "Dù buồn ngủ, vẫn tiếp tục làm việc.",
+      },
     ],
     jlptLevel: "N2",
     tags: ["contrast", "despite", "formal"],
@@ -213,19 +228,19 @@ export const mockGrammar: GrammarItemLocal[] = [
 ];
 
 export const getGrammarByLevel = (level: JLPTLevel) => {
-  return mockGrammar.filter(item => item.jlptLevel === level);
+  return mockGrammar.filter((item) => item.jlptLevel === level);
 };
 
 export const getGrammarById = (id: string) => {
-  return mockGrammar.find(item => item.id === id);
+  return mockGrammar.find((item) => item.id === id);
 };
 
 export const searchGrammar = (query: string) => {
   const lowerQuery = query.toLowerCase();
   return mockGrammar.filter(
-    item =>
+    (item) =>
       item.grammarStructure.toLowerCase().includes(lowerQuery) ||
       item.meaning.toLowerCase().includes(lowerQuery) ||
-      item.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery))
+      item.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery)),
   );
 };

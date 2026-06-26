@@ -119,7 +119,7 @@ export function HomeworkSection({ assignments, onViewResult }: HomeworkSectionPr
                 </span>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${getStatusStyle(
-                    assignment.status
+                    assignment.status,
                   )}`}
                 >
                   {assignment.status}
@@ -184,7 +184,9 @@ export function HomeworkSection({ assignments, onViewResult }: HomeworkSectionPr
 
         {processedAssignments.length === 0 && (
           <div className="sm:col-span-2 text-center py-10 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-2xl">
-            <p className="text-xs text-muted-foreground font-semibold">No homework matches the filter</p>
+            <p className="text-xs text-muted-foreground font-semibold">
+              No homework matches the filter
+            </p>
           </div>
         )}
       </div>

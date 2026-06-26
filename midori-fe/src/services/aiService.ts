@@ -58,7 +58,12 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q1",
       question: "Where is the station?",
-      options: ["Next to that building", "Behind the park", "In front of the school", "Near the hospital"],
+      options: [
+        "Next to that building",
+        "Behind the park",
+        "In front of the school",
+        "Near the hospital",
+      ],
       correctAnswer: 0,
       explanation: "The speaker says the station is next to that building.",
       hintWords: ["あのビル"],
@@ -102,15 +107,26 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q1",
       question: "What is mentioned as a serious social issue?",
-      options: ["Climate change", "Declining birthrate and aging population", "Unemployment", "Housing problems"],
+      options: [
+        "Climate change",
+        "Declining birthrate and aging population",
+        "Unemployment",
+        "Housing problems",
+      ],
       correctAnswer: 1,
-      explanation: "The declining birthrate and aging population is mentioned as a serious social issue.",
+      explanation:
+        "The declining birthrate and aging population is mentioned as a serious social issue.",
       hintWords: ["少子高齢化"],
     },
     {
       id: "mock-q2",
       question: "What burden is mentioned as increasing?",
-      options: ["Workload", "Financial burden on younger generations", "Housing costs", "Education costs"],
+      options: [
+        "Workload",
+        "Financial burden on younger generations",
+        "Housing costs",
+        "Education costs",
+      ],
       correctAnswer: 1,
       explanation: "The financial burden on younger generations is mentioned as increasing.",
       hintWords: ["負担"],
@@ -128,9 +144,15 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q1",
       question: "What might lead to economic recovery according to the analyst?",
-      options: ["Government intervention", "Improved consumer sentiment", "Lower taxes", "Increased exports"],
+      options: [
+        "Government intervention",
+        "Improved consumer sentiment",
+        "Lower taxes",
+        "Increased exports",
+      ],
       correctAnswer: 1,
-      explanation: "According to the economic analyst, improved consumer sentiment is likely to lead to economic recovery.",
+      explanation:
+        "According to the economic analyst, improved consumer sentiment is likely to lead to economic recovery.",
       hintWords: ["消費者心理"],
     },
     {
@@ -144,7 +166,12 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q3",
       question: "What trend regarding population in urban areas is mentioned?",
-      options: ["Population is decreasing", "Population concentration is unavoidable", "Rural areas are growing", "Population is stabilizing"],
+      options: [
+        "Population is decreasing",
+        "Population concentration is unavoidable",
+        "Rural areas are growing",
+        "Population is stabilizing",
+      ],
       correctAnswer: 1,
       explanation: "Population concentration in urban areas is mentioned as an unavoidable trend.",
       hintWords: ["人口集中"],
@@ -152,7 +179,12 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q4",
       question: "What new approach is being discussed in the meeting?",
-      options: ["Traditional marketing", "Digital transformation-based approach", "International expansion", "Cost reduction"],
+      options: [
+        "Traditional marketing",
+        "Digital transformation-based approach",
+        "International expansion",
+        "Cost reduction",
+      ],
       correctAnswer: 1,
       explanation: "A digital transformation-based approach is being discussed.",
       hintWords: ["デジタル transformation"],
@@ -162,15 +194,26 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q1",
       question: "What has significantly decreased due to technology evolution?",
-      options: ["Work opportunities", "Direct communication opportunities", "Learning resources", "Social activities"],
+      options: [
+        "Work opportunities",
+        "Direct communication opportunities",
+        "Learning resources",
+        "Social activities",
+      ],
       correctAnswer: 1,
-      explanation: "Direct communication opportunities have significantly decreased due to technology evolution.",
+      explanation:
+        "Direct communication opportunities have significantly decreased due to technology evolution.",
       hintWords: ["コミュニケーション"],
     },
     {
       id: "mock-q2",
       question: "What psychological impact is mentioned?",
-      options: ["Increased happiness", "Cannot be overlooked", "Reduced stress", "Improved relationships"],
+      options: [
+        "Increased happiness",
+        "Cannot be overlooked",
+        "Reduced stress",
+        "Improved relationships",
+      ],
       correctAnswer: 1,
       explanation: "The psychological impact mentioned cannot be overlooked.",
       hintWords: ["心理的影響"],
@@ -178,7 +221,12 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q3",
       question: "What transformation is described as an unavoidable trend?",
-      options: ["Digital transformation", "Industrial structure transformation", "Social transformation", "Cultural transformation"],
+      options: [
+        "Digital transformation",
+        "Industrial structure transformation",
+        "Social transformation",
+        "Cultural transformation",
+      ],
       correctAnswer: 1,
       explanation: "Industrial structure transformation is described as an unavoidable trend.",
       hintWords: ["产业结构"],
@@ -186,7 +234,12 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
     {
       id: "mock-q4",
       question: "What is required in modern global society according to the passage?",
-      options: ["Uniform values", "Flexibility to accept diversity", "Strict rules", "Technology adoption"],
+      options: [
+        "Uniform values",
+        "Flexibility to accept diversity",
+        "Strict rules",
+        "Technology adoption",
+      ],
       correctAnswer: 1,
       explanation: "Flexibility to accept diversity is required in modern global society.",
       hintWords: ["多様性"],
@@ -196,7 +249,8 @@ const MOCK_QUESTIONS: Record<JLPTLevel, ListeningQuestion[]> = {
       question: "What does AI introduction require existing business models to do?",
       options: ["Expand globally", "Be fundamentally reviewed", "Increase prices", "Reduce staff"],
       correctAnswer: 1,
-      explanation: "AI introduction requires existing business models to be fundamentally reviewed.",
+      explanation:
+        "AI introduction requires existing business models to be fundamentally reviewed.",
       hintWords: ["見直される"],
     },
   ],
@@ -217,7 +271,7 @@ class AIService {
   async processAudio(
     audioFileId: string,
     level: JLPTLevel,
-    mode: ListeningMode
+    mode: ListeningMode,
   ): Promise<ListeningAIResult> {
     // Try API first
     if (isApiEnabled) {
@@ -244,9 +298,7 @@ class AIService {
   /**
    * Generate AI content without actual audio (mock mode)
    */
-  async generateContent(
-    options: AIContentGenerationOptions
-  ): Promise<ListeningAIResult> {
+  async generateContent(options: AIContentGenerationOptions): Promise<ListeningAIResult> {
     // Simulate API delay
     await this.simulateDelay(2000, 4000);
 
@@ -274,7 +326,8 @@ class AIService {
     // Generate questions based on mode
     if (mode === "quiz" || mode === "both") {
       const mockQuestions = MOCK_QUESTIONS[level];
-      const numQuestions = mode === "both" ? Math.min(mockQuestions.length, 5) : Math.min(mockQuestions.length, 3);
+      const numQuestions =
+        mode === "both" ? Math.min(mockQuestions.length, 5) : Math.min(mockQuestions.length, 3);
       result.questions = mockQuestions.slice(0, numQuestions);
     }
 
@@ -331,7 +384,7 @@ class AIService {
   private async mockAIProcess(
     audioFileId: string,
     level: JLPTLevel,
-    mode: ListeningMode
+    mode: ListeningMode,
   ): Promise<ListeningAIResult> {
     // Simulate processing delay (2-4 seconds)
     await this.simulateDelay(2000, 4000);
@@ -359,7 +412,8 @@ class AIService {
     // Generate questions based on mode
     if (mode === "quiz" || mode === "both") {
       const mockQuestions = MOCK_QUESTIONS[level];
-      const numQuestions = mode === "both" ? Math.min(mockQuestions.length, 5) : Math.min(mockQuestions.length, 3);
+      const numQuestions =
+        mode === "both" ? Math.min(mockQuestions.length, 5) : Math.min(mockQuestions.length, 3);
       result.questions = mockQuestions.slice(0, numQuestions);
     }
 
@@ -375,9 +429,7 @@ class AIService {
       .join("\n");
   }
 
-  private generateSegments(
-    transcript: string
-  ): ListeningTranscript["segments"] {
+  private generateSegments(transcript: string): ListeningTranscript["segments"] {
     const lines = transcript.split("\n").filter((l) => l.trim());
     let startTime = 0;
 
@@ -398,19 +450,19 @@ class AIService {
   private translateSegment(segment: string): string {
     // Mock translations
     const translations: Record<string, string> = {
-      "すみません": "Excuse me",
-      "駅はどこですか": "Where is the station?",
-      "あのビルの隣です": "It's next to that building",
-      "ありがとうございます": "Thank you",
-      "どういたしまして": "You're welcome",
-      "いらっしゃいませ": "Welcome",
-      "パン": "bread",
+      すみません: "Excuse me",
+      駅はどこですか: "Where is the station?",
+      あのビルの隣です: "It's next to that building",
+      ありがとうございます: "Thank you",
+      どういたしまして: "You're welcome",
+      いらっしゃいませ: "Welcome",
+      パン: "bread",
       "はい、どうぞ": "Yes, here you go",
-      "今日は日本語の時間です": "Today is Japanese class",
-      "先生": "Teacher",
-      "学生": "Student",
-      "ページを開けてください": "Please open your books",
-      "何ページですか": "What page?",
+      今日は日本語の時間です: "Today is Japanese class",
+      先生: "Teacher",
+      学生: "Student",
+      ページを開けてください: "Please open your books",
+      何ページですか: "What page?",
     };
 
     let translation = segment;
@@ -435,20 +487,15 @@ class AIService {
 export const aiService = new AIService();
 
 // ─── Named Exports for Convenience ──────────────────────────────────────────────
-export const processAudioWithAI = (
-  audioFileId: string,
-  level: JLPTLevel,
-  mode: ListeningMode
-) => aiService.processAudio(audioFileId, level, mode);
+export const processAudioWithAI = (audioFileId: string, level: JLPTLevel, mode: ListeningMode) =>
+  aiService.processAudio(audioFileId, level, mode);
 
 export const generateAIListeningContent = (options: AIContentGenerationOptions) =>
   aiService.generateContent(options);
 
-export const checkAIProcessingStatus = (jobId: string) =>
-  aiService.getProcessingStatus(jobId);
+export const checkAIProcessingStatus = (jobId: string) => aiService.getProcessingStatus(jobId);
 
-export const cancelAIProcessing = (jobId: string) =>
-  aiService.cancelProcessing(jobId);
+export const cancelAIProcessing = (jobId: string) => aiService.cancelProcessing(jobId);
 
 // ─── Check if API is available ────────────────────────────────────────────────
 export const isAIApiEnabled = isApiEnabled;

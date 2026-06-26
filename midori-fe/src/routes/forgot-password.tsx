@@ -34,10 +34,7 @@ function ForgotPasswordPage() {
   };
 
   return (
-    <AuthShell
-      title="Forgot password?"
-      subtitle="Enter your email and we'll send a reset link."
-    >
+    <AuthShell title="Forgot password?" subtitle="Enter your email and we'll send a reset link.">
       {!sent ? (
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <Field
@@ -56,11 +53,7 @@ function ForgotPasswordPage() {
           <PrimaryBtn type="submit" disabled={loading}>
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg
-                  className="animate-spin w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                   <circle
                     className="opacity-25"
                     cx="12"

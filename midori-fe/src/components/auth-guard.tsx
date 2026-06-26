@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { getRouteGuardRedirect, getTeacherPendingRedirect, type FrontendRole, useAuth } from "@/lib/auth";
+import {
+  getRouteGuardRedirect,
+  getTeacherPendingRedirect,
+  type FrontendRole,
+  useAuth,
+} from "@/lib/auth";
 
 type AuthGuardProps = {
   children: React.ReactNode;

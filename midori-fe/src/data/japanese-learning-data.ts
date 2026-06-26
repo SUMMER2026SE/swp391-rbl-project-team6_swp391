@@ -3,25 +3,60 @@
 // ============ HIRAGANA BASIC ============
 export const HIRAGANA_BASIC = [
   // Vowels
-  { char: "あ", romaji: "a" }, { char: "い", romaji: "i" }, { char: "う", romaji: "u" }, { char: "え", romaji: "e" }, { char: "お", romaji: "o" },
+  { char: "あ", romaji: "a" },
+  { char: "い", romaji: "i" },
+  { char: "う", romaji: "u" },
+  { char: "え", romaji: "e" },
+  { char: "お", romaji: "o" },
   // K row
-  { char: "か", romaji: "ka" }, { char: "き", romaji: "ki" }, { char: "く", romaji: "ku" }, { char: "け", romaji: "ke" }, { char: "こ", romaji: "ko" },
+  { char: "か", romaji: "ka" },
+  { char: "き", romaji: "ki" },
+  { char: "く", romaji: "ku" },
+  { char: "け", romaji: "ke" },
+  { char: "こ", romaji: "ko" },
   // S row
-  { char: "さ", romaji: "sa" }, { char: "し", romaji: "shi" }, { char: "す", romaji: "su" }, { char: "せ", romaji: "se" }, { char: "そ", romaji: "so" },
+  { char: "さ", romaji: "sa" },
+  { char: "し", romaji: "shi" },
+  { char: "す", romaji: "su" },
+  { char: "せ", romaji: "se" },
+  { char: "そ", romaji: "so" },
   // T row
-  { char: "た", romaji: "ta" }, { char: "ち", romaji: "chi" }, { char: "つ", romaji: "tsu" }, { char: "て", romaji: "te" }, { char: "と", romaji: "to" },
+  { char: "た", romaji: "ta" },
+  { char: "ち", romaji: "chi" },
+  { char: "つ", romaji: "tsu" },
+  { char: "て", romaji: "te" },
+  { char: "と", romaji: "to" },
   // N row
-  { char: "な", romaji: "na" }, { char: "に", romaji: "ni" }, { char: "ぬ", romaji: "nu" }, { char: "ね", romaji: "ne" }, { char: "の", romaji: "no" },
+  { char: "な", romaji: "na" },
+  { char: "に", romaji: "ni" },
+  { char: "ぬ", romaji: "nu" },
+  { char: "ね", romaji: "ne" },
+  { char: "の", romaji: "no" },
   // H row
-  { char: "は", romaji: "ha" }, { char: "ひ", romaji: "hi" }, { char: "ふ", romaji: "fu" }, { char: "へ", romaji: "he" }, { char: "ほ", romaji: "ho" },
+  { char: "は", romaji: "ha" },
+  { char: "ひ", romaji: "hi" },
+  { char: "ふ", romaji: "fu" },
+  { char: "へ", romaji: "he" },
+  { char: "ほ", romaji: "ho" },
   // M row
-  { char: "ま", romaji: "ma" }, { char: "み", romaji: "mi" }, { char: "む", romaji: "mu" }, { char: "め", romaji: "me" }, { char: "も", romaji: "mo" },
+  { char: "ま", romaji: "ma" },
+  { char: "み", romaji: "mi" },
+  { char: "む", romaji: "mu" },
+  { char: "め", romaji: "me" },
+  { char: "も", romaji: "mo" },
   // Y row
-  { char: "や", romaji: "ya" }, { char: "ゆ", romaji: "yu" }, { char: "よ", romaji: "yo" },
+  { char: "や", romaji: "ya" },
+  { char: "ゆ", romaji: "yu" },
+  { char: "よ", romaji: "yo" },
   // R row
-  { char: "ら", romaji: "ra" }, { char: "り", romaji: "ri" }, { char: "る", romaji: "ru" }, { char: "れ", romaji: "re" }, { char: "ろ", romaji: "ro" },
+  { char: "ら", romaji: "ra" },
+  { char: "り", romaji: "ri" },
+  { char: "る", romaji: "ru" },
+  { char: "れ", romaji: "re" },
+  { char: "ろ", romaji: "ro" },
   // W row
-  { char: "わ", romaji: "wa" }, { char: "を", romaji: "wo" },
+  { char: "わ", romaji: "wa" },
+  { char: "を", romaji: "wo" },
   // N
   { char: "ん", romaji: "n" },
 ];
@@ -29,25 +64,60 @@ export const HIRAGANA_BASIC = [
 // ============ KATAKANA BASIC ============
 export const KATAKANA_BASIC = [
   // Vowels
-  { char: "ア", romaji: "a" }, { char: "イ", romaji: "i" }, { char: "ウ", romaji: "u" }, { char: "エ", romaji: "e" }, { char: "オ", romaji: "o" },
+  { char: "ア", romaji: "a" },
+  { char: "イ", romaji: "i" },
+  { char: "ウ", romaji: "u" },
+  { char: "エ", romaji: "e" },
+  { char: "オ", romaji: "o" },
   // K row
-  { char: "カ", romaji: "ka" }, { char: "キ", romaji: "ki" }, { char: "ク", romaji: "ku" }, { char: "ケ", romaji: "ke" }, { char: "コ", romaji: "ko" },
+  { char: "カ", romaji: "ka" },
+  { char: "キ", romaji: "ki" },
+  { char: "ク", romaji: "ku" },
+  { char: "ケ", romaji: "ke" },
+  { char: "コ", romaji: "ko" },
   // S row
-  { char: "サ", romaji: "sa" }, { char: "シ", romaji: "shi" }, { char: "ス", romaji: "su" }, { char: "セ", romaji: "se" }, { char: "ソ", romaji: "so" },
+  { char: "サ", romaji: "sa" },
+  { char: "シ", romaji: "shi" },
+  { char: "ス", romaji: "su" },
+  { char: "セ", romaji: "se" },
+  { char: "ソ", romaji: "so" },
   // T row
-  { char: "タ", romaji: "ta" }, { char: "チ", romaji: "chi" }, { char: "ツ", romaji: "tsu" }, { char: "テ", romaji: "te" }, { char: "ト", romaji: "to" },
+  { char: "タ", romaji: "ta" },
+  { char: "チ", romaji: "chi" },
+  { char: "ツ", romaji: "tsu" },
+  { char: "テ", romaji: "te" },
+  { char: "ト", romaji: "to" },
   // N row
-  { char: "ナ", romaji: "na" }, { char: "ニ", romaji: "ni" }, { char: "ヌ", romaji: "nu" }, { char: "ネ", romaji: "ne" }, { char: "ノ", romaji: "no" },
+  { char: "ナ", romaji: "na" },
+  { char: "ニ", romaji: "ni" },
+  { char: "ヌ", romaji: "nu" },
+  { char: "ネ", romaji: "ne" },
+  { char: "ノ", romaji: "no" },
   // H row
-  { char: "ハ", romaji: "ha" }, { char: "ヒ", romaji: "hi" }, { char: "フ", romaji: "fu" }, { char: "ヘ", romaji: "he" }, { char: "ホ", romaji: "ho" },
+  { char: "ハ", romaji: "ha" },
+  { char: "ヒ", romaji: "hi" },
+  { char: "フ", romaji: "fu" },
+  { char: "ヘ", romaji: "he" },
+  { char: "ホ", romaji: "ho" },
   // M row
-  { char: "マ", romaji: "ma" }, { char: "ミ", romaji: "mi" }, { char: "ム", romaji: "mu" }, { char: "メ", romaji: "me" }, { char: "モ", romaji: "mo" },
+  { char: "マ", romaji: "ma" },
+  { char: "ミ", romaji: "mi" },
+  { char: "ム", romaji: "mu" },
+  { char: "メ", romaji: "me" },
+  { char: "モ", romaji: "mo" },
   // Y row
-  { char: "ヤ", romaji: "ya" }, { char: "ユ", romaji: "yu" }, { char: "ヨ", romaji: "yo" },
+  { char: "ヤ", romaji: "ya" },
+  { char: "ユ", romaji: "yu" },
+  { char: "ヨ", romaji: "yo" },
   // R row
-  { char: "ラ", romaji: "ra" }, { char: "リ", romaji: "ri" }, { char: "ル", romaji: "ru" }, { char: "レ", romaji: "re" }, { char: "ロ", romaji: "ro" },
+  { char: "ラ", romaji: "ra" },
+  { char: "リ", romaji: "ri" },
+  { char: "ル", romaji: "ru" },
+  { char: "レ", romaji: "re" },
+  { char: "ロ", romaji: "ro" },
   // W row
-  { char: "ワ", romaji: "wa" }, { char: "ヲ", romaji: "wo" },
+  { char: "ワ", romaji: "wa" },
+  { char: "ヲ", romaji: "wo" },
   // N
   { char: "ン", romaji: "n" },
 ];
@@ -55,79 +125,163 @@ export const KATAKANA_BASIC = [
 // ============ DAKUTEN (Voiced Sounds) ============
 export const HIRAGANA_DAKUTEN = [
   // G row (k → g)
-  { char: "が", romaji: "ga" }, { char: "ぎ", romaji: "gi" }, { char: "ぐ", romaji: "gu" }, { char: "げ", romaji: "ge" }, { char: "ご", romaji: "go" },
+  { char: "が", romaji: "ga" },
+  { char: "ぎ", romaji: "gi" },
+  { char: "ぐ", romaji: "gu" },
+  { char: "げ", romaji: "ge" },
+  { char: "ご", romaji: "go" },
   // Z row (s → z)
-  { char: "ざ", romaji: "za" }, { char: "じ", romaji: "ji" }, { char: "ず", romaji: "zu" }, { char: "ぜ", romaji: "ze" }, { char: "ぞ", romaji: "zo" },
+  { char: "ざ", romaji: "za" },
+  { char: "じ", romaji: "ji" },
+  { char: "ず", romaji: "zu" },
+  { char: "ぜ", romaji: "ze" },
+  { char: "ぞ", romaji: "zo" },
   // D row (t → d)
-  { char: "だ", romaji: "da" }, { char: "ぢ", romaji: "di/ji" }, { char: "づ", romaji: "du/zu" }, { char: "で", romaji: "de" }, { char: "ど", romaji: "do" },
+  { char: "だ", romaji: "da" },
+  { char: "ぢ", romaji: "di/ji" },
+  { char: "づ", romaji: "du/zu" },
+  { char: "で", romaji: "de" },
+  { char: "ど", romaji: "do" },
   // B row (h → b)
-  { char: "ば", romaji: "ba" }, { char: "び", romaji: "bi" }, { char: "ぶ", romaji: "bu" }, { char: "べ", romaji: "be" }, { char: "ぼ", romaji: "bo" },
+  { char: "ば", romaji: "ba" },
+  { char: "び", romaji: "bi" },
+  { char: "ぶ", romaji: "bu" },
+  { char: "べ", romaji: "be" },
+  { char: "ぼ", romaji: "bo" },
   // P row (h → p)
-  { char: "ぱ", romaji: "pa" }, { char: "ぴ", romaji: "pi" }, { char: "ぷ", romaji: "pu" }, { char: "ぺ", romaji: "pe" }, { char: "ぽ", romaji: "po" },
+  { char: "ぱ", romaji: "pa" },
+  { char: "ぴ", romaji: "pi" },
+  { char: "ぷ", romaji: "pu" },
+  { char: "ぺ", romaji: "pe" },
+  { char: "ぽ", romaji: "po" },
 ];
 
 export const KATAKANA_DAKUTEN = [
   // G row
-  { char: "ガ", romaji: "ga" }, { char: "ギ", romaji: "gi" }, { char: "グ", romaji: "gu" }, { char: "ゲ", romaji: "ge" }, { char: "ゴ", romaji: "go" },
+  { char: "ガ", romaji: "ga" },
+  { char: "ギ", romaji: "gi" },
+  { char: "グ", romaji: "gu" },
+  { char: "ゲ", romaji: "ge" },
+  { char: "ゴ", romaji: "go" },
   // Z row
-  { char: "ザ", romaji: "za" }, { char: "ジ", romaji: "ji" }, { char: "ズ", romaji: "zu" }, { char: "ゼ", romaji: "ze" }, { char: "ゾ", romaji: "zo" },
+  { char: "ザ", romaji: "za" },
+  { char: "ジ", romaji: "ji" },
+  { char: "ズ", romaji: "zu" },
+  { char: "ゼ", romaji: "ze" },
+  { char: "ゾ", romaji: "zo" },
   // D row
-  { char: "ダ", romaji: "da" }, { char: "ヂ", romaji: "di/ji" }, { char: "ヅ", romaji: "du/zu" }, { char: "デ", romaji: "de" }, { char: "ド", romaji: "do" },
+  { char: "ダ", romaji: "da" },
+  { char: "ヂ", romaji: "di/ji" },
+  { char: "ヅ", romaji: "du/zu" },
+  { char: "デ", romaji: "de" },
+  { char: "ド", romaji: "do" },
   // B row
-  { char: "バ", romaji: "ba" }, { char: "ビ", romaji: "bi" }, { char: "ブ", romaji: "bu" }, { char: "ベ", romaji: "be" }, { char: "ボ", romaji: "bo" },
+  { char: "バ", romaji: "ba" },
+  { char: "ビ", romaji: "bi" },
+  { char: "ブ", romaji: "bu" },
+  { char: "ベ", romaji: "be" },
+  { char: "ボ", romaji: "bo" },
   // P row
-  { char: "パ", romaji: "pa" }, { char: "ピ", romaji: "pi" }, { char: "プ", romaji: "pu" }, { char: "ペ", romaji: "pe" }, { char: "ポ", romaji: "po" },
+  { char: "パ", romaji: "pa" },
+  { char: "ピ", romaji: "pi" },
+  { char: "プ", romaji: "pu" },
+  { char: "ペ", romaji: "pe" },
+  { char: "ポ", romaji: "po" },
 ];
 
 // ============ COMBINATION SOUNDS (YOON) ============
 export const HIRAGANA_COMBINATION = [
   // KYA, KYU, KYO
-  { char: "きゃ", romaji: "kya" }, { char: "きゅ", romaji: "kyu" }, { char: "きょ", romaji: "kyo" },
+  { char: "きゃ", romaji: "kya" },
+  { char: "きゅ", romaji: "kyu" },
+  { char: "きょ", romaji: "kyo" },
   // SHA, SHU, SHO (SHI already exists, but include variant)
-  { char: "しゃ", romaji: "sha" }, { char: "しゅ", romaji: "shu" }, { char: "しょ", romaji: "sho" },
+  { char: "しゃ", romaji: "sha" },
+  { char: "しゅ", romaji: "shu" },
+  { char: "しょ", romaji: "sho" },
   // CHA, CHU, CHO (CHI already exists)
-  { char: "ちゃ", romaji: "cha" }, { char: "ちゅ", romaji: "chu" }, { char: "ちょ", romaji: "cho" },
+  { char: "ちゃ", romaji: "cha" },
+  { char: "ちゅ", romaji: "chu" },
+  { char: "ちょ", romaji: "cho" },
   // NYA, NYU, NYO
-  { char: "にゃ", romaji: "nya" }, { char: "にゅ", romaji: "nyu" }, { char: "にょ", romaji: "nyo" },
+  { char: "にゃ", romaji: "nya" },
+  { char: "にゅ", romaji: "nyu" },
+  { char: "にょ", romaji: "nyo" },
   // HYA, HYU, HYO
-  { char: "ひゃ", romaji: "hya" }, { char: "ひゅ", romaji: "hyu" }, { char: "ひょ", romaji: "hyo" },
+  { char: "ひゃ", romaji: "hya" },
+  { char: "ひゅ", romaji: "hyu" },
+  { char: "ひょ", romaji: "hyo" },
   // MYA, MYU, MYO
-  { char: "みゃ", romaji: "mya" }, { char: "みゅ", romaji: "myu" }, { char: "みょ", romaji: "myo" },
+  { char: "みゃ", romaji: "mya" },
+  { char: "みゅ", romaji: "myu" },
+  { char: "みょ", romaji: "myo" },
   // RYA, RYU, RYO
-  { char: "りゃ", romaji: "rya" }, { char: "りゅ", romaji: "ryu" }, { char: "りょ", romaji: "ryo" },
+  { char: "りゃ", romaji: "rya" },
+  { char: "りゅ", romaji: "ryu" },
+  { char: "りょ", romaji: "ryo" },
   // GYA, GYU, GYO
-  { char: "ぎゃ", romaji: "gya" }, { char: "ぎゅ", romaji: "gyu" }, { char: "ぎょ", romaji: "gyo" },
+  { char: "ぎゃ", romaji: "gya" },
+  { char: "ぎゅ", romaji: "gyu" },
+  { char: "ぎょ", romaji: "gyo" },
   // JA, JU, JO (JI already exists)
-  { char: "じゃ", romaji: "ja" }, { char: "じゅ", romaji: "ju" }, { char: "じょ", romaji: "jo" },
+  { char: "じゃ", romaji: "ja" },
+  { char: "じゅ", romaji: "ju" },
+  { char: "じょ", romaji: "jo" },
   // BYA, BYU, BYO
-  { char: "びゃ", romaji: "bya" }, { char: "びゅ", romaji: "byu" }, { char: "びょ", romaji: "byo" },
+  { char: "びゃ", romaji: "bya" },
+  { char: "びゅ", romaji: "byu" },
+  { char: "びょ", romaji: "byo" },
   // PYA, PYU, PYO
-  { char: "ぴゃ", romaji: "pya" }, { char: "ぴゅ", romaji: "pyu" }, { char: "ぴょ", romaji: "pyo" },
+  { char: "ぴゃ", romaji: "pya" },
+  { char: "ぴゅ", romaji: "pyu" },
+  { char: "ぴょ", romaji: "pyo" },
 ];
 
 export const KATAKANA_COMBINATION = [
   // KYA, KYU, KYO
-  { char: "キャ", romaji: "kya" }, { char: "キュ", romaji: "kyu" }, { char: "キョ", romaji: "kyo" },
+  { char: "キャ", romaji: "kya" },
+  { char: "キュ", romaji: "kyu" },
+  { char: "キョ", romaji: "kyo" },
   // SHA, SHU, SHO
-  { char: "シャ", romaji: "sha" }, { char: "シュ", romaji: "shu" }, { char: "ショ", romaji: "sho" },
+  { char: "シャ", romaji: "sha" },
+  { char: "シュ", romaji: "shu" },
+  { char: "ショ", romaji: "sho" },
   // CHA, CHU, CHO
-  { char: "チャ", romaji: "cha" }, { char: "チュ", romaji: "chu" }, { char: "チョ", romaji: "cho" },
+  { char: "チャ", romaji: "cha" },
+  { char: "チュ", romaji: "chu" },
+  { char: "チョ", romaji: "cho" },
   // NYA, NYU, NYO
-  { char: "ニャ", romaji: "nya" }, { char: "ニュ", romaji: "nyu" }, { char: "ニョ", romaji: "nyo" },
+  { char: "ニャ", romaji: "nya" },
+  { char: "ニュ", romaji: "nyu" },
+  { char: "ニョ", romaji: "nyo" },
   // HYA, HYU, HYO
-  { char: "ヒャ", romaji: "hya" }, { char: "ヒュ", romaji: "hyu" }, { char: "ヒョ", romaji: "hyo" },
+  { char: "ヒャ", romaji: "hya" },
+  { char: "ヒュ", romaji: "hyu" },
+  { char: "ヒョ", romaji: "hyo" },
   // MYA, MYU, MYO
-  { char: "ミャ", romaji: "mya" }, { char: "ミュ", romaji: "myu" }, { char: "ミョ", romaji: "myo" },
+  { char: "ミャ", romaji: "mya" },
+  { char: "ミュ", romaji: "myu" },
+  { char: "ミョ", romaji: "myo" },
   // RYA, RYU, RYO
-  { char: "リャ", romaji: "rya" }, { char: "リュ", romaji: "ryu" }, { char: "リョ", romaji: "ryo" },
+  { char: "リャ", romaji: "rya" },
+  { char: "リュ", romaji: "ryu" },
+  { char: "リョ", romaji: "ryo" },
   // GYA, GYU, GYO
-  { char: "ギャ", romaji: "gya" }, { char: "ギュ", romaji: "gyu" }, { char: "ギョ", romaji: "gyo" },
+  { char: "ギャ", romaji: "gya" },
+  { char: "ギュ", romaji: "gyu" },
+  { char: "ギョ", romaji: "gyo" },
   // JA, JU, JO
-  { char: "ジャ", romaji: "ja" }, { char: "ジュ", romaji: "ju" }, { char: "ジョ", romaji: "jo" },
+  { char: "ジャ", romaji: "ja" },
+  { char: "ジュ", romaji: "ju" },
+  { char: "ジョ", romaji: "jo" },
   // BYA, BYU, BYO
-  { char: "ビャ", romaji: "bya" }, { char: "ビュ", romaji: "byu" }, { char: "ビョ", romaji: "byo" },
+  { char: "ビャ", romaji: "bya" },
+  { char: "ビュ", romaji: "byu" },
+  { char: "ビョ", romaji: "byo" },
   // PYA, PYU, PYO
-  { char: "ピャ", romaji: "pya" }, { char: "ピュ", romaji: "pyu" }, { char: "ピョ", romaji: "pyo" },
+  { char: "ピャ", romaji: "pya" },
+  { char: "ピュ", romaji: "pyu" },
+  { char: "ピョ", romaji: "pyo" },
 ];
 
 // ============ LONG SOUNDS ============
@@ -198,7 +352,8 @@ export const LESSONS: Lesson[] = [
     script: "hiragana",
     title: "Hiragana Basic",
     subtitle: " foundational characters",
-    description: "Master the 46 fundamental Hiragana characters. These form the backbone of Japanese writing and are essential for reading and writing.",
+    description:
+      "Master the 46 fundamental Hiragana characters. These form the backbone of Japanese writing and are essential for reading and writing.",
     characters: HIRAGANA_BASIC,
     color: "from-pink-400 to-rose-500",
     icon: "あ",
@@ -213,7 +368,8 @@ export const LESSONS: Lesson[] = [
     script: "katakana",
     title: "Katakana Basic",
     subtitle: " foundational characters",
-    description: "Learn the 46 basic Katakana characters used primarily for foreign words, loanwords, and emphasis in Japanese.",
+    description:
+      "Learn the 46 basic Katakana characters used primarily for foreign words, loanwords, and emphasis in Japanese.",
     characters: KATAKANA_BASIC,
     color: "from-blue-400 to-cyan-500",
     icon: "ア",
@@ -228,7 +384,8 @@ export const LESSONS: Lesson[] = [
     script: "hiragana",
     title: "Hiragana Dakuten",
     subtitle: "Voiced sounds",
-    description: "Learn Hiragana with dakuten (゛) marks that create voiced sounds like が, じ, づ, ば, and ぱ.",
+    description:
+      "Learn Hiragana with dakuten (゛) marks that create voiced sounds like が, じ, づ, ば, and ぱ.",
     characters: HIRAGANA_DAKUTEN,
     color: "from-purple-400 to-violet-500",
     icon: "が",
@@ -243,7 +400,8 @@ export const LESSONS: Lesson[] = [
     script: "katakana",
     title: "Katakana Dakuten",
     subtitle: "Voiced sounds",
-    description: "Master Katakana voiced sounds with dakuten marks. Essential for reading foreign words that contain voiced consonants.",
+    description:
+      "Master Katakana voiced sounds with dakuten marks. Essential for reading foreign words that contain voiced consonants.",
     characters: KATAKANA_DAKUTEN,
     color: "from-indigo-400 to-blue-500",
     icon: "ガ",
@@ -258,7 +416,8 @@ export const LESSONS: Lesson[] = [
     script: "hiragana",
     title: "Hiragana Combinations",
     subtitle: "Small ya, yu, yo sounds",
-    description: "Learn how small ゃ, ゅ, ょ combine with base characters to create combination sounds like きゃ, しゅ, ちょ.",
+    description:
+      "Learn how small ゃ, ゅ, ょ combine with base characters to create combination sounds like きゃ, しゅ, ちょ.",
     characters: HIRAGANA_COMBINATION,
     color: "from-emerald-400 to-teal-500",
     icon: "きゃ",
@@ -273,7 +432,8 @@ export const LESSONS: Lesson[] = [
     script: "katakana",
     title: "Katakana Combinations",
     subtitle: "Small ya, yu, yo sounds",
-    description: "Master Katakana combination sounds. These are crucial for reading many common Japanese words and loanwords.",
+    description:
+      "Master Katakana combination sounds. These are crucial for reading many common Japanese words and loanwords.",
     characters: KATAKANA_COMBINATION,
     color: "from-cyan-400 to-sky-500",
     icon: "キャ",
@@ -288,7 +448,8 @@ export const LESSONS: Lesson[] = [
     script: "hiragana",
     title: "Long Sounds",
     subtitle: "Prolonged syllables",
-    description: "Understand how long vowels work in Japanese. The same vowel repeated doubles the length and changes pronunciation.",
+    description:
+      "Understand how long vowels work in Japanese. The same vowel repeated doubles the length and changes pronunciation.",
     characters: LONG_SOUND_EXAMPLES,
     color: "from-amber-400 to-orange-500",
     icon: "お",
@@ -303,7 +464,8 @@ export const LESSONS: Lesson[] = [
     script: "hiragana",
     title: "Small Tsu (Gemination)",
     subtitle: "Geminate consonants",
-    description: "Learn the small っ mark that doubles the following consonant sound. Essential for proper pronunciation.",
+    description:
+      "Learn the small っ mark that doubles the following consonant sound. Essential for proper pronunciation.",
     characters: SMALL_TSU_EXAMPLES,
     color: "from-red-400 to-pink-500",
     icon: "っ",
@@ -321,7 +483,13 @@ export interface Achievement {
   icon: string;
   color: string;
   requirement: {
-    type: "lessons_completed" | "quiz_score" | "streak" | "characters_learned" | "perfect_score" | "speed_challenge";
+    type:
+      | "lessons_completed"
+      | "quiz_score"
+      | "streak"
+      | "characters_learned"
+      | "perfect_score"
+      | "speed_challenge";
     count: number;
   };
 }
@@ -437,7 +605,14 @@ export function generateQuizQuestions(lesson: Lesson): QuizQuestion[] {
     questions.push({
       type: "listening",
       question: `Listen and select the correct character`,
-      options: [char.char, ...chars.filter((c) => c.char !== char.char).sort(() => Math.random() - 0.5).slice(0, 3).map((c) => c.char)].sort(() => Math.random() - 0.5),
+      options: [
+        char.char,
+        ...chars
+          .filter((c) => c.char !== char.char)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+          .map((c) => c.char),
+      ].sort(() => Math.random() - 0.5),
       correctAnswer: char.char,
     });
   });
@@ -479,12 +654,15 @@ export function generateQuizQuestions(lesson: Lesson): QuizQuestion[] {
 
 // ============ PROGRESS TRACKING ============
 export interface UserProgress {
-  lessonProgress: Record<string, {
-    completed: boolean;
-    score: number;
-    attempts: number;
-    lastAttempt: string;
-  }>;
+  lessonProgress: Record<
+    string,
+    {
+      completed: boolean;
+      score: number;
+      attempts: number;
+      lastAttempt: string;
+    }
+  >;
   achievements: string[];
   streak: number;
   lastStudyDate: string;

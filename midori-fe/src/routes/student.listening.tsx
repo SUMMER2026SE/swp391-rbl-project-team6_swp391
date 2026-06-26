@@ -3,9 +3,26 @@ import { PageHeader } from "@/components/page-ui";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  Play, Pause, RotateCcw, Sparkles, CheckCircle2, XCircle,
-  Headphones, ListChecks, Check, ChevronRight, ChevronLeft,
-  Volume2, Loader2, AlertCircle, RefreshCw, Mic, FileText, MousePointer, Search, X
+  Play,
+  Pause,
+  RotateCcw,
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  Headphones,
+  ListChecks,
+  Check,
+  ChevronRight,
+  ChevronLeft,
+  Volume2,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Mic,
+  FileText,
+  MousePointer,
+  Search,
+  X,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { listeningApi } from "@/lib/api/listening";
@@ -78,7 +95,7 @@ function getLevelBoxStyle(level: string, isSelected: boolean) {
 function getBlankedText(text: string, hiddenWords: string[]): string {
   if (!text || !hiddenWords || hiddenWords.length === 0) return text;
   let result = text;
-  hiddenWords.forEach(word => {
+  hiddenWords.forEach((word) => {
     if (word && word.trim()) {
       result = result.split(word).join(" ____ ");
     }
@@ -100,7 +117,7 @@ interface HighlightSegment {
 function getHighlightedSegments(
   userAnswer: string,
   correctAnswer: string,
-  hiddenWords: string[]
+  hiddenWords: string[],
 ): HighlightSegment[] {
   if (!userAnswer.trim() || !correctAnswer) return [];
 
@@ -124,12 +141,20 @@ function getHighlightedSegments(
     } else {
       let matchFound = false;
       if (userIdx < userChars.length) {
-        for (let lookAhead = Math.min(3, correctChars.length - correctIdx); lookAhead > 0; lookAhead--) {
+        for (
+          let lookAhead = Math.min(3, correctChars.length - correctIdx);
+          lookAhead > 0;
+          lookAhead--
+        ) {
           const userSlice = userChars.slice(userIdx, userIdx + lookAhead).join("");
           const correctSlice = correctChars.slice(correctIdx, correctIdx + lookAhead).join("");
           if (userSlice === correctSlice) {
             for (let i = 0; i < lookAhead; i++) {
-              segments.push({ text: correctChars[correctIdx + i], isCorrect: true, isHidden: false });
+              segments.push({
+                text: correctChars[correctIdx + i],
+                isCorrect: true,
+                isHidden: false,
+              });
             }
             userIdx += lookAhead;
             correctIdx += lookAhead;
@@ -174,7 +199,7 @@ export const Route = createFileRoute("/student/listening")({ component: Listenin
 function Listening() {
   // Use accessible levels (mock - later from API)
   const studentLevels = studentAccessibleLevels as JLPTLevel[];
-  
+
   // Default to first accessible level
   const defaultLevel: JLPTLevel = studentLevels.length > 0 ? studentLevels[0] : "N5";
 
@@ -208,9 +233,9 @@ function Listening() {
     setError(null);
     try {
       const list = await listeningApi.getStudentListenings(
-        levelFilter === "All" ? undefined : { level: levelFilter }
+        levelFilter === "All" ? undefined : { level: levelFilter },
       );
-      const mapped = list.map(item => {
+      const mapped = list.map((item) => {
         const detail = item as any;
         const parsedMeaning = (() => {
           try {
@@ -219,24 +244,25 @@ function Listening() {
               return {
                 text: parsed.text || "",
                 type: parsed.type || "Dictation",
-                blankWords: parsed.blankWords || []
+                blankWords: parsed.blankWords || [],
               };
             }
           } catch (e) {}
           return {
             text: detail.meaning || "",
             type: "Dictation",
-            blankWords: []
+            blankWords: [],
           };
         })();
 
         let exerciseType = parsedMeaning.type;
         let mode = detail.mode || "dictation";
-        
-        const isQuizMode = detail.mode === "quiz" || 
-                           detail.exerciseType === "MULTIPLE_CHOICE" ||
-                           (detail.questions && detail.questions.length > 0 && detail.questions[0].options);
-        
+
+        const isQuizMode =
+          detail.mode === "quiz" ||
+          detail.exerciseType === "MULTIPLE_CHOICE" ||
+          (detail.questions && detail.questions.length > 0 && detail.questions[0].options);
+
         if (isQuizMode) {
           exerciseType = "Multiple Choice";
           mode = "quiz";
@@ -251,13 +277,17 @@ function Listening() {
           level: item.level || "N5",
           type: exerciseType,
           topic: detail.topic || "General",
-          audioUrl: item.audioUrl ? (item.audioUrl.startsWith("http") ? item.audioUrl : `http://localhost:8080${item.audioUrl}`) : undefined,
+          audioUrl: item.audioUrl
+            ? item.audioUrl.startsWith("http")
+              ? item.audioUrl
+              : `http://localhost:8080${item.audioUrl}`
+            : undefined,
           transcript: detail.transcript || "",
           meaning: parsedMeaning.text,
           hiddenWords: parsedMeaning.blankWords,
           duration: "0:00",
           questions: detail.questions || [],
-          mode: mode
+          mode: mode,
         };
       });
       setExercises(mapped);
@@ -276,7 +306,7 @@ function Listening() {
   useEffect(() => {
     if (audioRef.current && selectedEx?.audioUrl) {
       if (playing) {
-        audioRef.current.play().catch(err => {
+        audioRef.current.play().catch((err) => {
           console.error("Audio play failed:", err);
           setPlaying(false);
         });
@@ -300,12 +330,18 @@ function Listening() {
     if (!selectedEx) return false;
     const cleanAnswer = answer.replace(/\s/g, "").toLowerCase();
     if (selectedEx.type === "Blank Fill") {
-      const cleanHidden = (selectedEx.hiddenWords || []).map(w => w.replace(/\s/g, "").toLowerCase());
+      const cleanHidden = (selectedEx.hiddenWords || []).map((w) =>
+        w.replace(/\s/g, "").toLowerCase(),
+      );
       if (cleanHidden.length === 0) return false;
       if (cleanHidden.length === 1) {
         return cleanAnswer === cleanHidden[0];
       }
-      return cleanHidden.every(word => cleanAnswer.includes(word)) || cleanHidden.join(",") === cleanAnswer || cleanHidden.join("|") === cleanAnswer;
+      return (
+        cleanHidden.every((word) => cleanAnswer.includes(word)) ||
+        cleanHidden.join(",") === cleanAnswer ||
+        cleanHidden.join("|") === cleanAnswer
+      );
     } else {
       return cleanAnswer === (selectedEx.transcript || "").replace(/\s/g, "").toLowerCase();
     }
@@ -315,17 +351,18 @@ function Listening() {
     let result = exercises;
     if (practiceMode) {
       if (practiceMode === "dictation") {
-        result = result.filter(ex => ex.type !== "Multiple Choice");
+        result = result.filter((ex) => ex.type !== "Multiple Choice");
       } else if (practiceMode === "multiple-choice") {
-        result = result.filter(ex => ex.type === "Multiple Choice");
+        result = result.filter((ex) => ex.type === "Multiple Choice");
       }
     }
     if (appliedSearch) {
       const search = appliedSearch.toLowerCase();
-      result = result.filter(ex =>
-        ex.title.toLowerCase().includes(search) ||
-        ex.topic.toLowerCase().includes(search) ||
-        ex.type.toLowerCase().includes(search)
+      result = result.filter(
+        (ex) =>
+          ex.title.toLowerCase().includes(search) ||
+          ex.topic.toLowerCase().includes(search) ||
+          ex.type.toLowerCase().includes(search),
       );
     }
     return result;
@@ -333,7 +370,10 @@ function Listening() {
 
   const totalPages = Math.max(1, Math.ceil(filteredExercises.length / ITEMS_PER_PAGE));
   const safePage = Math.min(page, totalPages);
-  const paginatedExercises = filteredExercises.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+  const paginatedExercises = filteredExercises.slice(
+    (safePage - 1) * ITEMS_PER_PAGE,
+    safePage * ITEMS_PER_PAGE,
+  );
 
   const handleSelectLevel = (level: JLPTLevel) => {
     setLevelFilter(level);
@@ -351,25 +391,26 @@ function Listening() {
             return {
               text: parsed.text || "",
               type: parsed.type || "Dictation",
-              blankWords: parsed.blankWords || []
+              blankWords: parsed.blankWords || [],
             };
           }
         } catch (e) {}
         return {
           text: detail.meaning || "",
           type: "Dictation",
-          blankWords: []
+          blankWords: [],
         };
       })();
 
-      let selectedType = ((detail.exerciseType as string) || parsedMeaning.type || "Dictation");
+      let selectedType = (detail.exerciseType as string) || parsedMeaning.type || "Dictation";
       let exerciseMode = detail.mode || ex.mode;
 
-      const isQuizMode = detail.mode === "quiz" || 
-                         exerciseMode === "quiz" ||
-                         detail.exerciseType === "MULTIPLE_CHOICE" ||
-                         (detail.questions && detail.questions.length > 0 && detail.questions[0].options);
-      
+      const isQuizMode =
+        detail.mode === "quiz" ||
+        exerciseMode === "quiz" ||
+        detail.exerciseType === "MULTIPLE_CHOICE" ||
+        (detail.questions && detail.questions.length > 0 && detail.questions[0].options);
+
       if (isQuizMode) {
         selectedType = "Multiple Choice";
         exerciseMode = "quiz";
@@ -384,7 +425,11 @@ function Listening() {
         transcript: detail.transcript || "",
         meaning: parsedMeaning.text,
         hiddenWords: parsedMeaning.blankWords,
-        audioUrl: detail.audioUrl ? (detail.audioUrl.startsWith("http") ? detail.audioUrl : `http://localhost:8080${detail.audioUrl}`) : undefined,
+        audioUrl: detail.audioUrl
+          ? detail.audioUrl.startsWith("http")
+            ? detail.audioUrl
+            : `http://localhost:8080${detail.audioUrl}`
+          : undefined,
         questions: detail.questions || [],
         mode: exerciseMode as "dictation" | "quiz" | "both",
       });
@@ -414,9 +459,9 @@ function Listening() {
 
   const handleSelectAnswer = (questionId: string, answerIndex: number) => {
     if (!quizChecked) {
-      setSelectedAnswers(prev => ({
+      setSelectedAnswers((prev) => ({
         ...prev,
-        [questionId]: answerIndex
+        [questionId]: answerIndex,
       }));
     }
   };
@@ -465,8 +510,8 @@ function Listening() {
           <div className="relative flex">
             <input
               value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              onKeyDown={e => {
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   setAppliedSearch(searchInput.trim());
                 }
@@ -476,7 +521,10 @@ function Listening() {
             />
             {searchInput && (
               <button
-                onClick={() => { setSearchInput(""); setAppliedSearch(""); }}
+                onClick={() => {
+                  setSearchInput("");
+                  setAppliedSearch("");
+                }}
                 className="absolute right-10 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition p-1"
               >
                 <X className="w-4 h-4" />
@@ -513,17 +561,20 @@ function Listening() {
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <MousePointer className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-semibold text-muted-foreground">Select practice skill</span>
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    Select practice skill
+                  </span>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {PRACTICE_MODES.map((mode) => {
                     const isActive = practiceMode === mode.id;
                     const Icon = mode.icon;
-                    const count = mode.id === "dictation" 
-                      ? exercises.filter(e => e.type !== "Multiple Choice").length
-                      : exercises.filter(e => e.type === "Multiple Choice").length;
-                    
+                    const count =
+                      mode.id === "dictation"
+                        ? exercises.filter((e) => e.type !== "Multiple Choice").length
+                        : exercises.filter((e) => e.type === "Multiple Choice").length;
+
                     return (
                       <button
                         key={mode.id}
@@ -544,31 +595,43 @@ function Listening() {
                         }`}
                       >
                         {isActive && (
-                          <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full ${mode.activeBg} flex items-center justify-center shadow-md`}>
+                          <div
+                            className={`absolute -top-2 -right-2 w-6 h-6 rounded-full ${mode.activeBg} flex items-center justify-center shadow-md`}
+                          >
                             <Check className="w-4 h-4 text-white" />
                           </div>
                         )}
-                        
-                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${
-                          isActive ? mode.bgColor : "bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-400/30"
-                        }`}>
-                          <Icon className={`w-6 h-6 ${isActive ? mode.color.replace("from-", "text-").replace(" to-", "/") : "text-muted-foreground"}`} />
+
+                        <div
+                          className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${
+                            isActive
+                              ? mode.bgColor
+                              : "bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-400/30"
+                          }`}
+                        >
+                          <Icon
+                            className={`w-6 h-6 ${isActive ? mode.color.replace("from-", "text-").replace(" to-", "/") : "text-muted-foreground"}`}
+                          />
                         </div>
-                        
+
                         <div className="flex-1 text-left">
-                          <div className={`font-bold text-sm mb-0.5 ${isActive ? "text-foreground" : "text-foreground/80"}`}>
+                          <div
+                            className={`font-bold text-sm mb-0.5 ${isActive ? "text-foreground" : "text-foreground/80"}`}
+                          >
                             {mode.label}
                           </div>
                           <div className="text-xs text-muted-foreground line-clamp-1">
                             {mode.description}
                           </div>
                         </div>
-                        
-                        <div className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold ${
-                          isActive 
-                            ? `bg-white/80 dark:bg-white/10 ${mode.color.split(" ")[0].replace("from-", "text-")}` 
-                            : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
-                        }`}>
+
+                        <div
+                          className={`shrink-0 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            isActive
+                              ? `bg-white/80 dark:bg-white/10 ${mode.color.split(" ")[0].replace("from-", "text-")}`
+                              : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
+                          }`}
+                        >
                           {count}
                         </div>
                       </button>
@@ -590,7 +653,7 @@ function Listening() {
                     All
                   </button>
                 )}
-                {studentLevels.map(level => {
+                {studentLevels.map((level) => {
                   const isActive = levelFilter === level;
                   return (
                     <button
@@ -611,10 +674,13 @@ function Listening() {
               <div className="rounded-[1.5rem] bg-white/80 dark:bg-indigo-950/30 backdrop-blur-xl border border-white/60 dark:border-indigo-400/20 shadow-sm overflow-hidden">
                 <div className="px-5 pt-5 pb-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-foreground/80">Choose a listening exercise</p>
+                    <p className="text-sm font-semibold text-foreground/80">
+                      Choose a listening exercise
+                    </p>
                     {practiceMode && (
                       <span className="text-xs text-muted-foreground">
-                        {filteredExercises.length} exercise{filteredExercises.length !== 1 ? "s" : ""} available
+                        {filteredExercises.length} exercise
+                        {filteredExercises.length !== 1 ? "s" : ""} available
                       </span>
                     )}
                   </div>
@@ -645,7 +711,10 @@ function Listening() {
                   <div className="flex flex-col items-center justify-center py-20 text-center px-4">
                     <AlertCircle className="text-red-500 mb-3 w-8 h-8" />
                     <p className="text-red-500 font-medium text-sm">{error}</p>
-                    <button onClick={fetchExercises} className="mt-4 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold flex items-center gap-1">
+                    <button
+                      onClick={fetchExercises}
+                      className="mt-4 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold flex items-center gap-1"
+                    >
                       <RefreshCw className="w-3 h-3" /> Retry
                     </button>
                   </div>
@@ -654,8 +723,12 @@ function Listening() {
                 {practiceMode && !isLoading && !error && paginatedExercises.length === 0 && (
                   <div className="text-center py-16 px-4 m-4 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50">
                     <Headphones className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-                    <p className="font-semibold text-sm text-slate-600 dark:text-slate-300">No listening exercises available for this mode.</p>
-                    <p className="text-xs text-muted-foreground mt-1">Exercises will appear here once created by a teacher.</p>
+                    <p className="font-semibold text-sm text-slate-600 dark:text-slate-300">
+                      No listening exercises available for this mode.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Exercises will appear here once created by a teacher.
+                    </p>
                   </div>
                 )}
 
@@ -679,7 +752,9 @@ function Listening() {
                             }`}
                           >
                             <div className="flex items-center gap-4">
-                              <div className={`shrink-0 w-12 h-12 rounded-2xl flex flex-col items-center justify-center ${getLevelBoxStyle(ex.level, isSelected)}`}>
+                              <div
+                                className={`shrink-0 w-12 h-12 rounded-2xl flex flex-col items-center justify-center ${getLevelBoxStyle(ex.level, isSelected)}`}
+                              >
                                 <span className="font-display font-black text-sm">{ex.level}</span>
                                 <span className="text-[7px] font-semibold opacity-60">JLPT</span>
                               </div>
@@ -709,9 +784,13 @@ function Listening() {
                                 </div>
                               </div>
 
-                              <div className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ease-out ${
-                                isSelected ? "bg-primary text-white shadow-sm" : "bg-slate-100/80 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 text-muted-foreground"
-                              }`}>
+                              <div
+                                className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ease-out ${
+                                  isSelected
+                                    ? "bg-primary text-white shadow-sm"
+                                    : "bg-slate-100/80 hover:bg-white dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 text-muted-foreground"
+                                }`}
+                              >
                                 <ChevronRight className="w-4 h-4" />
                               </div>
                             </div>
@@ -733,14 +812,14 @@ function Listening() {
               {practiceMode && totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-5 pb-2">
                   <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={safePage === 1}
                     className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 ease-out shadow-sm hover:shadow-md"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                     <button
                       key={p}
                       onClick={() => setPage(p)}
@@ -755,7 +834,7 @@ function Listening() {
                   ))}
 
                   <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={safePage === totalPages}
                     className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-white/50 dark:border-slate-700/50 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 ease-out shadow-sm hover:shadow-md"
                   >
@@ -794,7 +873,7 @@ function Listening() {
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(255,255,255,0.22),transparent_35%),radial-gradient(ellipse_at_80%_20%,rgba(255,255,255,0.09),transparent_30%),radial-gradient(ellipse_at_50%_100%,rgba(139,92,246,0.15),transparent_40%)]" />
                   <div className="relative z-10 flex items-center gap-4 text-white">
                     <button
-                      onClick={() => setPlaying(p => !p)}
+                      onClick={() => setPlaying((p) => !p)}
                       className="w-16 h-16 rounded-full bg-white text-indigo-600 grid place-items-center shadow-xl shadow-black/10 shrink-0 hover:scale-105 active:scale-95 transition-transform"
                     >
                       {playing ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-1" />}
@@ -807,11 +886,16 @@ function Listening() {
                         </span>
                         <span className="text-xs text-white/70">{selectedEx.type}</span>
                       </div>
-                      <div className="font-display font-bold text-xl leading-tight mb-3">{selectedEx.title}</div>
+                      <div className="font-display font-bold text-xl leading-tight mb-3">
+                        {selectedEx.title}
+                      </div>
 
                       <div className="flex items-end gap-0.5 h-8 mb-1">
                         {Array.from({ length: 40 }).map((_, wi) => {
-                          const raw = 20 + Math.abs(Math.sin(wi * 0.75)) * 46 + Math.abs(Math.cos(wi * 0.38)) * 20;
+                          const raw =
+                            20 +
+                            Math.abs(Math.sin(wi * 0.75)) * 46 +
+                            Math.abs(Math.cos(wi * 0.38)) * 20;
                           const height = Math.min(90, Math.max(20, raw));
                           return (
                             <div
@@ -823,7 +907,10 @@ function Listening() {
                         })}
                       </div>
                       <div className="h-1 bg-white/20 rounded-full overflow-hidden relative mb-2">
-                        <div className="h-full bg-white rounded-full" style={{ width: `${progress}%` }} />
+                        <div
+                          className="h-full bg-white rounded-full"
+                          style={{ width: `${progress}%` }}
+                        />
                       </div>
                       <div className="flex justify-between text-[10px] text-white/75">
                         <span>{formatTime(currentTime)}</span>
@@ -859,12 +946,17 @@ function Listening() {
                     </div>
                     <div className="p-5">
                       <p className="text-sm text-muted-foreground mb-4">
-                        Listen to the audio and type what you hear. Pay attention to the highlighted blanks.
+                        Listen to the audio and type what you hear. Pay attention to the highlighted
+                        blanks.
                       </p>
-                      
+
                       <div className="mb-4 p-4 rounded-xl bg-muted/50 dark:bg-slate-900/50 border border-border/60 dark:border-slate-700">
-                        <p className="text-xs text-muted-foreground mb-2 font-medium">Original text:</p>
-                        <p className="font-medium text-foreground">{getBlankedText(selectedEx.transcript, selectedEx.hiddenWords)}</p>
+                        <p className="text-xs text-muted-foreground mb-2 font-medium">
+                          Original text:
+                        </p>
+                        <p className="font-medium text-foreground">
+                          {getBlankedText(selectedEx.transcript, selectedEx.hiddenWords)}
+                        </p>
                       </div>
 
                       <textarea
@@ -898,25 +990,41 @@ function Listening() {
 
                       {checked && (
                         <div className="mt-4">
-                          <div className={`p-4 rounded-xl border ${
-                            correct
-                              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                              : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-                          }`}>
-                            <div className={`flex items-center gap-2 font-bold text-sm ${
-                              correct ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-                            }`}>
-                              {correct ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
-                              {correct ? "Excellent! Perfect score!" : "Not quite right. Try again!"}
+                          <div
+                            className={`p-4 rounded-xl border ${
+                              correct
+                                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                                : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                            }`}
+                          >
+                            <div
+                              className={`flex items-center gap-2 font-bold text-sm ${
+                                correct
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {correct ? (
+                                <CheckCircle2 className="w-5 h-5" />
+                              ) : (
+                                <XCircle className="w-5 h-5" />
+                              )}
+                              {correct
+                                ? "Excellent! Perfect score!"
+                                : "Not quite right. Try again!"}
                             </div>
-                            
+
                             {!correct && (
                               <div className="mt-3 pt-3 border-t border-current/20">
-                                <p className="text-xs text-muted-foreground mb-1">Correct answer:</p>
-                                <p className="font-semibold text-foreground">{selectedEx.transcript}</p>
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Correct answer:
+                                </p>
+                                <p className="font-semibold text-foreground">
+                                  {selectedEx.transcript}
+                                </p>
                               </div>
                             )}
-                            
+
                             {selectedEx.meaning && (
                               <div className="mt-3 pt-3 border-t border-current/20">
                                 <p className="text-xs text-muted-foreground mb-1">Meaning:</p>
@@ -952,7 +1060,8 @@ function Listening() {
                       {selectedEx.questions.map((q, qi) => {
                         const selected = selectedAnswers[q.id];
                         const isCorrect = quizChecked && selected === q.correctAnswer;
-                        const isWrong = quizChecked && selected !== undefined && selected !== q.correctAnswer;
+                        const isWrong =
+                          quizChecked && selected !== undefined && selected !== q.correctAnswer;
 
                         return (
                           <div key={q.id} className="space-y-2">
@@ -979,7 +1088,9 @@ function Listening() {
                                           : "bg-muted/50 dark:bg-slate-900/50 border-border/60 dark:border-slate-700 text-foreground/80 dark:text-slate-300 hover:bg-muted dark:hover:bg-slate-800/50"
                                     }`}
                                   >
-                                    <span className="font-medium mr-2">{String.fromCharCode(65 + oi)}.</span>
+                                    <span className="font-medium mr-2">
+                                      {String.fromCharCode(65 + oi)}.
+                                    </span>
                                     {opt}
                                   </button>
                                 );
@@ -987,18 +1098,28 @@ function Listening() {
                             </div>
 
                             {quizChecked && (
-                              <div className={`mt-2 p-3 rounded-xl ${
-                                isCorrect
-                                  ? "bg-emerald-50 dark:bg-emerald-950/30"
-                                  : "bg-red-50 dark:bg-red-950/30"
-                              }`}>
-                                <div className={`flex items-center gap-2 text-sm font-semibold ${
+                              <div
+                                className={`mt-2 p-3 rounded-xl ${
                                   isCorrect
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-red-600 dark:text-red-400"
-                                }`}>
-                                  {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                  {isCorrect ? "Correct!" : `Incorrect. The correct answer is: ${q.options[q.correctAnswer]}`}
+                                    ? "bg-emerald-50 dark:bg-emerald-950/30"
+                                    : "bg-red-50 dark:bg-red-950/30"
+                                }`}
+                              >
+                                <div
+                                  className={`flex items-center gap-2 text-sm font-semibold ${
+                                    isCorrect
+                                      ? "text-emerald-600 dark:text-emerald-400"
+                                      : "text-red-600 dark:text-red-400"
+                                  }`}
+                                >
+                                  {isCorrect ? (
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  ) : (
+                                    <XCircle className="w-4 h-4" />
+                                  )}
+                                  {isCorrect
+                                    ? "Correct!"
+                                    : `Incorrect. The correct answer is: ${q.options[q.correctAnswer]}`}
                                 </div>
                                 {q.explanation && (
                                   <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 pl-6">
@@ -1021,7 +1142,9 @@ function Listening() {
                           </button>
                           <button
                             onClick={handleCheckQuiz}
-                            disabled={Object.keys(selectedAnswers).length !== selectedEx.questions?.length}
+                            disabled={
+                              Object.keys(selectedAnswers).length !== selectedEx.questions?.length
+                            }
                             className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-linear-to-r from-blue-500 to-pink-500 text-white font-bold text-sm shadow-md hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <Check className="w-4 h-4" /> Check answers
@@ -1038,15 +1161,31 @@ function Listening() {
                                   Quiz Complete!
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                  {selectedEx.questions?.filter((q) => selectedAnswers[q.id] === q.correctAnswer).length} / {selectedEx.questions?.length} correct
+                                  {
+                                    selectedEx.questions?.filter(
+                                      (q) => selectedAnswers[q.id] === q.correctAnswer,
+                                    ).length
+                                  }{" "}
+                                  / {selectedEx.questions?.length} correct
                                 </p>
                               </div>
-                              <div className={`px-3 py-1.5 rounded-xl font-bold text-sm ${
-                                (selectedEx.questions?.filter((q) => selectedAnswers[q.id] === q.correctAnswer).length || 0) === selectedEx.questions?.length
-                                  ? "bg-emerald-500 text-white"
-                                  : "bg-blue-500 text-white"
-                              }`}>
-                                {Math.round(((selectedEx.questions?.filter((q) => selectedAnswers[q.id] === q.correctAnswer).length || 0) / (selectedEx.questions?.length || 1)) * 100)}%
+                              <div
+                                className={`px-3 py-1.5 rounded-xl font-bold text-sm ${
+                                  (selectedEx.questions?.filter(
+                                    (q) => selectedAnswers[q.id] === q.correctAnswer,
+                                  ).length || 0) === selectedEx.questions?.length
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-blue-500 text-white"
+                                }`}
+                              >
+                                {Math.round(
+                                  ((selectedEx.questions?.filter(
+                                    (q) => selectedAnswers[q.id] === q.correctAnswer,
+                                  ).length || 0) /
+                                    (selectedEx.questions?.length || 1)) *
+                                    100,
+                                )}
+                                %
                               </div>
                             </div>
                           </div>

@@ -1,9 +1,29 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/page-ui";
 import {
-  AlertCircle, Clock, CheckCircle2, ShieldAlert, AlertTriangle, ArrowLeft,
-  ChevronLeft, ChevronRight, Flag, Save, Maximize, Minimize, Brain, BookOpen,
-  Check, X, Award, HelpCircle, FileText, CheckCircle, XCircle, Sparkles, BookOpen as LessonIcon
+  AlertCircle,
+  Clock,
+  CheckCircle2,
+  ShieldAlert,
+  AlertTriangle,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  Save,
+  Maximize,
+  Minimize,
+  Brain,
+  BookOpen,
+  Check,
+  X,
+  Award,
+  HelpCircle,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Sparkles,
+  BookOpen as LessonIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
@@ -21,7 +41,12 @@ interface DoingAssignmentWorkspaceProps {
   reviewMode?: boolean;
 }
 
-export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, reviewMode = false }: DoingAssignmentWorkspaceProps) {
+export function DoingAssignmentWorkspace({
+  assignment,
+  onClose,
+  onSubmit,
+  reviewMode = false,
+}: DoingAssignmentWorkspaceProps) {
   const { user } = useAuth();
   const userName = user?.name || "Student Yuki T.";
 
@@ -29,7 +54,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
   const [currentQuestion, setCurrentQuestion] = useState(0);
   // In reviewMode, pre-fill a realistic submitted answer set (indices 0-4 mapped)
   const [answers, setAnswers] = useState<Record<number, number>>(
-    reviewMode ? { 0: 1, 1: 2, 2: 0, 3: 0, 4: 0 } : {}
+    reviewMode ? { 0: 1, 1: 2, 2: 0, 3: 0, 4: 0 } : {},
   );
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [violations, setViolations] = useState(0);
@@ -59,15 +84,17 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
       weakness: "Demonstratives / Classroom Nouns",
       recommendation: { title: "Vocabulary Lesson 2", link: "/student/vocabulary" },
       aiFeedback: {
-        explanation: "The Japanese word for pencil is '鉛筆' (enpitsu). '本' means book, 'ペン' means pen.",
+        explanation:
+          "The Japanese word for pencil is '鉛筆' (enpitsu). '本' means book, 'ペン' means pen.",
         grammar: "これは [Noun] です (This is [Noun]).",
         vocabulary: "鉛筆 (えんぴつ) = pencil; 本 (ほん) = book; ペン = pen.",
-        commonMistake: "Confusing 'これ' (this near speaker) with 'それ' (that near listener) or 'あれ' (that far from both).",
-        suggestion: "Review basic classroom vocabulary and demonstratives (ko-so-a-do series)."
-      }
+        commonMistake:
+          "Confusing 'これ' (this near speaker) with 'それ' (that near listener) or 'あれ' (that far from both).",
+        suggestion: "Review basic classroom vocabulary and demonstratives (ko-so-a-do series).",
+      },
     },
     {
-      q: 'Which particle is used to mark the topic of a sentence?',
+      q: "Which particle is used to mark the topic of a sentence?",
       options: ["が (ga)", "を (wo)", "は (wa)", "に (ni)"],
       correctIdx: 2,
       type: "Grammar Particle",
@@ -76,16 +103,25 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
       weakness: "Subject/Topic Particles",
       recommendation: { title: "Grammar Lesson 1", link: "/student/grammar" },
       aiFeedback: {
-        explanation: "The particle 'は' (pronounced 'wa' as a particle) marks the topic of the sentence. 'が' marks the grammatical subject.",
+        explanation:
+          "The particle 'は' (pronounced 'wa' as a particle) marks the topic of the sentence. 'が' marks the grammatical subject.",
         grammar: "Topic Marker: [Noun] は [Information about topic].",
-        vocabulary: "は (wa) = topic marker; が (ga) = subject marker; を (wo) = direct object marker.",
-        commonMistake: "Confusing topic (は) and subject (が) particles is the most common mistake for beginners.",
-        suggestion: "Focus on the context: は is used for general truths or established topics; が is used for new or emphasized information."
-      }
+        vocabulary:
+          "は (wa) = topic marker; が (ga) = subject marker; を (wo) = direct object marker.",
+        commonMistake:
+          "Confusing topic (は) and subject (が) particles is the most common mistake for beginners.",
+        suggestion:
+          "Focus on the context: は is used for general truths or established topics; が is used for new or emphasized information.",
+      },
     },
     {
       q: 'Translate: "Where is the toilet?" in Japanese.',
-      options: ["お手洗いはどこですか。", "駅はどこですか。", "ここはお手洗いですか。", "お手洗いはあそこです。"],
+      options: [
+        "お手洗いはどこですか。",
+        "駅はどこですか。",
+        "ここはお手洗いですか。",
+        "お手洗いはあそこです。",
+      ],
       correctIdx: 0,
       type: "Survival Phrase",
       points: 20,
@@ -97,12 +133,18 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
         grammar: "[Topic] は どこ ですか (Where is [Topic]?).",
         vocabulary: "お手洗い (おてあらい) = restroom; どこ = where; 駅 (えき) = station.",
         commonMistake: "Using 'ここ' (here) instead of 'どこ' (where).",
-        suggestion: "Memorize asking directions for essential locations like restrooms, stations, and hotels."
-      }
+        suggestion:
+          "Memorize asking directions for essential locations like restrooms, stations, and hotels.",
+      },
     },
     {
       q: 'What is the reading of the kanji "日本語"?',
-      options: ["にほんご (nihongo)", "にっぽんご (nippongo)", "にほんじん (nihonjin)", "にほん (nihon)"],
+      options: [
+        "にほんご (nihongo)",
+        "にっぽんご (nippongo)",
+        "にほんじん (nihonjin)",
+        "にほん (nihon)",
+      ],
       correctIdx: 0,
       type: "Kanji Reading",
       points: 20,
@@ -110,12 +152,15 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
       weakness: "Country/Language Suffixes",
       recommendation: { title: "Vocabulary Lesson 2", link: "/student/vocabulary" },
       aiFeedback: {
-        explanation: "日本語 is read as 'にほんご' (nihongo). '日' (ni) + '本' (hon) + '語' (go/language).",
+        explanation:
+          "日本語 is read as 'にほんご' (nihongo). '日' (ni) + '本' (hon) + '語' (go/language).",
         grammar: "[Country] + 語 = Language of that country.",
-        vocabulary: "日本語 (にほんご) = Japanese language; 日本人 (にほんじん) = Japanese person; 日本 (にほん) = Japan.",
+        vocabulary:
+          "日本語 (にほんご) = Japanese language; 日本人 (にほんじん) = Japanese person; 日本 (にほん) = Japan.",
         commonMistake: "Adding 'じん' (person suffix) or reading '語' as 'が'.",
-        suggestion: "Learn country names and language suffixes together to build vocabulary systematically."
-      }
+        suggestion:
+          "Learn country names and language suffixes together to build vocabulary systematically.",
+      },
     },
     {
       q: 'Complete the sentence: "私は学生 ______。"',
@@ -127,13 +172,16 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
       weakness: "Basic Copula Verbs",
       recommendation: { title: "Grammar Lesson 2", link: "/student/grammar" },
       aiFeedback: {
-        explanation: "'です' (desu) is the polite copula meaning 'to be' (am/is/are) in the present positive tense.",
+        explanation:
+          "'です' (desu) is the polite copula meaning 'to be' (am/is/are) in the present positive tense.",
         grammar: "Noun A は Noun B です (A is B).",
-        vocabulary: "学生 (がくせい) = student; です = polite 'to be'; でした = past polite 'to be'.",
+        vocabulary:
+          "学生 (がくせい) = student; です = polite 'to be'; でした = past polite 'to be'.",
         commonMistake: "Using 'ます' (verb ending) for Nouns, or 'あります' (inanimate existence).",
-        suggestion: "Ensure helper copulas (です) match the type of the word preceding it (noun/adjective)."
-      }
-    }
+        suggestion:
+          "Ensure helper copulas (です) match the type of the word preceding it (noun/adjective).",
+      },
+    },
   ];
 
   // Auto-Save Effect
@@ -149,7 +197,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setLastSavedSec(prev => prev + 1);
+      setLastSavedSec((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -180,7 +228,8 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isSubmitted) return;
-      const msg = "Are you sure you want to leave? Your exam progress may be lost and this attempt will be reported.";
+      const msg =
+        "Are you sure you want to leave? Your exam progress may be lost and this attempt will be reported.";
       e.preventDefault();
       e.returnValue = msg;
       return msg;
@@ -199,7 +248,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
           desc: `${userName} left the active test workspace (${type}) during "${assignment.title}". (Violation #${nextViolations})`,
           time: "Just now",
           unread: true,
-          icon: ShieldAlert
+          icon: ShieldAlert,
         });
 
         return nextViolations;
@@ -229,7 +278,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
     // Prevent Escape key from exiting fullscreen during exam
     const handleEscapeKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSubmitted) {
+      if (e.key === "Escape" && !isSubmitted) {
         e.preventDefault();
         e.stopPropagation();
         reportViolation("Escape Key Pressed");
@@ -280,9 +329,15 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      document.documentElement
+        .requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch(() => {});
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document
+        .exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(() => {});
     }
   };
 
@@ -355,18 +410,21 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
   }, 0);
   const correctCount = questions.filter((q, idx) => answers[idx] === q.correctIdx).length;
   const wrongCount = questions.length - correctCount;
-  const isPassed = scoreEarned >= (assignment.maxScore * 0.5);
+  const isPassed = scoreEarned >= assignment.maxScore * 0.5;
 
   const selectedReviewQuestion = questions[currentReviewIndex];
   const isReviewCorrect = answers[currentReviewIndex] === selectedReviewQuestion.correctIdx;
 
   // Weak areas statistics calculation
-  const weakAreasStats = questions.reduce((acc, q, idx) => {
-    if (answers[idx] !== q.correctIdx) {
-      acc[q.skill] = (acc[q.skill] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
+  const weakAreasStats = questions.reduce(
+    (acc, q, idx) => {
+      if (answers[idx] !== q.correctIdx) {
+        acc[q.skill] = (acc[q.skill] || 0) + 1;
+      }
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   if (isSubmitted) {
     // ----------------------------------------------------
@@ -374,22 +432,30 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
     // ----------------------------------------------------
     return (
       <div className="space-y-6 max-w-7xl mx-auto py-2 flex flex-col lg:flex-row gap-6 items-start text-slate-700 dark:text-slate-200">
-        
         {/* Left Side: Summary Card, Navigator, Weak Areas & Analytics */}
         <div className="w-full lg:w-96 space-y-6 shrink-0 lg:sticky lg:top-24">
-          
           {/* Section 1: Exam Summary Card */}
           <Card className="p-5 border border-slate-200/50 dark:border-white/5 bg-white/70 dark:bg-[#0d1020]/45 shadow-sm space-y-4 relative overflow-hidden">
-            <div className={`absolute top-0 left-0 right-0 h-1 ${isPassed ? "bg-green-500" : "bg-red-500"}`} />
-            
+            <div
+              className={`absolute top-0 left-0 right-0 h-1 ${isPassed ? "bg-green-500" : "bg-red-500"}`}
+            />
+
             <div className="flex justify-between items-start">
               <div>
-                <span className="text-[9px] uppercase font-black tracking-wider text-muted-foreground">Exam Summary</span>
-                <h3 className="font-display font-black text-base text-foreground dark:text-white mt-0.5 leading-tight">{assignment.title}</h3>
+                <span className="text-[9px] uppercase font-black tracking-wider text-muted-foreground">
+                  Exam Summary
+                </span>
+                <h3 className="font-display font-black text-base text-foreground dark:text-white mt-0.5 leading-tight">
+                  {assignment.title}
+                </h3>
               </div>
-              <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${
-                isPassed ? "bg-green-500/15 text-green-500 border border-green-500/25" : "bg-red-500/15 text-red-500 border border-red-500/25"
-              }`}>
+              <span
+                className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${
+                  isPassed
+                    ? "bg-green-500/15 text-green-500 border border-green-500/25"
+                    : "bg-red-500/15 text-red-500 border border-red-500/25"
+                }`}
+              >
                 {isPassed ? "Passed" : "Failed"}
               </span>
             </div>
@@ -405,15 +471,23 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
             <div className="grid grid-cols-3 gap-2 text-center text-[10px] border-y border-slate-200/40 dark:border-white/5 py-3 mt-1">
               <div>
                 <div className="font-black text-green-500">{correctCount}</div>
-                <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">Correct</div>
+                <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">
+                  Correct
+                </div>
               </div>
               <div>
                 <div className="font-black text-red-500">{wrongCount}</div>
-                <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">Incorrect</div>
+                <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">
+                  Incorrect
+                </div>
               </div>
               <div>
-                <div className="font-black text-slate-700 dark:text-slate-300">{formatTime(1200 - timeLeft)}</div>
-                <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">Time</div>
+                <div className="font-black text-slate-700 dark:text-slate-300">
+                  {formatTime(1200 - timeLeft)}
+                </div>
+                <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">
+                  Time
+                </div>
               </div>
             </div>
 
@@ -447,7 +521,9 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
           {/* Section 2: Question Review Navigator Panel */}
           <Card className="p-4 border border-slate-200/50 dark:border-white/5 bg-white/50 dark:bg-[#0d1020]/45 space-y-3">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Select Question</h4>
+            <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+              Select Question
+            </h4>
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
                 const correct = answers[idx] === q.correctIdx;
@@ -460,8 +536,8 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                       isSelected
                         ? "border-primary scale-105 shadow"
                         : correct
-                        ? "bg-green-500/10 text-green-600 border-green-500/20"
-                        : "bg-red-500/10 text-red-600 border-red-500/20"
+                          ? "bg-green-500/10 text-green-600 border-green-500/20"
+                          : "bg-red-500/10 text-red-600 border-red-500/20"
                     }`}
                   >
                     {idx + 1}
@@ -469,7 +545,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                 );
               })}
             </div>
-            
+
             <div className="pt-2.5 border-t border-dashed border-slate-200 dark:border-white/10 text-[9px] text-muted-foreground space-y-1">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded bg-green-500/20 border border-green-500/30" />
@@ -481,12 +557,10 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
               </div>
             </div>
           </Card>
-
         </div>
 
         {/* Right Side: Section 3, 4, 5, 6, 7 Detailed Panel */}
         <div className="flex-1 w-full space-y-6">
-          
           {/* Section 3: Question Detail Panel */}
           <Card className="p-6 border border-slate-200/50 dark:border-white/5 bg-white shadow-sm space-y-5">
             <div className="flex justify-between items-start gap-4 flex-wrap">
@@ -502,9 +576,13 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                 <span className="text-[10px] text-muted-foreground font-bold bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-lg">
                   Points: {selectedReviewQuestion.points}
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase ${
-                  isReviewCorrect ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"
-                }`}>
+                <span
+                  className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase ${
+                    isReviewCorrect
+                      ? "bg-green-500/15 text-green-500"
+                      : "bg-red-500/15 text-red-500"
+                  }`}
+                >
                   {isReviewCorrect ? "✓ Correct" : "✗ Incorrect"}
                 </span>
               </div>
@@ -526,8 +604,8 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                       isCorrect
                         ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400"
                         : wasChosen
-                        ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
-                        : "bg-white/50 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5"
+                          ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
+                          : "bg-white/50 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -544,9 +622,13 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                         </span>
                       )}
                       {wasChosen && (
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                          isReviewCorrect ? "bg-green-500/20 text-green-600" : "bg-red-500/20 text-red-600"
-                        }`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                            isReviewCorrect
+                              ? "bg-green-500/20 text-green-600"
+                              : "bg-red-500/20 text-red-600"
+                          }`}
+                        >
                           Your Choice
                         </span>
                       )}
@@ -561,17 +643,26 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
           <Card className="p-6 border border-slate-200/50 dark:border-white/5 space-y-5">
             <div className="flex items-center gap-2 text-indigo-500">
               <Sparkles className="w-5 h-5 animate-pulse" />
-              <h4 className="font-display font-black text-sm uppercase tracking-wider">AI tutor analysis</h4>
+              <h4 className="font-display font-black text-sm uppercase tracking-wider">
+                AI tutor analysis
+              </h4>
             </div>
 
             <div className="space-y-4 text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-              
               {/* Question Mistake Card Difference details */}
               {!isReviewCorrect && (
                 <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-xs flex flex-col gap-1.5">
                   <div className="font-bold text-red-500">Difference Highlight:</div>
                   <p>
-                    You confused <strong className="text-red-500">"{selectedReviewQuestion.options[answers[currentReviewIndex]]}"</strong> with the correct option <strong className="text-green-500">"{selectedReviewQuestion.options[selectedReviewQuestion.correctIdx]}"</strong>.
+                    You confused{" "}
+                    <strong className="text-red-500">
+                      "{selectedReviewQuestion.options[answers[currentReviewIndex]]}"
+                    </strong>{" "}
+                    with the correct option{" "}
+                    <strong className="text-green-500">
+                      "{selectedReviewQuestion.options[selectedReviewQuestion.correctIdx]}"
+                    </strong>
+                    .
                   </p>
                 </div>
               )}
@@ -579,32 +670,44 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">Why correct</span>
+                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
+                      Why correct
+                    </span>
                     {selectedReviewQuestion.aiFeedback.explanation}
                   </p>
                   <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">Grammar Focus</span>
+                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
+                      Grammar Focus
+                    </span>
                     {selectedReviewQuestion.aiFeedback.grammar}
                   </p>
                   <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">Vocabulary Break-down</span>
+                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
+                      Vocabulary Break-down
+                    </span>
                     {selectedReviewQuestion.aiFeedback.vocabulary}
                   </p>
                 </div>
 
                 <div className="space-y-3 border-t sm:border-t-0 sm:border-l border-slate-200/50 dark:border-white/5 sm:pl-4 pt-3 sm:pt-0">
                   <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">Common Student Mistakes</span>
+                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
+                      Common Student Mistakes
+                    </span>
                     {selectedReviewQuestion.aiFeedback.commonMistake}
                   </p>
                   <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">AI Sensei Suggestion</span>
+                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
+                      AI Sensei Suggestion
+                    </span>
                     {selectedReviewQuestion.aiFeedback.suggestion}
                   </p>
-                  
+
                   {/* Section 5: Knowledge Breakdown tag */}
                   <div className="pt-2">
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider mb-1">Knowledge Classification</span>
+                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider mb-1">
+                      Knowledge Classification
+                    </span>
                     <div className="flex gap-2">
                       <span className="px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-500 text-[10px] font-bold border border-indigo-500/20">
                         {selectedReviewQuestion.skill}
@@ -616,13 +719,9 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                   </div>
                 </div>
               </div>
-
             </div>
           </Card>
-
-
         </div>
-
       </div>
     );
   }
@@ -646,22 +745,34 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
             {/* Exam Rules */}
             <div className="space-y-3 mb-8 p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3">Exam Rules</h3>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                Exam Rules
+              </h3>
               <div className="flex items-start gap-3 text-sm">
                 <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <span className="text-slate-600 dark:text-slate-300">The exam will run in <strong>fullscreen mode</strong> for focus</span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  The exam will run in <strong>fullscreen mode</strong> for focus
+                </span>
               </div>
               <div className="flex items-start gap-3 text-sm">
                 <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span className="text-slate-600 dark:text-slate-300">You have <strong>{formatTime(timeLeft)}</strong> to complete {questions.length} questions</span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  You have <strong>{formatTime(timeLeft)}</strong> to complete {questions.length}{" "}
+                  questions
+                </span>
               </div>
               <div className="flex items-start gap-3 text-sm">
                 <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <span className="text-slate-600 dark:text-slate-300">Switching tabs or leaving fullscreen will be <strong className="text-red-500">logged as violations</strong></span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  Switching tabs or leaving fullscreen will be{" "}
+                  <strong className="text-red-500">logged as violations</strong>
+                </span>
               </div>
               <div className="flex items-start gap-3 text-sm">
                 <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span className="text-slate-600 dark:text-slate-300">Press <strong>1-4</strong> keys to quickly select answers</span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  Press <strong>1-4</strong> keys to quickly select answers
+                </span>
               </div>
             </div>
 
@@ -669,15 +780,21 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
             <div className="grid grid-cols-3 gap-3 mb-8">
               <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-white/5">
                 <div className="font-black text-lg text-primary">{questions.length}</div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Questions</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Questions
+                </div>
               </div>
               <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-white/5">
                 <div className="font-black text-lg text-primary">{assignment.maxScore}</div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Points</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Total Points
+                </div>
               </div>
               <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-white/5">
                 <div className="font-black text-lg text-primary">{formatTime(timeLeft)}</div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Time Limit</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Time Limit
+                </div>
               </div>
             </div>
 
@@ -704,7 +821,9 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
   // Main Exam Interface (Fullscreen Mode)
   return (
-    <div className={`fixed inset-0 z-[100] flex flex-col text-slate-700 dark:text-slate-200 bg-slate-50/95 dark:bg-[#0a0c14]/98 ${isFullscreen ? 'pt-0' : 'pt-0'}`}>
+    <div
+      className={`fixed inset-0 z-[100] flex flex-col text-slate-700 dark:text-slate-200 bg-slate-50/95 dark:bg-[#0a0c14]/98 ${isFullscreen ? "pt-0" : "pt-0"}`}
+    >
       {/* 1. FOCUS HEADER - Sticky Top Bar with Timer */}
       <header className="shrink-0 bg-white/95 dark:bg-[#0c0d12]/98 border-b border-slate-200 dark:border-white/10 shadow-sm">
         <div className="flex items-center justify-between px-6 py-3">
@@ -729,7 +848,9 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
           <div className="flex items-center gap-4">
             {/* Auto Save Indicator */}
             <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className={`w-1.5 h-1.5 rounded-full ${autoSaveStatus === "Saved" ? "bg-green-500" : "bg-amber-500 animate-pulse"}`} />
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${autoSaveStatus === "Saved" ? "bg-green-500" : "bg-amber-500 animate-pulse"}`}
+              />
               {autoSaveStatus === "Saved" ? "Saved" : "Saving..."}
             </div>
 
@@ -742,22 +863,24 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
             )}
 
             {/* Countdown Timer - Prominent */}
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all duration-300 ${
-              timeLeft <= 60 
-                ? "bg-red-500 text-white animate-pulse" 
-                : timeLeft <= 300 
-                ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30" 
-                : "bg-primary/10 text-primary border border-primary/20"
-            }`}>
+            <div
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all duration-300 ${
+                timeLeft <= 60
+                  ? "bg-red-500 text-white animate-pulse"
+                  : timeLeft <= 300
+                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                    : "bg-primary/10 text-primary border border-primary/20"
+              }`}
+            >
               <Clock className={`w-4 h-4 ${timeLeft <= 60 ? "animate-spin" : ""}`} />
               <span className="tabular-nums font-black tracking-wider">{formatTime(timeLeft)}</span>
             </div>
           </div>
         </div>
-        
+
         {/* Progress Bar */}
         <div className="h-1 bg-slate-100 dark:bg-white/5">
-          <div 
+          <div
             className="h-full bg-linear-to-r from-primary to-pink-500 transition-all duration-300 ease-out"
             style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
           />
@@ -766,10 +889,8 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
       {/* 2. MAIN FOCUS LAYOUT - Left Navigator + Right Content */}
       <div className="flex-1 flex overflow-hidden">
-        
         {/* LEFT SIDEBAR: Question Navigator */}
         <aside className="w-64 shrink-0 bg-white/80 dark:bg-[#0d1020]/60 border-r border-slate-200/50 dark:border-white/5 p-4 overflow-y-auto">
-          
           {/* Stats Summary */}
           <div className="mb-4 p-3 rounded-xl bg-linear-to-br from-primary/5 to-pink-500/5 border border-primary/10">
             <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
@@ -790,7 +911,9 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
 
           {/* Question Grid */}
           <div className="mb-4">
-            <h4 className="text-[10px] uppercase font-black tracking-wider text-muted-foreground mb-2">Questions</h4>
+            <h4 className="text-[10px] uppercase font-black tracking-wider text-muted-foreground mb-2">
+              Questions
+            </h4>
             <div className="grid grid-cols-5 gap-1.5">
               {questions.map((_, idx) => {
                 const status = getQuestionStatus(idx);
@@ -802,10 +925,10 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                       status === "blue"
                         ? "bg-primary text-primary-foreground shadow-md scale-110 ring-2 ring-primary/30"
                         : status === "green"
-                        ? "bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25"
-                        : status === "red"
-                        ? "bg-red-500/15 text-red-600 border border-red-500/30 hover:bg-red-500/25"
-                        : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-muted-foreground hover:border-primary/30 hover:text-primary"
+                          ? "bg-green-500/15 text-green-600 border border-green-500/30 hover:bg-green-500/25"
+                          : status === "red"
+                            ? "bg-red-500/15 text-red-600 border border-red-500/30 hover:bg-red-500/25"
+                            : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-muted-foreground hover:border-primary/30 hover:text-primary"
                     }`}
                   >
                     {idx + 1}
@@ -855,7 +978,6 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
         {/* RIGHT CONTENT: Question & Options - Full Width */}
         <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-3xl mx-auto space-y-6">
-            
             {/* Question Card with Animation */}
             <div className="transition-all duration-300 ease-out">
               <Card className="p-6 border border-slate-200/50 dark:border-white/5 shadow-sm space-y-5">
@@ -902,14 +1024,18 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                     }`}
                   >
                     <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
-                        isSelected 
-                          ? "bg-primary text-white shadow-md" 
-                          : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
-                      }`}>
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
+                          isSelected
+                            ? "bg-primary text-white shadow-md"
+                            : "bg-slate-100 dark:bg-white/10 text-muted-foreground"
+                        }`}
+                      >
                         {String.fromCharCode(65 + optIdx)}
                       </div>
-                      <span className={`text-sm font-medium ${isSelected ? "text-primary" : "text-foreground dark:text-white"}`}>
+                      <span
+                        className={`text-sm font-medium ${isSelected ? "text-primary" : "text-foreground dark:text-white"}`}
+                      >
                         {opt}
                       </span>
                     </div>
@@ -925,7 +1051,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
             <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
               <button
                 disabled={currentQuestion === 0}
-                onClick={() => setCurrentQuestion(prev => prev - 1)}
+                onClick={() => setCurrentQuestion((prev) => prev - 1)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border/50 text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition"
               >
                 <ChevronLeft className="w-4 h-4" /> Previous
@@ -934,7 +1060,7 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
               <div className="flex gap-2">
                 {currentQuestion < questions.length - 1 ? (
                   <button
-                    onClick={() => setCurrentQuestion(prev => prev + 1)}
+                    onClick={() => setCurrentQuestion((prev) => prev + 1)}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-md hover:opacity-95 transition"
                   >
                     Next <ChevronRight className="w-4 h-4" />
@@ -958,8 +1084,13 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <Card className="max-w-md w-full p-6 space-y-4 border border-border/50 shadow-2xl bg-white dark:bg-[#0f1118] relative">
             <div className="flex justify-between items-start">
-              <h3 className="font-display font-black text-lg text-foreground dark:text-white">Submit Examination</h3>
-              <button onClick={() => setShowSubmitDialog(false)} className="text-muted-foreground hover:text-foreground">
+              <h3 className="font-display font-black text-lg text-foreground dark:text-white">
+                Submit Examination
+              </h3>
+              <button
+                onClick={() => setShowSubmitDialog(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -967,7 +1098,9 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
             <div className="space-y-2 text-xs border-y border-border/40 py-3 leading-relaxed">
               <div className="flex justify-between">
                 <span>Questions Answered:</span>
-                <span className="font-bold">{answeredCount} / {questions.length}</span>
+                <span className="font-bold">
+                  {answeredCount} / {questions.length}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Remaining Questions:</span>
@@ -984,7 +1117,9 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <p>Warning: You still have unanswered questions.</p>
-                  <p className="text-[10px] text-muted-foreground font-normal mt-0.5">We recommend returning to answer them before submitting.</p>
+                  <p className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                    We recommend returning to answer them before submitting.
+                  </p>
                 </div>
               </div>
             )}
@@ -1020,7 +1155,8 @@ export function DoingAssignmentWorkspace({ assignment, onClose, onSubmit, review
               <h3 className="font-display font-black text-lg">Integrity Warning</h3>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              You switched tabs or clicked outside the test window. This action violates test guidelines and has been logged and reported to your teacher.
+              You switched tabs or clicked outside the test window. This action violates test
+              guidelines and has been logged and reported to your teacher.
             </p>
             <div className="p-3 bg-red-500/10 rounded-xl text-xs text-red-600 dark:text-red-400 font-semibold space-y-1">
               <p>• Trigger: {lastViolationType}</p>

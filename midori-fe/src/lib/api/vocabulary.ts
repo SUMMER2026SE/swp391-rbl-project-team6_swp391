@@ -43,8 +43,7 @@ export interface VocabularyWord {
  * @returns Promise resolving to an array of VocabularyLesson objects.
  */
 export const vocabularyApi = {
-  getVocabularyLessons: () =>
-    api.get<VocabularyLesson[]>("/vocabulary/lessons"),
+  getVocabularyLessons: () => api.get<VocabularyLesson[]>("/vocabulary/lessons"),
 
   /**
    * Fetches a single vocabulary lesson with its words included.

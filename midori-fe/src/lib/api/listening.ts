@@ -73,7 +73,7 @@ const mapTypeToBackend = (type?: string): string => {
 };
 
 // Convert mock data to API format
-const mockToApi = (mock: typeof mockListening[number]): ListeningResponse => {
+const mockToApi = (mock: (typeof mockListening)[number]): ListeningResponse => {
   return {
     id: mock.id,
     level: mock.jlptLevel,
@@ -91,11 +91,16 @@ const mockToApi = (mock: typeof mockListening[number]): ListeningResponse => {
     meaning: JSON.stringify({
       text: "",
       type: mock.mode === "quiz" ? "Multiple Choice" : "Dictation",
-      blankWords: []
+      blankWords: [],
     }),
     transcript: typeof mock.transcript === "string" ? mock.transcript : mock.transcript?.raw || "",
     topic: mock.tags[0] || "General",
-    exerciseType: mock.mode === "quiz" ? "MULTIPLE_CHOICE" : mock.mode === "dictation" ? "DICTATION" : "DICTATION",
+    exerciseType:
+      mock.mode === "quiz"
+        ? "MULTIPLE_CHOICE"
+        : mock.mode === "dictation"
+          ? "DICTATION"
+          : "DICTATION",
     mode: mock.mode || "dictation",
     questions: mock.questions,
   };
@@ -110,8 +115,7 @@ export const listeningApi = {
     return api.get<ListeningResponse[]>(`/teacher/listenings${qs ? `?${qs}` : ""}`);
   },
 
-  getListeningById: (id: string) =>
-    api.get<ListeningDetailResponse>(`/teacher/listenings/${id}`),
+  getListeningById: (id: string) => api.get<ListeningDetailResponse>(`/teacher/listenings/${id}`),
 
   createListening: (payload: CreateListeningPayload) => {
     const formData = new FormData();
@@ -159,8 +163,7 @@ export const listeningApi = {
     return api.put<ListeningDetailResponse>(`/teacher/listenings/${id}`, formData);
   },
 
-  deleteListening: (id: string) =>
-    api.delete<void>(`/teacher/listenings/${id}`),
+  deleteListening: (id: string) => api.delete<void>(`/teacher/listenings/${id}`),
 
   // Student APIs with mock data fallback
   getStudentListenings: async (params?: { level?: string }): Promise<ListeningResponse[]> => {
@@ -168,12 +171,14 @@ export const listeningApi = {
       const searchParams = new URLSearchParams();
       if (params?.level) searchParams.set("level", params.level);
       const qs = searchParams.toString();
-      const response = await api.get<ListeningResponse[]>(`/student/listenings${qs ? `?${qs}` : ""}`);
+      const response = await api.get<ListeningResponse[]>(
+        `/student/listenings${qs ? `?${qs}` : ""}`,
+      );
       // If API returns empty, null, or undefined, fallback to mock
       if (!response || (Array.isArray(response) && response.length === 0)) {
         let filtered = mockListening;
         if (params?.level) {
-          filtered = mockListening.filter(item => item.jlptLevel === params.level);
+          filtered = mockListening.filter((item) => item.jlptLevel === params.level);
         }
         return filtered.map(mockToApi);
       }
@@ -183,7 +188,7 @@ export const listeningApi = {
       // Fallback to mock data - always use mock for student view
       let filtered = mockListening;
       if (params?.level) {
-        filtered = mockListening.filter(item => item.jlptLevel === params.level);
+        filtered = mockListening.filter((item) => item.jlptLevel === params.level);
       }
       return filtered.map(mockToApi);
     }
@@ -196,12 +201,15 @@ export const listeningApi = {
     } catch (error) {
       console.warn("API unavailable, using mock data:", error);
       // Fallback to mock data - check mock data first
-      const mockItem = mockListening.find(item => item.id === id);
+      const mockItem = mockListening.find((item) => item.id === id);
       if (mockItem) {
         return {
           ...mockToApi(mockItem),
           meaning: mockItem.transcript?.toString() || "",
-          transcript: typeof mockItem.transcript === "string" ? mockItem.transcript : mockItem.transcript?.raw || "",
+          transcript:
+            typeof mockItem.transcript === "string"
+              ? mockItem.transcript
+              : mockItem.transcript?.raw || "",
         };
       }
       throw new Error("Listening not found");

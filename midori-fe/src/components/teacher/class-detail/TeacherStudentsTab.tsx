@@ -36,39 +36,49 @@ export function TeacherStudentsTab({ classInfo }: TeacherStudentsTabProps) {
             <div>
               {/* Header profile */}
               <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-full font-black text-xs grid place-items-center ${
-                  student.needSupport
-                    ? "bg-red-500/10 text-red-500"
-                    : "bg-primary/10 text-primary"
-                }`}>
+                <div
+                  className={`w-10 h-10 rounded-full font-black text-xs grid place-items-center ${
+                    student.needSupport
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-primary/10 text-primary"
+                  }`}
+                >
                   {student.avatar}
                 </div>
                 <div>
                   <h4 className="font-display font-bold text-sm text-foreground dark:text-white leading-tight">
                     {student.name}
                   </h4>
-                  <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">{student.email}</p>
+                  <p className="text-[10px] text-muted-foreground truncate max-w-[170px]">
+                    {student.email}
+                  </p>
                 </div>
               </div>
 
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-2 mb-4 pt-1.5 border-t border-slate-100 dark:border-white/5">
                 <div className="text-center">
-                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">Avg Score</div>
+                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">
+                    Avg Score
+                  </div>
                   <div className="text-xs font-black text-foreground dark:text-white flex items-center justify-center gap-0.5">
                     <Award className="w-3.5 h-3.5 text-emerald-500" />
                     {student.avgScore}/10
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">Completion</div>
+                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">
+                    Completion
+                  </div>
                   <div className="text-xs font-black text-foreground dark:text-white flex items-center justify-center gap-0.5">
                     <LineChart className="w-3.5 h-3.5 text-primary" />
                     {student.completionRate}%
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">Streak</div>
+                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">
+                    Streak
+                  </div>
                   <div className="text-xs font-black text-foreground dark:text-white flex items-center justify-center gap-0.5">
                     <Flame className="w-3.5 h-3.5 text-orange-500" />
                     {student.currentStreak}d
@@ -77,7 +87,10 @@ export function TeacherStudentsTab({ classInfo }: TeacherStudentsTabProps) {
               </div>
 
               <div className="text-[10px] text-muted-foreground mb-4">
-                Last active: <span className="font-semibold text-foreground dark:text-slate-200">{student.lastActivity}</span>
+                Last active:{" "}
+                <span className="font-semibold text-foreground dark:text-slate-200">
+                  {student.lastActivity}
+                </span>
               </div>
             </div>
 

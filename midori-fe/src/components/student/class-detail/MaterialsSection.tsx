@@ -12,12 +12,48 @@ export function MaterialsSection({ classInfo }: MaterialsSectionProps) {
   const classLevel = classInfo.level ?? "N5";
 
   const modules = [
-    { id: "vocabulary", label: "Vocabulary", lessons: 15, completion: classInfo.progress.vocabulary, lastStudied: "Lesson 1: Greetings" },
-    { id: "grammar", label: "Grammar", lessons: 10, completion: classInfo.progress.grammar, lastStudied: "Lesson 1: Wa & Ga" },
-    { id: "listening", label: "Listening", lessons: 8, completion: classInfo.progress.listening, lastStudied: "None" },
-    { id: "reading", label: "Reading", lessons: 6, completion: classInfo.progress.reading, lastStudied: "None" },
-    { id: "shadowing", label: "Shadowing", lessons: 12, completion: classInfo.progress.shadowing, lastStudied: "None" },
-    { id: "writing", label: "Writing", lessons: 5, completion: classInfo.progress.writing, lastStudied: "None" },
+    {
+      id: "vocabulary",
+      label: "Vocabulary",
+      lessons: 15,
+      completion: classInfo.progress.vocabulary,
+      lastStudied: "Lesson 1: Greetings",
+    },
+    {
+      id: "grammar",
+      label: "Grammar",
+      lessons: 10,
+      completion: classInfo.progress.grammar,
+      lastStudied: "Lesson 1: Wa & Ga",
+    },
+    {
+      id: "listening",
+      label: "Listening",
+      lessons: 8,
+      completion: classInfo.progress.listening,
+      lastStudied: "None",
+    },
+    {
+      id: "reading",
+      label: "Reading",
+      lessons: 6,
+      completion: classInfo.progress.reading,
+      lastStudied: "None",
+    },
+    {
+      id: "shadowing",
+      label: "Shadowing",
+      lessons: 12,
+      completion: classInfo.progress.shadowing,
+      lastStudied: "None",
+    },
+    {
+      id: "writing",
+      label: "Writing",
+      lessons: 5,
+      completion: classInfo.progress.writing,
+      lastStudied: "None",
+    },
   ];
 
   const isLevelAllowed = (level: string) => {
@@ -41,7 +77,9 @@ export function MaterialsSection({ classInfo }: MaterialsSectionProps) {
             <h3 className="font-display font-black text-base text-foreground dark:text-white">
               {moduleLabel} Materials
             </h3>
-            <span className="text-[10px] text-muted-foreground uppercase font-bold">Class Level: {classLevel}</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-bold">
+              Class Level: {classLevel}
+            </span>
           </div>
         </div>
 
@@ -93,7 +131,9 @@ export function MaterialsSection({ classInfo }: MaterialsSectionProps) {
                     <div className="sm:col-span-2 p-6 border border-red-500/20 rounded-2xl bg-red-500/[0.01] flex flex-col items-center justify-center text-center gap-2">
                       <Lock className="w-6 h-6 text-red-500" />
                       <div>
-                        <h4 className="font-bold text-xs text-foreground dark:text-white">Access Blocked</h4>
+                        <h4 className="font-bold text-xs text-foreground dark:text-white">
+                          Access Blocked
+                        </h4>
                         <p className="text-[10px] text-muted-foreground mt-0.5 text-center">
                           You only have access to Level {classLevel} materials.
                         </p>
@@ -138,7 +178,10 @@ export function MaterialsSection({ classInfo }: MaterialsSectionProps) {
               </p>
             </div>
             <div className="text-[9px] text-muted-foreground truncate border-t border-slate-100 dark:border-white/5 pt-2 mt-2">
-              Last studied: <span className="font-semibold text-foreground dark:text-slate-200">{m.lastStudied}</span>
+              Last studied:{" "}
+              <span className="font-semibold text-foreground dark:text-slate-200">
+                {m.lastStudied}
+              </span>
             </div>
           </div>
         ))}

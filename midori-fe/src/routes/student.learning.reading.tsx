@@ -1,9 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { 
-  BookOpen, CheckCircle2, BookmarkCheck,
-  Search, ChevronLeft, ChevronRight, Clock, X, BookText, History
+import {
+  BookOpen,
+  CheckCircle2,
+  BookmarkCheck,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  X,
+  BookText,
+  History,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { allMockReading } from "@/mock/reading";
@@ -42,8 +50,14 @@ function getLevelBoxStyle(level: string, isSelected: boolean) {
 
 // Pagination Component
 function Pagination({
-  current, total, onPage,
-}: { current: number; total: number; onPage: (p: number) => void }) {
+  current,
+  total,
+  onPage,
+}: {
+  current: number;
+  total: number;
+  onPage: (p: number) => void;
+}) {
   const pages = Math.ceil(total / PAGE_SIZE);
   if (pages <= 1) return null;
   const pageNums = Array.from({ length: pages }, (_, i) => i + 1);
@@ -51,9 +65,14 @@ function Pagination({
   return (
     <div className="flex items-center justify-between pt-4">
       <span className="text-xs text-muted-foreground">
-        Showing <span className="font-semibold text-foreground">{Math.min((current - 1) * PAGE_SIZE + 1, total)}</span>
+        Showing{" "}
+        <span className="font-semibold text-foreground">
+          {Math.min((current - 1) * PAGE_SIZE + 1, total)}
+        </span>
         {" – "}
-        <span className="font-semibold text-foreground">{Math.min(current * PAGE_SIZE, total)}</span>
+        <span className="font-semibold text-foreground">
+          {Math.min(current * PAGE_SIZE, total)}
+        </span>
         {" of "}
         <span className="font-semibold text-foreground">{total}</span>
         {" readings"}
@@ -66,7 +85,7 @@ function Pagination({
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        {pageNums.map(p => (
+        {pageNums.map((p) => (
           <button
             key={p}
             onClick={() => onPage(p)}
@@ -118,12 +137,12 @@ export function ReadingListPage() {
 
   // Load progress from localStorage
   const [completedReadings, setCompletedReadings] = useState<Set<string>>(new Set());
-  
+
   useEffect(() => {
     const progress = readingProgressStore.getAllProgress();
     const completed = Object.values(progress)
-      .filter(p => p.status === "completed")
-      .map(p => p.lessonId);
+      .filter((p) => p.status === "completed")
+      .map((p) => p.lessonId);
     setCompletedReadings(new Set(completed));
   }, []);
 
@@ -150,24 +169,25 @@ export function ReadingListPage() {
 
     // Filter by level
     if (levelFilter !== "All") {
-      readings = readings.filter(r => r.jlptLevel === levelFilter);
+      readings = readings.filter((r) => r.jlptLevel === levelFilter);
     } else {
       // Show only student level
-      readings = readings.filter(r => r.jlptLevel === STUDENT_LEVEL);
+      readings = readings.filter((r) => r.jlptLevel === STUDENT_LEVEL);
     }
 
     // Filter by search
     if (debouncedSearch.trim()) {
       const searchLower = debouncedSearch.toLowerCase();
-      readings = readings.filter(r => 
-        r.title.toLowerCase().includes(searchLower) ||
-        r.tags.some(t => t.toLowerCase().includes(searchLower))
+      readings = readings.filter(
+        (r) =>
+          r.title.toLowerCase().includes(searchLower) ||
+          r.tags.some((t) => t.toLowerCase().includes(searchLower)),
       );
     }
 
     // Filter by status
     if (statusFilter === "completed") {
-      readings = readings.filter(r => completedReadings.has(r.id));
+      readings = readings.filter((r) => completedReadings.has(r.id));
     }
 
     return readings;
@@ -178,11 +198,11 @@ export function ReadingListPage() {
   const safePage = Math.min(page, Math.max(1, totalPages || 1));
   const paginatedReadings = filteredReadings.slice(
     (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE
+    safePage * PAGE_SIZE,
   );
 
   // Stats
-  const completedCount = filteredReadings.filter(r => completedReadings.has(r.id)).length;
+  const completedCount = filteredReadings.filter((r) => completedReadings.has(r.id)).length;
 
   return (
     <div>
@@ -224,7 +244,7 @@ export function ReadingListPage() {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search readings..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               />
@@ -239,12 +259,17 @@ export function ReadingListPage() {
             </div>
           </div>
           <div className="flex gap-1 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
-            {([STUDENT_LEVEL] as string[]).map(l => (
+            {([STUDENT_LEVEL] as string[]).map((l) => (
               <button
                 key={l}
-                onClick={() => { setLevelFilter(l); setPage(1); }}
+                onClick={() => {
+                  setLevelFilter(l);
+                  setPage(1);
+                }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  levelFilter === l ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:bg-muted"
+                  levelFilter === l
+                    ? "bg-gradient-hero text-white shadow"
+                    : "text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {l}
@@ -252,15 +277,20 @@ export function ReadingListPage() {
             ))}
           </div>
           <div className="flex gap-1 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
-            {([
+            {[
               { id: "all" as const, label: "All" },
               { id: "completed" as const, label: "Completed" },
-            ]).map(s => (
+            ].map((s) => (
               <button
                 key={s.id}
-                onClick={() => { setStatusFilter(s.id); setPage(1); }}
+                onClick={() => {
+                  setStatusFilter(s.id);
+                  setPage(1);
+                }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  statusFilter === s.id ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:bg-muted"
+                  statusFilter === s.id
+                    ? "bg-gradient-hero text-white shadow"
+                    : "text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {s.label}
@@ -301,12 +331,14 @@ export function ReadingListPage() {
                 {!isLoading && filteredReadings.length === 0 && (
                   <div className="py-16 text-center">
                     <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      No readings found.
-                    </p>
+                    <p className="text-sm text-muted-foreground">No readings found.</p>
                     {(debouncedSearch || statusFilter !== "all" || levelFilter !== "All") && (
                       <button
-                        onClick={() => { setSearch(""); setStatusFilter("all"); setLevelFilter(STUDENT_LEVEL); }}
+                        onClick={() => {
+                          setSearch("");
+                          setStatusFilter("all");
+                          setLevelFilter(STUDENT_LEVEL);
+                        }}
                         className="mt-2 text-xs text-primary hover:underline"
                       >
                         Clear filters
@@ -316,99 +348,105 @@ export function ReadingListPage() {
                 )}
 
                 {/* Data Rows */}
-                {!isLoading && paginatedReadings.map((reading, i) => {
-                  const isCompleted = completedReadings.has(reading.id);
-                  const wordCount = reading.passageText.split(/[\s\n]+/).filter(Boolean).length;
-                  
-                  return (
-                    <motion.div
-                      key={reading.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                    >
-                      <div
-                        onClick={() => navigate({ to: "/student/learning/reading/$readingId", params: { readingId: reading.id } })}
-                        className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/20 transition select-none"
+                {!isLoading &&
+                  paginatedReadings.map((reading, i) => {
+                    const isCompleted = completedReadings.has(reading.id);
+                    const wordCount = reading.passageText.split(/[\s\n]+/).filter(Boolean).length;
+
+                    return (
+                      <motion.div
+                        key={reading.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
                       >
-                        <div className="grid grid-cols-[2fr_80px_1fr_120px_110px_100px_80px] gap-3 px-6 py-4 items-center">
-                          {/* Title */}
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-linear-to-br ${levelGradients[reading.jlptLevel]}/20`}>
-                              <BookOpen className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                        <div
+                          onClick={() =>
+                            navigate({
+                              to: "/student/learning/reading/$readingId",
+                              params: { readingId: reading.id },
+                            })
+                          }
+                          className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/20 transition select-none"
+                        >
+                          <div className="grid grid-cols-[2fr_80px_1fr_120px_110px_100px_80px] gap-3 px-6 py-4 items-center">
+                            {/* Title */}
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center bg-linear-to-br ${levelGradients[reading.jlptLevel]}/20`}
+                              >
+                                <BookOpen className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="font-semibold text-sm text-foreground dark:text-white truncate">
+                                  {reading.title}
+                                </h3>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {reading.jlptLevel}
+                                </p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="font-semibold text-sm text-foreground dark:text-white truncate">
-                                {reading.title}
-                              </h3>
-                              <p className="text-xs text-muted-foreground truncate">
+
+                            {/* Level Badge */}
+                            <div className="text-center">
+                              <span
+                                className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${getLevelBoxStyle(reading.jlptLevel, false)}`}
+                              >
                                 {reading.jlptLevel}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Level Badge */}
-                          <div className="text-center">
-                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${getLevelBoxStyle(reading.jlptLevel, false)}`}>
-                              {reading.jlptLevel}
-                            </span>
-                          </div>
-
-                          {/* Duration */}
-                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                            <Clock className="w-4 h-4" />
-                            <span>~{reading.estimatedTime} min</span>
-                          </div>
-
-                          {/* Word Count */}
-                          <div className="text-center">
-                            <span className="text-sm font-medium text-foreground dark:text-white">
-                              {wordCount}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-1">words</span>
-                          </div>
-
-                          {/* Status */}
-                          <div className="flex justify-center">
-                            {isCompleted ? (
-                              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-semibold">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                Done
                               </span>
-                            ) : (
-                              <span className="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-slate-600" />
-                            )}
-                          </div>
+                            </div>
 
-                          {/* Tags */}
-                          <div className="flex justify-center gap-1">
-                            <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-900/30 text-pink-500 text-[10px] font-medium">
-                              {reading.tags[0] || "General"}
-                            </span>
-                          </div>
+                            {/* Duration */}
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                              <Clock className="w-4 h-4" />
+                              <span>~{reading.estimatedTime} min</span>
+                            </div>
 
-                          {/* Start Button */}
-                          <div className="flex justify-center">
-                            <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
-                              <ChevronRight className="w-4 h-4" />
-                            </span>
+                            {/* Word Count */}
+                            <div className="text-center">
+                              <span className="text-sm font-medium text-foreground dark:text-white">
+                                {wordCount}
+                              </span>
+                              <span className="text-xs text-muted-foreground ml-1">words</span>
+                            </div>
+
+                            {/* Status */}
+                            <div className="flex justify-center">
+                              {isCompleted ? (
+                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-semibold">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Done
+                                </span>
+                              ) : (
+                                <span className="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-slate-600" />
+                              )}
+                            </div>
+
+                            {/* Tags */}
+                            <div className="flex justify-center gap-1">
+                              <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-900/30 text-pink-500 text-[10px] font-medium">
+                                {reading.tags[0] || "General"}
+                              </span>
+                            </div>
+
+                            {/* Start Button */}
+                            <div className="flex justify-center">
+                              <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <ChevronRight className="w-4 h-4" />
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                      </motion.div>
+                    );
+                  })}
               </div>
             </div>
 
             {/* Pagination */}
             {!isLoading && totalPages > 1 && (
               <div className="px-6 pb-4">
-                <Pagination
-                  current={safePage}
-                  total={filteredReadings.length}
-                  onPage={setPage}
-                />
+                <Pagination current={safePage} total={filteredReadings.length} onPage={setPage} />
               </div>
             )}
           </div>

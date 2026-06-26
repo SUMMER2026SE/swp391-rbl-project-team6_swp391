@@ -26,7 +26,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["にもかかわらず", "いかんでは", "ものを", "ものを"],
     correctAnswer: 0,
     explanation: "「~にもかかわらず」means 'despite/although'.",
-    grammar: "N/Adj + にもかかわらず"
+    grammar: "N/Adj + にもかかわらず",
   },
   {
     id: "n2-q-002",
@@ -37,7 +37,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["のudal", "上任にといい", "就任以来", "就任に関して"],
     correctAnswer: 2,
     explanation: "「~年以来」indicates something has continued since a point in time.",
-    grammar: "N/Verb past + 年以来"
+    grammar: "N/Verb past + 年以来",
   },
   {
     id: "n2-q-003",
@@ -45,10 +45,15 @@ export const n2QuizQuestions: QuizQuestion[] = [
     difficulty: "hard",
     jlptLevel: "N2",
     question: "结果がどうあれ、_____。",
-    options: ["努力した甲斐があった", "努力するものではない", "努力に及的はない", "努力のかいがありません"],
+    options: [
+      "努力した甲斐があった",
+      "努力するものではない",
+      "努力に及的はない",
+      "努力のかいがありません",
+    ],
     correctAnswer: 0,
     explanation: "「~甲斐があった」means 'was worthwhile/worth the effort'.",
-    grammar: "Verb masu-stem + 甲斐があった"
+    grammar: "Verb masu-stem + 甲斐があった",
   },
   {
     id: "n2-q-004",
@@ -59,7 +64,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["にかけて", "にわたって", "にhti", "まで"],
     correctAnswer: 1,
     explanation: "「~にわたる」means 'over a span of~/throughout'.",
-    grammar: "N + にわたる"
+    grammar: "N + にわたる",
   },
   {
     id: "n2-q-005",
@@ -70,7 +75,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["ばかりの努力による", "极まりのない", "測り知れない", "绝え间もない"],
     correctAnswer: 2,
     explanation: "「測り知れない」means 'immeasurable/unfathomable'.",
-    grammar: "Verb dictionary + 測り知れない"
+    grammar: "Verb dictionary + 測り知れない",
   },
   // Grammar - More N2
   {
@@ -83,7 +88,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["と相连して", "に関連して", " связанности", "にituって"],
     correctAnswer: 2,
     explanation: "「~ связанности」means 'related to/concerning'.",
-    grammar: "N + にituって"
+    grammar: "N + にituって",
   },
   {
     id: "n2-q-007",
@@ -94,7 +99,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["VISA", "による", "にして", "とあいまって"],
     correctAnswer: 1,
     explanation: "「~による」indicates cause or means.",
-    grammar: "N + による"
+    grammar: "N + による",
   },
   {
     id: "n2-q-008",
@@ -105,7 +110,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["をもとに", "にわたり", "をめぐって", "を通じて"],
     correctAnswer: 0,
     explanation: "「~をもとに」means 'based on'.",
-    grammar: "N + をもとに"
+    grammar: "N + をもとに",
   },
   {
     id: "n2-q-009",
@@ -113,10 +118,15 @@ export const n2QuizQuestions: QuizQuestion[] = [
     difficulty: "hard",
     jlptLevel: "N2",
     question: "环境問題の解决には、長い年月が_____。",
-    options: ["かかるものがある", "かかったものではない", "かかるものではない", "かかるものではない",
+    options: [
+      "かかるものがある",
+      "かかったものではない",
+      "かかるものではない",
+      "かかるものではない",
+    ],
     correctAnswer: 0,
     explanation: "「~ことがある」indicates possibility or potential.",
-    grammar: "Verb dictionary + ことがある"
+    grammar: "Verb dictionary + ことがある",
   },
   {
     id: "n2-q-010",
@@ -127,7 +137,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["にわたり", "にともない", "をかけ", "をものとして"],
     correctAnswer: 1,
     explanation: "「~にともない」means 'along with/accompanied by'.",
-    grammar: "N/Verb masu-stem + にともない"
+    grammar: "N/Verb masu-stem + にともない",
   },
   // Vocabulary - N2
   {
@@ -186,7 +196,8 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "现代の社会では、信息の洪水とも言える状态にある。SNSの普及により、誰でも簡単に情報を発信できるようになった。しかし、その一方で、误情報や偏向报道の风险も増えることになった。情報を取捨選択する能力は、今後ますます重要になるだろう。",
+    passage:
+      "现代の社会では、信息の洪水とも言える状态にある。SNSの普及により、誰でも簡単に情報を発信できるようになった。しかし、その一方で、误情報や偏向报道の风险も増えることになった。情報を取捨選択する能力は、今後ますます重要になるだろう。",
     question: "文章认为什么能力在未来会变得更加重要？",
     options: ["信息发布能力", "信息取舍选择能力", "SNS使用能力", "写作能力"],
     correctAnswer: 1,
@@ -197,20 +208,33 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "少子高龄化の进展により、労働人口の减少が深刻化している。社会保障制度の维持も危ぶまれるようになっている。この问题に対して、政府は次々と和政策を打ち出しているしているが、根本的な解决には至っていない。",
+    passage:
+      "少子高龄化の进展により、労働人口の减少が深刻化している。社会保障制度の维持も危ぶまれるようになっている。この问题に対して、政府は次々と和政策を打ち出しているしているが、根本的な解决には至っていない。",
     question: "关于少子高龄化问题，以下哪项正确？",
-    options: ["已经完全解决", "政府虽出台了各种政策，但尚未根本解决", "没有问题", "只影响社会保障制度"],
+    options: [
+      "已经完全解决",
+      "政府虽出台了各种政策，但尚未根本解决",
+      "没有问题",
+      "只影响社会保障制度",
+    ],
     correctAnswer: 1,
-    explanation: "「次々と政策和を打ち出しているしているが、根本的な解决には至っていない」说明政策有但未解决根本问题。",
+    explanation:
+      "「次々と政策和を打ち出しているしているが、根本的な解决には至っていない」说明政策有但未解决根本问题。",
   },
   {
     id: "n2-q-018",
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "AI技术的进步は、医疗现场にも大きな影响を与えている。诊断の精度向上や新薬の開発 촉진等方面で活躍が期待されている。しかし、伦理的な问题や雇用への影響など、慎重に検討すべき課題も多い。",
+    passage:
+      "AI技术的进步は、医疗现场にも大きな影响を与えている。诊断の精度向上や新薬の開発 촉진等方面で活躍が期待されている。しかし、伦理的な问题や雇用への影響など、慎重に検討すべき課題も多い。",
     question: "AI在医疗领域的影响如何？",
-    options: ["只有正面影响", "有正面影响，但也有伦理和雇佣等需要慎重讨论的课题", "只有负面影响", "完全没有影响"],
+    options: [
+      "只有正面影响",
+      "有正面影响，但也有伦理和雇佣等需要慎重讨论的课题",
+      "只有负面影响",
+      "完全没有影响",
+    ],
     correctAnswer: 1,
     explanation: "文章提到正面影响（诊断精度等）和负面影响（伦理、雇用等问题）。",
   },
@@ -219,7 +243,8 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "全球化の进展は、経済成長促进了的同时，也导致了贫富差距的扩大。先进国と途上国の格差は広がる一方だ。持続可能な発展のためには、公正な贸易体制の構築が不可或缺的。",
+    passage:
+      "全球化の进展は、経済成長促进了的同时，也导致了贫富差距的扩大。先进国と途上国の格差は広がる一方だ。持続可能な発展のためには、公正な贸易体制の構築が不可或缺的。",
     question: "全球化导致了什么问题？",
     options: ["只有经济发展", "经济发展伴随贫富差距扩大", "没有问题", "只有发达国家获益"],
     correctAnswer: 1,
@@ -230,11 +255,18 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "地球温暖化の防止は、人類全体の共通の課題である。二酸化炭素の排出削減、再生可能エネルギーの導入など、各国でさまざまな取り組みが進められている。しかし、依然として気温は上昇倾向にあり、紧急の対策が求められている。",
+    passage:
+      "地球温暖化の防止は、人類全体の共通の課題である。二酸化炭素の排出削減、再生可能エネルギーの導入など、各国でさまざまな取り組みが進められている。しかし、依然として気温は上昇倾向にあり、紧急の対策が求められている。",
     question: "关于地球变暖问题，以下哪项正确？",
-    options: ["已经完全解决", "各国正在推进各种措施，但气温仍在上升", "没有进展", "只有发展中国家在努力"],
+    options: [
+      "已经完全解决",
+      "各国正在推进各种措施，但气温仍在上升",
+      "没有进展",
+      "只有发展中国家在努力",
+    ],
     correctAnswer: 1,
-    explanation: "「さまざまな取り組みが進められているが、依然として気温は上昇倾向にある」说明措施在推进但效果不明显。",
+    explanation:
+      "「さまざまな取り組みが進められているが、依然として気温は上昇倾向にある」说明措施在推进但效果不明显。",
   },
   // More Grammar - N2
   {
@@ -246,7 +278,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["測り知れない", "測れるまい", "測れないではない", "測り得た"],
     correctAnswer: 0,
     explanation: "「測り知れない」means 'immeasurable/unfathomable'.",
-    grammar: "Verb masu-stem + 測り知れない"
+    grammar: "Verb masu-stem + 測り知れない",
   },
   {
     id: "n2-q-022",
@@ -257,7 +289,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["によれば", "にti唇", "に際して", "言われて"],
     correctAnswer: 1,
     explanation: "「~に上る」indicates reaching a large amount.",
-    grammar: "N + に上る"
+    grammar: "N + に上る",
   },
   {
     id: "n2-q-023",
@@ -268,7 +300,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["緩和の方向にある", "緩和の方向にない", "緊張の方向にある", "問題の方向にある"],
     correctAnswer: 0,
     explanation: "「~方向にある」means 'heading in the direction of~'.",
-    grammar: "N + 方向にある"
+    grammar: "N + 方向にある",
   },
   {
     id: "n2-q-024",
@@ -279,7 +311,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["な", "的な", "ような", "べき"],
     correctAnswer: 1,
     explanation: "「~的な」forms an adjective meaning 'of the nature of~'.",
-    grammar: "N + 的な"
+    grammar: "N + 的な",
   },
   {
     id: "n2-q-025",
@@ -290,7 +322,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["にitim", "を通じて", "をもとに", "をめぐって"],
     correctAnswer: 0,
     explanation: "「~を通じて」means 'throughout/via'.",
-    grammar: "N + を通じて"
+    grammar: "N + を通じて",
   },
   // More Vocabulary - N2
   {
@@ -349,7 +381,8 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "现代人は、情報を得る渠道が丰富な반면、深い思考をする时间が减少了ている都说。 constantly连接网络的状态被称为「Always Online」だが、このような状态が精神的健康，带来什么影响？文章没有明确说，但从「深い思考のための时间が减少」的描述来看，可能带来负面影响。",
+    passage:
+      "现代人は、情報を得る渠道が丰富な반면、深い思考をする时间が减少了ている都说。 constantly连接网络的状态被称为「Always Online」だが、このような状态が精神的健康，带来什么影响？文章没有明确说，但从「深い思考のための时间が减少」的描述来看，可能带来负面影响。",
     question: "现代人面临什么问题？",
     options: ["信息渠道减少", "信息渠道丰富但深度思考时间减少", "没有问题", "只有网络问题"],
     correctAnswer: 1,
@@ -360,7 +393,8 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "生物多様性の減少は、地球規模の課題である。过度の开発や环境汚染により、多くの物种が姿を消しつつある。生态系の崩溃は人间社会にも大的影響を及ぼす可能性があり、国际的な协力のもと、保护対策の强化が求められている。",
+    passage:
+      "生物多様性の減少は、地球規模の課題である。过度の开発や环境汚染により、多くの物种が姿を消しつつある。生态系の崩溃は人间社会にも大的影響を及ぼす可能性があり、国际的な协力のもと、保护対策の强化が求められている。",
     question: "生物多样性减少的原因是什么？",
     options: ["自然变化", "过度开发和环境污染", "只有污染", "只有开发"],
     correctAnswer: 1,
@@ -371,18 +405,26 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "现代の教育事业では、詰め込み教育批判に基づき、思考力や表現力を重视する方向发展している。しかし、统一的なテスト score 重視の傾向依旧根強く、教育改革的推进には时间がかかりそうだ。",
+    passage:
+      "现代の教育事业では、詰め込み教育批判に基づき、思考力や表現力を重视する方向发展している。しかし、统一的なテスト score 重視の傾向依旧根強く、教育改革的推进には时间がかかりそうだ。",
     question: "现代教育事业的趋势是什么？",
-    options: ["完全转变为重视思考力", "正在向重视思考力方向发展，但应试倾向仍然根深蒂固", "完全没有变化", "只重视考试"],
+    options: [
+      "完全转变为重视思考力",
+      "正在向重视思考力方向发展，但应试倾向仍然根深蒂固",
+      "完全没有变化",
+      "只重视考试",
+    ],
     correctAnswer: 1,
-    explanation: "「思考力や表現力を重视する方向发展している」但「统一的なテストscore重視の傾向依旧根強い」。",
+    explanation:
+      "「思考力や表現力を重视する方向发展している」但「统一的なテストscore重視の傾向依旧根強い」。",
   },
   {
     id: "n2-q-034",
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "食生活の多様化は、生活の利便性向上に寄与した반면孤食や欠食などの問題も生んでいる。また添加物の安全性问题も提起されておりConsumerとして正しい知識を持つことが求められている。",
+    passage:
+      "食生活の多様化は、生活の利便性向上に寄与した반면孤食や欠食などの問題も生んでいる。また添加物の安全性问题も提起されておりConsumerとして正しい知識を持つことが求められている。",
     question: "食生活的多样化带来了什么问题？",
     options: ["只有便利", "提供了便利，但也产生了独自吃饭和缺食等问题", "没有问题", "只有安全问题"],
     correctAnswer: 1,
@@ -393,9 +435,15 @@ export const n2QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N2",
-    passage: "科学技术の飞跃的な 발전은 미래 사회를 크게 변화시킬 것이다。AI、ロボット、バイオテクノロジーなどの革新は、私たちの生活、工作、学习、娱乐方法などあらゆる側面に革命的な变化をもたらすだろう。",
+    passage:
+      "科学技术の飞跃的な 발전은 미래 사회를 크게 변화시킬 것이다。AI、ロボット、バイオテクノロジーなどの革新は、私たちの生活、工作、学习、娱乐方法などあらゆる側面に革命的な变化をもたらすだろう。",
     question: "科学技术的发展会带来什么？",
-    options: ["只有正面影响", "将对生活、工作、学习、娱乐等所有方面带来革命性变化", "只有负面影响", "没有影响"],
+    options: [
+      "只有正面影响",
+      "将对生活、工作、学习、娱乐等所有方面带来革命性变化",
+      "只有负面影响",
+      "没有影响",
+    ],
     correctAnswer: 1,
     explanation: "文章列举了AI、机器人、BT等革新对生活各方面的变革。",
   },
@@ -408,7 +456,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["緩和の方向にある", "さらに深刻化している", "変わらない", "予見できない"],
     correctAnswer: 0,
     explanation: "「~方向にある」indicates heading in a direction.",
-    grammar: "N + 方向にある"
+    grammar: "N + 方向にある",
   },
   {
     id: "n2-q-037",
@@ -419,7 +467,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["言う;", "多大なる", "多大である", "多大もない"],
     correctAnswer: 1,
     explanation: "「多大なる」is a literary form meaning 'great/significant'.",
-    grammar: "多大なる"
+    grammar: "多大なる",
   },
   {
     id: "n2-q-038",
@@ -430,7 +478,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["投げかけた", "受けない", "広がった", "問題した"],
     correctAnswer: 0,
     explanation: "「波紋を投げかける」means 'to cause ripples/controversy'.",
-    grammar: "波紋を投げかける"
+    grammar: "波紋を投げかける",
   },
   {
     id: "n2-q-039",
@@ -441,7 +489,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["なが", "的な", "としての", "による"],
     correctAnswer: 2,
     explanation: "「~としての」means 'as/for the role of~'.",
-    grammar: "N + としての"
+    grammar: "N + としての",
   },
   {
     id: "n2-q-040",
@@ -452,7 +500,7 @@ export const n2QuizQuestions: QuizQuestion[] = [
     options: ["真剣", "真剣的に", "真剣さ", "真剣もなく"],
     correctAnswer: 0,
     explanation: "「真剣」can be used adverbially meaning 'seriously'.",
-    grammar: "真剣 (adverbial use)"
+    grammar: "真剣 (adverbial use)",
   },
 ];
 

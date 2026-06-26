@@ -1,5 +1,11 @@
 export type Role = "STUDENT" | "TEACHER" | "ADMIN";
-export type UserStatus = "PENDING" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "BANNED";
+export type UserStatus =
+  | "PENDING"
+  | "PENDING_APPROVAL"
+  | "ACTIVE"
+  | "REJECTED"
+  | "SUSPENDED"
+  | "BANNED";
 
 export interface ApiResponse<T> {
   success: boolean;

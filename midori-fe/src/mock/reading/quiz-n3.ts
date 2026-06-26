@@ -26,7 +26,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["とおりに", "せいで", "ために", "ばかりに"],
     correctAnswer: 2,
     explanation: "「ために」indicates reason/cause for a result.",
-    grammar: "N/Verb dictionary form + ために"
+    grammar: "N/Verb dictionary form + ために",
   },
   {
     id: "n3-q-002",
@@ -37,7 +37,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["のせいで", "にせいで", "をせいで", "でせいで"],
     correctAnswer: 0,
     explanation: "「せいだ」indicates a negative cause attributed to someone/something.",
-    grammar: "N + のせいで"
+    grammar: "N + のせいで",
   },
   {
     id: "n3-q-003",
@@ -48,7 +48,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["に応じて", "に従って", "按照して", "通り"],
     correctAnswer: 3,
     explanation: "「通り」means 'as/according to'.",
-    grammar: "N + 通り"
+    grammar: "N + 通り",
   },
   {
     id: "n3-q-004",
@@ -59,7 +59,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["上に", "代わりに", "反面", "とおり"],
     correctAnswer: 0,
     explanation: "「上に」means 'in addition/besides'.",
-    grammar: "N/Adj + 上に"
+    grammar: "N/Adj + 上に",
   },
   {
     id: "n3-q-005",
@@ -70,7 +70,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["ものです", "ことです", "ために", "まま"],
     correctAnswer: 2,
     explanation: "「ために」expresses cause/reason.",
-    grammar: "Adj/Verb + ために"
+    grammar: "Adj/Verb + ために",
   },
   // Grammar - More N3
   {
@@ -82,7 +82,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["について", "にとって", "に関して", "を使えば"],
     correctAnswer: 1,
     explanation: "「にとって」means 'for/from the perspective of'.",
-    grammar: "N + にとって"
+    grammar: "N + にとって",
   },
   {
     id: "n3-q-007",
@@ -93,7 +93,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["あれば", "ある上に", "あればこそ", "あればいい"],
     correctAnswer: 2,
     explanation: "「ばこそ」emphasizes 'precisely because'.",
-    grammar: "Verb ba-form + こそ"
+    grammar: "Verb ba-form + こそ",
   },
   {
     id: "n3-q-008",
@@ -104,7 +104,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["読みよい", "読みやすい", "読まれる", "読んで"],
     correctAnswer: 1,
     explanation: "「~やすい」means 'easy to ~'.",
-    grammar: "Verb masu-stem + やすい"
+    grammar: "Verb masu-stem + やすい",
   },
   {
     id: "n3-q-009",
@@ -115,7 +115,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["しなくて", "しないで", "するより", "するかぎり"],
     correctAnswer: 1,
     explanation: "「~ないで」means 'without doing~'.",
-    grammar: "Verb nai-form + で"
+    grammar: "Verb nai-form + で",
   },
   {
     id: "n3-q-010",
@@ -126,7 +126,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["において", "にとって", "に関して", "まで"],
     correctAnswer: 0,
     explanation: "「において」means 'at/in' (formal).",
-    grammar: "N + において"
+    grammar: "N + において",
   },
   // Vocabulary - N3
   {
@@ -185,9 +185,15 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "现代では、SNSの普及により情報が瞬時に世界中に広まるようになりました。その反面、误った情報の扩散も深刻になっています。私たちは何でも信じずに、情報を確認する习惯をつける必要があります。",
+    passage:
+      "现代では、SNSの普及により情報が瞬時に世界中に広まるようになりました。その反面、误った情報の扩散も深刻になっています。私たちは何でも信じずに、情報を確認する习惯をつける必要があります。",
     question: "根据文章，以下哪项是正确的？",
-    options: ["SNS只有优点", "SNS的普及带来了信息的迅速传播，但也导致了错误信息的扩散", "不应该使用SNS", "错误信息不是问题"],
+    options: [
+      "SNS只有优点",
+      "SNS的普及带来了信息的迅速传播，但也导致了错误信息的扩散",
+      "不应该使用SNS",
+      "错误信息不是问题",
+    ],
     correctAnswer: 1,
     explanation: "文章提到SNS的优点（信息迅速传播）和缺点（错误信息扩散）。",
   },
@@ -196,9 +202,15 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "健康を維持するためには、规则正しい生活习惯が必要です。十分な睡眠、バランスの取れた食事适度に运动を心がけることが大切です。",
+    passage:
+      "健康を維持するためには、规则正しい生活习惯が必要です。十分な睡眠、バランスの取れた食事适度に运动を心がけることが大切です。",
     question: "文章建议如何维持健康？",
-    options: ["只睡觉就行", "要有规律的生活习惯，包括充足睡眠、均衡饮食和适度运动", "不需要特别注意", "只要运动就行"],
+    options: [
+      "只睡觉就行",
+      "要有规律的生活习惯，包括充足睡眠、均衡饮食和适度运动",
+      "不需要特别注意",
+      "只要运动就行",
+    ],
     correctAnswer: 1,
     explanation: "文章提到三个要点：充足睡眠、均衡饮食、适度运动。",
   },
@@ -207,9 +219,15 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "日本の教育は、詰め込み教育이라며批判されてきました。しかし近年来、思考力を重视した教育への转变进んでいます。",
+    passage:
+      "日本の教育は、詰め込み教育이라며批判されてきました。しかし近年来、思考力を重视した教育への转变进んでいます。",
     question: "关于日本教育，以下哪个说法正确？",
-    options: ["一直以来都重视思考力", "被批评为填鸭式教育，但近年来正在转变为重视思考力的教育", "完全没有改变", "只重视考试成绩"],
+    options: [
+      "一直以来都重视思考力",
+      "被批评为填鸭式教育，但近年来正在转变为重视思考力的教育",
+      "完全没有改变",
+      "只重视考试成绩",
+    ],
     correctAnswer: 1,
     explanation: "「詰め込み教育」是被批评的点，但正在转变为重视思考力的教育。",
   },
@@ -218,7 +236,8 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "都市部では、人口の减少と高龄化が進んでいます。若い世代は仕事のために都市に移動し、地方の过疎化が進んでいます。",
+    passage:
+      "都市部では、人口の减少と高龄化が進んでいます。若い世代は仕事のために都市に移動し、地方の过疎化が進んでいます。",
     question: "都市部面临什么问题？",
     options: ["人口增加", "人口减少和高龄化", "没有特别问题", "儿童增加"],
     correctAnswer: 1,
@@ -229,7 +248,8 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "テクノロジーの発展は、私たちの生活を便利にしました。しかし、気軽に楽しめる反面で、スマホ依存などの问题も生じています。",
+    passage:
+      "テクノロジーの発展は、私たちの生活を便利にしました。しかし、気軽に楽しめる反面で、スマホ依存などの问题も生じています。",
     question: "科技发展带来了什么影响？",
     options: ["只有便利", "生活变得便利，但也产生了手机依赖等问题", "没有任何影响", "只有负面影响"],
     correctAnswer: 1,
@@ -245,7 +265,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["つまらない反面", "寒いにもかかわらず", "结构退屈な点で", "单调いながら"],
     correctAnswer: 3,
     explanation: "「~いながら」means 'while ~'.",
-    grammar: "Verb masu-stem + いながら"
+    grammar: "Verb masu-stem + いながら",
   },
   {
     id: "n3-q-022",
@@ -256,7 +276,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["に応じて", "に際して", "に従って", "にかけて"],
     correctAnswer: 1,
     explanation: "「に際して」means 'on the occasion of/at the time of'.",
-    grammar: "N/Verb dictionary form + に際して"
+    grammar: "N/Verb dictionary form + に際して",
   },
   {
     id: "n3-q-023",
@@ -267,7 +287,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["を通じて", "に基づいて", "に関して", "に応して"],
     correctAnswer: 1,
     explanation: "「に基づいて」means 'based on/according to'.",
-    grammar: "N + に基づいて"
+    grammar: "N + に基づいて",
   },
   {
     id: "n3-q-024",
@@ -278,7 +298,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["长い限り", "長いながら", "長いにもかかわらず", "長い上に"],
     correctAnswer: 3,
     explanation: "「上に」adds additional positive qualities.",
-    grammar: "Adj/N + 上に"
+    grammar: "Adj/N + 上に",
   },
   {
     id: "n3-q-025",
@@ -289,7 +309,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["にとって", "に関して", "に応じて", "をめぐって"],
     correctAnswer: 1,
     explanation: "「に関して」means 'concerning/regarding'.",
-    grammar: "N + に関して"
+    grammar: "N + に関して",
   },
   // More Vocabulary - N3
   {
@@ -348,7 +368,8 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "全球化の进展により、文化の交流が盛んになっています。しかし、文化の画一化進む声も上がっています。伝統文化の保存が重要な课题となっています。",
+    passage:
+      "全球化の进展により、文化の交流が盛んになっています。しかし、文化の画一化進む声も上がっています。伝統文化の保存が重要な课题となっています。",
     question: "全球化带来了什么问题？",
     options: ["文化交流变少", "文化单一化，传统文化的保存成为课题", "文化消失", "没有问题"],
     correctAnswer: 1,
@@ -359,7 +380,8 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "、AI技术的发展速度很快。它给我们的生活带来了很多便利，但同时也引发了一些担忧，比如隐私和安全问题。",
+    passage:
+      "、AI技术的发展速度很快。它给我们的生活带来了很多便利，但同时也引发了一些担忧，比如隐私和安全问题。",
     question: "AI技术的发展带来了什么影响？",
     options: ["只有便利", "只有担忧", "带来了便利，但也引发了隐私和安全等问题", "没有任何影响"],
     correctAnswer: 2,
@@ -370,9 +392,15 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "少子高龄化は、日本の最も重要な社会問題の一つです。労働人口の减少社会保障費の增加など、影响は多方面に及各ています。",
+    passage:
+      "少子高龄化は、日本の最も重要な社会問題の一つです。労働人口の减少社会保障費の增加など、影响は多方面に及各ています。",
     question: "少子高龄化会造成什么影响？",
-    options: ["只有经济影响", "劳动人口减少和社会保障费用增加等，影响多方面", "只有人口问题", "没有影响"],
+    options: [
+      "只有经济影响",
+      "劳动人口减少和社会保障费用增加等，影响多方面",
+      "只有人口问题",
+      "没有影响",
+    ],
     correctAnswer: 1,
     explanation: "文章列举了「労働人口の减少」和「社会保障費の增加」两个例子。",
   },
@@ -381,7 +409,8 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "食文化は、その国の风土や气候に影響されます。日本は海に囲まれた岛国であるため、鱼介類を豊富に使った料理 발전해왔습니다。",
+    passage:
+      "食文化は、その国の风土や气候に影響されます。日本は海に囲まれた岛国であるため、鱼介類を豊富に使った料理 발전해왔습니다。",
     question: "日本的食文化形成与什么有关？",
     options: ["只与历史有关", "与国土被海包围的地理条件有关", "只与经济有关", "与文化无关"],
     correctAnswer: 1,
@@ -392,7 +421,8 @@ export const n3QuizQuestions: QuizQuestion[] = [
     type: "multiple-choice",
     difficulty: "hard",
     jlptLevel: "N3",
-    passage: "昨日の地震は、三県に大的被害をもたらした。家を失った人は千人を超え、救援活動が続いている。",
+    passage:
+      "昨日の地震は、三県に大的被害をもたらした。家を失った人は千人を超え、救援活動が続いている。",
     question: "地震造成了什么影响？",
     options: ["没有人受灾", "房屋倒塌超过千人，正在进行救援活动", "没有人需要帮助", "只有经济损失"],
     correctAnswer: 1,
@@ -407,7 +437,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["关于ない", "に関する", "を踏まえて", "を込めて"],
     correctAnswer: 2,
     explanation: "「を踏まえて」means 'based on/building upon'.",
-    grammar: "N + を踏まえて"
+    grammar: "N + を踏まえて",
   },
   {
     id: "n3-q-037",
@@ -418,7 +448,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["に基づいて", "に関して", "の発生で", "に応して"],
     correctAnswer: 2,
     explanation: "「~で」indicates cause/reason.",
-    grammar: "N + で"
+    grammar: "N + で",
   },
   {
     id: "n3-q-038",
@@ -429,7 +459,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["を通じて", "に際して", "を始めとして", "をめぐって"],
     correctAnswer: 2,
     explanation: "「を始めとして」means 'starting with~/among others'.",
-    grammar: "N + を始めとして"
+    grammar: "N + を始めとして",
   },
   {
     id: "n3-q-039",
@@ -440,7 +470,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["会员agall", "会员によって", "会员にわたり", "会员まで"],
     correctAnswer: 1,
     explanation: "「~によって」can indicate the agent/means.",
-    grammar: "N + によって"
+    grammar: "N + によって",
   },
   {
     id: "n3-q-040",
@@ -451,7 +481,7 @@ export const n3QuizQuestions: QuizQuestion[] = [
     options: ["にとって", "に対して", "に関して", "によって"],
     correctAnswer: 0,
     explanation: "「~にとって」means 'for/from the perspective of'.",
-    grammar: "N + にとって"
+    grammar: "N + にとって",
   },
 ];
 

@@ -23,9 +23,7 @@ export interface UpdateProfileRequest {
 }
 
 export const profileApi = {
-  getMyProfile: () =>
-    api.get<ProfileResponse>("/profiles/me"),
+  getMyProfile: () => api.get<ProfileResponse>("/profiles/me"),
 
-  updateMyProfile: (data: UpdateProfileRequest) =>
-    api.put<ProfileResponse>("/profiles/me", data),
+  updateMyProfile: (data: UpdateProfileRequest) => api.put<ProfileResponse>("/profiles/me", data),
 };

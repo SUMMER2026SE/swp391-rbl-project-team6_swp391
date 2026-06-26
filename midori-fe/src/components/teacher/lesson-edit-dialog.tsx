@@ -42,12 +42,7 @@ const SKILL_OPTIONS: Skill[] = [
 
 const LEVEL_OPTIONS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 
-export function LessonEditDialog({
-  open,
-  onOpenChange,
-  lesson,
-  onSave,
-}: LessonEditDialogProps) {
+export function LessonEditDialog({ open, onOpenChange, lesson, onSave }: LessonEditDialogProps) {
   const [title, setTitle] = useState("");
   const [jpTitle, setJpTitle] = useState("");
   const [skill, setSkill] = useState<Skill>("Vocabulary");
@@ -136,10 +131,7 @@ export function LessonEditDialog({
               <Label htmlFor="edit-skill" className="text-foreground">
                 Skill
               </Label>
-              <Select
-                value={skill}
-                onValueChange={(value) => setSkill(value as Skill)}
-              >
+              <Select value={skill} onValueChange={(value) => setSkill(value as Skill)}>
                 <SelectTrigger
                   id="edit-skill"
                   className="bg-background border-input text-foreground"
@@ -160,10 +152,7 @@ export function LessonEditDialog({
               <Label htmlFor="edit-level" className="text-foreground">
                 Level
               </Label>
-              <Select
-                value={level}
-                onValueChange={(value) => setLevel(value as JLPTLevel)}
-              >
+              <Select value={level} onValueChange={(value) => setLevel(value as JLPTLevel)}>
                 <SelectTrigger
                   id="edit-level"
                   className="bg-background border-input text-foreground"

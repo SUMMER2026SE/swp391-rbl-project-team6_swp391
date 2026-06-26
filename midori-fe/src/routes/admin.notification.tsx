@@ -2,9 +2,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronRight, Bell, Plus, Search, Eye, Edit, Trash2, Send,
-  FileText, Users, Megaphone, Wrench, Calendar, Check, X,
-  Sticker, BookOpen, Headphones, PenLine, Clock
+  ChevronRight,
+  Bell,
+  Plus,
+  Search,
+  Eye,
+  Edit,
+  Trash2,
+  Send,
+  FileText,
+  Users,
+  Megaphone,
+  Wrench,
+  Calendar,
+  Check,
+  X,
+  Sticker,
+  BookOpen,
+  Headphones,
+  PenLine,
+  Clock,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,7 +48,8 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-001",
     title: "System Maintenance Notice",
-    message: "The system will undergo scheduled maintenance on Saturday from 2:00 AM to 6:00 AM. Please save your work before then.",
+    message:
+      "The system will undergo scheduled maintenance on Saturday from 2:00 AM to 6:00 AM. Please save your work before then.",
     type: "MAINTENANCE",
     target: "ALL",
     status: "PUBLISHED",
@@ -41,7 +59,8 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-002",
     title: "New JLPT N5 Exam Available",
-    message: "A new JLPT N5 practice exam has been added. Students can now access it in the exam section.",
+    message:
+      "A new JLPT N5 practice exam has been added. Students can now access it in the exam section.",
     type: "EXAM",
     target: "STUDENTS",
     status: "PUBLISHED",
@@ -51,7 +70,8 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-003",
     title: "Class Schedule Update",
-    message: "The intermediate Japanese class schedule has been updated. Please check your class page for the new timings.",
+    message:
+      "The intermediate Japanese class schedule has been updated. Please check your class page for the new timings.",
     type: "CLASS",
     target: "SPECIFIC_CLASS",
     status: "PUBLISHED",
@@ -71,7 +91,8 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-005",
     title: "New Grammar Content Added",
-    message: "We have added 20 new grammar patterns for N3 level. Check them out in the grammar library!",
+    message:
+      "We have added 20 new grammar patterns for N3 level. Check them out in the grammar library!",
     type: "SYSTEM",
     target: "STUDENTS",
     status: "DRAFT",
@@ -107,8 +128,9 @@ function NotificationManagementPage() {
 
   // Filter notifications
   const filteredNotifications = useMemo(() => {
-    return mockNotifications.filter(notif => {
-      const matchesSearch = notif.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return mockNotifications.filter((notif) => {
+      const matchesSearch =
+        notif.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         notif.message.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesType = typeFilter === "ALL" || notif.type === typeFilter;
       const matchesStatus = statusFilter === "ALL" || notif.status === statusFilter;
@@ -117,12 +139,15 @@ function NotificationManagementPage() {
   }, [searchQuery, typeFilter, statusFilter]);
 
   // Stats
-  const stats = useMemo(() => ({
-    total: mockNotifications.length,
-    published: mockNotifications.filter(n => n.status === "PUBLISHED").length,
-    scheduled: mockNotifications.filter(n => n.status === "SCHEDULED").length,
-    draft: mockNotifications.filter(n => n.status === "DRAFT").length,
-  }), []);
+  const stats = useMemo(
+    () => ({
+      total: mockNotifications.length,
+      published: mockNotifications.filter((n) => n.status === "PUBLISHED").length,
+      scheduled: mockNotifications.filter((n) => n.status === "SCHEDULED").length,
+      draft: mockNotifications.filter((n) => n.status === "DRAFT").length,
+    }),
+    [],
+  );
 
   const handleView = (notification: Notification) => {
     setSelectedNotification(notification);
@@ -160,38 +185,52 @@ function NotificationManagementPage() {
   const getTypeBadge = (type: NotificationType) => {
     switch (type) {
       case "SYSTEM":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-semibold">
-          <FileText className="w-3 h-3" /> System
-        </span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-semibold">
+            <FileText className="w-3 h-3" /> System
+          </span>
+        );
       case "EXAM":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 text-green-600 text-xs font-semibold">
-          <Sticker className="w-3 h-3" /> Exam
-        </span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 text-green-600 text-xs font-semibold">
+            <Sticker className="w-3 h-3" /> Exam
+          </span>
+        );
       case "CLASS":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 text-purple-600 text-xs font-semibold">
-          <Users className="w-3 h-3" /> Class
-        </span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 text-purple-600 text-xs font-semibold">
+            <Users className="w-3 h-3" /> Class
+          </span>
+        );
       case "MAINTENANCE":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-500/10 text-orange-600 text-xs font-semibold">
-          <Wrench className="w-3 h-3" /> Maintenance
-        </span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-500/10 text-orange-600 text-xs font-semibold">
+            <Wrench className="w-3 h-3" /> Maintenance
+          </span>
+        );
     }
   };
 
   const getStatusBadge = (status: NotificationStatus) => {
     switch (status) {
       case "PUBLISHED":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 text-green-600 text-xs font-semibold">
-          <Send className="w-3 h-3" /> Published
-        </span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 text-green-600 text-xs font-semibold">
+            <Send className="w-3 h-3" /> Published
+          </span>
+        );
       case "DRAFT":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-600 text-xs font-semibold">
-          <FileText className="w-3 h-3" /> Draft
-        </span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-600 text-xs font-semibold">
+            <FileText className="w-3 h-3" /> Draft
+          </span>
+        );
       case "SCHEDULED":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-semibold">
-          <Calendar className="w-3 h-3" /> Scheduled
-        </span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-semibold">
+            <Calendar className="w-3 h-3" /> Scheduled
+          </span>
+        );
     }
   };
 
@@ -212,7 +251,9 @@ function NotificationManagementPage() {
     <div className="space-y-5">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-col">
-        <Link to="/admin" className="hover:text-primary-col transition">Dashboard</Link>
+        <Link to="/admin" className="hover:text-primary-col transition">
+          Dashboard
+        </Link>
         <ChevronRight className="w-4 h-4" />
         <span className="font-semibold text-primary-col">Notification</span>
       </div>
@@ -220,8 +261,12 @@ function NotificationManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-display font-black text-primary-col">Notification Management</h1>
-          <p className="text-sm text-secondary-col mt-0.5">Send announcements and updates to users</p>
+          <h1 className="text-2xl font-display font-black text-primary-col">
+            Notification Management
+          </h1>
+          <p className="text-sm text-secondary-col mt-0.5">
+            Send announcements and updates to users
+          </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -248,7 +293,9 @@ function NotificationManagementPage() {
             <Send className="w-5 h-5 text-[var(--status-active)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Published</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Published
+            </p>
             <p className="font-display font-black text-lg text-primary-col">{stats.published}</p>
           </div>
         </div>
@@ -266,7 +313,9 @@ function NotificationManagementPage() {
             <Calendar className="w-5 h-5 text-[oklch(0.6_0.22_25)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Scheduled</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Scheduled
+            </p>
             <p className="font-display font-black text-lg text-primary-col">{stats.scheduled}</p>
           </div>
         </div>
@@ -322,12 +371,24 @@ function NotificationManagementPage() {
         <div className="card-base overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator">
-            <div className="col-span-3 text-[10px] uppercase tracking-wider text-muted-col font-bold">Title</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">Type</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">Target</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">Status</div>
-            <div className="col-span-1 text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">Date</div>
-            <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">Actions</div>
+            <div className="col-span-3 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Title
+            </div>
+            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Type
+            </div>
+            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Target
+            </div>
+            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">
+              Status
+            </div>
+            <div className="col-span-1 text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">
+              Date
+            </div>
+            <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Actions
+            </div>
           </div>
           {/* Table Rows */}
           <div>
@@ -343,15 +404,9 @@ function NotificationManagementPage() {
                   <div className="font-semibold text-primary-col text-sm">{notification.title}</div>
                   <div className="text-xs text-muted-col line-clamp-1">{notification.message}</div>
                 </div>
-                <div className="col-span-2">
-                  {getTypeBadge(notification.type)}
-                </div>
-                <div className="col-span-2">
-                  {getTargetBadge(notification.target)}
-                </div>
-                <div className="col-span-2 text-center">
-                  {getStatusBadge(notification.status)}
-                </div>
+                <div className="col-span-2">{getTypeBadge(notification.type)}</div>
+                <div className="col-span-2">{getTargetBadge(notification.target)}</div>
+                <div className="col-span-2 text-center">{getStatusBadge(notification.status)}</div>
                 <div className="col-span-1 text-center">
                   <span className="text-xs text-muted-col">{notification.createdAt}</span>
                 </div>
@@ -403,29 +458,38 @@ function NotificationManagementPage() {
             className="relative z-10 w-full max-w-lg glass-modal rounded-2xl shadow-2xl overflow-hidden"
           >
             <div className="flex items-center justify-between px-6 py-4 border-b separator">
-              <h2 className="font-display font-bold text-primary-col text-base">Create Notification</h2>
-              <button onClick={() => setShowCreateModal(false)} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition">
+              <h2 className="font-display font-bold text-primary-col text-base">
+                Create Notification
+              </h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Title *</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Title *
+                </label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                   placeholder="Notification title"
                   className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Message *</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Message *
+                </label>
                 <textarea
                   value={formData.message}
-                  onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
                   placeholder="Notification message"
                   rows={4}
                   className="w-full px-4 py-3 rounded-xl input-glass text-sm resize-none"
@@ -434,10 +498,14 @@ function NotificationManagementPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Type</label>
+                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                    Type
+                  </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as NotificationType }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, type: e.target.value as NotificationType }))
+                    }
                     className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                   >
                     <option value="SYSTEM">System</option>
@@ -447,10 +515,14 @@ function NotificationManagementPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Target Audience</label>
+                  <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                    Target Audience
+                  </label>
                   <select
                     value={formData.target}
-                    onChange={(e) => setFormData(prev => ({ ...prev, target: e.target.value as TargetAudience }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, target: e.target.value as TargetAudience }))
+                    }
                     className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                   >
                     <option value="ALL">All Users</option>
@@ -462,11 +534,15 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Schedule Date (optional)</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Schedule Date (optional)
+                </label>
                 <input
                   type="date"
                   value={formData.scheduledDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, scheduledDate: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))
+                  }
                   className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                 />
               </div>
@@ -507,8 +583,13 @@ function NotificationManagementPage() {
             className="relative z-10 w-full max-w-lg glass-modal rounded-2xl shadow-2xl overflow-hidden"
           >
             <div className="flex items-center justify-between px-6 py-4 border-b separator">
-              <h2 className="font-display font-bold text-primary-col text-base">Notification Details</h2>
-              <button onClick={() => setShowDetailModal(false)} className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition">
+              <h2 className="font-display font-bold text-primary-col text-base">
+                Notification Details
+              </h2>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -520,25 +601,41 @@ function NotificationManagementPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl glass-surface">
-                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Type</div>
-                  <div className="font-semibold text-sm">{getTypeBadge(selectedNotification.type)}</div>
+                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                    Type
+                  </div>
+                  <div className="font-semibold text-sm">
+                    {getTypeBadge(selectedNotification.type)}
+                  </div>
                 </div>
                 <div className="p-3 rounded-xl glass-surface">
-                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Target</div>
-                  <div className="font-semibold text-sm">{getTargetBadge(selectedNotification.target)}</div>
+                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                    Target
+                  </div>
+                  <div className="font-semibold text-sm">
+                    {getTargetBadge(selectedNotification.target)}
+                  </div>
                 </div>
                 <div className="p-3 rounded-xl glass-surface">
-                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Status</div>
-                  <div className="font-semibold text-sm">{getStatusBadge(selectedNotification.status)}</div>
+                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                    Status
+                  </div>
+                  <div className="font-semibold text-sm">
+                    {getStatusBadge(selectedNotification.status)}
+                  </div>
                 </div>
                 <div className="p-3 rounded-xl glass-surface">
-                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Created</div>
+                  <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                    Created
+                  </div>
                   <div className="font-semibold text-sm">{selectedNotification.createdAt}</div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">Message</div>
+                <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                  Message
+                </div>
                 <div className="p-3 rounded-xl glass-surface text-sm text-primary-col">
                   {selectedNotification.message}
                 </div>
@@ -546,7 +643,9 @@ function NotificationManagementPage() {
 
               {selectedNotification.scheduledDate && (
                 <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">Scheduled For</div>
+                  <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                    Scheduled For
+                  </div>
                   <div className="flex items-center gap-2 text-sm text-primary-col">
                     <Calendar className="w-4 h-4 text-muted-col" />
                     {selectedNotification.scheduledDate}
@@ -556,7 +655,9 @@ function NotificationManagementPage() {
 
               {selectedNotification.sentAt && (
                 <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">Sent At</div>
+                  <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                    Sent At
+                  </div>
                   <div className="flex items-center gap-2 text-sm text-primary-col">
                     <Send className="w-4 h-4 text-[var(--status-active)]" />
                     {selectedNotification.sentAt}

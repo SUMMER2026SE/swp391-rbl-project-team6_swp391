@@ -99,11 +99,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "こんにちは", furigana: "konnichiwa", meaning: "Hello / Good afternoon", example: "こんにちは、田中さん。", exampleMeaning: "Hello, Tanaka-san." },
-          { word: "おはよう", furigana: "ohayou", meaning: "Good morning", example: "おはようございます。", exampleMeaning: "Good morning." },
-          { word: "こんばんは", furigana: "konbanwa", meaning: "Good evening", example: "こんばんは、先生。", exampleMeaning: "Good evening, sensei." },
-          { word: "さようなら", furigana: "sayounara", meaning: "Goodbye", example: "さようなら、また明日。", exampleMeaning: "Goodbye, see you tomorrow." },
-          { word: "ありがとう", furigana: "arigatou", meaning: "Thank you", example: "ありがとうございます。", exampleMeaning: "Thank you very much." },
+          {
+            word: "こんにちは",
+            furigana: "konnichiwa",
+            meaning: "Hello / Good afternoon",
+            example: "こんにちは、田中さん。",
+            exampleMeaning: "Hello, Tanaka-san.",
+          },
+          {
+            word: "おはよう",
+            furigana: "ohayou",
+            meaning: "Good morning",
+            example: "おはようございます。",
+            exampleMeaning: "Good morning.",
+          },
+          {
+            word: "こんばんは",
+            furigana: "konbanwa",
+            meaning: "Good evening",
+            example: "こんばんは、先生。",
+            exampleMeaning: "Good evening, sensei.",
+          },
+          {
+            word: "さようなら",
+            furigana: "sayounara",
+            meaning: "Goodbye",
+            example: "さようなら、また明日。",
+            exampleMeaning: "Goodbye, see you tomorrow.",
+          },
+          {
+            word: "ありがとう",
+            furigana: "arigatou",
+            meaning: "Thank you",
+            example: "ありがとうございます。",
+            exampleMeaning: "Thank you very much.",
+          },
         ],
       },
       {
@@ -111,7 +141,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
         grammar: [
           {
             pattern: "N は N です",
-            explanation: "This is the basic sentence pattern meaning 'N is N'. It is used to make simple declarative statements.",
+            explanation:
+              "This is the basic sentence pattern meaning 'N is N'. It is used to make simple declarative statements.",
             examples: [
               "私は学生です。(I am a student.)",
               "田中さんは先生です。(Tanaka-san is a teacher.)",
@@ -126,7 +157,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-1-1",
             title: "Daily Greeting",
-            passageText: "こんにちは。わたしはメアリーです。にほんごのがくせいですか。はい、にほんごのがくせいです。",
+            passageText:
+              "こんにちは。わたしはメアリーです。にほんごのがくせいですか。はい、にほんごのがくせいです。",
             difficulty: "easy",
             estimatedTime: 3,
             questions: [
@@ -142,7 +174,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-1-2",
             title: "Self Introduction",
-            passageText: "はじめまして。わたしは学生です。にほんごを勉強しています。どうぞよろしくお願いします。",
+            passageText:
+              "はじめまして。わたしは学生です。にほんごを勉強しています。どうぞよろしくお願いします。",
             difficulty: "easy",
             estimatedTime: 4,
             questions: [
@@ -185,11 +218,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "今日", furigana: "kyou", meaning: "Today", example: "今日はいい天気です。", exampleMeaning: "Today is nice weather." },
-          { word: "明日", furigana: "ashita", meaning: "Tomorrow", example: "明日は学校に行きます。", exampleMeaning: "I will go to school tomorrow." },
-          { word: "昨日", furigana: "kinou", meaning: "Yesterday", example: "昨日は忙しかったです。", exampleMeaning: "Yesterday was busy." },
-          { word: "元気", furigana: "genki", meaning: "Healthy / Fine", example: "元気ですか。", exampleMeaning: "Are you well?" },
-          { word: "名前", furigana: "namae", meaning: "Name", example: "あなたの名前は何ですか。", exampleMeaning: "What is your name?" },
+          {
+            word: "今日",
+            furigana: "kyou",
+            meaning: "Today",
+            example: "今日はいい天気です。",
+            exampleMeaning: "Today is nice weather.",
+          },
+          {
+            word: "明日",
+            furigana: "ashita",
+            meaning: "Tomorrow",
+            example: "明日は学校に行きます。",
+            exampleMeaning: "I will go to school tomorrow.",
+          },
+          {
+            word: "昨日",
+            furigana: "kinou",
+            meaning: "Yesterday",
+            example: "昨日は忙しかったです。",
+            exampleMeaning: "Yesterday was busy.",
+          },
+          {
+            word: "元気",
+            furigana: "genki",
+            meaning: "Healthy / Fine",
+            example: "元気ですか。",
+            exampleMeaning: "Are you well?",
+          },
+          {
+            word: "名前",
+            furigana: "namae",
+            meaning: "Name",
+            example: "あなたの名前は何ですか。",
+            exampleMeaning: "What is your name?",
+          },
         ],
       },
       {
@@ -211,7 +274,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-2-1",
             title: "Daily Conversation",
-            passageText: "メアリーさんは今日，元気ですか。はい、元気をありがとうございます。今日は天気がいいですね。はい、とてもいい天気です。",
+            passageText:
+              "メアリーさんは今日，元気ですか。はい、元気をありがとうございます。今日は天気がいいですね。はい、とてもいい天気です。",
             difficulty: "easy",
             estimatedTime: 3,
             questions: [
@@ -233,7 +297,12 @@ export const JOURNEY_LESSONS: Lesson[] = [
             id: "l2-1",
             type: "multiple_choice",
             question: "What does '元気ですか' mean?",
-            options: ["How are you?", "What is your name?", "Where are you from?", "What time is it?"],
+            options: [
+              "How are you?",
+              "What is your name?",
+              "Where are you from?",
+              "What time is it?",
+            ],
             correctAnswer: "How are you?",
           },
         ],
@@ -253,11 +322,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "家族", furigana: "kazoku", meaning: "Family", example: "私の家族は四人です。", exampleMeaning: "My family has four people." },
-          { word: "父", furigana: "chichi", meaning: "Father (my)", example: "父は先生です。", exampleMeaning: "My father is a teacher." },
-          { word: "母", furigana: "haha", meaning: "Mother (my)", example: "母は医者です。", exampleMeaning: "My mother is a doctor." },
-          { word: "兄弟", furigana: "kyoudai", meaning: "Brothers / Siblings", example: "兄弟は何人ですか。", exampleMeaning: "How many siblings do you have?" },
-          { word: "子供", furigana: "kodomo", meaning: "Child / Children", example: "子供は三人です。", exampleMeaning: "There are three children." },
+          {
+            word: "家族",
+            furigana: "kazoku",
+            meaning: "Family",
+            example: "私の家族は四人です。",
+            exampleMeaning: "My family has four people.",
+          },
+          {
+            word: "父",
+            furigana: "chichi",
+            meaning: "Father (my)",
+            example: "父は先生です。",
+            exampleMeaning: "My father is a teacher.",
+          },
+          {
+            word: "母",
+            furigana: "haha",
+            meaning: "Mother (my)",
+            example: "母は医者です。",
+            exampleMeaning: "My mother is a doctor.",
+          },
+          {
+            word: "兄弟",
+            furigana: "kyoudai",
+            meaning: "Brothers / Siblings",
+            example: "兄弟は何人ですか。",
+            exampleMeaning: "How many siblings do you have?",
+          },
+          {
+            word: "子供",
+            furigana: "kodomo",
+            meaning: "Child / Children",
+            example: "子供は三人です。",
+            exampleMeaning: "There are three children.",
+          },
         ],
       },
       {
@@ -280,7 +379,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-3-1",
             title: "My Family",
-            passageText: "私の家族は四人です。父はシステムエンジニアです。母は看護婦です。私には兄弟がありません。",
+            passageText:
+              "私の家族は四人です。父はシステムエンジニアです。母は看護婦です。私には兄弟がありません。",
             difficulty: "easy",
             estimatedTime: 3,
             questions: [
@@ -322,11 +422,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "赤い", furigana: "akai", meaning: "Red", example: "これは赤い車です。", exampleMeaning: "This is a red car." },
-          { word: "青い", furigana: "aoi", meaning: "Blue", example: "空は青いですか。", exampleMeaning: "Is the sky blue?" },
-          { word: "白い", furigana: "shiroi", meaning: "White", example: "白い猫が好きです。", exampleMeaning: "I like white cats." },
-          { word: "丸い", furigana: "marui", meaning: "Round / Circular", example: "月は丸いです。", exampleMeaning: "The moon is round." },
-          { word: "四角い", furigana: "shikakui", meaning: "Square", example: "この家は四角いです。", exampleMeaning: "This house is square." },
+          {
+            word: "赤い",
+            furigana: "akai",
+            meaning: "Red",
+            example: "これは赤い車です。",
+            exampleMeaning: "This is a red car.",
+          },
+          {
+            word: "青い",
+            furigana: "aoi",
+            meaning: "Blue",
+            example: "空は青いですか。",
+            exampleMeaning: "Is the sky blue?",
+          },
+          {
+            word: "白い",
+            furigana: "shiroi",
+            meaning: "White",
+            example: "白い猫が好きです。",
+            exampleMeaning: "I like white cats.",
+          },
+          {
+            word: "丸い",
+            furigana: "marui",
+            meaning: "Round / Circular",
+            example: "月は丸いです。",
+            exampleMeaning: "The moon is round.",
+          },
+          {
+            word: "四角い",
+            furigana: "shikakui",
+            meaning: "Square",
+            example: "この家は四角いです。",
+            exampleMeaning: "This house is square.",
+          },
         ],
       },
       {
@@ -334,7 +464,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
         grammar: [
           {
             pattern: "N は adj です",
-            explanation: "Simple adjective sentence pattern. The copula 'desu' follows the adjective.",
+            explanation:
+              "Simple adjective sentence pattern. The copula 'desu' follows the adjective.",
             examples: [
               "空は青いです。(The sky is blue.)",
               "この花は赤いです。(This flower is red.)",
@@ -349,7 +480,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-4-1",
             title: "My Room",
-            passageText: "私の部屋は白い壁があります。赤いカーテンと青いベッドがあります。窓は丸いです。",
+            passageText:
+              "私の部屋は白い壁があります。赤いカーテンと青いベッドがあります。窓は丸いです。",
             difficulty: "easy",
             estimatedTime: 3,
             questions: [
@@ -391,11 +523,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "水", furigana: "mizu", meaning: "Water", example: "水をください。", exampleMeaning: "Please give me water." },
-          { word: "ご飯", furigana: "gohan", meaning: "Rice / Meal", example: "朝ごはんを食べます。", exampleMeaning: "I eat breakfast." },
-          { word: "パン", furigana: "pan", meaning: "Bread", example: "朝ごはんにパンを食べます。", exampleMeaning: "I eat bread for breakfast." },
-          { word: "肉", furigana: "niku", meaning: "Meat", example: "牛肉が好きです。", exampleMeaning: "I like beef." },
-          { word: "野菜", furigana: "yasai", meaning: "Vegetables", example: "野菜を食べましょう。", exampleMeaning: "Let's eat vegetables." },
+          {
+            word: "水",
+            furigana: "mizu",
+            meaning: "Water",
+            example: "水をください。",
+            exampleMeaning: "Please give me water.",
+          },
+          {
+            word: "ご飯",
+            furigana: "gohan",
+            meaning: "Rice / Meal",
+            example: "朝ごはんを食べます。",
+            exampleMeaning: "I eat breakfast.",
+          },
+          {
+            word: "パン",
+            furigana: "pan",
+            meaning: "Bread",
+            example: "朝ごはんにパンを食べます。",
+            exampleMeaning: "I eat bread for breakfast.",
+          },
+          {
+            word: "肉",
+            furigana: "niku",
+            meaning: "Meat",
+            example: "牛肉が好きです。",
+            exampleMeaning: "I like beef.",
+          },
+          {
+            word: "野菜",
+            furigana: "yasai",
+            meaning: "Vegetables",
+            example: "野菜を食べましょう。",
+            exampleMeaning: "Let's eat vegetables.",
+          },
         ],
       },
       {
@@ -418,7 +580,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-5-1",
             title: "Breakfast",
-            passageText: "朝ごはんにご飯を食べます。卵と野菜も食べます。水を飲みます。朝ごはんは大切です。",
+            passageText:
+              "朝ごはんにご飯を食べます。卵と野菜も食べます。水を飲みます。朝ごはんは大切です。",
             difficulty: "easy",
             estimatedTime: 3,
             questions: [
@@ -460,11 +623,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "時", furigana: "ji", meaning: "O'clock", example: "今、何時ですか。", exampleMeaning: "What time is it now?" },
-          { word: "分", furigana: "fun", meaning: "Minutes", example: "十分待ちました。", exampleMeaning: "I waited for ten minutes." },
-          { word: "曜日", furigana: "youbi", meaning: "Day of the week", example: "今日は何曜日ですか。", exampleMeaning: "What day of the week is today?" },
-          { word: "月", furigana: "tsuki", meaning: "Month / Moon", example: "今月は六月です。", exampleMeaning: "This month is June." },
-          { word: "年", furigana: "toshi", meaning: "Year", example: "来年日本に行きます。", exampleMeaning: "I will go to Japan next year." },
+          {
+            word: "時",
+            furigana: "ji",
+            meaning: "O'clock",
+            example: "今、何時ですか。",
+            exampleMeaning: "What time is it now?",
+          },
+          {
+            word: "分",
+            furigana: "fun",
+            meaning: "Minutes",
+            example: "十分待ちました。",
+            exampleMeaning: "I waited for ten minutes.",
+          },
+          {
+            word: "曜日",
+            furigana: "youbi",
+            meaning: "Day of the week",
+            example: "今日は何曜日ですか。",
+            exampleMeaning: "What day of the week is today?",
+          },
+          {
+            word: "月",
+            furigana: "tsuki",
+            meaning: "Month / Moon",
+            example: "今月は六月です。",
+            exampleMeaning: "This month is June.",
+          },
+          {
+            word: "年",
+            furigana: "toshi",
+            meaning: "Year",
+            example: "来年日本に行きます。",
+            exampleMeaning: "I will go to Japan next year.",
+          },
         ],
       },
       {
@@ -487,7 +680,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-6-1",
             title: "Daily Routine",
-            passageText: "私は毎朝六時半に起きます。七時に朝ごはんを食べます。八時に家を出ます。九時から五時まで学校があります。",
+            passageText:
+              "私は毎朝六時半に起きます。七時に朝ごはんを食べます。八時に家を出ます。九時から五時まで学校があります。",
             difficulty: "medium",
             estimatedTime: 4,
             questions: [
@@ -529,11 +723,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "駅", furigana: "eki", meaning: "Station", example: "駅はどこですか。", exampleMeaning: "Where is the station?" },
-          { word: "病院", furigana: "byouin", meaning: "Hospital", example: "病気のとき病院に行きます。", exampleMeaning: "I go to the hospital when sick." },
-          { word: "銀行", furigana: "ginkou", meaning: "Bank", example: "明日銀行に行きます。", exampleMeaning: "I will go to the bank tomorrow." },
-          { word: "学校", furigana: "gakkou", meaning: "School", example: "毎日学校に行きます。", exampleMeaning: "I go to school every day." },
-          { word: "会社", furigana: "kaisha", meaning: "Company", example: "父は会社に勤めています。", exampleMeaning: "My father works at a company." },
+          {
+            word: "駅",
+            furigana: "eki",
+            meaning: "Station",
+            example: "駅はどこですか。",
+            exampleMeaning: "Where is the station?",
+          },
+          {
+            word: "病院",
+            furigana: "byouin",
+            meaning: "Hospital",
+            example: "病気のとき病院に行きます。",
+            exampleMeaning: "I go to the hospital when sick.",
+          },
+          {
+            word: "銀行",
+            furigana: "ginkou",
+            meaning: "Bank",
+            example: "明日銀行に行きます。",
+            exampleMeaning: "I will go to the bank tomorrow.",
+          },
+          {
+            word: "学校",
+            furigana: "gakkou",
+            meaning: "School",
+            example: "毎日学校に行きます。",
+            exampleMeaning: "I go to school every day.",
+          },
+          {
+            word: "会社",
+            furigana: "kaisha",
+            meaning: "Company",
+            example: "父は会社に勤めています。",
+            exampleMeaning: "My father works at a company.",
+          },
         ],
       },
       {
@@ -556,7 +780,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-7-1",
             title: "My School",
-            passageText: "私の学校は駅前にあります。銀行は学校の隣です。病院は少し遠いです。每日自転車で通います。",
+            passageText:
+              "私の学校は駅前にあります。銀行は学校の隣です。病院は少し遠いです。每日自転車で通います。",
             difficulty: "medium",
             estimatedTime: 4,
             questions: [
@@ -564,7 +789,12 @@ export const JOURNEY_LESSONS: Lesson[] = [
                 id: "r7-1",
                 type: "multiple_choice",
                 question: "Where is the school located?",
-                options: ["Near the park", "In front of the station", "Next to the hospital", "Far from the station"],
+                options: [
+                  "Near the park",
+                  "In front of the station",
+                  "Next to the hospital",
+                  "Far from the station",
+                ],
                 correctAnswer: "In front of the station",
               },
             ],
@@ -598,11 +828,41 @@ export const JOURNEY_LESSONS: Lesson[] = [
       {
         type: "VOCABULARY",
         vocabulary: [
-          { word: "買い物", furigana: "kaimono", meaning: "Shopping", example: "友達と買い物に行きます。", exampleMeaning: "I go shopping with my friend." },
-          { word: "店", furigana: "mise", meaning: "Shop / Store", example: "あの店は有名です。", exampleMeaning: "That shop is famous." },
-          { word: "安い", furigana: "yasui", meaning: "Cheap / Inexpensive", example: "このりんごは安いです。", exampleMeaning: "This apple is cheap." },
-          { word: "高い", furigana: "takai", meaning: "Expensive / Tall", example: "輸入品はとても高いです。", exampleMeaning: "Imported goods are very expensive." },
-          { word: "いくら", furigana: "ikura", meaning: "How much", example: "これはいくらですか。", exampleMeaning: "How much is this?" },
+          {
+            word: "買い物",
+            furigana: "kaimono",
+            meaning: "Shopping",
+            example: "友達と買い物に行きます。",
+            exampleMeaning: "I go shopping with my friend.",
+          },
+          {
+            word: "店",
+            furigana: "mise",
+            meaning: "Shop / Store",
+            example: "あの店は有名です。",
+            exampleMeaning: "That shop is famous.",
+          },
+          {
+            word: "安い",
+            furigana: "yasui",
+            meaning: "Cheap / Inexpensive",
+            example: "このりんごは安いです。",
+            exampleMeaning: "This apple is cheap.",
+          },
+          {
+            word: "高い",
+            furigana: "takai",
+            meaning: "Expensive / Tall",
+            example: "輸入品はとても高いです。",
+            exampleMeaning: "Imported goods are very expensive.",
+          },
+          {
+            word: "いくら",
+            furigana: "ikura",
+            meaning: "How much",
+            example: "これはいくらですか。",
+            exampleMeaning: "How much is this?",
+          },
         ],
       },
       {
@@ -625,7 +885,8 @@ export const JOURNEY_LESSONS: Lesson[] = [
           {
             id: "rp-8-1",
             title: "Shopping",
-            passageText: "果物屋でりんごを買いました。一个百五十円です。安くておいしいです。友達にも上げました。",
+            passageText:
+              "果物屋でりんごを買いました。一个百五十円です。安くておいしいです。友達にも上げました。",
             difficulty: "medium",
             estimatedTime: 4,
             questions: [
@@ -661,14 +922,14 @@ export const JOURNEY_PROGRESS: JourneyProgress = {
   currentLessonId: "lesson-02",
   completedLessons: 1,
   totalLessons: JOURNEY_LESSONS.length,
-  badges: JOURNEY_BADGES.filter(b => b.earnedAt),
+  badges: JOURNEY_BADGES.filter((b) => b.earnedAt),
 };
 
 export const getLessonById = (lessonId: string): Lesson | undefined => {
-  return JOURNEY_LESSONS.find(l => l.id === lessonId);
+  return JOURNEY_LESSONS.find((l) => l.id === lessonId);
 };
 
 export const getOverallProgress = (): number => {
-  const completed = JOURNEY_LESSONS.filter(l => l.status === "COMPLETED").length;
+  const completed = JOURNEY_LESSONS.filter((l) => l.status === "COMPLETED").length;
   return Math.round((completed / JOURNEY_LESSONS.length) * 100);
 };

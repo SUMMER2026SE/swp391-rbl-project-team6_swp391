@@ -104,16 +104,12 @@ function StudentNotificationsPage() {
 
   const handleMarkAsRead = async (id: number) => {
     // Optimistic update
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
     try {
       await markAsRead(id);
     } catch (err) {
       // Revert on error
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, unread: true } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: true } : n)));
     }
   };
 
@@ -155,9 +151,7 @@ function StudentNotificationsPage() {
         {/* Title row */}
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Notifications
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Notifications</h1>
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
               Stay updated with your learning activity
             </p>
@@ -193,9 +187,7 @@ function StudentNotificationsPage() {
           <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-red-400" />
           </div>
-          <p className="text-base font-medium text-red-600 dark:text-red-400">
-            {error}
-          </p>
+          <p className="text-base font-medium text-red-600 dark:text-red-400">{error}</p>
           <button
             onClick={fetchNotifications}
             className="mt-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition"
@@ -211,12 +203,8 @@ function StudentNotificationsPage() {
           <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
             <Bell className="w-8 h-8 text-gray-300 dark:text-gray-600" />
           </div>
-          <p className="text-base font-medium text-gray-500 dark:text-gray-400">
-            No notifications
-          </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-            You're all caught up!
-          </p>
+          <p className="text-base font-medium text-gray-500 dark:text-gray-400">No notifications</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">You're all caught up!</p>
         </div>
       )}
 

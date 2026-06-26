@@ -9,7 +9,14 @@ import { n1QuizQuestions, type QuizQuestion as N1QuizQuestion } from "./quiz-n1"
 // Type for combined quiz questions
 export type QuizQuestion = {
   id: string;
-  type: "multiple-choice" | "true-false" | "fill-blank" | "vocabulary-matching" | "comprehension" | "sentence-order" | "translation";
+  type:
+    | "multiple-choice"
+    | "true-false"
+    | "fill-blank"
+    | "vocabulary-matching"
+    | "comprehension"
+    | "sentence-order"
+    | "translation";
   difficulty: "easy" | "medium" | "hard";
   jlptLevel: "N5" | "N4" | "N3" | "N2" | "N1";
   question: string;
@@ -22,9 +29,9 @@ export type QuizQuestion = {
 
 // Convert exercises to unified QuizQuestion format
 const convertExercisesToQuizQuestions = (): QuizQuestion[] => {
-  return n5ReadingExercises.map(exercise => {
+  return n5ReadingExercises.map((exercise) => {
     const data = exercise.data;
-    
+
     switch (exercise.type) {
       case "multiple-choice":
         return {
@@ -84,8 +91,8 @@ const convertExercisesToQuizQuestions = (): QuizQuestion[] => {
 // Convert N4-N1 quiz questions to unified format
 const convertHigherLevelQuestions = (): QuizQuestion[] => {
   const allQuestions: QuizQuestion[] = [];
-  
-  [...n4QuizQuestions, ...n3QuizQuestions, ...n2QuizQuestions, ...n1QuizQuestions].forEach(q => {
+
+  [...n4QuizQuestions, ...n3QuizQuestions, ...n2QuizQuestions, ...n1QuizQuestions].forEach((q) => {
     allQuestions.push({
       id: q.id,
       type: q.type,
@@ -99,7 +106,7 @@ const convertHigherLevelQuestions = (): QuizQuestion[] => {
       grammar: q.grammar,
     });
   });
-  
+
   return allQuestions;
 };
 
@@ -111,35 +118,38 @@ export const allQuizQuestions: QuizQuestion[] = [
 
 // Quiz questions by level
 export const getQuizQuestionsByLevel = (level: QuizQuestion["jlptLevel"]): QuizQuestion[] => {
-  return allQuizQuestions.filter(q => q.jlptLevel === level);
+  return allQuizQuestions.filter((q) => q.jlptLevel === level);
 };
 
 // Quiz questions by difficulty
-export const getQuizQuestionsByDifficulty = (difficulty: QuizQuestion["difficulty"]): QuizQuestion[] => {
-  return allQuizQuestions.filter(q => q.difficulty === difficulty);
+export const getQuizQuestionsByDifficulty = (
+  difficulty: QuizQuestion["difficulty"],
+): QuizQuestion[] => {
+  return allQuizQuestions.filter((q) => q.difficulty === difficulty);
 };
 
 // Quiz questions by type
 export const getQuizQuestionsByType = (type: QuizQuestion["type"]): QuizQuestion[] => {
-  return allQuizQuestions.filter(q => q.type === type);
+  return allQuizQuestions.filter((q) => q.type === type);
 };
 
 // Random quiz questions
-export const getRandomQuizQuestions = (count: number, level?: QuizQuestion["jlptLevel"]): QuizQuestion[] => {
+export const getRandomQuizQuestions = (
+  count: number,
+  level?: QuizQuestion["jlptLevel"],
+): QuizQuestion[] => {
   let questions = level ? getQuizQuestionsByLevel(level) : allQuizQuestions;
   return [...questions].sort(() => Math.random() - 0.5).slice(0, count);
 };
 
 // Quiz question generator for a specific reading lesson
 export const generateQuizForLesson = (lessonId: string, count: number = 10): QuizQuestion[] => {
-  const lessonQuestions = allQuizQuestions.filter(q => 
-    (q as any).readingId === lessonId
-  );
-  
+  const lessonQuestions = allQuizQuestions.filter((q) => (q as any).readingId === lessonId);
+
   if (lessonQuestions.length >= count) {
     return [...lessonQuestions].sort(() => Math.random() - 0.5).slice(0, count);
   }
-  
+
   // If not enough questions for the lesson, supplement with random questions
   const supplemental = getRandomQuizQuestions(count - lessonQuestions.length);
   return [...lessonQuestions, ...supplemental];
@@ -165,9 +175,9 @@ export const quizStats = {
     "true-false": getQuizQuestionsByType("true-false").length,
     "fill-blank": getQuizQuestionsByType("fill-blank").length,
     "vocabulary-matching": getQuizQuestionsByType("vocabulary-matching").length,
-    "comprehension": getQuizQuestionsByType("comprehension").length,
+    comprehension: getQuizQuestionsByType("comprehension").length,
     "sentence-order": getQuizQuestionsByType("sentence-order").length,
-    "translation": getQuizQuestionsByType("translation").length,
+    translation: getQuizQuestionsByType("translation").length,
   },
 };
 

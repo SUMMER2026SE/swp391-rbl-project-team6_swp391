@@ -116,7 +116,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
   // Generate quiz questions based on quiz mode
   const generateQuizQuestions = (mode: QuizMode) => {
     if (!lesson?.characters?.length) return [];
-    
+
     const chars = [...lesson.characters].sort(() => Math.random() - 0.5);
     const questions: QuizQuestion[] = [];
 
@@ -162,7 +162,10 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-slate-500 dark:text-indigo-200/60">Lesson not found</p>
-          <Link to="/student/learning/alphabet" className="text-primary hover:underline mt-2 inline-block">
+          <Link
+            to="/student/learning/alphabet"
+            className="text-primary hover:underline mt-2 inline-block"
+          >
             Back to Alphabet
           </Link>
         </div>
@@ -188,7 +191,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
     } else {
       // Finish quiz
       const finalScore = Math.round(
-        ((quizScore + (quizAnswer === quizQuestions[quizIdx].correctAnswer ? 1 : 0)) / quizQuestions.length) * 100
+        ((quizScore + (quizAnswer === quizQuestions[quizIdx].correctAnswer ? 1 : 0)) /
+          quizQuestions.length) *
+          100,
       );
       const newProgress = {
         ...progress,
@@ -294,7 +299,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
             </div>
             <div className="p-2.5 rounded-xl bg-slate-100/60 dark:bg-white/5">
               <div className="text-[10px] text-muted-foreground mb-0.5">Meaning</div>
-              <div className="font-semibold text-sm truncate" title={currentChar.meaning}>{currentChar.meaning}</div>
+              <div className="font-semibold text-sm truncate" title={currentChar.meaning}>
+                {currentChar.meaning}
+              </div>
             </div>
             <div className="p-2.5 rounded-xl bg-slate-100/60 dark:bg-white/5">
               <div className="text-[10px] text-muted-foreground mb-0.5">Strokes</div>
@@ -302,7 +309,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
             </div>
             <div className="p-2.5 rounded-xl bg-slate-100/60 dark:bg-white/5">
               <div className="text-[10px] text-muted-foreground mb-0.5">Type</div>
-              <div className="font-semibold text-sm">{lesson.title.split(' ')[0]}</div>
+              <div className="font-semibold text-sm">{lesson.title.split(" ")[0]}</div>
             </div>
           </div>
         </motion.div>
@@ -328,7 +335,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
               "px-4 py-3.5 rounded-2xl font-bold transition",
               progress.charactersLearned.includes(currentChar.id)
                 ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800"
-                : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200 hover:bg-white/90"
+                : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200 hover:bg-white/90",
             )}
           >
             <CheckCircle2 className="w-5 h-5" />
@@ -380,8 +387,8 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
         {/* Progress */}
         <div className="flex justify-between text-sm mb-2">
           <span className="text-slate-600 dark:text-indigo-200/80">
-            Question <span className="font-bold text-slate-800 dark:text-white">{quizIdx + 1}</span> of{" "}
-            <span className="text-slate-500">{quizQuestions.length}</span>
+            Question <span className="font-bold text-slate-800 dark:text-white">{quizIdx + 1}</span>{" "}
+            of <span className="text-slate-500">{quizQuestions.length}</span>
           </span>
           <span className="text-slate-800 dark:text-white font-bold">Score: {quizScore}</span>
         </div>
@@ -389,7 +396,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           <div
             className={cn(
               "h-full rounded-full transition-all duration-300",
-              isRomajiToChar ? "bg-gradient-to-r from-green-500 to-emerald-500" : "bg-gradient-to-r from-pink-500 to-purple-500"
+              isRomajiToChar
+                ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                : "bg-gradient-to-r from-pink-500 to-purple-500",
             )}
             style={{ width: `${((quizIdx + 1) / quizQuestions.length) * 100}%` }}
           />
@@ -440,9 +449,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                     ? isCorrect
                       ? "bg-green-500 text-white"
                       : isSelected
-                      ? "bg-red-500 text-white"
-                      : "bg-slate-100 dark:bg-white/10 text-slate-400"
-                    : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/20"
+                        ? "bg-red-500 text-white"
+                        : "bg-slate-100 dark:bg-white/10 text-slate-400"
+                    : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100/80 dark:hover:bg-white/20",
                 )}
                 style={isRomajiToChar ? { fontFamily: "var(--font-japanese)" } : {}}
               >
@@ -458,7 +467,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
             onClick={handleNextQuestion}
             className={cn(
               "w-full py-4 rounded-2xl text-white font-bold hover:opacity-90 transition",
-              isRomajiToChar ? "bg-gradient-to-r from-green-500 to-emerald-500" : "bg-gradient-to-r from-pink-500 to-purple-500"
+              isRomajiToChar
+                ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                : "bg-gradient-to-r from-pink-500 to-purple-500",
             )}
           >
             {quizIdx < quizQuestions.length - 1 ? "Next Question" : "See Results"}
@@ -533,7 +544,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </Link>
               <div>
-                <h1 className="text-xl font-black text-slate-800 dark:text-white">{lesson.title}</h1>
+                <h1 className="text-xl font-black text-slate-800 dark:text-white">
+                  {lesson.title}
+                </h1>
                 <p className="text-xs text-slate-500 dark:text-indigo-200/60">
                   {lesson.characters.length} characters
                   {progress.attempts > 0 && ` • Best: ${progress.score}%`}
@@ -563,14 +576,14 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   viewMode === mode.id
                     ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg"
-                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90"
+                    : "bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-indigo-200 hover:bg-white/90",
                 )}
               >
                 <mode.icon className="w-4 h-4" />
                 {mode.label}
               </button>
             ))}
-            
+
             {/* Quiz Mode Selector - Only show when in quiz mode */}
             {viewMode === "quiz" && (
               <div className="flex gap-1 ml-auto">
@@ -580,7 +593,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                     "flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-all",
                     quizMode === "char-to-romaji"
                       ? "bg-pink-500 text-white"
-                      : "bg-white/70 dark:bg-white/10 text-slate-600 dark:text-indigo-200 hover:bg-slate-100"
+                      : "bg-white/70 dark:bg-white/10 text-slate-600 dark:text-indigo-200 hover:bg-slate-100",
                   )}
                 >
                   あ→a
@@ -591,7 +604,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                     "flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-all",
                     quizMode === "romaji-to-char"
                       ? "bg-green-500 text-white"
-                      : "bg-white/70 dark:bg-white/10 text-slate-600 dark:text-indigo-200 hover:bg-slate-100"
+                      : "bg-white/70 dark:bg-white/10 text-slate-600 dark:text-indigo-200 hover:bg-slate-100",
                   )}
                 >
                   a→あ

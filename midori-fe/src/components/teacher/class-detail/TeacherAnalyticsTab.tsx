@@ -18,7 +18,7 @@ export function TeacherAnalyticsTab({ classInfo }: TeacherAnalyticsTabProps) {
     { name: "Listening", progress: analytics.progressByModule.listening },
     { name: "Reading", progress: analytics.progressByModule.reading },
     { name: "Shadowing", progress: analytics.progressByModule.shadowing },
-    { name: "Writing", progress: analytics.progressByModule.writing }
+    { name: "Writing", progress: analytics.progressByModule.writing },
   ];
 
   return (
@@ -30,8 +30,12 @@ export function TeacherAnalyticsTab({ classInfo }: TeacherAnalyticsTabProps) {
             <Award className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Average Class Score</div>
-            <div className="font-display font-black text-xl text-foreground mt-0.5">{analytics.avgScore} / 10</div>
+            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+              Average Class Score
+            </div>
+            <div className="font-display font-black text-xl text-foreground mt-0.5">
+              {analytics.avgScore} / 10
+            </div>
           </div>
         </Card>
 
@@ -40,8 +44,12 @@ export function TeacherAnalyticsTab({ classInfo }: TeacherAnalyticsTabProps) {
             <CheckCircle className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Submission Rate</div>
-            <div className="font-display font-black text-xl text-foreground mt-0.5">{analytics.submissionRate}%</div>
+            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+              Submission Rate
+            </div>
+            <div className="font-display font-black text-xl text-foreground mt-0.5">
+              {analytics.submissionRate}%
+            </div>
           </div>
         </Card>
 
@@ -50,8 +58,12 @@ export function TeacherAnalyticsTab({ classInfo }: TeacherAnalyticsTabProps) {
             <Trophy className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Top Student</div>
-            <div className="font-display font-black text-xl text-foreground mt-0.5">{analytics.topStudents[0]}</div>
+            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
+              Top Student
+            </div>
+            <div className="font-display font-black text-xl text-foreground mt-0.5">
+              {analytics.topStudents[0]}
+            </div>
           </div>
         </Card>
       </div>
@@ -63,15 +75,34 @@ export function TeacherAnalyticsTab({ classInfo }: TeacherAnalyticsTabProps) {
           <h3 className="font-display font-bold text-sm text-foreground mb-1 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-primary" /> Progress by Module (%)
           </h3>
-          <p className="text-[10px] text-muted-foreground mb-4">Average syllabus completion per language skill module.</p>
-          
+          <p className="text-[10px] text-muted-foreground mb-4">
+            Average syllabus completion per language skill module.
+          </p>
+
           <div className="h-[220px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} barCategoryGap="40%">
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.02 300)" opacity={0.25} vertical={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="oklch(0.9 0.02 300)"
+                  opacity={0.25}
+                  vertical={false}
+                />
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.08)", backgroundColor: "var(--card)" }} />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={[0, 100]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "none",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+                    backgroundColor: "var(--card)",
+                  }}
+                />
                 <Bar dataKey="progress" fill="oklch(0.62 0.18 270)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -87,7 +118,10 @@ export function TeacherAnalyticsTab({ classInfo }: TeacherAnalyticsTabProps) {
             </h4>
             <div className="space-y-2">
               {analytics.weakestTopics.map((topic, idx) => (
-                <div key={idx} className="p-3 border border-slate-100 dark:border-white/5 rounded-xl bg-slate-50/20 dark:bg-white/[0.002] text-xs font-semibold text-foreground dark:text-slate-200">
+                <div
+                  key={idx}
+                  className="p-3 border border-slate-100 dark:border-white/5 rounded-xl bg-slate-50/20 dark:bg-white/[0.002] text-xs font-semibold text-foreground dark:text-slate-200"
+                >
                   {topic}
                 </div>
               ))}
@@ -101,7 +135,10 @@ export function TeacherAnalyticsTab({ classInfo }: TeacherAnalyticsTabProps) {
             </h4>
             <div className="space-y-2">
               {analytics.mostDifficultAssignments.map((ass, idx) => (
-                <div key={idx} className="p-3 border border-slate-100 dark:border-white/5 rounded-xl bg-slate-50/20 dark:bg-white/[0.002] text-xs font-semibold text-foreground dark:text-slate-200">
+                <div
+                  key={idx}
+                  className="p-3 border border-slate-100 dark:border-white/5 rounded-xl bg-slate-50/20 dark:bg-white/[0.002] text-xs font-semibold text-foreground dark:text-slate-200"
+                >
                   {ass}
                 </div>
               ))}

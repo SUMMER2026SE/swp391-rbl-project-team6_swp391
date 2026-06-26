@@ -8,9 +8,6 @@ export const Route = createFileRoute("/student/learning/alphabet/katakana/combin
 
 function KatakanaCombinationPage() {
   return (
-    <AlphabetLessonPage
-      lesson={katakanaCombinationLesson}
-      progressKey="katakana-combination"
-    />
+    <AlphabetLessonPage lesson={katakanaCombinationLesson} progressKey="katakana-combination" />
   );
 }

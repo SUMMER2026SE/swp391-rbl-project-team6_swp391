@@ -36,18 +36,14 @@ class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public success: boolean = false
+    public success: boolean = false,
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
-async function request<T>(
-  method: string,
-  path: string,
-  body?: unknown
-): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const isFormData = body instanceof FormData;
   const options: RequestInit = {
@@ -70,11 +66,12 @@ async function request<T>(
     json = await res.json();
   } catch {
     if (!res.ok) {
-      const msg = res.status === 401 && (path === "/auth/login" || path === "/auth/google")
-        ? "Unable to sign in. Please try again."
-        : res.status === 403
-          ? "You do not have permission to access this resource."
-          : "Request failed. Please try again.";
+      const msg =
+        res.status === 401 && (path === "/auth/login" || path === "/auth/google")
+          ? "Unable to sign in. Please try again."
+          : res.status === 403
+            ? "You do not have permission to access this resource."
+            : "Request failed. Please try again.";
       throw new ApiError(msg, res.status);
     }
     throw new ApiError(`Request failed: ${res.status} ${res.statusText}`, res.status);
@@ -90,7 +87,11 @@ async function request<T>(
       }
     }
     if (res.status === 403) {
-      throw new ApiError(json.message ?? "You do not have permission to access this resource.", res.status, false);
+      throw new ApiError(
+        json.message ?? "You do not have permission to access this resource.",
+        res.status,
+        false,
+      );
     }
     throw new ApiError(json.message ?? "An unexpected error occurred.", res.status, false);
   }
@@ -134,7 +135,7 @@ export const api = {
   uploadFile<T>(
     path: string,
     formData: FormData,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();

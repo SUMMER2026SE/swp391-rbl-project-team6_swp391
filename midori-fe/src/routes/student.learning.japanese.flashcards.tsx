@@ -32,7 +32,14 @@ export const Route = createFileRoute("/student/learning/japanese/flashcards")({
   component: FlashcardsPage,
 });
 
-type CardSet = "all" | "hiragana-basic" | "katakana-basic" | "hiragana-dakuten" | "katakana-dakuten" | "hiragana-combination" | "katakana-combination";
+type CardSet =
+  | "all"
+  | "hiragana-basic"
+  | "katakana-basic"
+  | "hiragana-dakuten"
+  | "katakana-dakuten"
+  | "hiragana-combination"
+  | "katakana-combination";
 
 function getCardSet(id: CardSet) {
   switch (id) {
@@ -41,13 +48,29 @@ function getCardSet(id: CardSet) {
     case "katakana-basic":
       return { name: "Katakana Basic", chars: KATAKANA_BASIC, color: "from-blue-400 to-cyan-500" };
     case "hiragana-dakuten":
-      return { name: "Hiragana Dakuten", chars: HIRAGANA_DAKUTEN, color: "from-purple-400 to-violet-500" };
+      return {
+        name: "Hiragana Dakuten",
+        chars: HIRAGANA_DAKUTEN,
+        color: "from-purple-400 to-violet-500",
+      };
     case "katakana-dakuten":
-      return { name: "Katakana Dakuten", chars: KATAKANA_DAKUTEN, color: "from-indigo-400 to-blue-500" };
+      return {
+        name: "Katakana Dakuten",
+        chars: KATAKANA_DAKUTEN,
+        color: "from-indigo-400 to-blue-500",
+      };
     case "hiragana-combination":
-      return { name: "Hiragana Combinations", chars: HIRAGANA_COMBINATION, color: "from-emerald-400 to-teal-500" };
+      return {
+        name: "Hiragana Combinations",
+        chars: HIRAGANA_COMBINATION,
+        color: "from-emerald-400 to-teal-500",
+      };
     case "katakana-combination":
-      return { name: "Katakana Combinations", chars: KATAKANA_COMBINATION, color: "from-cyan-400 to-sky-500" };
+      return {
+        name: "Katakana Combinations",
+        chars: KATAKANA_COMBINATION,
+        color: "from-cyan-400 to-sky-500",
+      };
     default:
       return null;
   }
@@ -151,19 +174,57 @@ function FlashcardsPage() {
               </Link>
               <div>
                 <h1 className="text-2xl font-black text-slate-800 dark:text-white">Flashcards</h1>
-                <p className="text-sm text-slate-500 dark:text-indigo-200/60">Choose a character set</p>
+                <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                  Choose a character set
+                </p>
               </div>
             </div>
 
             {/* Card Set Grid */}
             <div className="grid gap-4">
               {[
-                { id: "hiragana-basic" as CardSet, icon: "あ", name: "Hiragana Basic", color: "from-pink-400 to-rose-500", count: HIRAGANA_BASIC.length },
-                { id: "katakana-basic" as CardSet, icon: "ア", name: "Katakana Basic", color: "from-blue-400 to-cyan-500", count: KATAKANA_BASIC.length },
-                { id: "hiragana-dakuten" as CardSet, icon: "が", name: "Hiragana Dakuten", color: "from-purple-400 to-violet-500", count: HIRAGANA_DAKUTEN.length },
-                { id: "katakana-dakuten" as CardSet, icon: "ガ", name: "Katakana Dakuten", color: "from-indigo-400 to-blue-500", count: KATAKANA_DAKUTEN.length },
-                { id: "hiragana-combination" as CardSet, icon: "きゃ", name: "Hiragana Combinations", color: "from-emerald-400 to-teal-500", count: HIRAGANA_COMBINATION.length },
-                { id: "katakana-combination" as CardSet, icon: "キャ", name: "Katakana Combinations", color: "from-cyan-400 to-sky-500", count: KATAKANA_COMBINATION.length },
+                {
+                  id: "hiragana-basic" as CardSet,
+                  icon: "あ",
+                  name: "Hiragana Basic",
+                  color: "from-pink-400 to-rose-500",
+                  count: HIRAGANA_BASIC.length,
+                },
+                {
+                  id: "katakana-basic" as CardSet,
+                  icon: "ア",
+                  name: "Katakana Basic",
+                  color: "from-blue-400 to-cyan-500",
+                  count: KATAKANA_BASIC.length,
+                },
+                {
+                  id: "hiragana-dakuten" as CardSet,
+                  icon: "が",
+                  name: "Hiragana Dakuten",
+                  color: "from-purple-400 to-violet-500",
+                  count: HIRAGANA_DAKUTEN.length,
+                },
+                {
+                  id: "katakana-dakuten" as CardSet,
+                  icon: "ガ",
+                  name: "Katakana Dakuten",
+                  color: "from-indigo-400 to-blue-500",
+                  count: KATAKANA_DAKUTEN.length,
+                },
+                {
+                  id: "hiragana-combination" as CardSet,
+                  icon: "きゃ",
+                  name: "Hiragana Combinations",
+                  color: "from-emerald-400 to-teal-500",
+                  count: HIRAGANA_COMBINATION.length,
+                },
+                {
+                  id: "katakana-combination" as CardSet,
+                  icon: "キャ",
+                  name: "Katakana Combinations",
+                  color: "from-cyan-400 to-sky-500",
+                  count: KATAKANA_COMBINATION.length,
+                },
               ].map((set) => (
                 <motion.button
                   key={set.id}
@@ -175,15 +236,22 @@ function FlashcardsPage() {
                   }}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-2xl bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 hover:shadow-xl hover:-translate-y-1 transition-all text-left",
-                    selectedSet === set.id && "ring-2 ring-primary"
+                    selectedSet === set.id && "ring-2 ring-primary",
                   )}
                 >
-                  <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg", set.color)}>
+                  <div
+                    className={cn(
+                      "w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg",
+                      set.color,
+                    )}
+                  >
                     {set.icon}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800 dark:text-white">{set.name}</h3>
-                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">{set.count} characters</p>
+                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                      {set.count} characters
+                    </p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </motion.button>
@@ -211,7 +279,9 @@ function FlashcardsPage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </button>
               <div>
-                <h1 className="text-xl font-black text-slate-800 dark:text-white">{setData.name}</h1>
+                <h1 className="text-xl font-black text-slate-800 dark:text-white">
+                  {setData.name}
+                </h1>
                 <p className="text-xs text-slate-500 dark:text-indigo-200/60">
                   {studiedCards.size} / {cards.length} studied
                 </p>
@@ -228,7 +298,8 @@ function FlashcardsPage() {
           {/* Progress */}
           <div className="flex justify-between text-sm mb-2">
             <span className="text-slate-600 dark:text-indigo-200/80">
-              Card <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
+              Card{" "}
+              <span className="font-bold text-slate-800 dark:text-white">{currentIdx + 1}</span> of{" "}
               <span className="text-slate-500">{cards.length}</span>
             </span>
             <span className="text-slate-600 dark:text-indigo-200/80">
@@ -267,7 +338,7 @@ function FlashcardsPage() {
                 <div
                   className={cn(
                     "absolute inset-0 rounded-3xl bg-white/90 dark:bg-indigo-950/60 backdrop-blur-xl border border-slate-200/60 dark:border-white/20 shadow-2xl flex flex-col items-center justify-center p-6",
-                    isFlipped && "invisible"
+                    isFlipped && "invisible",
                   )}
                 >
                   <span className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-indigo-200/60">
@@ -289,15 +360,13 @@ function FlashcardsPage() {
                   className={cn(
                     "absolute inset-0 rounded-3xl bg-gradient-to-br backdrop-blur-xl border border-white/20 shadow-2xl flex flex-col items-center justify-center p-6",
                     `bg-gradient-to-br ${setData.color}`,
-                    !isFlipped && "invisible"
+                    !isFlipped && "invisible",
                   )}
                 >
                   <span className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-widest text-white/60">
                     Romaji
                   </span>
-                  <div className="text-5xl font-black text-white">
-                    {cards[currentIdx]?.romaji}
-                  </div>
+                  <div className="text-5xl font-black text-white">{cards[currentIdx]?.romaji}</div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -308,7 +377,9 @@ function FlashcardsPage() {
                     <Volume2 className="w-6 h-6" />
                   </button>
                   <div className="absolute bottom-4 text-xs text-white/60">
-                    {studiedCards.has(cards[currentIdx]?.char) ? "✓ Studied" : "Tap to mark as studied"}
+                    {studiedCards.has(cards[currentIdx]?.char)
+                      ? "✓ Studied"
+                      : "Tap to mark as studied"}
                   </div>
                 </div>
               </motion.div>
@@ -336,7 +407,7 @@ function FlashcardsPage() {
                 "p-4 rounded-2xl border transition",
                 studiedCards.has(cards[currentIdx]?.char)
                   ? "bg-green-500/20 border-green-500/40 text-green-600"
-                  : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200/80 hover:bg-green-50"
+                  : "bg-white/70 dark:bg-white/10 border border-slate-200/60 dark:border-white/20 text-slate-600 dark:text-indigo-200/80 hover:bg-green-50",
               )}
             >
               <CheckCircle2 className="w-5 h-5" />

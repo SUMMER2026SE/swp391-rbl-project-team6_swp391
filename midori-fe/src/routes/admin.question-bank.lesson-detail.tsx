@@ -4,9 +4,24 @@ import { useSearch } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
-  Plus, Search, Trash2, BookOpen,
-  Upload, FileSpreadsheet, Pencil, ArrowLeft,
-  Filter, X, Eye, Edit3, CheckCircle, Music, Clock, Play, Pause, XCircle
+  Plus,
+  Search,
+  Trash2,
+  BookOpen,
+  Upload,
+  FileSpreadsheet,
+  Pencil,
+  ArrowLeft,
+  Filter,
+  X,
+  Eye,
+  Edit3,
+  CheckCircle,
+  Music,
+  Clock,
+  Play,
+  Pause,
+  XCircle,
 } from "lucide-react";
 import { questionBankService, type Question } from "../services/questionBankService";
 import { isListeningQuestion, formatDuration } from "../services/questionBank.types";
@@ -25,8 +40,18 @@ type Difficulty = "Easy" | "Medium" | "Hard";
 
 // ─── Delete Confirmation Dialog ─────────────────────────────────────────────────
 
-function ConfirmDialog({ open, onClose, onConfirm, title, message }: {
-  open: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string;
+function ConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  message,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
 }) {
   if (!open) return null;
   return (
@@ -45,10 +70,16 @@ function ConfirmDialog({ open, onClose, onConfirm, title, message }: {
           <p className="text-secondary-col text-sm text-center">{message}</p>
         </div>
         <div className="flex gap-3 px-6 py-4 border-t separator">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+          >
             Cancel
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow-md hover:bg-red-600 transition">
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold shadow-md hover:bg-red-600 transition"
+          >
             Delete
           </button>
         </div>
@@ -58,10 +89,13 @@ function ConfirmDialog({ open, onClose, onConfirm, title, message }: {
 }
 
 function QuestionBankLessonDetailPage() {
-  const search = useSearch({ from: "/admin/question-bank/lesson-detail" }) as { level?: string; lessonId?: string };
+  const search = useSearch({ from: "/admin/question-bank/lesson-detail" }) as {
+    level?: string;
+    lessonId?: string;
+  };
   const navigate = useNavigate();
 
-  const level = ((search.level?.toUpperCase()) || "N5") as JLPTLevel;
+  const level = (search.level?.toUpperCase() || "N5") as JLPTLevel;
   const lessonId = parseInt(search.lessonId || "1");
 
   // Get lesson data from service
@@ -73,7 +107,10 @@ function QuestionBankLessonDetailPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<QuestionType | "">("");
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | "">("");
-  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; questionId: string | null }>({ open: false, questionId: null });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; questionId: string | null }>({
+    open: false,
+    questionId: null,
+  });
 
   // Load questions from service
   useEffect(() => {
@@ -81,7 +118,7 @@ function QuestionBankLessonDetailPage() {
     setQuestions(loadedQuestions);
   }, [level, lessonId]);
 
-  const filteredQuestions = questions.filter(q => {
+  const filteredQuestions = questions.filter((q) => {
     const matchSearch = q.questionText.toLowerCase().includes(searchTerm.toLowerCase());
     const matchType = !typeFilter || q.type === typeFilter;
     const matchDifficulty = !difficultyFilter || q.difficulty === difficultyFilter;
@@ -89,10 +126,10 @@ function QuestionBankLessonDetailPage() {
   });
 
   const byType = {
-    Vocabulary: questions.filter(q => q.type === "Vocabulary").length,
-    Grammar: questions.filter(q => q.type === "Grammar").length,
-    Reading: questions.filter(q => q.type === "Reading").length,
-    Listening: questions.filter(q => q.type === "Listening").length,
+    Vocabulary: questions.filter((q) => q.type === "Vocabulary").length,
+    Grammar: questions.filter((q) => q.type === "Grammar").length,
+    Reading: questions.filter((q) => q.type === "Reading").length,
+    Listening: questions.filter((q) => q.type === "Listening").length,
   };
 
   const handleDelete = (id: string) => {
@@ -133,14 +170,22 @@ function QuestionBankLessonDetailPage() {
         actionButtons={
           <>
             <button
-              onClick={() => navigate({ to: `/admin/question-bank/import-excel?level=${level.toLowerCase()}&lessonId=${lessonId}` })}
+              onClick={() =>
+                navigate({
+                  to: `/admin/question-bank/import-excel?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+                })
+              }
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-semibold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition"
             >
               <Upload className="w-4 h-4" />
               Import Excel
             </button>
             <button
-              onClick={() => navigate({ to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}` })}
+              onClick={() =>
+                navigate({
+                  to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+                })
+              }
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
             >
               <Plus className="w-4 h-4" />
@@ -156,8 +201,12 @@ function QuestionBankLessonDetailPage() {
                   <BookOpen className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">Total</p>
-                  <p className="font-display font-black text-xl text-primary-col">{questions.length}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">
+                    Total
+                  </p>
+                  <p className="font-display font-black text-xl text-primary-col">
+                    {questions.length}
+                  </p>
                 </div>
               </div>
             </div>
@@ -167,8 +216,12 @@ function QuestionBankLessonDetailPage() {
                   <FileSpreadsheet className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">Vocabulary</p>
-                  <p className="font-display font-black text-xl text-primary-col">{byType.Vocabulary}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">
+                    Vocabulary
+                  </p>
+                  <p className="font-display font-black text-xl text-primary-col">
+                    {byType.Vocabulary}
+                  </p>
                 </div>
               </div>
             </div>
@@ -178,8 +231,12 @@ function QuestionBankLessonDetailPage() {
                   <BookOpen className="w-5 h-5 text-purple-500" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">Grammar</p>
-                  <p className="font-display font-black text-xl text-primary-col">{byType.Grammar}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">
+                    Grammar
+                  </p>
+                  <p className="font-display font-black text-xl text-primary-col">
+                    {byType.Grammar}
+                  </p>
                 </div>
               </div>
             </div>
@@ -189,8 +246,12 @@ function QuestionBankLessonDetailPage() {
                   <BookOpen className="w-5 h-5 text-orange-500" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">Reading</p>
-                  <p className="font-display font-black text-xl text-primary-col">{byType.Reading}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">
+                    Reading
+                  </p>
+                  <p className="font-display font-black text-xl text-primary-col">
+                    {byType.Reading}
+                  </p>
                 </div>
               </div>
             </div>
@@ -200,8 +261,12 @@ function QuestionBankLessonDetailPage() {
                   <Music className="w-5 h-5 text-pink-500" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">Listening</p>
-                  <p className="font-display font-black text-xl text-primary-col">{byType.Listening}</p>
+                  <p className="text-[10px] text-muted-col uppercase tracking-wider font-medium">
+                    Listening
+                  </p>
+                  <p className="font-display font-black text-xl text-primary-col">
+                    {byType.Listening}
+                  </p>
                 </div>
               </div>
             </div>
@@ -268,13 +333,17 @@ function QuestionBankLessonDetailPage() {
             {hasFilters ? "No Matching Questions" : "No Questions Yet"}
           </h3>
           <p className="text-sm text-muted-col mb-6 max-w-sm">
-            {hasFilters 
+            {hasFilters
               ? "Try adjusting your search or filters."
               : "Add your first question to this lesson."}
           </p>
           {!hasFilters && (
             <button
-              onClick={() => navigate({ to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}` })}
+              onClick={() =>
+                navigate({
+                  to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+                })
+              }
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
             >
               <Plus className="w-4 h-4" />
@@ -286,13 +355,23 @@ function QuestionBankLessonDetailPage() {
         <div className="card-base overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-[var(--border)] bg-muted/30">
-            <div className="col-span-1 text-[11px] uppercase tracking-wider text-muted-col font-bold">No.</div>
-            <div className="col-span-5 text-[11px] uppercase tracking-wider text-muted-col font-bold">Question</div>
-            <div className="col-span-2 text-center text-[11px] uppercase tracking-wider text-muted-col font-bold">Type</div>
-            <div className="col-span-1 text-center text-[11px] uppercase tracking-wider text-muted-col font-bold">Diff</div>
-            <div className="col-span-3 text-right text-[11px] uppercase tracking-wider text-muted-col font-bold">Actions</div>
+            <div className="col-span-1 text-[11px] uppercase tracking-wider text-muted-col font-bold">
+              No.
+            </div>
+            <div className="col-span-5 text-[11px] uppercase tracking-wider text-muted-col font-bold">
+              Question
+            </div>
+            <div className="col-span-2 text-center text-[11px] uppercase tracking-wider text-muted-col font-bold">
+              Type
+            </div>
+            <div className="col-span-1 text-center text-[11px] uppercase tracking-wider text-muted-col font-bold">
+              Diff
+            </div>
+            <div className="col-span-3 text-right text-[11px] uppercase tracking-wider text-muted-col font-bold">
+              Actions
+            </div>
           </div>
-          
+
           {/* Table Rows */}
           <div className="divide-y divide-[var(--border)]">
             {filteredQuestions.map((q, index) => (
@@ -320,42 +399,59 @@ function QuestionBankLessonDetailPage() {
                         </span>
                       </div>
                     )}
-                    <p className="text-sm text-primary-col font-medium line-clamp-2">{q.questionText}</p>
+                    <p className="text-sm text-primary-col font-medium line-clamp-2">
+                      {q.questionText}
+                    </p>
                     {/* Show audio file name for listening */}
                     {isListeningQuestion(q) && q.audio?.audioFileName && (
-                      <p className="text-xs text-muted-col mt-1 truncate">{q.audio.audioFileName}</p>
+                      <p className="text-xs text-muted-col mt-1 truncate">
+                        {q.audio.audioFileName}
+                      </p>
                     )}
                   </div>
                 </div>
                 <div className="col-span-2 flex items-center justify-center">
-                  <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                    q.type === "Vocabulary" ? "bg-blue-500/12 text-blue-600 border-blue-500/20" :
-                    q.type === "Grammar" ? "bg-purple-500/12 text-purple-600 border-purple-500/20" :
-                    q.type === "Reading" ? "bg-orange-500/12 text-orange-600 border-orange-500/20" :
-                    "bg-pink-500/12 text-pink-600 border-pink-500/20"
-                  }`}>
+                  <span
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                      q.type === "Vocabulary"
+                        ? "bg-blue-500/12 text-blue-600 border-blue-500/20"
+                        : q.type === "Grammar"
+                          ? "bg-purple-500/12 text-purple-600 border-purple-500/20"
+                          : q.type === "Reading"
+                            ? "bg-orange-500/12 text-orange-600 border-orange-500/20"
+                            : "bg-pink-500/12 text-pink-600 border-pink-500/20"
+                    }`}
+                  >
                     {q.type}
                   </span>
                 </div>
                 <div className="col-span-1 flex items-center justify-center">
-                  <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                    q.difficulty === "Easy" ? "bg-green-500/12 text-green-600 border-green-500/20" :
-                    q.difficulty === "Medium" ? "bg-yellow-500/12 text-yellow-600 border-yellow-500/20" :
-                    "bg-red-500/12 text-red-600 border-red-500/20"
-                  }`}>
+                  <span
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                      q.difficulty === "Easy"
+                        ? "bg-green-500/12 text-green-600 border-green-500/20"
+                        : q.difficulty === "Medium"
+                          ? "bg-yellow-500/12 text-yellow-600 border-yellow-500/20"
+                          : "bg-red-500/12 text-red-600 border-red-500/20"
+                    }`}
+                  >
                     {q.difficulty.charAt(0)}
                   </span>
                 </div>
                 <div className="col-span-3 flex items-center justify-end gap-1.5">
-                  <button 
-                    onClick={() => navigate({ to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}&editId=${q.id}` })}
+                  <button
+                    onClick={() =>
+                      navigate({
+                        to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}&editId=${q.id}`,
+                      })
+                    }
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
                     title="Edit"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edit
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleDelete(q.id)}
                     className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition"
                     title="Delete"
@@ -368,7 +464,7 @@ function QuestionBankLessonDetailPage() {
           </div>
         </div>
       )}
-      
+
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deleteConfirm.open}

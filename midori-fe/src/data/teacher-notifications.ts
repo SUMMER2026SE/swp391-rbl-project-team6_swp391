@@ -1,6 +1,14 @@
 export interface TeacherNotification {
   id: string;
-  type: "LESSON" | "HOMEWORK" | "EXAM" | "STUDENT" | "CONTENT_APPROVED" | "CONTENT_REJECTED" | "TEACHER_APPROVED" | "SYSTEM";
+  type:
+    | "LESSON"
+    | "HOMEWORK"
+    | "EXAM"
+    | "STUDENT"
+    | "CONTENT_APPROVED"
+    | "CONTENT_REJECTED"
+    | "TEACHER_APPROVED"
+    | "SYSTEM";
   title: string;
   message: string;
   time: string;

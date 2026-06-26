@@ -19,11 +19,7 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { cn } from "@/lib/utils";
-import {
-  HIRAGANA_BASIC,
-  KATAKANA_BASIC,
-  speakJapanese,
-} from "@/data/japanese-learning-data";
+import { HIRAGANA_BASIC, KATAKANA_BASIC, speakJapanese } from "@/data/japanese-learning-data";
 
 export const Route = createFileRoute("/student/learning/japanese/speed-challenge")({
   component: SpeedChallengePage,
@@ -171,8 +167,12 @@ function SpeedChallengePage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </Link>
               <div>
-                <h1 className="text-2xl font-black text-slate-800 dark:text-white">Speed Challenge</h1>
-                <p className="text-sm text-slate-500 dark:text-indigo-200/60">Test your recognition speed</p>
+                <h1 className="text-2xl font-black text-slate-800 dark:text-white">
+                  Speed Challenge
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                  Test your recognition speed
+                </p>
               </div>
             </div>
 
@@ -182,20 +182,26 @@ function SpeedChallengePage() {
                 <Trophy className="w-8 h-8 text-amber-500" />
                 <div>
                   <div className="text-sm text-slate-500 dark:text-indigo-200/60">High Score</div>
-                  <div className="text-2xl font-black text-slate-800 dark:text-white">{highScore}</div>
+                  <div className="text-2xl font-black text-slate-800 dark:text-white">
+                    {highScore}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Game Info */}
             <div className="bg-white/80 dark:bg-indigo-950/50 rounded-3xl p-8 text-center border border-slate-200/60 dark:border-white/20 mb-6">
-              <div className={cn(
-                "w-20 h-20 rounded-full mx-auto mb-6 bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-2xl"
-              )}>
+              <div
+                className={cn(
+                  "w-20 h-20 rounded-full mx-auto mb-6 bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-2xl",
+                )}
+              >
                 <Zap className="w-10 h-10 text-white" />
               </div>
 
-              <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Ready to Race?</h2>
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">
+                Ready to Race?
+              </h2>
               <p className="text-slate-600 dark:text-indigo-200/80 mb-6">
                 Answer as many questions as you can in 60 seconds. Build combos for bonus points!
               </p>
@@ -244,7 +250,8 @@ function SpeedChallengePage() {
   if (gameState === "finished") {
     const finalScore = score;
     const questionsAnswered = currentIdx + 1;
-    const accuracy = questionsAnswered > 0 ? Math.round((score / (questionsAnswered * 10 + streak * 2)) * 100) : 0;
+    const accuracy =
+      questionsAnswered > 0 ? Math.round((score / (questionsAnswered * 10 + streak * 2)) * 100) : 0;
     const isNewHighScore = finalScore >= highScore && finalScore > 0;
 
     return (
@@ -258,23 +265,21 @@ function SpeedChallengePage() {
               className="bg-white/80 dark:bg-indigo-950/50 rounded-3xl p-8 text-center border border-slate-200/60 dark:border-white/20"
             >
               {isNewHighScore && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="mb-4"
-                >
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="mb-4">
                   <span className="inline-block px-4 py-1 rounded-full bg-amber-500 text-white text-sm font-bold">
                     New High Score!
                   </span>
                 </motion.div>
               )}
 
-              <div className={cn(
-                "w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center",
-                isNewHighScore
-                  ? "bg-gradient-to-br from-amber-400 to-orange-500"
-                  : "bg-gradient-to-br from-blue-400 to-purple-500"
-              )}>
+              <div
+                className={cn(
+                  "w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center",
+                  isNewHighScore
+                    ? "bg-gradient-to-br from-amber-400 to-orange-500"
+                    : "bg-gradient-to-br from-blue-400 to-purple-500",
+                )}
+              >
                 <Trophy className="w-12 h-12 text-white" />
               </div>
 
@@ -287,7 +292,9 @@ function SpeedChallengePage() {
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-slate-100/60 dark:bg-white/5 rounded-xl p-3">
-                  <div className="text-2xl font-black text-slate-800 dark:text-white">{questionsAnswered}</div>
+                  <div className="text-2xl font-black text-slate-800 dark:text-white">
+                    {questionsAnswered}
+                  </div>
                   <div className="text-xs text-slate-500">Questions</div>
                 </div>
                 <div className="bg-slate-100/60 dark:bg-white/5 rounded-xl p-3">
@@ -336,12 +343,14 @@ function SpeedChallengePage() {
             </button>
 
             {/* Timer */}
-            <div className={cn(
-              "px-4 py-2 rounded-full font-black text-lg",
-              timeLeft <= 10
-                ? "bg-red-500/20 text-red-500"
-                : "bg-slate-100/80 dark:bg-white/10 text-slate-700 dark:text-white"
-            )}>
+            <div
+              className={cn(
+                "px-4 py-2 rounded-full font-black text-lg",
+                timeLeft <= 10
+                  ? "bg-red-500/20 text-red-500"
+                  : "bg-slate-100/80 dark:bg-white/10 text-slate-700 dark:text-white",
+              )}
+            >
               {timeLeft}s
             </div>
 
@@ -353,11 +362,7 @@ function SpeedChallengePage() {
 
           {/* Streak */}
           {streak > 0 && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="text-center mb-4"
-            >
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-center mb-4">
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold">
                 <Zap className="w-4 h-4" />
                 {streak} Streak! +{streak * 2} bonus
@@ -408,7 +413,8 @@ function SpeedChallengePage() {
               const showCorrect = showResult && isCorrect;
               const showIncorrect = showResult && isSelected && !isCorrect;
 
-              let btnStyle = "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white";
+              let btnStyle =
+                "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white";
               if (showCorrect) {
                 btnStyle = "bg-green-500/30 border-2 border-green-500/50 text-green-600";
               } else if (showIncorrect) {
@@ -425,7 +431,7 @@ function SpeedChallengePage() {
                   className={cn(
                     "py-5 rounded-2xl font-bold text-center text-lg transition-all transform",
                     showCorrect && "scale-105",
-                    btnStyle
+                    btnStyle,
                   )}
                 >
                   {option}
@@ -444,7 +450,9 @@ function SpeedChallengePage() {
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
             >
               <div className="bg-white dark:bg-indigo-950 rounded-3xl p-8 max-w-sm w-full mx-4 border border-white/20">
-                <h2 className="text-2xl font-black text-slate-800 dark:text-white text-center mb-6">Paused</h2>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white text-center mb-6">
+                  Paused
+                </h2>
                 <button
                   onClick={resumeGame}
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold hover:opacity-90 transition mb-3"

@@ -29,12 +29,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   type JLPTLevel,
   type JLPTExam,
@@ -51,7 +46,10 @@ export const Route = createFileRoute("/admin/jlpt-exam/$level/$examId/edit")({
 
 type JLPTLevelUpper = "N5" | "N4" | "N3" | "N2" | "N1";
 
-const JLPT_STRUCTURE: Record<JLPTLevelUpper, { vocab: number; grammar: number; reading: number; listening: number }> = {
+const JLPT_STRUCTURE: Record<
+  JLPTLevelUpper,
+  { vocab: number; grammar: number; reading: number; listening: number }
+> = {
   N5: { vocab: 20, grammar: 25, reading: 25, listening: 30 },
   N4: { vocab: 25, grammar: 25, reading: 25, listening: 25 },
   N3: { vocab: 25, grammar: 25, reading: 25, listening: 25 },
@@ -77,9 +75,21 @@ const SECTION_COLORS: Record<string, { text: string; border: string }> = {
 };
 
 const STATUS_CONFIG: Record<ExamStatus, { label: string; color: string; bg: string }> = {
-  Active: { label: "Active", color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
-  Draft: { label: "Draft", color: "text-[var(--status-pending)]", bg: "bg-[var(--status-pending)]" },
-  Archived: { label: "Archived", color: "text-[var(--status-suspended)]", bg: "bg-[var(--status-suspended)]" },
+  Active: {
+    label: "Active",
+    color: "text-[var(--status-active)]",
+    bg: "bg-[var(--status-active)]",
+  },
+  Draft: {
+    label: "Draft",
+    color: "text-[var(--status-pending)]",
+    bg: "bg-[var(--status-pending)]",
+  },
+  Archived: {
+    label: "Archived",
+    color: "text-[var(--status-suspended)]",
+    bg: "bg-[var(--status-suspended)]",
+  },
 };
 
 function StatusBadge({ status }: { status: ExamStatus }) {
@@ -93,13 +103,7 @@ function StatusBadge({ status }: { status: ExamStatus }) {
 }
 
 // Row Action Menu Component
-function RowActionMenu({
-  onEdit,
-  onDelete,
-}: {
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
+function RowActionMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -177,7 +181,9 @@ function QuestionCard({
 
   return (
     <div className="group flex items-start gap-4 px-4 py-4 hover:bg-[var(--accent)]/30 transition rounded-xl border border-transparent hover:border-[var(--border)]">
-      <div className={`w-8 h-8 rounded-lg bg-[var(--accent)] ${sectionColor.text} flex items-center justify-center text-sm font-bold shrink-0 mt-0.5`}>
+      <div
+        className={`w-8 h-8 rounded-lg bg-[var(--accent)] ${sectionColor.text} flex items-center justify-center text-sm font-bold shrink-0 mt-0.5`}
+      >
         {question.questionNumber}
       </div>
 
@@ -205,16 +211,16 @@ function QuestionCard({
                 <div
                   key={i}
                   className={`flex items-center gap-2.5 text-sm ${
-                    isCorrect
-                      ? `${sectionColor.text} font-medium`
-                      : "text-muted-col"
+                    isCorrect ? `${sectionColor.text} font-medium` : "text-muted-col"
                   }`}
                 >
-                  <span className={`w-5 h-5 rounded flex items-center justify-center text-xs font-semibold shrink-0 ${
-                    isCorrect
-                      ? `bg-[oklch(0.62_0.18_270)]/10 ${sectionColor.text}`
-                      : "bg-[var(--accent)] text-muted-col/60"
-                  }`}>
+                  <span
+                    className={`w-5 h-5 rounded flex items-center justify-center text-xs font-semibold shrink-0 ${
+                      isCorrect
+                        ? `bg-[oklch(0.62_0.18_270)]/10 ${sectionColor.text}`
+                        : "bg-[var(--accent)] text-muted-col/60"
+                    }`}
+                  >
                     {optionLabels[i]}
                   </span>
                   <span className="flex-1 truncate">{opt}</span>
@@ -304,7 +310,9 @@ function QuestionEditorDialog({
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className={`w-6 h-6 rounded ${sectionColor.text} bg-[var(--accent)] flex items-center justify-center text-xs font-bold`}>
+            <span
+              className={`w-6 h-6 rounded ${sectionColor.text} bg-[var(--accent)] flex items-center justify-center text-xs font-bold`}
+            >
               {section[0]}
             </span>
             {question ? "Edit Question" : `Add ${section} Question`}
@@ -314,7 +322,9 @@ function QuestionEditorDialog({
         <div className="space-y-4 py-4">
           {section === "Reading" && (
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Reading Passage</label>
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                Reading Passage
+              </label>
               <textarea
                 value={passage}
                 onChange={(e) => setPassage(e.target.value)}
@@ -327,19 +337,28 @@ function QuestionEditorDialog({
 
           {section === "Listening" && (
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Audio File</label>
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                Audio File
+              </label>
               <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-[var(--border)] hover:border-[oklch(0.62_0.18_270)]/40 cursor-pointer transition bg-[var(--accent)]">
                 <Headphones className="w-5 h-5 text-muted-col" />
                 <span className="text-sm text-muted-col flex-1 truncate">
                   {audioFile ? audioFile.name : "Click to upload audio file..."}
                 </span>
-                <input type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" onChange={handleAudioChange} className="hidden" />
+                <input
+                  type="file"
+                  accept=".mp3,.wav,audio/mpeg,audio/wav"
+                  onChange={handleAudioChange}
+                  className="hidden"
+                />
               </label>
             </div>
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Question</label>
+            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+              Question
+            </label>
             <textarea
               value={questionText}
               onChange={(e) => setQuestionText(e.target.value)}
@@ -350,7 +369,9 @@ function QuestionEditorDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Answer Options</label>
+            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+              Answer Options
+            </label>
             {options.map((opt, i) => (
               <div key={i} className="flex items-center gap-2">
                 <button
@@ -379,7 +400,9 @@ function QuestionEditorDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Explanation <span className="normal-case font-normal">(Optional)</span></label>
+            <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+              Explanation <span className="normal-case font-normal">(Optional)</span>
+            </label>
             <input
               type="text"
               value={explanation}
@@ -442,14 +465,18 @@ function SectionContent({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl border border-[var(--border)] flex items-center justify-center`}>
+          <div
+            className={`w-10 h-10 rounded-xl border border-[var(--border)] flex items-center justify-center`}
+          >
             <SectionIcon className={`w-5 h-5 ${colors.text}`} />
           </div>
           <div>
             <h3 className="font-semibold text-primary-col">{section} Questions</h3>
             <p className="text-xs text-muted-col">
               {count}/{required}
-              {isComplete && <span className="text-[var(--status-active)] ml-1.5 font-medium">Complete</span>}
+              {isComplete && (
+                <span className="text-[var(--status-active)] ml-1.5 font-medium">Complete</span>
+              )}
             </p>
           </div>
         </div>
@@ -513,7 +540,9 @@ function EditExamPage() {
 
   const [editingQuestion, setEditingQuestion] = useState<ExamQuestion | null>(null);
   const [showQuestionEditor, setShowQuestionEditor] = useState(false);
-  const [editingSection, setEditingSection] = useState<"Vocabulary" | "Grammar" | "Reading" | "Listening">("Vocabulary");
+  const [editingSection, setEditingSection] = useState<
+    "Vocabulary" | "Grammar" | "Reading" | "Listening"
+  >("Vocabulary");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
 
@@ -630,7 +659,11 @@ function EditExamPage() {
       <div className="flex flex-col items-center justify-center py-20">
         <AlertTriangle className="w-16 h-16 text-red-500/30 mb-4" />
         <h2 className="text-xl font-bold text-primary-col mb-2">Exam Not Found</h2>
-        <Link to="/admin/jlpt-exam/$level" params={{ level }} className="px-4 py-2 rounded-xl bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)] text-sm font-medium hover:bg-[oklch(0.62_0.18_270)]/20 transition">
+        <Link
+          to="/admin/jlpt-exam/$level"
+          params={{ level }}
+          className="px-4 py-2 rounded-xl bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)] text-sm font-medium hover:bg-[oklch(0.62_0.18_270)]/20 transition"
+        >
           Back to Exam List
         </Link>
       </div>
@@ -652,7 +685,9 @@ function EditExamPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-display font-black text-primary-col">{examName || "Exam Editor"}</h1>
+          <h1 className="text-2xl font-display font-black text-primary-col">
+            {examName || "Exam Editor"}
+          </h1>
           <StatusBadge status={status} />
         </div>
         <div className="flex items-center gap-2">
@@ -680,11 +715,15 @@ function EditExamPage() {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Settings className="w-4 h-4 text-muted-col" />
-            <h2 className="text-sm font-semibold text-muted-col uppercase tracking-wider">Exam Information</h2>
+            <h2 className="text-sm font-semibold text-muted-col uppercase tracking-wider">
+              Exam Information
+            </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Exam Name</label>
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                Exam Name
+              </label>
               <input
                 type="text"
                 value={examName}
@@ -694,7 +733,9 @@ function EditExamPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Duration (min)</label>
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                Duration (min)
+              </label>
               <input
                 type="number"
                 value={duration}
@@ -705,7 +746,9 @@ function EditExamPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Status</label>
+              <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                Status
+              </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ExamStatus)}
@@ -724,7 +767,9 @@ function EditExamPage() {
 
         {/* Question Management Section */}
         <div className="space-y-5">
-          <h2 className="text-sm font-semibold text-muted-col uppercase tracking-wider">Question Management</h2>
+          <h2 className="text-sm font-semibold text-muted-col uppercase tracking-wider">
+            Question Management
+          </h2>
 
           {/* Redesigned Tabs - Underline Style */}
           <div className="border-b border-[var(--border)]">
@@ -743,11 +788,13 @@ function EditExamPage() {
                   >
                     <span className="hidden sm:inline">{tab.icon}</span>
                     {tab.label}
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      isActive
-                        ? "bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)]"
-                        : "bg-[var(--accent)] text-muted-col"
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        isActive
+                          ? "bg-[oklch(0.62_0.18_270)]/10 text-[oklch(0.62_0.18_270)]"
+                          : "bg-[var(--accent)] text-muted-col"
+                      }`}
+                    >
                       {tabCounts[tab.id]}
                     </span>
                   </button>
@@ -779,7 +826,9 @@ function EditExamPage() {
                       <QuestionCard
                         key={q.id}
                         question={q}
-                        sectionColor={SECTION_COLORS[q.section.toLowerCase() as keyof typeof SECTION_COLORS]}
+                        sectionColor={
+                          SECTION_COLORS[q.section.toLowerCase() as keyof typeof SECTION_COLORS]
+                        }
                         onEdit={() => handleEditQuestion(q)}
                         onDelete={() => handleDeleteClick(q.id)}
                       />
@@ -871,7 +920,9 @@ function EditExamPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletingQuestionId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeletingQuestionId(null)}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
               Delete
             </AlertDialogAction>

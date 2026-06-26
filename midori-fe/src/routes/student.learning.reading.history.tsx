@@ -2,11 +2,25 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft, Clock, Calendar, Trophy, Target, TrendingUp,
-  BookOpen, CheckCircle2, XCircle, RotateCcw, Star, Filter
+  ChevronLeft,
+  Clock,
+  Calendar,
+  Trophy,
+  Target,
+  TrendingUp,
+  BookOpen,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  Star,
+  Filter,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { readingProgressStore, readingStatsStore, type ReadingProgress } from "@/mock/reading/progress";
+import {
+  readingProgressStore,
+  readingStatsStore,
+  type ReadingProgress,
+} from "@/mock/reading/progress";
 import { allMockReading } from "@/mock/reading";
 
 export const Route = createFileRoute("/student/learning/reading/history")({
@@ -33,12 +47,12 @@ export function ReadingHistoryPage() {
   useEffect(() => {
     const allProgress = readingProgressStore.getAllProgress();
     const progressList = Object.values(allProgress);
-    
+
     // Sort by last accessed
-    progressList.sort((a, b) => 
-      new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime()
+    progressList.sort(
+      (a, b) => new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime(),
     );
-    
+
     setHistory(progressList);
     setStats(readingStatsStore.getStats());
   }, []);
@@ -46,13 +60,13 @@ export function ReadingHistoryPage() {
   // Filter and sort history
   const filteredHistory = useMemo(() => {
     let filtered = [...history];
-    
+
     if (filter === "completed") {
-      filtered = filtered.filter(h => h.status === "completed");
+      filtered = filtered.filter((h) => h.status === "completed");
     } else if (filter === "in-progress") {
-      filtered = filtered.filter(h => h.status === "in-progress");
+      filtered = filtered.filter((h) => h.status === "in-progress");
     }
-    
+
     if (sortBy === "score") {
       filtered.sort((a, b) => {
         const scoreA = a.score && a.maxScore ? (a.score / a.maxScore) * 100 : 0;
@@ -62,22 +76,22 @@ export function ReadingHistoryPage() {
     } else if (sortBy === "time") {
       filtered.sort((a, b) => (b.timeSpent || 0) - (a.timeSpent || 0));
     }
-    
+
     return filtered;
   }, [history, filter, sortBy]);
 
   // Stats calculations
   const totalLessons = history.length;
-  const completedLessons = history.filter(h => h.status === "completed").length;
+  const completedLessons = history.filter((h) => h.status === "completed").length;
   const totalTime = history.reduce((sum, h) => sum + (h.timeSpent || 0), 0);
   const averageScore = stats.averageScore;
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { 
-      month: "short", 
+    return date.toLocaleDateString("en-US", {
+      month: "short",
       day: "numeric",
-      year: "numeric"
+      year: "numeric",
     });
   };
 
@@ -89,7 +103,7 @@ export function ReadingHistoryPage() {
   };
 
   const getReadingTitle = (lessonId: string) => {
-    const reading = allMockReading.find(r => r.id === lessonId);
+    const reading = allMockReading.find((r) => r.id === lessonId);
     return reading?.title || lessonId;
   };
 
@@ -156,7 +170,9 @@ export function ReadingHistoryPage() {
                 <BookOpen className="w-5 h-5 text-blue-500" />
                 <span className="text-xs text-muted-foreground font-medium">Total Lessons</span>
               </div>
-              <div className="text-2xl font-black text-slate-800 dark:text-white">{totalLessons}</div>
+              <div className="text-2xl font-black text-slate-800 dark:text-white">
+                {totalLessons}
+              </div>
             </motion.div>
 
             <motion.div
@@ -169,7 +185,9 @@ export function ReadingHistoryPage() {
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
                 <span className="text-xs text-muted-foreground font-medium">Completed</span>
               </div>
-              <div className="text-2xl font-black text-slate-800 dark:text-white">{completedLessons}</div>
+              <div className="text-2xl font-black text-slate-800 dark:text-white">
+                {completedLessons}
+              </div>
             </motion.div>
 
             <motion.div
@@ -182,7 +200,9 @@ export function ReadingHistoryPage() {
                 <Target className="w-5 h-5 text-purple-500" />
                 <span className="text-xs text-muted-foreground font-medium">Avg Score</span>
               </div>
-              <div className="text-2xl font-black text-slate-800 dark:text-white">{averageScore}%</div>
+              <div className="text-2xl font-black text-slate-800 dark:text-white">
+                {averageScore}%
+              </div>
             </motion.div>
 
             <motion.div
@@ -195,7 +215,9 @@ export function ReadingHistoryPage() {
                 <Clock className="w-5 h-5 text-orange-500" />
                 <span className="text-xs text-muted-foreground font-medium">Total Time</span>
               </div>
-              <div className="text-2xl font-black text-slate-800 dark:text-white">{formatTime(totalTime)}</div>
+              <div className="text-2xl font-black text-slate-800 dark:text-white">
+                {formatTime(totalTime)}
+              </div>
             </motion.div>
           </div>
 
@@ -218,11 +240,11 @@ export function ReadingHistoryPage() {
             </div>
 
             <div className="flex gap-1 bg-white/80 dark:bg-slate-800/50 rounded-xl p-1 border border-slate-200 dark:border-white/10">
-              {([
+              {[
                 { id: "recent" as const, label: "Recent" },
                 { id: "score" as const, label: "Score" },
                 { id: "time" as const, label: "Time" },
-              ]).map((s) => (
+              ].map((s) => (
                 <button
                   key={s.id}
                   onClick={() => setSortBy(s.id)}
@@ -245,10 +267,11 @@ export function ReadingHistoryPage() {
           {filteredHistory.length > 0 ? (
             <div className="space-y-3">
               {filteredHistory.map((item, index) => {
-                const reading = allMockReading.find(r => r.id === item.lessonId);
-                const scorePercent = item.score && item.maxScore 
-                  ? Math.round((item.score / item.maxScore) * 100) 
-                  : null;
+                const reading = allMockReading.find((r) => r.id === item.lessonId);
+                const scorePercent =
+                  item.score && item.maxScore
+                    ? Math.round((item.score / item.maxScore) * 100)
+                    : null;
 
                 return (
                   <motion.div
@@ -266,7 +289,9 @@ export function ReadingHistoryPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             {reading && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[reading.jlptLevel]}`}>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[reading.jlptLevel]}`}
+                              >
                                 {reading.jlptLevel}
                               </span>
                             )}
@@ -291,10 +316,15 @@ export function ReadingHistoryPage() {
 
                         {scorePercent !== null && (
                           <div className="text-right">
-                            <div className={`text-2xl font-black ${
-                              scorePercent >= 80 ? "text-green-500" :
-                              scorePercent >= 60 ? "text-yellow-500" : "text-red-500"
-                            }`}>
+                            <div
+                              className={`text-2xl font-black ${
+                                scorePercent >= 80
+                                  ? "text-green-500"
+                                  : scorePercent >= 60
+                                    ? "text-yellow-500"
+                                    : "text-red-500"
+                              }`}
+                            >
                               {scorePercent}%
                             </div>
                             <div className="text-[10px] text-muted-foreground">
@@ -326,7 +356,8 @@ export function ReadingHistoryPage() {
                               ))}
                             </div>
                             <span className="text-xs text-muted-foreground">
-                              {item.answers.filter(a => a.isCorrect).length}/{item.answers.length} answers
+                              {item.answers.filter((a) => a.isCorrect).length}/{item.answers.length}{" "}
+                              answers
                             </span>
                           </div>
                         </div>

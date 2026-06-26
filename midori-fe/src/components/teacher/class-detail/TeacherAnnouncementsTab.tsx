@@ -8,7 +8,9 @@ interface TeacherAnnouncementsTabProps {
 }
 
 export function TeacherAnnouncementsTab({ classInfo }: TeacherAnnouncementsTabProps) {
-  const [announcements, setAnnouncements] = useState<TeacherAnnouncement[]>(classInfo.announcements || []);
+  const [announcements, setAnnouncements] = useState<TeacherAnnouncement[]>(
+    classInfo.announcements || [],
+  );
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -21,7 +23,7 @@ export function TeacherAnnouncementsTab({ classInfo }: TeacherAnnouncementsTabPr
       id: `ann-${Date.now()}`,
       title: newTitle,
       content: newContent,
-      date: new Date().toISOString().split("T")[0]
+      date: new Date().toISOString().split("T")[0],
     };
 
     setAnnouncements([newAnn, ...announcements]);
@@ -31,13 +33,13 @@ export function TeacherAnnouncementsTab({ classInfo }: TeacherAnnouncementsTabPr
   };
 
   const handlePin = (id: string) => {
-    setAnnouncements(prev =>
-      prev.map(ann => (ann.id === id ? { ...ann, isPinned: !ann.isPinned } : ann))
+    setAnnouncements((prev) =>
+      prev.map((ann) => (ann.id === id ? { ...ann, isPinned: !ann.isPinned } : ann)),
     );
   };
 
   const handleDelete = (id: string) => {
-    setAnnouncements(prev => prev.filter(ann => ann.id !== id));
+    setAnnouncements((prev) => prev.filter((ann) => ann.id !== id));
   };
 
   // Sort: Pinned announcements first, then by date descending
@@ -60,7 +62,9 @@ export function TeacherAnnouncementsTab({ classInfo }: TeacherAnnouncementsTabPr
           </button>
         ) : (
           <form onSubmit={handlePost} className="space-y-3">
-            <h4 className="text-xs font-black uppercase text-primary tracking-wider">New Announcement</h4>
+            <h4 className="text-xs font-black uppercase text-primary tracking-wider">
+              New Announcement
+            </h4>
             <input
               type="text"
               placeholder="Announcement Title..."
@@ -102,9 +106,7 @@ export function TeacherAnnouncementsTab({ classInfo }: TeacherAnnouncementsTabPr
           <Card
             key={ann.id}
             className={`p-5 relative border transition-all ${
-              ann.isPinned
-                ? "border-amber-500/20 bg-amber-500/[0.005]"
-                : "border-border/50"
+              ann.isPinned ? "border-amber-500/20 bg-amber-500/[0.005]" : "border-border/50"
             }`}
           >
             {ann.isPinned && (
@@ -119,13 +121,13 @@ export function TeacherAnnouncementsTab({ classInfo }: TeacherAnnouncementsTabPr
                   <Megaphone className="w-4.5 h-4.5 text-primary shrink-0" />
                   {ann.title}
                 </h4>
-                <div className="text-[10px] text-muted-foreground mt-0.5">
-                  Posted on {ann.date}
-                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Posted on {ann.date}</div>
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed pl-6.5 pr-12">{ann.content}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed pl-6.5 pr-12">
+              {ann.content}
+            </p>
 
             {/* Actions */}
             <div className="flex gap-2 justify-end border-t border-slate-100 dark:border-white/5 pt-3 mt-4">
@@ -155,7 +157,9 @@ export function TeacherAnnouncementsTab({ classInfo }: TeacherAnnouncementsTabPr
         {sortedAnnouncements.length === 0 && (
           <div className="text-center py-12 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
             <Megaphone className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-sm text-muted-foreground font-semibold">No announcements posted yet.</p>
+            <p className="text-sm text-muted-foreground font-semibold">
+              No announcements posted yet.
+            </p>
           </div>
         )}
       </div>

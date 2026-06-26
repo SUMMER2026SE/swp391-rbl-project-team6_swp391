@@ -75,9 +75,14 @@ function ClassDetailPage() {
             { label: "Next Deadline", value: classInfo.nextDeadline },
             { label: "Join Date", value: classInfo.joinDate },
           ].map((stat, idx) => (
-            <div key={idx} className="bg-white/40 dark:bg-slate-900/40 border border-slate-200/40 dark:border-white/5 p-2 rounded-xl min-w-[90px]">
+            <div
+              key={idx}
+              className="bg-white/40 dark:bg-slate-900/40 border border-slate-200/40 dark:border-white/5 p-2 rounded-xl min-w-[90px]"
+            >
               <div className="text-xs font-black text-foreground dark:text-white">{stat.value}</div>
-              <div className="text-[9px] text-muted-foreground font-semibold mt-0.5 uppercase tracking-wider">{stat.label}</div>
+              <div className="text-[9px] text-muted-foreground font-semibold mt-0.5 uppercase tracking-wider">
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
@@ -90,4 +95,3 @@ function ClassDetailPage() {
     </div>
   );
 }
-

@@ -81,9 +81,22 @@ const selfIntroductionVideos: VideoItem[] = [
         text: "はじめまして。",
         translation: "Rất hân hạnh được gặp bạn.",
         vocabulary: [
-          { word: "始めまして", reading: "はじめまして", meaning: "Rất hân hạnh (được gặp)", partOfSpeech: "expression", example: "はじめまして、田中です", exampleMeaning: "Rất hân hạnh, tôi là Tanaka" },
+          {
+            word: "始めまして",
+            reading: "はじめまして",
+            meaning: "Rất hân hạnh (được gặp)",
+            partOfSpeech: "expression",
+            example: "はじめまして、田中です",
+            exampleMeaning: "Rất hân hạnh, tôi là Tanaka",
+          },
         ],
-        grammar: { grammar: "はじめまして", meaning: "Công thức chào hỏi lần đầu", usage: "Dùng khi gặp ai đó lần đầu", example: "はじめまして", exampleTranslation: "Rất hân hạnh được gặp bạn" }
+        grammar: {
+          grammar: "はじめまして",
+          meaning: "Công thức chào hỏi lần đầu",
+          usage: "Dùng khi gặp ai đó lần đầu",
+          example: "はじめまして",
+          exampleTranslation: "Rất hân hạnh được gặp bạn",
+        },
       },
       {
         id: "s2",
@@ -94,9 +107,20 @@ const selfIntroductionVideos: VideoItem[] = [
         vocabulary: [
           { word: "田中", reading: "たなか", meaning: "Tanaka (họ)", partOfSpeech: "noun" },
           { word: "太郎", reading: "たろう", meaning: "Taro (tên)", partOfSpeech: "noun" },
-          { word: "です", reading: "です", meaning: "là (động từ thân thiện)", partOfSpeech: "copula" },
+          {
+            word: "です",
+            reading: "です",
+            meaning: "là (động từ thân thiện)",
+            partOfSpeech: "copula",
+          },
         ],
-        grammar: { grammar: "Nです", meaning: "Tôi là N", usage: "Công thức giới thiệu bản thân", example: "私は学生です", exampleTranslation: "Tôi là học sinh" }
+        grammar: {
+          grammar: "Nです",
+          meaning: "Tôi là N",
+          usage: "Công thức giới thiệu bản thân",
+          example: "私は学生です",
+          exampleTranslation: "Tôi là học sinh",
+        },
       },
       {
         id: "s3",
@@ -109,7 +133,13 @@ const selfIntroductionVideos: VideoItem[] = [
           { word: "から", reading: "から", meaning: "từ", partOfSpeech: "particle" },
           { word: "来ました", reading: "きました", meaning: "đã đến", partOfSpeech: "verb" },
         ],
-        grammar: { grammar: "Nから来ました", meaning: "Tôi đến từ N", usage: "Nói về nơi xuất thân", example: "ベトナムから来ました", exampleTranslation: "Tôi đến từ Việt Nam" }
+        grammar: {
+          grammar: "Nから来ました",
+          meaning: "Tôi đến từ N",
+          usage: "Nói về nơi xuất thân",
+          example: "ベトナムから来ました",
+          exampleTranslation: "Tôi đến từ Việt Nam",
+        },
       },
       {
         id: "s4",
@@ -118,18 +148,69 @@ const selfIntroductionVideos: VideoItem[] = [
         text: "どうぞよろしくお願いします。",
         translation: "Rất mong được hợp tác với bạn.",
         vocabulary: [
-          { word: "どうぞ", reading: "どうぞ", meaning: "Xin mời, nhờ bạn", partOfSpeech: "expression" },
-          { word: "宜しく", reading: "よろしく", meaning: "Hãy chiếu cố", partOfSpeech: "expression" },
-          { word: "お願いします", reading: "おねがいします", meaning: "Xin nhờ, làm ơn", partOfSpeech: "expression" },
+          {
+            word: "どうぞ",
+            reading: "どうぞ",
+            meaning: "Xin mời, nhờ bạn",
+            partOfSpeech: "expression",
+          },
+          {
+            word: "宜しく",
+            reading: "よろしく",
+            meaning: "Hãy chiếu cố",
+            partOfSpeech: "expression",
+          },
+          {
+            word: "お願いします",
+            reading: "おねがいします",
+            meaning: "Xin nhờ, làm ơn",
+            partOfSpeech: "expression",
+          },
         ],
       },
     ],
     sentences: [
-      { id: "sen-1", text: "はじめまして。", translation: "Rất hân hạnh được gặp bạn.", vocabulary: [{ word: "始めまして", reading: "はじめまして", meaning: "Rất hân hạnh", partOfSpeech: "expression" }] },
-      { id: "sen-2", text: "田中太郎です。", translation: "Tôi là Tanaka Taro.", vocabulary: [{ word: "田中", reading: "たなか", meaning: "Tanaka", partOfSpeech: "noun" }, { word: "太郎", reading: "たろう", meaning: "Taro", partOfSpeech: "noun" }] },
-      { id: "sen-3", text: "日本から来ました。", translation: "Tôi đến từ Nhật Bản.", vocabulary: [{ word: "日本", reading: "にほん", meaning: "Nhật Bản", partOfSpeech: "noun" }, { word: "から", reading: "から", meaning: "từ", partOfSpeech: "particle" }] },
-      { id: "sen-4", text: "どうぞよろしくお願いします。", translation: "Rất mong được hợp tác với bạn.", vocabulary: [{ word: "どうぞ", reading: "どうぞ", meaning: "Xin mời", partOfSpeech: "expression" }, { word: "宜しく", reading: "よろしく", meaning: "Chiếu cố", partOfSpeech: "expression" }] },
-    ]
+      {
+        id: "sen-1",
+        text: "はじめまして。",
+        translation: "Rất hân hạnh được gặp bạn.",
+        vocabulary: [
+          {
+            word: "始めまして",
+            reading: "はじめまして",
+            meaning: "Rất hân hạnh",
+            partOfSpeech: "expression",
+          },
+        ],
+      },
+      {
+        id: "sen-2",
+        text: "田中太郎です。",
+        translation: "Tôi là Tanaka Taro.",
+        vocabulary: [
+          { word: "田中", reading: "たなか", meaning: "Tanaka", partOfSpeech: "noun" },
+          { word: "太郎", reading: "たろう", meaning: "Taro", partOfSpeech: "noun" },
+        ],
+      },
+      {
+        id: "sen-3",
+        text: "日本から来ました。",
+        translation: "Tôi đến từ Nhật Bản.",
+        vocabulary: [
+          { word: "日本", reading: "にほん", meaning: "Nhật Bản", partOfSpeech: "noun" },
+          { word: "から", reading: "から", meaning: "từ", partOfSpeech: "particle" },
+        ],
+      },
+      {
+        id: "sen-4",
+        text: "どうぞよろしくお願いします。",
+        translation: "Rất mong được hợp tác với bạn.",
+        vocabulary: [
+          { word: "どうぞ", reading: "どうぞ", meaning: "Xin mời", partOfSpeech: "expression" },
+          { word: "宜しく", reading: "よろしく", meaning: "Chiếu cố", partOfSpeech: "expression" },
+        ],
+      },
+    ],
   },
   {
     id: "n5-intro-2",
@@ -150,7 +231,13 @@ const selfIntroductionVideos: VideoItem[] = [
           { word: "趣味", reading: "しゅみ", meaning: "Sở thích", partOfSpeech: "noun" },
           { word: "何", reading: "なに", meaning: "Gì, cái gì", partOfSpeech: "pronoun" },
         ],
-        grammar: { grammar: "Nは 何ですか", meaning: "N là gì?", usage: "Hỏi về chủ đề", example: "趣味はなんですか？", exampleTranslation: "Sở thích của bạn là gì?" }
+        grammar: {
+          grammar: "Nは 何ですか",
+          meaning: "N là gì?",
+          usage: "Hỏi về chủ đề",
+          example: "趣味はなんですか？",
+          exampleTranslation: "Sở thích của bạn là gì?",
+        },
       },
       {
         id: "s2",
@@ -160,10 +247,21 @@ const selfIntroductionVideos: VideoItem[] = [
         translation: "Tôi thích xem phim.",
         vocabulary: [
           { word: "私", reading: "わたし", meaning: "Tôi", partOfSpeech: "pronoun" },
-          { word: "映画鑑賞", reading: "えいがかんしょう", meaning: "Xem phim", partOfSpeech: "noun" },
+          {
+            word: "映画鑑賞",
+            reading: "えいがかんしょう",
+            meaning: "Xem phim",
+            partOfSpeech: "noun",
+          },
           { word: "好き", reading: "すき", meaning: "Thích", partOfSpeech: "adjective" },
         ],
-        grammar: { grammar: "N1は N2が 好きです", meaning: "Tôi thích N2", usage: "Diễn tả sở thích", example: "私は読書が好きです", exampleTranslation: "Tôi thích đọc sách" }
+        grammar: {
+          grammar: "N1は N2が 好きです",
+          meaning: "Tôi thích N2",
+          usage: "Diễn tả sở thích",
+          example: "私は読書が好きです",
+          exampleTranslation: "Tôi thích đọc sách",
+        },
       },
       {
         id: "s3",
@@ -179,11 +277,32 @@ const selfIntroductionVideos: VideoItem[] = [
       },
     ],
     sentences: [
-      { id: "sen-1", text: "趣味は何ですか？", translation: "Sở thích của bạn là gì?", vocabulary: [{ word: "趣味", reading: "しゅみ", meaning: "Sở thích", partOfSpeech: "noun" }] },
-      { id: "sen-2", text: "私は映画鑑賞が好きです。", translation: "Tôi thích xem phim.", vocabulary: [{ word: "好き", reading: "すき", meaning: "Thích", partOfSpeech: "adjective" }] },
-      { id: "sen-3", text: "よく日本映画を見ますか？", translation: "Bạn có hay xem phim Nhật không?", vocabulary: [{ word: "よく", reading: "よく", meaning: "Thường xuyên", partOfSpeech: "adverb" }] },
-    ]
-  }
+      {
+        id: "sen-1",
+        text: "趣味は何ですか？",
+        translation: "Sở thích của bạn là gì?",
+        vocabulary: [
+          { word: "趣味", reading: "しゅみ", meaning: "Sở thích", partOfSpeech: "noun" },
+        ],
+      },
+      {
+        id: "sen-2",
+        text: "私は映画鑑賞が好きです。",
+        translation: "Tôi thích xem phim.",
+        vocabulary: [
+          { word: "好き", reading: "すき", meaning: "Thích", partOfSpeech: "adjective" },
+        ],
+      },
+      {
+        id: "sen-3",
+        text: "よく日本映画を見ますか？",
+        translation: "Bạn có hay xem phim Nhật không?",
+        vocabulary: [
+          { word: "よく", reading: "よく", meaning: "Thường xuyên", partOfSpeech: "adverb" },
+        ],
+      },
+    ],
+  },
 ];
 
 const schoolLifeVideos: VideoItem[] = [
@@ -215,7 +334,12 @@ const schoolLifeVideos: VideoItem[] = [
         translation: "Hôm nay là tiết toán.",
         vocabulary: [
           { word: "数学", reading: "すうがく", meaning: "Toán học", partOfSpeech: "noun" },
-          { word: "時間", reading: "じかん", meaning: "Thời gian / Tiết học", partOfSpeech: "noun" },
+          {
+            word: "時間",
+            reading: "じかん",
+            meaning: "Thời gian / Tiết học",
+            partOfSpeech: "noun",
+          },
         ],
       },
       {
@@ -232,11 +356,32 @@ const schoolLifeVideos: VideoItem[] = [
       },
     ],
     sentences: [
-      { id: "sen-1", text: "今日は何時間目ですか？", translation: "Hôm nay là tiết mấy?", vocabulary: [{ word: "時間目", reading: "じかんめ", meaning: "Tiết", partOfSpeech: "suffix" }] },
-      { id: "sen-2", text: "今日は数学の時間です。", translation: "Hôm nay là tiết toán.", vocabulary: [{ word: "数学", reading: "すうがく", meaning: "Toán học", partOfSpeech: "noun" }] },
-      { id: "sen-3", text: "先生の話は難しいですね。", translation: "Lời giảng của thầy khó hiểu nhỉ.", vocabulary: [{ word: "難しい", reading: "むずかしい", meaning: "Khó", partOfSpeech: "adjective" }] },
-    ]
-  }
+      {
+        id: "sen-1",
+        text: "今日は何時間目ですか？",
+        translation: "Hôm nay là tiết mấy?",
+        vocabulary: [
+          { word: "時間目", reading: "じかんめ", meaning: "Tiết", partOfSpeech: "suffix" },
+        ],
+      },
+      {
+        id: "sen-2",
+        text: "今日は数学の時間です。",
+        translation: "Hôm nay là tiết toán.",
+        vocabulary: [
+          { word: "数学", reading: "すうがく", meaning: "Toán học", partOfSpeech: "noun" },
+        ],
+      },
+      {
+        id: "sen-3",
+        text: "先生の話は難しいですね。",
+        translation: "Lời giảng của thầy khó hiểu nhỉ.",
+        vocabulary: [
+          { word: "難しい", reading: "むずかしい", meaning: "Khó", partOfSpeech: "adjective" },
+        ],
+      },
+    ],
+  },
 ];
 
 const shoppingVideos: VideoItem[] = [
@@ -256,7 +401,12 @@ const shoppingVideos: VideoItem[] = [
         text: "いらっしゃいませ。",
         translation: "Xin mừng quý khách.",
         vocabulary: [
-          { word: "いらっしゃいませ", reading: "いらっしゃいませ", meaning: "Xin mừng quý khách", partOfSpeech: "expression" },
+          {
+            word: "いらっしゃいませ",
+            reading: "いらっしゃいませ",
+            meaning: "Xin mừng quý khách",
+            partOfSpeech: "expression",
+          },
         ],
       },
       {
@@ -267,7 +417,12 @@ const shoppingVideos: VideoItem[] = [
         translation: "Làm ơn tính tiền.",
         vocabulary: [
           { word: "お会計", reading: "おかいけい", meaning: "Thanh toán", partOfSpeech: "noun" },
-          { word: "お願いします", reading: "おねがいします", meaning: "Làm ơn", partOfSpeech: "expression" },
+          {
+            word: "お願いします",
+            reading: "おねがいします",
+            meaning: "Làm ơn",
+            partOfSpeech: "expression",
+          },
         ],
       },
       {
@@ -283,11 +438,37 @@ const shoppingVideos: VideoItem[] = [
       },
     ],
     sentences: [
-      { id: "sen-1", text: "いらっしゃいませ。", translation: "Xin mừng quý khách.", vocabulary: [{ word: "いらっしゃいませ", reading: "いらっしゃいませ", meaning: "Xin mừng quý khách", partOfSpeech: "expression" }] },
-      { id: "sen-2", text: "お会計お願いします。", translation: "Làm ơn tính tiền.", vocabulary: [{ word: "お会計", reading: "おかいけい", meaning: "Thanh toán", partOfSpeech: "noun" }] },
-      { id: "sen-3", text: "合計450�습니다。", translation: "Tổng cộng là 450 yên.", vocabulary: [{ word: "合計", reading: "ごうけい", meaning: "Tổng cộng", partOfSpeech: "noun" }] },
-    ]
-  }
+      {
+        id: "sen-1",
+        text: "いらっしゃいませ。",
+        translation: "Xin mừng quý khách.",
+        vocabulary: [
+          {
+            word: "いらっしゃいませ",
+            reading: "いらっしゃいませ",
+            meaning: "Xin mừng quý khách",
+            partOfSpeech: "expression",
+          },
+        ],
+      },
+      {
+        id: "sen-2",
+        text: "お会計お願いします。",
+        translation: "Làm ơn tính tiền.",
+        vocabulary: [
+          { word: "お会計", reading: "おかいけい", meaning: "Thanh toán", partOfSpeech: "noun" },
+        ],
+      },
+      {
+        id: "sen-3",
+        text: "合計450�습니다。",
+        translation: "Tổng cộng là 450 yên.",
+        vocabulary: [
+          { word: "合計", reading: "ごうけい", meaning: "Tổng cộng", partOfSpeech: "noun" },
+        ],
+      },
+    ],
+  },
 ];
 
 // ─── N4 Topics ─────────────────────────────────────────────────────────────────
@@ -309,11 +490,22 @@ const restaurantVideos: VideoItem[] = [
         text: "すみません、メニューをください。",
         translation: "Xin lỗi, cho tôi xem thực đơn.",
         vocabulary: [
-          { word: "すみません", reading: "すみません", meaning: "Xin lỗi", partOfSpeech: "expression" },
+          {
+            word: "すみません",
+            reading: "すみません",
+            meaning: "Xin lỗi",
+            partOfSpeech: "expression",
+          },
           { word: "メニュー", reading: "メニュー", meaning: "Thực đơn", partOfSpeech: "noun" },
           { word: "ください", reading: "ください", meaning: "Cho tôi xin", partOfSpeech: "verb" },
         ],
-        grammar: { grammar: "Nを ください", meaning: "Cho tôi xin N", usage: "Yêu cầu nhận vật gì đó", example: "水をください", exampleTranslation: "Cho tôi xin nước" }
+        grammar: {
+          grammar: "Nを ください",
+          meaning: "Cho tôi xin N",
+          usage: "Yêu cầu nhận vật gì đó",
+          example: "水をください",
+          exampleTranslation: "Cho tôi xin nước",
+        },
       },
       {
         id: "s2",
@@ -323,9 +515,20 @@ const restaurantVideos: VideoItem[] = [
         translation: "Bạn đã quyết định được món chưa?",
         vocabulary: [
           { word: "ご注文", reading: "ごちゅうもん", meaning: "Đặt món", partOfSpeech: "noun" },
-          { word: "お決まり", reading: "おきまり", meaning: "Quyết định xong", partOfSpeech: "noun" },
+          {
+            word: "お決まり",
+            reading: "おきまり",
+            meaning: "Quyết định xong",
+            partOfSpeech: "noun",
+          },
         ],
-        grammar: { grammar: "お+V ですか？", meaning: "Hỏi về hành động đã hoàn thành", usage: "Hỏi khách đã chọn món chưa", example: "お식은りましたか？", exampleTranslation: "Bạn đã ăn xong chưa?" }
+        grammar: {
+          grammar: "お+V ですか？",
+          meaning: "Hỏi về hành động đã hoàn thành",
+          usage: "Hỏi khách đã chọn món chưa",
+          example: "お식은りましたか？",
+          exampleTranslation: "Bạn đã ăn xong chưa?",
+        },
       },
       {
         id: "s3",
@@ -338,7 +541,13 @@ const restaurantVideos: VideoItem[] = [
           { word: "決めて", reading: "きめて", meaning: "Quyết định", partOfSpeech: "verb" },
           { word: "います", reading: "います", meaning: "Đang, vẫn", partOfSpeech: "auxiliary" },
         ],
-        grammar: { grammar: "Vて + います", meaning: "Đang thực hiện / Kết quả kéo dài", usage: "Diễn tả trạng thái", example: "食べています", exampleTranslation: "Đang ăn" }
+        grammar: {
+          grammar: "Vて + います",
+          meaning: "Đang thực hiện / Kết quả kéo dài",
+          usage: "Diễn tả trạng thái",
+          example: "食べています",
+          exampleTranslation: "Đang ăn",
+        },
       },
       {
         id: "s4",
@@ -347,19 +556,50 @@ const restaurantVideos: VideoItem[] = [
         text: "では、申し訳ありませんが、少々お待ちください。",
         translation: "Vậy xin lỗi bạn, hãy đợi một chút nhé.",
         vocabulary: [
-          { word: "申し訳", reading: "もうしわけ", meaning: "Xin lỗi (trang trọng)", partOfSpeech: "noun" },
+          {
+            word: "申し訳",
+            reading: "もうしわけ",
+            meaning: "Xin lỗi (trang trọng)",
+            partOfSpeech: "noun",
+          },
           { word: "少々", reading: "しょうしょう", meaning: "Một chút", partOfSpeech: "adverb" },
           { word: "お待ち", reading: "おまち", meaning: "Chờ đợi", partOfSpeech: "noun" },
         ],
       },
     ],
     sentences: [
-      { id: "sen-1", text: "すみません、メニューをください。", translation: "Xin lỗi, cho tôi xem thực đơn.", vocabulary: [{ word: "ください", reading: "ください", meaning: "Cho tôi xin", partOfSpeech: "verb" }] },
-      { id: "sen-2", text: "ご注文はお決まりですか？", translation: "Bạn đã quyết định được món chưa?", vocabulary: [{ word: "ご注文", reading: "ごちゅうもん", meaning: "Đặt món", partOfSpeech: "noun" }] },
-      { id: "sen-3", text: "すみません、まだ決めていません。", translation: "Xin lỗi, tôi vẫn chưa quyết định được.", vocabulary: [{ word: "まだ", reading: "まだ", meaning: "Vẫn còn", partOfSpeech: "adverb" }] },
-      { id: "sen-4", text: "では、申し訳ありませんが、少々お待ちください。", translation: "Vậy xin lỗi bạn, hãy đợi một chút nhé.", vocabulary: [{ word: "少々", reading: "しょうしょう", meaning: "Một chút", partOfSpeech: "adverb" }] },
-    ]
-  }
+      {
+        id: "sen-1",
+        text: "すみません、メニューをください。",
+        translation: "Xin lỗi, cho tôi xem thực đơn.",
+        vocabulary: [
+          { word: "ください", reading: "ください", meaning: "Cho tôi xin", partOfSpeech: "verb" },
+        ],
+      },
+      {
+        id: "sen-2",
+        text: "ご注文はお決まりですか？",
+        translation: "Bạn đã quyết định được món chưa?",
+        vocabulary: [
+          { word: "ご注文", reading: "ごちゅうもん", meaning: "Đặt món", partOfSpeech: "noun" },
+        ],
+      },
+      {
+        id: "sen-3",
+        text: "すみません、まだ決めていません。",
+        translation: "Xin lỗi, tôi vẫn chưa quyết định được.",
+        vocabulary: [{ word: "まだ", reading: "まだ", meaning: "Vẫn còn", partOfSpeech: "adverb" }],
+      },
+      {
+        id: "sen-4",
+        text: "では、申し訳ありませんが、少々お待ちください。",
+        translation: "Vậy xin lỗi bạn, hãy đợi một chút nhé.",
+        vocabulary: [
+          { word: "少々", reading: "しょうしょう", meaning: "Một chút", partOfSpeech: "adverb" },
+        ],
+      },
+    ],
+  },
 ];
 
 const travelVideos: VideoItem[] = [
@@ -382,7 +622,13 @@ const travelVideos: VideoItem[] = [
           { word: "東京駅", reading: "とうきょうえき", meaning: "Ga Tokyo", partOfSpeech: "noun" },
           { word: "どこ", reading: "どこ", meaning: "Ở đâu", partOfSpeech: "pronoun" },
         ],
-        grammar: { grammar: "N はどこですか？", meaning: "N ở đâu?", usage: "Hỏi vị trí", example: "トイレはどこですか？", exampleTranslation: "Nhà vệ sinh ở đâu?" }
+        grammar: {
+          grammar: "N はどこですか？",
+          meaning: "N ở đâu?",
+          usage: "Hỏi vị trí",
+          example: "トイレはどこですか？",
+          exampleTranslation: "Nhà vệ sinh ở đâu?",
+        },
       },
       {
         id: "s2",
@@ -395,7 +641,13 @@ const travelVideos: VideoItem[] = [
           { word: "道", reading: "みち", meaning: "Đường", partOfSpeech: "noun" },
           { word: "まっすぐ", reading: "まっすぐ", meaning: "Thẳng", partOfSpeech: "adverb" },
         ],
-        grammar: { grammar: "Vて + ください", meaning: "Hãy làm V", usage: "Yêu cầu, xin nhờ", example: "座ってください", exampleTranslation: "Hãy ngồi xuống" }
+        grammar: {
+          grammar: "Vて + ください",
+          meaning: "Hãy làm V",
+          usage: "Yêu cầu, xin nhờ",
+          example: "座ってください",
+          exampleTranslation: "Hãy ngồi xuống",
+        },
       },
       {
         id: "s3",
@@ -408,15 +660,38 @@ const travelVideos: VideoItem[] = [
           { word: "角", reading: "かど", meaning: "Góc", partOfSpeech: "noun" },
           { word: "曲がる", reading: "まがる", meaning: "Rẽ", partOfSpeech: "verb" },
         ],
-        grammar: { grammar: "Vると、...", meaning: "Nếu V thì...", usage: "Điều kiện tự nhiên", example: "春になると、咲きます", exampleTranslation: "Khi mùa xuân đến, hoa nở" }
+        grammar: {
+          grammar: "Vると、...",
+          meaning: "Nếu V thì...",
+          usage: "Điều kiện tự nhiên",
+          example: "春になると、咲きます",
+          exampleTranslation: "Khi mùa xuân đến, hoa nở",
+        },
       },
     ],
     sentences: [
-      { id: "sen-1", text: "すみません、東京駅はどこですか？", translation: "Xin lỗi, ga Tokyo ở đâu vậy?", vocabulary: [{ word: "どこ", reading: "どこ", meaning: "Ở đâu", partOfSpeech: "pronoun" }] },
-      { id: "sen-2", text: "この道をまっすぐ行ってください。", translation: "Hãy đi thẳng con đường này.", vocabulary: [{ word: "まっすぐ", reading: "まっすぐ", meaning: "Thẳng", partOfSpeech: "adverb" }] },
-      { id: "sen-3", text: "二つ目の角を右に曲がると、神社があります。", translation: "Rẽ phải ở góc thứ hai, sẽ có đền thờ.", vocabulary: [{ word: "曲がる", reading: "まがる", meaning: "Rẽ", partOfSpeech: "verb" }] },
-    ]
-  }
+      {
+        id: "sen-1",
+        text: "すみません、東京駅はどこですか？",
+        translation: "Xin lỗi, ga Tokyo ở đâu vậy?",
+        vocabulary: [{ word: "どこ", reading: "どこ", meaning: "Ở đâu", partOfSpeech: "pronoun" }],
+      },
+      {
+        id: "sen-2",
+        text: "この道をまっすぐ行ってください。",
+        translation: "Hãy đi thẳng con đường này.",
+        vocabulary: [
+          { word: "まっすぐ", reading: "まっすぐ", meaning: "Thẳng", partOfSpeech: "adverb" },
+        ],
+      },
+      {
+        id: "sen-3",
+        text: "二つ目の角を右に曲がると、神社があります。",
+        translation: "Rẽ phải ở góc thứ hai, sẽ có đền thờ.",
+        vocabulary: [{ word: "曲がる", reading: "まがる", meaning: "Rẽ", partOfSpeech: "verb" }],
+      },
+    ],
+  },
 ];
 
 // ─── N3 Topics ─────────────────────────────────────────────────────────────────
@@ -439,9 +714,20 @@ const businessVideos: VideoItem[] = [
         translation: "Dạ, Yamamoto của công ty Tanaka Trading đây.",
         vocabulary: [
           { word: "商事", reading: "しょうじ", meaning: "Thương mại", partOfSpeech: "noun" },
-          { word: "ですが", reading: "ですが", meaning: "Nhưng mà (nói chuyện)", partOfSpeech: "particle" },
+          {
+            word: "ですが",
+            reading: "ですが",
+            meaning: "Nhưng mà (nói chuyện)",
+            partOfSpeech: "particle",
+          },
         ],
-        grammar: { grammar: "N1 の N2 ですが", meaning: "Tôi là N2 thuộc N1", usage: "Tự giới thiệu khi gọi điện", example: "ABC大学の田中ですが", exampleTranslation: "Tôi là Tanaka của trường đại học ABC" }
+        grammar: {
+          grammar: "N1 の N2 ですが",
+          meaning: "Tôi là N2 thuộc N1",
+          usage: "Tự giới thiệu khi gọi điện",
+          example: "ABC大学の田中ですが",
+          exampleTranslation: "Tôi là Tanaka của trường đại học ABC",
+        },
       },
       {
         id: "s2",
@@ -450,11 +736,32 @@ const businessVideos: VideoItem[] = [
         text: "恐れ入りますが、企画部の佐藤さんはいらっしますか？",
         translation: "Xin lỗi打扰, anh/chị Sato ở bộ phận kế hoạch có ở không?",
         vocabulary: [
-          { word: "恐れ入ります", reading: "おそれいます", meaning: "Xin lỗi打扰 (trang trọng)", partOfSpeech: "expression" },
-          { word: "企画部", reading: "きかくぶ", meaning: "Bộ phận kế hoạch", partOfSpeech: "noun" },
-          { word: "いらっしゃい", reading: "いらっしゃい", meaning: "Có mặt, ở đây", partOfSpeech: "verb" },
+          {
+            word: "恐れ入ります",
+            reading: "おそれいます",
+            meaning: "Xin lỗi打扰 (trang trọng)",
+            partOfSpeech: "expression",
+          },
+          {
+            word: "企画部",
+            reading: "きかくぶ",
+            meaning: "Bộ phận kế hoạch",
+            partOfSpeech: "noun",
+          },
+          {
+            word: "いらっしゃい",
+            reading: "いらっしゃい",
+            meaning: "Có mặt, ở đây",
+            partOfSpeech: "verb",
+          },
         ],
-        grammar: { grammar: "恐れ入りますが", meaning: "Xin lỗi打扰", usage: "Cách nói lịch sự khi xin lỗi", example: "恐れ入りますが、窓を開けてもいいですか？", exampleTranslation: "Xin lỗi打扰, tôi có thể mở cửa sổ không?" }
+        grammar: {
+          grammar: "恐れ入りますが",
+          meaning: "Xin lỗi打扰",
+          usage: "Cách nói lịch sự khi xin lỗi",
+          example: "恐れ入りますが、窓を開けてもいいですか？",
+          exampleTranslation: "Xin lỗi打扰, tôi có thể mở cửa sổ không?",
+        },
       },
       {
         id: "s3",
@@ -463,8 +770,18 @@ const businessVideos: VideoItem[] = [
         text: "ただいま席を外しておりますので、折り返しご連絡いたします。",
         translation: "Anh/chị ấy hiện không có mặt, tôi sẽ chuyển mách để anh/chị gọi lại.",
         vocabulary: [
-          { word: "ただいま", reading: "ただいま", meaning: "Hiện tại, ngay bây giờ", partOfSpeech: "adverb" },
-          { word: "席をを外す", reading: "せきをはずす", meaning: "Không có mặt, đi vắng", partOfSpeech: "expression" },
+          {
+            word: "ただいま",
+            reading: "ただいま",
+            meaning: "Hiện tại, ngay bây giờ",
+            partOfSpeech: "adverb",
+          },
+          {
+            word: "席をを外す",
+            reading: "せきをはずす",
+            meaning: "Không có mặt, đi vắng",
+            partOfSpeech: "expression",
+          },
           { word: "折り返し", reading: "おりかえし", meaning: "Gọi lại", partOfSpeech: "noun" },
         ],
       },
@@ -475,19 +792,68 @@ const businessVideos: VideoItem[] = [
         text: "はい、结构です。ご都合のよいときでどうぞ。",
         translation: "Vâng, được ạ. Anh/chị cứ gọi lại khi thuận tiện ạ.",
         vocabulary: [
-          { word: "結構です", reading: "結構です", meaning: "Được ạ, không cần", partOfSpeech: "expression" },
-          { word: "ご都合", reading: "ごつごう", meaning: "Thuận tiện, thời gian", partOfSpeech: "noun" },
+          {
+            word: "結構です",
+            reading: "結構です",
+            meaning: "Được ạ, không cần",
+            partOfSpeech: "expression",
+          },
+          {
+            word: "ご都合",
+            reading: "ごつごう",
+            meaning: "Thuận tiện, thời gian",
+            partOfSpeech: "noun",
+          },
         ],
-        grammar: { grammar: "ご+Vの ときで", meaning: "Khi nào thuận tiện thì...", usage: "Để người khác quyết định thời gian", example: "ご都合のよいときに連絡してください", exampleTranslation: "Hãy liên lạc khi bạn thuận tiện" }
+        grammar: {
+          grammar: "ご+Vの ときで",
+          meaning: "Khi nào thuận tiện thì...",
+          usage: "Để người khác quyết định thời gian",
+          example: "ご都合のよいときに連絡してください",
+          exampleTranslation: "Hãy liên lạc khi bạn thuận tiện",
+        },
       },
     ],
     sentences: [
-      { id: "sen-1", text: "はい、田中商事の山本ですが。", translation: "Dạ, Yamamoto của công ty Tanaka Trading đây.", vocabulary: [{ word: "商事", reading: "しょうじ", meaning: "Thương mại", partOfSpeech: "noun" }] },
-      { id: "sen-2", text: "恐れ入りますが、企画部の佐藤さんはいらっしますか？", translation: "Xin lỗi打扰, anh/chị Sato ở bộ phận kế hoạch có ở không?", vocabulary: [{ word: "恐れ入ります", reading: "おそれいます", meaning: "Xin lỗi打扰", partOfSpeech: "expression" }] },
-      { id: "sen-3", text: "ただいま席を外しておりますので、折り返しご連絡いたします。", translation: "Anh/chị ấy hiện không có mặt, tôi sẽ chuyển mách để anh/chị gọi lại.", vocabulary: [{ word: "折り返し", reading: "おりかえし", meaning: "Gọi lại", partOfSpeech: "noun" }] },
-      { id: "sen-4", text: "はい、結構です。ご都合のよいときでどうぞ。", translation: "Vâng, được ạ. Anh/chị cứ gọi lại khi thuận tiện ạ.", vocabulary: [{ word: "結構です", reading: "結構です", meaning: "Được ạ", partOfSpeech: "expression" }] },
-    ]
-  }
+      {
+        id: "sen-1",
+        text: "はい、田中商事の山本ですが。",
+        translation: "Dạ, Yamamoto của công ty Tanaka Trading đây.",
+        vocabulary: [
+          { word: "商事", reading: "しょうじ", meaning: "Thương mại", partOfSpeech: "noun" },
+        ],
+      },
+      {
+        id: "sen-2",
+        text: "恐れ入りますが、企画部の佐藤さんはいらっしますか？",
+        translation: "Xin lỗi打扰, anh/chị Sato ở bộ phận kế hoạch có ở không?",
+        vocabulary: [
+          {
+            word: "恐れ入ります",
+            reading: "おそれいます",
+            meaning: "Xin lỗi打扰",
+            partOfSpeech: "expression",
+          },
+        ],
+      },
+      {
+        id: "sen-3",
+        text: "ただいま席を外しておりますので、折り返しご連絡いたします。",
+        translation: "Anh/chị ấy hiện không có mặt, tôi sẽ chuyển mách để anh/chị gọi lại.",
+        vocabulary: [
+          { word: "折り返し", reading: "おりかえし", meaning: "Gọi lại", partOfSpeech: "noun" },
+        ],
+      },
+      {
+        id: "sen-4",
+        text: "はい、結構です。ご都合のよいときでどうぞ。",
+        translation: "Vâng, được ạ. Anh/chị cứ gọi lại khi thuận tiện ạ.",
+        vocabulary: [
+          { word: "結構です", reading: "結構です", meaning: "Được ạ", partOfSpeech: "expression" },
+        ],
+      },
+    ],
+  },
 ];
 
 // ─── All Topics ─────────────────────────────────────────────────────────────────
@@ -564,28 +930,31 @@ export const shadowingTopics: ShadowingTopic[] = [
 // ─── Helper Functions ───────────────────────────────────────────────────────────
 
 export const getTopicsByLevel = (level: JLPTLevel): ShadowingTopic[] => {
-  return shadowingTopics.filter(topic => topic.jlptLevel === level);
+  return shadowingTopics.filter((topic) => topic.jlptLevel === level);
 };
 
 export const getTopicById = (id: string): ShadowingTopic | undefined => {
-  return shadowingTopics.find(topic => topic.id === id);
+  return shadowingTopics.find((topic) => topic.id === id);
 };
 
 export const getVideoById = (videoId: string): VideoItem | undefined => {
   for (const topic of shadowingTopics) {
-    const video = topic.videos.find(v => v.id === videoId);
+    const video = topic.videos.find((v) => v.id === videoId);
     if (video) return video;
   }
   return undefined;
 };
 
 export const getTopicForVideo = (videoId: string): ShadowingTopic | undefined => {
-  return shadowingTopics.find(topic => 
-    topic.videos.some(v => v.id === videoId)
-  );
+  return shadowingTopics.find((topic) => topic.videos.some((v) => v.id === videoId));
 };
 
 // ─── Mock AI Feedback Generator ────────────────────────────────────────────────
+
+export interface WordResult {
+  word: string;
+  correct: boolean;
+}
 
 export interface AIFeedback {
   pronunciation: number;
@@ -595,6 +964,8 @@ export interface AIFeedback {
   overallScore: number;
   feedback: string;
   tips: string[];
+  wordResults: WordResult[];
+  spokenText: string;
 }
 
 export const generateMockAIFeedback = (sentence: string): AIFeedback => {
@@ -616,11 +987,25 @@ export const generateMockAIFeedback = (sentence: string): AIFeedback => {
     "Great intonation! Keep practicing.",
   ];
 
-  const feedback = overallScore >= 85 
-    ? "Excellent work! Your pronunciation is very natural."
-    : overallScore >= 75
-    ? "Good job! Keep practicing to improve further."
-    : "Keep trying! Focus on the highlighted areas.";
+  const feedback =
+    overallScore >= 85
+      ? "Xuất sắc! Phát âm của bạn rất tự nhiên."
+      : overallScore >= 75
+        ? "Tốt lắm! Hãy tiếp tục luyện tập để cải thiện."
+        : "Cố gắng lên! Chú ý đến các từ được đánh dấu đỏ.";
+
+  // Generate word-level results: split sentence into words/tokens and randomly mark correct/incorrect
+  const words = sentence
+    .split(/(?<=[ぁ-ん々ー])|(?=[ぁ-ん々ー])|(?<=[ァ-ヶ])|(?=[ァ-ヶ])|(?<=[一-龯])|(?=[一-龯])|\s+/)
+    .filter((w) => w.trim().length > 0);
+  const errorChance = overallScore >= 85 ? 0.1 : overallScore >= 75 ? 0.25 : 0.4;
+  const wordResults: WordResult[] = words.map((word) => ({
+    word,
+    correct: Math.random() > errorChance,
+  }));
+
+  // Build spoken text representation (simulate what user said)
+  const spokenText = sentence;
 
   return {
     pronunciation,
@@ -630,5 +1015,7 @@ export const generateMockAIFeedback = (sentence: string): AIFeedback => {
     overallScore,
     feedback,
     tips: tipsPool.slice(0, 2),
+    wordResults,
+    spokenText,
   };
 };

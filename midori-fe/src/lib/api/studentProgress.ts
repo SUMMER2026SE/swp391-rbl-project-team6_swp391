@@ -21,9 +21,7 @@ export const studentProgressApi = {
     const searchParams = new URLSearchParams();
     if (params?.contentType) searchParams.set("contentType", params.contentType);
     const qs = searchParams.toString();
-    return api.get<ProgressResponse[]>(
-      `/student/progress${qs ? `?${qs}` : ""}`
-    );
+    return api.get<ProgressResponse[]>(`/student/progress${qs ? `?${qs}` : ""}`);
   },
 
   /**
@@ -40,7 +38,7 @@ export const studentProgressApi = {
    */
   markAsLearned: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/learned`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/learned`,
     );
   },
 
@@ -50,7 +48,7 @@ export const studentProgressApi = {
    */
   unmarkAsLearned: async (contentType: ContentType, contentId: string) => {
     return api.delete<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/learned`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/learned`,
     );
   },
 
@@ -60,7 +58,7 @@ export const studentProgressApi = {
    */
   markAsMastered: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/mastered`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/mastered`,
     );
   },
 
@@ -70,7 +68,7 @@ export const studentProgressApi = {
    */
   unmarkAsMastered: async (contentType: ContentType, contentId: string) => {
     return api.delete<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/mastered`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/mastered`,
     );
   },
 
@@ -80,7 +78,7 @@ export const studentProgressApi = {
    */
   toggleFavorite: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/favorite`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/favorite`,
     );
   },
 
@@ -90,7 +88,7 @@ export const studentProgressApi = {
    */
   markAsCompleted: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`,
     );
   },
 
@@ -100,7 +98,7 @@ export const studentProgressApi = {
    */
   unmarkAsCompleted: async (contentType: ContentType, contentId: string) => {
     return api.delete<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/complete`,
     );
   },
 
@@ -110,7 +108,7 @@ export const studentProgressApi = {
    */
   recordView: async (contentType: ContentType, contentId: string) => {
     return api.post<ProgressResponse>(
-      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/view`
+      `/student/progress/${contentType}/${encodeURIComponent(contentId)}/view`,
     );
   },
 };

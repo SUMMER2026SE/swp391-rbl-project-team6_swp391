@@ -114,16 +114,10 @@ const DictationView = memo(function DictationView({
             onClick={handlePlayAudio}
             className={cn(
               "w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md transition-all",
-              isPlaying
-                ? "bg-gradient-hero animate-pulse"
-                : "bg-gradient-hero hover:scale-105"
+              isPlaying ? "bg-gradient-hero animate-pulse" : "bg-gradient-hero hover:scale-105",
             )}
           >
-            {isPlaying ? (
-              <Pause className="w-5 h-5" />
-            ) : (
-              <Play className="w-5 h-5 ml-0.5" />
-            )}
+            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
         </div>
 
@@ -166,7 +160,7 @@ const DictationView = memo(function DictationView({
                 "flex-1 py-2.5 rounded-lg font-semibold transition flex items-center justify-center gap-1.5 text-sm",
                 dictationAnswer.trim()
                   ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:opacity-90"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
               )}
             >
               <Check className="w-4 h-4" />
@@ -182,16 +176,22 @@ const DictationView = memo(function DictationView({
           </div>
         ) : (
           <div className="mt-3 space-y-3">
-            <div className={cn(
-              "p-4 rounded-xl border",
-              dictationCorrect
-                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-            )}>
-              <div className={cn(
-                "flex items-center gap-2 font-bold text-sm",
-                dictationCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
-              )}>
+            <div
+              className={cn(
+                "p-4 rounded-xl border",
+                dictationCorrect
+                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                  : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex items-center gap-2 font-bold text-sm",
+                  dictationCorrect
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400",
+                )}
+              >
                 {dictationCorrect ? (
                   <>
                     <CheckCircle2 className="w-5 h-5" />
@@ -254,7 +254,7 @@ const MultipleChoiceView = memo(function MultipleChoiceView({
   handlePrevious,
   handleNext,
 }: MultipleChoiceViewProps) {
-  const correctOptionId = shuffledOptions.find(opt => opt.isCorrect)?.id;
+  const correctOptionId = shuffledOptions.find((opt) => opt.isCorrect)?.id;
 
   return (
     <motion.div
@@ -285,16 +285,10 @@ const MultipleChoiceView = memo(function MultipleChoiceView({
             onClick={handlePlayAudio}
             className={cn(
               "w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md transition-all",
-              isPlaying
-                ? "bg-gradient-hero animate-pulse"
-                : "bg-gradient-hero hover:scale-105"
+              isPlaying ? "bg-gradient-hero animate-pulse" : "bg-gradient-hero hover:scale-105",
             )}
           >
-            {isPlaying ? (
-              <Pause className="w-5 h-5" />
-            ) : (
-              <Play className="w-5 h-5 ml-0.5" />
-            )}
+            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
         </div>
 
@@ -311,9 +305,7 @@ const MultipleChoiceView = memo(function MultipleChoiceView({
         <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide mb-1">
           Question
         </div>
-        <div className="text-base font-medium text-foreground">
-          {currentQuestion?.question}
-        </div>
+        <div className="text-base font-medium text-foreground">{currentQuestion?.question}</div>
       </div>
 
       {/* Options */}
@@ -331,19 +323,21 @@ const MultipleChoiceView = memo(function MultipleChoiceView({
                 disabled={quizAnswer !== null}
                 className={cn(
                   "p-3 rounded-lg border transition-all text-left font-medium text-sm",
-                  quizAnswer === null && "border-border/50 hover:border-blue-500/30 bg-card hover:bg-accent/30",
+                  quizAnswer === null &&
+                    "border-border/50 hover:border-blue-500/30 bg-card hover:bg-accent/30",
                   showCorrect && "border-primary bg-primary/10 text-primary",
-                  showWrong && "border-destructive bg-destructive/10 text-destructive"
+                  showWrong && "border-destructive bg-destructive/10 text-destructive",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <span>{option.text}</span>
-                  {isSelected && (
-                    isCorrect ? <Check className="w-4 h-4 text-primary" /> : <X className="w-4 h-4 text-destructive" />
-                  )}
-                  {showCorrect && !isSelected && (
-                    <Check className="w-4 h-4 text-primary" />
-                  )}
+                  {isSelected &&
+                    (isCorrect ? (
+                      <Check className="w-4 h-4 text-primary" />
+                    ) : (
+                      <X className="w-4 h-4 text-destructive" />
+                    ))}
+                  {showCorrect && !isSelected && <Check className="w-4 h-4 text-primary" />}
                 </div>
               </button>
             );
@@ -360,7 +354,7 @@ const MultipleChoiceView = memo(function MultipleChoiceView({
               "flex-1 py-2.5 rounded-lg font-semibold transition flex items-center justify-center text-sm",
               isFirstQuestion
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
-                : "bg-secondary text-foreground hover:bg-muted"
+                : "bg-secondary text-foreground hover:bg-muted",
             )}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -419,10 +413,14 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
 
   // Shuffle options ONLY when entering multiple_choice mode or question changes
   useEffect(() => {
-    if (learningStep === "multiple_choice" && currentQuestion?.options && shuffledOptions.length === 0) {
+    if (
+      learningStep === "multiple_choice" &&
+      currentQuestion?.options &&
+      shuffledOptions.length === 0
+    ) {
       const opts = createShuffledOptions(
         currentQuestion.correctAnswer,
-        currentQuestion.options.filter(o => o !== currentQuestion.correctAnswer)
+        currentQuestion.options.filter((o) => o !== currentQuestion.correctAnswer),
       );
       setShuffledOptions(opts);
     }
@@ -443,11 +441,11 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
   const handleQuizAnswer = (optionId: string) => {
     if (selectedAnswerId !== null) return;
     setSelectedAnswerId(optionId);
-    const selectedOption = shuffledOptions.find(opt => opt.id === optionId);
+    const selectedOption = shuffledOptions.find((opt) => opt.id === optionId);
     const correct = selectedOption?.isCorrect ?? false;
     setIsCorrect(correct);
     if (correct) {
-      setCorrectAnswers(prev => prev + 1);
+      setCorrectAnswers((prev) => prev + 1);
     }
   };
 
@@ -464,7 +462,7 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
       }
       setLearningStep("listening_complete");
     } else {
-      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentQuestionIndex((prev) => prev + 1);
       setSelectedAnswerId(null);
       setIsCorrect(null);
     }
@@ -472,7 +470,7 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
 
   const handlePrevious = () => {
     if (!isFirstQuestion) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex((prev) => prev - 1);
       setSelectedAnswerId(null);
       setIsCorrect(null);
     }
@@ -497,7 +495,7 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
     const isAnswerCorrect = cleanAnswer === cleanCorrect;
     setDictationCorrect(isAnswerCorrect);
     if (isAnswerCorrect) {
-      setCorrectAnswers(prev => prev + 1);
+      setCorrectAnswers((prev) => prev + 1);
     }
   }, [dictationAnswer, currentQuestion]);
 
@@ -510,7 +508,7 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
       }
       setLearningStep("listening_complete");
     } else {
-      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentQuestionIndex((prev) => prev + 1);
       setDictationAnswer("");
       setDictationChecked(false);
       setDictationCorrect(false);
@@ -530,10 +528,12 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
       animate={{ opacity: 1, scale: 1 }}
       className="text-center py-8"
     >
-      <div className={cn(
-        "w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center",
-        isPassingScore ? "bg-sakura/15" : "bg-red-100 dark:bg-red-950/30"
-      )}>
+      <div
+        className={cn(
+          "w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center",
+          isPassingScore ? "bg-sakura/15" : "bg-red-100 dark:bg-red-950/30",
+        )}
+      >
         {isPassingScore ? (
           <Sparkles className="w-8 h-8 text-sakura" />
         ) : (
@@ -541,16 +541,16 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
         )}
       </div>
 
-      <h2 className={cn(
-        "text-xl font-bold mb-1",
-        isPassingScore ? "text-foreground" : "text-red-600 dark:text-red-400"
-      )}>
+      <h2
+        className={cn(
+          "text-xl font-bold mb-1",
+          isPassingScore ? "text-foreground" : "text-red-600 dark:text-red-400",
+        )}
+      >
         {isPassingScore ? "Listening Mastered!" : "Not Quite There"}
       </h2>
 
-      <p className="text-sm text-muted-foreground mb-3">
-        Score: {score}% (minimum required: 75%)
-      </p>
+      <p className="text-sm text-muted-foreground mb-3">Score: {score}% (minimum required: 75%)</p>
 
       {isPassingScore && xpAwarded && (
         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sakura/15 text-sakura text-sm font-semibold">
@@ -590,9 +590,7 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
       <div className="bg-card rounded-xl p-4 border border-border/50">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-bold text-foreground">Listening Progress</h3>
-          <span className="text-xs text-muted-foreground">
-            {listeningProgress} / 2 Completed
-          </span>
+          <span className="text-xs text-muted-foreground">{listeningProgress} / 2 Completed</span>
         </div>
         <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
           <motion.div
@@ -620,14 +618,10 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
               ? "bg-card text-foreground shadow-sm"
               : completedDictation
                 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {completedDictation ? (
-            <Check className="w-3 h-3" />
-          ) : (
-            <Mic className="w-3 h-3" />
-          )}
+          {completedDictation ? <Check className="w-3 h-3" /> : <Mic className="w-3 h-3" />}
           Dictation
         </button>
 
@@ -640,7 +634,7 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
               ? "bg-card text-foreground shadow-sm"
               : completedMultipleChoice
                 ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
           )}
         >
           {completedMultipleChoice ? (
@@ -654,37 +648,49 @@ export function ListeningModule({ questions, onComplete }: ListeningModuleProps)
 
       {/* Completion Status */}
       <div className="grid grid-cols-2 gap-2">
-        <div className={cn(
-          "p-3 rounded-lg border text-center",
-          completedDictation
-            ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-            : "bg-card border-border/50"
-        )}>
+        <div
+          className={cn(
+            "p-3 rounded-lg border text-center",
+            completedDictation
+              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+              : "bg-card border-border/50",
+          )}
+        >
           <div className="flex items-center justify-center gap-1.5 mb-1">
             <Mic className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span className="text-xs font-semibold text-foreground">Dictation</span>
           </div>
-          <div className={cn(
-            "text-xs font-medium",
-            completedDictation ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
-          )}>
+          <div
+            className={cn(
+              "text-xs font-medium",
+              completedDictation
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-muted-foreground",
+            )}
+          >
             {completedDictation ? "Completed" : "Not Started"}
           </div>
         </div>
-        <div className={cn(
-          "p-3 rounded-lg border text-center",
-          completedMultipleChoice
-            ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"
-            : "bg-card border-border/50"
-        )}>
+        <div
+          className={cn(
+            "p-3 rounded-lg border text-center",
+            completedMultipleChoice
+              ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"
+              : "bg-card border-border/50",
+          )}
+        >
           <div className="flex items-center justify-center gap-1.5 mb-1">
             <ListChecks className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span className="text-xs font-semibold text-foreground">Multiple Choice</span>
           </div>
-          <div className={cn(
-            "text-xs font-medium",
-            completedMultipleChoice ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"
-          )}>
+          <div
+            className={cn(
+              "text-xs font-medium",
+              completedMultipleChoice
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-muted-foreground",
+            )}
+          >
             {completedMultipleChoice ? "Completed" : "Not Started"}
           </div>
         </div>

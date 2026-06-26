@@ -1,7 +1,13 @@
 import { api } from "./client";
 
 // Align with backend UserStatus enum
-export type AdminUserStatus = "PENDING" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "BANNED";
+export type AdminUserStatus =
+  | "PENDING"
+  | "PENDING_APPROVAL"
+  | "ACTIVE"
+  | "REJECTED"
+  | "SUSPENDED"
+  | "BANNED";
 
 export type RejectTeacherPayload = {
   reason: string;
@@ -14,7 +20,13 @@ export type AdminRole = "STUDENT" | "TEACHER" | "ADMIN";
 export type UiRole = "student" | "teacher" | "admin";
 
 // Lowercase display type used in UI components
-export type UiStatus = "active" | "suspended" | "banned" | "pending" | "pending_approval" | "rejected";
+export type UiStatus =
+  | "active"
+  | "suspended"
+  | "banned"
+  | "pending"
+  | "pending_approval"
+  | "rejected";
 
 export interface AdminUserResponse {
   id: string;
@@ -106,11 +118,9 @@ export interface AdminDashboardSummaryResponse {
 }
 
 export const adminApi = {
-  getPendingTeachers: () =>
-    api.get<AdminTeacherResponse[]>("/admin/users/teachers/pending"),
+  getPendingTeachers: () => api.get<AdminTeacherResponse[]>("/admin/users/teachers/pending"),
 
-  getDashboardSummary: () =>
-    api.get<AdminDashboardSummaryResponse>("/admin/dashboard/summary"),
+  getDashboardSummary: () => api.get<AdminDashboardSummaryResponse>("/admin/dashboard/summary"),
 
   approveTeacher: (userId: string) =>
     api.put<AdminTeacherResponse>(`/admin/users/${userId}/approve`),
@@ -133,8 +143,7 @@ export const adminApi = {
   activateTeacher: (userId: string) =>
     api.put<AdminTeacherResponse>(`/admin/users/${userId}/activate`),
 
-  getActiveTeachers: () =>
-    api.get<AdminTeacherResponse[]>("/admin/users/teachers/active"),
+  getActiveTeachers: () => api.get<AdminTeacherResponse[]>("/admin/users/teachers/active"),
 
   getTeacherCertificates: (userId: string) =>
     api.get<AdminTeacherCertificateResponse[]>(`/admin/users/${userId}/certificates`),
@@ -164,6 +173,5 @@ export const adminApi = {
   /**
    * Restore a banned or suspended user.
    */
-  restoreUser: (userId: string) =>
-    api.put<AdminTeacherResponse>(`/admin/users/${userId}/restore`),
+  restoreUser: (userId: string) => api.put<AdminTeacherResponse>(`/admin/users/${userId}/restore`),
 };

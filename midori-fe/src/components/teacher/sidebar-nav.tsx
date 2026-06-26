@@ -1,7 +1,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, BookOpen, Plus, GraduationCap, ClipboardList, FileText, TrendingUp,
-  Library, HelpCircle, FileBadge, MessageSquare, Bell,
+  LayoutDashboard,
+  BookOpen,
+  Plus,
+  GraduationCap,
+  ClipboardList,
+  FileText,
+  TrendingUp,
+  Library,
+  HelpCircle,
+  FileBadge,
+  MessageSquare,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";

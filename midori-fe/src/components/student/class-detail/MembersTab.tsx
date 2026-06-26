@@ -21,7 +21,9 @@ export function MembersTab({ classInfo }: MembersTabProps) {
             {classInfo.teacherAvatarInitials}
           </div>
           <div>
-            <div className="font-bold text-sm text-foreground dark:text-white">{classInfo.teacher}</div>
+            <div className="font-bold text-sm text-foreground dark:text-white">
+              {classInfo.teacher}
+            </div>
             <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
               Class Instructor
             </div>
@@ -42,7 +44,10 @@ export function MembersTab({ classInfo }: MembersTabProps) {
         </div>
         <div className="divide-y divide-slate-100 dark:divide-white/5">
           {classInfo.classmates.map((student, idx) => (
-            <div key={idx} className="flex items-center gap-3 py-3 hover:bg-slate-50/50 dark:hover:bg-white/[0.005] px-2 rounded-xl transition">
+            <div
+              key={idx}
+              className="flex items-center gap-3 py-3 hover:bg-slate-50/50 dark:hover:bg-white/[0.005] px-2 rounded-xl transition"
+            >
               <div className="w-8 h-8 rounded-full bg-sakura/20 dark:bg-sakura/10 text-jp-red grid place-items-center font-bold text-xs">
                 {student.avatar}
               </div>
@@ -57,7 +62,9 @@ export function MembersTab({ classInfo }: MembersTabProps) {
       {/* Read-Only Banner */}
       <div className="flex items-center gap-2 p-4 bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/10 rounded-2xl text-xs text-muted-foreground">
         <ShieldAlert className="w-4 h-4 text-muted-foreground" />
-        <span>You have read-only access to this class roster. Adding or removing members is restricted.</span>
+        <span>
+          You have read-only access to this class roster. Adding or removing members is restricted.
+        </span>
       </div>
     </div>
   );

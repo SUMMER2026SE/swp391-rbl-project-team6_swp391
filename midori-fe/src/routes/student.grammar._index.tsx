@@ -3,9 +3,22 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  Search, GraduationCap, CheckCircle2, Bookmark, BookmarkCheck,
-  BookOpen, X, ArrowRight, Lock, Unlock, Play,
-  Clock, Target, Loader2, AlertCircle, Sparkles
+  Search,
+  GraduationCap,
+  CheckCircle2,
+  Bookmark,
+  BookmarkCheck,
+  BookOpen,
+  X,
+  ArrowRight,
+  Lock,
+  Unlock,
+  Play,
+  Clock,
+  Target,
+  Loader2,
+  AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
@@ -30,11 +43,31 @@ const defaultLevel = enrolledLevels.length > 0 ? enrolledLevels[0] : "N5";
 const LEVEL_FILTERS = ["All", ...enrolledLevels] as const;
 
 const levelColors: Record<string, { bg: string; text: string; border: string }> = {
-  N5: { bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-500", border: "border-blue-200 dark:border-blue-800" },
-  N4: { bg: "bg-green-50 dark:bg-green-950/30", text: "text-green-500", border: "border-green-200 dark:border-green-800" },
-  N3: { bg: "bg-yellow-50 dark:bg-yellow-950/30", text: "text-yellow-600", border: "border-yellow-200 dark:border-yellow-800" },
-  N2: { bg: "bg-orange-50 dark:bg-orange-950/30", text: "text-orange-500", border: "border-orange-200 dark:border-orange-800" },
-  N1: { bg: "bg-red-50 dark:bg-red-950/30", text: "text-red-500", border: "border-red-200 dark:border-red-800" },
+  N5: {
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    text: "text-blue-500",
+    border: "border-blue-200 dark:border-blue-800",
+  },
+  N4: {
+    bg: "bg-green-50 dark:bg-green-950/30",
+    text: "text-green-500",
+    border: "border-green-200 dark:border-green-800",
+  },
+  N3: {
+    bg: "bg-yellow-50 dark:bg-yellow-950/30",
+    text: "text-yellow-600",
+    border: "border-yellow-200 dark:border-yellow-800",
+  },
+  N2: {
+    bg: "bg-orange-50 dark:bg-orange-950/30",
+    text: "text-orange-500",
+    border: "border-orange-200 dark:border-orange-800",
+  },
+  N1: {
+    bg: "bg-red-50 dark:bg-red-950/30",
+    text: "text-red-500",
+    border: "border-red-200 dark:border-red-800",
+  },
 };
 
 const levelGradients: Record<string, string> = {
@@ -61,7 +94,7 @@ function SkeletonCard() {
       {/* Timeline skeleton */}
       <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
       <div className="absolute left-2 top-6 w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700" />
-      
+
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-5 ml-4">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4 flex-1">
@@ -113,25 +146,25 @@ function LearningPathCard({
     <div className="relative">
       {/* Timeline connector */}
       {index > 0 && (
-        <div 
+        <div
           className={`absolute left-5 top-0 w-0.5 -translate-y-full ${
-            isCompleted 
-              ? "bg-linear-to-b from-green-400 to-slate-200 dark:to-slate-700" 
+            isCompleted
+              ? "bg-linear-to-b from-green-400 to-slate-200 dark:to-slate-700"
               : "bg-slate-200 dark:bg-slate-700"
-          }`} 
+          }`}
           style={{ height: "24px" }}
         />
       )}
 
       {/* Timeline node */}
       <div className="absolute left-2 top-6 z-10">
-        <div 
+        <div
           className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 ${
             isCompleted
               ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
               : isLocked
-              ? "bg-slate-200 dark:bg-slate-700 text-slate-400"
-              : `bg-linear-to-br ${gradient} text-white shadow-lg`
+                ? "bg-slate-200 dark:bg-slate-700 text-slate-400"
+                : `bg-linear-to-br ${gradient} text-white shadow-lg`
           }`}
         >
           {isCompleted ? (
@@ -165,19 +198,25 @@ function LearningPathCard({
             {/* Left: Icon + Info */}
             <div className="flex items-start gap-4 flex-1 min-w-0">
               {/* Grammar icon/illustration */}
-              <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center ${bgGradient} border ${colors.border}`}>
+              <div
+                className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center ${bgGradient} border ${colors.border}`}
+              >
                 <GraduationCap className={`w-6 h-6 ${colors.text}`} />
               </div>
 
               <div className="min-w-0 flex-1">
                 {/* Title row */}
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h3 className={`font-display font-black text-base truncate ${
-                    isLocked ? "text-slate-400" : "text-slate-800 dark:text-white"
-                  }`}>
+                  <h3
+                    className={`font-display font-black text-base truncate ${
+                      isLocked ? "text-slate-400" : "text-slate-800 dark:text-white"
+                    }`}
+                  >
                     {grammar.title}
                   </h3>
-                  <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${colors.bg} ${colors.text}`}>
+                  <span
+                    className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${colors.bg} ${colors.text}`}
+                  >
                     {grammar.level}
                   </span>
                   {isCompleted && (
@@ -189,7 +228,9 @@ function LearningPathCard({
                 </div>
 
                 {/* Meaning */}
-                <p className={`text-sm line-clamp-2 ${isLocked ? "text-slate-400" : "text-muted-foreground"}`}>
+                <p
+                  className={`text-sm line-clamp-2 ${isLocked ? "text-slate-400" : "text-muted-foreground"}`}
+                >
                   {grammar.meaning}
                 </p>
 
@@ -197,7 +238,8 @@ function LearningPathCard({
                 {grammar.structures && grammar.structures.length > 0 && !isLocked && (
                   <p className="text-xs text-muted-foreground/70 mt-2 line-clamp-1">
                     <Sparkles className="w-3 h-3 inline mr-1" />
-                    {grammar.structures.length} structure{grammar.structures.length > 1 ? "s" : ""} to master
+                    {grammar.structures.length} structure{grammar.structures.length > 1 ? "s" : ""}{" "}
+                    to master
                   </p>
                 )}
               </div>
@@ -300,7 +342,12 @@ function GrammarListPage() {
   }, [search]);
 
   // ── API Query ─────────────────────────────────────────────────────────────
-  const { data: grammars = [], isLoading, isError, error } = useQuery({
+  const {
+    data: grammars = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["student-grammars", levelFilter, debouncedSearch],
     queryFn: () =>
       studentGrammarApi.getGrammars({
@@ -322,7 +369,7 @@ function GrammarListPage() {
     if (grammars.length === 0) return;
     const completedSet = new Set<string>();
     const bookmarkedSet = new Set<string>();
-    progressList.forEach(p => {
+    progressList.forEach((p) => {
       if (p.contentType === "GRAMMAR") {
         if (p.completed) completedSet.add(p.contentId);
         if (p.favorite) bookmarkedSet.add(p.contentId);
@@ -343,7 +390,7 @@ function GrammarListPage() {
 
   const toggleBookmark = async (id: string) => {
     const isCurrentlyBookmarked = bookmarked.has(id);
-    setBookmarked(prev => {
+    setBookmarked((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -354,7 +401,7 @@ function GrammarListPage() {
       await refetchProgress();
     } catch (err) {
       console.error("[GrammarProgress] toggleFavorite error:", err);
-      setBookmarked(prev => {
+      setBookmarked((prev) => {
         const next = new Set(prev);
         if (isCurrentlyBookmarked) next.add(id);
         else next.delete(id);
@@ -366,12 +413,13 @@ function GrammarListPage() {
   const handleRecordView = (id: string) => {
     if (!localLastStudiedMap[id]) {
       const nowIso = new Date().toISOString();
-      setLocalLastStudiedMap(prev => ({ ...prev, [id]: nowIso }));
-      studentProgressApi.recordView("GRAMMAR", id)
+      setLocalLastStudiedMap((prev) => ({ ...prev, [id]: nowIso }));
+      studentProgressApi
+        .recordView("GRAMMAR", id)
         .then(() => refetchProgress())
-        .catch(err => {
+        .catch((err) => {
           console.error("[GrammarProgress] recordView error:", err);
-          setLocalLastStudiedMap(prev => {
+          setLocalLastStudiedMap((prev) => {
             const next = { ...prev };
             delete next[id];
             return next;
@@ -381,9 +429,10 @@ function GrammarListPage() {
   };
 
   // Stats
-  const completedCount = grammars.filter(g => completed.has(g.id)).length;
-  const bookmarkedCount = grammars.filter(g => bookmarked.has(g.id)).length;
-  const progressPct = grammars.length > 0 ? Math.round((completedCount / grammars.length) * 100) : 0;
+  const completedCount = grammars.filter((g) => completed.has(g.id)).length;
+  const bookmarkedCount = grammars.filter((g) => bookmarked.has(g.id)).length;
+  const progressPct =
+    grammars.length > 0 ? Math.round((completedCount / grammars.length) * 100) : 0;
 
   const errorMessage =
     error instanceof Error ? error.message : "Failed to load grammars. Please try again.";
@@ -413,7 +462,7 @@ function GrammarListPage() {
                 </div>
                 <span className="text-sm font-bold text-primary">{progressPct}% Complete</span>
               </div>
-              
+
               {/* Progress bar */}
               <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-3">
                 <motion.div
@@ -427,15 +476,23 @@ function GrammarListPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-3 rounded-xl bg-slate-50 dark:bg-white/5">
                   <div className="text-2xl font-black text-primary">{grammars.length}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Total Lessons</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                    Total Lessons
+                  </div>
                 </div>
                 <div className="text-center p-3 rounded-xl bg-green-50 dark:bg-green-950/20">
                   <div className="text-2xl font-black text-green-500">{completedCount}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Completed</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                    Completed
+                  </div>
                 </div>
                 <div className="text-center p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950/20">
-                  <div className="text-2xl font-black text-yellow-500">{grammars.length - completedCount}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Remaining</div>
+                  <div className="text-2xl font-black text-yellow-500">
+                    {grammars.length - completedCount}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                    Remaining
+                  </div>
                 </div>
               </div>
             </div>
@@ -449,7 +506,7 @@ function GrammarListPage() {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search grammar patterns..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               />
@@ -464,12 +521,14 @@ function GrammarListPage() {
             </div>
           </div>
           <div className="flex gap-1 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
-            {LEVEL_FILTERS.map(l => (
+            {LEVEL_FILTERS.map((l) => (
               <button
                 key={l}
                 onClick={() => setLevelFilter(l)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  levelFilter === l ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:bg-muted"
+                  levelFilter === l
+                    ? "bg-gradient-hero text-white shadow"
+                    : "text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {l}
@@ -549,10 +608,10 @@ function GrammarListPage() {
                     </span>
                     <div className="flex-1 h-px bg-linear-to-r from-transparent via-yellow-300/50 to-transparent" />
                   </div>
-                  
+
                   <div className="space-y-3">
                     {grammars
-                      .filter(g => bookmarked.has(g.id))
+                      .filter((g) => bookmarked.has(g.id))
                       .map((grammar, index) => (
                         <LearningPathCard
                           key={`bookmark-${grammar.id}`}

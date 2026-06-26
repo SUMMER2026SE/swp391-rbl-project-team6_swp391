@@ -3,15 +3,22 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronLeft, Volume2, Bookmark, BookmarkCheck,
-  CheckCircle2, X, Play, ArrowRight, ArrowLeft,
-  GraduationCap, AlertCircle, CheckCircle, Loader2
+  ChevronLeft,
+  Volume2,
+  Bookmark,
+  BookmarkCheck,
+  CheckCircle2,
+  X,
+  Play,
+  ArrowRight,
+  ArrowLeft,
+  GraduationCap,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import {
-  studentGrammarApi,
-  type GrammarResponse,
-} from "@/lib/api/studentGrammar";
+import { studentGrammarApi, type GrammarResponse } from "@/lib/api/studentGrammar";
 import { studentProgressApi } from "@/lib/api/studentProgress";
 
 const levelColors: Record<string, string> = {
@@ -59,7 +66,12 @@ function StructureStudyPage() {
   const navigate = useNavigate();
 
   // ── API Query ─────────────────────────────────────────────────────────────
-  const { data: grammar, isLoading, isError, error } = useQuery({
+  const {
+    data: grammar,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["student-grammar", grammarId],
     queryFn: () => studentGrammarApi.getGrammarById(grammarId),
     enabled: !!grammarId,
@@ -79,25 +91,25 @@ function StructureStudyPage() {
     if (!grammar) return;
     const newStatuses: Record<string, "learned" | "not_learned"> = {};
     const newBookmarked = new Set<string>();
-    progressList.forEach(p => {
+    progressList.forEach((p) => {
       if (p.contentType === "GRAMMAR" && p.contentId === grammar.id) {
         newStatuses[grammar.id] = p.learned ? "learned" : "not_learned";
         if (p.favorite) newBookmarked.add(p.contentId);
       }
     });
-    setStructureStatuses(prev => {
+    setStructureStatuses((prev) => {
       const next = { ...prev };
       Object.entries(newStatuses).forEach(([id, status]) => {
         next[id] = status;
       });
       return next;
     });
-    setBookmarked(prev => {
+    setBookmarked((prev) => {
       const next = new Set(prev);
-      newBookmarked.forEach(id => next.add(id));
+      newBookmarked.forEach((id) => next.add(id));
       return next;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progressList, grammar?.id]);
 
   const [revealed, setRevealed] = useState(false);
@@ -110,25 +122,35 @@ function StructureStudyPage() {
   // Build structure items from backend grammar
 
   // Single "structure" page — treat grammar as the only item
-  const allStructures = grammar ? [{
-    id: grammar.id,
-    title: grammar.title,
-    formation: grammar.structure ?? grammar.pattern ?? "—",
-    usage: grammar.usage ?? "",
-    whenToUse: "—",
-    whenNotToUse: "—",
-    commonMistakes: "—",
-    examples: grammar.examples.map(ex => ({ japanese: ex, furigana: "—", translation: "—" })),
-    notes: "—",
-  }] : [];
+  const allStructures = grammar
+    ? [
+        {
+          id: grammar.id,
+          title: grammar.title,
+          formation: grammar.structure ?? grammar.pattern ?? "—",
+          usage: grammar.usage ?? "",
+          whenToUse: "—",
+          whenNotToUse: "—",
+          commonMistakes: "—",
+          examples: grammar.examples.map((ex) => ({
+            japanese: ex,
+            furigana: "—",
+            translation: "—",
+          })),
+          notes: "—",
+        },
+      ]
+    : [];
 
   const structureId = Route.useParams().structureId;
-  const currentIndex = allStructures.findIndex(s => s.id === structureId) >= 0
-    ? allStructures.findIndex(s => s.id === structureId)
-    : 0;
+  const currentIndex =
+    allStructures.findIndex((s) => s.id === structureId) >= 0
+      ? allStructures.findIndex((s) => s.id === structureId)
+      : 0;
   const structure = allStructures[currentIndex];
   const prevStructure = currentIndex > 0 ? allStructures[currentIndex - 1] : null;
-  const nextStructure = currentIndex < allStructures.length - 1 ? allStructures[currentIndex + 1] : null;
+  const nextStructure =
+    currentIndex < allStructures.length - 1 ? allStructures[currentIndex + 1] : null;
 
   const goNext = () => {
     if (nextStructure) {
@@ -150,7 +172,7 @@ function StructureStudyPage() {
 
   const status = structureStatuses[grammar?.id ?? ""] ?? "not_learned";
   const isBook = bookmarked.has(grammar?.id ?? "");
-  const learnedCount = Object.values(structureStatuses).filter(s => s === "learned").length;
+  const learnedCount = Object.values(structureStatuses).filter((s) => s === "learned").length;
   const notLearnedCount = allStructures.length - learnedCount;
 
   const toggleLearned = async () => {
@@ -158,7 +180,7 @@ function StructureStudyPage() {
     const currentStatus = structureStatuses[grammar.id] ?? "not_learned";
     const isCurrentlyLearned = currentStatus === "learned";
     // Optimistic update
-    setStructureStatuses(prev => ({
+    setStructureStatuses((prev) => ({
       ...prev,
       [grammar.id]: isCurrentlyLearned ? "not_learned" : "learned",
     }));
@@ -171,7 +193,7 @@ function StructureStudyPage() {
       await refetchProgress();
     } catch {
       // Revert on error
-      setStructureStatuses(prev => ({
+      setStructureStatuses((prev) => ({
         ...prev,
         [grammar.id]: currentStatus,
       }));
@@ -182,7 +204,7 @@ function StructureStudyPage() {
     if (!grammar) return;
     const isCurrentlyBookmarked = bookmarked.has(grammar.id);
     // Optimistic update
-    setBookmarked(prev => {
+    setBookmarked((prev) => {
       const next = new Set(prev);
       if (next.has(grammar.id)) next.delete(grammar.id);
       else next.add(grammar.id);
@@ -193,7 +215,7 @@ function StructureStudyPage() {
       await refetchProgress();
     } catch {
       // Revert on error
-      setBookmarked(prev => {
+      setBookmarked((prev) => {
         const next = new Set(prev);
         if (isCurrentlyBookmarked) next.add(grammar.id);
         else next.delete(grammar.id);
@@ -251,7 +273,9 @@ function StructureStudyPage() {
           {/* Title */}
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[grammar.level]}`}>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[grammar.level]}`}
+              >
                 JLPT {grammar.level}
               </span>
               <span className="font-display font-black text-white text-base leading-tight text-center">
@@ -269,16 +293,20 @@ function StructureStudyPage() {
                 : "bg-white/20 border-white/20 text-white/70 hover:bg-white/30 hover:text-white"
             }`}
           >
-            {isBook
-              ? <BookmarkCheck className="w-5 h-5 fill-yellow-400" />
-              : <Bookmark className="w-5 h-5" />}
+            {isBook ? (
+              <BookmarkCheck className="w-5 h-5 fill-yellow-400" />
+            ) : (
+              <Bookmark className="w-5 h-5" />
+            )}
           </button>
         </div>
 
         {/* Progress stats */}
         <div className="flex items-center justify-center gap-4 text-xs text-white/80 font-semibold">
           <span className="flex items-center gap-1">
-            <span className="font-black text-white text-sm">{currentIndex + 1} / {allStructures.length}</span>
+            <span className="font-black text-white text-sm">
+              {currentIndex + 1} / {allStructures.length}
+            </span>
           </span>
           <div className="w-px h-4 bg-white/20" />
           <span className="flex items-center gap-1">
@@ -308,8 +336,8 @@ function StructureStudyPage() {
                   isCurrent
                     ? "bg-gradient-hero text-white shadow-lg shadow-primary/40 scale-110"
                     : isLearned
-                    ? "bg-green-500/30 text-green-300 border border-green-400/30"
-                    : "bg-white/15 text-white/70 border border-white/20 hover:bg-white/25"
+                      ? "bg-green-500/30 text-green-300 border border-green-400/30"
+                      : "bg-white/15 text-white/70 border border-white/20 hover:bg-white/25"
                 }`}
               >
                 {i + 1}
@@ -346,7 +374,9 @@ function StructureStudyPage() {
             >
               {/* Card header */}
               <div className="bg-gradient-to-r from-blue-500/30 via-purple-500/30 to-pink-500/30 px-5 py-2.5 flex items-center justify-between">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[grammar.level]}`}>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[grammar.level]}`}
+                >
                   JLPT {grammar.level}
                 </span>
                 <div className="flex items-center gap-2">
@@ -357,15 +387,27 @@ function StructureStudyPage() {
                     </span>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); toggleBookmark(); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleBookmark();
+                    }}
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                      isBook ? "bg-yellow-400/30 text-yellow-300" : "hover:bg-white/10 text-white/60"
+                      isBook
+                        ? "bg-yellow-400/30 text-yellow-300"
+                        : "hover:bg-white/10 text-white/60"
                     }`}
                   >
-                    {isBook ? <BookmarkCheck className="w-4 h-4 fill-yellow-400" /> : <Bookmark className="w-4 h-4" />}
+                    {isBook ? (
+                      <BookmarkCheck className="w-4 h-4 fill-yellow-400" />
+                    ) : (
+                      <Bookmark className="w-4 h-4" />
+                    )}
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); speakJapanese(grammar.title); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      speakJapanese(grammar.title);
+                    }}
                     title="Play pronunciation"
                     className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition"
                   >
@@ -388,7 +430,10 @@ function StructureStudyPage() {
                   </div>
                   <div
                     className="font-display font-black text-white leading-none"
-                    style={{ fontSize: "clamp(1.5rem, 5vw, 3rem)", fontFamily: "var(--font-japanese, serif)" }}
+                    style={{
+                      fontSize: "clamp(1.5rem, 5vw, 3rem)",
+                      fontFamily: "var(--font-japanese, serif)",
+                    }}
                   >
                     {grammar.title}
                   </div>
@@ -397,8 +442,12 @@ function StructureStudyPage() {
 
                 {/* Formation */}
                 <div className="px-4 py-2.5 rounded-2xl bg-purple-500/15 border border-purple-400/20 mb-6">
-                  <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-0.5">Formation</div>
-                  <div className="font-display font-black text-white text-base">{structure.formation}</div>
+                  <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-0.5">
+                    Formation
+                  </div>
+                  <div className="font-display font-black text-white text-base">
+                    {structure.formation}
+                  </div>
                 </div>
 
                 {/* Tap to reveal / Full content */}
@@ -433,8 +482,12 @@ function StructureStudyPage() {
                       {/* Usage */}
                       {structure.usage && structure.usage !== "—" && (
                         <div className="px-4 py-3 rounded-2xl bg-white/10 border border-white/15">
-                          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Usage</div>
-                          <div className="text-white/90 text-sm leading-relaxed">{structure.usage}</div>
+                          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">
+                            Usage
+                          </div>
+                          <div className="text-white/90 text-sm leading-relaxed">
+                            {structure.usage}
+                          </div>
                         </div>
                       )}
 
@@ -443,16 +496,24 @@ function StructureStudyPage() {
                         <div className="px-4 py-3 rounded-2xl bg-green-500/10 border border-green-400/20">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                            <div className="text-[10px] font-bold text-green-300 uppercase tracking-widest">When to Use</div>
+                            <div className="text-[10px] font-bold text-green-300 uppercase tracking-widest">
+                              When to Use
+                            </div>
                           </div>
-                          <div className="text-white/80 text-xs leading-relaxed">{structure.whenToUse}</div>
+                          <div className="text-white/80 text-xs leading-relaxed">
+                            {structure.whenToUse}
+                          </div>
                         </div>
                         <div className="px-4 py-3 rounded-2xl bg-red-500/10 border border-red-400/20">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <X className="w-3.5 h-3.5 text-red-400" />
-                            <div className="text-[10px] font-bold text-red-300 uppercase tracking-widest">When NOT to Use</div>
+                            <div className="text-[10px] font-bold text-red-300 uppercase tracking-widest">
+                              When NOT to Use
+                            </div>
                           </div>
-                          <div className="text-white/80 text-xs leading-relaxed">{structure.whenNotToUse}</div>
+                          <div className="text-white/80 text-xs leading-relaxed">
+                            {structure.whenNotToUse}
+                          </div>
                         </div>
                       </div>
 
@@ -461,16 +522,22 @@ function StructureStudyPage() {
                         <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-400/20">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-                            <div className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">Common Mistakes</div>
+                            <div className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">
+                              Common Mistakes
+                            </div>
                           </div>
-                          <div className="text-white/80 text-xs leading-relaxed">{structure.commonMistakes}</div>
+                          <div className="text-white/80 text-xs leading-relaxed">
+                            {structure.commonMistakes}
+                          </div>
                         </div>
                       )}
 
                       {/* Examples */}
                       {structure.examples.length > 0 && (
                         <div className="px-4 py-3 rounded-2xl bg-purple-500/10 border border-purple-400/20">
-                          <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-2">Examples</div>
+                          <div className="text-[10px] font-bold text-purple-300 uppercase tracking-widest mb-2">
+                            Examples
+                          </div>
                           <div className="space-y-2">
                             {structure.examples.map((ex, i) => (
                               <div key={i} className="flex gap-2">
@@ -484,8 +551,12 @@ function StructureStudyPage() {
                                   >
                                     {ex.japanese}
                                   </div>
-                                  <div className="text-white/40 text-[10px] italic mt-0.5">{ex.furigana}</div>
-                                  <div className="text-white/70 text-xs mt-0.5">{ex.translation}</div>
+                                  <div className="text-white/40 text-[10px] italic mt-0.5">
+                                    {ex.furigana}
+                                  </div>
+                                  <div className="text-white/70 text-xs mt-0.5">
+                                    {ex.translation}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -498,9 +569,13 @@ function StructureStudyPage() {
                         <div className="px-4 py-3 rounded-2xl bg-sky-500/10 border border-sky-400/20">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <GraduationCap className="w-3.5 h-3.5 text-sky-400" />
-                            <div className="text-[10px] font-bold text-sky-300 uppercase tracking-widest">Notes</div>
+                            <div className="text-[10px] font-bold text-sky-300 uppercase tracking-widest">
+                              Notes
+                            </div>
                           </div>
-                          <div className="text-white/80 text-xs leading-relaxed whitespace-pre-line">{structure.notes}</div>
+                          <div className="text-white/80 text-xs leading-relaxed whitespace-pre-line">
+                            {structure.notes}
+                          </div>
                         </div>
                       )}
                     </motion.div>

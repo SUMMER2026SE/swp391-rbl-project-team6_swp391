@@ -1,8 +1,21 @@
-export type ReportType = "Content issue" | "Technical bug" | "Student behavior" | "Feature request" | "Accessibility" | "Other";
+export type ReportType =
+  | "Content issue"
+  | "Technical bug"
+  | "Student behavior"
+  | "Feature request"
+  | "Accessibility"
+  | "Other";
 export type ReportStatus = "Open" | "In review" | "Resolved";
 export type ReportPriority = "Low" | "Medium" | "High" | "Urgent";
 
-export const REPORT_TYPES: ReportType[] = ["Content issue", "Technical bug", "Student behavior", "Feature request", "Accessibility", "Other"];
+export const REPORT_TYPES: ReportType[] = [
+  "Content issue",
+  "Technical bug",
+  "Student behavior",
+  "Feature request",
+  "Accessibility",
+  "Other",
+];
 export const REPORT_STATUSES: ReportStatus[] = ["Open", "In review", "Resolved"];
 export const REPORT_PRIORITIES: ReportPriority[] = ["Low", "Medium", "High", "Urgent"];
 
@@ -54,7 +67,8 @@ export const MOCK_REPORTS: TeacherReport[] = [
       {
         id: "rep-001",
         author: "admin",
-        message: "Thank you for the suggestion! We're working on adding more N1 listening materials.",
+        message:
+          "Thank you for the suggestion! We're working on adding more N1 listening materials.",
         createdAt: "2026-06-17T10:00:00Z",
       },
     ],

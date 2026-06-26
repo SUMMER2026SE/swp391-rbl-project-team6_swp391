@@ -6,12 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getReports } from "@/data/teacher-data";
 import { StatusBadge } from "@/components/teacher/badges";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { MessageSquare, Plus, Search, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -64,20 +75,39 @@ function ReportCard({ report, onPreview }: { report: Report; onPreview: (r: Repo
   );
 }
 
-function ThreadMessage({ author, time, message }: { author: string; time: string; message: string }) {
+function ThreadMessage({
+  author,
+  time,
+  message,
+}: {
+  author: string;
+  time: string;
+  message: string;
+}) {
   const isTeacher = author === "Aiko Tanaka";
   return (
     <div className={cn("flex gap-3", isTeacher ? "flex-row-reverse" : "flex-row")}>
-      <div className={cn("max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm", isTeacher ? "bg-primary text-primary-foreground" : "bg-muted")}>
+      <div
+        className={cn(
+          "max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm",
+          isTeacher ? "bg-primary text-primary-foreground" : "bg-muted",
+        )}
+      >
         <div className="mb-0.5 text-xs font-semibold opacity-70">{author}</div>
         <p>{message}</p>
-        <div className={cn("mt-1 text-[10px] opacity-60", isTeacher ? "text-right" : "")}>{time}</div>
+        <div className={cn("mt-1 text-[10px] opacity-60", isTeacher ? "text-right" : "")}>
+          {time}
+        </div>
       </div>
     </div>
   );
 }
 
-function ReportPreviewSheet({ report, open, onOpenChange }: {
+function ReportPreviewSheet({
+  report,
+  open,
+  onOpenChange,
+}: {
   report: Report | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -149,12 +179,17 @@ function ReportPreviewSheet({ report, open, onOpenChange }: {
   );
 }
 
-function NewReportDialog({ open, onOpenChange }: {
+function NewReportDialog({
+  open,
+  onOpenChange,
+}: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<"Attendance" | "Behavior" | "Progress" | "Other">("Other");
+  const [category, setCategory] = useState<"Attendance" | "Behavior" | "Progress" | "Other">(
+    "Other",
+  );
   const [summary, setSummary] = useState("");
   const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState("");
@@ -234,7 +269,9 @@ function NewReportDialog({ open, onOpenChange }: {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button onClick={handleSubmit}>Create Report</Button>
         </DialogFooter>
       </DialogContent>
@@ -245,7 +282,9 @@ function NewReportDialog({ open, onOpenChange }: {
 function TeacherReportsPage() {
   const allReports = getReports();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Open" | "In review" | "Resolved">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Open" | "In review" | "Resolved">(
+    "All",
+  );
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);

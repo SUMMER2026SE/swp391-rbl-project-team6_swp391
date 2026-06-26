@@ -28,12 +28,15 @@ export { normalizeLesson, normalizeLessonDetail };
 
 // ─── Payload Normalizers (teacher-only, not shared) ─────────────────────────────
 
-function normalizeCreateWordPayload(word: VocabularyWordCreateRequest): VocabularyWordCreateRequest {
+function normalizeCreateWordPayload(
+  word: VocabularyWordCreateRequest,
+): VocabularyWordCreateRequest {
   const japanese = word.japanese ?? word.word;
   const vietnamese = word.vietnamese ?? word.meaning;
   const reading = word.reading ?? word.furigana;
   const exampleJapanese = word.exampleJapanese ?? word.example_japanese;
-  const exampleVietnamese = word.exampleVietnamese ?? word.exampleMeaning ?? word.example_vietnamese;
+  const exampleVietnamese =
+    word.exampleVietnamese ?? word.exampleMeaning ?? word.example_vietnamese;
   const audioUrl = word.audioUrl ?? word.audio_url;
   const displayOrder = word.displayOrder ?? word.display_order;
 
@@ -56,7 +59,9 @@ function normalizeCreateWordPayload(word: VocabularyWordCreateRequest): Vocabula
   };
 }
 
-function normalizeCreateLessonPayload(data: VocabularyLessonCreateRequest): VocabularyLessonCreateRequest {
+function normalizeCreateLessonPayload(
+  data: VocabularyLessonCreateRequest,
+): VocabularyLessonCreateRequest {
   return {
     title: data.title,
     description: data.description,
@@ -70,7 +75,9 @@ function normalizeCreateLessonPayload(data: VocabularyLessonCreateRequest): Voca
   };
 }
 
-function normalizeUpdateLessonPayload(data: VocabularyLessonUpdateRequest): VocabularyLessonUpdateRequest {
+function normalizeUpdateLessonPayload(
+  data: VocabularyLessonUpdateRequest,
+): VocabularyLessonUpdateRequest {
   return {
     ...data,
     estimatedMinutes: data.estimatedMinutes ?? data.estimated_minutes,
@@ -80,7 +87,9 @@ function normalizeUpdateLessonPayload(data: VocabularyLessonUpdateRequest): Voca
   };
 }
 
-function normalizeUpdateWordPayload(data: VocabularyWordUpdateRequest): VocabularyWordUpdateRequest {
+function normalizeUpdateWordPayload(
+  data: VocabularyWordUpdateRequest,
+): VocabularyWordUpdateRequest {
   return normalizeCreateWordPayload(data);
 }
 
@@ -99,7 +108,7 @@ export const teacherVocabularyApi = {
     if (params?.search) searchParams.set("search", params.search);
     const qs = searchParams.toString();
     const lessons = await api.get<VocabularyLessonResponse[]>(
-      `/teacher/vocabulary/lessons${qs ? `?${qs}` : ""}`
+      `/teacher/vocabulary/lessons${qs ? `?${qs}` : ""}`,
     );
     return lessons.map(normalizeLesson);
   },
@@ -110,7 +119,7 @@ export const teacherVocabularyApi = {
    */
   getTeacherLessonDetail: async (lessonId: string) => {
     const lesson = await api.get<VocabularyLessonDetailResponse>(
-      `/teacher/vocabulary/lessons/${lessonId}`
+      `/teacher/vocabulary/lessons/${lessonId}`,
     );
     return normalizeLessonDetail(lesson);
   },
@@ -132,7 +141,7 @@ export const teacherVocabularyApi = {
   updateLesson: async (lessonId: string, data: VocabularyLessonUpdateRequest) => {
     const lesson = await api.put<VocabularyLessonResponse>(
       `/teacher/vocabulary/lessons/${lessonId}`,
-      normalizeUpdateLessonPayload(data)
+      normalizeUpdateLessonPayload(data),
     );
     return normalizeLesson(lesson);
   },
@@ -141,8 +150,7 @@ export const teacherVocabularyApi = {
    * DELETE /api/teacher/vocabulary/lessons/{lessonId}
    * Deletes a lesson and all its words.
    */
-  deleteLesson: (lessonId: string) =>
-    api.delete<void>(`/teacher/vocabulary/lessons/${lessonId}`),
+  deleteLesson: (lessonId: string) => api.delete<void>(`/teacher/vocabulary/lessons/${lessonId}`),
 
   // ─── Word API ──────────────────────────────────────────────────────────────
 
@@ -153,7 +161,7 @@ export const teacherVocabularyApi = {
   addWord: async (lessonId: string, data: VocabularyWordCreateRequest) => {
     const word = await api.post<VocabularyWordResponse>(
       `/teacher/vocabulary/lessons/${lessonId}/words`,
-      normalizeCreateWordPayload(data)
+      normalizeCreateWordPayload(data),
     );
     return normalizeWord(word);
   },
@@ -165,7 +173,7 @@ export const teacherVocabularyApi = {
   updateWord: async (wordId: string, data: VocabularyWordUpdateRequest) => {
     const word = await api.put<VocabularyWordResponse>(
       `/teacher/vocabulary/words/${wordId}`,
-      normalizeUpdateWordPayload(data)
+      normalizeUpdateWordPayload(data),
     );
     return normalizeWord(word);
   },
@@ -174,8 +182,7 @@ export const teacherVocabularyApi = {
    * DELETE /api/teacher/vocabulary/words/{wordId}
    * Deletes a word.
    */
-  deleteWord: (wordId: string) =>
-    api.delete<void>(`/teacher/vocabulary/words/${wordId}`),
+  deleteWord: (wordId: string) => api.delete<void>(`/teacher/vocabulary/words/${wordId}`),
 
   /**
    * PATCH /api/teacher/vocabulary/lessons/{lessonId}/publish
@@ -183,7 +190,7 @@ export const teacherVocabularyApi = {
    */
   publishLesson: async (lessonId: string) => {
     const lesson = await api.patch<VocabularyLessonResponse>(
-      `/teacher/vocabulary/lessons/${lessonId}/publish`
+      `/teacher/vocabulary/lessons/${lessonId}/publish`,
     );
     return normalizeLesson(lesson);
   },
@@ -194,7 +201,7 @@ export const teacherVocabularyApi = {
    */
   unpublishLesson: async (lessonId: string) => {
     const lesson = await api.patch<VocabularyLessonResponse>(
-      `/teacher/vocabulary/lessons/${lessonId}/unpublish`
+      `/teacher/vocabulary/lessons/${lessonId}/unpublish`,
     );
     return normalizeLesson(lesson);
   },

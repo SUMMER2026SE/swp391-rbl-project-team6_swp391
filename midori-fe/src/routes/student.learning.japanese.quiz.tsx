@@ -17,17 +17,19 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { cn } from "@/lib/utils";
-import {
-  LESSONS,
-  getLessonById,
-  speakJapanese,
-} from "@/data/japanese-learning-data";
+import { LESSONS, getLessonById, speakJapanese } from "@/data/japanese-learning-data";
 
 export const Route = createFileRoute("/student/learning/japanese/quiz")({
   component: QuizHubPage,
 });
 
-type QuizType = "recognition" | "listening" | "matching" | "wordbuilding" | "fillblank" | "romaji-to-char";
+type QuizType =
+  | "recognition"
+  | "listening"
+  | "matching"
+  | "wordbuilding"
+  | "fillblank"
+  | "romaji-to-char";
 
 const QUIZ_TYPES: {
   id: QuizType;
@@ -103,9 +105,8 @@ function QuizHubPage() {
   const [showLessonSelect, setShowLessonSelect] = useState(false);
   const [selectedQuizType, setSelectedQuizType] = useState<QuizType | null>(null);
 
-  const filteredLessons = selectedLesson === "all"
-    ? LESSONS
-    : LESSONS.filter((l) => l.id === selectedLesson);
+  const filteredLessons =
+    selectedLesson === "all" ? LESSONS : LESSONS.filter((l) => l.id === selectedLesson);
 
   // If quiz type is selected, show lesson selection
   if (selectedQuizType) {
@@ -123,7 +124,9 @@ function QuizHubPage() {
                 <ChevronLeft className="w-5 h-5 text-slate-700 dark:text-white" />
               </button>
               <div>
-                <h1 className="text-2xl font-black text-slate-800 dark:text-white">Select Lesson</h1>
+                <h1 className="text-2xl font-black text-slate-800 dark:text-white">
+                  Select Lesson
+                </h1>
                 <p className="text-sm text-slate-500 dark:text-indigo-200/60">
                   Choose a lesson for {selectedQuizType} quiz
                 </p>
@@ -146,7 +149,9 @@ function QuizHubPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-slate-800 dark:text-white">All Characters</h3>
-                  <p className="text-sm text-slate-500 dark:text-indigo-200/60">Test on all available characters</p>
+                  <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                    Test on all available characters
+                  </p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-slate-400" />
               </motion.button>
@@ -162,12 +167,19 @@ function QuizHubPage() {
                   }}
                   className="w-full flex items-center gap-4 p-5 rounded-2xl bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 hover:shadow-xl hover:-translate-y-1 transition-all text-left"
                 >
-                  <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg", lesson.color)}>
+                  <div
+                    className={cn(
+                      "w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl font-bold text-white shadow-lg",
+                      lesson.color,
+                    )}
+                  >
                     {lesson.icon}
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800 dark:text-white">{lesson.title}</h3>
-                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">{lesson.characters.length} characters</p>
+                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                      {lesson.characters.length} characters
+                    </p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </motion.button>
@@ -194,7 +206,9 @@ function QuizHubPage() {
             </Link>
             <div>
               <h1 className="text-2xl font-black text-slate-800 dark:text-white">Quizzes</h1>
-              <p className="text-sm text-slate-500 dark:text-indigo-200/60">Test your Japanese character knowledge</p>
+              <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                Test your Japanese character knowledge
+              </p>
             </div>
           </div>
 
@@ -211,25 +225,36 @@ function QuizHubPage() {
                   onClick={() => setSelectedQuizType(quiz.id)}
                   className="w-full flex items-center gap-4 p-5 rounded-2xl bg-white/80 dark:bg-indigo-950/50 backdrop-blur-sm border border-slate-200/60 dark:border-white/10 hover:shadow-xl hover:-translate-y-1 transition-all text-left"
                 >
-                  <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg", quiz.color)}>
+                  <div
+                    className={cn(
+                      "w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+                      quiz.color,
+                    )}
+                  >
                     <quiz.icon className="w-7 h-7 text-white" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-slate-800 dark:text-white">{quiz.title}</h3>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                        quiz.difficulty === 1
-                          ? "bg-green-500/20 text-green-600"
-                          : quiz.difficulty === 2
-                          ? "bg-amber-500/20 text-amber-600"
-                          : "bg-red-500/20 text-red-600"
-                      )}>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                          quiz.difficulty === 1
+                            ? "bg-green-500/20 text-green-600"
+                            : quiz.difficulty === 2
+                              ? "bg-amber-500/20 text-amber-600"
+                              : "bg-red-500/20 text-red-600",
+                        )}
+                      >
                         {quiz.difficulty === 1 ? "Easy" : quiz.difficulty === 2 ? "Medium" : "Hard"}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">{quiz.description}</p>
-                    <p className="text-xs text-slate-400 dark:text-indigo-200/40 mt-1">{quiz.questionCount} questions</p>
+                    <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                      {quiz.description}
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-indigo-200/40 mt-1">
+                      {quiz.questionCount} questions
+                    </p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
                 </button>
@@ -259,12 +284,12 @@ function QuizPage() {
   // Get characters based on lesson and quiz type
   const getCharacters = () => {
     let chars = [...HIRAGANA_BASIC, ...KATAKANA_BASIC];
-    
+
     // For romaji-to-char, only show hiragana
     if (quizType === "romaji-to-char") {
       chars = [...HIRAGANA_BASIC];
     }
-    
+
     if (lessonId === "all") {
       return chars.slice(0, 46); // Limit to 46 for basic quiz
     }
@@ -328,7 +353,8 @@ function QuizPage() {
     setSelectedAnswer(answer);
     // For romaji-to-char, correct answer is the character, not romaji
     const currentQ = questions[currentIdx];
-    const correctAnswer = currentQ.type === "romaji-to-char" ? currentQ.correctAnswer : currentQ.romaji;
+    const correctAnswer =
+      currentQ.type === "romaji-to-char" ? currentQ.correctAnswer : currentQ.romaji;
     const isCorrect = answer === correctAnswer;
 
     if (isCorrect) {
@@ -369,33 +395,60 @@ function QuizPage() {
               </Link>
               <div>
                 <h1 className="text-2xl font-black text-slate-800 dark:text-white">
-                  {quizType === "recognition" ? "Recognition" : quizType === "romaji-to-char" ? "Romaji to Hiragana" : quizType === "listening" ? "Listening" : quizType === "matching" ? "Matching" : quizType === "wordbuilding" ? "Word Building" : "Fill in the Blank"} Quiz
+                  {quizType === "recognition"
+                    ? "Recognition"
+                    : quizType === "romaji-to-char"
+                      ? "Romaji to Hiragana"
+                      : quizType === "listening"
+                        ? "Listening"
+                        : quizType === "matching"
+                          ? "Matching"
+                          : quizType === "wordbuilding"
+                            ? "Word Building"
+                            : "Fill in the Blank"}{" "}
+                  Quiz
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-indigo-200/60">{lessonId === "all" ? "All Characters" : getLessonById(lessonId)?.title}</p>
+                <p className="text-sm text-slate-500 dark:text-indigo-200/60">
+                  {lessonId === "all" ? "All Characters" : getLessonById(lessonId)?.title}
+                </p>
               </div>
             </div>
 
             <div className="bg-white/80 dark:bg-indigo-950/50 rounded-3xl p-8 text-center border border-slate-200/60 dark:border-white/20">
-              <div className={cn(
-                "w-20 h-20 rounded-full mx-auto mb-6 bg-gradient-to-br flex items-center justify-center",
-                quizType === "recognition" ? "from-pink-400 to-rose-500" :
-                quizType === "romaji-to-char" ? "from-green-400 to-emerald-500" :
-                quizType === "listening" ? "from-blue-400 to-cyan-500" :
-                quizType === "matching" ? "from-purple-400 to-violet-500" :
-                quizType === "wordbuilding" ? "from-emerald-400 to-teal-500" :
-                "from-amber-400 to-orange-500"
-              )}>
+              <div
+                className={cn(
+                  "w-20 h-20 rounded-full mx-auto mb-6 bg-gradient-to-br flex items-center justify-center",
+                  quizType === "recognition"
+                    ? "from-pink-400 to-rose-500"
+                    : quizType === "romaji-to-char"
+                      ? "from-green-400 to-emerald-500"
+                      : quizType === "listening"
+                        ? "from-blue-400 to-cyan-500"
+                        : quizType === "matching"
+                          ? "from-purple-400 to-violet-500"
+                          : quizType === "wordbuilding"
+                            ? "from-emerald-400 to-teal-500"
+                            : "from-amber-400 to-orange-500",
+                )}
+              >
                 <Trophy className="w-10 h-10 text-white" />
               </div>
 
-              <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Ready to Quiz?</h2>
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">
+                Ready to Quiz?
+              </h2>
               <p className="text-slate-600 dark:text-indigo-200/80 mb-6">
-                {quizType === "recognition" ? "Identify romaji readings from characters" :
-                 quizType === "romaji-to-char" ? "Select the correct Hiragana for the romaji shown" :
-                 quizType === "listening" ? "Listen and identify characters" :
-                 quizType === "matching" ? "Match characters to meanings" :
-                 quizType === "wordbuilding" ? "Build words from components" :
-                 "Complete words with missing characters"}
+                {quizType === "recognition"
+                  ? "Identify romaji readings from characters"
+                  : quizType === "romaji-to-char"
+                    ? "Select the correct Hiragana for the romaji shown"
+                    : quizType === "listening"
+                      ? "Listen and identify characters"
+                      : quizType === "matching"
+                        ? "Match characters to meanings"
+                        : quizType === "wordbuilding"
+                          ? "Build words from components"
+                          : "Complete words with missing characters"}
               </p>
 
               <div className="flex items-center justify-center gap-6 text-sm text-slate-500 dark:text-indigo-200/60 mb-6">
@@ -408,12 +461,17 @@ function QuizPage() {
                 onClick={startQuiz}
                 className={cn(
                   "w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold hover:opacity-90 transition",
-                  quizType === "recognition" ? "bg-gradient-to-r from-pink-500 to-purple-500" :
-                  quizType === "romaji-to-char" ? "bg-gradient-to-r from-green-500 to-emerald-500" :
-                  quizType === "listening" ? "bg-gradient-to-r from-blue-500 to-cyan-500" :
-                  quizType === "matching" ? "bg-gradient-to-r from-purple-500 to-violet-500" :
-                  quizType === "wordbuilding" ? "bg-gradient-to-r from-emerald-500 to-teal-500" :
-                  "bg-gradient-to-r from-amber-500 to-orange-500"
+                  quizType === "recognition"
+                    ? "bg-gradient-to-r from-pink-500 to-purple-500"
+                    : quizType === "romaji-to-char"
+                      ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                      : quizType === "listening"
+                        ? "bg-gradient-to-r from-blue-500 to-cyan-500"
+                        : quizType === "matching"
+                          ? "bg-gradient-to-r from-purple-500 to-violet-500"
+                          : quizType === "wordbuilding"
+                            ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                            : "bg-gradient-to-r from-amber-500 to-orange-500",
                 )}
               >
                 <Play className="w-5 h-5" />
@@ -440,10 +498,14 @@ function QuizPage() {
               animate={{ scale: 1, opacity: 1 }}
               className="bg-white/80 dark:bg-indigo-950/50 rounded-3xl p-8 text-center border border-slate-200/60 dark:border-white/20"
             >
-              <div className={cn(
-                "w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center",
-                passed ? "bg-gradient-to-br from-green-400 to-emerald-500" : "bg-gradient-to-br from-amber-400 to-orange-500"
-              )}>
+              <div
+                className={cn(
+                  "w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center",
+                  passed
+                    ? "bg-gradient-to-br from-green-400 to-emerald-500"
+                    : "bg-gradient-to-br from-amber-400 to-orange-500",
+                )}
+              >
                 <Trophy className="w-12 h-12 text-white" />
               </div>
 
@@ -460,7 +522,9 @@ function QuizPage() {
                 <div
                   className={cn(
                     "h-full rounded-full",
-                    passed ? "bg-gradient-to-r from-green-400 to-emerald-500" : "bg-gradient-to-r from-amber-400 to-orange-500"
+                    passed
+                      ? "bg-gradient-to-r from-green-400 to-emerald-500"
+                      : "bg-gradient-to-r from-amber-400 to-orange-500",
                   )}
                   style={{ width: `${finalScore}%` }}
                 />
@@ -509,12 +573,14 @@ function QuizPage() {
                   key={i}
                   className={cn(
                     "w-3 h-3 rounded-full",
-                    i < lives ? "bg-red-500" : "bg-slate-300 dark:bg-white/20"
+                    i < lives ? "bg-red-500" : "bg-slate-300 dark:bg-white/20",
                   )}
                 />
               ))}
             </div>
-            <span className="font-bold text-slate-800 dark:text-white">{score}/{questions.length}</span>
+            <span className="font-bold text-slate-800 dark:text-white">
+              {score}/{questions.length}
+            </span>
           </div>
 
           {/* Progress */}
@@ -522,12 +588,17 @@ function QuizPage() {
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                quizType === "recognition" ? "bg-gradient-to-r from-pink-500 to-purple-500" :
-                quizType === "romaji-to-char" ? "bg-gradient-to-r from-green-500 to-emerald-500" :
-                quizType === "listening" ? "bg-gradient-to-r from-blue-500 to-cyan-500" :
-                quizType === "matching" ? "bg-gradient-to-r from-purple-500 to-violet-500" :
-                quizType === "wordbuilding" ? "bg-gradient-to-r from-emerald-500 to-teal-500" :
-                "bg-gradient-to-r from-amber-500 to-orange-500"
+                quizType === "recognition"
+                  ? "bg-gradient-to-r from-pink-500 to-purple-500"
+                  : quizType === "romaji-to-char"
+                    ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                    : quizType === "listening"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-500"
+                      : quizType === "matching"
+                        ? "bg-gradient-to-r from-purple-500 to-violet-500"
+                        : quizType === "wordbuilding"
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                          : "bg-gradient-to-r from-amber-500 to-orange-500",
               )}
               style={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }}
             />
@@ -580,15 +651,21 @@ function QuizPage() {
           <div className="grid grid-cols-2 gap-3">
             {currentQuestion.options.map((option: string) => {
               const isSelected = selectedAnswer === option;
-              const isCorrect = option === (currentQuestion.type === "romaji-to-char" ? currentQuestion.correctAnswer : currentQuestion.romaji);
+              const isCorrect =
+                option ===
+                (currentQuestion.type === "romaji-to-char"
+                  ? currentQuestion.correctAnswer
+                  : currentQuestion.romaji);
               const showCorrect = selectedAnswer && isCorrect;
               const showIncorrect = selectedAnswer && isSelected && !isCorrect;
 
-              let btnStyle = "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white";
-              
+              let btnStyle =
+                "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20 text-slate-700 dark:text-white";
+
               // For romaji-to-char, style the hiragana options
               if (currentQuestion.type === "romaji-to-char") {
-                btnStyle = "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20";
+                btnStyle =
+                  "bg-white/80 dark:bg-indigo-950/50 border border-slate-200/60 dark:border-white/20";
                 if (showCorrect) {
                   btnStyle = "bg-green-500/20 border-2 border-green-500/40";
                 } else if (showIncorrect) {
@@ -618,9 +695,13 @@ function QuizPage() {
                   className={cn(
                     "py-4 rounded-2xl font-bold text-center transition-all",
                     currentQuestion.type === "romaji-to-char" ? "text-4xl" : "text-xl",
-                    btnStyle
+                    btnStyle,
                   )}
-                  style={currentQuestion.type === "romaji-to-char" ? { fontFamily: "var(--font-japanese)" } : {}}
+                  style={
+                    currentQuestion.type === "romaji-to-char"
+                      ? { fontFamily: "var(--font-japanese)" }
+                      : {}
+                  }
                 >
                   {option}
                 </button>
@@ -634,7 +715,4 @@ function QuizPage() {
 }
 
 // Import character data for quiz
-import {
-  HIRAGANA_BASIC,
-  KATAKANA_BASIC,
-} from "@/data/japanese-learning-data";
+import { HIRAGANA_BASIC, KATAKANA_BASIC } from "@/data/japanese-learning-data";

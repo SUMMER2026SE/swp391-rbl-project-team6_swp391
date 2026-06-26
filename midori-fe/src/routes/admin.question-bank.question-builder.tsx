@@ -2,15 +2,39 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Plus, X, BookOpen, Loader2, Trash2, Copy,
-  Check, Circle, AlertCircle, Save, ArrowLeft, FileText, 
-  ChevronDown, ChevronUp, Music, Upload, Play, Pause,
-  Volume2, Clock, FileAudio, Library, RotateCcw
+import {
+  Plus,
+  X,
+  BookOpen,
+  Loader2,
+  Trash2,
+  Copy,
+  Check,
+  Circle,
+  AlertCircle,
+  Save,
+  ArrowLeft,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Music,
+  Upload,
+  Play,
+  Pause,
+  Volume2,
+  Clock,
+  FileAudio,
+  Library,
+  RotateCcw,
 } from "lucide-react";
 import { questionBankService, type Question } from "../services/questionBankService";
 import { audioService } from "../services/questionBank.audioService";
-import type { JLPTLevel, QuestionType, Difficulty, ListeningQuestion } from "../services/questionBank.types";
+import type {
+  JLPTLevel,
+  QuestionType,
+  Difficulty,
+  ListeningQuestion,
+} from "../services/questionBank.types";
 import { formatDuration, isListeningQuestion } from "../services/questionBank.types";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 
@@ -49,7 +73,7 @@ const createEmptyQuestion = (): QuestionForm => ({
 
 const isQuestionComplete = (q: QuestionForm): boolean => {
   if (!q.questionText.trim()) return false;
-  if (!q.options.every(opt => opt.trim())) return false;
+  if (!q.options.every((opt) => opt.trim())) return false;
   // Listening requires audio
   if (q.type === "Listening" && !q.audioUrl) return false;
   return true;
@@ -57,13 +81,13 @@ const isQuestionComplete = (q: QuestionForm): boolean => {
 
 // ─── Audio Upload Component ───────────────────────────────────────────────────────────────────
 
-function AudioUploadSection({ 
-  audioUrl, 
-  audioFileName, 
-  audioDuration, 
-  onUpload, 
-  onRemove 
-}: { 
+function AudioUploadSection({
+  audioUrl,
+  audioFileName,
+  audioDuration,
+  onUpload,
+  onRemove,
+}: {
   audioUrl: string;
   audioFileName: string;
   audioDuration: number;
@@ -251,12 +275,22 @@ function AudioUploadSection({
                     libraryAudios.map((audio) => (
                       <button
                         key={audio.id}
-                        onClick={() => handleSelectFromLibrary({ url: audio.url, fileName: audio.fileName, duration: audio.duration })}
+                        onClick={() =>
+                          handleSelectFromLibrary({
+                            url: audio.url,
+                            fileName: audio.fileName,
+                            duration: audio.duration,
+                          })
+                        }
                         className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--accent)] transition text-left"
                       >
                         <FileAudio className="w-4 h-4 text-pink-500 shrink-0" />
-                        <span className="text-sm text-primary-col truncate flex-1">{audio.fileName}</span>
-                        <span className="text-xs text-muted-col">{formatDuration(audio.duration)}</span>
+                        <span className="text-sm text-primary-col truncate flex-1">
+                          {audio.fileName}
+                        </span>
+                        <span className="text-xs text-muted-col">
+                          {formatDuration(audio.duration)}
+                        </span>
                       </button>
                     ))
                   )}
@@ -281,15 +315,19 @@ function AudioUploadSection({
     <div className="space-y-3">
       {/* Upload Dropzone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={`
           p-8 rounded-xl border-2 border-dashed cursor-pointer transition text-center
-          ${isDragging 
-            ? "border-pink-500 bg-pink-500/5" 
-            : "border-[var(--border)] hover:border-pink-500/40"
+          ${
+            isDragging
+              ? "border-pink-500 bg-pink-500/5"
+              : "border-[var(--border)] hover:border-pink-500/40"
           }
           ${isUploading ? "pointer-events-none opacity-50" : ""}
         `}
@@ -311,9 +349,7 @@ function AudioUploadSection({
         <p className="text-sm font-medium text-primary-col mb-1">
           {isUploading ? "Uploading..." : "Upload Audio"}
         </p>
-        <p className="text-xs text-muted-col">
-          Drag & drop audio here or click to browse
-        </p>
+        <p className="text-xs text-muted-col">Drag & drop audio here or click to browse</p>
       </div>
 
       {/* Supported Formats */}
@@ -352,17 +388,29 @@ function AudioUploadSection({
               />
               <div className="max-h-48 overflow-y-auto space-y-1">
                 {libraryAudios.length === 0 ? (
-                  <p className="text-sm text-muted-col text-center py-4">No audio files in library</p>
+                  <p className="text-sm text-muted-col text-center py-4">
+                    No audio files in library
+                  </p>
                 ) : (
                   libraryAudios.map((audio) => (
                     <button
                       key={audio.id}
-                      onClick={() => handleSelectFromLibrary({ url: audio.url, fileName: audio.fileName, duration: audio.duration })}
+                      onClick={() =>
+                        handleSelectFromLibrary({
+                          url: audio.url,
+                          fileName: audio.fileName,
+                          duration: audio.duration,
+                        })
+                      }
                       className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--accent)] transition text-left"
                     >
                       <FileAudio className="w-4 h-4 text-pink-500 shrink-0" />
-                      <span className="text-sm text-primary-col truncate flex-1">{audio.fileName}</span>
-                      <span className="text-xs text-muted-col">{formatDuration(audio.duration)}</span>
+                      <span className="text-sm text-primary-col truncate flex-1">
+                        {audio.fileName}
+                      </span>
+                      <span className="text-xs text-muted-col">
+                        {formatDuration(audio.duration)}
+                      </span>
                     </button>
                   ))
                 )}
@@ -378,10 +426,14 @@ function AudioUploadSection({
 // ─── Main Question Builder Page ───────────────────────────────────────────────────────────────────
 
 function QuestionBuilderPage() {
-  const search = useSearch({ from: "/admin/question-bank/question-builder" }) as { level?: string; lessonId?: string; editId?: string };
+  const search = useSearch({ from: "/admin/question-bank/question-builder" }) as {
+    level?: string;
+    lessonId?: string;
+    editId?: string;
+  };
   const navigate = useNavigate();
 
-  const level = ((search.level?.toUpperCase()) || "N5") as JLPTLevel;
+  const level = (search.level?.toUpperCase() || "N5") as JLPTLevel;
   const lessonId = parseInt(search.lessonId || "1");
   const editId = search.editId as string | undefined;
 
@@ -432,28 +484,32 @@ function QuestionBuilderPage() {
   }, [level, lessonId, editId]);
 
   // Get current selected question
-  const selectedQuestion = questions.find(q => q.id === selectedQuestionId) || questions[0];
+  const selectedQuestion = questions.find((q) => q.id === selectedQuestionId) || questions[0];
 
   // Update question
   const updateQuestion = (id: string, field: keyof QuestionForm, value: unknown) => {
-    setQuestions(prev => prev.map(q =>
-      q.id === id ? { ...q, [field]: value } : q
-    ));
+    setQuestions((prev) => prev.map((q) => (q.id === id ? { ...q, [field]: value } : q)));
   };
 
   // Add new question
   const addQuestion = () => {
     const newQ = createEmptyQuestion();
-    setQuestions(prev => [...prev, newQ]);
+    setQuestions((prev) => [...prev, newQ]);
     setSelectedQuestionId(newQ.id);
-    setExpandedSections({ info: true, audio: true, content: true, answers: true, explanation: false });
+    setExpandedSections({
+      info: true,
+      audio: true,
+      content: true,
+      answers: true,
+      explanation: false,
+    });
   };
 
   // Remove question
   const removeQuestion = (id: string) => {
     if (questions.length === 1) return;
-    const index = questions.findIndex(q => q.id === id);
-    const newQuestions = questions.filter(q => q.id !== id);
+    const index = questions.findIndex((q) => q.id === id);
+    const newQuestions = questions.filter((q) => q.id !== id);
     setQuestions(newQuestions);
 
     if (selectedQuestionId === id) {
@@ -464,7 +520,7 @@ function QuestionBuilderPage() {
 
   // Duplicate question
   const duplicateQuestion = (id: string) => {
-    const original = questions.find(q => q.id === id);
+    const original = questions.find((q) => q.id === id);
     if (!original) return;
 
     const duplicate: QuestionForm = {
@@ -476,7 +532,7 @@ function QuestionBuilderPage() {
       audioDuration: 0,
     };
 
-    const index = questions.findIndex(q => q.id === id);
+    const index = questions.findIndex((q) => q.id === id);
     const newQuestions = [...questions];
     newQuestions.splice(index + 1, 0, duplicate);
     setQuestions(newQuestions);
@@ -485,7 +541,7 @@ function QuestionBuilderPage() {
 
   // Toggle section expansion
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   // Save all questions using service
@@ -499,15 +555,17 @@ function QuestionBuilderPage() {
     // Validate listening questions have audio
     for (const q of completeQuestions) {
       if (q.type === "Listening" && !q.audioUrl) {
-        alert("Listening questions require an audio file. Please upload audio for all incomplete listening questions.");
+        alert(
+          "Listening questions require an audio file. Please upload audio for all incomplete listening questions.",
+        );
         return;
       }
     }
 
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    completeQuestions.forEach(q => {
+    completeQuestions.forEach((q) => {
       if (q.type === "Listening") {
         if (q.id.startsWith("temp_")) {
           questionBankService.createQuestion(level, lessonId, {
@@ -566,7 +624,9 @@ function QuestionBuilderPage() {
     setIsSubmitting(false);
 
     setTimeout(() => {
-      navigate({ to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}` });
+      navigate({
+        to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+      });
     }, 1500);
   };
 
@@ -575,18 +635,25 @@ function QuestionBuilderPage() {
 
   const getTypeColor = (type: QuestionType) => {
     switch (type) {
-      case "Vocabulary": return "bg-blue-500/12 text-blue-600 border-blue-500/20";
-      case "Grammar": return "bg-purple-500/12 text-purple-600 border-purple-500/20";
-      case "Reading": return "bg-orange-500/12 text-orange-600 border-orange-500/20";
-      case "Listening": return "bg-pink-500/12 text-pink-600 border-pink-500/20";
+      case "Vocabulary":
+        return "bg-blue-500/12 text-blue-600 border-blue-500/20";
+      case "Grammar":
+        return "bg-purple-500/12 text-purple-600 border-purple-500/20";
+      case "Reading":
+        return "bg-orange-500/12 text-orange-600 border-orange-500/20";
+      case "Listening":
+        return "bg-pink-500/12 text-pink-600 border-pink-500/20";
     }
   };
 
   const getDifficultyColor = (diff: Difficulty) => {
     switch (diff) {
-      case "Easy": return "bg-green-500/12 text-green-600 border-green-500/20";
-      case "Medium": return "bg-yellow-500/12 text-yellow-600 border-yellow-500/20";
-      case "Hard": return "bg-red-500/12 text-red-600 border-red-500/20";
+      case "Easy":
+        return "bg-green-500/12 text-green-600 border-green-500/20";
+      case "Medium":
+        return "bg-yellow-500/12 text-yellow-600 border-yellow-500/20";
+      case "Hard":
+        return "bg-red-500/12 text-red-600 border-red-500/20";
     }
   };
 
@@ -603,7 +670,10 @@ function QuestionBuilderPage() {
         breadcrumbs={[
           { label: "Question Bank", href: "/admin/question-bank" },
           { label: level, href: `/admin/question-bank/${level.toLowerCase()}` },
-          { label: lessonName, href: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}` },
+          {
+            label: lessonName,
+            href: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+          },
           { label: "Question Builder" },
         ]}
         title="Question Builder"
@@ -668,17 +738,20 @@ function QuestionBuilderPage() {
                     onClick={() => setSelectedQuestionId(q.id)}
                     className={`
                       p-3 rounded-xl cursor-pointer transition-all
-                      ${isSelected
-                        ? "bg-primary/12 border border-primary/30 shadow-sm"
-                        : "border border-transparent hover:bg-muted/50"
+                      ${
+                        isSelected
+                          ? "bg-primary/12 border border-primary/30 shadow-sm"
+                          : "border border-transparent hover:bg-muted/50"
                       }
                     `}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-                          isComplete ? "bg-green-500/20" : "bg-yellow-500/20"
-                        }`}>
+                        <div
+                          className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                            isComplete ? "bg-green-500/20" : "bg-yellow-500/20"
+                          }`}
+                        >
                           {isComplete ? (
                             <Check className="w-3 h-3 text-green-600" />
                           ) : (
@@ -694,14 +767,20 @@ function QuestionBuilderPage() {
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button
-                          onClick={(e) => { e.stopPropagation(); duplicateQuestion(q.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            duplicateQuestion(q.id);
+                          }}
                           className="p-1 rounded hover:bg-[var(--accent)] text-muted-col hover:text-primary transition"
                           title="Duplicate"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); removeQuestion(q.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeQuestion(q.id);
+                          }}
                           disabled={questions.length === 1}
                           className="p-1 rounded hover:bg-red-500/10 text-muted-col hover:text-red-500 transition disabled:opacity-30 disabled:cursor-not-allowed"
                           title="Remove"
@@ -710,11 +789,15 @@ function QuestionBuilderPage() {
                         </button>
                       </div>
                     </div>
-                    <p className={`mt-1.5 text-[11px] line-clamp-2 ml-7 ${q.questionText ? "text-muted-col" : "text-muted-foreground/50 italic"}`}>
+                    <p
+                      className={`mt-1.5 text-[11px] line-clamp-2 ml-7 ${q.questionText ? "text-muted-col" : "text-muted-foreground/50 italic"}`}
+                    >
                       {q.questionText || "No question text..."}
                     </p>
                     <div className="mt-1.5 flex items-center gap-1 ml-7">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getTypeColor(q.type)}`}>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getTypeColor(q.type)}`}
+                      >
                         {q.type}
                       </span>
                       {q.type === "Listening" && !q.audioUrl && (
@@ -753,18 +836,32 @@ function QuestionBuilderPage() {
                 >
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-sm text-primary-col">Question Information</span>
+                    <span className="font-semibold text-sm text-primary-col">
+                      Question Information
+                    </span>
                   </div>
-                  {expandedSections.info ? <ChevronUp className="w-4 h-4 text-muted-col" /> : <ChevronDown className="w-4 h-4 text-muted-col" />}
+                  {expandedSections.info ? (
+                    <ChevronUp className="w-4 h-4 text-muted-col" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-col" />
+                  )}
                 </button>
                 {expandedSections.info && (
                   <div className="px-5 pb-4 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Question Type</label>
+                        <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                          Question Type
+                        </label>
                         <select
                           value={selectedQuestion.type}
-                          onChange={e => updateQuestion(selectedQuestion.id, "type", e.target.value as QuestionType)}
+                          onChange={(e) =>
+                            updateQuestion(
+                              selectedQuestion.id,
+                              "type",
+                              e.target.value as QuestionType,
+                            )
+                          }
                           className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
                         >
                           <option value="Vocabulary">Vocabulary</option>
@@ -774,10 +871,18 @@ function QuestionBuilderPage() {
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">Difficulty</label>
+                        <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                          Difficulty
+                        </label>
                         <select
                           value={selectedQuestion.difficulty}
-                          onChange={e => updateQuestion(selectedQuestion.id, "difficulty", e.target.value as Difficulty)}
+                          onChange={(e) =>
+                            updateQuestion(
+                              selectedQuestion.id,
+                              "difficulty",
+                              e.target.value as Difficulty,
+                            )
+                          }
                           className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
                         >
                           <option value="Easy">Easy</option>
@@ -799,14 +904,20 @@ function QuestionBuilderPage() {
                   >
                     <div className="flex items-center gap-2">
                       <Music className="w-4 h-4 text-pink-500" />
-                      <span className="font-semibold text-sm text-primary-col">Listening Audio</span>
+                      <span className="font-semibold text-sm text-primary-col">
+                        Listening Audio
+                      </span>
                       {!selectedQuestion.audioUrl && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/12 text-red-600 border border-red-500/20">
                           Required
                         </span>
                       )}
                     </div>
-                    {expandedSections.audio ? <ChevronUp className="w-4 h-4 text-muted-col" /> : <ChevronDown className="w-4 h-4 text-muted-col" />}
+                    {expandedSections.audio ? (
+                      <ChevronUp className="w-4 h-4 text-muted-col" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-col" />
+                    )}
                   </button>
                   {expandedSections.audio && (
                     <div className="px-5 pb-4">
@@ -843,18 +954,29 @@ function QuestionBuilderPage() {
                       <span className="text-xs text-muted-col">(Transcript or instruction)</span>
                     )}
                   </div>
-                  {expandedSections.content ? <ChevronUp className="w-4 h-4 text-muted-col" /> : <ChevronDown className="w-4 h-4 text-muted-col" />}
+                  {expandedSections.content ? (
+                    <ChevronUp className="w-4 h-4 text-muted-col" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-col" />
+                  )}
                 </button>
                 {expandedSections.content && (
                   <div className="px-5 pb-4 space-y-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
-                        {isListening ? "Instructions" : "Question Text"} <span className="text-red-500">*</span>
+                        {isListening ? "Instructions" : "Question Text"}{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={selectedQuestion.questionText}
-                        onChange={e => updateQuestion(selectedQuestion.id, "questionText", e.target.value)}
-                        placeholder={isListening ? "e.g., Listen to the dialogue and select the correct response..." : "Enter your question here..."}
+                        onChange={(e) =>
+                          updateQuestion(selectedQuestion.id, "questionText", e.target.value)
+                        }
+                        placeholder={
+                          isListening
+                            ? "e.g., Listen to the dialogue and select the correct response..."
+                            : "Enter your question here..."
+                        }
                         rows={3}
                         className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition resize-none"
                       />
@@ -874,19 +996,23 @@ function QuestionBuilderPage() {
                     <span className="font-semibold text-sm text-primary-col">Answer Options</span>
                     <span className="text-xs text-muted-col">(Select the correct answer)</span>
                   </div>
-                  {expandedSections.answers ? <ChevronUp className="w-4 h-4 text-muted-col" /> : <ChevronDown className="w-4 h-4 text-muted-col" />}
+                  {expandedSections.answers ? (
+                    <ChevronUp className="w-4 h-4 text-muted-col" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-col" />
+                  )}
                 </button>
                 {expandedSections.answers && (
                   <div className="px-5 pb-4 space-y-2">
-                    {[0, 1, 2, 3].map(i => (
+                    {[0, 1, 2, 3].map((i) => (
                       <div key={i} className="flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => updateQuestion(selectedQuestion.id, "correctIndex", i)}
                           className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 transition ${
                             selectedQuestion.correctIndex === i
-                              ? 'bg-primary text-white shadow-md'
-                              : 'bg-muted text-muted-foreground hover:bg-primary/10'
+                              ? "bg-primary text-white shadow-md"
+                              : "bg-muted text-muted-foreground hover:bg-primary/10"
                           }`}
                         >
                           {String.fromCharCode(65 + i)}
@@ -894,7 +1020,7 @@ function QuestionBuilderPage() {
                         <input
                           type="text"
                           value={selectedQuestion.options[i]}
-                          onChange={e => {
+                          onChange={(e) => {
                             const newOpts = [...selectedQuestion.options];
                             newOpts[i] = e.target.value;
                             updateQuestion(selectedQuestion.id, "options", newOpts);
@@ -922,13 +1048,19 @@ function QuestionBuilderPage() {
                     <span className="font-semibold text-sm text-primary-col">Explanation</span>
                     <span className="text-xs text-muted-col">(Optional)</span>
                   </div>
-                  {expandedSections.explanation ? <ChevronUp className="w-4 h-4 text-muted-col" /> : <ChevronDown className="w-4 h-4 text-muted-col" />}
+                  {expandedSections.explanation ? (
+                    <ChevronUp className="w-4 h-4 text-muted-col" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-col" />
+                  )}
                 </button>
                 {expandedSections.explanation && (
                   <div className="px-5 pb-4">
                     <textarea
                       value={selectedQuestion.explanation}
-                      onChange={e => updateQuestion(selectedQuestion.id, "explanation", e.target.value)}
+                      onChange={(e) =>
+                        updateQuestion(selectedQuestion.id, "explanation", e.target.value)
+                      }
                       placeholder="Explain the correct answer to help students understand..."
                       rows={2}
                       className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition resize-none"
@@ -949,11 +1081,16 @@ function QuestionBuilderPage() {
           {/* Sticky Footer */}
           <div className="card-base p-4 flex items-center justify-between sticky bottom-4 shadow-lg border border-[var(--border)]">
             <div className="text-sm text-muted-col">
-              {completeCount} of {questions.length} question{questions.length !== 1 ? "s" : ""} ready to save
+              {completeCount} of {questions.length} question{questions.length !== 1 ? "s" : ""}{" "}
+              ready to save
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate({ to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}` })}
+                onClick={() =>
+                  navigate({
+                    to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+                  })
+                }
                 className="px-4 py-2.5 rounded-xl bg-muted text-muted-col text-sm font-semibold hover:bg-muted/80 transition"
               >
                 Cancel

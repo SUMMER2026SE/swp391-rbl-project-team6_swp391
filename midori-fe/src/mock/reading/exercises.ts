@@ -4,11 +4,24 @@ import type { JLPTLevel } from "../../types/content-library";
 
 export interface ReadingExercise {
   id: string;
-  type: "multiple-choice" | "true-false" | "fill-blank" | "vocabulary-matching" | "comprehension" | "sentence-order" | "translation";
+  type:
+    | "multiple-choice"
+    | "true-false"
+    | "fill-blank"
+    | "vocabulary-matching"
+    | "comprehension"
+    | "sentence-order"
+    | "translation";
   difficulty: "easy" | "medium" | "hard";
   jlptLevel: JLPTLevel;
   instruction: string;
-  data: MultipleChoiceExercise | TrueFalseExercise | FillBlankExercise | VocabularyMatchingExercise | SentenceOrderExercise | TranslationExercise;
+  data:
+    | MultipleChoiceExercise
+    | TrueFalseExercise
+    | FillBlankExercise
+    | VocabularyMatchingExercise
+    | SentenceOrderExercise
+    | TranslationExercise;
 }
 
 export interface MultipleChoiceExercise {
@@ -75,9 +88,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
       question: "私は每天早上六点半_______。",
       options: ["寝ます", "起きます", "食べます", "飲みます"],
       correctAnswer: 1,
-      explanation: "「起きます」means to wake up/get up, fitting the context of early morning routine.",
-      readingId: "read-n5-004"
-    } as MultipleChoiceExercise
+      explanation:
+        "「起きます」means to wake up/get up, fitting the context of early morning routine.",
+      readingId: "read-n5-004",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-002",
@@ -90,8 +104,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["です", "います", "します", "です"],
       correctAnswer: 1,
       explanation: "「います」is used for people and animals, indicating existence.",
-      readingId: "read-n5-003"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-003",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-003",
@@ -104,8 +118,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["です", "います", "します", "でした"],
       correctAnswer: 0,
       explanation: "「です」is the polite sentence ending to state facts.",
-      readingId: "read-n5-001"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-001",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-004",
@@ -118,8 +132,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["の", "は", "が", "を"],
       correctAnswer: 1,
       explanation: "「は」is the topic marker particle.",
-      readingId: "read-n5-007"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-007",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-005",
@@ -132,8 +146,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["は", "が", "に", "で"],
       correctAnswer: 1,
       explanation: "「が」is used to mark the subject of existence.",
-      readingId: "read-n5-018"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-018",
+    } as MultipleChoiceExercise,
   },
 
   // True/False - Basic
@@ -147,8 +161,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "田中さんは十八歳です。",
       correctAnswer: true,
       explanation: "From the reading: 「十八歳です」(18 years old).",
-      readingId: "read-n5-001"
-    } as TrueFalseExercise
+      readingId: "read-n5-001",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-007",
@@ -159,9 +173,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
     data: {
       statement: "妹は高校生ではありません。",
       correctAnswer: false,
-      explanation: "From the reading: 「妹は十七歳で、高校生です」(The sister is 17 and a high school student).",
-      readingId: "read-n5-003"
-    } as TrueFalseExercise
+      explanation:
+        "From the reading: 「妹は十七歳で、高校生です」(The sister is 17 and a high school student).",
+      readingId: "read-n5-003",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-008",
@@ -173,8 +188,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "今日は雨です。",
       correctAnswer: false,
       explanation: "From the reading: 「今日は晴れです」(Today is sunny).",
-      readingId: "read-n5-007"
-    } as TrueFalseExercise
+      readingId: "read-n5-007",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-009",
@@ -185,9 +200,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
     data: {
       statement: "放課後は部活があります。",
       correctAnswer: true,
-      explanation: "From the reading: 「放課後は部活があります」(After school, there are club activities).",
-      readingId: "read-n5-002"
-    } as TrueFalseExercise
+      explanation:
+        "From the reading: 「放課後は部活があります」(After school, there are club activities).",
+      readingId: "read-n5-002",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-010",
@@ -199,8 +215,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "靴は三万円でした。",
       correctAnswer: true,
       explanation: "From the reading: 「三万円でした」(It was 30,000 yen).",
-      readingId: "read-n5-005"
-    } as TrueFalseExercise
+      readingId: "read-n5-005",
+    } as TrueFalseExercise,
   },
 
   // Fill in the Blank - Basic
@@ -215,9 +231,9 @@ export const n5ReadingExercises: ReadingExercise[] = [
       blankPosition: 0,
       options: ["寝ます", "起きます", "食べます", "飲みます"],
       correctAnswer: 1,
-      explanation: "The context of "every morning" suggests waking up.",
-      readingId: "read-n5-004"
-    } as FillBlankExercise
+      explanation: "The context of 'every morning' suggests waking up.",
+      readingId: "read-n5-004",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-012",
@@ -231,8 +247,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["三人", "四人", "五人", "六人"],
       correctAnswer: 1,
       explanation: "From the reading: 父、母、妹と私 = 4 people.",
-      readingId: "read-n5-003"
-    } as FillBlankExercise
+      readingId: "read-n5-003",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-013",
@@ -246,8 +262,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["切手", "水果", "料理", "写真"],
       correctAnswer: 0,
       explanation: "From the reading: 「趣味は切手の収集です」(My hobby is collecting stamps).",
-      readingId: "read-n5-001"
-    } as FillBlankExercise
+      readingId: "read-n5-001",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-014",
@@ -261,8 +277,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["千円", "万円", "百円", "十万円"],
       correctAnswer: 1,
       explanation: "From the reading: 「三万円でした」(It was 30,000 yen).",
-      readingId: "read-n5-005"
-    } as FillBlankExercise
+      readingId: "read-n5-005",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-015",
@@ -276,8 +292,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["行き", "歩き", "走り", "泳ぎ"],
       correctAnswer: 0,
       explanation: "「行ってください」means please go.",
-      readingId: "read-n5-018"
-    } as FillBlankExercise
+      readingId: "read-n5-018",
+    } as FillBlankExercise,
   },
 
   // Vocabulary Matching - Basic
@@ -294,12 +310,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "friend" },
         { id: "b", meaning: "family" },
         { id: "c", meaning: "school" },
-        { id: "d", meaning: "work" }
+        { id: "d", meaning: "work" },
       ],
       correctAnswer: "b",
       explanation: "「家族」(kazoku) means family.",
-      readingId: "read-n5-003"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-003",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-017",
@@ -314,12 +330,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "study" },
         { id: "b", meaning: "work" },
         { id: "c", meaning: "hobby" },
-        { id: "d", meaning: "food" }
+        { id: "d", meaning: "food" },
       ],
       correctAnswer: "c",
       explanation: "「趣味」(shumi) means hobby.",
-      readingId: "read-n5-001"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-001",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-018",
@@ -334,12 +350,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "time" },
         { id: "b", meaning: "weather" },
         { id: "c", meaning: "place" },
-        { id: "d", meaning: "person" }
+        { id: "d", meaning: "person" },
       ],
       correctAnswer: "b",
       explanation: "「天気」(tenki) means weather.",
-      readingId: "read-n5-007"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-007",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-019",
@@ -354,12 +370,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "hat" },
         { id: "b", meaning: "shoes" },
         { id: "c", meaning: "bag" },
-        { id: "d", meaning: "coat" }
+        { id: "d", meaning: "coat" },
       ],
       correctAnswer: "b",
       explanation: "「靴」(kutsu) means shoes.",
-      readingId: "read-n5-005"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-005",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-020",
@@ -374,12 +390,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "airport" },
         { id: "b", meaning: "port" },
         { id: "c", meaning: "station" },
-        { id: "d", meaning: "bank" }
+        { id: "d", meaning: "bank" },
       ],
       correctAnswer: "c",
       explanation: "「駅」(eki) means station.",
-      readingId: "read-n5-018"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-018",
+    } as VocabularyMatchingExercise,
   },
 
   // Comprehension - Basic
@@ -390,12 +406,13 @@ export const n5ReadingExercises: ReadingExercise[] = [
     jlptLevel: "N5",
     instruction: "Read the passage and answer the question:",
     data: {
-      question: "田中さんは何处に出身ですか？\n\n「私の名前は田中あおいと言います。十八歳です。東京都の出身です。今は大学の日本語を勉强しています。」",
+      question:
+        "田中さんは何处に出身ですか？\n\n「私の名前は田中あおいと言います。十八歳です。東京都の出身です。今は大学の日本語を勉强しています。」",
       options: ["大阪", "京都", "東京都", "奈良"],
       correctAnswer: 2,
       explanation: "From the reading: 「東京都の出身です」(I am from Tokyo).",
-      readingId: "read-n5-001"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-001",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-022",
@@ -408,8 +425,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["教師", "社长", "医者", "店員"],
       correctAnswer: 1,
       explanation: "From the reading: 「父は会社の社长です」(My father is a company president).",
-      readingId: "read-n5-003"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-003",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-023",
@@ -422,8 +439,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["二万円", "三万円", "四万円", "五万円"],
       correctAnswer: 1,
       explanation: "From the reading: 「三万円でした」(It was 30,000 yen).",
-      readingId: "read-n5-005"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-005",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-024",
@@ -435,9 +452,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
       question: "放課後干什么？\n\n「放課後は部活があります。火曜日は日本語のClaireがあります。」",
       options: ["回家", "部活", "買い物", "勉強"],
       correctAnswer: 1,
-      explanation: "From the reading: 「放課後は部活があります」(After school, there are club activities).",
-      readingId: "read-n5-002"
-    } as MultipleChoiceExercise
+      explanation:
+        "From the reading: 「放課後は部活があります」(After school, there are club activities).",
+      readingId: "read-n5-002",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-025",
@@ -446,12 +464,13 @@ export const n5ReadingExercises: ReadingExercise[] = [
     jlptLevel: "N5",
     instruction: "Read the passage and answer the question:",
     data: {
-      question: "駅はどこにありますか？\n\n「この道をまっすぐ行ってください。二番目の交差点で右に曲がってください。銀行の裏侧になります。」",
+      question:
+        "駅はどこにありますか？\n\n「この道をまっすぐ行ってください。二番目の交差点で右に曲がってください。銀行の裏侧になります。」",
       options: ["银行前面", "银行后面", "银行的左边", "银行的右边"],
       correctAnswer: 1,
       explanation: "From the reading: 「銀行の裏侧になります」(It will be behind the bank).",
-      readingId: "read-n5-018"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-018",
+    } as MultipleChoiceExercise,
   },
 
   // Sentence Ordering - Basic
@@ -466,8 +485,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [2, 0, 1, 3],
       correctSentence: "毎日六時半に起きます。",
       explanation: "Time expressions typically come before the verb in Japanese.",
-      readingId: "read-n5-004"
-    } as SentenceOrderExercise
+      readingId: "read-n5-004",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-027",
@@ -480,8 +499,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [2, 0, 3, 1],
       correctSentence: "家族は四人です。",
       explanation: "The topic marker は follows the topic.",
-      readingId: "read-n5-003"
-    } as SentenceOrderExercise
+      readingId: "read-n5-003",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-028",
@@ -494,8 +513,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [1, 0, 2],
       correctSentence: "今日は晴れです。",
       explanation: "Topic comes first, followed by the predicate.",
-      readingId: "read-n5-007"
-    } as SentenceOrderExercise
+      readingId: "read-n5-007",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-029",
@@ -508,8 +527,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [2, 0, 3, 4, 1],
       correctSentence: "趣味は切手の収集です。",
       explanation: "The topic + は + modifier + の + noun + です pattern.",
-      readingId: "read-n5-001"
-    } as SentenceOrderExercise
+      readingId: "read-n5-001",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-030",
@@ -522,8 +541,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [1, 0, 2],
       correctSentence: "駅はどこですか？",
       explanation: "Question word order: noun + は + question word + か.",
-      readingId: "read-n5-018"
-    } as SentenceOrderExercise
+      readingId: "read-n5-018",
+    } as SentenceOrderExercise,
   },
 
   // Translation - Basic
@@ -536,15 +555,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
     data: {
       originalSentence: "おはようございます。",
       language: "ja-en",
-      options: [
-        "Good night.",
-        "Good morning.",
-        "Thank you.",
-        "Excuse me."
-      ],
+      options: ["Good night.", "Good morning.", "Thank you.", "Excuse me."],
       correctAnswer: 1,
       explanation: "「おはようございます」means Good morning.",
-    } as TranslationExercise
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-032",
@@ -555,15 +569,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
     data: {
       originalSentence: "ありがとうございます。",
       language: "ja-en",
-      options: [
-        "Good morning.",
-        "See you later.",
-        "Thank you.",
-        "Goodbye."
-      ],
+      options: ["Good morning.", "See you later.", "Thank you.", "Goodbye."],
       correctAnswer: 2,
       explanation: "「ありがとうございます」means Thank you very much.",
-    } as TranslationExercise
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-033",
@@ -578,12 +587,13 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "Excuse me, where is the station?",
         "Hello, I am at the station.",
         "Thank you for the station.",
-        "Goodbye, station."
+        "Goodbye, station.",
       ],
       correctAnswer: 0,
-      explanation: "「すみません」is used to get attention and apologize. 「どこですか」means where is it?",
-      readingId: "read-n5-018"
-    } as TranslationExercise
+      explanation:
+        "「すみません」is used to get attention and apologize. 「どこですか」means where is it?",
+      readingId: "read-n5-018",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-034",
@@ -598,12 +608,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "There are three people in my family.",
         "There are four people in my family.",
         "There are five people in my family.",
-        "There are two people in my family."
+        "There are two people in my family.",
       ],
       correctAnswer: 1,
       explanation: "「四人です」means there are four people.",
-      readingId: "read-n5-003"
-    } as TranslationExercise
+      readingId: "read-n5-003",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-035",
@@ -618,12 +628,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "My hobby is reading books.",
         "My hobby is collecting stamps.",
         "My hobby is taking photos.",
-        "My hobby is cooking."
+        "My hobby is cooking.",
       ],
       correctAnswer: 1,
       explanation: "「切手の収集」means stamp collecting.",
-      readingId: "read-n5-001"
-    } as TranslationExercise
+      readingId: "read-n5-001",
+    } as TranslationExercise,
   },
 
   // More Multiple Choice
@@ -638,7 +648,7 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["は", "が", "を", "に"],
       correctAnswer: 0,
       explanation: "「は」marks the topic of the sentence.",
-    } as MultipleChoiceExercise
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-037",
@@ -651,7 +661,7 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["は", "が", "を", "で"],
       correctAnswer: 3,
       explanation: "「で」indicates the means of transportation.",
-    } as MultipleChoiceExercise
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-038",
@@ -664,8 +674,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["今日", "明日", "昨日", "毎日"],
       correctAnswer: 0,
       explanation: "「今日」(kyou) means today.",
-      readingId: "read-n5-007"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-007",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-039",
@@ -678,8 +688,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["私", "父", "母", "妹"],
       correctAnswer: 0,
       explanation: "From the reading: 「十八歳です」(I am 18 years old).",
-      readingId: "read-n5-001"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-001",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-040",
@@ -691,9 +701,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
       question: "_____は高中生了。",
       options: ["父", "母", "妹", "私"],
       correctAnswer: 2,
-      explanation: "From the reading: 「妹は十七歳で、高校生です」(The sister is 17 and a high school student).",
-      readingId: "read-n5-003"
-    } as MultipleChoiceExercise
+      explanation:
+        "From the reading: 「妹は十七歳で、高校生です」(The sister is 17 and a high school student).",
+      readingId: "read-n5-003",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-041",
@@ -706,8 +717,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["は", "が", "を", "で"],
       correctAnswer: 0,
       explanation: "「は」marks the topic being discussed.",
-      readingId: "read-n5-002"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-002",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-042",
@@ -720,8 +731,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["で", "に", "と", "の"],
       correctAnswer: 3,
       explanation: "「の」connects the modifier to the noun.",
-      readingId: "read-n5-005"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-005",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-043",
@@ -734,8 +745,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["前", "後ろ", "上", "下"],
       correctAnswer: 1,
       explanation: "「裏」(ura) means behind/back.",
-      readingId: "read-n5-018"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-018",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-044",
@@ -748,8 +759,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["左に", "右に", "前に", "後に"],
       correctAnswer: 1,
       explanation: "「右に曲がる」means to turn right.",
-      readingId: "read-n5-018"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-018",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-045",
@@ -762,8 +773,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["晴れ", "雨", "雪", "曇り"],
       correctAnswer: 1,
       explanation: "From the reading: 「明日は雨が降る見込みです」(Rain is expected tomorrow).",
-      readingId: "read-n5-007"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-007",
+    } as MultipleChoiceExercise,
   },
 
   // More Fill in the Blank
@@ -779,8 +790,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["で", "に", "は", "が"],
       correctAnswer: 1,
       explanation: "「に」marks the specific time.",
-      readingId: "read-n5-004"
-    } as FillBlankExercise
+      readingId: "read-n5-004",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-047",
@@ -794,8 +805,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "に"],
       correctAnswer: 1,
       explanation: "「は」marks the topic.",
-      readingId: "read-n5-003"
-    } as FillBlankExercise
+      readingId: "read-n5-003",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-048",
@@ -809,8 +820,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "の"],
       correctAnswer: 1,
       explanation: "「は」marks the topic.",
-      readingId: "read-n5-001"
-    } as FillBlankExercise
+      readingId: "read-n5-001",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-049",
@@ -824,8 +835,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "で"],
       correctAnswer: 1,
       explanation: "「は」marks the topic.",
-      readingId: "read-n5-007"
-    } as FillBlankExercise
+      readingId: "read-n5-007",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-050",
@@ -839,8 +850,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "で"],
       correctAnswer: 1,
       explanation: "「は」marks the topic.",
-      readingId: "read-n5-018"
-    } as FillBlankExercise
+      readingId: "read-n5-018",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-051",
@@ -854,8 +865,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["で", "に", "は", "が"],
       correctAnswer: 0,
       explanation: "「で」marks the location where an action takes place.",
-      readingId: "read-n5-005"
-    } as FillBlankExercise
+      readingId: "read-n5-005",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-052",
@@ -869,8 +880,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "に"],
       correctAnswer: 1,
       explanation: "「は」marks the topic.",
-      readingId: "read-n5-002"
-    } as FillBlankExercise
+      readingId: "read-n5-002",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-053",
@@ -884,8 +895,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "で"],
       correctAnswer: 1,
       explanation: "「は」marks the topic.",
-      readingId: "read-n5-002"
-    } as FillBlankExercise
+      readingId: "read-n5-002",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-054",
@@ -899,8 +910,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "で"],
       correctAnswer: 1,
       explanation: "「は」marks the topic.",
-      readingId: "read-n5-005"
-    } as FillBlankExercise
+      readingId: "read-n5-005",
+    } as FillBlankExercise,
   },
   {
     id: "ex-n5-055",
@@ -914,8 +925,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["が", "は", "を", "の"],
       correctAnswer: 3,
       explanation: "「の」connects the modifier to the noun.",
-      readingId: "read-n5-018"
-    } as FillBlankExercise
+      readingId: "read-n5-018",
+    } as FillBlankExercise,
   },
 
   // More True/False
@@ -929,8 +940,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "田中さんは東京都出身です。",
       correctAnswer: true,
       explanation: "From the reading: 「東京都の出身です」.",
-      readingId: "read-n5-001"
-    } as TrueFalseExercise
+      readingId: "read-n5-001",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-057",
@@ -942,8 +953,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "授業は八時に始まります。",
       correctAnswer: false,
       explanation: "From the reading: 「授業は九時に始まります」(Classes start at 9).",
-      readingId: "read-n5-002"
-    } as TrueFalseExercise
+      readingId: "read-n5-002",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-058",
@@ -955,8 +966,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "最高気温は二十八度です。",
       correctAnswer: true,
       explanation: "From the reading: 「最高気温は二十八度です」.",
-      readingId: "read-n5-007"
-    } as TrueFalseExercise
+      readingId: "read-n5-007",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-059",
@@ -968,8 +979,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "靴は二万円でした。",
       correctAnswer: false,
       explanation: "From the reading: 「三万円でした」(It was 30,000 yen).",
-      readingId: "read-n5-005"
-    } as TrueFalseExercise
+      readingId: "read-n5-005",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-060",
@@ -981,8 +992,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "车站前面有银行。",
       correctAnswer: false,
       explanation: "From the reading: 「銀行の裏侧になります」(It will be behind the bank).",
-      readingId: "read-n5-018"
-    } as TrueFalseExercise
+      readingId: "read-n5-018",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-061",
@@ -994,8 +1005,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "趣味は切手の収集です。",
       correctAnswer: true,
       explanation: "From the reading: 「趣味は切手の収集です」.",
-      readingId: "read-n5-001"
-    } as TrueFalseExercise
+      readingId: "read-n5-001",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-062",
@@ -1007,8 +1018,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "父は医者です。",
       correctAnswer: false,
       explanation: "From the reading: 「父は会社の社长です」(My father is a company president).",
-      readingId: "read-n5-003"
-    } as TrueFalseExercise
+      readingId: "read-n5-003",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-063",
@@ -1020,8 +1031,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "母は看護師です。",
       correctAnswer: true,
       explanation: "From the reading: 「母は医院的护士です」(My mother is a nurse).",
-      readingId: "read-n5-003"
-    } as TrueFalseExercise
+      readingId: "read-n5-003",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-064",
@@ -1033,8 +1044,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "学校は六時までです。",
       correctAnswer: true,
       explanation: "From the reading: 「がっこうは六時までです」(School is until 6).",
-      readingId: "read-n5-002"
-    } as TrueFalseExercise
+      readingId: "read-n5-002",
+    } as TrueFalseExercise,
   },
   {
     id: "ex-n5-065",
@@ -1046,8 +1057,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       statement: "明天不下雨。",
       correctAnswer: false,
       explanation: "From the reading: 「明日は雨が降る見込みです」(Rain is expected tomorrow).",
-      readingId: "read-n5-007"
-    } as TrueFalseExercise
+      readingId: "read-n5-007",
+    } as TrueFalseExercise,
   },
 
   // More Vocabulary Matching
@@ -1064,12 +1075,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "homework" },
         { id: "b", meaning: "class/lesson" },
         { id: "c", meaning: "exam" },
-        { id: "d", meaning: "club" }
+        { id: "d", meaning: "club" },
       ],
       correctAnswer: "b",
       explanation: "「授業」(jugyou) means class or lesson.",
-      readingId: "read-n5-002"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-002",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-067",
@@ -1084,12 +1095,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "homework" },
         { id: "b", meaning: "club activities" },
         { id: "c", meaning: "class" },
-        { id: "d", meaning: "club member" }
+        { id: "d", meaning: "club member" },
       ],
       correctAnswer: "b",
       explanation: "「部活」(bukatsu) means club activities.",
-      readingId: "read-n5-002"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-002",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-068",
@@ -1104,12 +1115,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "corner" },
         { id: "b", meaning: "intersection" },
         { id: "c", meaning: "crossing" },
-        { id: "d", meaning: "road" }
+        { id: "d", meaning: "road" },
       ],
       correctAnswer: "b",
       explanation: "「交差点」(kousaten) means intersection.",
-      readingId: "read-n5-018"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-018",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-069",
@@ -1124,12 +1135,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "left" },
         { id: "b", meaning: "right" },
         { id: "c", meaning: "front" },
-        { id: "d", meaning: "back" }
+        { id: "d", meaning: "back" },
       ],
       correctAnswer: "b",
       explanation: "「右」(migi) means right.",
-      readingId: "read-n5-018"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-018",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-070",
@@ -1144,12 +1155,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "lowest temperature" },
         { id: "b", meaning: "average temperature" },
         { id: "c", meaning: "highest temperature" },
-        { id: "d", meaning: "current temperature" }
+        { id: "d", meaning: "current temperature" },
       ],
       correctAnswer: "c",
       explanation: "「最高気温」(saikou kion) means highest temperature.",
-      readingId: "read-n5-007"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-007",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-071",
@@ -1164,12 +1175,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "to go straight" },
         { id: "b", meaning: "to turn" },
         { id: "c", meaning: "to stop" },
-        { id: "d", meaning: "to run" }
+        { id: "d", meaning: "to run" },
       ],
       correctAnswer: "b",
       explanation: "「曲がる」(magaru) means to turn.",
-      readingId: "read-n5-018"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-018",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-072",
@@ -1184,12 +1195,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "snow" },
         { id: "b", meaning: "sun" },
         { id: "c", meaning: "wind" },
-        { id: "d", meaning: "rain" }
+        { id: "d", meaning: "rain" },
       ],
       correctAnswer: "d",
       explanation: "「雨」(ame) means rain.",
-      readingId: "read-n5-007"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-007",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-073",
@@ -1204,12 +1215,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "tomorrow" },
         { id: "b", meaning: "yesterday" },
         { id: "c", meaning: "every day" },
-        { id: "d", meaning: "today" }
+        { id: "d", meaning: "today" },
       ],
       correctAnswer: "c",
       explanation: "「毎日」(mainichi) means every day.",
-      readingId: "read-n5-004"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-004",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-074",
@@ -1224,12 +1235,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "family" },
         { id: "b", meaning: "teacher" },
         { id: "c", meaning: "friend" },
-        { id: "d", meaning: "enemy" }
+        { id: "d", meaning: "enemy" },
       ],
       correctAnswer: "c",
       explanation: "「友達」(tomodachi) means friend.",
-      readingId: "read-n5-001"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-001",
+    } as VocabularyMatchingExercise,
   },
   {
     id: "ex-n5-075",
@@ -1244,12 +1255,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         { id: "a", meaning: "high school" },
         { id: "b", meaning: "university" },
         { id: "c", meaning: "middle school" },
-        { id: "d", meaning: "elementary school" }
+        { id: "d", meaning: "elementary school" },
       ],
       correctAnswer: "b",
       explanation: "「大学」(daigaku) means university.",
-      readingId: "read-n5-001"
-    } as VocabularyMatchingExercise
+      readingId: "read-n5-001",
+    } as VocabularyMatchingExercise,
   },
 
   // More Comprehension
@@ -1264,8 +1275,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["田中", "あおい", "田中あおい", "不明"],
       correctAnswer: 2,
       explanation: "「田中あおい」(Tanaka Aoi) is the full name.",
-      readingId: "read-n5-001"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-001",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-077",
@@ -1278,8 +1289,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["八時", "九時", "十時", "七時"],
       correctAnswer: 1,
       explanation: "From the reading: 「九時に始まります」.",
-      readingId: "read-n5-002"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-002",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-078",
@@ -1292,8 +1303,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["教師", "护士", "社长", "店員"],
       correctAnswer: 1,
       explanation: "From the reading: 「母は医院的护士です」(My mother is a nurse at a hospital).",
-      readingId: "read-n5-003"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-003",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-079",
@@ -1305,9 +1316,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
       question: "今天的天气怎么样？\n\n「今日は晴れで、最高気温は二十八度です。」",
       options: ["雨で寒い", "曇りで涼しい", "晴れで暑い", "雪で冷たい"],
       correctAnswer: 2,
-      explanation: "From the reading: 「今日は晴れで、最高気温は二十八度です」(Today is sunny with 28 degrees).",
-      readingId: "read-n5-007"
-    } as MultipleChoiceExercise
+      explanation:
+        "From the reading: 「今日は晴れで、最高気温は二十八度です」(Today is sunny with 28 degrees).",
+      readingId: "read-n5-007",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-080",
@@ -1320,8 +1332,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["三万円", "五千円", "一万円", "二千円"],
       correctAnswer: 1,
       explanation: "From the reading: 「全部で五千円使いました」(I spent 5,000 yen in total).",
-      readingId: "read-n5-005"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-005",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-081",
@@ -1334,8 +1346,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["一人で勉強する", "家族と旅行する", "友達と集まる", "在家睡觉"],
       correctAnswer: 2,
       explanation: "From the reading: 「週末に友達と集まります」(I meet with friends on weekends).",
-      readingId: "read-n5-001"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-001",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-082",
@@ -1348,8 +1360,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["十五歳", "十六歳", "十七歳", "十八歳"],
       correctAnswer: 2,
       explanation: "From the reading: 「妹は十七歳」(My sister is 17).",
-      readingId: "read-n5-003"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-003",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-083",
@@ -1362,8 +1374,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       options: ["五時まで", "六時まで", "七時まで", "八時まで"],
       correctAnswer: 1,
       explanation: "From the reading: 「がっこうは六時までです」(School is until 6).",
-      readingId: "read-n5-002"
-    } as MultipleChoiceExercise
+      readingId: "read-n5-002",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-084",
@@ -1375,9 +1387,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
       question: "在哪里买鞋？\n\n「デパートで新しい靴を買いました。」",
       options: ["超市", "デパート", "便利店", "市场"],
       correctAnswer: 1,
-      explanation: "From the reading: 「デパートで新しい靴を買いました」(I bought new shoes at the department store).",
-      readingId: "read-n5-005"
-    } as MultipleChoiceExercise
+      explanation:
+        "From the reading: 「デパートで新しい靴を買いました」(I bought new shoes at the department store).",
+      readingId: "read-n5-005",
+    } as MultipleChoiceExercise,
   },
   {
     id: "ex-n5-085",
@@ -1389,9 +1402,10 @@ export const n5ReadingExercises: ReadingExercise[] = [
       question: "在哪个路口转弯？\n\n「二番目の交差点で右に曲がってください。」",
       options: ["一番目", "二番目", "三番目", "四番目"],
       correctAnswer: 1,
-      explanation: "From the reading: 「二番目の交差点で右に曲がってください」(Turn right at the second intersection).",
-      readingId: "read-n5-018"
-    } as MultipleChoiceExercise
+      explanation:
+        "From the reading: 「二番目の交差点で右に曲がってください」(Turn right at the second intersection).",
+      readingId: "read-n5-018",
+    } as MultipleChoiceExercise,
   },
 
   // More Sentence Ordering
@@ -1406,8 +1420,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [2, 1, 0],
       correctSentence: "今日は晴れです。",
       explanation: "Topic (今日) + predicate (晴れです).",
-      readingId: "read-n5-007"
-    } as SentenceOrderExercise
+      readingId: "read-n5-007",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-087",
@@ -1420,8 +1434,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [0, 2, 3, 1, 4],
       correctSentence: "大学で日本語を勉强しています。",
       explanation: "Place + object + verb with -te iru form.",
-      readingId: "read-n5-001"
-    } as SentenceOrderExercise
+      readingId: "read-n5-001",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-088",
@@ -1434,8 +1448,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [0, 1, 2, 3],
       correctSentence: "学校は九時に始まります。",
       explanation: "Topic + time + particle + verb.",
-      readingId: "read-n5-002"
-    } as SentenceOrderExercise
+      readingId: "read-n5-002",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-089",
@@ -1448,8 +1462,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [2, 0, 1],
       correctSentence: "妹は高校生了です。",
       explanation: "Topic + copula + predicate.",
-      readingId: "read-n5-003"
-    } as SentenceOrderExercise
+      readingId: "read-n5-003",
+    } as SentenceOrderExercise,
   },
   {
     id: "ex-n5-090",
@@ -1462,8 +1476,8 @@ export const n5ReadingExercises: ReadingExercise[] = [
       correctOrder: [0, 2, 1, 3],
       correctSentence: "デパートで新しい靴を買いました。",
       explanation: "Location + object + verb in past tense.",
-      readingId: "read-n5-005"
-    } as SentenceOrderExercise
+      readingId: "read-n5-005",
+    } as SentenceOrderExercise,
   },
 
   // More Translation
@@ -1480,12 +1494,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "I go to bed at 6:30 every morning.",
         "I wake up at 6:30 every morning.",
         "I eat breakfast at 6:30 every morning.",
-        "I study at 6:30 every morning."
+        "I study at 6:30 every morning.",
       ],
       correctAnswer: 1,
       explanation: "「起きます」means to wake up/get up.",
-      readingId: "read-n5-004"
-    } as TranslationExercise
+      readingId: "read-n5-004",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-092",
@@ -1500,12 +1514,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "There are three people in my family.",
         "There are four people in my family.",
         "There are five people in my family.",
-        "There are two people in my family."
+        "There are two people in my family.",
       ],
       correctAnswer: 1,
       explanation: "「四人です」means four people.",
-      readingId: "read-n5-003"
-    } as TranslationExercise
+      readingId: "read-n5-003",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-093",
@@ -1520,12 +1534,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "After school, there is homework.",
         "After school, there is club activities.",
         "After school, there is lunch.",
-        "After school, there is a test."
+        "After school, there is a test.",
       ],
       correctAnswer: 1,
       explanation: "「部活」(bukatsu) means club activities.",
-      readingId: "read-n5-002"
-    } as TranslationExercise
+      readingId: "read-n5-002",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-094",
@@ -1540,12 +1554,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "My hobby is collecting stamps.",
         "My hobby is reading books.",
         "My hobby is watching TV.",
-        "My hobby is cooking."
+        "My hobby is cooking.",
       ],
       correctAnswer: 0,
       explanation: "「切手の収集」means stamp collecting.",
-      readingId: "read-n5-001"
-    } as TranslationExercise
+      readingId: "read-n5-001",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-095",
@@ -1556,16 +1570,11 @@ export const n5ReadingExercises: ReadingExercise[] = [
     data: {
       originalSentence: "今日は晴れです。",
       language: "ja-en",
-      options: [
-        "Today is rainy.",
-        "Today is cloudy.",
-        "Today is snowy.",
-        "Today is sunny."
-      ],
+      options: ["Today is rainy.", "Today is cloudy.", "Today is snowy.", "Today is sunny."],
       correctAnswer: 3,
       explanation: "「晴れ」(hare) means sunny/clear.",
-      readingId: "read-n5-007"
-    } as TranslationExercise
+      readingId: "read-n5-007",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-096",
@@ -1576,16 +1585,11 @@ export const n5ReadingExercises: ReadingExercise[] = [
     data: {
       originalSentence: "まっすぐ行ってください。",
       language: "ja-en",
-      options: [
-        "Please turn left.",
-        "Please turn right.",
-        "Please go straight.",
-        "Please stop."
-      ],
+      options: ["Please turn left.", "Please turn right.", "Please go straight.", "Please stop."],
       correctAnswer: 2,
       explanation: "「まっすぐ行ってください」means please go straight.",
-      readingId: "read-n5-018"
-    } as TranslationExercise
+      readingId: "read-n5-018",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-097",
@@ -1600,12 +1604,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "It was 20,000 yen.",
         "It was 30,000 yen.",
         "It was 40,000 yen.",
-        "It was 50,000 yen."
+        "It was 50,000 yen.",
       ],
       correctAnswer: 1,
       explanation: "「三万円」means 30,000 yen.",
-      readingId: "read-n5-005"
-    } as TranslationExercise
+      readingId: "read-n5-005",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-098",
@@ -1616,16 +1620,11 @@ export const n5ReadingExercises: ReadingExercise[] = [
     data: {
       originalSentence: "右に曲がってください。",
       language: "ja-en",
-      options: [
-        "Please turn left.",
-        "Please turn right.",
-        "Please go straight.",
-        "Please wait."
-      ],
+      options: ["Please turn left.", "Please turn right.", "Please go straight.", "Please wait."],
       correctAnswer: 1,
       explanation: "「右に曲がる」means to turn right.",
-      readingId: "read-n5-018"
-    } as TranslationExercise
+      readingId: "read-n5-018",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-099",
@@ -1640,12 +1639,12 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "It will be sunny tomorrow.",
         "It will be snowy tomorrow.",
         "Rain is expected tomorrow.",
-        "It will be cloudy tomorrow."
+        "It will be cloudy tomorrow.",
       ],
       correctAnswer: 2,
       explanation: "「雨が降る見込みです」means rain is expected.",
-      readingId: "read-n5-007"
-    } as TranslationExercise
+      readingId: "read-n5-007",
+    } as TranslationExercise,
   },
   {
     id: "ex-n5-100",
@@ -1660,26 +1659,28 @@ export const n5ReadingExercises: ReadingExercise[] = [
         "I spent 3,000 yen in total.",
         "I spent 5,000 yen in total.",
         "I spent 10,000 yen in total.",
-        "I spent 1,000 yen in total."
+        "I spent 1,000 yen in total.",
       ],
       correctAnswer: 1,
       explanation: "「五千円」means 5,000 yen.",
-      readingId: "read-n5-005"
-    } as TranslationExercise
+      readingId: "read-n5-005",
+    } as TranslationExercise,
   },
 ];
 
 // Helper functions
 export const getExercisesByLevel = (level: JLPTLevel): ReadingExercise[] => {
-  return n5ReadingExercises.filter(ex => ex.jlptLevel === level);
+  return n5ReadingExercises.filter((ex) => ex.jlptLevel === level);
 };
 
 export const getExercisesByType = (type: ReadingExercise["type"]): ReadingExercise[] => {
-  return n5ReadingExercises.filter(ex => ex.type === type);
+  return n5ReadingExercises.filter((ex) => ex.type === type);
 };
 
-export const getExercisesByDifficulty = (difficulty: ReadingExercise["difficulty"]): ReadingExercise[] => {
-  return n5ReadingExercises.filter(ex => ex.difficulty === difficulty);
+export const getExercisesByDifficulty = (
+  difficulty: ReadingExercise["difficulty"],
+): ReadingExercise[] => {
+  return n5ReadingExercises.filter((ex) => ex.difficulty === difficulty);
 };
 
 export const getRandomExercises = (count: number, level?: JLPTLevel): ReadingExercise[] => {

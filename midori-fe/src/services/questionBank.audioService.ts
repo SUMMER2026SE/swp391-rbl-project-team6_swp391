@@ -48,21 +48,19 @@ export const audioService = {
 
   // Get audio by ID
   getById(id: string): AudioItem | undefined {
-    return audioLibrary.find(a => a.id === id);
+    return audioLibrary.find((a) => a.id === id);
   },
 
   // Search audio files
   search(query: string): AudioItem[] {
     const lowerQuery = query.toLowerCase();
-    return audioLibrary.filter(a =>
-      a.fileName.toLowerCase().includes(lowerQuery)
-    );
+    return audioLibrary.filter((a) => a.fileName.toLowerCase().includes(lowerQuery));
   },
 
   // Upload audio (mock implementation)
   async uploadAudio(file: File): Promise<AudioItem> {
     // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Create mock URL from file
     const url = URL.createObjectURL(file);
@@ -85,10 +83,10 @@ export const audioService = {
 
   // Delete audio
   deleteAudio(id: string): boolean {
-    const index = audioLibrary.findIndex(a => a.id === id);
+    const index = audioLibrary.findIndex((a) => a.id === id);
     if (index === -1) return false;
 
-    audioLibrary = audioLibrary.filter(a => a.id !== id);
+    audioLibrary = audioLibrary.filter((a) => a.id !== id);
     return true;
   },
 

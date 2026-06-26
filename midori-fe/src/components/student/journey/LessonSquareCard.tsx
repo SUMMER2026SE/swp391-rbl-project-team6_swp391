@@ -67,11 +67,7 @@ interface LessonSquareCardProps {
   onClick: () => void;
 }
 
-export function LessonSquareCard({
-  lesson,
-  isCurrent,
-  onClick,
-}: LessonSquareCardProps) {
+export function LessonSquareCard({ lesson, isCurrent, onClick }: LessonSquareCardProps) {
   const isLocked = lesson.status === "LOCKED";
   const isCompleted = lesson.status === "COMPLETED";
   const isInProgress = lesson.status === "IN_PROGRESS";
@@ -136,15 +132,12 @@ export function LessonSquareCard({
         className={cn(
           "relative w-full aspect-square rounded-xl border transition-all duration-200 overflow-hidden flex flex-col",
           styles.card,
-          !isLocked && "hover:shadow-md"
+          !isLocked && "hover:shadow-md",
         )}
       >
         {/* Header */}
         <div className="relative z-10 flex items-start justify-between p-2.5">
-          <span className={cn(
-            "px-1.5 py-0.5 rounded-full text-[9px] font-bold",
-            styles.number
-          )}>
+          <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] font-bold", styles.number)}>
             L{lesson.number.toString().padStart(2, "0")}
           </span>
 
@@ -171,24 +164,17 @@ export function LessonSquareCard({
             </div>
           ) : (
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-accent flex items-center justify-center">
-              <span className="text-xl md:text-2xl font-bold text-primary">
-                {lesson.number}
-              </span>
+              <span className="text-xl md:text-2xl font-bold text-primary">{lesson.number}</span>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className={cn(
-          "relative z-10 p-2 text-center",
-          isLocked && "opacity-60"
-        )}>
+        <div className={cn("relative z-10 p-2 text-center", isLocked && "opacity-60")}>
           <div className={cn("font-semibold text-[11px] mb-0.5 truncate", styles.title)}>
             {lesson.title}
           </div>
-          <div className={cn("text-[9px] truncate", styles.subtitle)}>
-            {lesson.titleJapanese}
-          </div>
+          <div className={cn("text-[9px] truncate", styles.subtitle)}>{lesson.titleJapanese}</div>
         </div>
       </button>
 

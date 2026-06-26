@@ -2,15 +2,40 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, BookUser, GraduationCap, Users, Calendar,
-  BookOpen, ClipboardCheck, Eye, UserX,
-  Loader2, TrendingUp, Award, CheckCircle,
-  Clock, FileText, Phone, BarChart3, Settings, LayoutDashboard
+  ArrowLeft,
+  BookUser,
+  GraduationCap,
+  Users,
+  Calendar,
+  BookOpen,
+  ClipboardCheck,
+  Eye,
+  UserX,
+  Loader2,
+  TrendingUp,
+  Award,
+  CheckCircle,
+  Clock,
+  FileText,
+  Phone,
+  BarChart3,
+  Settings,
+  LayoutDashboard,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AreaChart, Area, BarChart, Bar, Tooltip, ResponsiveContainer,
-  XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  Tooltip,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
   Dialog,
@@ -42,7 +67,9 @@ function JLPTBadge({ level }: { level: string }) {
     N1: "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border-[var(--status-rejected)]/20",
   };
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${colors[level] || colors["N5"]}`}>
+    <span
+      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${colors[level] || colors["N5"]}`}
+    >
       {level}
     </span>
   );
@@ -50,9 +77,17 @@ function JLPTBadge({ level }: { level: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; color: string; bg: string }> = {
-    ACTIVE: { label: "Active", color: "text-[var(--status-active)]", bg: "bg-[var(--status-active)]" },
+    ACTIVE: {
+      label: "Active",
+      color: "text-[var(--status-active)]",
+      bg: "bg-[var(--status-active)]",
+    },
     INACTIVE: { label: "Inactive", color: "text-muted-foreground", bg: "bg-muted" },
-    BANNED: { label: "Banned", color: "text-[var(--status-rejected)]", bg: "bg-[var(--status-rejected)]" },
+    BANNED: {
+      label: "Banned",
+      color: "text-[var(--status-rejected)]",
+      bg: "bg-[var(--status-rejected)]",
+    },
   };
   const cfg = configs[status] || configs["ACTIVE"];
   return (
@@ -81,16 +116,19 @@ const mockClass = {
 };
 
 // Extended student data for profile modal
-const mockStudentDetails: Record<string, {
-  phone: string;
-  joinDate: string;
-  jlptLevel: string;
-  vocabularyProgress: number;
-  grammarProgress: number;
-  listeningProgress: number;
-  recentAssignments: { name: string; score: number; completedAt: string }[];
-}> = {
-  "s001": {
+const mockStudentDetails: Record<
+  string,
+  {
+    phone: string;
+    joinDate: string;
+    jlptLevel: string;
+    vocabularyProgress: number;
+    grammarProgress: number;
+    listeningProgress: number;
+    recentAssignments: { name: string; score: number; completedAt: string }[];
+  }
+> = {
+  s001: {
     phone: "+81 90-1234-5678",
     joinDate: "2024-01-15",
     jlptLevel: "N5",
@@ -102,7 +140,7 @@ const mockStudentDetails: Record<string, {
       { name: "Basic Greetings Quiz", score: 88, completedAt: "5 days ago" },
     ],
   },
-  "s002": {
+  s002: {
     phone: "+81 90-2345-6789",
     joinDate: "2024-01-16",
     jlptLevel: "N5",
@@ -114,7 +152,7 @@ const mockStudentDetails: Record<string, {
       { name: "Numbers Exercise", score: 72, completedAt: "3 days ago" },
     ],
   },
-  "s003": {
+  s003: {
     phone: "+81 90-3456-7890",
     joinDate: "2024-01-10",
     jlptLevel: "N4",
@@ -126,7 +164,7 @@ const mockStudentDetails: Record<string, {
       { name: "Grammar Structures", score: 91, completedAt: "4 days ago" },
     ],
   },
-  "s004": {
+  s004: {
     phone: "+81 90-4567-8901",
     joinDate: "2024-01-20",
     jlptLevel: "N5",
@@ -138,7 +176,7 @@ const mockStudentDetails: Record<string, {
       { name: "Basic Dialogue", score: 65, completedAt: "6 days ago" },
     ],
   },
-  "s005": {
+  s005: {
     phone: "+81 90-5678-9012",
     joinDate: "2024-01-12",
     jlptLevel: "N5",
@@ -150,7 +188,7 @@ const mockStudentDetails: Record<string, {
       { name: "Vocabulary Test", score: 78, completedAt: "4 days ago" },
     ],
   },
-  "s006": {
+  s006: {
     phone: "+81 90-6789-0123",
     joinDate: "2024-01-25",
     jlptLevel: "N5",
@@ -162,7 +200,7 @@ const mockStudentDetails: Record<string, {
       { name: "Introduction Quiz", score: 48, completedAt: "2 weeks ago" },
     ],
   },
-  "s007": {
+  s007: {
     phone: "+81 90-7890-1234",
     joinDate: "2024-01-08",
     jlptLevel: "N4",
@@ -174,7 +212,7 @@ const mockStudentDetails: Record<string, {
       { name: "Complex Grammar", score: 95, completedAt: "3 days ago" },
     ],
   },
-  "s008": {
+  s008: {
     phone: "+81 90-8901-2345",
     joinDate: "2024-01-14",
     jlptLevel: "N5",
@@ -189,64 +227,327 @@ const mockStudentDetails: Record<string, {
 };
 
 const mockStudents = [
-  { id: "s001", name: "Minato Aquo", email: "minato.a@example.com", progress: 85, avgScore: 88, lastActivity: "2 hours ago", status: "ACTIVE" },
-  { id: "s002", name: "Hinata Shoy", email: "hinata.s@example.com", progress: 72, avgScore: 76, lastActivity: "1 day ago", status: "ACTIVE" },
-  { id: "s003", name: "Uchiha Sashi", email: "uchiha.s@example.com", progress: 91, avgScore: 92, lastActivity: "3 hours ago", status: "ACTIVE" },
-  { id: "s004", name: "Naruto Uzum", email: "naruto.u@example.com", progress: 65, avgScore: 71, lastActivity: "5 days ago", status: "ACTIVE" },
-  { id: "s005", name: "Sakura Haru", email: "sakura.h@example.com", progress: 78, avgScore: 80, lastActivity: "2 days ago", status: "ACTIVE" },
-  { id: "s006", name: "Kakashi Hatak", email: "kakashi.h@example.com", progress: 45, avgScore: 58, lastActivity: "1 week ago", status: "INACTIVE" },
-  { id: "s007", name: "Sasuke Uch", email: "sasuke.u@example.com", progress: 95, avgScore: 96, lastActivity: "1 hour ago", status: "ACTIVE" },
-  { id: "s008", name: "Tsunade Senn", email: "tsunade.s@example.com", progress: 88, avgScore: 85, lastActivity: "4 hours ago", status: "ACTIVE" },
+  {
+    id: "s001",
+    name: "Minato Aquo",
+    email: "minato.a@example.com",
+    progress: 85,
+    avgScore: 88,
+    lastActivity: "2 hours ago",
+    status: "ACTIVE",
+  },
+  {
+    id: "s002",
+    name: "Hinata Shoy",
+    email: "hinata.s@example.com",
+    progress: 72,
+    avgScore: 76,
+    lastActivity: "1 day ago",
+    status: "ACTIVE",
+  },
+  {
+    id: "s003",
+    name: "Uchiha Sashi",
+    email: "uchiha.s@example.com",
+    progress: 91,
+    avgScore: 92,
+    lastActivity: "3 hours ago",
+    status: "ACTIVE",
+  },
+  {
+    id: "s004",
+    name: "Naruto Uzum",
+    email: "naruto.u@example.com",
+    progress: 65,
+    avgScore: 71,
+    lastActivity: "5 days ago",
+    status: "ACTIVE",
+  },
+  {
+    id: "s005",
+    name: "Sakura Haru",
+    email: "sakura.h@example.com",
+    progress: 78,
+    avgScore: 80,
+    lastActivity: "2 days ago",
+    status: "ACTIVE",
+  },
+  {
+    id: "s006",
+    name: "Kakashi Hatak",
+    email: "kakashi.h@example.com",
+    progress: 45,
+    avgScore: 58,
+    lastActivity: "1 week ago",
+    status: "INACTIVE",
+  },
+  {
+    id: "s007",
+    name: "Sasuke Uch",
+    email: "sasuke.u@example.com",
+    progress: 95,
+    avgScore: 96,
+    lastActivity: "1 hour ago",
+    status: "ACTIVE",
+  },
+  {
+    id: "s008",
+    name: "Tsunade Senn",
+    email: "tsunade.s@example.com",
+    progress: 88,
+    avgScore: 85,
+    lastActivity: "4 hours ago",
+    status: "ACTIVE",
+  },
 ];
 
 const mockAssignments = [
-  { id: "a001", name: "Hiragana Practice", deadline: "2024-01-20", completionRate: 95, submitted: 26, totalStudents: 28, createdBy: "Sakura Tanaka", createdAt: "2024-01-15", status: "active", avgScore: 88, highestScore: 100, lowestScore: 72 },
-  { id: "a002", name: "Katakana Quiz", deadline: "2024-01-25", completionRate: 88, submitted: 24, totalStudents: 28, createdBy: "Sakura Tanaka", createdAt: "2024-01-18", status: "active", avgScore: 82, highestScore: 98, lowestScore: 65 },
-  { id: "a003", name: "Basic Greetings Dialogue", deadline: "2024-02-01", completionRate: 72, submitted: 20, totalStudents: 28, createdBy: "Sakura Tanaka", createdAt: "2024-01-22", status: "active", avgScore: 78, highestScore: 95, lowestScore: 55 },
-  { id: "a004", name: "Numbers & Counters Exercise", deadline: "2024-02-05", completionRate: 45, submitted: 12, totalStudents: 28, createdBy: "Sakura Tanaka", createdAt: "2024-01-28", status: "active", avgScore: 68, highestScore: 90, lowestScore: 40 },
+  {
+    id: "a001",
+    name: "Hiragana Practice",
+    deadline: "2024-01-20",
+    completionRate: 95,
+    submitted: 26,
+    totalStudents: 28,
+    createdBy: "Sakura Tanaka",
+    createdAt: "2024-01-15",
+    status: "active",
+    avgScore: 88,
+    highestScore: 100,
+    lowestScore: 72,
+  },
+  {
+    id: "a002",
+    name: "Katakana Quiz",
+    deadline: "2024-01-25",
+    completionRate: 88,
+    submitted: 24,
+    totalStudents: 28,
+    createdBy: "Sakura Tanaka",
+    createdAt: "2024-01-18",
+    status: "active",
+    avgScore: 82,
+    highestScore: 98,
+    lowestScore: 65,
+  },
+  {
+    id: "a003",
+    name: "Basic Greetings Dialogue",
+    deadline: "2024-02-01",
+    completionRate: 72,
+    submitted: 20,
+    totalStudents: 28,
+    createdBy: "Sakura Tanaka",
+    createdAt: "2024-01-22",
+    status: "active",
+    avgScore: 78,
+    highestScore: 95,
+    lowestScore: 55,
+  },
+  {
+    id: "a004",
+    name: "Numbers & Counters Exercise",
+    deadline: "2024-02-05",
+    completionRate: 45,
+    submitted: 12,
+    totalStudents: 28,
+    createdBy: "Sakura Tanaka",
+    createdAt: "2024-01-28",
+    status: "active",
+    avgScore: 68,
+    highestScore: 90,
+    lowestScore: 40,
+  },
 ];
 
 // Mock submission data for assignment details
-const mockSubmissions: Record<string, { studentId: string; studentName: string; status: "submitted" | "missing" | "late"; score?: number; submittedAt?: string }[]> = {
-  "a001": [
-    { studentId: "s001", studentName: "Minato Aquo", status: "submitted", score: 95, submittedAt: "Jan 18, 2024" },
-    { studentId: "s002", studentName: "Hinata Shoy", status: "submitted", score: 82, submittedAt: "Jan 19, 2024" },
-    { studentId: "s003", studentName: "Uchiha Sashi", status: "submitted", score: 100, submittedAt: "Jan 17, 2024" },
-    { studentId: "s004", studentName: "Naruto Uzum", status: "late", score: 72, submittedAt: "Jan 21, 2024" },
-    { studentId: "s005", studentName: "Sakura Haru", status: "submitted", score: 88, submittedAt: "Jan 19, 2024" },
+const mockSubmissions: Record<
+  string,
+  {
+    studentId: string;
+    studentName: string;
+    status: "submitted" | "missing" | "late";
+    score?: number;
+    submittedAt?: string;
+  }[]
+> = {
+  a001: [
+    {
+      studentId: "s001",
+      studentName: "Minato Aquo",
+      status: "submitted",
+      score: 95,
+      submittedAt: "Jan 18, 2024",
+    },
+    {
+      studentId: "s002",
+      studentName: "Hinata Shoy",
+      status: "submitted",
+      score: 82,
+      submittedAt: "Jan 19, 2024",
+    },
+    {
+      studentId: "s003",
+      studentName: "Uchiha Sashi",
+      status: "submitted",
+      score: 100,
+      submittedAt: "Jan 17, 2024",
+    },
+    {
+      studentId: "s004",
+      studentName: "Naruto Uzum",
+      status: "late",
+      score: 72,
+      submittedAt: "Jan 21, 2024",
+    },
+    {
+      studentId: "s005",
+      studentName: "Sakura Haru",
+      status: "submitted",
+      score: 88,
+      submittedAt: "Jan 19, 2024",
+    },
     { studentId: "s006", studentName: "Kakashi Hatak", status: "missing" },
-    { studentId: "s007", studentName: "Sasuke Uch", status: "submitted", score: 98, submittedAt: "Jan 18, 2024" },
-    { studentId: "s008", studentName: "Tsunade Senn", status: "submitted", score: 90, submittedAt: "Jan 20, 2024" },
+    {
+      studentId: "s007",
+      studentName: "Sasuke Uch",
+      status: "submitted",
+      score: 98,
+      submittedAt: "Jan 18, 2024",
+    },
+    {
+      studentId: "s008",
+      studentName: "Tsunade Senn",
+      status: "submitted",
+      score: 90,
+      submittedAt: "Jan 20, 2024",
+    },
   ],
-  "a002": [
-    { studentId: "s001", studentName: "Minato Aquo", status: "submitted", score: 88, submittedAt: "Jan 23, 2024" },
-    { studentId: "s002", studentName: "Hinata Shoy", status: "submitted", score: 78, submittedAt: "Jan 24, 2024" },
-    { studentId: "s003", studentName: "Uchiha Sashi", status: "submitted", score: 95, submittedAt: "Jan 22, 2024" },
+  a002: [
+    {
+      studentId: "s001",
+      studentName: "Minato Aquo",
+      status: "submitted",
+      score: 88,
+      submittedAt: "Jan 23, 2024",
+    },
+    {
+      studentId: "s002",
+      studentName: "Hinata Shoy",
+      status: "submitted",
+      score: 78,
+      submittedAt: "Jan 24, 2024",
+    },
+    {
+      studentId: "s003",
+      studentName: "Uchiha Sashi",
+      status: "submitted",
+      score: 95,
+      submittedAt: "Jan 22, 2024",
+    },
     { studentId: "s004", studentName: "Naruto Uzum", status: "missing" },
-    { studentId: "s005", studentName: "Sakura Haru", status: "submitted", score: 85, submittedAt: "Jan 24, 2024" },
+    {
+      studentId: "s005",
+      studentName: "Sakura Haru",
+      status: "submitted",
+      score: 85,
+      submittedAt: "Jan 24, 2024",
+    },
     { studentId: "s006", studentName: "Kakashi Hatak", status: "missing" },
-    { studentId: "s007", studentName: "Sasuke Uch", status: "submitted", score: 92, submittedAt: "Jan 23, 2024" },
-    { studentId: "s008", studentName: "Tsunade Senn", status: "submitted", score: 80, submittedAt: "Jan 25, 2024" },
+    {
+      studentId: "s007",
+      studentName: "Sasuke Uch",
+      status: "submitted",
+      score: 92,
+      submittedAt: "Jan 23, 2024",
+    },
+    {
+      studentId: "s008",
+      studentName: "Tsunade Senn",
+      status: "submitted",
+      score: 80,
+      submittedAt: "Jan 25, 2024",
+    },
   ],
-  "a003": [
-    { studentId: "s001", studentName: "Minato Aquo", status: "submitted", score: 90, submittedAt: "Jan 28, 2024" },
-    { studentId: "s002", studentName: "Hinata Shoy", status: "late", score: 70, submittedAt: "Feb 2, 2024" },
-    { studentId: "s003", studentName: "Uchiha Sashi", status: "submitted", score: 95, submittedAt: "Jan 29, 2024" },
+  a003: [
+    {
+      studentId: "s001",
+      studentName: "Minato Aquo",
+      status: "submitted",
+      score: 90,
+      submittedAt: "Jan 28, 2024",
+    },
+    {
+      studentId: "s002",
+      studentName: "Hinata Shoy",
+      status: "late",
+      score: 70,
+      submittedAt: "Feb 2, 2024",
+    },
+    {
+      studentId: "s003",
+      studentName: "Uchiha Sashi",
+      status: "submitted",
+      score: 95,
+      submittedAt: "Jan 29, 2024",
+    },
     { studentId: "s004", studentName: "Naruto Uzum", status: "missing" },
     { studentId: "s005", studentName: "Sakura Haru", status: "missing" },
     { studentId: "s006", studentName: "Kakashi Hatak", status: "missing" },
-    { studentId: "s007", studentName: "Sasuke Uch", status: "submitted", score: 88, submittedAt: "Jan 30, 2024" },
-    { studentId: "s008", studentName: "Tsunade Senn", status: "submitted", score: 75, submittedAt: "Jan 31, 2024" },
+    {
+      studentId: "s007",
+      studentName: "Sasuke Uch",
+      status: "submitted",
+      score: 88,
+      submittedAt: "Jan 30, 2024",
+    },
+    {
+      studentId: "s008",
+      studentName: "Tsunade Senn",
+      status: "submitted",
+      score: 75,
+      submittedAt: "Jan 31, 2024",
+    },
   ],
-  "a004": [
-    { studentId: "s001", studentName: "Minato Aquo", status: "submitted", score: 85, submittedAt: "Feb 3, 2024" },
+  a004: [
+    {
+      studentId: "s001",
+      studentName: "Minato Aquo",
+      status: "submitted",
+      score: 85,
+      submittedAt: "Feb 3, 2024",
+    },
     { studentId: "s002", studentName: "Hinata Shoy", status: "missing" },
-    { studentId: "s003", studentName: "Uchiha Sashi", status: "submitted", score: 90, submittedAt: "Feb 2, 2024" },
+    {
+      studentId: "s003",
+      studentName: "Uchiha Sashi",
+      status: "submitted",
+      score: 90,
+      submittedAt: "Feb 2, 2024",
+    },
     { studentId: "s004", studentName: "Naruto Uzum", status: "missing" },
-    { studentId: "s005", studentName: "Sakura Haru", status: "late", score: 55, submittedAt: "Feb 8, 2024" },
+    {
+      studentId: "s005",
+      studentName: "Sakura Haru",
+      status: "late",
+      score: 55,
+      submittedAt: "Feb 8, 2024",
+    },
     { studentId: "s006", studentName: "Kakashi Hatak", status: "missing" },
-    { studentId: "s007", studentName: "Sasuke Uch", status: "submitted", score: 88, submittedAt: "Feb 3, 2024" },
-    { studentId: "s008", studentName: "Tsunade Senn", status: "submitted", score: 68, submittedAt: "Feb 4, 2024" },
+    {
+      studentId: "s007",
+      studentName: "Sasuke Uch",
+      status: "submitted",
+      score: 88,
+      submittedAt: "Feb 3, 2024",
+    },
+    {
+      studentId: "s008",
+      studentName: "Tsunade Senn",
+      status: "submitted",
+      score: 68,
+      submittedAt: "Feb 4, 2024",
+    },
   ],
 };
 
@@ -291,30 +592,32 @@ function ClassWorkspacePage() {
   const [settingsSuccess, setSettingsSuccess] = useState(false);
 
   // Modal states
-  const [viewProfileStudent, setViewProfileStudent] = useState<typeof mockStudents[0] | null>(null);
-  const [removeStudent, setRemoveStudent] = useState<typeof mockStudents[0] | null>(null);
+  const [viewProfileStudent, setViewProfileStudent] = useState<(typeof mockStudents)[0] | null>(
+    null,
+  );
+  const [removeStudent, setRemoveStudent] = useState<(typeof mockStudents)[0] | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [viewAssignment, setViewAssignment] = useState<typeof mockAssignments[0] | null>(null);
+  const [viewAssignment, setViewAssignment] = useState<(typeof mockAssignments)[0] | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 500);
     return () => clearTimeout(timer);
   }, [classId]);
 
-  const handleViewProfile = useCallback((student: typeof mockStudents[0]) => {
+  const handleViewProfile = useCallback((student: (typeof mockStudents)[0]) => {
     setViewProfileStudent(student);
   }, []);
 
-  const handleRemoveClick = useCallback((student: typeof mockStudents[0]) => {
+  const handleRemoveClick = useCallback((student: (typeof mockStudents)[0]) => {
     setRemoveStudent(student);
     setShowRemoveConfirm(true);
   }, []);
 
   const handleConfirmRemove = useCallback(() => {
     if (removeStudent) {
-      setStudents(prev => prev.filter(s => s.id !== removeStudent.id));
-      setClassStudentCount(prev => prev - 1);
+      setStudents((prev) => prev.filter((s) => s.id !== removeStudent.id));
+      setClassStudentCount((prev) => prev - 1);
       setShowRemoveConfirm(false);
       setRemoveStudent(null);
       setShowSuccessToast(true);
@@ -373,7 +676,7 @@ function ClassWorkspacePage() {
             { value: "assignments", label: "Assignments", icon: ClipboardCheck },
             { value: "analytics", label: "Analytics", icon: BarChart3 },
             { value: "settings", label: "Settings", icon: Settings },
-          ].map(tab => (
+          ].map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
@@ -416,7 +719,12 @@ function ClassWorkspacePage() {
                 </div>
               </div>
               <div className="text-right text-xs text-muted-foreground">
-                Created {new Date(mockClass.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                Created{" "}
+                {new Date(mockClass.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               </div>
             </div>
           </div>
@@ -429,7 +737,9 @@ function ClassWorkspacePage() {
                   <Users className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{classStudentCount} / {mockClass.maxStudents}</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {classStudentCount} / {mockClass.maxStudents}
+                  </p>
                   <p className="text-xs text-muted-foreground">Students</p>
                 </div>
               </div>
@@ -451,7 +761,9 @@ function ClassWorkspacePage() {
                   <CheckCircle className="w-5 h-5 text-purple-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground capitalize">{classStatus.toLowerCase()}</p>
+                  <p className="text-2xl font-bold text-foreground capitalize">
+                    {classStatus.toLowerCase()}
+                  </p>
                   <p className="text-xs text-muted-foreground">Status</p>
                 </div>
               </div>
@@ -474,7 +786,10 @@ function ClassWorkspacePage() {
                 </thead>
                 <tbody>
                   {mockAssignments.slice(0, 5).map((assignment) => (
-                    <tr key={assignment.id} className="border-b border-border hover:bg-accent/50 transition">
+                    <tr
+                      key={assignment.id}
+                      className="border-b border-border hover:bg-accent/50 transition"
+                    >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -482,10 +797,16 @@ function ClassWorkspacePage() {
                         </div>
                       </td>
                       <td className="px-5 py-3 text-sm text-muted-foreground">
-                        {new Date(assignment.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {new Date(assignment.deadline).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </td>
                       <td className="px-5 py-3">
-                        <StatusBadge status={assignment.status === "active" ? "ACTIVE" : "INACTIVE"} />
+                        <StatusBadge
+                          status={assignment.status === "active" ? "ACTIVE" : "INACTIVE"}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -510,11 +831,17 @@ function ClassWorkspacePage() {
                 </thead>
                 <tbody>
                   {students.slice(0, 5).map((student) => (
-                    <tr key={student.id} className="border-b border-border hover:bg-accent/50 transition">
+                    <tr
+                      key={student.id}
+                      className="border-b border-border hover:bg-accent/50 transition"
+                    >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
-                            {student.name.split(" ").map(n => n[0]).join("")}
+                            {student.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
                           </div>
                           <div>
                             <p className="text-sm font-medium text-foreground">{student.name}</p>
@@ -527,9 +854,11 @@ function ClassWorkspacePage() {
                           <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${
-                                student.progress >= 80 ? "bg-green-500" :
-                                student.progress >= 60 ? "bg-yellow-500" :
-                                "bg-red-500"
+                                student.progress >= 80
+                                  ? "bg-green-500"
+                                  : student.progress >= 60
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
                               }`}
                               style={{ width: `${student.progress}%` }}
                             />
@@ -537,7 +866,9 @@ function ClassWorkspacePage() {
                           <span className="text-xs text-muted-foreground">{student.progress}%</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-xs text-muted-foreground">{student.lastActivity}</td>
+                      <td className="px-5 py-3 text-xs text-muted-foreground">
+                        {student.lastActivity}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -549,9 +880,7 @@ function ClassWorkspacePage() {
         {/* Students Tab */}
         <TabsContent value="students" className="mt-5 space-y-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-secondary-col">
-              {students.length} students enrolled
-            </div>
+            <div className="text-sm text-secondary-col">{students.length} students enrolled</div>
           </div>
 
           <div className="card-base overflow-hidden">
@@ -575,10 +904,15 @@ function ClassWorkspacePage() {
                 >
                   <div className="col-span-4 flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                      {student.name.split(" ").map(n => n[0]).join("")}
+                      {student.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-primary-col truncate">{student.name}</div>
+                      <div className="text-sm font-semibold text-primary-col truncate">
+                        {student.name}
+                      </div>
                       <div className="text-[10px] text-muted-col truncate">{student.email}</div>
                     </div>
                   </div>
@@ -588,21 +922,27 @@ function ClassWorkspacePage() {
                       <div className="flex-1 h-2 glass-surface rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
-                            student.progress >= 80 ? "bg-[var(--status-active)]" :
-                            student.progress >= 60 ? "bg-[var(--status-pending)]" :
-                            "bg-[var(--status-rejected)]"
+                            student.progress >= 80
+                              ? "bg-[var(--status-active)]"
+                              : student.progress >= 60
+                                ? "bg-[var(--status-pending)]"
+                                : "bg-[var(--status-rejected)]"
                           }`}
                           style={{ width: `${student.progress}%` }}
                         />
                       </div>
-                      <span className="text-xs font-bold text-primary-col w-8">{student.progress}%</span>
+                      <span className="text-xs font-bold text-primary-col w-8">
+                        {student.progress}%
+                      </span>
                     </div>
                   </div>
 
                   <div className="col-span-2">
                     <div className="flex items-center gap-1">
                       <Award className="w-4 h-4 text-[oklch(0.62_0.18_270)]" />
-                      <span className="text-sm font-semibold text-primary-col">{student.avgScore}%</span>
+                      <span className="text-sm font-semibold text-primary-col">
+                        {student.avgScore}%
+                      </span>
                     </div>
                   </div>
 
@@ -645,9 +985,7 @@ function ClassWorkspacePage() {
         {/* Assignments Tab */}
         <TabsContent value="assignments" className="mt-5 space-y-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-secondary-col">
-              {mockAssignments.length} assignments
-            </div>
+            <div className="text-sm text-secondary-col">{mockAssignments.length} assignments</div>
           </div>
 
           <div className="card-base overflow-hidden">
@@ -673,20 +1011,30 @@ function ClassWorkspacePage() {
                   <div className="col-span-3">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-sm font-semibold text-primary-col truncate">{assignment.name}</span>
+                      <span className="text-sm font-semibold text-primary-col truncate">
+                        {assignment.name}
+                      </span>
                     </div>
                   </div>
 
                   {/* Created By */}
                   <div className="col-span-2">
-                    <span className="text-sm text-secondary-col truncate">{assignment.createdBy}</span>
+                    <span className="text-sm text-secondary-col truncate">
+                      {assignment.createdBy}
+                    </span>
                   </div>
 
                   {/* Due Date */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-1 text-xs text-muted-col">
                       <Calendar className="w-3 h-3 shrink-0" />
-                      <span>{new Date(assignment.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      <span>
+                        {new Date(assignment.deadline).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
                     </div>
                   </div>
 
@@ -696,14 +1044,18 @@ function ClassWorkspacePage() {
                       <div className="flex-1 h-2 glass-surface rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
-                            assignment.completionRate >= 80 ? "bg-[var(--status-active)]" :
-                            assignment.completionRate >= 50 ? "bg-[var(--status-pending)]" :
-                            "bg-[var(--status-rejected)]"
+                            assignment.completionRate >= 80
+                              ? "bg-[var(--status-active)]"
+                              : assignment.completionRate >= 50
+                                ? "bg-[var(--status-pending)]"
+                                : "bg-[var(--status-rejected)]"
                           }`}
                           style={{ width: `${assignment.completionRate}%` }}
                         />
                       </div>
-                      <span className="text-xs font-bold text-primary-col w-12">{assignment.submitted}/{assignment.totalStudents}</span>
+                      <span className="text-xs font-bold text-primary-col w-12">
+                        {assignment.submitted}/{assignment.totalStudents}
+                      </span>
                     </div>
                   </div>
 
@@ -772,8 +1124,20 @@ function ClassWorkspacePage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={12} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={12} />
-                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }} />
-                  <Area type="monotone" dataKey="avgScore" stroke="oklch(0.62 0.18 270)" fill="url(#progressGradient)" strokeWidth={2} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="avgScore"
+                    stroke="oklch(0.62 0.18 270)"
+                    fill="url(#progressGradient)"
+                    strokeWidth={2}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -785,8 +1149,20 @@ function ClassWorkspacePage() {
                 <BarChart data={scoreDistribution} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} />
-                  <YAxis type="category" dataKey="range" stroke="var(--muted-foreground)" fontSize={12} width={80} />
-                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }} />
+                  <YAxis
+                    type="category"
+                    dataKey="range"
+                    stroke="var(--muted-foreground)"
+                    fontSize={12}
+                    width={80}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                  />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {scoreDistribution.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
@@ -801,24 +1177,36 @@ function ClassWorkspacePage() {
           <div className="bg-card border border-border rounded-xl p-5">
             <h3 className="text-sm font-semibold text-foreground mb-4">Top Performers</h3>
             <div className="space-y-3">
-              {students.filter(s => s.status === "ACTIVE").sort((a, b) => b.avgScore - a.avgScore).slice(0, 5).map((student, i) => (
-                <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/50">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
-                      {student.name.split(" ").map(n => n[0]).join("")}
+              {students
+                .filter((s) => s.status === "ACTIVE")
+                .sort((a, b) => b.avgScore - a.avgScore)
+                .slice(0, 5)
+                .map((student, i) => (
+                  <div
+                    key={student.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-accent/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                        {i + 1}
+                      </span>
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+                        {student.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{student.name}</p>
+                        <p className="text-xs text-muted-foreground">{student.email}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{student.name}</p>
-                      <p className="text-xs text-muted-foreground">{student.email}</p>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-foreground">{student.avgScore}%</p>
+                      <p className="text-xs text-muted-foreground">{student.progress}% progress</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{student.avgScore}%</p>
-                    <p className="text-xs text-muted-foreground">{student.progress}% progress</p>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
@@ -826,22 +1214,32 @@ function ClassWorkspacePage() {
           <div className="bg-card border border-border rounded-xl p-5">
             <h3 className="text-sm font-semibold text-foreground mb-4">Needs Attention</h3>
             <div className="space-y-3">
-              {students.filter(s => s.progress < 70 || s.status === "INACTIVE").map((student) => (
-                <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-xs">
-                      {student.name.split(" ").map(n => n[0]).join("")}
+              {students
+                .filter((s) => s.progress < 70 || s.status === "INACTIVE")
+                .map((student) => (
+                  <div
+                    key={student.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/20"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-xs">
+                        {student.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{student.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {student.status === "INACTIVE"
+                            ? "Inactive"
+                            : `${student.progress}% progress`}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{student.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {student.status === "INACTIVE" ? "Inactive" : `${student.progress}% progress`}
-                      </p>
-                    </div>
+                    <StatusBadge status={student.status} />
                   </div>
-                  <StatusBadge status={student.status} />
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </TabsContent>
@@ -899,7 +1297,7 @@ function ClassWorkspacePage() {
                     onClick={async () => {
                       setSettingsSaving(true);
                       try {
-                        await new Promise(r => setTimeout(r, 500));
+                        await new Promise((r) => setTimeout(r, 500));
                         // Update class data state
                         setClassName(settingsName);
                         setClassLevel(mockClass.level);
@@ -921,7 +1319,6 @@ function ClassWorkspacePage() {
             </div>
           </div>
         </TabsContent>
-
       </Tabs>
 
       {/* View Profile Modal */}
@@ -936,10 +1333,15 @@ function ClassWorkspacePage() {
               {/* Student Info */}
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl">
-                  {viewProfileStudent.name.split(" ").map(n => n[0]).join("")}
+                  {viewProfileStudent.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-primary-col">{viewProfileStudent.name}</h3>
+                  <h3 className="text-lg font-semibold text-primary-col">
+                    {viewProfileStudent.name}
+                  </h3>
                   <p className="text-sm text-muted-col">{viewProfileStudent.email}</p>
                 </div>
               </div>
@@ -954,7 +1356,9 @@ function ClassWorkspacePage() {
                     <Phone className="w-4 h-4 text-muted-col shrink-0" />
                     <div>
                       <p className="text-[10px] text-muted-col">Phone</p>
-                      <p className="text-sm font-medium">{mockStudentDetails[viewProfileStudent.id]?.phone || "N/A"}</p>
+                      <p className="text-sm font-medium">
+                        {mockStudentDetails[viewProfileStudent.id]?.phone || "N/A"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 p-3 rounded-lg glass-surface">
@@ -963,7 +1367,13 @@ function ClassWorkspacePage() {
                       <p className="text-[10px] text-muted-col">Join Date</p>
                       <p className="text-sm font-medium">
                         {mockStudentDetails[viewProfileStudent.id]
-                          ? new Date(mockStudentDetails[viewProfileStudent.id].joinDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                          ? new Date(
+                              mockStudentDetails[viewProfileStudent.id].joinDate,
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
                           : "N/A"}
                       </p>
                     </div>
@@ -972,7 +1382,9 @@ function ClassWorkspacePage() {
                     <GraduationCap className="w-4 h-4 text-muted-col shrink-0" />
                     <div>
                       <p className="text-[10px] text-muted-col">JLPT Level</p>
-                      <p className="text-sm font-medium">JLPT {mockStudentDetails[viewProfileStudent.id]?.jlptLevel || "N5"}</p>
+                      <p className="text-sm font-medium">
+                        JLPT {mockStudentDetails[viewProfileStudent.id]?.jlptLevel || "N5"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 p-3 rounded-lg glass-surface">
@@ -994,28 +1406,45 @@ function ClassWorkspacePage() {
                   <div className="p-3 rounded-lg glass-surface">
                     <div className="flex justify-between mb-2">
                       <span className="text-sm text-muted-col">Vocabulary Progress</span>
-                      <span className="text-sm font-bold text-primary-col">{mockStudentDetails[viewProfileStudent.id]?.vocabularyProgress || 0}%</span>
+                      <span className="text-sm font-bold text-primary-col">
+                        {mockStudentDetails[viewProfileStudent.id]?.vocabularyProgress || 0}%
+                      </span>
                     </div>
-                    <Progress value={mockStudentDetails[viewProfileStudent.id]?.vocabularyProgress || 0} className="h-2" />
+                    <Progress
+                      value={mockStudentDetails[viewProfileStudent.id]?.vocabularyProgress || 0}
+                      className="h-2"
+                    />
                   </div>
                   <div className="p-3 rounded-lg glass-surface">
                     <div className="flex justify-between mb-2">
                       <span className="text-sm text-muted-col">Grammar Progress</span>
-                      <span className="text-sm font-bold text-primary-col">{mockStudentDetails[viewProfileStudent.id]?.grammarProgress || 0}%</span>
+                      <span className="text-sm font-bold text-primary-col">
+                        {mockStudentDetails[viewProfileStudent.id]?.grammarProgress || 0}%
+                      </span>
                     </div>
-                    <Progress value={mockStudentDetails[viewProfileStudent.id]?.grammarProgress || 0} className="h-2" />
+                    <Progress
+                      value={mockStudentDetails[viewProfileStudent.id]?.grammarProgress || 0}
+                      className="h-2"
+                    />
                   </div>
                   <div className="p-3 rounded-lg glass-surface">
                     <div className="flex justify-between mb-2">
                       <span className="text-sm text-muted-col">Listening Progress</span>
-                      <span className="text-sm font-bold text-primary-col">{mockStudentDetails[viewProfileStudent.id]?.listeningProgress || 0}%</span>
+                      <span className="text-sm font-bold text-primary-col">
+                        {mockStudentDetails[viewProfileStudent.id]?.listeningProgress || 0}%
+                      </span>
                     </div>
-                    <Progress value={mockStudentDetails[viewProfileStudent.id]?.listeningProgress || 0} className="h-2" />
+                    <Progress
+                      value={mockStudentDetails[viewProfileStudent.id]?.listeningProgress || 0}
+                      className="h-2"
+                    />
                   </div>
                   <div className="p-3 rounded-lg glass-surface">
                     <div className="flex justify-between mb-2">
                       <span className="text-sm text-muted-col">Overall Completion Rate</span>
-                      <span className="text-sm font-bold text-primary-col">{viewProfileStudent.progress}%</span>
+                      <span className="text-sm font-bold text-primary-col">
+                        {viewProfileStudent.progress}%
+                      </span>
                     </div>
                     <Progress value={viewProfileStudent.progress} className="h-2" />
                   </div>
@@ -1028,17 +1457,22 @@ function ClassWorkspacePage() {
                   <Clock className="w-4 h-4" /> Recent Activity
                 </h4>
                 <div className="space-y-2">
-                  {mockStudentDetails[viewProfileStudent.id]?.recentAssignments.map((assignment, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg glass-surface">
-                      <div>
-                        <p className="text-sm font-medium text-primary-col">{assignment.name}</p>
-                        <p className="text-xs text-muted-col">{assignment.completedAt}</p>
+                  {mockStudentDetails[viewProfileStudent.id]?.recentAssignments.map(
+                    (assignment, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 rounded-lg glass-surface"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-primary-col">{assignment.name}</p>
+                          <p className="text-xs text-muted-col">{assignment.completedAt}</p>
+                        </div>
+                        <span className="text-sm font-bold text-primary-col">
+                          {assignment.score}%
+                        </span>
                       </div>
-                      <span className="text-sm font-bold text-primary-col">{assignment.score}%</span>
-                    </div>
-                  )) || (
-                    <p className="text-sm text-muted-col">No recent activity</p>
-                  )}
+                    ),
+                  ) || <p className="text-sm text-muted-col">No recent activity</p>}
                 </div>
               </div>
             </div>
@@ -1052,12 +1486,19 @@ function ClassWorkspacePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Student From Class</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {removeStudent?.name} from this class? This action will remove the student from the current class but will not delete the student account.
+              Are you sure you want to remove {removeStudent?.name} from this class? This action
+              will remove the student from the current class but will not delete the student
+              account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowRemoveConfirm(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRemove} className="bg-[var(--status-rejected)] hover:bg-[var(--status-rejected)]/90">
+            <AlertDialogCancel onClick={() => setShowRemoveConfirm(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmRemove}
+              className="bg-[var(--status-rejected)] hover:bg-[var(--status-rejected)]/90"
+            >
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1069,7 +1510,9 @@ function ClassWorkspacePage() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Assignment Details</DialogTitle>
-            <DialogDescription>View assignment information and submission statistics</DialogDescription>
+            <DialogDescription>
+              View assignment information and submission statistics
+            </DialogDescription>
           </DialogHeader>
           {viewAssignment && (
             <div className="space-y-6">
@@ -1098,7 +1541,11 @@ function ClassWorkspacePage() {
                     <div>
                       <p className="text-[10px] text-muted-col">Created Date</p>
                       <p className="text-sm font-medium">
-                        {new Date(viewAssignment.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {new Date(viewAssignment.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </p>
                     </div>
                   </div>
@@ -1107,7 +1554,11 @@ function ClassWorkspacePage() {
                     <div>
                       <p className="text-[10px] text-muted-col">Due Date</p>
                       <p className="text-sm font-medium">
-                        {new Date(viewAssignment.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {new Date(viewAssignment.deadline).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </p>
                     </div>
                   </div>
@@ -1121,19 +1572,27 @@ function ClassWorkspacePage() {
                 </h4>
                 <div className="grid grid-cols-4 gap-3">
                   <div className="p-3 rounded-lg glass-surface text-center">
-                    <p className="text-2xl font-black text-primary-col">{viewAssignment.totalStudents}</p>
+                    <p className="text-2xl font-black text-primary-col">
+                      {viewAssignment.totalStudents}
+                    </p>
                     <p className="text-[10px] text-muted-col mt-1">Total Students</p>
                   </div>
                   <div className="p-3 rounded-lg glass-surface text-center">
-                    <p className="text-2xl font-black text-[var(--status-active)]">{viewAssignment.submitted}</p>
+                    <p className="text-2xl font-black text-[var(--status-active)]">
+                      {viewAssignment.submitted}
+                    </p>
                     <p className="text-[10px] text-muted-col mt-1">Submitted</p>
                   </div>
                   <div className="p-3 rounded-lg glass-surface text-center">
-                    <p className="text-2xl font-black text-[var(--status-rejected)]">{viewAssignment.totalStudents - viewAssignment.submitted}</p>
+                    <p className="text-2xl font-black text-[var(--status-rejected)]">
+                      {viewAssignment.totalStudents - viewAssignment.submitted}
+                    </p>
                     <p className="text-[10px] text-muted-col mt-1">Missing</p>
                   </div>
                   <div className="p-3 rounded-lg glass-surface text-center">
-                    <p className="text-2xl font-black text-primary-col">{viewAssignment.completionRate}%</p>
+                    <p className="text-2xl font-black text-primary-col">
+                      {viewAssignment.completionRate}%
+                    </p>
                     <p className="text-[10px] text-muted-col mt-1">Rate</p>
                   </div>
                 </div>
@@ -1146,15 +1605,21 @@ function ClassWorkspacePage() {
                 </h4>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-3 rounded-lg glass-surface text-center">
-                    <p className="text-2xl font-black text-[var(--status-active)]">{viewAssignment.avgScore}%</p>
+                    <p className="text-2xl font-black text-[var(--status-active)]">
+                      {viewAssignment.avgScore}%
+                    </p>
                     <p className="text-[10px] text-muted-col mt-1">Average Score</p>
                   </div>
                   <div className="p-3 rounded-lg glass-surface text-center">
-                    <p className="text-2xl font-black text-[oklch(0.62_0.18_270)]">{viewAssignment.highestScore}%</p>
+                    <p className="text-2xl font-black text-[oklch(0.62_0.18_270)]">
+                      {viewAssignment.highestScore}%
+                    </p>
                     <p className="text-[10px] text-muted-col mt-1">Highest Score</p>
                   </div>
                   <div className="p-3 rounded-lg glass-surface text-center">
-                    <p className="text-2xl font-black text-[var(--status-rejected)]">{viewAssignment.lowestScore}%</p>
+                    <p className="text-2xl font-black text-[var(--status-rejected)]">
+                      {viewAssignment.lowestScore}%
+                    </p>
                     <p className="text-[10px] text-muted-col mt-1">Lowest Score</p>
                   </div>
                 </div>
@@ -1178,23 +1643,37 @@ function ClassWorkspacePage() {
                     >
                       <div className="col-span-6 flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
-                          {submission.studentName.split(" ").map(n => n[0]).join("")}
+                          {submission.studentName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
                         </div>
-                        <span className="text-sm text-primary-col truncate">{submission.studentName}</span>
+                        <span className="text-sm text-primary-col truncate">
+                          {submission.studentName}
+                        </span>
                       </div>
                       <div className="col-span-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          submission.status === "submitted" ? "bg-[var(--status-active)]/12 text-[var(--status-active)]" :
-                          submission.status === "late" ? "bg-[var(--status-pending)]/12 text-[var(--status-pending)]" :
-                          "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)]"
-                        }`}>
-                          {submission.status === "submitted" ? "Submitted" :
-                           submission.status === "late" ? "Late" : "Missing"}
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            submission.status === "submitted"
+                              ? "bg-[var(--status-active)]/12 text-[var(--status-active)]"
+                              : submission.status === "late"
+                                ? "bg-[var(--status-pending)]/12 text-[var(--status-pending)]"
+                                : "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)]"
+                          }`}
+                        >
+                          {submission.status === "submitted"
+                            ? "Submitted"
+                            : submission.status === "late"
+                              ? "Late"
+                              : "Missing"}
                         </span>
                       </div>
                       <div className="col-span-3 text-right">
                         {submission.score !== undefined ? (
-                          <span className="text-sm font-bold text-primary-col">{submission.score}%</span>
+                          <span className="text-sm font-bold text-primary-col">
+                            {submission.score}%
+                          </span>
                         ) : (
                           <span className="text-sm text-muted-col">-</span>
                         )}

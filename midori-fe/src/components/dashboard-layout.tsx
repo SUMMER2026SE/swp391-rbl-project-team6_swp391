@@ -1,21 +1,62 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useAuth, useTheme, getAvatarInitial, getUserAvatar, isStudentActive, type FrontendRole } from "@/lib/auth";
+import {
+  useAuth,
+  useTheme,
+  getAvatarInitial,
+  getUserAvatar,
+  isStudentActive,
+  type FrontendRole,
+} from "@/lib/auth";
 import { Footer } from "@/components/layout/Footer";
 import { AdminFooter } from "@/components/layout/AdminFooter";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import {
-  LayoutDashboard, BookOpen, GraduationCap, Headphones, Mic,
-  ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
-  ShieldCheck, ChevronRight, Menu,
-  Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft,
-  FileText, FileBarChart, FolderOpen,
-  BookUser, Library,
-  School, UserPlus, ClipboardList,
-  Users, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText,
-  Brain, ChartColumn, BookText, Lock,
-  BookOpenCheck, Map
+  LayoutDashboard,
+  BookOpen,
+  GraduationCap,
+  Headphones,
+  Mic,
+  ClipboardCheck,
+  Trophy,
+  LineChart,
+  User,
+  LogOut,
+  Bell,
+  Search,
+  Flame,
+  Sparkles,
+  ShieldCheck,
+  ChevronRight,
+  Menu,
+  Bot,
+  ChevronDown,
+  Sun,
+  Moon,
+  BellRing,
+  ChevronLeft,
+  FileText,
+  FileBarChart,
+  FolderOpen,
+  BookUser,
+  Library,
+  School,
+  UserPlus,
+  ClipboardList,
+  Users,
+  Megaphone,
+  Eye,
+  BookMarked,
+  Mic2,
+  BarChart3,
+  ScrollText,
+  Brain,
+  ChartColumn,
+  BookText,
+  Lock,
+  BookOpenCheck,
+  Map,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -23,8 +64,20 @@ import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
 import type { Notification } from "@/types/notification";
 
 // Hierarchical navigation types
-type NavItemBase = { to: string; label: string; icon: React.ElementType; badge?: number; disabled?: boolean };
-type NavSubItem = { to: string; label: string; icon?: React.ElementType; badge?: number; disabled?: boolean };
+type NavItemBase = {
+  to: string;
+  label: string;
+  icon: React.ElementType;
+  badge?: number;
+  disabled?: boolean;
+};
+type NavSubItem = {
+  to: string;
+  label: string;
+  icon?: React.ElementType;
+  badge?: number;
+  disabled?: boolean;
+};
 type NavItem = NavItemBase & { children?: NavSubItem[] };
 
 // Guest student navigation - limited access
@@ -46,14 +99,19 @@ const studentNav: NavItem[] = [
     icon: BookOpen,
     children: [
       { to: "/student/learning/alphabet", label: "Alphabet" },
-      { to: "/student/shadowing", label: "Shadowing" }
-    ]
+      { to: "/student/learning/kanji", label: "Kanji" },
+      { to: "/student/learning/reading", label: "Reading" },
+      { to: "/student/vocabulary", label: "Vocabulary" },
+      { to: "/student/grammar", label: "Grammar" },
+      { to: "/student/listening", label: "Listening" },
+      { to: "/student/shadowing", label: "Shadowing" },
+    ],
   },
   { to: "/student/journey", label: "Learning Journey", icon: Map },
   {
     to: "/student/progress",
     label: "Progress",
-    icon: ChartColumn
+    icon: ChartColumn,
   },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
@@ -63,22 +121,27 @@ const studentNav: NavItem[] = [
 const guestStudentNavWithLockedLearning: NavItem[] = [
   { to: "/student/intro", label: "Introduction", icon: LayoutDashboard },
   { to: "/student/classes", label: "My Classes", icon: School },
-    {
+  {
     to: "/",
     label: "Learning Modules",
     icon: BookOpen,
     disabled: true,
     children: [
       { to: "/", label: "Alphabet", disabled: true },
-      { to: "/", label: "Shadowing", disabled: true }
-    ]
+      { to: "/", label: "Kanji", disabled: true },
+      { to: "/", label: "Reading", disabled: true },
+      { to: "/", label: "Vocabulary", disabled: true },
+      { to: "/", label: "Grammar", disabled: true },
+      { to: "/", label: "Listening", disabled: true },
+      { to: "/", label: "Shadowing", disabled: true },
+    ],
   },
   { to: "/", label: "Learning Journey", icon: Map, disabled: true },
   {
     to: "/",
     label: "Progress",
     icon: ChartColumn,
-    disabled: true
+    disabled: true,
   },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
@@ -94,11 +157,14 @@ const teacherNav: NavItem[] = [
   { to: "/teacher/shadowing", label: "Shadowing", icon: Mic },
 
   // 2. My Classes (class-based flow)
-  { to: "/teacher/classes", label: "My Classes", icon: School,
+  {
+    to: "/teacher/classes",
+    label: "My Classes",
+    icon: School,
     children: [
       { to: "/teacher/classes", label: "My Classes", icon: School },
       { to: "/teacher/classes/create", label: "Create Class", icon: UserPlus },
-    ]
+    ],
   },
 
   // 3. Lessons (global)
@@ -160,7 +226,15 @@ function getNav(role: FrontendRole, isActive: boolean): NavItem[] {
   return role === "teacher" ? teacherNav : adminNav;
 }
 
-export function DashboardLayout({ role, children, hideFooter = false }: { role: FrontendRole; children?: React.ReactNode; hideFooter?: boolean }) {
+export function DashboardLayout({
+  role,
+  children,
+  hideFooter = false,
+}: {
+  role: FrontendRole;
+  children?: React.ReactNode;
+  hideFooter?: boolean;
+}) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
@@ -171,11 +245,46 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
   const [notifOpen, setNotifOpen] = useState(false);
 
   const studentNotifications: Notification[] = [
-    { id: 1, title: "New grammar lesson available", desc: "~ãªã‘ã‚Œã°ãªã‚‰ãªã„ pattern is ready", time: "2 min ago", unread: true, icon: GraduationCap },
-    { id: 2, title: "Daily streak reminder", desc: "Complete today's lesson to keep your 32-day streak!", time: "1 hour ago", unread: true, icon: Flame },
-    { id: 3, title: "Weekly leaderboard update", desc: "You're now #4 â€” just 80 XP behind #3!", time: "3 hours ago", unread: false, icon: Trophy },
-    { id: 4, title: "AI Sensei feedback", desc: "Sensei reviewed your shadowing session", time: "Yesterday", unread: false, icon: Bot },
-    { id: 5, title: "New badge earned", desc: "You unlocked 'Week Warrior' badge!", time: "2 days ago", unread: false, icon: Sparkles },
+    {
+      id: 1,
+      title: "New grammar lesson available",
+      desc: "~ãªã‘ã‚Œã°ãªã‚‰ãªã„ pattern is ready",
+      time: "2 min ago",
+      unread: true,
+      icon: GraduationCap,
+    },
+    {
+      id: 2,
+      title: "Daily streak reminder",
+      desc: "Complete today's lesson to keep your 32-day streak!",
+      time: "1 hour ago",
+      unread: true,
+      icon: Flame,
+    },
+    {
+      id: 3,
+      title: "Weekly leaderboard update",
+      desc: "You're now #4 â€” just 80 XP behind #3!",
+      time: "3 hours ago",
+      unread: false,
+      icon: Trophy,
+    },
+    {
+      id: 4,
+      title: "AI Sensei feedback",
+      desc: "Sensei reviewed your shadowing session",
+      time: "Yesterday",
+      unread: false,
+      icon: Bot,
+    },
+    {
+      id: 5,
+      title: "New badge earned",
+      desc: "You unlocked 'Week Warrior' badge!",
+      time: "2 days ago",
+      unread: false,
+      icon: Sparkles,
+    },
   ];
 
   const teacherNotifications = TEACHER_NOTIFICATIONS;
@@ -192,12 +301,12 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
         }))
       : studentNotifications;
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
   // Check if student is active (joined a class)
   const isStudentActiveStudent = role === "student" && isStudentActive(user);
   const isStudentGuestStudent = role === "student" && !isStudentActive(user);
   const rawItems = getNav(role, isStudentActiveStudent);
-  const items = rawItems.map(item => {
+  const items = rawItems.map((item) => {
     if (item.to === "/student/notifications") {
       return { ...item, badge: unreadCount };
     }
@@ -210,7 +319,10 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
 
   useEffect(() => {
     if (!notifOpen && !userMenuOpen) return;
-    const handler = () => { setNotifOpen(false); setUserMenuOpen(false); };
+    const handler = () => {
+      setNotifOpen(false);
+      setUserMenuOpen(false);
+    };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [notifOpen, userMenuOpen]);
@@ -226,26 +338,34 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
 
   // Toggle expanded state for submenu
   const toggleExpanded = useCallback((key: string) => {
-    setExpandedMenus(prev => ({ ...prev, [key]: !prev[key] }));
+    setExpandedMenus((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   // Check if item or any child is active
-  const isItemOrChildActive = useCallback((item: NavItem): boolean => {
-    if (item.children && item.children.length > 0) {
-      return item.children.some(child => pathname === child.to || pathname.startsWith(child.to + '/'));
-    }
-    const isBaseRoute = item.to === `/${role}`;
-    return pathname === item.to || (!isBaseRoute && pathname.startsWith(item.to));
-  }, [pathname, role]);
+  const isItemOrChildActive = useCallback(
+    (item: NavItem): boolean => {
+      if (item.children && item.children.length > 0) {
+        return item.children.some(
+          (child) => pathname === child.to || pathname.startsWith(child.to + "/"),
+        );
+      }
+      const isBaseRoute = item.to === `/${role}`;
+      return pathname === item.to || (!isBaseRoute && pathname.startsWith(item.to));
+    },
+    [pathname, role],
+  );
 
   // Get active child for a parent item
-  const getActiveChild = useCallback((item: NavItem): string | null => {
-    if (!item.children || item.children.length === 0) return null;
-    const activeChild = item.children.find(child => 
-      pathname === child.to || pathname.startsWith(child.to + '/')
-    );
-    return activeChild?.to || null;
-  }, [pathname]);
+  const getActiveChild = useCallback(
+    (item: NavItem): string | null => {
+      if (!item.children || item.children.length === 0) return null;
+      const activeChild = item.children.find(
+        (child) => pathname === child.to || pathname.startsWith(child.to + "/"),
+      );
+      return activeChild?.to || null;
+    },
+    [pathname],
+  );
 
   // Handle click on disabled items
   const handleDisabledClick = (e: React.MouseEvent, item: NavItem | NavSubItem) => {
@@ -258,7 +378,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
   };
 
   // Render navigation item (flat or with children)
-  const renderNavItem = (item: NavItem, isChild = false, parentKey = '') => {
+  const renderNavItem = (item: NavItem, isChild = false, parentKey = "") => {
     const key = parentKey ? `${parentKey}-${item.to}` : item.to;
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedMenus[key] || false;
@@ -276,21 +396,21 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             title="Join a class to access"
             className={cn(
               "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative cursor-not-allowed opacity-50",
-              isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6"
+              isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6",
             )}
             onClick={(e) => handleDisabledClick(e as unknown as React.MouseEvent, item)}
           >
             {item.icon && (
               <item.icon
                 className={cn(
-                  "w-4 h-4 flex-shrink-0 transition-all duration-300 text-muted-foreground"
+                  "w-4 h-4 flex-shrink-0 transition-all duration-300 text-muted-foreground",
                 )}
               />
             )}
             <span
               className={cn(
                 "transition-all duration-300 whitespace-nowrap overflow-hidden text-secondary-col",
-                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
               )}
             >
               {item.label}
@@ -309,14 +429,16 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
           className={cn(
             "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
             pathname === item.to ? "nav-active" : "nav-item child-nav-item",
-            isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6"
+            isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6",
           )}
         >
           {item.icon && (
             <item.icon
               className={cn(
                 "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                pathname === item.to ? "text-white" : "text-muted-foreground group-hover:text-primary"
+                pathname === item.to
+                  ? "text-white"
+                  : "text-muted-foreground group-hover:text-primary",
               )}
             />
           )}
@@ -324,16 +446,18 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             className={cn(
               "transition-all duration-300 whitespace-nowrap overflow-hidden",
               pathname === item.to ? "text-white font-semibold" : "text-secondary-col",
-              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
             )}
           >
             {item.label}
           </span>
           {item.badge !== undefined && item.badge > 0 && (
-            <span className={cn(
-              "bg-[var(--jp-red)] text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[16px] h-4 px-1",
-              isCollapsed ? "absolute top-1 right-2" : "ml-auto"
-            )}>
+            <span
+              className={cn(
+                "bg-[var(--jp-red)] text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[16px] h-4 px-1",
+                isCollapsed ? "absolute top-1 right-2" : "ml-auto",
+              )}
+            >
               {item.badge}
             </span>
           )}
@@ -350,18 +474,18 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             title="Join a class to access learning content"
             className={cn(
               "w-full group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative cursor-not-allowed opacity-50",
-              isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+              isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
             )}
           >
             <Icon
               className={cn(
-                "w-4 h-4 flex-shrink-0 transition-all duration-300 text-muted-foreground"
+                "w-4 h-4 flex-shrink-0 transition-all duration-300 text-muted-foreground",
               )}
             />
             <span
               className={cn(
                 "transition-all duration-300 whitespace-nowrap overflow-hidden flex-1 text-left text-secondary-col",
-                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
               )}
             >
               {item.label}
@@ -382,29 +506,31 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             className={cn(
               "w-full group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
               isActive ? "nav-active" : "nav-item",
-              isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+              isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
             )}
           >
             <Icon
               className={cn(
                 "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                isActive ? "text-white" : "text-muted-foreground group-hover:text-primary"
+                isActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
               )}
             />
             <span
               className={cn(
                 "transition-all duration-300 whitespace-nowrap overflow-hidden flex-1 text-left",
                 isActive ? "text-white font-semibold" : "text-secondary-col",
-                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+                isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
               )}
             >
               {item.label}
             </span>
             {item.badge !== undefined && item.badge > 0 && (
-              <span className={cn(
-                "bg-[var(--jp-red)] text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[16px] h-4 px-1",
-                isCollapsed ? "absolute top-1 right-2" : "mr-2"
-              )}>
+              <span
+                className={cn(
+                  "bg-[var(--jp-red)] text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[16px] h-4 px-1",
+                  isCollapsed ? "absolute top-1 right-2" : "mr-2",
+                )}
+              >
                 {item.badge}
               </span>
             )}
@@ -412,12 +538,12 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
               <ChevronRight
                 className={cn(
                   "w-4 h-4 flex-shrink-0 transition-transform duration-200",
-                  isExpanded && "rotate-90"
+                  isExpanded && "rotate-90",
                 )}
               />
             )}
           </button>
-          
+
           {/* Children */}
           {!isCollapsed && isExpanded && (
             <motion.div
@@ -427,7 +553,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              {item.children!.map(child => renderNavItem(child as NavItem, true, key))}
+              {item.children!.map((child) => renderNavItem(child as NavItem, true, key))}
             </motion.div>
           )}
         </div>
@@ -444,37 +570,41 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
         className={cn(
           "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
           isActive ? "nav-active" : "nav-item",
-          isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+          isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
         )}
       >
         <Icon
           className={cn(
             "w-4 h-4 flex-shrink-0 transition-all duration-300",
-            isActive ? "text-white" : "text-muted-foreground group-hover:text-primary"
+            isActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
           )}
         />
         <span
           className={cn(
             "transition-all duration-300 whitespace-nowrap overflow-hidden",
             isActive ? "text-white font-semibold" : "text-secondary-col",
-            isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+            isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
           )}
         >
           {item.label}
         </span>
         {item.badge !== undefined && item.badge > 0 && (
-          <span className={cn(
-            "bg-[var(--jp-red)] text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[16px] h-4 px-1",
-            isCollapsed ? "absolute top-1 right-2" : "ml-auto mr-2"
-          )}>
+          <span
+            className={cn(
+              "bg-[var(--jp-red)] text-white text-[10px] font-bold rounded-full flex items-center justify-center min-w-[16px] h-4 px-1",
+              isCollapsed ? "absolute top-1 right-2" : "ml-auto mr-2",
+            )}
+          >
             {item.badge}
           </span>
         )}
         {!isCollapsed && isActive && (
-          <ChevronRight className={cn(
-            "w-4 h-4 text-white/70 flex-shrink-0",
-            item.badge !== undefined && item.badge > 0 ? "ml-1" : "ml-auto"
-          )} />
+          <ChevronRight
+            className={cn(
+              "w-4 h-4 text-white/70 flex-shrink-0",
+              item.badge !== undefined && item.badge > 0 ? "ml-1" : "ml-auto",
+            )}
+          />
         )}
       </Link>
     );
@@ -483,19 +613,23 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
   return (
     <div className="min-h-screen flex">
       <SakuraBg count={14} />
-
       <aside
         className={cn(
           "hidden lg:flex flex-col flex-shrink-0 overflow-hidden glass-sidebar m-3 mr-0 rounded-3xl p-4 sticky top-3 h-[calc(100vh-1.5rem)] transition-[width,padding] duration-300 ease-in-out",
-          isCollapsed ? "w-24 px-3" : "w-72"
+          isCollapsed ? "w-24 px-3" : "w-72",
         )}
       >
-        <div className={cn("mb-2 flex items-start justify-between gap-3", isCollapsed ? "flex-col items-center gap-1.5" : "") }>
+        <div
+          className={cn(
+            "mb-2 flex items-start justify-between gap-3",
+            isCollapsed ? "flex-col items-center gap-1.5" : "",
+          )}
+        >
           <Link
             to="/"
             className={cn(
               "flex min-w-0 px-3 py-3 transition-all duration-300",
-              isCollapsed ? "w-full justify-center px-2 py-2" : "items-center gap-2.5"
+              isCollapsed ? "w-full justify-center px-2 py-2" : "items-center gap-2.5",
             )}
             title={isCollapsed ? "MIDORI" : undefined}
           >
@@ -505,11 +639,17 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             <div
               className={cn(
                 "overflow-hidden transition-all duration-300",
-                isCollapsed ? "hidden w-0 opacity-0 pointer-events-none" : "block w-auto opacity-100"
+                isCollapsed
+                  ? "hidden w-0 opacity-0 pointer-events-none"
+                  : "block w-auto opacity-100",
               )}
             >
-              <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col whitespace-nowrap">MIDORI</div>
-              <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold whitespace-nowrap">{role}</div>
+              <div className="font-display font-extrabold text-lg leading-none tracking-[0.2em] text-primary-col whitespace-nowrap">
+                MIDORI
+              </div>
+              <div className="text-[10px] text-muted-col uppercase tracking-widest font-semibold whitespace-nowrap">
+                {role}
+              </div>
             </div>
           </Link>
           <button
@@ -519,22 +659,26 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
           </button>
         </div>
 
-        <nav className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
-          isCollapsed 
-            ? "flex flex-row flex-wrap content-start gap-2 mt-1" 
-            : "flex-col mt-2"
-        )}>
+        <nav
+          className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
+            isCollapsed ? "flex flex-row flex-wrap content-start gap-2 mt-1" : "flex-col mt-2",
+          )}
+        >
           {role === "admin" || role === "student" ? (
             // Admin and Student use hierarchical navigation
             isCollapsed ? (
               // When collapsed, render a simplified icon-only view
               <div className="flex flex-row flex-wrap gap-2 w-full justify-center">
-                {items.map(item => {
+                {items.map((item) => {
                   const Icon = item.icon;
                   const isActive = isItemOrChildActive(item);
                   return (
@@ -542,51 +686,37 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                       key={item.to}
                       to={item.disabled ? "/" : item.to}
                       title={item.label}
-                      onClick={item.disabled ? (e: React.MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); alert("Join a class to access learning content"); } : undefined}
+                      onClick={
+                        item.disabled
+                          ? (e: React.MouseEvent<HTMLAnchorElement>) => {
+                              e.preventDefault();
+                              alert("Join a class to access learning content");
+                            }
+                          : undefined
+                      }
                       className={cn(
                         "flex items-center justify-center rounded-xl transition-all duration-300",
-                        isActive 
-                          ? "bg-primary text-white w-10 h-10" 
-                          : item.disabled 
+                        isActive
+                          ? "bg-primary text-white w-10 h-10"
+                          : item.disabled
                             ? "bg-slate-100 dark:bg-slate-800 text-muted-foreground w-10 h-10 cursor-not-allowed opacity-50"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10",
                       )}
                     >
-                      <Icon className={cn("w-5 h-5", isActive ? "text-white" : "text-muted-foreground")} />
+                      <Icon
+                        className={cn("w-5 h-5", isActive ? "text-white" : "text-muted-foreground")}
+                      />
                     </Link>
                   );
                 })}
               </div>
             ) : (
-              items.map(item => renderNavItem(item))
+              items.map((item) => renderNavItem(item))
             )
-          ) : (
-            // Teacher uses flat navigation
-            isCollapsed ? (
-              <div className="flex flex-row flex-wrap gap-2 w-full justify-center">
-                {items.map(it => {
-                  const isBaseRoute = it.to === `/${role}`;
-                  const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-                  const Icon = it.icon;
-                  return (
-                    <Link
-                      key={it.to}
-                      to={it.to}
-                      title={it.label}
-                      className={cn(
-                        "flex items-center justify-center rounded-xl transition-all duration-300",
-                        active 
-                          ? "bg-primary text-white w-10 h-10" 
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10"
-                      )}
-                    >
-                      <Icon className={cn("w-5 h-5", active ? "text-white" : "text-muted-foreground")} />
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              items.map((it) => {
+          ) : // Teacher uses flat navigation
+          isCollapsed ? (
+            <div className="flex flex-row flex-wrap gap-2 w-full justify-center">
+              {items.map((it) => {
                 const isBaseRoute = it.to === `/${role}`;
                 const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
                 const Icon = it.icon;
@@ -594,51 +724,79 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                   <Link
                     key={it.to}
                     to={it.to}
-                    preload="intent"
-                    title={isCollapsed ? it.label : undefined}
+                    title={it.label}
                     className={cn(
-                      "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
-                      active ? "nav-active" : "nav-item",
-                      isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"
+                      "flex items-center justify-center rounded-xl transition-all duration-300",
+                      active
+                        ? "bg-primary text-white w-10 h-10"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10",
                     )}
                   >
                     <Icon
-                      className={cn(
-                        "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                        active ? "text-white" : "text-muted-foreground group-hover:text-primary",
-                        isCollapsed ? "mx-auto" : ""
-                      )}
+                      className={cn("w-5 h-5", active ? "text-white" : "text-muted-foreground")}
                     />
-                    <span
-                      className={cn(
-                        "transition-all duration-300 whitespace-nowrap overflow-hidden",
-                        active ? "text-white font-semibold" : "text-secondary-col",
-                        isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
-                      )}
-                    >
-                      {it.label}
-                    </span>
-                    {!isCollapsed && active && <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />}
                   </Link>
                 );
-              })
-            )
+              })}
+            </div>
+          ) : (
+            items.map((it) => {
+              const isBaseRoute = it.to === `/${role}`;
+              const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+              const Icon = it.icon;
+              return (
+                <Link
+                  key={it.to}
+                  to={it.to}
+                  preload="intent"
+                  title={isCollapsed ? it.label : undefined}
+                  className={cn(
+                    "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden",
+                    active ? "nav-active" : "nav-item",
+                    isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "w-4 h-4 flex-shrink-0 transition-all duration-300",
+                      active ? "text-white" : "text-muted-foreground group-hover:text-primary",
+                      isCollapsed ? "mx-auto" : "",
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "transition-all duration-300 whitespace-nowrap overflow-hidden",
+                      active ? "text-white font-semibold" : "text-secondary-col",
+                      isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
+                    )}
+                  >
+                    {it.label}
+                  </span>
+                  {!isCollapsed && active && (
+                    <ChevronRight className="w-4 h-4 ml-auto text-white/70 flex-shrink-0" />
+                  )}
+                </Link>
+              );
+            })
           )}
         </nav>
 
         <button
-          onClick={() => { logout(); nav({ to: "/login" }); }}
+          onClick={() => {
+            logout();
+            nav({ to: "/login" });
+          }}
           title={isCollapsed ? "Logout" : undefined}
           className={cn(
             "mt-2 rounded-xl text-sm font-medium nav-item text-[var(--jp-red)] hover:bg-[var(--jp-red)]/10 transition-all duration-300 flex items-center",
-            isCollapsed ? "justify-center px-0 py-2.5" : "gap-2 px-3 py-2.5"
+            isCollapsed ? "justify-center px-0 py-2.5" : "gap-2 px-3 py-2.5",
           )}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
           <span
             className={cn(
               "overflow-hidden whitespace-nowrap transition-all duration-300",
-              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
             )}
           >
             Logout
@@ -649,81 +807,92 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
       {/* Mobile drawer */}
       {open && (
         <div className="md:hidden fixed inset-0 z-50 overlay-dark" onClick={() => setOpen(false)}>
-          <aside className="absolute left-0 top-0 bottom-0 w-72 glass-sidebar p-4 rounded-r-3xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="font-display font-extrabold text-xl tracking-[0.2em] text-primary-col mb-6">MIDORI</div>
+          <aside
+            className="absolute left-0 top-0 bottom-0 w-72 glass-sidebar p-4 rounded-r-3xl overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="font-display font-extrabold text-xl tracking-[0.2em] text-primary-col mb-6">
+              MIDORI
+            </div>
             <nav className="space-y-1">
-              {role === "admin" || role === "student" ? (
-                // Admin and Student hierarchical mobile nav
-                items.map(item => {
-                  const hasChildren = item.children && item.children.length > 0;
-                  const isActive = isItemOrChildActive(item);
-                  const isExpanded = expandedMenus[item.to] || false;
-                  
-                  if (hasChildren) {
+              {role === "admin" || role === "student"
+                ? // Admin and Student hierarchical mobile nav
+                  items.map((item) => {
+                    const hasChildren = item.children && item.children.length > 0;
+                    const isActive = isItemOrChildActive(item);
+                    const isExpanded = expandedMenus[item.to] || false;
+
+                    if (hasChildren) {
+                      return (
+                        <div key={item.to}>
+                          <button
+                            onClick={() => toggleExpanded(item.to)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
+                              isActive ? "nav-active" : "nav-item"
+                            }`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="flex-1 text-left">{item.label}</span>
+                            <ChevronRight
+                              className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                            />
+                          </button>
+                          {isExpanded && (
+                            <div className="ml-4 space-y-1">
+                              {item.children!.map((child) => (
+                                <Link
+                                  key={child.to}
+                                  to={child.to}
+                                  preload="intent"
+                                  onClick={() => setOpen(false)}
+                                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${
+                                    pathname === child.to ? "nav-active" : "nav-item"
+                                  }`}
+                                >
+                                  <span className="w-4 h-4" />
+                                  {child.icon && <child.icon className="w-4 h-4" />}
+                                  {child.label}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div key={item.to}>
-                        <button
-                          onClick={() => toggleExpanded(item.to)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
-                            isActive ? "nav-active" : "nav-item"
-                          }`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span className="flex-1 text-left">{item.label}</span>
-                          <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
-                        </button>
-                        {isExpanded && (
-                          <div className="ml-4 space-y-1">
-                            {item.children!.map(child => (
-                              <Link
-                                key={child.to}
-                                to={child.to}
-                                preload="intent"
-                                onClick={() => setOpen(false)}
-                                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${
-                                  pathname === child.to ? "nav-active" : "nav-item"
-                                }`}
-                              >
-                                <span className="w-4 h-4" />
-                                {child.icon && <child.icon className="w-4 h-4" />}
-                                {child.label}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        preload="intent"
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
+                          isActive ? "nav-active" : "nav-item"
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
                     );
-                  }
-                  
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      preload="intent"
-                      onClick={() => setOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
-                        isActive ? "nav-active" : "nav-item"
-                      }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })
-              ) : (
-                // Teacher flat mobile nav
-                items.map((it) => {
-                  const isBaseRoute = it.to === `/${role}`;
-                  const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-                  const Icon = it.icon;
-                  return (
-                    <Link key={it.to} to={it.to} preload="intent" onClick={() => setOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}>
-                      <Icon className="w-4 h-4" /> {it.label}
-                    </Link>
-                  );
-                })
-              )}
+                  })
+                : // Teacher flat mobile nav
+                  items.map((it) => {
+                    const isBaseRoute = it.to === `/${role}`;
+                    const active =
+                      pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+                    const Icon = it.icon;
+                    return (
+                      <Link
+                        key={it.to}
+                        to={it.to}
+                        preload="intent"
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}
+                      >
+                        <Icon className="w-4 h-4" /> {it.label}
+                      </Link>
+                    );
+                  })}
             </nav>
           </aside>
         </div>
@@ -733,7 +902,6 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
         {/* Navbar */}
         <header className="sticky top-0 z-40 mx-3 mt-3">
           <div className="glass-nav rounded-2xl px-5 py-3 flex items-center gap-3">
-
             {/* Mobile menu button */}
             <button
               className="md:hidden p-2 -ml-1 rounded-xl nav-item"
@@ -766,7 +934,6 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             )}
 
             <div className="flex items-center gap-1">
-
               {/* Theme toggle */}
               <button
                 onClick={toggleTheme}
@@ -783,11 +950,15 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
               {/* Notifications */}
               <div className="relative">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); setUserMenuOpen(false); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNotifOpen(!notifOpen);
+                    setUserMenuOpen(false);
+                  }}
                   className="relative p-2 rounded-xl nav-item"
                 >
                   <Bell className="w-5 h-5 text-secondary-col" />
-                  {notifications.some(n => n.unread) && (
+                  {notifications.some((n) => n.unread) && (
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--jp-red)]" />
                   )}
                 </button>
@@ -798,11 +969,14 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                     className="fixed w-80 rounded-2xl shadow-2xl z-[200] flex flex-col overflow-hidden"
                     style={{ top: "72px", right: "24px" }}
                   >
-                    <div className="bg-white dark:bg-[#0f1117] border border-gray-200 dark:border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden"
-                      style={{ maxHeight: "520px" }}>
-
+                    <div
+                      className="bg-white dark:bg-[#0f1117] border border-gray-200 dark:border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] rounded-2xl overflow-hidden"
+                      style={{ maxHeight: "520px" }}
+                    >
                       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
-                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">Notifications</span>
+                        <span className="font-bold text-sm text-gray-900 dark:text-gray-100">
+                          Notifications
+                        </span>
                         <button
                           onClick={() => setNotifOpen(false)}
                           className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
@@ -811,9 +985,12 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                         </button>
                       </div>
 
-                      <div className="overflow-y-auto flex-1" style={{ maxHeight: "calc(520px - 116px)" }}>
+                      <div
+                        className="overflow-y-auto flex-1"
+                        style={{ maxHeight: "calc(520px - 116px)" }}
+                      >
                         <div className="p-2 space-y-1">
-                          {dropdownNotifications.map(n => {
+                          {dropdownNotifications.map((n) => {
                             const Icon = n.icon;
                             return (
                               <div
@@ -824,20 +1001,30 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                                     : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
                                 }`}
                               >
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                  n.unread ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
-                                }`}>
+                                <div
+                                  className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                    n.unread
+                                      ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400"
+                                      : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
+                                  }`}
+                                >
                                   <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{n.title}</span>
-                                    {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />}
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                                      {n.title}
+                                    </span>
+                                    {n.unread && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />
+                                    )}
                                   </div>
                                   <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
                                     {n.desc}
                                   </p>
-                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">{n.time}</span>
+                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">
+                                    {n.time}
+                                  </span>
                                 </div>
                               </div>
                             );
@@ -854,7 +1041,6 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                           View all notifications
                         </Link>
                       </div>
-
                     </div>
                   </div>
                 )}
@@ -863,7 +1049,11 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
               {/* User avatar */}
               <div className="relative">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setNotifOpen(false); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUserMenuOpen(!userMenuOpen);
+                    setNotifOpen(false);
+                  }}
                   className="flex items-center gap-2 p-1 pr-3 rounded-full nav-item ml-1"
                 >
                   {getUserAvatar(user) ? (
@@ -878,8 +1068,12 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                     </div>
                   )}
                   <div className="hidden sm:block text-left">
-                    <div className="text-xs font-semibold leading-tight text-primary-col">{user?.name ?? "Yuki T."}</div>
-                    <div className="text-[10px] text-muted-col leading-tight">{roleLabels[role]}</div>
+                    <div className="text-xs font-semibold leading-tight text-primary-col">
+                      {user?.name ?? "Yuki T."}
+                    </div>
+                    <div className="text-[10px] text-muted-col leading-tight">
+                      {roleLabels[role]}
+                    </div>
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-col hidden sm:block" />
                 </button>
@@ -899,7 +1093,10 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                       Profile
                     </Link>
                     <button
-                      onClick={() => { logout(); nav({ to: "/login" }); }}
+                      onClick={() => {
+                        logout();
+                        nav({ to: "/login" });
+                      }}
                       className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--jp-red)] hover:bg-[var(--jp-red)]/10 transition"
                     >
                       <LogOut className="w-4 h-4" />
@@ -919,7 +1116,10 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
           >
-            {(() => { console.log("[DashboardLayout] Rendering children for role:", role); return children; })()}
+            {(() => {
+              console.log("[DashboardLayout] Rendering children for role:", role);
+              return children;
+            })()}
           </motion.div>
         </main>
 
@@ -928,24 +1128,32 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
         {/* Mobile bottom nav - hidden on lesson pages and desktop */}
         {role === "student" && !hideFooter && (
           <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">
-          {items.slice(0, 5).map((it) => {
-            const targetTo = it.children && it.children.length > 0 && (it.to.endsWith("-modules") || it.to.includes("practice"))
-              ? it.children[0].to
-              : it.to;
-            const isBaseRoute = targetTo === `/${role}`;
-            const active = pathname === targetTo || (!isBaseRoute && pathname.startsWith(targetTo));
-            const Icon = it.icon;
-            return (
-              <Link key={it.to} to={targetTo as any} preload="intent"
-                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${
-                  active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
-                }`}>
-                <Icon className={`w-5 h-5 ${active ? "text-white" : ""}`} />
-                <span>{it.label.split(" ")[0]}</span>
-              </Link>
-            );
-          })}
-        </nav>
+            {items.slice(0, 5).map((it) => {
+              const targetTo =
+                it.children &&
+                it.children.length > 0 &&
+                (it.to.endsWith("-modules") || it.to.includes("practice"))
+                  ? it.children[0].to
+                  : it.to;
+              const isBaseRoute = targetTo === `/${role}`;
+              const active =
+                pathname === targetTo || (!isBaseRoute && pathname.startsWith(targetTo));
+              const Icon = it.icon;
+              return (
+                <Link
+                  key={it.to}
+                  to={targetTo as any}
+                  preload="intent"
+                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${
+                    active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${active ? "text-white" : ""}`} />
+                  <span>{it.label.split(" ")[0]}</span>
+                </Link>
+              );
+            })}
+          </nav>
         )}
       </div>
     </div>

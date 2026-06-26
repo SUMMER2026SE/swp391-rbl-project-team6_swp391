@@ -104,10 +104,7 @@ function VerifyOtpPage() {
   const allFilled = code.every((c) => c);
 
   return (
-    <AuthShell
-      title="Verify your email"
-      subtitle={subtitle}
-    >
+    <AuthShell title="Verify your email" subtitle={subtitle}>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="flex justify-between gap-2">
           {code.map((c, i) => (
