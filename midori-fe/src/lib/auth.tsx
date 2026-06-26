@@ -61,6 +61,7 @@ export type User = {
   avatar?: string | null;
   googleAvatar?: string | null;
   status?: UserStatus;
+  classId?: string | null;
 };
 
 type AuthCtx = {
@@ -125,7 +126,7 @@ export function getStoredUser(): User | null {
 
 export function isTeacherPending(): boolean {
   const u = getStoredUser();
-  return u?.role === "teacher" && u?.status === "pending";
+  return u?.role === "teacher" && u?.status === "PENDING";
 }
 
 export function getAvatarInitial(user: User | null, displayName?: string | null): string {

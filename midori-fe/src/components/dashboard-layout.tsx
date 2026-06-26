@@ -13,9 +13,9 @@ import {
   FileText, FileBarChart, FolderOpen,
   BookUser, Library,
   School, UserPlus, ClipboardList,
-  Users, Settings, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText,
+  Users, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText,
   Brain, ChartColumn, BookText, Lock,
-  BookOpenCheck, ProgressIcon
+  BookOpenCheck, Map
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -34,16 +34,6 @@ const guestStudentNav: NavItem[] = [
   { to: "/reviews", label: "Reviews", icon: BookMarked },
   { to: "/preview", label: "Course Preview", icon: Eye },
   { to: "/student/profile", label: "Profile", icon: User },
-  {
-    to: "/student/settings",
-    label: "Settings",
-    icon: Settings,
-    children: [
-      { to: "/student/settings/theme", label: "Theme" },
-      { to: "/student/settings/language", label: "Language" },
-      { to: "/student/settings/notifications", label: "Notification Settings" }
-    ]
-  }
 ];
 
 // Active student navigation - full access with locked learning modules for guests
@@ -56,13 +46,10 @@ const studentNav: NavItem[] = [
     icon: BookOpen,
     children: [
       { to: "/student/learning/alphabet", label: "Alphabet" },
-      { to: "/student/learning/reading", label: "Reading" },
-      { to: "/student/vocabulary", label: "Vocabulary" },
-      { to: "/student/grammar", label: "Grammar" },
-      { to: "/student/listening", label: "Listening" },
       { to: "/student/shadowing", label: "Shadowing" }
     ]
   },
+  { to: "/student/journey", label: "Learning Journey", icon: Map },
   {
     to: "/student/progress",
     label: "Progress",
@@ -70,16 +57,6 @@ const studentNav: NavItem[] = [
   },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
-  {
-    to: "/student/settings",
-    label: "Settings",
-    icon: Settings,
-    children: [
-      { to: "/student/settings/theme", label: "Theme" },
-      { to: "/student/settings/language", label: "Language" },
-      { to: "/student/settings/notifications", label: "Notification Settings" }
-    ]
-  }
 ];
 
 // Guest student navigation - redirected to intro page
@@ -93,13 +70,10 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
     disabled: true,
     children: [
       { to: "/", label: "Alphabet", disabled: true },
-      { to: "/", label: "Reading", disabled: true },
-      { to: "/", label: "Vocabulary", disabled: true },
-      { to: "/", label: "Grammar", disabled: true },
-      { to: "/", label: "Listening", disabled: true },
       { to: "/", label: "Shadowing", disabled: true }
     ]
   },
+  { to: "/", label: "Learning Journey", icon: Map, disabled: true },
   {
     to: "/",
     label: "Progress",
@@ -108,16 +82,6 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
   },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
-  {
-    to: "/student/settings",
-    label: "Settings",
-    icon: Settings,
-    children: [
-      { to: "/student/settings/theme", label: "Theme" },
-      { to: "/student/settings/language", label: "Language" },
-      { to: "/student/settings/notifications", label: "Notification Settings" }
-    ]
-  }
 ];
 
 const teacherNav: NavItem[] = [
@@ -578,7 +542,7 @@ export function DashboardLayout({ role, children, hideFooter = false }: { role: 
                       key={item.to}
                       to={item.disabled ? "/" : item.to}
                       title={item.label}
-                      onClick={item.disabled ? (e) => { e.preventDefault(); alert("Join a class to access learning content"); } : undefined}
+                      onClick={item.disabled ? (e: React.MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); alert("Join a class to access learning content"); } : undefined}
                       className={cn(
                         "flex items-center justify-center rounded-xl transition-all duration-300",
                         isActive 
