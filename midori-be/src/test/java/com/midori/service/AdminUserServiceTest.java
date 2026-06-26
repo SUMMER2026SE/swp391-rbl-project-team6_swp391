@@ -7,6 +7,7 @@ import com.midori.entity.UserStatus;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.UserRepository;
+import com.midori.repository.TeacherCertificateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +33,12 @@ class AdminUserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private TeacherCertificateRepository teacherCertificateRepository;
+
+    @Mock
+    private NotificationHelperService notificationHelper;
 
     @InjectMocks
     private AdminUserService adminUserService;
