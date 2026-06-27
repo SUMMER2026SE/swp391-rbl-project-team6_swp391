@@ -1,37 +1,47 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  LayoutDashboard,
-  ClipboardList,
-  Users,
-  BookOpen,
-  Megaphone,
-  Calendar as CalendarIcon,
-  Award,
-  ShieldAlert,
-} from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ClipboardList, Users, Award } from "lucide-react";
 import { mockTeacherClasses } from "@/mock/teacherClasses";
+import { getClassById } from "@/data/teacher-data";
 import { Card } from "@/components/page-ui";
 
 // Tab Sub-Components
 import { TeacherDashboardTab } from "@/components/teacher/class-detail/TeacherDashboardTab";
 import { TeacherAssignmentsTab } from "@/components/teacher/class-detail/TeacherAssignmentsTab";
 import { TeacherStudentsTab } from "@/components/teacher/class-detail/TeacherStudentsTab";
-import { TeacherMaterialsTab } from "@/components/teacher/class-detail/TeacherMaterialsTab";
-import { TeacherAnnouncementsTab } from "@/components/teacher/class-detail/TeacherAnnouncementsTab";
-import { TeacherCalendarTab } from "@/components/teacher/class-detail/TeacherCalendarTab";
-import { TeacherAnalyticsTab } from "@/components/teacher/class-detail/TeacherAnalyticsTab";
+import { TeacherClassExamsTab } from "@/components/teacher/class-detail/TeacherClassExamsTab";
 
 export const Route = createFileRoute("/teacher/classes/$classId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   component: TeacherClassDetailPage,
 });
 
 function TeacherClassDetailPage() {
   const { classId } = Route.useParams();
+  const { q: urlQ } = Route.useSearch();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const classInfo = mockTeacherClasses.find((c) => c.id === classId);
+  // Find mock class detail or construct one from base class metadata
+  let classInfo = mockTeacherClasses.find((c) => c.id === classId);
+  
+  if (!classInfo) {
+    const baseClass = getClassById(classId);
+    if (baseClass) {
+      const template = baseClass.level === "N4" ? (mockTeacherClasses[1] || mockTeacherClasses[0]) : mockTeacherClasses[0];
+      classInfo = {
+        ...template,
+        id: baseClass.id,
+        name: baseClass.name,
+        level: baseClass.level,
+        members: baseClass.studentCount,
+        avgScore: baseClass.progress / 10 + 2,
+        nextDeadline: baseClass.startDate,
+        createdDate: baseClass.startDate,
+      };
+    }
+  }
 
   if (!classInfo) {
     return (
@@ -111,13 +121,10 @@ function TeacherClassDetailPage() {
       {/* Premium Tab Navigation Switcher */}
       <div className="flex flex-wrap gap-2 border-b border-slate-100 dark:border-white/5 pb-2">
         {[
-          { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-          { id: "assignments", label: "Assignments", icon: ClipboardList },
+          { id: "overview", label: "Overview", icon: LayoutDashboard },
           { id: "students", label: "Students", icon: Users },
-          { id: "materials", label: "Learning Materials", icon: BookOpen },
-          { id: "announcements", label: "Announcements", icon: Megaphone },
-          { id: "calendar", label: "Calendar", icon: CalendarIcon },
-          { id: "analytics", label: "Analytics", icon: Award },
+          { id: "homework", label: "Homework", icon: ClipboardList },
+          { id: "exams", label: "Exams", icon: Award },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -143,12 +150,15 @@ function TeacherClassDetailPage() {
         {activeTab === "overview" && (
           <TeacherDashboardTab classInfo={classInfo} onSelectTab={setActiveTab} />
         )}
-        {activeTab === "assignments" && <TeacherAssignmentsTab classInfo={classInfo} />}
-        {activeTab === "students" && <TeacherStudentsTab classInfo={classInfo} />}
-        {activeTab === "materials" && <TeacherMaterialsTab classInfo={classInfo} />}
-        {activeTab === "announcements" && <TeacherAnnouncementsTab classInfo={classInfo} />}
-        {activeTab === "calendar" && <TeacherCalendarTab classInfo={classInfo} />}
-        {activeTab === "analytics" && <TeacherAnalyticsTab classInfo={classInfo} />}
+        {activeTab === "students" && (
+          <TeacherStudentsTab classInfo={classInfo} onSelectTab={setActiveTab} urlQ={urlQ} />
+        )}
+        {activeTab === "homework" && (
+          <TeacherAssignmentsTab classInfo={classInfo} urlQ={urlQ} />
+        )}
+        {activeTab === "exams" && (
+          <TeacherClassExamsTab classId={classInfo.id} urlQ={urlQ} />
+        )}
       </div>
     </div>
   );

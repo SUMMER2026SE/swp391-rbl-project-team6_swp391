@@ -15,9 +15,6 @@ import {
 } from "@/components/ui/select";
 import {
   getClasses,
-  getLessons,
-  getDataBankResources,
-  getDataBankResourceById,
   getQuestionTopics,
   getQuestionTopicById,
   getQuestionsForRandomGeneration,
@@ -28,30 +25,17 @@ import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
 import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
 import {
-  ArrowLeft,
-  ClipboardList,
-  BookOpen,
-  Library,
-  HelpCircle,
-  Save,
-  Send,
-  Eye,
-  Sparkles,
-  Shuffle,
+  ArrowLeft, ClipboardList, HelpCircle, Save, Send, Eye, Sparkles, Shuffle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Method = "manual" | "lesson" | "data-bank" | "question-bank";
+type Method = "manual" | "question-bank";
 
 export const Route = createFileRoute("/teacher/homework/create")({
   validateSearch: (s: Record<string, unknown>) => ({
     classId: typeof s.classId === "string" ? s.classId : undefined,
-    source:
-      s.source === "lesson" || s.source === "data-bank" || s.source === "question-bank"
-        ? (s.source as "lesson" | "data-bank" | "question-bank")
-        : undefined,
-    lessonId: typeof s.lessonId === "string" ? s.lessonId : undefined,
+    source: s.source === "question-bank" ? ("question-bank" as const) : undefined,
     resourceId: typeof s.resourceId === "string" ? s.resourceId : undefined,
     topicId: typeof s.topicId === "string" ? s.topicId : undefined,
   }),
@@ -59,7 +43,7 @@ export const Route = createFileRoute("/teacher/homework/create")({
 });
 
 function CreateHomework() {
-  const { classId, source, lessonId, resourceId, topicId } = Route.useSearch();
+  const { classId, source, resourceId, topicId } = Route.useSearch();
   const classes = getClasses();
   const lockedClass = classId ? classes.find((c) => c.id === classId) : null;
   const init: Method | null = (source as Method) ?? null;
@@ -93,40 +77,10 @@ function CreateHomework() {
   if (!method) {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader
-          eyebrow="New homework"
-          title="How do you want to create this homework?"
-          subtitle="Pick the source of the questions and content."
-        />
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <MethodCard
-            icon={ClipboardList}
-            title="Manual"
-            desc="Write the homework yourself."
-            badge="Editor"
-            onClick={() => setMethod("manual")}
-          />
-          <MethodCard
-            icon={BookOpen}
-            title="From a lesson"
-            desc="Auto-build from one of your lessons."
-            badge="Picker"
-            onClick={() => setMethod("lesson")}
-          />
-          <MethodCard
-            icon={Library}
-            title="From Data Bank"
-            desc="Attach a Center resource."
-            badge="Picker"
-            onClick={() => setMethod("data-bank")}
-          />
-          <MethodCard
-            icon={HelpCircle}
-            title="From Question Bank"
-            desc="Generate practice questions by difficulty."
-            badge="Generator"
-            onClick={() => setMethod("question-bank")}
-          />
+        <PageHeader eyebrow="New homework" title="How do you want to create this homework?" subtitle="Pick the source of the questions and content." />
+        <div className="grid gap-3 md:grid-cols-2">
+          <MethodCard icon={ClipboardList} title="Manual" desc="Write the homework yourself." badge="Editor" onClick={() => setMethod("manual")} />
+          <MethodCard icon={HelpCircle} title="From Question Bank" desc="Generate practice questions by difficulty." badge="Generator" onClick={() => setMethod("question-bank")} />
         </div>
         {lockedClass && (
           <p className="text-center text-xs text-muted-foreground">
@@ -144,15 +98,7 @@ function CreateHomework() {
         Change method
       </Button>
       {method === "manual" && <ManualHW lockedClass={lockedClass} onDone={setDone} />}
-      {method === "lesson" && (
-        <LessonHW lockedClass={lockedClass} lessonId={lessonId} onDone={setDone} />
-      )}
-      {method === "data-bank" && (
-        <DataBankHW lockedClass={lockedClass} resourceId={resourceId} onDone={setDone} />
-      )}
-      {method === "question-bank" && (
-        <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={setDone} />
-      )}
+      {method === "question-bank" && <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={setDone} />}
     </div>
   );
 }
@@ -362,235 +308,6 @@ function ManualHW({
           )}
         </p>
       </PreviewSheet>
-    </div>
-  );
-}
-
-function LessonHW({
-  lockedClass,
-  lessonId,
-  onDone,
-}: {
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
-  lessonId?: string;
-  onDone: (t: string) => void;
-}) {
-  const classes = getClasses();
-  const lessons = getLessons();
-  const init = lessonId ? lessons.find((l) => l.id === lessonId) : null;
-  if (lessonId && !init) toast.warning("Lesson not found");
-  const [selected, setSelected] = useState<string | null>(init?.id ?? null);
-  const lesson = lessons.find((l) => l.id === selected);
-  const [form, setForm] = useState({
-    classId: lockedClass?.id ?? init?.classId ?? classes[0]?.id ?? "",
-    title: init ? `${init.title} — Practice` : "",
-    instructions: init ? `Review the ${init.title} lesson and complete the exercises below.` : "",
-    dueDate: "",
-    maxScore: 100,
-    attempts: 2,
-    duration: 45,
-  });
-
-  const valid = !!(lesson && form.title && form.dueDate);
-
-  return (
-    <div>
-      <PageHeader
-        eyebrow="From a lesson"
-        title="Build homework from a lesson"
-        subtitle="Pick a lesson — title and instructions are auto-filled."
-      />
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Choose a lesson</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {lessons.slice(0, 10).map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => {
-                    setSelected(l.id);
-                    setForm((f) => ({
-                      ...f,
-                      title: `${l.title} — Practice`,
-                      instructions: `Review the ${l.title} lesson and complete the exercises below.`,
-                      classId: lockedClass?.id ?? l.classId ?? f.classId,
-                    }));
-                  }}
-                  className={cn(
-                    "rounded-lg border p-3 text-left transition-all",
-                    selected === l.id ? "border-primary bg-primary/5" : "hover:border-primary/40",
-                  )}
-                >
-                  <div className="mb-1 flex items-center gap-2">
-                    <LevelBadge level={l.level} />
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                      {l.skill}
-                    </span>
-                  </div>
-                  <div className="truncate text-sm font-semibold">{l.title}</div>
-                  <div className="font-jp text-xs text-muted-foreground">{l.jpTitle}</div>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Homework details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <CommonFields
-                form={form}
-                set={setForm as (v: Record<string, unknown>) => void}
-                classes={classes}
-                lockedClass={lockedClass}
-              />
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input
-                  value={form.title as string}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Instructions</Label>
-                <Textarea
-                  rows={4}
-                  value={form.instructions as string}
-                  onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          <Button
-            className="w-full"
-            disabled={!valid}
-            onClick={() => {
-              toast.success("Homework assigned");
-              onDone(form.title as string);
-            }}
-          >
-            <Send className="mr-2 h-4 w-4" />
-            Assign homework
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DataBankHW({
-  lockedClass,
-  resourceId,
-  onDone,
-}: {
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
-  resourceId?: string;
-  onDone: (t: string) => void;
-}) {
-  const classes = getClasses();
-  const resources = getDataBankResources();
-  const init = resourceId ? getDataBankResourceById(resourceId) : null;
-  if (resourceId && !init) toast.warning("Resource not found in Data Bank");
-  const [selected, setSelected] = useState<string | null>(init?.id ?? null);
-  const res = resources.find((r) => r.id === selected);
-  const [form, setForm] = useState({
-    classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: init?.title ?? "",
-    instructions: init?.description ?? "",
-    dueDate: "",
-    maxScore: 100,
-    attempts: 2,
-    duration: init?.duration ?? 45,
-  });
-
-  const valid = !!(res && form.title && form.dueDate);
-
-  return (
-    <div>
-      <PageHeader
-        eyebrow="From Data Bank"
-        title="Resource-based homework"
-        subtitle="Pick a Center-managed resource and configure the assignment."
-      />
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <Card>
-          <CardContent className="grid gap-2 p-5 sm:grid-cols-2">
-            {resources.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => {
-                  setSelected(r.id);
-                  setForm((f) => ({
-                    ...f,
-                    title: r.title,
-                    instructions: r.description,
-                    duration: r.duration,
-                  }));
-                }}
-                className={cn(
-                  "rounded-lg border p-3 text-left transition-all",
-                  selected === r.id ? "border-primary bg-primary/5" : "hover:border-primary/40",
-                )}
-              >
-                <div className="mb-1 flex items-center gap-2">
-                  <LevelBadge level={r.level} />
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    {r.type}
-                  </span>
-                </div>
-                <div className="truncate text-sm font-semibold">{r.title}</div>
-                <div className="font-jp text-xs text-muted-foreground">{r.jpTitle}</div>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Assignment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <CommonFields
-                form={form}
-                set={setForm as (v: Record<string, unknown>) => void}
-                classes={classes}
-                lockedClass={lockedClass}
-              />
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input
-                  value={form.title as string}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Instructions</Label>
-                <Textarea
-                  rows={4}
-                  value={form.instructions as string}
-                  onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          <Button
-            className="w-full"
-            disabled={!valid}
-            onClick={() => {
-              toast.success("Homework assigned");
-              onDone(form.title as string);
-            }}
-          >
-            <Send className="mr-2 h-4 w-4" />
-            Assign homework
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

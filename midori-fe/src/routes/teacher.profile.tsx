@@ -1114,7 +1114,7 @@ function TeacherProfilePage() {
           </div>
           <div className="text-center p-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200/70 dark:border-slate-600 shadow-sm">
             <div className="font-display font-black text-2xl text-slate-900 dark:text-white">0</div>
-            <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Lessons created</div>
+            <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Classes managed</div>
           </div>
           <div className="text-center p-3 rounded-xl bg-white dark:bg-slate-700 border border-slate-200/70 dark:border-slate-600 shadow-sm">
             <div className="font-display font-black text-2xl text-slate-900 dark:text-white">—</div>

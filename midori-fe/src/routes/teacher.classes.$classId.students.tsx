@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,17 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/teacher/classes/$classId/students")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   component: StudentsPage,
 });
 
 function StudentsPage() {
   const { classId } = Route.useParams();
+  const { q: urlQ } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const students = getStudentsByClass(classId);
-  const [q, setQ] = useState("");
   const [tab, setTab] = useState<"active" | "invited">("active");
   const [open, setOpen] = useState<string | null>(null);
   const [invite, setInvite] = useState(false);
@@ -33,9 +37,13 @@ function StudentsPage() {
   const active = students.filter((s) => s.status !== "invited");
   const invited = students.filter((s) => s.status === "invited");
   const list = (tab === "active" ? active : invited).filter((s) =>
-    s.name.toLowerCase().includes(q.toLowerCase()),
+    !urlQ || s.name.toLowerCase().includes(urlQ.toLowerCase()) || s.email.toLowerCase().includes(urlQ.toLowerCase()),
   );
   const selected = students.find((s) => s.id === open);
+
+  const handlePageSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    navigate({ search: { q: e.target.value || undefined } });
+  };
 
   return (
     <div className="space-y-4">
@@ -44,8 +52,8 @@ function StudentsPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search student…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={urlQ}
+            onChange={handlePageSearchChange}
             className="pl-9"
           />
         </div>

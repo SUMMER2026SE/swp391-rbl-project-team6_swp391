@@ -75,6 +75,7 @@ export interface TeacherClassInfo {
   avgScore: number;
   nextDeadline: string;
   createdDate: string;
+  progress?: number;
   students: TeacherStudent[];
   assignments: TeacherAssignment[];
   activities: TeacherActivity[];

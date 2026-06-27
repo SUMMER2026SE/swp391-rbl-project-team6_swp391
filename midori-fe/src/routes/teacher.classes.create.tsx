@@ -44,7 +44,7 @@ function CreateClass() {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         <SuccessBanner title="Class created" onDismiss={() => setCreated(false)}>
-          {form.name} is ready. You can now invite students and create lessons.
+          {form.name} is ready. You can now invite students and manage the class. Lessons will be assigned automatically based on the class level.
         </SuccessBanner>
         <Card>
           <CardContent className="space-y-3 p-6">
@@ -55,9 +55,7 @@ function CreateClass() {
             <p className="text-sm text-muted-foreground">{form.description}</p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Button onClick={() => navigate({ to: "/teacher/classes" })}>Back to classes</Button>
-              <Button variant="outline" onClick={() => navigate({ to: "/teacher/lessons/create" })}>
-                Create first lesson
-              </Button>
+              <Button variant="outline" onClick={() => navigate({ to: "/teacher/homework/create" })}>Assign Homework</Button>
             </div>
           </CardContent>
         </Card>
@@ -74,11 +72,7 @@ function CreateClass() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader
-        eyebrow="Classroom"
-        title="Create a new class"
-        subtitle="Set up a class so you can invite students, plan lessons and track progress."
-      />
+      <PageHeader eyebrow="Classroom" title="Create a new class" subtitle="Set up a class so you can invite students and track progress. Lessons are assigned automatically by class level." />
 
       <Card>
         <CardContent className="p-6">

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,9 @@ import { toast } from "sonner";
 import type { Report } from "@/data/teacher-data";
 
 export const Route = createFileRoute("/teacher/reports")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   component: TeacherReportsPage,
 });
 
@@ -281,7 +284,8 @@ function NewReportDialog({
 
 function TeacherReportsPage() {
   const allReports = getReports();
-  const [search, setSearch] = useState("");
+  const { q: urlQ } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [statusFilter, setStatusFilter] = useState<"All" | "Open" | "In review" | "Resolved">(
     "All",
   );
@@ -292,8 +296,10 @@ function TeacherReportsPage() {
 
   const filtered = allReports.filter((r) => {
     const matchesSearch =
-      r.title.toLowerCase().includes(search.toLowerCase()) ||
-      r.summary.toLowerCase().includes(search.toLowerCase());
+      !urlQ ||
+      r.title.toLowerCase().includes(urlQ.toLowerCase()) ||
+      r.summary.toLowerCase().includes(urlQ.toLowerCase()) ||
+      r.category.toLowerCase().includes(urlQ.toLowerCase());
     const matchesStatus = statusFilter === "All" || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -305,6 +311,10 @@ function TeacherReportsPage() {
   const handlePreview = (report: Report) => {
     setSelectedReport(report);
     setPreviewOpen(true);
+  };
+
+  const handlePageSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    navigate({ search: { q: e.target.value || undefined } });
   };
 
   return (
@@ -354,8 +364,8 @@ function TeacherReportsPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search reports…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={urlQ}
+            onChange={handlePageSearchChange}
             className="pl-9"
           />
         </div>
@@ -396,7 +406,7 @@ function TeacherReportsPage() {
               </div>
               <h3 className="text-base font-semibold">No reports found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {search ? "Try adjusting your search or filters." : "All caught up!"}
+                {urlQ ? "Try adjusting your search or filters." : "All caught up!"}
               </p>
             </CardContent>
           </Card>

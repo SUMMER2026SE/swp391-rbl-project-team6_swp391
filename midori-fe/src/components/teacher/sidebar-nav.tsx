@@ -1,17 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  BookOpen,
-  Plus,
-  GraduationCap,
-  ClipboardList,
-  FileText,
-  TrendingUp,
-  Library,
-  HelpCircle,
-  FileBadge,
-  MessageSquare,
-  Bell,
+  LayoutDashboard, Plus, GraduationCap, ClipboardList, FileText, TrendingUp,
+  HelpCircle, FileBadge, MessageSquare, Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -28,7 +18,6 @@ const groups = [
   {
     label: "Class Operations",
     items: [
-      { to: "/teacher/lessons", label: "Lessons", icon: BookOpen },
       { to: "/teacher/homework", label: "Homework", icon: ClipboardList },
       { to: "/teacher/exams", label: "Exams", icon: FileText },
       { to: "/teacher/progress", label: "Progress", icon: TrendingUp },
@@ -37,7 +26,6 @@ const groups = [
   {
     label: "Content Libraries",
     items: [
-      { to: "/teacher/data-bank", label: "Data Bank", icon: Library },
       { to: "/teacher/question-bank", label: "Question Bank", icon: HelpCircle },
       { to: "/teacher/jlpt-bank", label: "JLPT Exam Bank", icon: FileBadge },
     ],
@@ -60,6 +48,12 @@ export function SidebarNav({ onNavigate, collapsed = false }: SidebarNavProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const isActive = (to: string, exact?: boolean) => {
+    if (to === "/teacher/classes") {
+      return pathname === "/teacher/classes" || (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create");
+    }
+    if (to === "/teacher/classes/create") {
+      return pathname === "/teacher/classes/create";
+    }
     if (exact) return pathname === to;
     if (to === "/teacher") return pathname === to;
     return pathname === to || pathname.startsWith(to + "/") || pathname.startsWith(to + "?");

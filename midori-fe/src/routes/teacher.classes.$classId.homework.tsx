@@ -1,197 +1,91 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { getHomeworkByClass, type Homework } from "@/data/teacher-data";
-import { StatusBadge } from "@/components/teacher/badges";
-import { PreviewSheet, ConfirmDialog } from "@/components/teacher/dialogs";
-import { Plus, MoreVertical, Edit, Archive, Send, Bell } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
-import { HomeworkEditDialog } from "@/components/teacher/homework-edit-dialog";
-import { HomeworkSubmissionsDrawer } from "@/components/teacher/homework-submissions-drawer";
+import { ArrowLeft, ClipboardList } from "lucide-react";
+import { mockTeacherClasses } from "@/mock/teacherClasses";
+import { getClassById } from "@/data/teacher-data";
+import { TeacherAssignmentsTab } from "@/components/teacher/class-detail/TeacherAssignmentsTab";
+import { Card } from "@/components/page-ui";
 
 export const Route = createFileRoute("/teacher/classes/$classId/homework")({
-  component: ClassHomework,
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
+  component: ClassHomeworkPage,
 });
 
-function ClassHomework() {
+function ClassHomeworkPage() {
   const { classId } = Route.useParams();
-  const list = getHomeworkByClass(classId);
-  const [open, setOpen] = useState<string | null>(null);
-  const [archiving, setArchiving] = useState<string | null>(null);
-  const [editHw, setEditHw] = useState<string | null>(null);
-  const [submissionsHw, setSubmissionsHw] = useState<string | null>(null);
-  const sel = list.find((h) => h.id === open);
+  const { q: urlQ } = Route.useSearch();
+  
+  // Find mock class detail or construct one from base class metadata
+  let classInfo = mockTeacherClasses.find((c) => c.id === classId);
+  
+  if (!classInfo) {
+    const baseClass = getClassById(classId);
+    if (baseClass) {
+      const template = baseClass.level === "N4" ? (mockTeacherClasses[1] || mockTeacherClasses[0]) : mockTeacherClasses[0];
+      classInfo = {
+        ...template,
+        id: baseClass.id,
+        name: baseClass.name,
+        level: baseClass.level,
+        members: baseClass.studentCount,
+        assignmentCount: baseClass.openHomework,
+        avgScore: baseClass.progress / 10 + 2,
+        nextDeadline: baseClass.startDate,
+        createdDate: baseClass.startDate,
+      };
+    }
+  }
 
-  const handleHwSave = (updated: Homework) => {
-    toast.success("Homework updated");
-  };
-  const handleGradeHw = () => {
-    toast.success("Grade saved");
-  };
-  const handleRemindHw = () => {
-    toast.success("Reminder sent to students");
-  };
+  if (!classInfo) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/teacher/classes"
+            className="p-2 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-white/10 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="text-xl font-extrabold font-display">Class Not Found</h1>
+        </div>
+        <Card className="p-8 text-center max-w-lg mx-auto">
+          <p className="text-sm text-muted-foreground">The requested class could not be found.</p>
+          <Link
+            to="/teacher/classes"
+            className="mt-4 inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+          >
+            Back to Classes
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-muted-foreground">
-          {list.length} homework assignments
-        </h2>
-        <Button asChild>
-          <Link to={`/teacher/homework/create?classId=${classId}`}>
-            <Plus className="mr-2 h-4 w-4" />
-            Assign homework
-          </Link>
-        </Button>
+    <div className="space-y-6">
+      {/* Header section with back button */}
+      <div className="flex items-center gap-4">
+        <Link
+          to="/teacher/classes/$classId"
+          params={{ classId: classInfo.id }}
+          className="p-2 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-white/10 transition-all shrink-0"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div>
+          <h1 className="text-xl font-black font-display text-foreground dark:text-white leading-tight flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-primary" />
+            Homework Management — {classInfo.name}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage assignments, review submissions and grade student answers.
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-3">
-        {list.map((h) => (
-          <Card key={h.id}>
-            <CardContent className="p-4">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <div className="min-w-0">
-                  <div className="mb-1 flex items-center gap-2">
-                    <StatusBadge status={h.status} />
-                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                      {h.source.replace("-", " ")}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setOpen(h.id)}
-                    className="block truncate text-left font-semibold hover:text-primary"
-                  >
-                    {h.title}
-                  </button>
-                  <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                    {h.instructions}
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span>Due {h.dueDate}</span>
-                    <span>·</span>
-                    <span>Max {h.maxScore} pts</span>
-                    <span>·</span>
-                    <span>{h.attempts} attempts</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-40">
-                    <div className="mb-1 flex justify-between text-[10px] text-muted-foreground">
-                      <span>Submissions</span>
-                      <span>
-                        {h.submissions}/{h.totalStudents}
-                      </span>
-                    </div>
-                    <Progress value={(h.submissions / h.totalStudents) * 100} className="h-1.5" />
-                    {h.pendingGrading > 0 && (
-                      <div className="mt-1 text-[10px] text-warning">
-                        {h.pendingGrading} to grade
-                      </div>
-                    )}
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setSubmissionsHw(h.id)}>
-                        View submissions
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setSubmissionsHw(h.id)}>
-                        Grade
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setEditHw(h.id)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handleRemindHw}>
-                        <Bell className="mr-2 h-4 w-4" />
-                        Send reminder
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => toast.success("Homework closed")}>
-                        Close
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setArchiving(h.id)}>
-                        <Archive className="mr-2 h-4 w-4" />
-                        Archive
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <PreviewSheet open={!!sel} onOpenChange={(o) => !o && setOpen(null)} title={sel?.title ?? ""}>
-        {sel && (
-          <div className="space-y-3 text-sm">
-            <div className="rounded-lg bg-muted/40 p-3">
-              <div className="text-xs text-muted-foreground">Instructions</div>
-              <p className="mt-1">{sel.instructions}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg border p-2">
-                <div className="text-xs text-muted-foreground">Submitted</div>
-                <div className="text-lg font-bold">
-                  {sel.submissions}/{sel.totalStudents}
-                </div>
-              </div>
-              <div className="rounded-lg border p-2">
-                <div className="text-xs text-muted-foreground">Pending</div>
-                <div className="text-lg font-bold">{sel.pendingGrading}</div>
-              </div>
-              <div className="rounded-lg border p-2">
-                <div className="text-xs text-muted-foreground">Max score</div>
-                <div className="text-lg font-bold">{sel.maxScore}</div>
-              </div>
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => toast.success("Reminder sent to missing students")}
-            >
-              <Bell className="mr-2 h-4 w-4" />
-              Send reminder to missing students
-            </Button>
-          </div>
-        )}
-      </PreviewSheet>
-
-      <ConfirmDialog
-        open={!!archiving}
-        onOpenChange={(o) => !o && setArchiving(null)}
-        title="Archive homework?"
-        description="Students can no longer access this homework."
-        confirmLabel="Archive"
-        onConfirm={() => toast.success("Homework archived")}
-      />
-
-      <HomeworkEditDialog
-        open={!!editHw}
-        onOpenChange={(o) => !o && setEditHw(null)}
-        homework={editHw ? (list.find((h) => h.id === editHw) ?? null) : null}
-        onSave={handleHwSave}
-      />
-
-      <HomeworkSubmissionsDrawer
-        open={!!submissionsHw}
-        onOpenChange={(o) => !o && setSubmissionsHw(null)}
-        homework={submissionsHw ? (list.find((h) => h.id === submissionsHw) ?? null) : null}
-        onGrade={handleGradeHw}
-        onRemind={handleRemindHw}
-      />
+      {/* Render the core tab component */}
+      <TeacherAssignmentsTab classInfo={classInfo} urlQ={urlQ} />
     </div>
   );
 }

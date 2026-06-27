@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,9 @@ import { cn } from "@/lib/utils";
 import type { Notification } from "@/data/teacher-data";
 
 export const Route = createFileRoute("/teacher/notifications")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   component: TeacherNotificationsPage,
 });
 
@@ -177,6 +180,8 @@ function NotificationPreviewSheet({
 }
 
 function TeacherNotificationsPage() {
+  const { q: urlQ } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [notifications, setNotifications] = useState<Notification[]>(raw);
   const [activeTab, setActiveTab] = useState<TabType>("All");
   const [previewNotification, setPreviewNotification] = useState<Notification | null>(null);
@@ -188,6 +193,10 @@ function TeacherNotificationsPage() {
     if (activeTab === "All") return true;
     if (activeTab === "Unread") return !n.read;
     return n.type === activeTab;
+  }).filter((n) => {
+    if (!urlQ) return true;
+    const q = urlQ.toLowerCase();
+    return n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q) || n.type.toLowerCase().includes(q);
   });
 
   const handleMarkRead = (id: string) => {
@@ -206,12 +215,12 @@ function TeacherNotificationsPage() {
   };
 
   const tabCounts: Record<string, number> = {
-    All: notifications.length,
-    Unread: unreadCount,
-    homework: notifications.filter((n) => n.type === "homework").length,
-    exam: notifications.filter((n) => n.type === "exam").length,
-    student: notifications.filter((n) => n.type === "student").length,
-    system: notifications.filter((n) => n.type === "system").length,
+    All: filteredNotifications.length,
+    Unread: filteredNotifications.filter((n) => !n.read).length,
+    homework: filteredNotifications.filter((n) => n.type === "homework").length,
+    exam: filteredNotifications.filter((n) => n.type === "exam").length,
+    student: filteredNotifications.filter((n) => n.type === "student").length,
+    system: filteredNotifications.filter((n) => n.type === "system").length,
   };
 
   return (
