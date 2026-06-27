@@ -16,19 +16,8 @@ import {
   getProgressOverview,
 } from "@/data/teacher-data";
 import {
-  GraduationCap,
-  Users,
-  ClipboardList,
-  FileText,
-  BookOpen,
-  AlertTriangle,
-  ArrowRight,
-  Plus,
-  Library,
-  HelpCircle,
-  TrendingUp,
-  CheckCircle2,
-  Clock,
+  GraduationCap, Users, ClipboardList, FileText, AlertTriangle, ArrowRight,
+  Plus, HelpCircle, TrendingUp, CheckCircle2, Clock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/teacher/")({
@@ -97,13 +86,14 @@ function Dashboard() {
   ];
 
   const quickActions = [
-    { to: "/teacher/lessons/create", label: "Create Lesson", icon: BookOpen },
+    { to: "/teacher/classes", label: "My Classes", icon: GraduationCap },
+    { to: "/teacher/classes/create", label: "Create Class", icon: Plus },
     { to: "/teacher/homework/create", label: "Assign Homework", icon: ClipboardList },
     { to: "/teacher/exams/create", label: "Create Exam", icon: FileText },
     { to: "/teacher/progress", label: "View Progress", icon: TrendingUp },
-    { to: "/teacher/question-bank", label: "Open Question Bank", icon: HelpCircle },
-    { to: "/teacher/data-bank", label: "Open Data Bank", icon: Library },
+    { to: "/teacher/reports", label: "Reports", icon: HelpCircle },
   ];
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -113,18 +103,8 @@ function Dashboard() {
         subtitle="Here's what needs your attention today across your classes and students."
         actions={
           <>
-            <Button asChild variant="outline">
-              <Link to="/teacher/classes">
-                <GraduationCap className="mr-2 h-4 w-4" />
-                My classes
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link to="/teacher/lessons/create">
-                <Plus className="mr-2 h-4 w-4" />
-                New lesson
-              </Link>
-            </Button>
+            <Button asChild variant="outline"><Link to="/teacher/classes"><GraduationCap className="mr-2 h-4 w-4" />My classes</Link></Button>
+            <Button asChild><Link to="/teacher/homework/create"><Plus className="mr-2 h-4 w-4" />Assign Homework</Link></Button>
           </>
         }
       />
@@ -141,6 +121,11 @@ function Dashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">📚 System-managed lessons:</span>{" "}
+        Class lessons are assigned automatically by the system based on the class level. Teachers manage students, homework, exams, and progress.
       </div>
 
       <Card>

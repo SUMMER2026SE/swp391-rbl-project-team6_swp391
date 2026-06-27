@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,21 +10,30 @@ import { PreviewSheet } from "@/components/teacher/dialogs";
 import { Search, Eye, FileBadge, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/teacher/jlpt-bank")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   head: () => ({ meta: [{ title: "JLPT Exam Bank — MIDORI Teacher" }] }),
   component: JlptBank,
 });
 
 function JlptBank() {
   const sets = getJlptExamSets();
-  const [q, setQ] = useState("");
+  const { q: urlQ } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [level, setLevel] = useState("All");
   const [open, setOpen] = useState<string | null>(null);
   const sel = sets.find((s) => s.id === open);
 
   const filtered = sets.filter(
     (s) =>
-      (level === "All" || s.level === level) && s.title.toLowerCase().includes(q.toLowerCase()),
+      (level === "All" || s.level === level) &&
+      (urlQ === "" || s.title.toLowerCase().includes(urlQ.toLowerCase())),
   );
+
+  const handlePageSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    navigate({ search: { q: e.target.value || undefined } });
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -47,8 +56,8 @@ function JlptBank() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search sets…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={urlQ}
+            onChange={handlePageSearchChange}
             className="pl-9"
           />
         </div>
@@ -118,6 +127,12 @@ function JlptBank() {
           </Card>
         ))}
       </div>
+
+      {filtered.length === 0 && (
+        <Card className="py-12 text-center text-muted-foreground">
+          No exam sets match your search.
+        </Card>
+      )}
 
       <PreviewSheet
         open={!!sel}

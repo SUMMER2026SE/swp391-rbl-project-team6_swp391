@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,18 +68,22 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export const Route = createFileRoute("/teacher/classes")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   head: () => ({ meta: [{ title: "My Classes — MIDORI Teacher" }] }),
   component: ClassesLayout,
 });
 
 function ClassesLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { q: urlQ } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
 
   if (pathname !== "/teacher/classes") {
     return <Outlet />;
   }
 
-  const [q, setQ] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [inviteFor, setInviteFor] = useState<string | null>(null);
@@ -88,12 +92,16 @@ function ClassesLayout() {
 
   const filtered = useMemo(() => {
     return all.filter((c) => {
-      const matchSearch = c.name.toLowerCase().includes(q.toLowerCase());
+      const matchSearch = !urlQ || c.name.toLowerCase().includes(urlQ.toLowerCase()) || c.level.toLowerCase().includes(urlQ.toLowerCase()) || (c.jpName && c.jpName.toLowerCase().includes(urlQ.toLowerCase()));
       const matchLevel = levelFilter === "All" || c.level === levelFilter;
       const matchStatus = statusFilter === "All" || c.status === statusFilter;
       return matchSearch && matchLevel && matchStatus;
     });
-  }, [all, q, levelFilter, statusFilter]);
+  }, [all, urlQ, levelFilter, statusFilter]);
+
+  const handlePageSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    navigate({ search: { q: e.target.value || undefined } });
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -116,8 +124,8 @@ function ClassesLayout() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search class..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={urlQ}
+            onChange={handlePageSearchChange}
             className="pl-9"
           />
         </div>

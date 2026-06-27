@@ -1,47 +1,153 @@
 import React, { useState, useMemo } from "react";
 import { Card } from "@/components/page-ui";
+import { Link } from "@tanstack/react-router";
 import {
   ClipboardList,
   Calendar,
   Users,
   Award,
-  Eye,
-  Edit,
-  Trash2,
-  CheckSquare,
+  ArrowLeft,
+  ChevronRight,
+  Clock,
+  MessageSquare,
+  CheckCircle2,
+  AlertCircle,
+  Clock3,
+  HelpCircle,
+  Plus
 } from "lucide-react";
 import type { TeacherClassInfo, TeacherAssignment } from "@/types/teacher-class";
+import { toast } from "sonner";
 
 interface TeacherAssignmentsTabProps {
   classInfo: TeacherClassInfo;
+  urlQ?: string;
 }
 
-export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps) {
+interface Submission {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  studentAvatar: string;
+  status: "Submitted" | "Not submitted" | "Late" | "Graded";
+  submittedAt?: string;
+  score?: number;
+  feedback?: string;
+  studentAnswer?: string;
+  duration?: string;
+}
+
+// Smart mock submission generator that satisfies Yêu cầu F:
+// - Có ít nhất: 1 học sinh đã nộp và có điểm, 1 nộp chưa chấm, 1 chưa nộp, 1 nộp trễ.
+// - Khớp với danh sách học sinh của class.
+function getMockSubmissionsFor(assignment: TeacherAssignment, students: any[]): Submission[] {
+  return students.map((student, idx) => {
+    let status: "Submitted" | "Not submitted" | "Late" | "Graded";
+    
+    // Explicitly distribute statuses for first 4 students to guarantee presence of each state
+    if (idx === 0) {
+      status = "Graded";
+    } else if (idx === 1) {
+      status = "Submitted";
+    } else if (idx === 2) {
+      status = "Late";
+    } else if (idx === 3) {
+      status = "Not submitted";
+    } else {
+      // Cycle for the rest
+      const remainder = idx % 4;
+      if (remainder === 0) status = "Graded";
+      else if (remainder === 1) status = "Submitted";
+      else if (remainder === 2) status = "Late";
+      else status = "Not submitted";
+    }
+
+    let score: number | undefined;
+    let feedback = "";
+    let submittedAt: string | undefined;
+    let studentAnswer = "";
+    let duration = "25 mins";
+
+    if (status === "Graded") {
+      score = 9.0;
+      submittedAt = "2026-06-18 14:25";
+      feedback = "Excellent results! Good grammar usage and smooth sentences.";
+      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. A (Correct)\n2. B (Correct)\n3. A (Correct)\n4. C (Correct)\n\nStudent's short answer:\nTôi rất thích học tiếng Nhật tại lớp Midori. Chúc sensei nhiều sức khỏe!`;
+      duration = "15 mins";
+    } else if (status === "Submitted") {
+      submittedAt = "2026-06-19 09:10";
+      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. A (Correct)\n2. C (Incorrect - Correct: B)\n3. B (Correct)\n4. C (Correct)\n\nStudent's short answer:\nEm mong muốn học tốt hơn mỗi ngày. Cảm ơn cô giáo!`;
+      duration = "18 mins";
+    } else if (status === "Late") {
+      score = 7.5;
+      submittedAt = "2026-06-21 11:45"; // deadline is June 20, so June 21 is Late
+      feedback = "Please submit on time. Watch out for particle choices.";
+      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. B (Incorrect)\n2. C (Correct)\n3. A (Correct)\n4. D (Incorrect)\n\nStudent's short answer:\nEm xin lỗi vì nộp bài muộn ạ. Em sẽ chú ý hạn nộp bài lần sau.`;
+      duration = "30 mins";
+    }
+
+    return {
+      studentId: student.id,
+      studentName: student.name,
+      studentEmail: student.email,
+      studentAvatar: student.avatar,
+      status,
+      submittedAt,
+      score,
+      feedback,
+      studentAnswer,
+      duration,
+    };
+  });
+}
+
+export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTabProps) {
+  // Navigation state: "list" | "submissions" | "detail"
+  const [viewStep, setViewStep] = useState<"list" | "submissions" | "detail">("list");
+  const [selectedAssignment, setSelectedAssignment] = useState<TeacherAssignment | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+
+  // Filter & sorting states for Step 1
   const [filter, setFilter] = useState("All");
   const [sort, setSort] = useState("deadline");
 
-  const filters = ["All", "Active", "Need Grading", "Completed", "Overdue"];
+  // Step 2: Submissions list filter state ("All" | "Submitted" | "Graded" | "Missing" | "Late")
+  const [subFilter, setSubFilter] = useState("All");
+
+  // Step 3: Grading form states
+  const [gradeScore, setGradeScore] = useState<number>(0);
+  const [gradeFeedback, setGradeFeedback] = useState<string>("");
+
+  const filters = ["All", "Active", "Need Grading", "Completed"];
   const sortOptions = [
     { value: "deadline", label: "Nearest Deadline" },
-    { value: "created", label: "Latest Created" },
-    { value: "completion", label: "Lowest Completion Rate" },
+    { value: "created", label: "Latest Created" }
   ];
 
+  // Process homework assignments list
   const processedAssignments = useMemo(() => {
     let list = [...classInfo.assignments];
 
-    // Filter status mapping
+    if (urlQ) {
+      const q = urlQ.toLowerCase();
+      list = list.filter((a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.skill.toLowerCase().includes(q) ||
+        a.type.toLowerCase().includes(q) ||
+        a.deadline.toLowerCase().includes(q),
+      );
+    }
+
     if (filter !== "All") {
       list = list.filter((a) => {
         if (filter === "Active") return a.status === "Active";
         if (filter === "Need Grading") return a.status === "Active" && a.totalSubmissions > 0;
         if (filter === "Completed") return a.status === "Closed" && a.notSubmittedCount === 0;
-        if (filter === "Overdue") return a.status === "Active" && a.notSubmittedCount > 0;
         return true;
       });
     }
 
-    // Sorting
     list.sort((a, b) => {
       if (sort === "deadline") {
         return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
@@ -49,16 +155,11 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
       if (sort === "created") {
         return new Date(b.assignedDate).getTime() - new Date(a.assignedDate).getTime();
       }
-      if (sort === "completion") {
-        const rateA = a.totalSubmissions / (a.totalSubmissions + a.notSubmittedCount || 1);
-        const rateB = b.totalSubmissions / (b.totalSubmissions + b.notSubmittedCount || 1);
-        return rateA - rateB;
-      }
       return 0;
     });
 
     return list;
-  }, [classInfo, filter, sort]);
+  }, [classInfo, urlQ, filter, sort]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,8 +173,433 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
     }
   };
 
+  const getSubStatusBadge = (status: Submission["status"]) => {
+    switch (status) {
+      case "Graded":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-500/20 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="w-3 h-3" /> Graded
+          </span>
+        );
+      case "Submitted":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200/50 dark:border-amber-500/20 flex items-center gap-1 w-fit">
+            <Clock3 className="w-3 h-3" /> Submitted
+          </span>
+        );
+      case "Late":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400 border-orange-200/50 dark:border-orange-500/20 flex items-center gap-1 w-fit">
+            <AlertCircle className="w-3 h-3" /> Late
+          </span>
+        );
+      case "Not submitted":
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-slate-50 text-slate-600 dark:bg-white/5 dark:text-slate-400 border-slate-200/50 dark:border-white/10 flex items-center gap-1 w-fit">
+            <HelpCircle className="w-3 h-3" /> Missing
+          </span>
+        );
+    }
+  };
+
+  // Actions transitions
+  const handleOpenSubmissions = (assignment: TeacherAssignment) => {
+    setSelectedAssignment(assignment);
+    const list = getMockSubmissionsFor(assignment, classInfo.students);
+    setSubmissions(list);
+    setSubFilter("All");
+    setViewStep("submissions");
+  };
+
+  const handleOpenDetail = (submission: Submission) => {
+    setSelectedSubmission(submission);
+    setGradeScore(submission.score !== undefined ? submission.score : 10);
+    setGradeFeedback(submission.feedback ?? "");
+    setViewStep("detail");
+  };
+
+  const handleSaveGrade = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSubmission) return;
+
+    // Validate score
+    if (gradeScore < 0 || gradeScore > 10) {
+      toast.error("Score must be between 0 and 10");
+      return;
+    }
+
+    setSubmissions((prev) =>
+      prev.map((sub) =>
+        sub.studentId === selectedSubmission.studentId
+          ? {
+              ...sub,
+              status: "Graded",
+              score: gradeScore,
+              feedback: gradeFeedback,
+            }
+          : sub
+      )
+    );
+
+    toast.success(`Successfully graded ${selectedSubmission.studentName}'s homework!`);
+    setViewStep("submissions");
+  };
+
+  // Filtered submissions list in Step 2
+  const filteredSubmissions = useMemo(() => {
+    if (subFilter === "All") return submissions;
+    return submissions.filter((sub) => {
+      if (subFilter === "Submitted") return sub.status === "Submitted";
+      if (subFilter === "Graded") return sub.status === "Graded";
+      if (subFilter === "Missing") return sub.status === "Not submitted";
+      if (subFilter === "Late") return sub.status === "Late";
+      return true;
+    });
+  }, [submissions, subFilter]);
+
+  // ----------------------------------------------------
+  // STEP 3: SUBMISSION DETAIL
+  // ----------------------------------------------------
+  if (viewStep === "detail" && selectedAssignment && selectedSubmission) {
+    return (
+      <div className="space-y-6">
+        {/* Navigation Breadcrumb & Back */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewStep("submissions")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold text-muted-foreground hover:text-foreground transition-all animate-in fade-in"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Submissions
+          </button>
+        </div>
+
+        {/* Header information */}
+        <div className="p-6 rounded-3xl bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200/50 dark:border-white/5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                Submission Detail
+              </span>
+              <h2 className="text-xl font-bold font-display text-foreground dark:text-white mt-1">
+                {selectedAssignment.title}
+              </h2>
+              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                <span>Student: <strong className="text-foreground dark:text-slate-200">{selectedSubmission.studentName}</strong></span>
+                <span>•</span>
+                <span>{selectedSubmission.studentEmail}</span>
+              </div>
+            </div>
+            <div>
+              {getSubStatusBadge(selectedSubmission.status)}
+            </div>
+          </div>
+        </div>
+
+        {/* Details Grid */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Student submission body (left col - span 2) */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="p-6 space-y-4">
+              <h3 className="font-display font-bold text-base text-foreground dark:text-white">
+                Student Answers
+              </h3>
+
+              {selectedSubmission.status === "Not submitted" ? (
+                <div className="py-12 text-center text-muted-foreground border border-dashed rounded-2xl border-border/40">
+                  <HelpCircle className="w-10 h-10 mx-auto opacity-30 mb-2" />
+                  <p className="text-sm font-semibold">This student has not submitted this homework yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Submission metadata */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/5 text-xs border border-border/40">
+                    <div>
+                      <div className="text-muted-foreground font-semibold uppercase text-[9px] tracking-wider mb-0.5">Submitted at</div>
+                      <div className="font-bold text-foreground dark:text-white flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                        {selectedSubmission.submittedAt || "N/A"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground font-semibold uppercase text-[9px] tracking-wider mb-0.5">Attempt Duration</div>
+                      <div className="font-bold text-foreground dark:text-white flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                        {selectedSubmission.duration || "N/A"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground font-semibold uppercase text-[9px] tracking-wider mb-0.5">Late / On Time</div>
+                      <div className="font-bold">
+                        {selectedSubmission.status === "Late" ? (
+                          <span className="text-orange-500 font-bold flex items-center gap-1"><Clock3 className="w-3.5 h-3.5" /> Late</span>
+                        ) : (
+                          <span className="text-emerald-500 font-bold flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> On Time</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submission content block */}
+                  <div className="p-5 rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50/30 dark:bg-slate-900/30 font-mono text-xs whitespace-pre-wrap text-foreground dark:text-slate-300 leading-relaxed">
+                    {selectedSubmission.studentAnswer}
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Grading & Feedback panel (right col - span 1) */}
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="font-display font-bold text-base text-foreground dark:text-white mb-4">
+                Grading & Feedback
+              </h3>
+
+              <form onSubmit={handleSaveGrade} className="space-y-4">
+                {/* Score field */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                    Score (Out of 10)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    disabled={selectedSubmission.status === "Not submitted"}
+                    value={gradeScore}
+                    onChange={(e) => setGradeScore(parseFloat(e.target.value) || 0)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-sm font-bold text-foreground dark:text-white focus:ring-1 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Feedback field */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                    Teacher Feedback
+                  </label>
+                  <textarea
+                    rows={6}
+                    disabled={selectedSubmission.status === "Not submitted"}
+                    placeholder="Write constructive comments, tips or next steps for the student..."
+                    value={gradeFeedback}
+                    onChange={(e) => setGradeFeedback(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs text-foreground dark:text-white focus:ring-1 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none leading-relaxed"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={selectedSubmission.status === "Not submitted"}
+                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:opacity-90 transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-display uppercase tracking-wider"
+                >
+                  <Award className="w-4 h-4" /> Save Grade & Feedback
+                </button>
+              </form>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // STEP 2: ASSIGNMENT SUBMISSIONS LIST
+  // ----------------------------------------------------
+  if (viewStep === "submissions" && selectedAssignment) {
+    const totalStudents = classInfo.students.length;
+    const submittedCount = submissions.filter((s) => s.status === "Submitted" || s.status === "Graded" || s.status === "Late").length;
+    const gradedCount = submissions.filter((s) => s.status === "Graded").length;
+    const missingCount = submissions.filter((s) => s.status === "Not submitted").length;
+    const compRate = Math.round((submittedCount / (totalStudents || 1)) * 100);
+
+    return (
+      <div className="space-y-5">
+        {/* Breadcrumbs and back action */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewStep("list")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold text-muted-foreground hover:text-foreground transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Homework List
+          </button>
+        </div>
+
+        {/* Brief Stats & Header */}
+        <div className="p-6 rounded-3xl bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200/50 dark:border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-black tracking-widest text-primary">
+                {selectedAssignment.moduleType} Assignment
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black border ${getStatusColor(selectedAssignment.status)}`}>
+                {selectedAssignment.status}
+              </span>
+            </div>
+            <h2 className="text-xl font-bold font-display text-foreground dark:text-white mt-1 leading-tight">
+              {selectedAssignment.title}
+            </h2>
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Due date: <strong className="text-foreground dark:text-slate-300">{selectedAssignment.deadline}</strong></span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+            <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-100 dark:border-white/5 min-w-[85px]">
+              <div className="text-sm font-black text-foreground dark:text-white">{submittedCount}/{totalStudents}</div>
+              <div className="text-[8px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">Submitted</div>
+            </div>
+            <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-100 dark:border-white/5 min-w-[85px]">
+              <div className="text-sm font-black text-amber-500">{submittedCount - gradedCount}</div>
+              <div className="text-[8px] text-amber-500 font-bold uppercase tracking-wider mt-0.5">To Grade</div>
+            </div>
+            <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-100 dark:border-white/5 min-w-[85px]">
+              <div className="text-sm font-black text-emerald-500">{compRate}%</div>
+              <div className="text-[8px] text-emerald-500 font-bold uppercase tracking-wider mt-0.5">Rate</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status filtering tabs */}
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-white/5 pb-3">
+          {[
+            { id: "All", label: "All Students" },
+            { id: "Submitted", label: "Needs Grading" },
+            { id: "Graded", label: "Graded" },
+            { id: "Late", label: "Late" },
+            { id: "Missing", label: "Missing" },
+          ].map((tab) => {
+            const isActive = subFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setSubFilter(tab.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-white/5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/10"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Student submission grid */}
+        <div className="grid gap-3">
+          {filteredSubmissions.map((sub) => (
+            <Card
+              key={sub.studentId}
+              className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border transition-all ${
+                sub.status === "Submitted" ? "border-amber-500/15 bg-amber-500/[0.005]" : "hover:border-slate-300 dark:hover:border-white/10"
+              }`}
+            >
+              {/* Profile info */}
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-xs shrink-0">
+                  {sub.studentAvatar}
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-display font-bold text-sm text-foreground dark:text-white truncate">
+                    {sub.studentName}
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground truncate">{sub.studentEmail}</p>
+                </div>
+              </div>
+
+              {/* Submission stats / badge */}
+              <div className="flex items-center gap-8 self-start sm:self-center">
+                <div className="w-28 flex flex-col justify-center">
+                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">Status</div>
+                  {getSubStatusBadge(sub.status)}
+                </div>
+
+                <div className="w-36">
+                  {sub.submittedAt ? (
+                    <div>
+                      <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">Submitted at</div>
+                      <div className="text-[10px] font-semibold text-foreground dark:text-slate-300 truncate">
+                        {sub.submittedAt}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">Submitted at</div>
+                      <div className="text-[10px] text-muted-foreground italic">No submission</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="w-16 text-center">
+                  <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black mb-0.5">Score</div>
+                  <div className="text-xs font-black text-foreground dark:text-white">
+                    {sub.score !== undefined ? (
+                      <span className="text-emerald-500 font-bold">{sub.score}/10</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions button */}
+              <div className="self-end sm:self-center shrink-0">
+                {sub.status === "Not submitted" ? (
+                  <span className="inline-flex px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-[10px] font-black text-muted-foreground opacity-50 select-none cursor-default uppercase tracking-wider">
+                    Missing
+                  </span>
+                ) : sub.status === "Submitted" ? (
+                  <button
+                    onClick={() => handleOpenDetail(sub)}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-white font-bold text-[10px] uppercase tracking-wider hover:bg-amber-600 transition shadow-sm flex items-center gap-1 font-display"
+                  >
+                    Grade
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleOpenDetail(sub)}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-[10px] font-bold text-foreground dark:text-white uppercase tracking-wider transition border border-border/40 font-display"
+                  >
+                    View submission
+                  </button>
+                )}
+              </div>
+            </Card>
+          ))}
+
+          {filteredSubmissions.length === 0 && (
+            <div className="text-center py-12 border border-dashed rounded-3xl border-border/40 bg-slate-50/50 dark:bg-white/[0.01]">
+              <Users className="w-10 h-10 mx-auto text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground font-semibold">No student submissions match this status.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // STEP 1: HOMEWORK LISTING
+  // ----------------------------------------------------
   return (
     <div className="space-y-4">
+      {/* Upper header action with assign button */}
+      <div className="flex justify-between items-center px-1">
+        <h3 className="font-display font-black text-base text-foreground dark:text-white flex items-center gap-2">
+          <ClipboardList className="w-4.5 h-4.5 text-primary" />
+          Class Homework ({processedAssignments.length} Assignments)
+        </h3>
+        <Link
+          to="/teacher/homework/create"
+          search={{ classId: classInfo.id, source: undefined, resourceId: undefined, topicId: undefined }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-black text-xs hover:opacity-90 transition-all shadow-sm font-display uppercase tracking-wider"
+        >
+          <Plus className="w-3.5 h-3.5" /> Assign Homework
+        </Link>
+      </div>
+
       {/* Filters & Sorting Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white/50 dark:bg-indigo-950/20 rounded-2xl border border-slate-200/50 dark:border-white/5 backdrop-blur-sm shadow-sm">
         {/* Filters */}
@@ -82,10 +608,10 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${
                 filter === f
-                  ? "bg-gradient-to-r from-blue-400 to-pink-400 text-white shadow-sm"
-                  : "bg-card/50 dark:bg-white/4.5 border border-border/40 text-muted-foreground hover:text-foreground dark:hover:bg-white/8"
+                  ? "bg-primary text-primary-foreground shadow-sm font-display"
+                  : "bg-card/50 dark:bg-white/4.5 border border-border/40 text-muted-foreground hover:text-foreground dark:hover:bg-white/8 font-display"
               }`}
             >
               {f}
@@ -99,7 +625,7 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/70 dark:bg-slate-900 border border-slate-200 dark:border-white/10 outline-none cursor-pointer focus:ring-1 focus:ring-primary"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/70 dark:bg-slate-900 border border-slate-200 dark:border-white/10 outline-none cursor-pointer focus:ring-1 focus:ring-primary text-foreground dark:text-white"
           >
             {sortOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -110,10 +636,10 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
         </div>
       </div>
 
-      {/* Assignment Cards */}
+      {/* Assignment Cards Grid */}
       <div className="grid sm:grid-cols-2 gap-4">
         {processedAssignments.map((assignment) => {
-          const totalStudents = assignment.totalSubmissions + assignment.notSubmittedCount;
+          const totalStudents = classInfo.students.length;
           const compRate = Math.round((assignment.totalSubmissions / (totalStudents || 1)) * 100);
 
           return (
@@ -123,7 +649,7 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
             >
               <div>
                 <div className="flex justify-between items-start mb-3">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-primary">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-primary font-display">
                     {assignment.moduleType}
                   </span>
                   <span
@@ -141,42 +667,22 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
 
                 <div className="space-y-2 text-xs text-muted-foreground mb-6">
                   <div className="flex justify-between">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" /> Assigned
-                    </span>
-                    <span className="font-semibold text-foreground dark:text-white">
-                      {assignment.assignedDate}
-                    </span>
+                    <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-muted-foreground" /> Assigned</span>
+                    <span className="font-semibold text-foreground dark:text-white">{assignment.assignedDate}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-red-500" /> Deadline
-                    </span>
-                    <span className="font-semibold text-foreground dark:text-white">
-                      {assignment.deadline}
-                    </span>
+                    <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-red-500" /> Due date</span>
+                    <span className="font-semibold text-foreground dark:text-white">{assignment.deadline}</span>
                   </div>
                   <div className="flex justify-between border-t border-dashed border-border/50 pt-2 mt-2">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" /> Submissions
-                    </span>
+                    <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-muted-foreground" /> Submitted</span>
                     <span className="font-semibold text-foreground dark:text-white">
                       {assignment.totalSubmissions} / {totalStudents} ({compRate}%)
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="flex items-center gap-1">
-                      <CheckSquare className="w-3.5 h-3.5 text-amber-500" /> Needs Grading
-                    </span>
-                    <span className="font-semibold text-amber-500">
-                      {assignment.status === "Active" ? assignment.totalSubmissions : 0} tasks
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5 text-green-500" /> Avg Score
-                    </span>
-                    <span className="font-semibold text-green-500">
+                    <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-emerald-500" /> Average score</span>
+                    <span className="font-semibold text-emerald-500">
                       {assignment.avgScore ? `${assignment.avgScore}/10` : "—"}
                     </span>
                   </div>
@@ -184,18 +690,12 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 border-t border-slate-100 dark:border-white/5 pt-3">
-                <button className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-[10px] font-bold transition flex items-center justify-center gap-1">
-                  <Eye className="w-3 h-3" /> View
-                </button>
-                <button className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-[10px] font-bold transition flex items-center justify-center gap-1">
-                  <Edit className="w-3 h-3" /> Edit
-                </button>
-                <button className="flex-1 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold transition flex items-center justify-center gap-1">
-                  <CheckSquare className="w-3 h-3" /> Grade
-                </button>
-                <button className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition flex items-center justify-center">
-                  <Trash2 className="w-3.5 h-3.5" />
+              <div className="border-t border-slate-100 dark:border-white/5 pt-3">
+                <button
+                  onClick={() => handleOpenSubmissions(assignment)}
+                  className="w-full py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold transition flex items-center justify-center gap-1.5 uppercase tracking-wider font-display"
+                >
+                  <ClipboardList className="w-3.5 h-3.5" /> View submissions
                 </button>
               </div>
             </Card>
@@ -205,9 +705,7 @@ export function TeacherAssignmentsTab({ classInfo }: TeacherAssignmentsTabProps)
         {processedAssignments.length === 0 && (
           <div className="sm:col-span-2 text-center py-12 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
             <ClipboardList className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-sm text-muted-foreground font-semibold">
-              No assignments match the selected filter.
-            </p>
+            <p className="text-sm text-muted-foreground font-semibold">No homework assignments match the selected filter.</p>
           </div>
         )}
       </div>

@@ -1,28 +1,10 @@
-import { type ReactNode, useState, useEffect, useCallback } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { type ReactNode, useState, useEffect, useMemo } from "react";
+import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import {
-  Bell,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  Moon,
-  Search,
-  Sun,
-  LayoutDashboard,
-  School,
-  BookOpen,
-  ClipboardList,
-  ClipboardCheck,
-  TrendingUp,
-  FolderOpen,
-  HelpCircle,
-  FileBadge,
-  MessageSquare,
-  LogOut,
-  User,
-  ChevronDown,
-  Flame,
-  Sparkles,
+  Bell, ChevronLeft, ChevronRight, Menu, Moon, Sun, Search, X,
+  LayoutDashboard, School, BookOpen, ClipboardList, ClipboardCheck,
+  TrendingUp, HelpCircle, FileBadge, MessageSquare,
+  LogOut, User, ChevronDown, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -31,7 +13,7 @@ import { useTheme, useAuth, getUserAvatar, getAvatarInitial } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { notifications as mockNotifs } from "@/data/teacher-data";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Nav structure ────────────────────────────────────────────────
 type NavItem = { to: string; label: string; icon: React.ElementType; exact?: boolean };
@@ -43,13 +25,12 @@ const teacherGroups: NavGroup[] = [
     items: [
       { to: "/teacher", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/teacher/classes", label: "My Classes", icon: School },
-      { to: "/teacher/classes/create", label: "Create Class", icon: School },
+      { to: "/teacher/classes/create", label: "Create Class", icon: Plus },
     ],
   },
   {
     label: "Class Operations",
     items: [
-      { to: "/teacher/lessons", label: "Lessons", icon: BookOpen },
       { to: "/teacher/homework", label: "Homework", icon: ClipboardList },
       { to: "/teacher/exams", label: "Exams", icon: ClipboardCheck },
       { to: "/teacher/progress", label: "Progress", icon: TrendingUp },
@@ -58,7 +39,6 @@ const teacherGroups: NavGroup[] = [
   {
     label: "Content Libraries",
     items: [
-      { to: "/teacher/data-bank", label: "Data Bank", icon: FolderOpen },
       { to: "/teacher/question-bank", label: "Question Bank", icon: HelpCircle },
       { to: "/teacher/jlpt-bank", label: "JLPT Exam Bank", icon: FileBadge },
     ],
@@ -100,18 +80,7 @@ export function PageHeader({
             onClick={onBack}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1.5 shrink-0"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
             Back
           </button>
         )}
@@ -135,14 +104,83 @@ export function PageHeader({
 // ─── Main shell ──────────────────────────────────────────────────
 export function TeacherShell({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, loaded } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const routerState = useRouterState({ select: (s) => s.location });
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // ── Fix: clean empty ?q= on mount and whenever it appears ───
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    // Only remove q when it's empty string or whitespace-only
+    if (q !== null && q.trim() === "") {
+      params.delete("q");
+      const base = window.location.pathname;
+      const newSearch = params.toString();
+      const newUrl = newSearch ? `${base}?${newSearch}` : base;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, [routerState.search]);
+
+  // ── Teacher loading skeleton (shows while AuthGuard resolves) ─────
+  if (!loaded) {
+    return (
+      <div className="min-h-screen flex">
+        <SakuraBg count={14} />
+        <aside className="hidden lg:flex flex-col m-3 mr-0 rounded-3xl p-4 sticky top-3 h-[calc(100vh-1.5rem)] w-72 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md border border-white/20 shadow-lg">
+          {/* Logo skeleton */}
+          <div className="flex items-center gap-2.5 px-3 py-3 mb-2">
+            <Skeleton className="w-9 h-9 rounded-lg" />
+            <div className="space-y-1.5">
+              <Skeleton className="w-20 h-4 rounded" />
+              <Skeleton className="w-14 h-2.5 rounded" />
+            </div>
+          </div>
+          {/* Nav items skeleton */}
+          <div className="flex-1 space-y-2 mt-2">
+            {["Overview", "Class Operations", "Content Libraries", "Support"].map((group) => (
+              <div key={group} className="mb-3">
+                <Skeleton className="w-16 h-2.5 rounded mb-2 ml-3" />
+                <div className="space-y-1.5 px-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-9 w-full rounded-xl" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-9 w-full rounded-xl mt-2" />
+        </aside>
+        <div className="flex-1 flex flex-col">
+          <header className="sticky top-0 z-40 mx-3 mt-3">
+            <div className="rounded-2xl px-5 py-3 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md border border-white/20 shadow-md flex items-center gap-3">
+              <Skeleton className="h-9 w-full max-w-md rounded-xl" />
+              <div className="flex items-center gap-1 ml-auto">
+                <Skeleton className="h-9 w-9 rounded-xl" />
+                <Skeleton className="h-9 w-9 rounded-xl" />
+                <Skeleton className="h-9 w-24 rounded-full" />
+              </div>
+            </div>
+          </header>
+          <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6 space-y-4">
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <div className="grid grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-24 rounded-2xl" />
+              ))}
+            </div>
+            <Skeleton className="h-64 rounded-2xl" />
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   const unread = mockNotifs.filter((n) => !n.read).length;
 
@@ -150,6 +188,12 @@ export function TeacherShell({ children }: { children: ReactNode }) {
   const initials = getAvatarInitial(user);
 
   const isActive = (to: string, exact?: boolean) => {
+    if (to === "/teacher/classes") {
+      return pathname === "/teacher/classes" || (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create");
+    }
+    if (to === "/teacher/classes/create") {
+      return pathname === "/teacher/classes/create";
+    }
     if (exact) return pathname === to;
     if (to === "/teacher") return pathname === to;
     return pathname === to || pathname.startsWith(to + "/") || pathname.startsWith(to + "?");
@@ -380,11 +424,7 @@ export function TeacherShell({ children }: { children: ReactNode }) {
 
             {/* Search */}
             <div className="flex-1 relative min-w-0">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-col pointer-events-none" />
-              <input
-                placeholder="Search classes, lessons, students…"
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm hover:shadow-[0_8px_24px_rgba(148,163,184,0.16)] dark:hover:shadow-none transition-all duration-200 placeholder:text-muted-col/70 dark:placeholder:text-slate-400"
-              />
+              <TeacherSearchBar />
             </div>
 
             <div className="flex items-center gap-1">
@@ -557,15 +597,124 @@ export function TeacherShell({ children }: { children: ReactNode }) {
 
         {/* Main content */}
         <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-          >
-            {children}
-          </motion.div>
+          {children}
         </main>
       </div>
+    </div>
+  );
+}
+
+// ─── Teacher Search Bar ────────────────────────────────────────────────────────
+// Global search for ALL teacher pages. On list pages, updates ?q= on the current route.
+// On non-list pages, navigates to /teacher/classes?q=<keyword>.
+function TeacherSearchBar() {
+  const router = useRouter();
+  const routerState = useRouterState({ select: (s) => s.location });
+  const pathname = routerState.pathname;
+
+  // Determine where to navigate when user types
+  const getTargetPath = (keyword: string): string => {
+    const listRoutes = [
+      "/teacher",
+      "/teacher/classes",
+      "/teacher/progress",
+      "/teacher/question-bank",
+      "/teacher/jlpt-bank",
+      "/teacher/reports",
+      "/teacher/notifications",
+    ];
+    const classDetailRoutes = [
+      "/teacher/classes/",
+    ];
+
+    const isListPage = listRoutes.some((r) =>
+      r === "/teacher" ? pathname === r : pathname === r || pathname.startsWith(r + "/")
+    );
+    const isClassDetail = classDetailRoutes.some((r) => pathname.startsWith(r));
+
+    if (isListPage || isClassDetail) {
+      // Update q on current route
+      if (keyword) {
+        return `${pathname}?q=${encodeURIComponent(keyword)}`;
+      }
+      return pathname;
+    }
+
+    // Non-list pages → only navigate if keyword is non-empty
+    if (keyword) {
+      return `/teacher/classes?q=${encodeURIComponent(keyword)}`;
+    }
+    // Non-list pages with empty search → stay on current page, no q param
+    return pathname;
+  };
+
+  // Read current q from URL
+  const urlQ = useMemo(() => {
+    const params = new URLSearchParams(routerState.search || "");
+    return params.get("q") || "";
+  }, [routerState.search]);
+
+  const [inputVal, setInputVal] = useState(urlQ);
+
+  // Keep input in sync when URL changes externally (e.g., back/forward)
+  useEffect(() => {
+    setInputVal(urlQ);
+  }, [urlQ]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputVal(val);
+    const keyword = val.trim();
+    const target = getTargetPath(keyword);
+
+    if (target.includes("?")) {
+      router.navigate({
+        to: target.split("?")[0],
+        search: { q: keyword || undefined },
+        replace: true,
+      });
+    } else {
+      // Navigate to base path (clear q)
+      window.history.pushState(null, "", target);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  };
+
+  const handleClear = () => {
+    setInputVal("");
+    const target = getTargetPath("");
+    if (target.includes("?")) {
+      router.navigate({
+        to: target.split("?")[0],
+        search: {},
+        replace: true,
+      });
+    } else {
+      window.history.pushState(null, "", target);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  };
+
+  return (
+    <div className="relative">
+      <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-col pointer-events-none" />
+      <input
+        type="text"
+        placeholder="Search classes..."
+        value={inputVal}
+        onChange={handleChange}
+        data-testid="teacher-header-search"
+        className="w-full pl-10 pr-10 py-2 rounded-xl bg-white/95 border border-slate-200/80 dark:bg-[#1e2330] dark:border-white/10 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-200/60 focus:border-blue-300/70 dark:focus:ring-indigo-500/40 dark:focus:border-indigo-500/50 shadow-sm hover:shadow-[0_8px_24px_rgba(148,163,184,0.16)] dark:hover:shadow-none transition-all duration-200 placeholder:text-muted-col/70 dark:placeholder:text-slate-400"
+      />
+      {inputVal && (
+        <button
+          onClick={handleClear}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-col/50 hover:text-muted-col transition-colors"
+          title="Clear search"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }

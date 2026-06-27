@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,62 +10,242 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, X, Plus } from "lucide-react";
+import { Mail, Send, AlertCircle, User, BookOpen, Hash, Clock, X } from "lucide-react";
+
+function isValidEmail(email: string): boolean {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed) return false;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(trimmed);
+}
+
+function parseEmails(input: string): { valid: string[]; invalid: string[] } {
+  const parts = input.split(",").map((e) => e.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const valid: string[] = [];
+  const invalid: string[] = [];
+
+  for (const email of parts) {
+    const lower = email.toLowerCase();
+    if (isValidEmail(email)) {
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        valid.push(email.trim());
+      }
+    } else {
+      invalid.push(email);
+    }
+  }
+  return { valid, invalid };
+}
 
 export function InviteStudentsDialog({
   open,
   onOpenChange,
   className,
+  classLevel,
+  teacherName,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   className?: string;
+  classLevel?: string;
+  teacherName?: string;
 }) {
-  const [emails, setEmails] = useState("");
+  const [emailsInput, setEmailsInput] = useState("");
+  const [optionalMessage, setOptionalMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const { valid, invalid } = useMemo(() => parseEmails(emailsInput), [emailsInput]);
+
+  const canSend = valid.length > 0 && invalid.length === 0;
+
+  const handleSend = async () => {
+    if (!canSend) return;
+
+    setSending(true);
+    await new Promise((r) => setTimeout(r, 800));
+    setSending(false);
+
+    const classDisplay = className ?? "this class";
+    const levelDisplay = classLevel ? ` ${classLevel}` : "";
+
+    if (valid.length === 1) {
+      toast.success(`Invitation sent to ${valid[0]} for${levelDisplay} ${classDisplay}.`);
+    } else {
+      toast.success(`Invitations sent to ${valid.length} students for${levelDisplay} ${classDisplay}.`);
+    }
+
+    setEmailsInput("");
+    setOptionalMessage("");
+    onOpenChange(false);
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
+  const displayClassName = className ?? "the class";
+  const displayLevel = classLevel ?? "N5";
+  const displayTeacher = teacherName ?? "Your teacher";
+  const previewSubject = `You're invited to join ${displayClassName} on MIDORI`;
+  const previewBody = optionalMessage
+    ? `Hello,\n\n${displayTeacher} has invited you to join the class "${displayClassName}" on MIDORI.\n\nClass level: ${displayLevel}\nYou can accept this invitation to access lessons, homework, exams, and progress tracking for this class.\n\nTeacher message:\n"${optionalMessage}"\n\nClick the invitation link to join the class.\n\nBest regards,\nMIDORI Team`
+    : `Hello,\n\n${displayTeacher} has invited you to join the class "${displayClassName}" on MIDORI.\n\nClass level: ${displayLevel}\nYou can accept this invitation to access lessons, homework, exams, and progress tracking for this class.\n\nClick the invitation link to join the class.\n\nBest regards,\nMIDORI Team`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Invite students</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="w-5 h-5 text-primary" />
+            Invite Students
+          </DialogTitle>
           <DialogDescription>
-            Add students to {className ?? "this class"} by email. They'll receive an invitation
-            link.
+            Add students to {displayClassName} by email. They'll receive an invitation link.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label>Student emails</Label>
-          <Textarea
-            rows={4}
-            placeholder="hiroshi@example.com, yuki@example.com"
-            value={emails}
-            onChange={(e) => setEmails(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">Separate multiple emails with commas.</p>
+
+        <div className="space-y-5">
+          {/* Email input */}
+          <div className="space-y-1.5">
+            <Label htmlFor="invite-emails">Student emails</Label>
+            <Textarea
+              id="invite-emails"
+              rows={3}
+              placeholder="hiroshi@example.com, yuki@example.com"
+              value={emailsInput}
+              onChange={(e) => setEmailsInput(e.target.value)}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Separate multiple emails with commas.
+            </p>
+          </div>
+
+          {/* Invalid emails warning */}
+          {invalid.length > 0 && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-1">
+              <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                <AlertCircle className="w-4 h-4" />
+                Please fix invalid email addresses before sending invitations.
+              </div>
+              <div className="text-xs text-destructive/80 space-y-0.5">
+                {invalid.map((email, i) => (
+                  <p key={i}>• {email}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Optional message */}
+          <div className="space-y-1.5">
+            <Label htmlFor="invite-message">Optional message</Label>
+            <Textarea
+              id="invite-message"
+              rows={2}
+              placeholder="Write a short message for your students..."
+              value={optionalMessage}
+              onChange={(e) => setOptionalMessage(e.target.value)}
+              className="resize-none"
+            />
+          </div>
+
+          {/* Invitation preview */}
+          <div className="rounded-xl border border-border bg-muted/30 overflow-hidden">
+            <div className="bg-muted/50 px-4 py-2 border-b border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5" />
+                Invitation Preview
+              </p>
+            </div>
+            <div className="p-4 space-y-3 text-sm">
+              {/* Meta info */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <User className="w-3.5 h-3.5" />
+                  <span>Sender:</span>
+                </div>
+                <div className="font-medium text-foreground truncate">{displayTeacher} / Teacher</div>
+
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Class:</span>
+                </div>
+                <div className="font-medium text-foreground truncate">{displayClassName}</div>
+
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Hash className="w-3.5 h-3.5" />
+                  <span>Level:</span>
+                </div>
+                <div className="font-medium text-foreground">{displayLevel}</div>
+
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Invited:</span>
+                </div>
+                <div className="font-medium text-foreground">
+                  {valid.length > 0 ? `${valid.length} student${valid.length !== 1 ? "s" : ""}` : "—"}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-border" />
+
+              {/* Subject */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Subject:</p>
+                <p className="font-medium text-foreground leading-snug">{previewSubject}</p>
+              </div>
+
+              {/* Body */}
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Body:</p>
+                <div className="rounded-lg bg-background/80 border border-border p-3 text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {previewBody}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recipients summary */}
+          {valid.length > 0 && invalid.length === 0 && (
+            <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-semibold text-primary">{valid.length}</span> student{valid.length !== 1 ? "s" : ""} will receive this invitation
+              </p>
+            </div>
+          )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
           <Button
-            disabled={!emails.trim()}
-            onClick={() => {
-              const n = emails.split(",").filter((x) => x.trim()).length;
-              toast.success(`${n} invitation${n === 1 ? "" : "s"} sent`);
-              setEmails("");
-              onOpenChange(false);
-            }}
+            disabled={!canSend || sending}
+            onClick={handleSend}
           >
-            <Mail className="mr-2 h-4 w-4" />
-            Send invites
+            {sending ? (
+              <>
+                <span className="animate-spin mr-2">⟳</span>
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Send invites
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,13 +10,17 @@ import { PreviewSheet } from "@/components/teacher/dialogs";
 import { Search, Eye, ClipboardList, FileText, Shuffle, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/teacher/question-bank")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : "",
+  }),
   head: () => ({ meta: [{ title: "Question Bank — MIDORI Teacher" }] }),
   component: QuestionBank,
 });
 
 function QuestionBank() {
   const topics = getQuestionTopics();
-  const [q, setQ] = useState("");
+  const { q: urlQ } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [level, setLevel] = useState("All");
   const [skill, setSkill] = useState("All");
   const [open, setOpen] = useState<string | null>(null);
@@ -27,8 +31,12 @@ function QuestionBank() {
     (t) =>
       (level === "All" || t.level === level) &&
       (skill === "All" || t.skill === skill) &&
-      (t.name + t.jpName).toLowerCase().includes(q.toLowerCase()),
+      (urlQ === "" || (t.name + t.jpName).toLowerCase().includes(urlQ.toLowerCase())),
   );
+
+  const handlePageSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    navigate({ search: { q: e.target.value || undefined } });
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -51,8 +59,8 @@ function QuestionBank() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search topics…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
+            value={urlQ}
+            onChange={handlePageSearchChange}
             className="pl-9"
           />
         </div>
@@ -81,6 +89,12 @@ function QuestionBank() {
           ))}
         </div>
       </div>
+
+      {filtered.length === 0 && (
+        <Card className="py-12 text-center text-muted-foreground">
+          No topics match your search.
+        </Card>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((t) => (
