@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Plus, GraduationCap, ClipboardList, FileText, TrendingUp,
+  LayoutDashboard, GraduationCap, TrendingUp,
   HelpCircle, FileBadge, MessageSquare, Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,20 +12,18 @@ const groups = [
     items: [
       { to: "/teacher", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/teacher/classes", label: "My Classes", icon: GraduationCap },
-      { to: "/teacher/classes/create", label: "Create Class", icon: Plus },
     ],
   },
   {
     label: "Class Operations",
     items: [
-      { to: "/teacher/homework", label: "Homework", icon: ClipboardList },
-      { to: "/teacher/exams", label: "Exams", icon: FileText },
       { to: "/teacher/progress", label: "Progress", icon: TrendingUp },
     ],
   },
   {
     label: "Content Libraries",
     items: [
+      { to: "/teacher/my-questions", label: "My Questions", icon: HelpCircle },
       { to: "/teacher/question-bank", label: "Question Bank", icon: HelpCircle },
       { to: "/teacher/jlpt-bank", label: "JLPT Exam Bank", icon: FileBadge },
     ],
@@ -64,9 +62,6 @@ export function SidebarNav({ onNavigate, collapsed = false }: SidebarNavProps) {
       <nav className="flex flex-col gap-1 px-1.5">
         {groups.map((g) => (
           <div key={g.label}>
-            <div className="mb-0.5 px-1 pt-2 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-              {g.label}
-            </div>
             {g.items.map((it) => {
               const active = isActive(it.to, "exact" in it ? it.exact : false);
               return (
@@ -101,9 +96,6 @@ export function SidebarNav({ onNavigate, collapsed = false }: SidebarNavProps) {
     <nav className="flex flex-col gap-1 overflow-y-auto px-3 py-1">
       {groups.map((g) => (
         <div key={g.label} className="mb-1">
-          <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {g.label}
-          </div>
           <div className="flex flex-col gap-0.5">
             {g.items.map((it) => {
               const active = isActive(it.to, "exact" in it ? it.exact : false);
