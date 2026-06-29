@@ -1,190 +1,367 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getQuestionTopics, getQuestionsByTopic } from "@/data/teacher-data";
+import { getQuestionTopics, getQuestionsByTopic, QuestionTopic } from "@/data/teacher-data";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet } from "@/components/teacher/dialogs";
-import { Search, Eye, ClipboardList, FileText, Shuffle, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+
+import { BreadcrumbNavigation } from "@/components/teacher/question-bank/BreadcrumbNavigation";
+import { QuestionBankToolbar } from "@/components/teacher/question-bank/QuestionBankToolbar";
+import { LevelAccordion } from "@/components/teacher/question-bank/LevelAccordion";
+import { LessonAccordion } from "@/components/teacher/question-bank/LessonAccordion";
+import { SkillGrid } from "@/components/teacher/question-bank/SkillGrid";
+import { QuestionTopicCard } from "@/components/teacher/question-bank/QuestionTopicCard";
 
 export const Route = createFileRoute("/teacher/question-bank")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    q: typeof search.q === "string" ? search.q : "",
-  }),
   head: () => ({ meta: [{ title: "Question Bank — MIDORI Teacher" }] }),
   component: QuestionBank,
 });
 
+interface TopicWithLesson extends QuestionTopic {
+  lesson: string;
+}
+
 function QuestionBank() {
-  const topics = getQuestionTopics();
-  const { q: urlQ } = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
-  const [level, setLevel] = useState("All");
-  const [skill, setSkill] = useState("All");
-  const [open, setOpen] = useState<string | null>(null);
-  const sel = topics.find((t) => t.id === open);
-  const selQs = sel ? getQuestionsByTopic(sel.id).slice(0, 6) : [];
+  const [viewMode, setViewMode] = useState<"level" | "lesson" | "skill">("level");
+  
+  // Toolbar Filters State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [levelFilter, setLevelFilter] = useState("All");
+  const [lessonFilter, setLessonFilter] = useState("All");
+  const [skillFilter, setSkillFilter] = useState("All");
+  const [difficultyFilter, setDifficultyFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("Newest");
 
-  const filtered = topics.filter(
-    (t) =>
-      (level === "All" || t.level === level) &&
-      (skill === "All" || t.skill === skill) &&
-      (urlQ === "" || (t.name + t.jpName).toLowerCase().includes(urlQ.toLowerCase())),
-  );
+  // Breadcrumbs Drilling Navigation State
+  const [navLevel, setNavLevel] = useState<string | null>(null);
+  const [navLesson, setNavLesson] = useState<string | null>(null);
+  const [navSkill, setNavSkill] = useState<string | null>(null);
 
-  const handlePageSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    navigate({ search: { q: e.target.value || undefined } });
+  // Accordion Expand States
+  const [expandedLevels, setExpandedLevels] = useState<Record<string, boolean>>({
+    N5: true, // N5 open by default
+  });
+  const [expandedLessons, setExpandedLessons] = useState<Record<string, boolean>>({});
+
+  // Preview Dialog State
+  const [openPreviewTopicId, setOpenPreviewTopicId] = useState<string | null>(null);
+
+  // Map mock lessons to raw topics
+  const topicsWithLessons = useMemo(() => {
+    const raw = getQuestionTopics();
+    return raw.map((t) => {
+      let lesson = "Lesson 1";
+      if (t.skill === "Vocabulary" || t.skill === "Kanji") {
+        lesson = "Lesson 1";
+      } else if (t.skill === "Grammar") {
+        lesson = "Lesson 2";
+      } else if (t.skill === "Reading") {
+        lesson = "Lesson 3";
+      } else if (t.skill === "Listening") {
+        lesson = "Lesson 4";
+      }
+      return {
+        ...t,
+        lesson,
+      } as TopicWithLesson;
+    });
+  }, []);
+
+  // Update available lessons for selector dropdown based on Level filter selection
+  const availableLessons = useMemo(() => {
+    const subset = levelFilter === "All" 
+      ? topicsWithLessons 
+      : topicsWithLessons.filter((t) => t.level === levelFilter);
+    const unique = Array.from(new Set(subset.map((t) => t.lesson)));
+    return unique.sort();
+  }, [topicsWithLessons, levelFilter]);
+
+  // Handle Level selection change on toolbar
+  const handleLevelChange = (lvl: string) => {
+    setLevelFilter(lvl);
+    setLessonFilter("All");
+    if (lvl !== "All") {
+      setNavLevel(lvl);
+      setViewMode("lesson");
+    } else {
+      setNavLevel(null);
+      setNavLesson(null);
+      setNavSkill(null);
+      setViewMode("level");
+    }
   };
+
+  // Handle Lesson selection change on toolbar
+  const handleLessonChange = (les: string) => {
+    setLessonFilter(les);
+    if (les !== "All") {
+      setNavLesson(les);
+      setViewMode("skill");
+    } else {
+      setNavLesson(null);
+      setNavSkill(null);
+      setViewMode("lesson");
+    }
+  };
+
+  // Breadcrumbs click backtrack handler
+  const handleBreadcrumbClick = (type: "root" | "level" | "lesson") => {
+    if (type === "root") {
+      setNavLevel(null);
+      setNavLesson(null);
+      setNavSkill(null);
+      setLevelFilter("All");
+      setLessonFilter("All");
+      setSkillFilter("All");
+      setViewMode("level");
+    } else if (type === "level") {
+      setNavLesson(null);
+      setNavSkill(null);
+      setLessonFilter("All");
+      setSkillFilter("All");
+      setViewMode("lesson");
+    } else if (type === "lesson") {
+      setNavSkill(null);
+      setSkillFilter("All");
+      setViewMode("skill");
+    }
+  };
+
+  // Filter topics based on search inputs, difficulty, skill, level, and lesson filters
+  const filteredTopics = useMemo(() => {
+    return topicsWithLessons
+      .filter((t) => {
+        // Search Filter
+        const matchesSearch =
+          searchQuery === "" ||
+          t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.jpName.toLowerCase().includes(searchQuery.toLowerCase());
+
+        // Level Filter (sync with navLevel if not All)
+        const activeLevel = navLevel ?? levelFilter;
+        const matchesLevel = activeLevel === "All" || t.level === activeLevel;
+
+        // Lesson Filter (sync with navLesson if not All)
+        const activeLesson = navLesson ?? lessonFilter;
+        const matchesLesson = activeLesson === "All" || t.lesson === activeLesson;
+
+        // Skill Filter (sync with navSkill if not All)
+        const activeSkill = navSkill ?? skillFilter;
+        const matchesSkill = activeSkill === "All" || t.skill === activeSkill;
+
+        // Difficulty Filter
+        let matchesDifficulty = true;
+        if (difficultyFilter === "Easy") {
+          matchesDifficulty = t.easy > 0;
+        } else if (difficultyFilter === "Medium") {
+          matchesDifficulty = t.medium > 0;
+        } else if (difficultyFilter === "Hard") {
+          matchesDifficulty = t.hard > 0;
+        }
+
+        return matchesSearch && matchesLevel && matchesLesson && matchesSkill && matchesDifficulty;
+      })
+      .sort((a, b) => {
+        if (sortBy === "Alphabetical") {
+          return a.name.localeCompare(b.name);
+        } else if (sortBy === "Oldest") {
+          return a.updatedAt.localeCompare(b.updatedAt);
+        } else {
+          // Newest
+          return b.updatedAt.localeCompare(a.updatedAt);
+        }
+      });
+  }, [
+    topicsWithLessons,
+    searchQuery,
+    levelFilter,
+    lessonFilter,
+    skillFilter,
+    difficultyFilter,
+    sortBy,
+    navLevel,
+    navLesson,
+    navSkill,
+  ]);
+
+  // Hierarchically group filtered topics for rendering views
+  const groupedHierarchicalData = useMemo(() => {
+    const data = {} as Record<string, Record<string, Record<string, TopicWithLesson[]>>>;
+    filteredTopics.forEach((t) => {
+      if (!data[t.level]) data[t.level] = {};
+      if (!data[t.level][t.lesson]) data[t.level][t.lesson] = {};
+      if (!data[t.level][t.lesson][t.skill]) data[t.level][t.lesson][t.skill] = [];
+      data[t.level][t.lesson][t.skill].push(t);
+    });
+    return data;
+  }, [filteredTopics]);
+
+  // Group lessons and skills inside the active JLPT Level for Lesson View
+  const groupedLessons = useMemo(() => {
+    const activeLevel = navLevel !== "All" ? navLevel : null;
+    const subset = activeLevel 
+      ? filteredTopics.filter((t) => t.level === activeLevel) 
+      : filteredTopics;
+
+    const data = {} as Record<string, Record<string, TopicWithLesson[]>>;
+    subset.forEach((t) => {
+      if (!data[t.lesson]) data[t.lesson] = {};
+      if (!data[t.lesson][t.skill]) data[t.lesson][t.skill] = [];
+      data[t.lesson][t.skill].push(t);
+    });
+    return data;
+  }, [filteredTopics, navLevel]);
+
+  // Group skills for Skill View
+  const groupedSkills = useMemo(() => {
+    const data = {} as Record<string, TopicWithLesson[]>;
+    filteredTopics.forEach((t) => {
+      if (!data[t.skill]) data[t.skill] = [];
+      data[t.skill].push(t);
+    });
+    return data;
+  }, [filteredTopics]);
+
+  // Click selectors to drill down the hierarchy
+  const handleToggleLevel = (lvl: string) => {
+    setExpandedLevels((prev) => ({ ...prev, [lvl]: !prev[lvl] }));
+  };
+
+  const handleToggleLesson = (les: string) => {
+    setExpandedLessons((prev) => ({ ...prev, [les]: !prev[les] }));
+  };
+
+  const handleSelectLesson = (lvl: string, les: string) => {
+    setNavLevel(lvl);
+    setNavLesson(les);
+    setLevelFilter(lvl);
+    setLessonFilter(les);
+    setViewMode("skill");
+    setExpandedLessons((prev) => ({ ...prev, [les]: true }));
+  };
+
+  const handleSelectSkill = (les: string, skill: string) => {
+    setNavLesson(les);
+    setNavSkill(skill);
+    setLessonFilter(les);
+    setSkillFilter(skill);
+    setViewMode("skill");
+  };
+
+  // Preview Sheets Details Fetching
+  const selTopic = openPreviewTopicId ? topicsWithLessons.find((t) => t.id === openPreviewTopicId) : null;
+  const selQs = selTopic ? getQuestionsByTopic(selTopic.id).slice(0, 6) : [];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
         eyebrow="Center library"
         title="Question Bank"
-        subtitle="Center-managed individual questions, organized by level, skill and topic."
+        subtitle="Center-managed individual questions, organized by level, lesson and topic."
         actions={
           <Button asChild>
-            <Link to="/teacher/exams/create?source=question-bank">
+            <a href="/teacher/exams/create?source=question-bank">
               <Sparkles className="mr-2 h-4 w-4" />
               Create random exam
-            </Link>
+            </a>
           </Button>
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search topics…"
-            value={urlQ}
-            onChange={handlePageSearchChange}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {["All", "N5", "N4", "N3", "N2", "N1"].map((l) => (
-            <Button
-              key={l}
-              size="sm"
-              variant={level === l ? "default" : "outline"}
-              onClick={() => setLevel(l)}
-            >
-              {l}
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {["All", "Vocabulary", "Grammar", "Kanji", "Reading", "Listening"].map((s) => (
-            <Button
-              key={s}
-              size="sm"
-              variant={skill === s ? "default" : "outline"}
-              onClick={() => setSkill(s)}
-            >
-              {s}
-            </Button>
-          ))}
-        </div>
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center justify-between border-b pb-4 border-border/40">
+        <BreadcrumbNavigation
+          level={navLevel}
+          lesson={navLesson}
+          skill={navSkill}
+          onNavigate={handleBreadcrumbClick}
+        />
       </div>
 
-      {filtered.length === 0 && (
-        <Card className="py-12 text-center text-muted-foreground">
-          No topics match your search.
+      {/* Toolbar */}
+      <QuestionBankToolbar
+        search={searchQuery}
+        onSearchChange={setSearchQuery}
+        level={levelFilter}
+        onLevelChange={handleLevelChange}
+        lesson={lessonFilter}
+        onLessonChange={handleLessonChange}
+        skill={skillFilter}
+        onSkillChange={setSkillFilter}
+        difficulty={difficultyFilter}
+        onDifficultyChange={setDifficultyFilter}
+        sort={sortBy}
+        onSortChange={setSortBy}
+        availableLessons={availableLessons}
+      />
+
+      {/* Content Rendering depending on Mode */}
+      {filteredTopics.length === 0 ? (
+        <Card className="py-12 text-center text-muted-foreground border-border/60 shadow-sm">
+          No topics found.
         </Card>
+      ) : (
+        <>
+          {viewMode === "level" && (
+            <LevelAccordion
+              groupedData={groupedHierarchicalData}
+              expandedLevels={expandedLevels}
+              onToggleLevel={handleToggleLevel}
+              onSelectLesson={handleSelectLesson}
+            />
+          )}
+
+          {viewMode === "lesson" && (
+            <LessonAccordion
+              groupedLessons={groupedLessons}
+              expandedLessons={expandedLessons}
+              onToggleLesson={handleToggleLesson}
+              onSelectSkill={handleSelectSkill}
+              onOpenPreview={setOpenPreviewTopicId}
+            />
+          )}
+
+          {viewMode === "skill" && (
+            <SkillGrid
+              groupedSkills={groupedSkills}
+              onOpenPreview={setOpenPreviewTopicId}
+            />
+          )}
+        </>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((t) => (
-          <Card
-            key={t.id}
-            className="border-border/60 transition-all hover:border-primary/40 hover:shadow-md"
-          >
-            <CardContent className="p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <LevelBadge level={t.level} />
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {t.skill}
-                </span>
-              </div>
-              <button
-                onClick={() => setOpen(t.id)}
-                className="block w-full truncate text-left font-semibold hover:text-primary"
-              >
-                {t.name}
-              </button>
-              <div className="font-jp text-xs text-muted-foreground">{t.jpName}</div>
-              <div className="mt-3 flex items-center gap-2 text-xs">
-                <span className="font-semibold">{t.totalQuestions}</span>
-                <span className="text-muted-foreground">questions</span>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
-                <DifficultyBadge d="Easy" />
-                <span>{t.easy}</span>
-                <DifficultyBadge d="Medium" />
-                <span>{t.medium}</span>
-                <DifficultyBadge d="Hard" />
-                <span>{t.hard}</span>
-              </div>
-              <div className="mt-3 grid grid-cols-3 gap-1.5">
-                <Button asChild size="sm" variant="outline">
-                  <Link to={`/teacher/homework/create?source=question-bank&topicId=${t.id}`}>
-                    <ClipboardList className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={`/teacher/exams/create?source=question-bank&topicId=${t.id}`}>
-                    <FileText className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link
-                    to={`/teacher/exams/create?source=question-bank&topicId=${t.id}&mode=random`}
-                  >
-                    <Shuffle className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-              </div>
-              <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-center text-[9px] uppercase tracking-wider text-muted-foreground">
-                <span>HW</span>
-                <span>Exam</span>
-                <span>Random</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+      {/* Preview Sheet dialog */}
       <PreviewSheet
-        open={!!sel}
-        onOpenChange={(o) => !o && setOpen(null)}
-        title={sel?.name ?? ""}
-        description={sel?.jpName}
+        open={!!selTopic}
+        onOpenChange={(o) => !o && setOpenPreviewTopicId(null)}
+        title={selTopic?.name ?? ""}
+        description={selTopic?.jpName}
       >
-        {sel && (
+        {selTopic && (
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-2">
-              <LevelBadge level={sel.level} />
-              <span className="text-xs text-muted-foreground">{sel.skill}</span>
+              <LevelBadge level={selTopic.level} />
+              <span className="text-xs text-muted-foreground">{selTopic.skill}</span>
             </div>
             <div className="grid grid-cols-4 gap-2 text-center">
               <div className="rounded-md bg-muted/40 p-2">
                 <div className="text-xs text-muted-foreground">Total</div>
-                <div className="font-bold">{sel.totalQuestions}</div>
+                <div className="font-bold">{selTopic.totalQuestions}</div>
               </div>
               <div className="rounded-md bg-success/10 p-2">
                 <div className="text-xs text-success">Easy</div>
-                <div className="font-bold">{sel.easy}</div>
+                <div className="font-bold">{selTopic.easy}</div>
               </div>
               <div className="rounded-md bg-warning/15 p-2">
                 <div className="text-xs">Medium</div>
-                <div className="font-bold">{sel.medium}</div>
+                <div className="font-bold">{selTopic.medium}</div>
               </div>
               <div className="rounded-md bg-destructive/10 p-2">
                 <div className="text-xs text-destructive">Hard</div>
-                <div className="font-bold">{sel.hard}</div>
+                <div className="font-bold">{selTopic.hard}</div>
               </div>
             </div>
             <div className="mt-2 text-xs font-semibold text-muted-foreground">Sample questions</div>
@@ -201,16 +378,14 @@ function QuestionBank() {
             </ul>
             <div className="grid grid-cols-2 gap-2 pt-2">
               <Button asChild>
-                <Link
-                  to={`/teacher/exams/create?source=question-bank&topicId=${sel.id}&mode=random`}
-                >
+                <a href={`/teacher/exams/create?source=question-bank&topicId=${selTopic.id}&mode=random`}>
                   Random exam from this
-                </Link>
+                </a>
               </Button>
               <Button asChild variant="outline">
-                <Link to={`/teacher/homework/create?source=question-bank&topicId=${sel.id}`}>
+                <a href={`/teacher/homework/create?source=question-bank&topicId=${selTopic.id}`}>
                   Add to homework
-                </Link>
+                </a>
               </Button>
             </div>
           </div>
