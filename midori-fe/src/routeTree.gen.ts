@@ -31,6 +31,7 @@ import { Route as TeacherQuestionBankRouteImport } from './routes/teacher.questi
 import { Route as TeacherProgressRouteImport } from './routes/teacher.progress'
 import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
 import { Route as TeacherNotificationsRouteImport } from './routes/teacher.notifications'
+import { Route as TeacherMyQuestionsRouteImport } from './routes/teacher.my-questions'
 import { Route as TeacherListeningRouteImport } from './routes/teacher.listening'
 import { Route as TeacherLessonsRouteImport } from './routes/teacher.lessons'
 import { Route as TeacherJlptBankRouteImport } from './routes/teacher.jlpt-bank'
@@ -228,6 +229,11 @@ const TeacherProfileRoute = TeacherProfileRouteImport.update({
 const TeacherNotificationsRoute = TeacherNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherMyQuestionsRoute = TeacherMyQuestionsRouteImport.update({
+  id: '/my-questions',
+  path: '/my-questions',
   getParentRoute: () => TeacherRoute,
 } as any)
 const TeacherListeningRoute = TeacherListeningRouteImport.update({
@@ -750,6 +756,7 @@ export interface FileRoutesByFullPath {
   '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
+  '/teacher/my-questions': typeof TeacherMyQuestionsRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/progress': typeof TeacherProgressRoute
@@ -858,6 +865,7 @@ export interface FileRoutesByTo {
   '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
+  '/teacher/my-questions': typeof TeacherMyQuestionsRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/progress': typeof TeacherProgressRoute
@@ -969,6 +977,7 @@ export interface FileRoutesById {
   '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
+  '/teacher/my-questions': typeof TeacherMyQuestionsRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/progress': typeof TeacherProgressRoute
@@ -1083,6 +1092,7 @@ export interface FileRouteTypes {
     | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
+    | '/teacher/my-questions'
     | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/progress'
@@ -1191,6 +1201,7 @@ export interface FileRouteTypes {
     | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
+    | '/teacher/my-questions'
     | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/progress'
@@ -1301,6 +1312,7 @@ export interface FileRouteTypes {
     | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
+    | '/teacher/my-questions'
     | '/teacher/notifications'
     | '/teacher/profile'
     | '/teacher/progress'
@@ -1544,6 +1556,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/teacher/notifications'
       preLoaderRoute: typeof TeacherNotificationsRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/my-questions': {
+      id: '/teacher/my-questions'
+      path: '/my-questions'
+      fullPath: '/teacher/my-questions'
+      preLoaderRoute: typeof TeacherMyQuestionsRouteImport
       parentRoute: typeof TeacherRoute
     }
     '/teacher/listening': {
@@ -2603,6 +2622,7 @@ interface TeacherRouteChildren {
   TeacherJlptBankRoute: typeof TeacherJlptBankRoute
   TeacherLessonsRoute: typeof TeacherLessonsRouteWithChildren
   TeacherListeningRoute: typeof TeacherListeningRoute
+  TeacherMyQuestionsRoute: typeof TeacherMyQuestionsRoute
   TeacherNotificationsRoute: typeof TeacherNotificationsRoute
   TeacherProfileRoute: typeof TeacherProfileRoute
   TeacherProgressRoute: typeof TeacherProgressRoute
@@ -2624,6 +2644,7 @@ const TeacherRouteChildren: TeacherRouteChildren = {
   TeacherJlptBankRoute: TeacherJlptBankRoute,
   TeacherLessonsRoute: TeacherLessonsRouteWithChildren,
   TeacherListeningRoute: TeacherListeningRoute,
+  TeacherMyQuestionsRoute: TeacherMyQuestionsRoute,
   TeacherNotificationsRoute: TeacherNotificationsRoute,
   TeacherProfileRoute: TeacherProfileRoute,
   TeacherProgressRoute: TeacherProgressRoute,

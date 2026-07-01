@@ -20,11 +20,13 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
-  server: {
-    port: 8081,
-    strictPort: true,
-  },
-  optimizeDeps: {
-    include: ["xlsx"],
+  vite: {
+    server: {
+      port: 8081,
+      strictPort: true,
+    },
+    optimizeDeps: {
+      include: ["xlsx"],
+    },
   },
 });

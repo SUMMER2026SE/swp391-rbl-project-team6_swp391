@@ -2,9 +2,9 @@ import { type ReactNode, useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   Bell, ChevronLeft, ChevronRight, Menu, Moon, Sun, Search, X,
-  LayoutDashboard, School, BookOpen, ClipboardList, ClipboardCheck,
+  LayoutDashboard, School, BookOpen,
   TrendingUp, HelpCircle, FileBadge, MessageSquare,
-  LogOut, User, ChevronDown, Plus
+  LogOut, User, ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -25,20 +25,18 @@ const teacherGroups: NavGroup[] = [
     items: [
       { to: "/teacher", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/teacher/classes", label: "My Classes", icon: School },
-      { to: "/teacher/classes/create", label: "Create Class", icon: Plus },
     ],
   },
   {
     label: "Class Operations",
     items: [
-      { to: "/teacher/homework", label: "Homework", icon: ClipboardList },
-      { to: "/teacher/exams", label: "Exams", icon: ClipboardCheck },
       { to: "/teacher/progress", label: "Progress", icon: TrendingUp },
     ],
   },
   {
     label: "Content Libraries",
     items: [
+      { to: "/teacher/my-questions", label: "My Questions", icon: HelpCircle },
       { to: "/teacher/question-bank", label: "Question Bank", icon: HelpCircle },
       { to: "/teacher/jlpt-bank", label: "JLPT Exam Bank", icon: FileBadge },
     ],
@@ -255,11 +253,6 @@ export function TeacherShell({ children }: { children: ReactNode }) {
 
   const renderNavGroup = (group: NavGroup, isCollapsed: boolean) => (
     <div key={group.label} className={cn("mb-1", isCollapsed ? "px-1.5" : "")}>
-      {!isCollapsed && (
-        <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {group.label}
-        </div>
-      )}
       <div className="flex flex-col gap-0.5">
         {group.items.map((item) => renderNavItem(item, isCollapsed))}
       </div>
@@ -381,9 +374,6 @@ export function TeacherShell({ children }: { children: ReactNode }) {
             <nav className="space-y-1">
               {teacherGroups.map((g) => (
                 <div key={g.label}>
-                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {g.label}
-                  </div>
                   {g.items.map((item) => {
                     const active = isActive(item.to, item.exact);
                     const Icon = item.icon;

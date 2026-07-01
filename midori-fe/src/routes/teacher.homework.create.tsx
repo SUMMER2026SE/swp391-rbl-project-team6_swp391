@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,11 +44,20 @@ export const Route = createFileRoute("/teacher/homework/create")({
 
 function CreateHomework() {
   const { classId, source, resourceId, topicId } = Route.useSearch();
+  const navigate = useNavigate();
   const classes = getClasses();
   const lockedClass = classId ? classes.find((c) => c.id === classId) : null;
   const init: Method | null = (source as Method) ?? null;
   const [method, setMethod] = useState<Method | null>(init);
   const [done, setDone] = useState<string | null>(null);
+
+  const handleBack = () => {
+    if (classId) {
+      navigate({ to: `/teacher/classes/${classId}` });
+    } else {
+      navigate({ to: "/teacher/homework" });
+    }
+  };
 
   if (done) {
     return (
@@ -77,7 +86,13 @@ function CreateHomework() {
   if (!method) {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader eyebrow="New homework" title="How do you want to create this homework?" subtitle="Pick the source of the questions and content." />
+        <PageHeader 
+          eyebrow="New homework" 
+          title="How do you want to create this homework?" 
+          subtitle="Pick the source of the questions and content." 
+          showBack={true}
+          onBack={handleBack}
+        />
         <div className="grid gap-3 md:grid-cols-2">
           <MethodCard icon={ClipboardList} title="Manual" desc="Write the homework yourself." badge="Editor" onClick={() => setMethod("manual")} />
           <MethodCard icon={HelpCircle} title="From Question Bank" desc="Generate practice questions by difficulty." badge="Generator" onClick={() => setMethod("question-bank")} />
