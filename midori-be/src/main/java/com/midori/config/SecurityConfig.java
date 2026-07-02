@@ -77,6 +77,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/profiles/me").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/profiles/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                        .requestMatchers("/api/admin/shadowing/video/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/teacher/**").authenticated()
                         .requestMatchers("/api/vocabulary/**").authenticated()
