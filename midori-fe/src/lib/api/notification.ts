@@ -1,104 +1,152 @@
 import { api } from "./client";
+import {
+  type NotificationType,
+  type NotificationStatus,
+  NOTIFICATION_TYPES,
+  NOTIFICATION_STATUSES,
+  TARGET_AUDIENCE,
+  NOTIFICATION_TYPE_LIST,
+  NOTIFICATION_STATUS_LIST,
+  TARGET_AUDIENCE_LIST,
+  getNotificationTypeConfig,
+  getNotificationStatusConfig,
+  type TargetAudience,
+} from "@/types/notification";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// Re-export for convenience
+export {
+  NOTIFICATION_TYPES,
+  NOTIFICATION_STATUSES,
+  TARGET_AUDIENCE,
+  NOTIFICATION_TYPE_LIST,
+  NOTIFICATION_STATUS_LIST,
+  TARGET_AUDIENCE_LIST,
+  getNotificationTypeConfig,
+  getNotificationStatusConfig,
+};
+export type { NotificationType, NotificationStatus, TargetAudience };
 
-export type NotificationType = "SYSTEM" | "EXAM" | "CLASS" | "MAINTENANCE";
-export type TargetAudience = "ALL" | "TEACHERS" | "STUDENTS" | "SPECIFIC_CLASS";
-export type NotificationStatus = "DRAFT" | "PUBLISHED" | "SCHEDULED";
+// Spring Page wrapper - backend returns Page<T> not plain array
+export interface SpringPage<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
 
-export interface Notification {
-  id: string;
+export interface AdminNotificationResponse {
+  id: number;
   title: string;
-  message: string;
+  content: string;
   type: NotificationType;
-  target: TargetAudience;
-  status: NotificationStatus;
-  scheduledDate?: string;
+  scheduledAt: string | null;
+  targetType: string | null;
+  targetRole: string | null;
+  targetClassId: string | null;
+  displayStatus: string;
   createdAt: string;
-  sentAt?: string;
-  classId?: string;
+  updatedAt: string;
+  sentAt: string | null;
+  recipientCount: number;
+}
+
+export interface AdminNotificationDetailResponse {
+  id: number;
+  title: string;
+  content: string;
+  type: NotificationType;
+  scheduledAt: string | null;
+  targetType: string | null;
+  targetRole: string | null;
+  targetClassId: string | null;
+  displayStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  sentAt: string | null;
+  recipientCount: number;
 }
 
 export interface CreateNotificationRequest {
   title: string;
-  message: string;
+  content: string;
   type: NotificationType;
-  target: TargetAudience;
-  scheduledDate?: string;
+  scheduledAt?: string;
+  targetType?: TargetAudience;
+  targetRole?: "TEACHER" | "STUDENT";
+  targetClassId?: string;
+}
+
+export interface UpdateNotificationRequest {
+  title: string;
+  content: string;
+  type: NotificationType;
+  scheduledAt?: string;
+  targetType?: TargetAudience;
+  targetRole?: "TEACHER" | "STUDENT";
+  targetClassId?: string;
+}
+
+export interface ClassLookupResponse {
+  id: string;
+  name: string;
+  level: string | null;
+  maxStudents: number | null;
+  studentCount: number | null;
+  teacherId: string | null;
+  teacherName: string | null;
+  status: string | null;
+}
+
+export interface NotificationListParams {
+  type?: NotificationType;
+  keyword?: string;
+  page?: number;
+  size?: number;
+}
+
+export interface SendNotificationRequest {
+  targetType: "ALL" | "ROLE" | "CLASS";
+  role?: "TEACHER" | "STUDENT";
   classId?: string;
 }
 
-export interface UpdateNotificationRequest extends Partial<CreateNotificationRequest> {
-  id: string;
-  status?: NotificationStatus;
+export interface SendNotificationResponse {
+  success: boolean;
+  notificationId: number;
+  status: string;
+  sentAt: string | null;
+  recipientCount: number;
 }
-
-export interface NotificationStats {
-  total: number;
-  published: number;
-  scheduled: number;
-  draft: number;
-}
-
-// ─── API Functions ────────────────────────────────────────────────────────────
 
 export const notificationApi = {
-  // Get all notifications
-  getNotifications: (params?: {
-    type?: NotificationType;
-    status?: NotificationStatus;
-    target?: TargetAudience;
-    page?: number;
-    size?: number;
-  }) => {
+  getNotifications: async (params?: NotificationListParams): Promise<AdminNotificationResponse[]> => {
     const searchParams = new URLSearchParams();
     if (params?.type) searchParams.set("type", params.type);
-    if (params?.status) searchParams.set("status", params.status);
-    if (params?.target) searchParams.set("target", params.target);
+    if (params?.keyword) searchParams.set("keyword", params.keyword);
     if (params?.page !== undefined) searchParams.set("page", String(params.page));
     if (params?.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
-    return api.get<Notification[]>(`/admin/notifications${query ? `?${query}` : ""}`);
+    // Backend returns Spring Page<AdminNotificationResponse>, not plain array
+    const page = await api.get<SpringPage<AdminNotificationResponse>>(`/admin/notifications${query ? `?${query}` : ""}`);
+    return page?.content ?? [];
   },
 
-  // Get notification by ID
-  getNotificationById: (notificationId: string) =>
-    api.get<Notification>(`/admin/notifications/${notificationId}`),
+  getNotificationById: (notificationId: number) =>
+    api.get<AdminNotificationDetailResponse>(`/admin/notifications/${notificationId}`),  
 
-  // Get notification statistics
-  getStats: () => api.get<NotificationStats>("/admin/notifications/stats"),
-
-  // Create notification
   createNotification: (data: CreateNotificationRequest) =>
-    api.post<Notification>("/admin/notifications", data),
+    api.post<AdminNotificationDetailResponse>("/admin/notifications", data),
 
-  // Update notification
-  updateNotification: (data: UpdateNotificationRequest) =>
-    api.put<Notification>(`/admin/notifications/${data.id}`, data),
+  updateNotification: (notificationId: number, data: UpdateNotificationRequest) =>
+    api.put<AdminNotificationDetailResponse>(`/admin/notifications/${notificationId}`, data),
 
-  // Delete notification
-  deleteNotification: (notificationId: string) =>
-    api.delete(`/admin/notifications/${notificationId}`),
+  deleteNotification: (notificationId: number) =>
+    api.delete<void>(`/admin/notifications/${notificationId}`),
 
-  // Send notification immediately
-  sendNotification: (notificationId: string) =>
-    api.post<Notification>(`/admin/notifications/${notificationId}/send`),
+  sendNotification: (notificationId: number, data: SendNotificationRequest) =>
+    api.post<SendNotificationResponse>(`/admin/notifications/${notificationId}/send`, data),
 
-  // Schedule notification
-  scheduleNotification: (notificationId: string, scheduledDate: string) =>
-    api.put<Notification>(`/admin/notifications/${notificationId}/schedule`, { scheduledDate }),
-
-  // Cancel scheduled notification
-  cancelScheduled: (notificationId: string) =>
-    api.put<Notification>(`/admin/notifications/${notificationId}/cancel-schedule`),
-
-  // Publish draft notification
-  publishNotification: (notificationId: string) =>
-    api.put<Notification>(`/admin/notifications/${notificationId}/publish`),
-
-  // Get notification history
-  getHistory: (notificationId: string) =>
-    api.get<{ sentAt: string; recipientCount: number }[]>(
-      `/admin/notifications/${notificationId}/history`,
-    ),
+  lookupClass: (classCode: string) =>
+    api.get<ClassLookupResponse>(`/admin/notifications/classes/lookup?classCode=${encodeURIComponent(classCode)}`),
 };
