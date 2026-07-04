@@ -8,10 +8,12 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "sonner";
 import { useRef, useEffect, useState } from "react";
 
 import appCss from "../styles.css?url";
 import { AuthProvider, ThemeProvider, LanguageProvider } from "@/lib/auth";
+import { NotificationProvider } from "@/lib/context/notification-context";
 
 function NotFoundComponent() {
   return (
@@ -149,7 +151,10 @@ function RootComponent() {
       <ThemeProvider>
         <LanguageProvider>
           <AuthProvider>
-            <Outlet />
+            <NotificationProvider>
+              <Toaster position="top-right" richColors />
+              <Outlet />
+            </NotificationProvider>
           </AuthProvider>
         </LanguageProvider>
       </ThemeProvider>
