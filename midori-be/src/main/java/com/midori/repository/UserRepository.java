@@ -23,11 +23,27 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findByRoleAndStatus(Role role, UserStatus status);
 
+    List<User> findByAssignedClassId(UUID classId);
+
+    @Query("SELECT DISTINCT u FROM User u WHERE u.assignedClass.id = :classId AND u.status = :status")
+    List<User> findByAssignedClassIdAndStatus(@Param("classId") UUID classId, @Param("status") UserStatus status);
+
+    @Query("SELECT DISTINCT u FROM User u WHERE u.assignedClass.id = :classId AND u.role = :role AND u.status = :status")
+    List<User> findByAssignedClassIdAndRoleAndStatus(@Param("classId") UUID classId, @Param("role") Role role, @Param("status") UserStatus status);
+
+    @Query("SELECT DISTINCT u FROM User u WHERE (u.assignedClass.id = :classId OR u.id IN (SELECT c.teacher.id FROM ClassEntity c WHERE c.id = :classId)) AND u.status = :status")
+    List<User> findAllMembersByClassIdAndStatus(@Param("classId") UUID classId, @Param("status") UserStatus status);
+
     long countByRole(Role role);
 
     long countByRoleAndStatus(Role role, UserStatus status);
 
     long countByStatus(UserStatus status);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.assignedClass.id = :classId AND u.status = :status")
+    long countByAssignedClassIdAndStatus(@Param("classId") UUID classId, @Param("status") UserStatus status);
+
+    List<User> findAllByStatus(UserStatus status);
 
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.profile WHERE u.role = :role AND u.status = :status ORDER BY u.createdAt DESC")
     List<User> findByRoleAndStatusWithProfile(@Param("role") Role role, @Param("status") UserStatus status);
