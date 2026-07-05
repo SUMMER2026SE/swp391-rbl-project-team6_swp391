@@ -22,4 +22,8 @@ public interface AiService {
     GenerateQuestionsResponse generateQuestions(String topic, String level, Integer count, String type);
 
     void deleteConversation(UUID conversationId, UUID userId);
+
+    AiConversationResponse updateConversationTitle(UUID conversationId, UUID userId, String title);
+
+    ConversationMessagesResponse updateUserMessage(UUID conversationId, UUID messageId, UUID userId, String content);
 }

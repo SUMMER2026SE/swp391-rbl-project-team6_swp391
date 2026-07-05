@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import {
   Send,
   BookOpen,
@@ -19,7 +19,13 @@ import {
   Info,
   BookMarked,
   Check,
+  Trash2,
+  Plus,
+  Pencil,
+  Edit3,
 } from "lucide-react";
+import { aiApi } from "@/lib/api/ai";
+import type { AiConversation, AiMessage, ConversationMessagesResponse } from "@/types/ai";
 
 // ═══════════════════════════════════════════════════════════════════
 // MOCK STUDY MATERIALS (FRONTEND ONLY)
@@ -156,6 +162,11 @@ interface Message {
   quizData?: QuizQuestion[];
 }
 
+const BACKEND_ROLE_MAP: Record<AiMessage["role"], MessageRole> = {
+  USER: "user",
+  ASSISTANT: "ai",
+};
+
 interface QuizQuestion {
   question: string;
   options: string[];
@@ -192,7 +203,6 @@ function highlightJapanese(text: string): React.ReactNode {
 function searchInMaterial(material: MaterialContent, query: string): string | null {
   const q = query.toLowerCase();
 
-  // Vocabulary search
   if (material.type === "vocabulary") {
     const vocabList = material.content as VocabItem[];
     for (const item of vocabList) {
@@ -219,7 +229,6 @@ function searchInMaterial(material: MaterialContent, query: string): string | nu
     }
   }
 
-  // Grammar search
   if (material.type === "grammar") {
     const grammarList = material.content as GrammarItem[];
     for (const item of grammarList) {
@@ -248,7 +257,6 @@ function searchInMaterial(material: MaterialContent, query: string): string | nu
     }
   }
 
-  // Reading search
   if (material.type === "reading") {
     const content = material.content as string;
     if (content.toLowerCase().includes(q)) {
@@ -256,7 +264,6 @@ function searchInMaterial(material: MaterialContent, query: string): string | nu
     }
   }
 
-  // Listening search
   if (material.type === "listening") {
     const content = material.content as string;
     if (content.toLowerCase().includes(q)) {
@@ -264,7 +271,6 @@ function searchInMaterial(material: MaterialContent, query: string): string | nu
     }
   }
 
-  // Shadowing search
   if (material.type === "shadowing") {
     const content = material.content as string;
     if (content.toLowerCase().includes(q)) {
@@ -320,15 +326,13 @@ function generateAIResponse(
   material: MaterialContent | null,
   mode: Mode,
 ): { content: string; source?: string; isQuiz?: boolean; quizData?: QuizQuestion[] } {
-  // If no material selected
   if (!material) {
     return {
       content:
-        "Chưa chọn tài liệu học tập\n\nBạn cần chọn một tài liệu trước khi hỏi AI Sensei.\n\nChọn loại tài liệu: Vocabulary, Grammar, Reading, Listening, hoặc Shadowing",
+        "Chưa chọn tài liệu học tập\n\nBạn có thể chọn tài liệu để AI trả lời đúng trọng tâm bài học.\n\nChọn loại tài liệu: Vocabulary, Grammar, Reading, Listening, hoặc Shadowing",
     };
   }
 
-  // If in practice mode, generate quiz
   if (mode === "practice") {
     const quizzes = generateQuizFromMaterial(material);
     return {
@@ -339,7 +343,6 @@ function generateAIResponse(
     };
   }
 
-  // Search in selected material
   const result = searchInMaterial(material, query);
 
   if (result) {
@@ -349,7 +352,6 @@ function generateAIResponse(
     };
   }
 
-  // Not found in material
   return {
     content:
       "Thông tin này không có trong tài liệu bạn đã chọn.\n\nBạn đang sử dụng: " +
@@ -542,7 +544,15 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
   );
 }
 
-function MessageBubble({ msg }: { msg: Message }) {
+function MessageBubble({
+  msg,
+  canEdit,
+  onEdit,
+}: {
+  msg: Message;
+  canEdit: boolean;
+  onEdit: () => void;
+}) {
   const isAI = msg.role === "ai";
 
   return (
@@ -585,6 +595,22 @@ function MessageBubble({ msg }: { msg: Message }) {
               </p>
             ))}
           </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-1 mt-1 mr-1">
+          {canEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-foreground transition-all"
+              title="Sửa tin nhắn đã gửi"
+            >
+              <Edit3 className="w-3 h-3" />
+              Sửa
+            </button>
+          )}
         </div>
 
         {msg.source && (
@@ -648,7 +674,6 @@ function QuizCard({
         </button>
       </div>
 
-      {/* Progress */}
       <div className="mb-4">
         <div className="flex justify-between text-xs text-muted-foreground mb-1">
           <span>
@@ -666,7 +691,6 @@ function QuizCard({
         </div>
       </div>
 
-      {/* Results */}
       {submitted && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -684,7 +708,6 @@ function QuizCard({
         </motion.div>
       )}
 
-      {/* Question */}
       <div className="mb-4">
         <p className="text-sm font-medium mb-3">{current.question}</p>
         <div className="space-y-2">
@@ -717,7 +740,6 @@ function QuizCard({
         </div>
       </div>
 
-      {/* Navigation */}
       <div className="flex gap-2">
         <button
           onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
@@ -768,15 +790,15 @@ function WelcomeState({ onExampleClick }: { onExampleClick: (q: string) => void 
 
       <h2 className="text-xl font-bold mb-2">AI Sensei</h2>
       <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-        Trợ lý học tập Nhật ngữ. Tôi chỉ trả lời dựa trên tài liệu bạn đã chọn.
+        Trợ lý học tập Nhật ngữ. Bạn có thể chọn tài liệu để AI trả lời đúng trọng tâm bài học.
       </p>
 
       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-3 mb-6 max-w-sm">
         <div className="flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-300 text-left">
-            <strong>Lưu ý:</strong> Tôi chỉ sử dụng thông tin có trong tài liệu đã chọn. Nếu câu hỏi
-            không có trong tài liệu, tôi sẽ thông báo cho bạn.
+            <strong>Lưu ý:</strong> Bạn có thể chọn tài liệu để AI trả lời đúng trọng tâm bài học.
+            Nếu câu hỏi không có trong tài liệu đã chọn, AI sẽ thông báo cho bạn.
           </p>
         </div>
       </div>
@@ -810,13 +832,35 @@ export function AISenseiPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [quizData, setQuizData] = useState<QuizQuestion[] | null>(null);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [conversations, setConversations] = useState<AiConversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [isLoadingConversations, setLoadingConversations] = useState(false);
+  const [isSendingMessage, setSendingMessage] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Boot state to prevent flicker during reload restore
+  const [chatBootState, setChatBootState] = useState<"loading" | "ready" | "error">("loading");
+
+  // Edit mode state
+  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
+  const [editInput, setEditInput] = useState("");
+  const [isSavingEdit, setSavingEdit] = useState(false);
+
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll
+  // Auto-scroll chat container only
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
+
+  // Reset page scroll on mount
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -826,48 +870,198 @@ export function AISenseiPage() {
     }
   }, [input]);
 
-  const handleSend = useCallback(
-    (text?: string) => {
-      const trimmed = (text ?? input).trim();
+  const loadConversations = useCallback(async () => {
+    setLoadingConversations(true);
+    setApiError(null);
+    try {
+      const data = await aiApi.getConversations();
+      setConversations(data);
+    } catch (error) {
+      console.error("Failed to load conversations", error);
+      setApiError("Không tải được danh sách conversation.");
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, []);
+
+  const loadMessages = useCallback(async (conversationId: string): Promise<boolean> => {
+    setApiError(null);
+    try {
+      const data: ConversationMessagesResponse = await aiApi.getMessages(conversationId);
+      const mapped: Message[] = data.messages.map((msg) => ({
+        id: msg.id,
+        role: BACKEND_ROLE_MAP[msg.role],
+        content: msg.content,
+        timestamp: new Date(msg.createdAt),
+      }));
+      setMessages(mapped);
+      // Set active conversation ID when messages load successfully
+      setActiveConversationId(conversationId);
+      return true;
+    } catch (error) {
+      console.error("Failed to load messages", error);
+      setApiError("Không tải được tin nhắn của conversation.");
+      // Clear active conversation on error to show proper state
+      setActiveConversationId(null);
+      sessionStorage.removeItem("midori_ai_active_conversation_id");
+      setMessages([]);
+      return false;
+    }
+  }, []);
+
+  const handleSelectConversation = useCallback(
+    async (conversation: AiConversation) => {
+      setEditingMessage(null);
+      setEditInput("");
+      const success = await loadMessages(conversation.id);
+      if (success) {
+        sessionStorage.setItem("midori_ai_active_conversation_id", conversation.id);
+      }
+    },
+    [loadMessages],
+  );
+
+  const handleNewChat = useCallback(() => {
+    setActiveConversationId(null);
+    sessionStorage.removeItem("midori_ai_active_conversation_id");
+    setMessages([]);
+    setApiError(null);
+    setQuizData(null);
+    setEditingMessage(null);
+    setEditInput("");
+  }, []);
+
+  const handleDeleteConversation = useCallback(
+    async (conversationId: string) => {
+      const confirmed = window.confirm(
+        "Bạn có chắc muốn xóa đoạn chat này không? Hành động này không thể hoàn tác.",
+      );
+      if (!confirmed) return;
+
+      setApiError(null);
+      try {
+        await aiApi.deleteConversation(conversationId);
+        setConversations((prev) => prev.filter((item) => item.id !== conversationId));
+        if (activeConversationId === conversationId) {
+          setActiveConversationId(null);
+          sessionStorage.removeItem("midori_ai_active_conversation_id");
+          setMessages([]);
+          setQuizData(null);
+          setEditingMessage(null);
+          setEditInput("");
+        }
+      } catch (error) {
+        console.error("Failed to delete conversation", error);
+        setApiError("Không xóa được conversation.");
+      }
+    },
+    [activeConversationId],
+  );
+
+  const handleRenameConversation = useCallback(
+    async (conversation: AiConversation) => {
+      const newTitle = window.prompt("Nhập tên mới cho đoạn chat:", conversation.title);
+      if (newTitle === null) return;
+      const trimmed = newTitle.trim();
       if (!trimmed) return;
 
-      // Add user message
-      const userMsg: Message = {
+      setApiError(null);
+      try {
+        const updated = await aiApi.updateConversationTitle(conversation.id, { title: trimmed });
+        setConversations((prev) =>
+          prev.map((c) => (c.id === conversation.id ? { ...c, title: updated.title } : c)),
+        );
+      } catch (error) {
+        console.error("Failed to rename conversation", error);
+        setApiError("Không đổi được tên conversation.");
+      }
+    },
+    [],
+  );
+
+  const handleEditMessage = useCallback((msg: Message) => {
+    setEditingMessage({ id: msg.id, content: msg.content });
+    setEditInput(msg.content);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessage(null);
+    setEditInput("");
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingMessage) return;
+    const trimmed = editInput.trim();
+    if (!trimmed) return;
+    if (!activeConversationId) return;
+
+    setSavingEdit(true);
+    setApiError(null);
+    try {
+      const data = await aiApi.updateUserMessage(activeConversationId, editingMessage.id, {
+        content: trimmed,
+      });
+      const mapped: Message[] = data.messages.map((msg) => ({
+        id: msg.id,
+        role: BACKEND_ROLE_MAP[msg.role],
+        content: msg.content,
+        timestamp: new Date(msg.createdAt),
+      }));
+      setMessages(mapped);
+      setEditingMessage(null);
+      setEditInput("");
+    } catch (error) {
+      console.error("Failed to edit message", error);
+      setApiError("Không sửa được tin nhắn. Vui lòng thử lại.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editingMessage, editInput, activeConversationId]);
+
+  const handleSend = useCallback(
+    async (text?: string) => {
+      const trimmed = (text ?? input).trim();
+      if (!trimmed || isSendingMessage) return;
+
+      const optimisticUserMsg: Message = {
         id: genId(),
         role: "user",
         content: trimmed,
         timestamp: new Date(),
       };
-      setMessages((m) => [...m, userMsg]);
+
+      // Add optimistic user message for immediate UI feedback
+      setMessages((m) => [...m, optimisticUserMsg]);
       setInput("");
+      setApiError(null);
+      setEditingMessage(null);
+      setEditInput("");
       setIsTyping(true);
 
-      // Generate AI response
-      setTimeout(
-        () => {
-          const response = generateAIResponse(trimmed, selectedMaterial, mode);
+      try {
+        const response = await aiApi.chat({
+          message: trimmed,
+          conversationId: activeConversationId ?? undefined,
+        });
 
-          const aiMsg: Message = {
-            id: genId(),
-            role: "ai",
-            content: response.content,
-            timestamp: new Date(),
-            source: response.source,
-            isQuiz: response.isQuiz,
-            quizData: response.quizData,
-          };
+        // Reload messages to get real backend IDs (replaces optimistic messages with real ones)
+        const success = await loadMessages(response.conversationId);
 
-          setMessages((m) => [...m, aiMsg]);
-          setIsTyping(false);
+        if (success) {
+          sessionStorage.setItem("midori_ai_active_conversation_id", response.conversationId);
+        }
 
-          if (response.quizData) {
-            setQuizData(response.quizData);
-          }
-        },
-        500 + Math.random() * 500,
-      );
+        await loadConversations();
+      } catch (error) {
+        console.error("Failed to send message", error);
+        setApiError("Gửi tin nhắn thất bại. Vui lòng thử lại.");
+        // Remove the optimistic user message since send failed
+        setMessages((m) => m.slice(0, -1));
+      } finally {
+        setIsTyping(false);
+      }
     },
-    [input, selectedMaterial, mode],
+    [input, isSendingMessage, activeConversationId, loadConversations],
   );
 
   const handleQuizAnswer = (questionIndex: number, answerIndex: number) => {
@@ -880,15 +1074,150 @@ export function AISenseiPage() {
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
     if (newMode === "practice") {
-      // Auto-generate quiz when switching to practice
       handleSend("Tạo quiz từ tài liệu");
     }
   };
+
+  // Determine which USER message (if any) is the last one - only that can be edited
+  const lastUserMessageId = (() => {
+    let lastId: string | null = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        lastId = messages[i].id;
+        break;
+      }
+    }
+    return lastId;
+  })();
+
+  // Ref to track if boot has been initialized
+  const bootInitializedRef = useRef(false);
+
+  // Boot logic: distinguish fresh open vs reload, restore state appropriately
+  useEffect(() => {
+    // Only proceed when conversations are loaded and boot hasn't been initialized
+    if (isLoadingConversations || bootInitializedRef.current) return;
+
+    const isReload = () => {
+      const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+      return nav?.type === "reload";
+    };
+
+    const storedId = sessionStorage.getItem("midori_ai_active_conversation_id");
+    const shouldRestore = isReload() && storedId;
+
+    bootInitializedRef.current = true;
+    setChatBootState("loading");
+
+    if (shouldRestore) {
+      // Reload case: restore active conversation
+      // Note: we trust the stored ID from sessionStorage.
+      // loadMessages will fail gracefully if the ID is invalid or doesn't belong to user.
+      loadMessages(storedId!).then((success) => {
+        if (success) {
+          setActiveConversationId(storedId!);
+        } else {
+          sessionStorage.removeItem("midori_ai_active_conversation_id");
+          setMessages([]);
+        }
+        setChatBootState("ready");
+      });
+    } else {
+      // Fresh open or no stored id: show New Chat
+      sessionStorage.removeItem("midori_ai_active_conversation_id");
+      setMessages([]);
+      setChatBootState("ready");
+    }
+  }, [conversations, isLoadingConversations, loadMessages]);
+
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  // showWelcome only when there are no messages AND we are not in a conversation AND boot is complete
+  const showWelcome = chatBootState === "ready" && messages.length === 0 && !activeConversationId;
+
+  // Show loading state during boot
+  const showBootLoading = chatBootState === "loading";
+
+  const materialHelper = selectedMaterial
+    ? "AI Sensei sẽ ưu tiên giải thích theo tài liệu đã chọn."
+    : "Bạn có thể chọn tài liệu để AI trả lời đúng trọng tâm bài học.";
 
   return (
     <div className="h-[calc(100vh-7rem)] flex gap-4">
       {/* Left Panel - Material Selection & Preview */}
       <div className="w-80 flex-shrink-0 flex flex-col gap-4">
+        <div className="bg-white/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold">Conversations</h3>
+            </div>
+            <button
+              onClick={handleNewChat}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs hover:bg-primary/20 transition"
+            >
+              <Plus className="w-3 h-3" />
+              New chat
+            </button>
+          </div>
+
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {isLoadingConversations && (
+              <p className="text-xs text-muted-foreground">Loading...</p>
+            )}
+            {!isLoadingConversations && conversations.length === 0 && (
+              <p className="text-xs text-muted-foreground">No conversations yet.</p>
+            )}
+            {conversations.map((conversation) => {
+              const isActive = conversation.id === activeConversationId;
+              return (
+                <div
+                  key={conversation.id}
+                  className={`flex items-center gap-1 p-2 rounded-xl text-xs transition-all group ${
+                    isActive ? "bg-primary/10 text-primary" : "hover:bg-slate-100 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <button
+                    onClick={() => handleSelectConversation(conversation)}
+                    className="flex-1 text-left truncate"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{conversation.title || "New chat"}</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {new Date(conversation.updatedAt).toLocaleString()}
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRenameConversation(conversation);
+                    }}
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all"
+                    title="Đổi tên"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConversation(conversation.id);
+                    }}
+                    className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    title="Xóa đoạn chat"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="bg-white/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center gap-2 mb-4">
             <Search className="w-4 h-4 text-primary" />
@@ -899,11 +1228,7 @@ export function AISenseiPage() {
 
           <div className="mt-4">
             <ModeToggle mode={mode} onChange={handleModeChange} />
-            <p className="text-[10px] text-muted-foreground mt-2">
-              {mode === "study"
-                ? "AI trả lời dựa trên tài liệu đã chọn"
-                : "AI tạo quiz từ tài liệu đã chọn"}
-            </p>
+            <p className="text-[10px] text-muted-foreground mt-2">{materialHelper}</p>
           </div>
         </div>
 
@@ -914,10 +1239,10 @@ export function AISenseiPage() {
           <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-3 border border-primary/20">
             <div className="flex items-center gap-2 text-xs">
               <CheckCircle2 className="w-3 h-3 text-primary" />
-              <span className="font-medium">Chế độ nguồn nghiêm ngặt</span>
+              <span className="font-medium">Chế độ nguồn ưu tiên</span>
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">
-              Tất cả câu trả lời chỉ từ: {selectedMaterial.title}
+              Các câu trả lời sẽ ưu tiên dựa trên: {selectedMaterial.title}
             </p>
           </div>
         )}
@@ -948,17 +1273,40 @@ export function AISenseiPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && <WelcomeState onExampleClick={handleSend} />}
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+          {apiError && (
+            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {apiError}
+            </div>
+          )}
 
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} msg={msg} />
-          ))}
+          {showBootLoading && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-8 h-8 rounded-xl bg-gradient-hero flex items-center justify-center mb-3 animate-pulse">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <p className="text-sm text-muted-foreground">Đang tải đoạn chat...</p>
+            </div>
+          )}
+
+          {!showBootLoading && showWelcome && <WelcomeState onExampleClick={handleSend} />}
+
+          {!showBootLoading &&
+            !showWelcome &&
+            messages.map((msg) => (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                canEdit={msg.id === lastUserMessageId}
+                onEdit={() => handleEditMessage(msg)}
+              />
+            ))}
 
           {isTyping && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="w-2 h-2 rounded-full bg-primary animate-bounce" />
-              <span>AI Sensei đang suy nghĩ...</span>
+              <span>AI Sensei đang trả lời...</span>
             </div>
           )}
 
@@ -969,12 +1317,57 @@ export function AISenseiPage() {
               onClose={() => setQuizData(null)}
             />
           )}
-
-          <div ref={bottomRef} />
         </div>
 
         {/* Input */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+          {editingMessage && (
+            <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="w-3 h-3 text-amber-500" />
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                    Đang sửa tin nhắn đã gửi
+                  </span>
+                </div>
+                <button
+                  onClick={handleCancelEdit}
+                  className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40 transition"
+                >
+                  <X className="w-3 h-3 text-amber-500" />
+                </button>
+              </div>
+              <textarea
+                value={editInput}
+                onChange={(e) => setEditInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSaveEdit();
+                  }
+                }}
+                className="w-full resize-none rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800/50 px-3 py-2 text-sm outline-none focus:border-amber-400"
+                rows={2}
+                autoFocus
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={!editInput.trim() || isSavingEdit}
+                  className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition"
+                >
+                  {isSavingEdit ? "Đang lưu..." : "Lưu và gửi lại"}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
@@ -989,15 +1382,20 @@ export function AISenseiPage() {
               placeholder={
                 selectedMaterial
                   ? `Hỏi về ${selectedMaterial.title}...`
-                  : "Chọn tài liệu trước khi hỏi..."
+                  : "Hỏi AI Sensei về tiếng Nhật..."
               }
               rows={1}
               className="flex-1 resize-none rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
             />
             <button
               onClick={() => handleSend()}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isSendingMessage || !!editingMessage}
               className="px-4 py-3 rounded-xl bg-gradient-hero text-white disabled:opacity-50 hover:opacity-90 transition shadow-md"
+              title={
+                editingMessage
+                  ? "Lưu hoặc hủy sửa tin nhắn trước"
+                  : "Gửi tin nhắn (Enter)"
+              }
             >
               <Send className="w-4 h-4" />
             </button>
@@ -1005,7 +1403,7 @@ export function AISenseiPage() {
 
           <p className="text-[10px] text-muted-foreground text-center mt-2">
             <Sparkles className="w-3 h-3 inline mr-1" />
-            AI Sensei chỉ sử dụng dữ liệu từ tài liệu đã chọn
+            Enter gửi · Shift+Enter xuống dòng · AI Sensei có thể ưu tiên tài liệu đã chọn khi trả lời.
           </p>
         </div>
       </div>

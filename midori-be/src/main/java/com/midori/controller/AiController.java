@@ -7,6 +7,8 @@ import com.midori.dto.ai.ChatResponse;
 import com.midori.dto.ai.ConversationMessagesResponse;
 import com.midori.dto.ai.GenerateQuestionsRequest;
 import com.midori.dto.ai.GenerateQuestionsResponse;
+import com.midori.dto.ai.UpdateAiMessageRequest;
+import com.midori.dto.ai.UpdateConversationTitleRequest;
 import com.midori.security.CustomUserDetails;
 import com.midori.service.AiService;
 import jakarta.validation.Valid;
@@ -65,6 +67,25 @@ public class AiController {
                 request.getLevel(),
                 request.getCount(),
                 request.getType());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PatchMapping("/conversations/{id}/title")
+    public ResponseEntity<ApiResponse<AiConversationResponse>> updateConversationTitle(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateConversationTitleRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        AiConversationResponse response = aiService.updateConversationTitle(id, userDetails.getId(), request.getTitle());
+        return ResponseEntity.ok(ApiResponse.success("Conversation title updated successfully", response));
+    }
+
+    @PatchMapping("/conversations/{id}/messages/{messageId}")
+    public ResponseEntity<ApiResponse<ConversationMessagesResponse>> updateUserMessage(
+            @PathVariable UUID id,
+            @PathVariable UUID messageId,
+            @Valid @RequestBody UpdateAiMessageRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ConversationMessagesResponse response = aiService.updateUserMessage(id, messageId, userDetails.getId(), request.getContent());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
