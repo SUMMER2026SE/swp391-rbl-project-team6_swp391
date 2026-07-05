@@ -124,6 +124,109 @@ public class AiServiceImpl implements AiService {
         conversationRepository.delete(conversation);
     }
 
+    @Override
+    public AiConversationResponse updateConversationTitle(UUID conversationId, UUID userId, String title) {
+        AiConversation conversation = getConversation(conversationId, userId);
+
+        String trimmedTitle = title != null ? title.trim() : "";
+        if (trimmedTitle.isEmpty()) {
+            throw new IllegalArgumentException("Title must not be blank after trimming");
+        }
+
+        conversation.setTitle(trimmedTitle);
+        conversation.setUpdatedAt(Instant.now());
+        AiConversation saved = conversationRepository.save(conversation);
+
+        return toConversationResponse(saved);
+    }
+
+    @Override
+    public ConversationMessagesResponse updateUserMessage(UUID conversationId, UUID messageId, UUID userId, String content) {
+        // Verify conversation ownership
+        getConversation(conversationId, userId);
+
+        // Find the USER message
+        AiMessage targetMessage = messageRepository.findById(messageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found"));
+
+        // Verify message belongs to this conversation
+        if (!targetMessage.getConversation().getId().equals(conversationId)) {
+            throw new ResourceNotFoundException("Message not found in this conversation");
+        }
+
+        // Only allow editing USER messages
+        if (!"USER".equals(targetMessage.getRole())) {
+            throw new IllegalArgumentException("Only USER messages can be edited");
+        }
+
+        // Check this is the latest USER message in the conversation
+        List<AiMessage> allMessages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        AiMessage lastUserMessage = null;
+        for (int i = allMessages.size() - 1; i >= 0; i--) {
+            if ("USER".equals(allMessages.get(i).getRole())) {
+                lastUserMessage = allMessages.get(i);
+                break;
+            }
+        }
+        if (lastUserMessage == null || !lastUserMessage.getId().equals(messageId)) {
+            throw new IllegalArgumentException("Only the most recent USER message can be edited");
+        }
+
+        // Validate and trim content
+        String trimmedContent = content != null ? content.trim() : "";
+        if (trimmedContent.isEmpty()) {
+            throw new IllegalArgumentException("Content must not be blank after trimming");
+        }
+
+        // Update the USER message content
+        targetMessage.setContent(trimmedContent);
+        messageRepository.save(targetMessage);
+
+        // Find and delete the ASSISTANT reply that follows this USER message
+        int userIndex = allMessages.indexOf(targetMessage);
+        AiMessage assistantToDelete = null;
+        if (userIndex >= 0 && userIndex + 1 < allMessages.size()) {
+            AiMessage nextMsg = allMessages.get(userIndex + 1);
+            if ("ASSISTANT".equals(nextMsg.getRole())) {
+                assistantToDelete = nextMsg;
+            }
+        }
+
+        // Generate new AI reply
+        String newReply = generateMockReply(trimmedContent);
+
+        AiMessage newAssistantMessage = AiMessage.builder()
+                .conversation(targetMessage.getConversation())
+                .role("ASSISTANT")
+                .content(newReply)
+                .build();
+
+        // Delete old assistant if exists
+        if (assistantToDelete != null) {
+            messageRepository.delete(assistantToDelete);
+        }
+
+        // Save new assistant message
+        messageRepository.save(newAssistantMessage);
+
+        // Update conversation timestamp
+        AiConversation conversation = targetMessage.getConversation();
+        conversation.setUpdatedAt(Instant.now());
+        conversationRepository.save(conversation);
+
+        // Return fresh message list
+        List<AiMessageResponse> updatedMessages = messageRepository
+                .findByConversationIdOrderByCreatedAtAsc(conversationId)
+                .stream()
+                .map(this::toMessageResponse)
+                .toList();
+
+        return ConversationMessagesResponse.builder()
+                .conversationId(conversationId)
+                .messages(updatedMessages)
+                .build();
+    }
+
     private AiConversationResponse toConversationResponse(AiConversation conversation) {
         return AiConversationResponse.builder()
                 .id(conversation.getId())
