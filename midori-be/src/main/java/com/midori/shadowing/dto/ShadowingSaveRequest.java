@@ -10,6 +10,7 @@ public class ShadowingSaveRequest {
     private double duration;
     private List<ShadowingSentenceDto> sentences;
     private List<ShadowingSegmentDto> segments;
+    private String jlptLevel;
 
     public ShadowingSaveRequest() {}
 
@@ -67,5 +68,13 @@ public class ShadowingSaveRequest {
 
     public void setSegments(List<ShadowingSegmentDto> segments) {
         this.segments = segments;
+    }
+
+    public String getJlptLevel() {
+        return jlptLevel;
+    }
+
+    public void setJlptLevel(String jlptLevel) {
+        this.jlptLevel = jlptLevel;
     }
 }

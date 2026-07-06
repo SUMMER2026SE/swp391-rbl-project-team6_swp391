@@ -11,6 +11,7 @@ export interface ProfileResponse {
   dateOfBirth?: string;
   createdAt?: string;
   updatedAt?: string;
+  jlptLevel?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -20,6 +21,7 @@ export interface UpdateProfileRequest {
   phone?: string;
   location?: string;
   dateOfBirth?: string;
+  jlptLevel?: string;
 }
 
 export const profileApi = {

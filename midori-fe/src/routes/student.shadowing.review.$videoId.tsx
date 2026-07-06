@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
-  getVideoById,
-  getTopicForVideo,
   generateMockAIFeedback,
   type ShadowingSentence,
 } from "@/mock/shadowing-student";

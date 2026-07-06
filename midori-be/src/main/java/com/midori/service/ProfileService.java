@@ -61,6 +61,9 @@ public class ProfileService {
         if (request.getDateOfBirth() != null) {
             profile.setDateOfBirth(request.getDateOfBirth());
         }
+        if (request.getJlptLevel() != null) {
+            profile.setJlptLevel(request.getJlptLevel());
+        }
 
         profile = userProfileRepository.save(profile);
         return toProfileResponse(profile);
@@ -78,6 +81,7 @@ public class ProfileService {
                 .dateOfBirth(profile.getDateOfBirth())
                 .createdAt(profile.getCreatedAt())
                 .updatedAt(profile.getUpdatedAt())
+                .jlptLevel(profile.getJlptLevel())
                 .build();
     }
 }

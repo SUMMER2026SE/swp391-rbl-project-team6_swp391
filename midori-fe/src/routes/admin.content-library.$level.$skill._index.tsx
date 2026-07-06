@@ -39,6 +39,7 @@ import {
   generateId,
 } from "@/mocks/contentLibraryMock";
 import { adminShadowingApi } from "@/lib/api/adminShadowing";
+import ShadowingLibraryRedesign from "@/components/ShadowingLibraryRedesign";
 
 
 export const Route = createFileRoute("/admin/content-library/$level/$skill/_index")({
@@ -1024,11 +1025,13 @@ function ListeningEditForm({
 function ShadowingFormBody({
   initialData,
   existingTopics,
+  level,
   onSave,
   onCancel,
 }: {
   initialData?: ShadowingItem;
   existingTopics?: string[];
+  level?: string;
   onSave: (data: Partial<ShadowingItem>) => void;
   onCancel: () => void;
 }) {
@@ -1101,9 +1104,6 @@ function ShadowingFormBody({
       setUploading(false);
     }
   };
-
-  // Model size selector state
-  const [modelSize, setModelSize] = useState<"tiny" | "base" | "small">("base");
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -1184,7 +1184,7 @@ function ShadowingFormBody({
     }, 1000);
 
     try {
-      const generated = await adminShadowingApi.generateShadowing(vid, modelSize);
+      const generated = await adminShadowingApi.generateShadowing(vid);
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       setGenerationStep(4);
       setGenerationProgress(100);
@@ -1321,6 +1321,7 @@ function ShadowingFormBody({
         videoUrl,
         topic: topic || "General",
         thumbnailUrl: initialData?.thumbnailUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=640",
+        jlptLevel: level || "N5",
         segments: segments.map((seg) => ({
           id: seg.id,
           startTime: seg.startTime,
@@ -1506,20 +1507,6 @@ function ShadowingFormBody({
               <Sparkles className="w-4 h-4" />
               {generating ? "Generating..." : "Generate Shadowing"}
             </button>
-
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-col font-medium">Model:</label>
-              <select
-                value={modelSize}
-                onChange={(e) => setModelSize(e.target.value as "tiny" | "base" | "small")}
-                disabled={generating}
-                className="text-xs px-2 py-1.5 rounded-md border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
-              >
-                <option value="tiny">Tiny (fastest)</option>
-                <option value="base">Base (recommended)</option>
-                <option value="small">Small (most accurate)</option>
-              </select>
-            </div>
 
             <p className="text-xs text-muted-col flex-1">
               Automatically process speech in the uploaded video to generate Japanese subtitles and Vietnamese translations.
@@ -1892,15 +1879,17 @@ function ShadowingFormBody({
 function ShadowingEditForm({
   item,
   existingTopics,
+  level,
   onSave,
   onCancel,
 }: {
   item: ShadowingItem;
   existingTopics?: string[];
+  level?: string;
   onSave: (data: Partial<ShadowingItem>) => void;
   onCancel: () => void;
 }) {
-  return <ShadowingFormBody initialData={item} existingTopics={existingTopics} onSave={onSave} onCancel={onCancel} />;
+  return <ShadowingFormBody initialData={item} existingTopics={existingTopics} level={level} onSave={onSave} onCancel={onCancel} />;
 }
 
 
@@ -2688,14 +2677,16 @@ function ListeningLessonForm({
 
 function ShadowingLessonForm({
   existingTopics,
+  level,
   onSave,
   onCancel,
 }: {
   existingTopics?: string[];
+  level?: string;
   onSave: (data: Partial<ShadowingItem>) => void;
   onCancel: () => void;
 }) {
-  return <ShadowingFormBody existingTopics={existingTopics} onSave={onSave} onCancel={onCancel} />;
+  return <ShadowingFormBody existingTopics={existingTopics} level={level} onSave={onSave} onCancel={onCancel} />;
 }
 
 // ─── Excel Import Modal (Match Question Bank) ─────────────────────────────────
@@ -2998,7 +2989,7 @@ function SkillDetailPage() {
     setShadowingError(null);
     try {
       console.log("[DEBUG fetchShadowingLessons] Calling API...");
-      const res = await adminShadowingApi.listShadowing();
+      const res = await adminShadowingApi.listShadowing(upperLevel);
       console.log("[DEBUG fetchShadowingLessons] API returned, setting state:", res);
       setShadowingLessons(res);
       console.log("[DEBUG fetchShadowingLessons] SUCCESS");
@@ -3062,26 +3053,16 @@ function SkillDetailPage() {
   const handleCreate = async (
     data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
   ) => {
-    console.log("[DEBUG handleCreate] START - data:", data);
-    console.log("[DEBUG handleCreate] isShadowingSkill:", isShadowingSkill);
     if (isShadowingSkill) {
       setShadowingSaving(true);
-      console.log("[DEBUG handleCreate] Before setShowCreateModal(false)");
-      setShowCreateModal(false); // Close immediately — UI is responsive
-      console.log("[DEBUG handleCreate] After setShowCreateModal(false) - modal should be closed");
+      setShowCreateModal(false);
       try {
-        console.log("[DEBUG handleCreate] Calling API...");
-        const result = await adminShadowingApi.saveShadowing(data);
-        console.log("[DEBUG handleCreate] API returned:", result);
-        console.log("[DEBUG handleCreate] Calling toast.success...");
+        await adminShadowingApi.saveShadowing({ ...data, jlptLevel: upperLevel });
         toast.success("Shadowing lesson created successfully");
-        console.log("[DEBUG handleCreate] Calling fetchShadowingLessons...");
         fetchShadowingLessons();
-        console.log("[DEBUG handleCreate] END SUCCESS");
       } catch (err: any) {
-        console.error("[DEBUG handleCreate] API ERROR:", err);
         toast.error(err.message || "Failed to create shadowing lesson");
-        setShowCreateModal(true); // Reopen so user can retry
+        setShowCreateModal(true);
       } finally {
         setShadowingSaving(false);
       }
@@ -3100,27 +3081,18 @@ function SkillDetailPage() {
   const handleUpdate = async (
     data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
   ) => {
-    console.log("[DEBUG handleUpdate] START - data:", data, "selectedItem:", selectedItem);
     if (!selectedItem) return;
     if (isShadowingSkill) {
       setShadowingSaving(true);
-      console.log("[DEBUG handleUpdate] Before setShowEditModal(false)");
-      setShowEditModal(false); // Close immediately — UI is responsive
+      setShowEditModal(false);
       setSelectedItem(null);
-      console.log("[DEBUG handleUpdate] After setShowEditModal(false)");
       try {
-        console.log("[DEBUG handleUpdate] Calling API...");
-        const result = await adminShadowingApi.saveShadowing({ ...data, id: selectedItem.id });
-        console.log("[DEBUG handleUpdate] API returned:", result);
-        console.log("[DEBUG handleUpdate] Calling toast.success...");
+        await adminShadowingApi.saveShadowing({ ...data, id: selectedItem.id, jlptLevel: upperLevel });
         toast.success("Shadowing lesson updated successfully");
-        console.log("[DEBUG handleUpdate] Calling fetchShadowingLessons...");
         fetchShadowingLessons();
-        console.log("[DEBUG handleUpdate] END SUCCESS");
       } catch (err: any) {
-        console.error("[DEBUG handleUpdate] API ERROR:", err);
         toast.error(err.message || "Failed to update shadowing lesson");
-        setShowEditModal(true); // Reopen so user can retry
+        setShowEditModal(true);
       } finally {
         setShadowingSaving(false);
       }
@@ -3138,6 +3110,26 @@ function SkillDetailPage() {
     createLesson(data);
     toast.success("Lesson imported successfully");
     setShowImportModal(false);
+  };
+
+  const handleDuplicate = async (item: ShadowingItem) => {
+    try {
+      setShadowingSaving(true);
+      const detail = await adminShadowingApi.getShadowingDetail(item.id);
+      const { id, ...copyData } = detail;
+      const duplicated = {
+        ...copyData,
+        title: `${detail.title} (Copy)`,
+        jlptLevel: detail.jlptLevel || upperLevel,
+      };
+      await adminShadowingApi.saveShadowing(duplicated);
+      toast.success("Shadowing lesson duplicated successfully");
+      fetchShadowingLessons();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to duplicate lesson");
+    } finally {
+      setShadowingSaving(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -3175,6 +3167,84 @@ function SkillDetailPage() {
   }
 
   const SkillIcon = config.icon;
+
+  if (isShadowingSkill) {
+    return (
+      <div className="space-y-5">
+        <ShadowingLibraryRedesign
+          level={level}
+          lessons={shadowingLessons}
+          loading={shadowingLoading}
+          error={shadowingError}
+          onEdit={handleEdit}
+          onDelete={(item) => {
+            setSelectedItem(item);
+            setShowDeleteConfirm(true);
+          }}
+          onCreate={() => setShowCreateModal(true)}
+          onDuplicate={handleDuplicate}
+        />
+
+        {/* Delete Confirmation */}
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setSelectedItem(null);
+          }}
+          onConfirm={handleDelete}
+          title="Delete Lesson"
+          message={`Are you sure you want to delete "${selectedItem?.title}"? This action cannot be undone.`}
+        />
+
+        {/* Edit Modal */}
+        <Modal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedItem(null);
+          }}
+          title={`Edit ${config.label} Lesson`}
+          size="xl"
+        >
+          {selectedItem && (
+            detailLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center space-y-4">
+                <div className="w-10 h-10 border-4 border-[oklch(0.62_0.18_270)] border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-secondary-col">Loading lesson details from backend...</p>
+              </div>
+            ) : editDetail ? (
+              <ShadowingEditForm
+                item={editDetail}
+                existingTopics={existingTopics}
+                level={upperLevel}
+                onSave={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            ) : null
+          )}
+        </Modal>
+
+        {/* Create Modal */}
+        <Modal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          title={`Create ${config.label} Lesson`}
+          size="xl"
+        >
+          <ShadowingLessonForm
+            existingTopics={existingTopics}
+            level={upperLevel}
+            onSave={handleCreate}
+            onCancel={() => setShowCreateModal(false)}
+          />
+        </Modal>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -3483,6 +3553,7 @@ function SkillDetailPage() {
                 <ShadowingEditForm
                   item={editDetail}
                   existingTopics={existingTopics}
+                  level={upperLevel}
                   onSave={handleUpdate}
                   onCancel={() => {
                     setShowEditModal(false);
@@ -3514,6 +3585,7 @@ function SkillDetailPage() {
         {skill === "shadowing" && (
           <ShadowingLessonForm
             existingTopics={existingTopics}
+            level={upperLevel}
             onSave={handleCreate}
             onCancel={() => setShowCreateModal(false)}
           />

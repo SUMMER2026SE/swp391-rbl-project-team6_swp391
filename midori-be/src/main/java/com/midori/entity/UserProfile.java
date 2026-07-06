@@ -44,6 +44,9 @@ public class UserProfile {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
+    @Column(name = "jlpt_level", length = 5)
+    private String jlptLevel = "N5";
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -51,4 +54,7 @@ public class UserProfile {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    public String getJlptLevel() { return jlptLevel; }
+    public void setJlptLevel(String jlptLevel) { this.jlptLevel = jlptLevel; }
 }

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -48,9 +49,12 @@ public class ShadowingAiService {
     /**
      * Extracts audio track from video file using FFmpeg CLI
      */
-    public File extractAudio(File videoFile) {
+    public File extractAudio(File videoFile, long videoDurationSeconds) {
         log.info("[AI Pipeline] Starting audio extraction using FFmpeg for: {}", videoFile.getName());
         long startTime = System.currentTimeMillis();
+
+        long timeoutSeconds = Math.max(300L, (long) (videoDurationSeconds * 1.5));
+        log.info("[AI Pipeline] FFmpeg timeout set to {}s for video of {}s duration", timeoutSeconds, videoDurationSeconds);
 
         String baseName = videoFile.getName().substring(0, videoFile.getName().lastIndexOf("."));
         File audioFile = new File(videoFile.getParentFile(), baseName + ".mp3");
@@ -73,14 +77,40 @@ public class ShadowingAiService {
 
         try {
             Process process = pb.start();
-            boolean finished = process.waitFor(90, TimeUnit.SECONDS);
+
+            // Consume stderr in a daemon thread to prevent buffer deadlock.
+            // FFmpeg writes all output (banner, progress, warnings) to stderr.
+            // If stderr pipe fills up (~4-64KB), FFmpeg blocks on write() and never exits.
+            // Solution: drain stderr asynchronously while waiting for process to complete.
+            final CountDownLatch latch = new CountDownLatch(1);
+            Thread stderrDrainer = new Thread(() -> {
+                try {
+                    byte[] buffer = new byte[8192];
+                    while (process.getErrorStream().read(buffer) != -1) {
+                        // Drain stderr to prevent buffer deadlock
+                    }
+                } catch (IOException ignored) {
+                } finally {
+                    latch.countDown();
+                }
+            });
+            stderrDrainer.setDaemon(true);
+            stderrDrainer.setName("ffmpeg-stderr-drainer");
+            stderrDrainer.start();
+
+            boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             long elapsed = System.currentTimeMillis() - startTime;
+            log.info("[AI Pipeline] FFmpeg completed in {}ms (timeout was {}s)", elapsed, timeoutSeconds);
+
+            // Wait briefly for stderr drainer to finish (max 2s)
+            latch.await(2, TimeUnit.SECONDS);
 
             if (finished && process.exitValue() == 0) {
                 log.info("[AI Pipeline] Audio successfully extracted in {}ms to: {}", elapsed, audioFile.getName());
                 return audioFile;
             } else {
-                throw new RuntimeException("FFmpeg failed with exit code: " + (finished ? process.exitValue() : "Timeout"));
+                String reason = finished ? "exit code " + process.exitValue() : "Timeout after " + timeoutSeconds + "s";
+                throw new RuntimeException("FFmpeg failed: " + reason);
             }
         } catch (Exception e) {
             log.warn("[AI Pipeline] FFmpeg execution failed. Fallback to transcribing original video file. Error: {}", e.getMessage());
@@ -89,17 +119,24 @@ public class ShadowingAiService {
     }
 
     /**
+     * Returns the actual Groq Whisper model name used for transcription.
+     */
+    public String getGroqWhisperModel() {
+        return GROQ_WHISPER_MODEL;
+    }
+
+    /**
      * Runs Whisper speech recognition on audio file via Groq API
      */
-    public List<WhisperSegment> transcribeAudio(File audioFile, String modelSize) {
-        WhisperResult result = transcribeAudioWithTiming(audioFile, modelSize);
+    public List<WhisperSegment> transcribeAudio(File audioFile) {
+        WhisperResult result = transcribeAudioWithTiming(audioFile);
         return result.segments;
     }
 
     /**
      * Runs Whisper with detailed timing for transcription
      */
-    public WhisperResult transcribeAudioWithTiming(File audioFile, String modelSize) {
+    public WhisperResult transcribeAudioWithTiming(File audioFile) {
         log.info("[AI Pipeline] Starting speech recognition using Groq Whisper API");
         long overallStart = System.currentTimeMillis();
 

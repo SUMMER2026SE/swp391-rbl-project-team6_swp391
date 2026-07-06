@@ -7,6 +7,7 @@ import { Mic, Play, Clock, ChevronRight, Sparkles, ArrowRight } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi, type StudentShadowingLesson } from "@/lib/api/studentShadowing";
+import { profileApi } from "@/lib/api/profile";
 
 export const Route = createFileRoute("/student/shadowing")({
   component: ShadowingHomePage,
@@ -37,6 +38,7 @@ function ShadowingHomePage() {
   const [lessons, setLessons] = useState<StudentShadowingLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState<string>("Tất cả");
+  const [jlptLevel, setJlptLevel] = useState<string>("N5");
 
   const topics = useMemo(() => {
     const uniqueTopics = new Set<string>();
@@ -54,9 +56,13 @@ function ShadowingHomePage() {
   }, [lessons, selectedTopic]);
 
   useEffect(() => {
-    studentShadowingApi.listShadowing()
-      .then((res) => {
-        setLessons(res);
+    Promise.all([
+      studentShadowingApi.listShadowing(),
+      profileApi.getMyProfile(),
+    ])
+      .then(([shadowingRes, profileRes]) => {
+        setLessons(shadowingRes);
+        if (profileRes.jlptLevel) setJlptLevel(profileRes.jlptLevel);
         setLoading(false);
       })
       .catch((err) => {
@@ -88,7 +94,7 @@ function ShadowingHomePage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Cấp độ của bạn</p>
-              <p className="font-bold text-foreground">JLPT N5</p>
+              <p className="font-bold text-foreground">JLPT {jlptLevel}</p>
             </div>
             <div className="ml-auto">
               <span className="text-sm text-muted-foreground">
@@ -171,7 +177,7 @@ function ShadowingHomePage() {
                         {/* Level and AI Badges */}
                         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 select-none">
                           <span className="px-2.5 py-0.8 rounded-lg text-[9px] font-black bg-black/60 backdrop-blur-md text-white border border-white/10 shadow-sm uppercase">
-                            JLPT N5
+                            JLPT {lesson.jlptLevel || jlptLevel}
                           </span>
                           {lesson.topic && (
                             <span className="px-2.5 py-0.8 rounded-lg text-[9px] font-black bg-blue-600 text-white shadow-sm uppercase">

@@ -16,6 +16,7 @@ export interface ShadowingItem {
   duration: number;
   createdAt?: string;
   topic?: string;
+  jlptLevel?: string;
   segments: {
     id: string;
     startTime: number;
@@ -46,16 +47,16 @@ export const adminShadowingApi = {
   /**
    * Call AI to automatically generate sentences with timestamps
    */
-  generateShadowing: async (videoId: string, modelSize?: string): Promise<any> => {
-    const params = modelSize ? `?model=${modelSize}` : "";
-    return await api.post<any>(`/admin/shadowing/${videoId}/generate${params}`);
+  generateShadowing: async (videoId: string): Promise<any> => {
+    return await api.post<any>(`/admin/shadowing/${videoId}/generate`);
   },
 
   /**
-   * Get list of all shadowing items from backend
+   * Get list of shadowing items from backend, optionally filtered by JLPT level
    */
-  listShadowing: async (): Promise<ShadowingItem[]> => {
-    const res = await api.get<any[]>("/admin/shadowing");
+  listShadowing: async (level?: string): Promise<ShadowingItem[]> => {
+    const params = level ? `?level=${encodeURIComponent(level)}` : "";
+    const res = await api.get<any[]>(`/admin/shadowing${params}`);
     return res.map((l: any) => ({
       id: l.id,
       title: l.title,
@@ -63,6 +64,7 @@ export const adminShadowingApi = {
       duration: l.duration,
       createdAt: l.createdAt,
       topic: l.topic,
+      jlptLevel: l.jlptLevel,
       segments: l.sentences ? l.sentences.map((s: any) => ({
         id: s.id,
         startTime: s.startTime,
@@ -85,6 +87,7 @@ export const adminShadowingApi = {
       duration: l.duration,
       createdAt: l.createdAt,
       topic: l.topic,
+      jlptLevel: l.jlptLevel,
       segments: l.sentences ? l.sentences.map((s: any) => ({
         id: s.id,
         startTime: s.startTime,

@@ -161,6 +161,7 @@ export interface StudentShadowingLesson {
   videoUrl: string;
   duration: number;
   topic?: string;
+  jlptLevel?: string;
   segments: StudentShadowingSegment[];
 }
 
@@ -176,6 +177,7 @@ export const studentShadowingApi = {
       videoUrl: l.videoUrl,
       duration: l.duration,
       topic: l.topic,
+      jlptLevel: l.jlptLevel,
       segments: l.sentences ? l.sentences.map((s: any) => ({
         id: s.id,
         startTime: s.startTime,
@@ -197,6 +199,7 @@ export const studentShadowingApi = {
       videoUrl: l.videoUrl,
       duration: l.duration,
       topic: l.topic,
+      jlptLevel: l.jlptLevel,
       segments: l.sentences ? l.sentences.map((s: any) => ({
         id: s.id,
         startTime: s.startTime,

@@ -21,6 +21,9 @@ public class ShadowingLesson {
 
     private double duration;
 
+    @Column(name = "jlpt_level", length = 5)
+    private String jlptLevel = "N5";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -69,6 +72,9 @@ public class ShadowingLesson {
     public void setDuration(double duration) {
         this.duration = duration;
     }
+
+    public String getJlptLevel() { return jlptLevel; }
+    public void setJlptLevel(String jlptLevel) { this.jlptLevel = jlptLevel; }
 
     public Instant getCreatedAt() {
         return createdAt;

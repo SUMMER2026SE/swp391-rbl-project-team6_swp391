@@ -33,12 +33,28 @@ public class ShadowingService {
     // In-memory map to report AI pipeline processing progress
     private final Map<String, ProgressStatus> progressMap = new ConcurrentHashMap<>();
 
+    // Stores upload benchmark data keyed by videoId, populated during storeVideo
+    private final Map<String, ShadowingBenchmark> benchmarkMap = new ConcurrentHashMap<>();
+
     /**
-     * Get all shadowing lessons
+     * Stores upload-phase benchmark data so it can be included in the pipeline summary
+     * when generateOrRetrieve is called later for the same videoId.
      */
-    public List<ShadowingGenerateResponse> getAllLessons() {
-        return shadowingLessonRepository.findAll()
-                .stream()
+    public void recordUploadBenchmark(String videoId, ShadowingBenchmark benchmark) {
+        benchmarkMap.put(videoId, benchmark);
+    }
+
+    /**
+     * Get all shadowing lessons, optionally filtered by JLPT level.
+     */
+    public List<ShadowingGenerateResponse> getAllLessons(String level) {
+        List<ShadowingLesson> all = shadowingLessonRepository.findAll();
+        if (level != null && !level.isBlank()) {
+            all = all.stream()
+                    .filter(l -> level.equalsIgnoreCase(l.getJlptLevel()))
+                    .toList();
+        }
+        return all.stream()
                 .map(this::mapToGenerateResponse)
                 .toList();
     }
@@ -62,9 +78,9 @@ public class ShadowingService {
     /**
      * Synchronously execute (or retrieve from database) the AI transcribing/translating pipeline
      */
-    public ShadowingGenerateResponse generateOrRetrieve(String videoId, String modelSize) {
+    public ShadowingGenerateResponse generateOrRetrieve(String videoId) {
         log.info("[ShadowingService] Generate request received for videoId: {}", videoId);
-        
+
         // 1. Delete any existing lesson in database for this videoId to force clean regeneration
         List<ShadowingLesson> existingList = shadowingLessonRepository.findAll();
         for (ShadowingLesson lesson : existingList) {
@@ -80,11 +96,11 @@ public class ShadowingService {
             throw new ResourceNotFoundException("Video file not found for ID: " + videoId);
         }
 
-        // Initialize progress tracker in map
-        progressMap.put(videoId, new ProgressStatus("PROCESSING", "Extracting audio", 15));
+        // 3. Retrieve upload benchmark recorded during the upload phase
+        ShadowingBenchmark uploadBenchmark = benchmarkMap.remove(videoId);
 
-        // 3. Trigger sequential pipeline execution
-        ShadowingLesson lesson = runPipeline(videoId, videoFile, modelSize);
+        // 4. Trigger sequential pipeline execution
+        ShadowingLesson lesson = runPipeline(videoId, videoFile, uploadBenchmark);
 
         return mapToGenerateResponse(lesson);
     }
@@ -92,21 +108,21 @@ public class ShadowingService {
     /**
      * Run the pipeline, updating progress states.
      */
-    private ShadowingLesson runPipeline(String videoId, File videoFile, String modelSize) {
-        long pipelineStart = System.currentTimeMillis();
-        
+    private ShadowingLesson runPipeline(String videoId, File videoFile, ShadowingBenchmark uploadBenchmark) {
+        progressMap.put(videoId, new ProgressStatus("PROCESSING", "Extracting audio", 15));
+
         // Get video info
         double rawDuration = shadowingStorageService.getVideoDuration(videoFile);
         long videoDuration = (long) rawDuration;
-        log.info("[Pipeline Benchmark] Video: {} | Duration: {}s | Model: {} | Device: auto (cuda/int8/float16)",
-                 videoFile.getName(), videoDuration, modelSize);
-        
+        log.info("[Pipeline Benchmark] Video: {} | Duration: {}s | Whisper Model: {} | Device: auto (cuda/int8/float16)",
+                 videoFile.getName(), videoDuration, shadowingAiService.getGroqWhisperModel());
+
         try {
             // Step 1: Extract Audio
             long audioStart = System.currentTimeMillis();
             log.info("[ShadowingService] Pipeline Step 1: Audio Extraction");
             progressMap.put(videoId, new ProgressStatus("PROCESSING", "Extracting audio", 25));
-            File audioFile = shadowingAiService.extractAudio(videoFile);
+            File audioFile = shadowingAiService.extractAudio(videoFile, videoDuration);
             long audioTime = System.currentTimeMillis() - audioStart;
             log.info("[Pipeline Benchmark] [1/6] Audio Extraction: {}ms", audioTime);
 
@@ -114,7 +130,7 @@ public class ShadowingService {
             long whisperStart = System.currentTimeMillis();
             log.info("[ShadowingService] Pipeline Step 2: Speech Recognition");
             progressMap.put(videoId, new ProgressStatus("PROCESSING", "Speech recognition", 50));
-            ShadowingAiService.WhisperResult whisperResult = shadowingAiService.transcribeAudioWithTiming(audioFile, modelSize);
+            ShadowingAiService.WhisperResult whisperResult = shadowingAiService.transcribeAudioWithTiming(audioFile);
             long whisperTime = System.currentTimeMillis() - whisperStart;
             List<ShadowingAiService.WhisperSegment> whisperSegments = whisperResult.segments;
             log.info("[Pipeline Benchmark] [2/6] Whisper (load+transcribe): {}ms | Segments: {}",
@@ -178,9 +194,10 @@ public class ShadowingService {
             long saveStart = System.currentTimeMillis();
             log.info("[ShadowingService] Pipeline Step 4: Saving");
             progressMap.put(videoId, new ProgressStatus("PROCESSING", "Saving", 90));
-            
+
             ShadowingLesson lesson = new ShadowingLesson();
             lesson.setTitle("Shadowing Lesson " + videoFile.getName());
+            lesson.setJlptLevel("N5");
             // Prefer Supabase public URL if available (video already uploaded there), fallback to local stream
             String supabaseVideoUrl = shadowingStorageService.getSupabaseUrl(videoId);
             lesson.setVideoUrl(supabaseVideoUrl != null ? supabaseVideoUrl : "/api/admin/shadowing/video/" + videoId);
@@ -196,25 +213,49 @@ public class ShadowingService {
                 audioFile.delete();
             }
 
-            // Summary
-            long totalTime = System.currentTimeMillis() - pipelineStart;
-            log.info("========================================");
-            log.info("[Pipeline Benchmark] SUMMARY - Video: {}s | Model: small | Segments: {}",
-                     videoDuration, whisperSegments.size());
-            log.info("[Pipeline Benchmark]   Audio Extraction:  {}ms ({}s)",
-                     audioTime, String.format("%.1f", audioTime/1000.0));
-            log.info("[Pipeline Benchmark]   Whisper (total):  {}ms ({}s)",
-                     whisperTime, String.format("%.1f", whisperTime/1000.0));
-            log.info("[Pipeline Benchmark]   Gemini Translation: {}ms ({}s)",
-                     translationTime, String.format("%.1f", translationTime/1000.0));
-            log.info("[Pipeline Benchmark]   Database Save:     {}ms ({}s)",
-                     saveTime, String.format("%.1f", saveTime/1000.0));
-            log.info("[Pipeline Benchmark]   TOTAL PIPELINE:    {}ms ({}s)",
-                     totalTime, String.format("%.1f", totalTime/1000.0));
-            log.info("========================================");
+            // Build full pipeline benchmark (upload + AI processing + DB save)
+            ShadowingBenchmark fullBench = new ShadowingBenchmark();
+            if (uploadBenchmark != null) {
+                fullBench.setUploadLocalMs(uploadBenchmark.getUploadLocalMs());
+                fullBench.setUploadSupabaseMs(uploadBenchmark.getUploadSupabaseMs());
+            }
+            fullBench.setFfmpegMs(audioTime);
+            fullBench.setGroqWhisperMs(whisperTime);
+            fullBench.setGeminiMs(translationTime);
+            fullBench.setDbSaveMs(saveTime);
 
-            // Step 5: Completed
-            progressMap.put(videoId, new ProgressStatus("COMPLETED", "Completed", 100, saved));
+            // Unified benchmark summary
+            long totalTime = fullBench.getTotalMs();
+            String whisperModel = shadowingAiService.getGroqWhisperModel();
+            String geminiModel = "gemini-2.5-flash";
+            long videoSizeBytes = videoFile.length();
+            String videoSizeFormatted = formatFileSize(videoSizeBytes);
+            boolean supabaseSuccess = supabaseVideoUrl != null
+                    && !supabaseVideoUrl.startsWith("/api/admin/shadowing/video/");
+
+            log.info("========== Shadowing Pipeline Benchmark ==========");
+            log.info("Video Duration       : {}s", videoDuration);
+            log.info("Video Size          : {} ({} bytes)", videoSizeFormatted, videoSizeBytes);
+            log.info("Whisper Model       : {}", whisperModel);
+            log.info("Gemini Model        : {}", geminiModel);
+            log.info("Number of Segments  : {}", sentences.size());
+            log.info("----------------------------------------------");
+            log.info("Upload Local        : {}", ShadowingBenchmark.fmtSec(fullBench.getUploadLocalMs()));
+            log.info("Upload Supabase     : {} ({})",
+                    ShadowingBenchmark.fmtSec(fullBench.getUploadSupabaseMs()),
+                    supabaseSuccess ? "SUCCESS" : "FALLBACK");
+            log.info("FFmpeg              : {}", ShadowingBenchmark.fmtSec(fullBench.getFfmpegMs()));
+            log.info("Groq Whisper        : {}", ShadowingBenchmark.fmtSec(fullBench.getGroqWhisperMs()));
+            log.info("Gemini              : {}", ShadowingBenchmark.fmtSec(fullBench.getGeminiMs()));
+            log.info("Database Save       : {}", ShadowingBenchmark.fmtSec(fullBench.getDbSaveMs()));
+            log.info("----------------------------------------------");
+            log.info("Total Pipeline      : {}", ShadowingBenchmark.fmtSec(totalTime));
+            log.info("================================================");
+
+            // Attach benchmark to completed progress status
+            ProgressStatus completedStatus = new ProgressStatus("COMPLETED", "Completed", 100, saved);
+            completedStatus.setBenchmark(fullBench);
+            progressMap.put(videoId, completedStatus);
             return saved;
 
         } catch (Exception e) {
@@ -267,6 +308,7 @@ public class ShadowingService {
 
         lesson.setTitle(request.getTitle());
         lesson.setTopic(request.getTopic());
+        lesson.setJlptLevel(request.getJlptLevel());
         if (request.getDuration() > 0) {
             lesson.setDuration(request.getDuration());
         }
@@ -335,7 +377,7 @@ public class ShadowingService {
                 sentences.add(dto);
             }
         }
-        return new ShadowingGenerateResponse(
+        ShadowingGenerateResponse resp = new ShadowingGenerateResponse(
                 lesson.getId() != null ? lesson.getId().toString() : null,
                 lesson.getTitle(),
                 lesson.getVideoUrl(),
@@ -343,6 +385,15 @@ public class ShadowingService {
                 lesson.getTopic(),
                 sentences
         );
+        resp.setJlptLevel(lesson.getJlptLevel());
+        return resp;
+    }
+
+    public void setJlptLevelOnLesson(UUID lessonId, String level) {
+        shadowingLessonRepository.findById(lessonId).ifPresent(lesson -> {
+            lesson.setJlptLevel(level);
+            shadowingLessonRepository.save(lesson);
+        });
     }
 
     /**
@@ -355,12 +406,20 @@ public class ShadowingService {
         log.info("[ShadowingService] Deleted shadowing lesson with ID: {}", id);
     }
 
+    private String formatFileSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
+    }
+
     public static class ProgressStatus {
         private String status; // PROCESSING, COMPLETED, FAILED
         private String step;
         private int progress;
         private String error;
         private Object result;
+        private ShadowingBenchmark benchmark;
 
         public ProgressStatus() {}
 
@@ -384,6 +443,8 @@ public class ShadowingService {
             this.error = error;
         }
 
+        public ShadowingBenchmark getBenchmark() { return benchmark; }
+        public void setBenchmark(ShadowingBenchmark benchmark) { this.benchmark = benchmark; }
         public String getStatus() { return status; }
         public String getStep() { return step; }
         public int getProgress() { return progress; }

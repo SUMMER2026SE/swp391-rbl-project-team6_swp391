@@ -1,11 +1,15 @@
 package com.midori.shadowing.controller;
 
 import com.midori.common.ApiResponse;
+import com.midori.entity.UserProfile;
+import com.midori.repository.UserProfileRepository;
+import com.midori.security.CustomUserDetails;
 import com.midori.shadowing.ai.ShadowingAiService;
 import com.midori.shadowing.dto.ShadowingGenerateResponse;
 import com.midori.shadowing.service.ShadowingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,14 +28,35 @@ public class StudentShadowingController {
 
     private final ShadowingService shadowingService;
     private final ShadowingAiService shadowingAiService;
+    private final UserProfileRepository userProfileRepository;
+    private final com.midori.repository.UserRepository userRepository;
 
     /**
-     * Get list of all shadowing lessons.
+     * Get list of shadowing lessons filtered by student's JLPT level.
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ShadowingGenerateResponse>>> getAllShadowing() {
-        List<ShadowingGenerateResponse> response = shadowingService.getAllLessons();
-        return ResponseEntity.ok(ApiResponse.success(response));
+    public ResponseEntity<ApiResponse<List<ShadowingGenerateResponse>>> getAllShadowing(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        String userLevel = "N5";
+        try {
+            if (userDetails != null) {
+                var user = userRepository.findByEmail(userDetails.getEmail()).orElse(null);
+                if (user != null) {
+                    var profile = userProfileRepository.findByUserId(user.getId()).orElse(null);
+                    if (profile != null && profile.getJlptLevel() != null && !profile.getJlptLevel().isBlank()) {
+                        userLevel = profile.getJlptLevel();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Fallback to N5 on any error
+        }
+        List<ShadowingGenerateResponse> all = shadowingService.getAllLessons(null);
+        final String finalUserLevel = userLevel;
+        List<ShadowingGenerateResponse> filtered = all.stream()
+                .filter(l -> finalUserLevel.equalsIgnoreCase(l.getJlptLevel()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(filtered));
     }
 
     /**
@@ -58,9 +83,9 @@ public class StudentShadowingController {
             
             File mp3File = null;
             try {
-                mp3File = shadowingAiService.extractAudio(tempFile);
+                mp3File = shadowingAiService.extractAudio(tempFile, (long) duration);
                 
-                List<ShadowingAiService.WhisperSegment> segments = shadowingAiService.transcribeAudio(mp3File, "whisper-large-v3");
+                List<ShadowingAiService.WhisperSegment> segments = shadowingAiService.transcribeAudio(mp3File);
                 String spokenText = segments.stream()
                         .map(ShadowingAiService.WhisperSegment::getText)
                         .collect(Collectors.joining(" "));

@@ -9,6 +9,7 @@ public class ShadowingGenerateResponse {
     private String videoUrl;
     private double duration;
     private List<ShadowingSentenceDto> sentences;
+    private String jlptLevel;
 
     public ShadowingGenerateResponse() {}
 
@@ -68,4 +69,7 @@ public class ShadowingGenerateResponse {
     public void setSentences(List<ShadowingSentenceDto> sentences) {
         this.sentences = sentences;
     }
+
+    public String getJlptLevel() { return jlptLevel; }
+    public void setJlptLevel(String jlptLevel) { this.jlptLevel = jlptLevel; }
 }

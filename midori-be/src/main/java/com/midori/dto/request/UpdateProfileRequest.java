@@ -29,4 +29,6 @@ public class UpdateProfileRequest {
     private String location;
 
     private LocalDate dateOfBirth;
+
+    private String jlptLevel;
 }

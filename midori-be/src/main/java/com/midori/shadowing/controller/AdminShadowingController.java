@@ -8,8 +8,6 @@ import com.midori.shadowing.entities.ShadowingLesson;
 import com.midori.shadowing.service.ShadowingService;
 import com.midori.shadowing.storage.ShadowingStorageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourceRegion;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -36,11 +34,12 @@ public class AdminShadowingController {
     private final ShadowingService shadowingService;
 
     /**
-     * Get list of all shadowing lessons.
+     * Get list of all shadowing lessons, optionally filtered by JLPT level.
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ShadowingGenerateResponse>>> getAllShadowing() {
-        List<ShadowingGenerateResponse> response = shadowingService.getAllLessons();
+    public ResponseEntity<ApiResponse<List<ShadowingGenerateResponse>>> getAllShadowing(
+            @RequestParam(required = false) String level) {
+        List<ShadowingGenerateResponse> response = shadowingService.getAllLessons(level);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -58,8 +57,9 @@ public class AdminShadowingController {
      */
     @PostMapping("/upload")
     public ResponseEntity<ApiResponse<ShadowingUploadResponse>> uploadVideo(@RequestParam("file") MultipartFile file) {
-        ShadowingUploadResponse response = shadowingStorageService.storeVideo(file);
-        return ResponseEntity.ok(ApiResponse.success("Video uploaded successfully", response));
+        ShadowingStorageService.BenchmarkResult result = shadowingStorageService.storeVideoWithBenchmark(file);
+        shadowingService.recordUploadBenchmark(result.getResponse().getVideoId(), result.getBenchmark());
+        return ResponseEntity.ok(ApiResponse.success("Video uploaded successfully", result.getResponse()));
     }
 
     /**
@@ -67,10 +67,9 @@ public class AdminShadowingController {
      */
     @PostMapping("/{videoId}/generate")
     public ResponseEntity<ApiResponse<ShadowingGenerateResponse>> generateShadowing(
-            @PathVariable String videoId,
-            @RequestParam(value = "model", defaultValue = "small") String model) {
-        
-        ShadowingGenerateResponse response = shadowingService.generateOrRetrieve(videoId, model);
+            @PathVariable String videoId) {
+
+        ShadowingGenerateResponse response = shadowingService.generateOrRetrieve(videoId);
         return ResponseEntity.ok(ApiResponse.success("Subtitles generated successfully", response));
     }
 
