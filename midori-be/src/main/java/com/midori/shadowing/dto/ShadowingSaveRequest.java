@@ -5,6 +5,7 @@ import java.util.List;
 public class ShadowingSaveRequest {
     private String id;
     private String title;
+    private String topic;
     private String videoUrl;
     private double duration;
     private List<ShadowingSentenceDto> sentences;
@@ -26,6 +27,14 @@ public class ShadowingSaveRequest {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     public String getVideoUrl() {

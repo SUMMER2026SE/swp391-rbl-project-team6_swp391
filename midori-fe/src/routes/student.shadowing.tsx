@@ -1,47 +1,69 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/page-ui";
+import { Mic, Play, Clock, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Mic, Play, Clock, ChevronRight, Tag } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { shadowingTopics, type JLPTLevel } from "@/mock/shadowing-student";
-
-// Mock student level
-const MOCK_STUDENT_LEVEL: JLPTLevel = "N5";
-
-const levelGradients: Record<JLPTLevel, string> = {
-  N5: "from-blue-400 to-cyan-400",
-  N4: "from-green-400 to-emerald-400",
-  N3: "from-yellow-400 to-orange-400",
-};
+import { studentShadowingApi, type StudentShadowingLesson } from "@/lib/api/studentShadowing";
 
 export const Route = createFileRoute("/student/shadowing")({
   component: ShadowingHomePage,
 });
 
+const getThumbnail = (id: string, index: number) => {
+  const images = [
+    "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=640",
+    "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=640",
+    "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=640",
+    "https://images.unsplash.com/photo-1528164344705-47542687000d?w=640",
+    "https://images.unsplash.com/photo-1524413840003-0587454c07a3?w=640",
+  ];
+  const hash = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return images[(hash + index) % images.length];
+};
+
+const formatDuration = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
 function ShadowingHomePage() {
   const routerState = useRouterState();
   const isChildRouteActive = routerState.location.pathname !== "/student/shadowing";
-  // Get topics for student's level only
-  const myTopics = useMemo(() => {
-    return shadowingTopics.filter((topic) => topic.jlptLevel === MOCK_STUDENT_LEVEL);
+
+  const [lessons, setLessons] = useState<StudentShadowingLesson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTopic, setSelectedTopic] = useState<string>("Tất cả");
+
+  const topics = useMemo(() => {
+    const uniqueTopics = new Set<string>();
+    lessons.forEach((l) => {
+      if (l.topic) {
+        uniqueTopics.add(l.topic);
+      }
+    });
+    return ["Tất cả", ...Array.from(uniqueTopics)];
+  }, [lessons]);
+
+  const filteredLessons = useMemo(() => {
+    if (selectedTopic === "Tất cả") return lessons;
+    return lessons.filter((l) => l.topic === selectedTopic);
+  }, [lessons, selectedTopic]);
+
+  useEffect(() => {
+    studentShadowingApi.listShadowing()
+      .then((res) => {
+        setLessons(res);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
-
-  // Get unique categories from topics
-  const categories = useMemo(() => {
-    const cats = new Set(myTopics.map((t) => t.titleVn));
-    return ["Tất cả", ...Array.from(cats)];
-  }, [myTopics]);
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
-
-  // Filter by category
-  const filteredTopics = useMemo(() => {
-    if (selectedCategory === "Tất cả") return myTopics;
-    return myTopics.filter((t) => t.titleVn === selectedCategory);
-  }, [myTopics, selectedCategory]);
 
   if (isChildRouteActive) {
     return <Outlet />;
@@ -57,132 +79,147 @@ function ShadowingHomePage() {
 
           {/* Student Level Badge */}
           <div
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl mb-6",
-              "bg-blue-50 dark:bg-blue-950/30",
-              "border border-blue-200 dark:border-blue-800/50",
-            )}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl mb-6 glass-surface border border-[var(--border)]"
           >
             <div
-              className={cn(
-                "w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-bold",
-                levelGradients[MOCK_STUDENT_LEVEL],
-              )}
+              className="w-10 h-10 rounded-xl bg-gradient-hero flex items-center justify-center text-white font-bold"
             >
               <Mic className="w-5 h-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Cấp độ của bạn</p>
-              <p className="font-bold text-foreground">JLPT {MOCK_STUDENT_LEVEL}</p>
+              <p className="font-bold text-foreground">JLPT N5</p>
             </div>
             <div className="ml-auto">
-              <span className="text-sm text-muted-foreground">{myTopics.length} chủ đề</span>
+              <span className="text-sm text-muted-foreground">
+                {selectedTopic === "Tất cả" ? `${lessons.length} bài học` : `${filteredLessons.length} / ${lessons.length} bài học`}
+              </span>
             </div>
           </div>
 
-          {/* Category Filter */}
-          {categories.length > 1 && (
-            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-              <Tag className="w-4 h-4 text-muted-foreground shrink-0" />
-              <div className="flex gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? "bg-gradient-hero text-white shadow"
-                        : "text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+          {/* Topic Selector */}
+          {!loading && lessons.length > 0 && topics.length > 1 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {topics.map((topicName) => (
+                <button
+                  key={topicName}
+                  onClick={() => setSelectedTopic(topicName)}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-xs font-bold transition-all border select-none cursor-pointer shadow-xs",
+                    selectedTopic === topicName
+                      ? "bg-linear-to-r from-pink-500 to-purple-500 text-white border-transparent"
+                      : "bg-white/60 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-pink-500/10 hover:text-pink-500 dark:hover:text-pink-400"
+                  )}
+                >
+                  {topicName}
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Topic Grid */}
-          {filteredTopics.length === 0 ? (
+          {/* Lessons Grid */}
+          {loading ? (
             <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground">Đang tải bài học...</p>
+            </div>
+          ) : lessons.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-full glass-surface flex items-center justify-center mx-auto mb-4">
                 <Mic className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-lg font-semibold text-muted-foreground">Không có chủ đề nào</p>
-              <p className="text-sm text-muted-foreground mt-1">Chọn cấp độ khác để xem thêm</p>
+              <p className="text-lg font-semibold text-muted-foreground">Không có bài học nào</p>
+              <p className="text-sm text-muted-foreground mt-1">Chưa có dữ liệu bài học nào từ hệ thống</p>
+            </div>
+          ) : filteredLessons.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-full glass-surface flex items-center justify-center mx-auto mb-4">
+                <Mic className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-lg font-semibold text-muted-foreground">Không tìm thấy bài học nào</p>
+              <p className="text-sm text-muted-foreground mt-1">Không có bài học nào khớp với chủ đề "{selectedTopic}"</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTopics.map((topic, index) => (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredLessons.map((lesson, index) => (
                 <motion.div
-                  key={topic.id}
+                  key={lesson.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
                   <Link
-                    to="/student/shadowing/topic/$topicId"
-                    params={{ topicId: topic.id }}
-                    className="block group"
+                    to="/student/shadowing/video/$videoId"
+                    params={{ videoId: lesson.id }}
+                    className="block group h-full"
                   >
                     <div
                       className={cn(
-                        "rounded-2xl overflow-hidden transition-all duration-200",
-                        "bg-white/50 dark:bg-white/5",
-                        "border border-slate-200/40 dark:border-white/10",
-                        "hover:shadow-lg hover:-translate-y-1",
-                        "hover:border-primary/50",
+                        "glass-card rounded-3xl overflow-hidden transition-all duration-300 flex flex-col h-full border border-[var(--border)] bg-[var(--card)]",
+                        "hover:shadow-2xl hover:-translate-y-1.5 hover:border-pink-500/30",
                       )}
                     >
-                      {/* Thumbnail */}
-                      <div className="relative aspect-video overflow-hidden">
+                      {/* Thumbnail Container */}
+                      <div className="relative aspect-video overflow-hidden bg-[var(--muted)]">
                         <img
-                          src={topic.thumbnail}
-                          alt={topic.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          src={getThumbnail(lesson.id, index)}
+                          alt={lesson.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/10 to-transparent" />
+
+                        {/* Level and AI Badges */}
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 select-none">
+                          <span className="px-2.5 py-0.8 rounded-lg text-[9px] font-black bg-black/60 backdrop-blur-md text-white border border-white/10 shadow-sm uppercase">
+                            JLPT N5
+                          </span>
+                          {lesson.topic && (
+                            <span className="px-2.5 py-0.8 rounded-lg text-[9px] font-black bg-blue-600 text-white shadow-sm uppercase">
+                              {lesson.topic}
+                            </span>
+                          )}
+                          <span className="px-2.5 py-0.8 rounded-lg text-[9px] font-black bg-pink-500 text-white shadow-sm flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5" /> AI Shadowing
+                          </span>
+                        </div>
 
                         {/* Play Button Overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20">
                           <div
-                            className={cn(
-                              "w-14 h-14 rounded-full bg-linear-to-br flex items-center justify-center text-white shadow-lg",
-                              levelGradients[topic.jlptLevel],
-                            )}
+                            className="w-12 h-12 rounded-full bg-gradient-hero flex items-center justify-center text-white shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300"
                           >
-                            <Play className="w-6 h-6 ml-1" />
+                            <Play className="w-5 h-5 ml-0.5 fill-current" />
                           </div>
                         </div>
                       </div>
 
-                      {/* Content */}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-foreground mb-0.5 group-hover:text-primary transition-colors">
-                          {topic.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-3">{topic.titleVn}</p>
+                      {/* Content Area */}
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-bold text-foreground mb-1 text-base group-hover:text-pink-500 transition-colors duration-300 line-clamp-1">
+                            {lesson.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mb-4">Luyện nói tiếng Nhật phản xạ trôi chảy với AI</p>
 
-                        {/* Stats */}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Play className="w-3.5 h-3.5" />
-                            {topic.videoCount} videos
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            {topic.totalDuration}
-                          </span>
+                          {/* Metadata Grid */}
+                          <div className="grid grid-cols-2 gap-2.5 p-3.5 bg-[var(--muted)]/50 rounded-2xl border border-[var(--border)] text-xs text-secondary-col font-semibold">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm select-none">🎤</span>
+                              <span>{lesson.segments.length} câu thoại</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm select-none">⏱️</span>
+                              <span>{formatDuration(lesson.duration)}</span>
+                            </div>
+                          </div>
                         </div>
 
-                        {/* Arrow */}
-                        <div className="mt-2 flex items-center justify-end">
-                          <ChevronRight
-                            className={cn(
-                              "w-4 h-4 text-muted-foreground",
-                              "group-hover:text-primary group-hover:translate-x-0.5 transition-all",
-                            )}
-                          />
+                        {/* Footer Action */}
+                        <div className="mt-4 pt-3 border-t border-[var(--border)]/40 flex items-center justify-between">
+                          <span className="text-xs font-bold text-pink-500 group-hover:text-pink-400 transition-colors flex items-center gap-1">
+                            Bắt đầu luyện tập
+                            <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+                          </span>
                         </div>
                       </div>
                     </div>

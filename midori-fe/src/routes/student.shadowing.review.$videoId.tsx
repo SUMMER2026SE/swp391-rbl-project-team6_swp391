@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
@@ -9,6 +9,7 @@ import {
   generateMockAIFeedback,
   type ShadowingSentence,
 } from "@/mock/shadowing-student";
+import { studentShadowingApi, type StudentShadowingLesson } from "@/lib/api/studentShadowing";
 
 export const Route = createFileRoute("/student/shadowing/review/$videoId")({
   component: ReviewPage,
@@ -32,26 +33,57 @@ function ReviewPage() {
   const params = Route.useParams();
   const videoId = params.videoId;
 
-  const video = useMemo(() => getVideoById(videoId), [videoId]);
-  const topic = useMemo(() => getTopicForVideo(videoId), [videoId]);
+  const [video, setVideo] = useState<StudentShadowingLesson | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reviewData, setReviewData] = useState<SentenceReview[]>([]);
 
-  // Generate mock review data
-  const [reviewData] = useState<SentenceReview[]>(() => {
-    if (!video) return [];
-    return video.sentences.map((sentence) => {
-      const feedback = generateMockAIFeedback(sentence.text);
-      return {
-        sentence,
-        score: feedback.overallScore,
-        feedback,
-      };
-    });
-  });
+  useEffect(() => {
+    studentShadowingApi.getShadowingDetail(videoId)
+      .then((res) => {
+        setVideo(res);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [videoId]);
+
+  useEffect(() => {
+    if (video) {
+      const data = video.segments.map((segment) => {
+        const feedback = generateMockAIFeedback(segment.japaneseText);
+        return {
+          sentence: {
+            id: segment.id,
+            text: segment.japaneseText,
+            translation: segment.vietnameseTranslation,
+            vocabulary: [],
+          },
+          score: feedback.overallScore,
+          feedback,
+        };
+      });
+      setReviewData(data);
+    }
+  }, [video]);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const currentReview = reviewData[selectedIndex];
 
-  if (!video || !topic) {
+  if (loading) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={14} />
+        <div className="text-center py-16 relative z-10">
+          <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-white/80">Đang tải kết quả...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!video) {
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center">
         <SakuraBg count={14} />
@@ -70,6 +102,8 @@ function ReviewPage() {
       </div>
     );
   }
+
+  const topicName = video.topic || "General";
 
   const overallScore =
     reviewData.length > 0
@@ -95,7 +129,7 @@ function ReviewPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 text-pink-400">
-                    JLPT {topic.jlptLevel}
+                    Chủ đề: {topicName}
                   </span>
                   <h1 className="font-display font-bold text-lg text-slate-800 dark:text-white">
                     Xem lại bài luyện tập

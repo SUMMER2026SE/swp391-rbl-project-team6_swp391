@@ -14,6 +14,8 @@ public class ShadowingLesson {
 
     private String title;
 
+    private String topic;
+
     @Column(name = "video_url")
     private String videoUrl;
 
@@ -42,6 +44,14 @@ public class ShadowingLesson {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     public String getVideoUrl() {

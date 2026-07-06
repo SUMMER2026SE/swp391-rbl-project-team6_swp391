@@ -11,3 +11,9 @@ supabase:
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
+
+groq:
+  api-key: ${GROQ_API_KEY:AQ.Ab8RN6I9aM9-4krMqGtVnydEI2LNv_sX5Wn1GunnSxSgs96Xig}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:AIzaSyC4uGSSu8Ueo4n0g3ur0hNPpHxcuqJhJlw}

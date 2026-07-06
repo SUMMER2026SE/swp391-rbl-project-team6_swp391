@@ -5,17 +5,19 @@ import java.util.List;
 public class ShadowingGenerateResponse {
     private String id;
     private String title;
+    private String topic;
     private String videoUrl;
     private double duration;
     private List<ShadowingSentenceDto> sentences;
 
     public ShadowingGenerateResponse() {}
 
-    public ShadowingGenerateResponse(String id, String title, String videoUrl, double duration, List<ShadowingSentenceDto> sentences) {
+    public ShadowingGenerateResponse(String id, String title, String videoUrl, double duration, String topic, List<ShadowingSentenceDto> sentences) {
         this.id = id;
         this.title = title;
         this.videoUrl = videoUrl;
         this.duration = duration;
+        this.topic = topic;
         this.sentences = sentences;
     }
 
@@ -33,6 +35,14 @@ public class ShadowingGenerateResponse {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     public String getVideoUrl() {

@@ -352,7 +352,7 @@ function TranscriptEditor({ sentences, onChange, compact }: TranscriptEditorProp
         </p>
       )}
       {sentences.map((s, i) => (
-        <div key={s.id} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 space-y-2">
+        <div key={s.id} className="bg-[var(--accent)]/40 rounded-xl p-3 space-y-2">
           <div className="flex items-center gap-2">
             <GripVertical className="w-3.5 h-3.5 text-muted-foreground opacity-40 flex-shrink-0 cursor-grab" />
             <div
@@ -364,13 +364,13 @@ function TranscriptEditor({ sentences, onChange, compact }: TranscriptEditorProp
               value={s.timestamp}
               onChange={(e) => updateSentence(s.id, "timestamp", e.target.value)}
               placeholder="0:00"
-              className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none flex-shrink-0"
+              className="w-16 px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs outline-none flex-shrink-0"
             />
             <input
               value={s.japanese}
               onChange={(e) => updateSentence(s.id, "japanese", e.target.value)}
               placeholder="Japanese sentence..."
-              className="flex-1 px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
+              className="flex-1 px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm outline-none"
             />
             <button
               onClick={() => deleteSentence(s.id)}
@@ -384,20 +384,20 @@ function TranscriptEditor({ sentences, onChange, compact }: TranscriptEditorProp
               value={s.romaji}
               onChange={(e) => updateSentence(s.id, "romaji", e.target.value)}
               placeholder="Romaji / Reading..."
-              className="flex-1 px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-muted-foreground outline-none"
+              className="flex-1 px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs text-muted-foreground outline-none"
             />
             <input
               value={s.meaning}
               onChange={(e) => updateSentence(s.id, "meaning", e.target.value)}
               placeholder="Meaning / Translation..."
-              className="flex-1 px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-muted-foreground outline-none"
+              className="flex-1 px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs text-muted-foreground outline-none"
             />
           </div>
         </div>
       ))}
       <button
         onClick={addSentence}
-        className="w-full py-2 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary transition flex items-center justify-center gap-1"
+        className="w-full py-2 rounded-xl border-2 border-dashed border-[var(--border)] text-xs font-bold text-muted-foreground hover:border-primary/40 hover:text-primary transition flex items-center justify-center gap-1"
       >
         <PlusCircle className="w-3.5 h-3.5" /> Add Sentence
       </button>
@@ -467,13 +467,13 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col"
+        className="relative glass-modal rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-700 rounded-t-3xl flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border)] rounded-t-3xl flex-shrink-0">
           <div>
-            <h2 className="text-xl font-display font-black text-slate-900 dark:text-white">
+            <h2 className="text-xl font-display font-black text-primary-col">
               {mode === "new" ? "New Shadowing Exercise" : "Edit Exercise"}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -498,7 +498,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Morning Greetings"
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
 
@@ -513,7 +513,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
                   <button
                     key={l}
                     onClick={() => setLevel(l)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${level === l ? "bg-gradient-hero text-white shadow" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${level === l ? "bg-gradient-hero text-white shadow" : "bg-[var(--muted)] text-muted-foreground hover:bg-primary/10"}`}
                   >
                     {l}
                   </button>
@@ -528,7 +528,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="e.g. 3:00"
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
           </div>
@@ -546,7 +546,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
                     setTopic(t);
                     if (t !== "Custom") setCustomTopic("");
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${topic === t ? "bg-gradient-hero text-white shadow" : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"}`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${topic === t ? "bg-gradient-hero text-white shadow" : "bg-[var(--muted)] text-muted-foreground hover:bg-primary/10"}`}
                 >
                   {t}
                 </button>
@@ -557,7 +557,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
                 value={customTopic}
                 onChange={(e) => setCustomTopic(e.target.value)}
                 placeholder="Enter custom topic name..."
-                className="mt-2 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 border border-amber-300 dark:border-amber-600 text-sm outline-none focus:ring-2 focus:ring-amber-400/40"
+                className="mt-2 w-full px-3 py-2.5 rounded-xl bg-[var(--card)] border border-amber-300 dark:border-amber-600 text-sm outline-none focus:ring-2 focus:ring-amber-400/40"
               />
             )}
           </div>
@@ -568,7 +568,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
               Audio Upload
             </label>
             <div
-              className={`border-2 border-dashed rounded-xl p-4 text-center transition cursor-pointer ${audio ? "border-green-400 bg-green-50/50 dark:bg-green-950/20" : "border-slate-200 dark:border-slate-600 hover:border-primary/40"}`}
+              className={`border-2 border-dashed rounded-xl p-4 text-center transition cursor-pointer ${audio ? "border-green-400 bg-green-50/50 dark:bg-green-950/20" : "border-[var(--border)] hover:border-primary/40 bg-[var(--card)]"}`}
               onClick={() => setAudio((v) => !v)}
             >
               <Upload
@@ -591,7 +591,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
                 Transcript — Sentence List
               </label>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-3 border border-slate-100 dark:border-slate-700">
+            <div className="bg-[var(--card)] rounded-2xl p-3 border border-[var(--border)]">
               <TranscriptEditor sentences={sentences} onChange={setSentences} />
             </div>
           </div>
@@ -611,7 +611,7 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
                       ? s === "published"
                         ? "bg-green-500 text-white shadow"
                         : "bg-gradient-hero text-white shadow"
-                      : "bg-slate-100 dark:bg-slate-700 text-muted-foreground hover:bg-primary/10"
+                      : "bg-[var(--muted)] text-muted-foreground hover:bg-primary/10"
                   }`}
                 >
                   {s}
@@ -622,10 +622,10 @@ function ExerciseModal({ mode, initial, onClose, onSave }: ExerciseModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-3 rounded-b-3xl">
+        <div className="flex-shrink-0 px-6 py-4 border-t border-[var(--border)] flex items-center justify-end gap-3 rounded-b-3xl bg-[var(--card)]">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+            className="px-5 py-2.5 rounded-xl bg-[var(--muted)] text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
           >
             Cancel
           </button>
@@ -663,7 +663,7 @@ function DetailModal({ exercise, onClose, onEdit, onDelete }: DetailModalProps) 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[88vh] overflow-y-auto"
+        className="glass-modal rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[88vh] overflow-y-auto"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -680,7 +680,7 @@ function DetailModal({ exercise, onClose, onEdit, onDelete }: DetailModalProps) 
                 {exercise.level}
               </span>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${exercise.status === "published" ? "bg-green-50 text-green-600" : exercise.status === "pending" ? "bg-yellow-50 text-yellow-600" : "bg-slate-100 text-slate-500"}`}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${exercise.status === "published" ? "badge-approved" : exercise.status === "pending" ? "badge-pending" : "bg-[var(--muted)] text-muted-foreground"}`}
               >
                 {exercise.status}
               </span>
@@ -755,7 +755,7 @@ function DetailModal({ exercise, onClose, onEdit, onDelete }: DetailModalProps) 
               onEdit(exercise);
               onClose();
             }}
-            className="flex-1 py-2.5 rounded-xl bg-blue-50 text-blue-500 text-sm font-bold hover:bg-blue-100 transition flex items-center justify-center gap-1"
+            className="flex items-center gap-1.5 py-2.5 rounded-xl bg-blue-500/10 text-blue-500 text-sm font-bold hover:bg-blue-500/20 transition flex-1 justify-center"
           >
             <Edit3 className="w-4 h-4" /> Edit Exercise
           </button>
@@ -764,7 +764,7 @@ function DetailModal({ exercise, onClose, onEdit, onDelete }: DetailModalProps) 
               onDelete(exercise.id);
               onClose();
             }}
-            className="flex-1 py-2.5 rounded-xl bg-red-50 text-red-400 text-sm font-bold hover:bg-red-100 transition flex items-center justify-center gap-1"
+            className="flex items-center gap-1.5 py-2.5 rounded-xl bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition flex-1 justify-center"
           >
             <Trash2 className="w-4 h-4" /> Delete
           </button>
@@ -897,7 +897,7 @@ function ShadowingPage() {
           return (
             <div
               key={stat.label}
-              className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-700"
+              className="flex items-center gap-3 bg-[var(--card)] rounded-xl p-4 shadow-sm border border-[var(--border)] hover:shadow-md hover:-translate-y-0.5 transition"
             >
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}
@@ -921,15 +921,15 @@ function ShadowingPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search shadowing exercises..."
-            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
-        <div className="flex gap-1 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700">
+        <div className="flex gap-1 bg-[var(--card)] rounded-xl p-1 border border-[var(--border)]">
           {["All", "N5", "N4", "N3", "N2", "N1"].map((l) => (
             <button
               key={l}
               onClick={() => setLevelFilter(l)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${levelFilter === l ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:bg-muted"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${levelFilter === l ? "bg-gradient-hero text-white shadow" : "text-muted-foreground hover:bg-[var(--muted)]"}`}
             >
               {l}
             </button>
@@ -941,7 +941,7 @@ function ShadowingPage() {
       <div className="relative">
         <button
           onClick={() => setTopicOpen((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:border-primary/40 transition shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm font-semibold hover:border-primary/40 transition shadow-sm"
         >
           <Tag className="w-4 h-4 text-pink-400" />
           <span
@@ -967,7 +967,7 @@ function ShadowingPage() {
             <motion.div
               initial={{ opacity: 0, y: -6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="absolute top-full left-0 mt-2 z-40 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-2 min-w-[200px]"
+              className="absolute top-full left-0 mt-2 z-40 bg-[var(--popover)] rounded-2xl shadow-xl border border-[var(--border)] p-2 min-w-[200px]"
             >
               <button
                 onClick={() => {
@@ -977,16 +977,16 @@ function ShadowingPage() {
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition ${
                   topicFilter === "All Topics"
                     ? "bg-gradient-hero text-white shadow"
-                    : "hover:bg-muted text-muted-foreground"
+                    : "hover:bg-[var(--muted)] text-muted-foreground"
                 }`}
               >
                 <Layers className="w-4 h-4" />
                 All Topics
-                <span className="ml-auto text-[10px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-full">
+                <span className="ml-auto text-[10px] bg-[var(--muted)] px-1.5 py-0.5 rounded-full">
                   {exercises.length}
                 </span>
               </button>
-              <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
+              <div className="my-1 border-t border-[var(--border)]" />
               {DROPDOWN_TOPICS.map((t) => {
                 const count = exercises.filter((e) => e.topic === t.label).length;
                 return (
@@ -1008,7 +1008,7 @@ function ShadowingPage() {
                     {t.label}
                     {count > 0 && (
                       <span
-                        className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${topicFilter === t.label ? "bg-white/20" : "bg-slate-100 dark:bg-slate-700"}`}
+                        className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${topicFilter === t.label ? "bg-white/20" : "bg-[var(--muted)]"}`}
                       >
                         {count}
                       </span>
@@ -1024,7 +1024,7 @@ function ShadowingPage() {
       {/* Exercise cards */}
       <div className="grid md:grid-cols-2 gap-4">
         {filtered.length === 0 ? (
-          <div className="col-span-2 text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="col-span-2 text-center py-12 card-base border border-[var(--border)]">
             <Mic className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-40" />
             <p className="text-sm font-semibold text-muted-foreground">No exercises found</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -1038,7 +1038,7 @@ function ShadowingPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition group"
+              className="card-base overflow-hidden shadow-sm hover:shadow-md transition group"
             >
               {/* Top bar */}
               <div
@@ -1053,7 +1053,7 @@ function ShadowingPage() {
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow ${
                         playingId === ex.id
                           ? "bg-gradient-hero text-white"
-                          : "bg-pink-50 dark:bg-pink-950/30 text-pink-500 hover:bg-pink-100"
+                          : "bg-[var(--accent)] text-[var(--primary)] hover:bg-[var(--accent)]/80"
                       }`}
                     >
                       {playingId === ex.id ? (
@@ -1084,10 +1084,10 @@ function ShadowingPage() {
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       ex.status === "published"
-                        ? "bg-green-50 text-green-600"
+                        ? "badge-approved"
                         : ex.status === "pending"
-                          ? "bg-yellow-50 text-yellow-600"
-                          : "bg-slate-100 text-slate-500"
+                          ? "badge-pending"
+                          : "bg-[var(--muted)] text-muted-foreground"
                     }`}
                   >
                     {ex.status}
@@ -1095,7 +1095,7 @@ function ShadowingPage() {
                 </div>
 
                 {/* Transcript preview */}
-                <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 mb-3 text-xs text-muted-foreground font-mono leading-relaxed">
+                <div className="bg-[var(--accent)]/30 rounded-xl p-3 mb-3 text-xs text-muted-foreground font-mono leading-relaxed">
                   {ex.sentences.slice(0, 3).map((s, i) => (
                     <div key={s.id} className="mb-1">
                       {s.number}. {s.japanese}
@@ -1145,13 +1145,13 @@ function ShadowingPage() {
                   <div className="flex gap-1">
                     <button
                       onClick={() => setEditTarget(ex)}
-                      className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition"
+                      className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 transition"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(ex.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition"
+                      className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

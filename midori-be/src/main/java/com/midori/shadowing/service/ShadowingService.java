@@ -93,29 +93,76 @@ public class ShadowingService {
      * Run the pipeline, updating progress states.
      */
     private ShadowingLesson runPipeline(String videoId, File videoFile, String modelSize) {
-        long startTime = System.currentTimeMillis();
+        long pipelineStart = System.currentTimeMillis();
+        
+        // Get video info
+        double rawDuration = shadowingStorageService.getVideoDuration(videoFile);
+        long videoDuration = (long) rawDuration;
+        log.info("[Pipeline Benchmark] Video: {} | Duration: {}s | Model: {} | Device: auto (cuda/int8/float16)",
+                 videoFile.getName(), videoDuration, modelSize);
+        
         try {
             // Step 1: Extract Audio
+            long audioStart = System.currentTimeMillis();
             log.info("[ShadowingService] Pipeline Step 1: Audio Extraction");
             progressMap.put(videoId, new ProgressStatus("PROCESSING", "Extracting audio", 25));
             File audioFile = shadowingAiService.extractAudio(videoFile);
+            long audioTime = System.currentTimeMillis() - audioStart;
+            log.info("[Pipeline Benchmark] [1/6] Audio Extraction: {}ms", audioTime);
 
-            // Step 2: Speech Recognition
+            // Step 2: Speech Recognition (model loading + transcription)
+            long whisperStart = System.currentTimeMillis();
             log.info("[ShadowingService] Pipeline Step 2: Speech Recognition");
             progressMap.put(videoId, new ProgressStatus("PROCESSING", "Speech recognition", 50));
-            List<ShadowingAiService.WhisperSegment> whisperSegments = shadowingAiService.transcribeAudio(audioFile, modelSize);
+            ShadowingAiService.WhisperResult whisperResult = shadowingAiService.transcribeAudioWithTiming(audioFile, modelSize);
+            long whisperTime = System.currentTimeMillis() - whisperStart;
+            List<ShadowingAiService.WhisperSegment> whisperSegments = whisperResult.segments;
+            log.info("[Pipeline Benchmark] [2/6] Whisper (load+transcribe): {}ms | Segments: {}",
+                     whisperTime, whisperSegments.size());
 
-            // Step 3: Translation
+            // Guard: Whisper must return meaningful segments for a 6-minute video
+            if (whisperSegments.isEmpty()) {
+                throw new BadRequestException(
+                    "AI transcription returned 0 sentences. The video may have no detectable audio. " +
+                    "Please ensure the video contains clear Japanese speech."
+                );
+            }
+            if (whisperSegments.size() == 1) {
+                String singleText = whisperSegments.get(0).getText();
+                if (singleText == null || singleText.trim().length() < 5 || singleText.startsWith("Error:")) {
+                    throw new BadRequestException(
+                        "AI transcription failed: received only 1 segment with text \"" + singleText + "\". " +
+                        "This usually means: (1) audio extraction failed, (2) video has no audio track, or " +
+                        "(3) Whisper could not detect speech. Please check the video file."
+                    );
+                }
+            }
+            // For a 6-minute video, expect at least 10 segments
+            if (whisperSegments.size() < 10) {
+                log.warn("[ShadowingService] Only {} Whisper segments for video of {}s duration. Results may be sparse.",
+                         whisperSegments.size(), videoDuration);
+            }
+
+            // Step 3: Translation (BATCH - all segments in one API call)
+            long translationStart = System.currentTimeMillis();
             log.info("[ShadowingService] Pipeline Step 3: Translation");
             progressMap.put(videoId, new ProgressStatus("PROCESSING", "Translation", 75));
-            
+
             List<ShadowingSentence> sentences = new ArrayList<>();
+
+            // Extract all Japanese text for batch translation
+            List<String> japaneseTexts = whisperSegments.stream()
+                    .map(ShadowingAiService.WhisperSegment::getText)
+                    .toList();
+
+            // Translate all segments in ONE Gemini API call (massive speedup)
+            List<String> translations = shadowingAiService.translateBatchWithRetry(japaneseTexts);
+
+            // Build sentence entities
             for (int i = 0; i < whisperSegments.size(); i++) {
                 ShadowingAiService.WhisperSegment ws = whisperSegments.get(i);
-                
-                // Gemini translate
-                String translation = shadowingAiService.translateWithRetry(ws.getText());
-                
+                String translation = (i < translations.size()) ? translations.get(i) : ws.getText();
+
                 ShadowingSentence sentence = new ShadowingSentence();
                 sentence.setOrderIndex(i + 1);
                 sentence.setJapanese(ws.getText());
@@ -124,26 +171,47 @@ public class ShadowingService {
                 sentence.setEndTime(ws.getEnd());
                 sentences.add(sentence);
             }
+            long translationTime = System.currentTimeMillis() - translationStart;
+            log.info("[Pipeline Benchmark] [3/6] Gemini Translation: {}ms | Segments: {}", translationTime, sentences.size());
 
-            // Step 4: Saving
+            // Step 4: Database Save
+            long saveStart = System.currentTimeMillis();
             log.info("[ShadowingService] Pipeline Step 4: Saving");
             progressMap.put(videoId, new ProgressStatus("PROCESSING", "Saving", 90));
             
             ShadowingLesson lesson = new ShadowingLesson();
             lesson.setTitle("Shadowing Lesson " + videoFile.getName());
-            lesson.setVideoUrl("/api/admin/shadowing/video/" + videoId);
-            lesson.setDuration(shadowingStorageService.getVideoDuration(videoFile));
+            // Prefer Supabase public URL if available (video already uploaded there), fallback to local stream
+            String supabaseVideoUrl = shadowingStorageService.getSupabaseUrl(videoId);
+            lesson.setVideoUrl(supabaseVideoUrl != null ? supabaseVideoUrl : "/api/admin/shadowing/video/" + videoId);
+            lesson.setDuration(videoDuration);
             lesson.setSentences(sentences);
 
             ShadowingLesson saved = shadowingLessonRepository.save(lesson);
+            long saveTime = System.currentTimeMillis() - saveStart;
+            log.info("[Pipeline Benchmark] [4/6] Database Save: {}ms", saveTime);
 
             // Cleanup temp audio file
             if (audioFile.exists() && audioFile.getName().endsWith(".mp3")) {
                 audioFile.delete();
             }
 
-            long totalTime = System.currentTimeMillis() - startTime;
-            log.info("[ShadowingService] Pipeline finished successfully in {}ms", totalTime);
+            // Summary
+            long totalTime = System.currentTimeMillis() - pipelineStart;
+            log.info("========================================");
+            log.info("[Pipeline Benchmark] SUMMARY - Video: {}s | Model: small | Segments: {}",
+                     videoDuration, whisperSegments.size());
+            log.info("[Pipeline Benchmark]   Audio Extraction:  {}ms ({}s)",
+                     audioTime, String.format("%.1f", audioTime/1000.0));
+            log.info("[Pipeline Benchmark]   Whisper (total):  {}ms ({}s)",
+                     whisperTime, String.format("%.1f", whisperTime/1000.0));
+            log.info("[Pipeline Benchmark]   Gemini Translation: {}ms ({}s)",
+                     translationTime, String.format("%.1f", translationTime/1000.0));
+            log.info("[Pipeline Benchmark]   Database Save:     {}ms ({}s)",
+                     saveTime, String.format("%.1f", saveTime/1000.0));
+            log.info("[Pipeline Benchmark]   TOTAL PIPELINE:    {}ms ({}s)",
+                     totalTime, String.format("%.1f", totalTime/1000.0));
+            log.info("========================================");
 
             // Step 5: Completed
             progressMap.put(videoId, new ProgressStatus("COMPLETED", "Completed", 100, saved));
@@ -198,6 +266,7 @@ public class ShadowingService {
         lesson.setVideoUrl(videoUrl);
 
         lesson.setTitle(request.getTitle());
+        lesson.setTopic(request.getTopic());
         if (request.getDuration() > 0) {
             lesson.setDuration(request.getDuration());
         }
@@ -241,7 +310,14 @@ public class ShadowingService {
             }
         }
 
-        lesson.setSentences(sentencesList);
+        if (lesson.getSentences() == null) {
+            lesson.setSentences(new ArrayList<>());
+        } else {
+            lesson.getSentences().clear();
+        }
+        if (sentencesList != null) {
+            lesson.getSentences().addAll(sentencesList);
+        }
         return shadowingLessonRepository.save(lesson);
     }
 
@@ -264,6 +340,7 @@ public class ShadowingService {
                 lesson.getTitle(),
                 lesson.getVideoUrl(),
                 lesson.getDuration(),
+                lesson.getTopic(),
                 sentences
         );
     }

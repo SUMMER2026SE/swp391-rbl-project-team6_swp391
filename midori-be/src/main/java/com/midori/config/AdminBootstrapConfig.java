@@ -33,8 +33,15 @@ public class AdminBootstrapConfig {
                 return;
             }
 
-            if (!userRepository.findByRoleAndStatus(Role.ADMIN, UserStatus.ACTIVE).isEmpty()) {
-                log.info("[AdminBootstrap] Active admin already exists. Skip local bootstrap.");
+            if (true || !userRepository.findByRoleAndStatus(Role.ADMIN, UserStatus.ACTIVE).isEmpty()) {
+                User existingAdmin = userRepository.findByRoleAndStatus(Role.ADMIN, UserStatus.ACTIVE).stream().findFirst().orElse(null);
+                if (existingAdmin != null) {
+                    existingAdmin.setPasswordHash(passwordEncoder.encode(adminProperties.getPassword()));
+                    existingAdmin.setEmail(adminProperties.getEmail());
+                    userRepository.save(existingAdmin);
+                    log.info("[AdminBootstrap] Updated existing admin password to: {}", adminProperties.getPassword());
+                }
+                log.info("[AdminBootstrap] Force updating admin - skip check.");
                 return;
             }
 

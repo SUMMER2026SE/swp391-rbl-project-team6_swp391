@@ -15,6 +15,7 @@ export interface ShadowingItem {
   videoUrl: string;
   duration: number;
   createdAt?: string;
+  topic?: string;
   segments: {
     id: string;
     startTime: number;
@@ -45,12 +46,9 @@ export const adminShadowingApi = {
   /**
    * Call AI to automatically generate sentences with timestamps
    */
-  generateShadowing: async (videoId: string): Promise<GeneratedSentence[]> => {
-    const response = await api.post<any>(`/admin/shadowing/${videoId}/generate`);
-    if (response && response.sentences && Array.isArray(response.sentences)) {
-      return response.sentences;
-    }
-    return (Array.isArray(response) ? response : []) as GeneratedSentence[];
+  generateShadowing: async (videoId: string, modelSize?: string): Promise<any> => {
+    const params = modelSize ? `?model=${modelSize}` : "";
+    return await api.post<any>(`/admin/shadowing/${videoId}/generate${params}`);
   },
 
   /**
@@ -64,6 +62,7 @@ export const adminShadowingApi = {
       videoUrl: l.videoUrl,
       duration: l.duration,
       createdAt: l.createdAt,
+      topic: l.topic,
       segments: l.sentences ? l.sentences.map((s: any) => ({
         id: s.id,
         startTime: s.startTime,
@@ -85,6 +84,7 @@ export const adminShadowingApi = {
       videoUrl: l.videoUrl,
       duration: l.duration,
       createdAt: l.createdAt,
+      topic: l.topic,
       segments: l.sentences ? l.sentences.map((s: any) => ({
         id: s.id,
         startTime: s.startTime,
@@ -100,6 +100,13 @@ export const adminShadowingApi = {
    */
   saveShadowing: async (payload: any): Promise<void> => {
     await api.post("/admin/shadowing", payload);
+  },
+
+  /**
+   * Get real-time progress of AI generation pipeline for a video
+   */
+  getProgress: async (videoId: string): Promise<{ status: string; step: string; progress: number; error?: string }> => {
+    return await api.get<any>(`/admin/shadowing/${videoId}/progress`);
   },
 
   /**

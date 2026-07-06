@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -1023,14 +1023,17 @@ function ListeningEditForm({
 
 function ShadowingFormBody({
   initialData,
+  existingTopics,
   onSave,
   onCancel,
 }: {
   initialData?: ShadowingItem;
+  existingTopics?: string[];
   onSave: (data: Partial<ShadowingItem>) => void;
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState(initialData?.title || "");
+  const [topic, setTopic] = useState(initialData?.topic || "");
   const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || "");
   const [videoId, setVideoId] = useState("");
   const [fileName, setFileName] = useState(initialData?.videoUrl ? "Existing Video" : "");
@@ -1046,9 +1049,22 @@ function ShadowingFormBody({
   const [generating, setGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState<number | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup polling interval on unmount
+  React.useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        console.log("[DEBUG ShadowingFormBody] Cleanup: clearing polling interval");
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTime, setPreviewTime] = useState(0);
+  const [subtitleMode, setSubtitleMode] = useState<"all" | "japanese" | "none">("all");
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -1086,6 +1102,9 @@ function ShadowingFormBody({
     }
   };
 
+  // Model size selector state
+  const [modelSize, setModelSize] = useState<"tiny" | "base" | "small">("base");
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1111,73 +1130,68 @@ function ShadowingFormBody({
     setFileName("");
   };
 
-  // AI Generation
+  // AI Generation with real backend progress polling
   const handleGenerate = async () => {
     if (!videoUrl) {
       toast.error("Please upload a video first");
       return;
     }
 
+    const vid = videoId || "mock-vid";
     setGenerating(true);
     setGenerationProgress(0);
+    setGenerationStep(1);
     setErrors((prev) => {
       const next = { ...prev };
       delete next.segments;
       return next;
     });
 
-    // Step 1: Uploading...
-    setGenerationStep(1);
-    setGenerationProgress(10);
-    
-    await new Promise<void>((resolve) => {
-      let current = 10;
-      const interval = setInterval(() => {
-        current += 5;
-        if (current >= 25) {
-          clearInterval(interval);
-          resolve();
+    let pollCount = 0;
+    console.log("[DEBUG handleGenerate] Starting polling for vid:", vid);
+    pollingIntervalRef.current = setInterval(async () => {
+      pollCount++;
+      // Poll backend progress every 2 seconds
+      if (pollCount % 2 === 0) {
+        try {
+          console.log("[DEBUG handleGenerate] Polling progress...");
+          const progress = await adminShadowingApi.getProgress(vid);
+          console.log("[DEBUG handleGenerate] Progress response:", progress);
+          if (progress) {
+            setGenerationProgress(progress.progress);
+            // Map backend step name to frontend step number
+            if (progress.step?.toLowerCase().includes("audio")) {
+              setGenerationStep(1);
+            } else if (progress.step?.toLowerCase().includes("speech")) {
+              setGenerationStep(2);
+            } else if (progress.step?.toLowerCase().includes("translation")) {
+              setGenerationStep(3);
+            } else if (progress.step?.toLowerCase().includes("saving")) {
+              setGenerationStep(4);
+            } else if (progress.status === "COMPLETED") {
+              setGenerationStep(4);
+            } else if (progress.status === "FAILED") {
+              if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+              setGenerating(false);
+              toast.error(progress.error || "AI generation failed");
+              return;
+            }
+          }
+        } catch {
+          // Ignore polling errors — API call will surface the real error
         }
-        setGenerationProgress(current);
-      }, 100);
-    });
-
-    // Step 2: Processing AI...
-    setGenerationStep(2);
-    setGenerationProgress(30);
-
-    await new Promise<void>((resolve) => {
-      let current = 30;
-      const interval = setInterval(() => {
-        current += 5;
-        if (current >= 50) {
-          clearInterval(interval);
-          resolve();
-        }
-        setGenerationProgress(current);
-      }, 120);
-    });
-
-    // Step 3: Generating subtitles...
-    setGenerationStep(3);
-    setGenerationProgress(60);
-
-    const apiCall = adminShadowingApi.generateShadowing(videoId || "mock-vid");
-    
-    const animationInterval = setInterval(() => {
-      setGenerationProgress((p) => (p < 90 ? p + 2 : p));
-    }, 150);
+      }
+    }, 1000);
 
     try {
-      const generated = await apiCall;
-      clearInterval(animationInterval);
-      
-      // Step 4: Completed
+      const generated = await adminShadowingApi.generateShadowing(vid, modelSize);
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       setGenerationStep(4);
       setGenerationProgress(100);
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      const newSegments = generated.map((seg, idx) => ({
+      const sentences = generated?.sentences ?? [];
+      const newSegments = sentences.map((seg: any, idx: number) => ({
         id: seg.id || generateId(`seg-${idx}`),
         startTime: seg.startTime,
         endTime: seg.endTime,
@@ -1188,11 +1202,12 @@ function ShadowingFormBody({
       setSegments(newSegments);
       toast.success(`Successfully generated ${newSegments.length} sentences`);
     } catch (err: any) {
-      clearInterval(animationInterval);
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       toast.error(err.message || "Subtitles generation failed");
     } finally {
       setGenerating(false);
       setGenerationStep(null);
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     }
   };
 
@@ -1293,13 +1308,21 @@ function ShadowingFormBody({
       return;
     }
 
+    // Stop any ongoing AI generation polling before saving
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
     setSaving(true);
     try {
       const payload = {
+        id: initialData?.id,
         title,
         videoUrl,
+        topic: topic || "General",
         thumbnailUrl: initialData?.thumbnailUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=640",
         segments: segments.map((seg) => ({
+          id: seg.id,
           startTime: seg.startTime,
           endTime: seg.endTime,
           japaneseText: seg.japaneseText,
@@ -1307,12 +1330,7 @@ function ShadowingFormBody({
         })),
       };
 
-      await adminShadowingApi.saveShadowing(payload);
-      
-      onSave({
-        ...payload,
-        id: initialData?.id || generateId("s"),
-      } as any);
+      await onSave(payload);
     } catch (err: any) {
       toast.error(err.message || "Failed to save shadowing lesson");
     } finally {
@@ -1332,29 +1350,49 @@ function ShadowingFormBody({
     <div className="flex flex-col h-full bg-[var(--card)] text-primary-col">
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
         
-        {/* Lesson Title Input */}
-        <div className="glass-card p-5 space-y-2">
-          <label className="block text-xs font-semibold text-secondary-col uppercase tracking-wider">
-            Lesson Title
-          </label>
-          <input
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (e.target.value.trim()) {
-                setErrors((prev) => {
-                  const next = { ...prev };
-                  delete next.title;
-                  return next;
-                });
-              }
-            }}
-            placeholder="Enter lesson title..."
-            className={`w-full px-4 py-2.5 rounded-lg border bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition ${
-              errors.title ? "border-red-500 focus:ring-red-500/30" : "border-[var(--border)]"
-            }`}
-          />
-          {errors.title && <p className="text-red-500 text-xs mt-1 font-medium">{errors.title}</p>}
+        {/* Lesson Title & Topic Input */}
+        <div className="glass-card p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-secondary-col uppercase tracking-wider">
+              Lesson Title
+            </label>
+            <input
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (e.target.value.trim()) {
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.title;
+                    return next;
+                  });
+                }
+              }}
+              placeholder="Enter lesson title..."
+              className={`w-full px-4 py-2.5 rounded-lg border bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition ${
+                errors.title ? "border-red-500 focus:ring-red-500/30" : "border-[var(--border)]"
+              }`}
+            />
+            {errors.title && <p className="text-red-500 text-xs mt-1 font-medium">{errors.title}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-secondary-col uppercase tracking-wider">
+              Topic (Chủ đề)
+            </label>
+            <input
+              list="existing-topics"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="e.g. Self Introduction, Shopping..."
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+            />
+            <datalist id="existing-topics">
+              {existingTopics?.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+          </div>
         </div>
 
         {/* Section 1: Video Upload Card */}
@@ -1458,7 +1496,7 @@ function ShadowingFormBody({
             <h3 className="text-sm font-semibold text-primary-col">Section 2: AI Generation</h3>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <button
               type="button"
               onClick={handleGenerate}
@@ -1468,7 +1506,22 @@ function ShadowingFormBody({
               <Sparkles className="w-4 h-4" />
               {generating ? "Generating..." : "Generate Shadowing"}
             </button>
-            <p className="text-xs text-muted-col text-center sm:text-left">
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-col font-medium">Model:</label>
+              <select
+                value={modelSize}
+                onChange={(e) => setModelSize(e.target.value as "tiny" | "base" | "small")}
+                disabled={generating}
+                className="text-xs px-2 py-1.5 rounded-md border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+              >
+                <option value="tiny">Tiny (fastest)</option>
+                <option value="base">Base (recommended)</option>
+                <option value="small">Small (most accurate)</option>
+              </select>
+            </div>
+
+            <p className="text-xs text-muted-col flex-1">
               Automatically process speech in the uploaded video to generate Japanese subtitles and Vietnamese translations.
             </p>
           </div>
@@ -1477,10 +1530,11 @@ function ShadowingFormBody({
             <div className="p-4 border border-[var(--border)] rounded-xl bg-[var(--card)] space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <div className="font-semibold text-primary">
-                  {generationStep === 1 && "Step 1: Uploading..."}
-                  {generationStep === 2 && "Step 2: Processing AI..."}
-                  {generationStep === 3 && "Step 3: Generating subtitles..."}
-                  {generationStep === 4 && "Step 4: Completed!"}
+                  {generationStep === 1 && "Step 1: Extracting audio..."}
+                  {generationStep === 2 && "Step 2: Speech recognition..."}
+                  {generationStep === 3 && "Step 3: Translating..."}
+                  {generationStep === 4 && "Step 4: Saving..."}
+                  {generationStep === 5 && "Step 4: Completed!"}
                 </div>
                 <div className="text-secondary-col font-bold">{generationProgress}%</div>
               </div>
@@ -1614,14 +1668,7 @@ function ShadowingFormBody({
                             >
                               <ArrowDown className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteSegment(i)}
-                              title="Delete"
-                              className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-500/10 transition"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+
                           </div>
                         </td>
                       </tr>
@@ -1637,13 +1684,7 @@ function ShadowingFormBody({
       {/* Section 4: Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-[var(--border)] bg-[var(--card)] sticky bottom-0 z-10 shrink-0">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={addSegment}
-            className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[var(--border)] text-primary-col text-xs font-semibold hover:bg-[var(--accent)] transition flex items-center justify-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" /> Add Sentence
-          </button>
+
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
@@ -1677,10 +1718,10 @@ function ShadowingFormBody({
       {/* Preview Dialog */}
       {previewOpen && (
         <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl bg-[#121214] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-6xl bg-[#121214] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <Film className="w-4 h-4 text-sakura" />
+                <Film className="w-4 h-4 text-sakura animate-pulse" />
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">
                   Shadowing Preview: {title || "Untitled Lesson"}
                 </h3>
@@ -1694,40 +1735,141 @@ function ShadowingFormBody({
               </button>
             </div>
 
-            <div className="flex-1 p-6 flex flex-col justify-center items-center bg-[#09090b]">
-              <div className="relative w-full max-w-3xl aspect-video rounded-xl overflow-hidden border border-white/15 shadow-2xl bg-black">
-                <video
-                  ref={videoRef}
-                  src={getAbsoluteVideoUrl(videoUrl)}
-                  controls
-                  onTimeUpdate={handlePreviewTimeUpdate}
-                  className="w-full h-full object-contain"
-                />
+            <div className="flex-1 flex flex-col md:flex-row bg-[#09090b] min-h-0">
+              {/* LEFT COLUMN: Video & Subtitle Display */}
+              <div className="flex-1 md:w-3/5 p-6 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-white/10 min-h-0">
+                <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-white/10 flex items-center justify-center">
+                  <video
+                    ref={videoRef}
+                    src={getAbsoluteVideoUrl(videoUrl)}
+                    controls
+                    onTimeUpdate={handlePreviewTimeUpdate}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                
+                {/* Subtitle Controls */}
+                <div className="flex items-center justify-between px-2 shrink-0">
+                  <span className="text-xs text-gray-500 font-semibold select-none">Chế độ phụ đề:</span>
+                  <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/10 gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setSubtitleMode("all")}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                        subtitleMode === "all"
+                          ? "bg-pink-500 text-white shadow-sm"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      Nhật + Việt
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubtitleMode("japanese")}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                        subtitleMode === "japanese"
+                          ? "bg-pink-500 text-white shadow-sm"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      Tiếng Nhật
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubtitleMode("none")}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                        subtitleMode === "none"
+                          ? "bg-pink-500 text-white shadow-sm"
+                          : "text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      Tắt phụ đề
+                    </button>
+                  </div>
+                </div>
 
-                {/* Subtitle Overlay */}
-                {activeSegment ? (
-                  <div className="absolute bottom-14 left-4 right-4 px-6 py-4 bg-black/75 text-white text-center rounded-xl pointer-events-none select-none border border-white/5 backdrop-blur-sm animate-fade-in transition-all duration-200">
-                    <p className="text-lg font-bold mb-1.5 tracking-wide text-sakura leading-relaxed">
-                      {activeSegment.japaneseText}
-                    </p>
-                    <p className="text-sm text-gray-300 font-medium">
-                      {activeSegment.vietnameseTranslation}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="absolute bottom-14 left-0 right-0 text-center pointer-events-none select-none">
-                    <span className="inline-block px-4 py-1.5 bg-black/40 text-gray-500 text-xs rounded-full uppercase tracking-widest font-bold">
-                      No Spoken Audio
-                    </span>
-                  </div>
-                )}
+                {/* Dedicated Subtitle Box */}
+                <div className="flex-1 min-h-[120px] p-4 bg-[#121214] border border-white/5 rounded-xl flex flex-col items-center justify-center text-center gap-2 shadow-inner">
+                  {subtitleMode === "none" ? (
+                    <p className="text-sm text-gray-600 italic">Đã tắt hiển thị phụ đề</p>
+                  ) : activeSegment ? (
+                    <>
+                      <p className="text-xl font-bold text-pink-500 leading-relaxed">
+                        {activeSegment.japaneseText}
+                      </p>
+                      {subtitleMode === "all" && (
+                        <p className="text-sm text-gray-300 font-medium">
+                          {activeSegment.vietnameseTranslation}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-gray-500 flex flex-col items-center gap-1">
+                      <p className="text-sm font-semibold tracking-wider animate-pulse">Đang tải phụ đề...</p>
+                      <p className="text-[10px] text-gray-600">Phát video để hiển thị phụ đề tương ứng</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              
-              <div className="w-full max-w-3xl mt-4 flex items-center justify-between text-xs text-gray-400 font-medium">
-                <span>Total Sentences: {segments.length}</span>
-                <span className="tabular-nums font-bold">
-                  Current Time: {previewTime.toFixed(2)}s
-                </span>
+
+              {/* RIGHT COLUMN: Dialogue Panel */}
+              <div className="w-full md:w-2/5 flex flex-col bg-[#121214] min-h-0">
+                {/* Header Tab */}
+                <div className="border-b border-white/10 px-6 py-3 flex items-center shrink-0">
+                  <div className="text-pink-500 font-bold border-b-2 border-pink-500 pb-2 text-sm uppercase tracking-wider select-none">
+                    Hội thoại
+                  </div>
+                </div>
+
+                {/* Scrollable Sentence List */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2.5 scrollbar-thin scrollbar-thumb-white/10">
+                  {segments.length === 0 ? (
+                    <div className="text-center py-10 text-gray-500 text-xs">
+                      Đang tải hội thoại...
+                    </div>
+                  ) : (
+                    segments.map((seg, i) => {
+                      const isActive = activeSegment?.id === seg.id;
+                      return (
+                        <button
+                          key={seg.id}
+                          onClick={() => {
+                            if (videoRef.current) {
+                              videoRef.current.currentTime = seg.startTime;
+                              videoRef.current.play().catch(() => {});
+                            }
+                          }}
+                          className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                            isActive
+                              ? "bg-pink-500/10 border-pink-500/30 text-white shadow-md shadow-pink-500/5"
+                              : "bg-transparent border-transparent hover:bg-white/5 text-gray-400 hover:text-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              isActive ? "bg-pink-500 text-white" : "bg-white/5 text-gray-500"
+                            }`}>
+                              {i + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-semibold leading-relaxed mb-1 ${
+                                isActive ? "text-pink-400" : "text-gray-200"
+                              }`}>
+                                {seg.japaneseText}
+                              </p>
+                              <p className="text-xs text-gray-400 font-medium">
+                                {seg.vietnameseTranslation}
+                              </p>
+                            </div>
+                            <span className="text-[9px] font-mono text-gray-600 self-center shrink-0">
+                              {seg.startTime.toFixed(1)}s
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1749,14 +1891,16 @@ function ShadowingFormBody({
 
 function ShadowingEditForm({
   item,
+  existingTopics,
   onSave,
   onCancel,
 }: {
   item: ShadowingItem;
+  existingTopics?: string[];
   onSave: (data: Partial<ShadowingItem>) => void;
   onCancel: () => void;
 }) {
-  return <ShadowingFormBody initialData={item} onSave={onSave} onCancel={onCancel} />;
+  return <ShadowingFormBody initialData={item} existingTopics={existingTopics} onSave={onSave} onCancel={onCancel} />;
 }
 
 
@@ -2543,13 +2687,15 @@ function ListeningLessonForm({
 }
 
 function ShadowingLessonForm({
+  existingTopics,
   onSave,
   onCancel,
 }: {
+  existingTopics?: string[];
   onSave: (data: Partial<ShadowingItem>) => void;
   onCancel: () => void;
 }) {
-  return <ShadowingFormBody onSave={onSave} onCancel={onCancel} />;
+  return <ShadowingFormBody existingTopics={existingTopics} onSave={onSave} onCancel={onCancel} />;
 }
 
 // ─── Excel Import Modal (Match Question Bank) ─────────────────────────────────
@@ -2821,18 +2967,43 @@ function SkillDetailPage() {
   const [shadowingLessons, setShadowingLessons] = React.useState<ShadowingItem[]>([]);
   const [shadowingLoading, setShadowingLoading] = React.useState(false);
   const [shadowingError, setShadowingError] = React.useState<string | null>(null);
+  const [shadowingSaving, setShadowingSaving] = React.useState(false);
 
   const [editDetail, setEditDetail] = React.useState<ShadowingItem | null>(null);
   const [detailLoading, setDetailLoading] = React.useState(false);
+  const [selectedTopic, setSelectedTopic] = React.useState<string>("Tất cả");
+
+  const topics = React.useMemo(() => {
+    if (!isShadowingSkill) return [];
+    const uniqueTopics = new Set<string>();
+    shadowingLessons.forEach((l) => {
+      if (l.topic) {
+        uniqueTopics.add(l.topic);
+      }
+    });
+    return ["Tất cả", ...Array.from(uniqueTopics)];
+  }, [shadowingLessons, isShadowingSkill]);
+
+  const existingTopics = React.useMemo(() => {
+    return topics.filter((t) => t !== "Tất cả");
+  }, [topics]);
 
   const fetchShadowingLessons = React.useCallback(async () => {
-    if (!isShadowingSkill) return;
+    console.log("[DEBUG fetchShadowingLessons] START");
+    if (!isShadowingSkill) {
+      console.log("[DEBUG fetchShadowingLessons] Skipped - not shadowing skill");
+      return;
+    }
     setShadowingLoading(true);
     setShadowingError(null);
     try {
+      console.log("[DEBUG fetchShadowingLessons] Calling API...");
       const res = await adminShadowingApi.listShadowing();
+      console.log("[DEBUG fetchShadowingLessons] API returned, setting state:", res);
       setShadowingLessons(res);
+      console.log("[DEBUG fetchShadowingLessons] SUCCESS");
     } catch (err: any) {
+      console.error("[DEBUG fetchShadowingLessons] ERROR:", err);
       setShadowingError(err.message || "Failed to load shadowing lessons");
     } finally {
       setShadowingLoading(false);
@@ -2875,6 +3046,11 @@ function SkillDetailPage() {
   const displayLessons = isShadowingSkill ? shadowingLessons : lessons;
 
   const filtered = displayLessons.filter((item) => {
+    if (isShadowingSkill && selectedTopic !== "Tất cả") {
+      if (!("topic" in item) || item.topic !== selectedTopic) {
+        return false;
+      }
+    }
     if (!search.trim()) return true;
     const s = search.toLowerCase();
     return (
@@ -2886,14 +3062,28 @@ function SkillDetailPage() {
   const handleCreate = async (
     data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
   ) => {
+    console.log("[DEBUG handleCreate] START - data:", data);
+    console.log("[DEBUG handleCreate] isShadowingSkill:", isShadowingSkill);
     if (isShadowingSkill) {
+      setShadowingSaving(true);
+      console.log("[DEBUG handleCreate] Before setShowCreateModal(false)");
+      setShowCreateModal(false); // Close immediately — UI is responsive
+      console.log("[DEBUG handleCreate] After setShowCreateModal(false) - modal should be closed");
       try {
-        await adminShadowingApi.saveShadowing(data);
+        console.log("[DEBUG handleCreate] Calling API...");
+        const result = await adminShadowingApi.saveShadowing(data);
+        console.log("[DEBUG handleCreate] API returned:", result);
+        console.log("[DEBUG handleCreate] Calling toast.success...");
         toast.success("Shadowing lesson created successfully");
+        console.log("[DEBUG handleCreate] Calling fetchShadowingLessons...");
         fetchShadowingLessons();
-        setShowCreateModal(false);
+        console.log("[DEBUG handleCreate] END SUCCESS");
       } catch (err: any) {
+        console.error("[DEBUG handleCreate] API ERROR:", err);
         toast.error(err.message || "Failed to create shadowing lesson");
+        setShowCreateModal(true); // Reopen so user can retry
+      } finally {
+        setShadowingSaving(false);
       }
     } else {
       createLesson(data);
@@ -2910,16 +3100,29 @@ function SkillDetailPage() {
   const handleUpdate = async (
     data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
   ) => {
+    console.log("[DEBUG handleUpdate] START - data:", data, "selectedItem:", selectedItem);
     if (!selectedItem) return;
     if (isShadowingSkill) {
+      setShadowingSaving(true);
+      console.log("[DEBUG handleUpdate] Before setShowEditModal(false)");
+      setShowEditModal(false); // Close immediately — UI is responsive
+      setSelectedItem(null);
+      console.log("[DEBUG handleUpdate] After setShowEditModal(false)");
       try {
-        await adminShadowingApi.saveShadowing({ ...data, id: selectedItem.id });
+        console.log("[DEBUG handleUpdate] Calling API...");
+        const result = await adminShadowingApi.saveShadowing({ ...data, id: selectedItem.id });
+        console.log("[DEBUG handleUpdate] API returned:", result);
+        console.log("[DEBUG handleUpdate] Calling toast.success...");
         toast.success("Shadowing lesson updated successfully");
+        console.log("[DEBUG handleUpdate] Calling fetchShadowingLessons...");
         fetchShadowingLessons();
-        setShowEditModal(false);
-        setSelectedItem(null);
+        console.log("[DEBUG handleUpdate] END SUCCESS");
       } catch (err: any) {
+        console.error("[DEBUG handleUpdate] API ERROR:", err);
         toast.error(err.message || "Failed to update shadowing lesson");
+        setShowEditModal(true); // Reopen so user can retry
+      } finally {
+        setShadowingSaving(false);
       }
     } else {
       updateLesson(selectedItem.id, data);
@@ -2939,21 +3142,23 @@ function SkillDetailPage() {
 
   const handleDelete = async () => {
     if (!selectedItem) return;
+    
+    const itemToDelete = selectedItem;
+    setShowDeleteConfirm(false);
+    setSelectedItem(null);
+
     if (isShadowingSkill) {
       try {
-        await adminShadowingApi.deleteShadowing(selectedItem.id);
+        await adminShadowingApi.deleteShadowing(itemToDelete.id);
         toast.success("Shadowing lesson deleted successfully");
         fetchShadowingLessons();
-        setShowDeleteConfirm(false);
-        setSelectedItem(null);
       } catch (err: any) {
         toast.error(err.message || "Failed to delete shadowing lesson");
+        fetchShadowingLessons();
       }
     } else {
-      deleteLesson(selectedItem.id);
+      deleteLesson(itemToDelete.id);
       toast.success("Lesson deleted successfully");
-      setShowDeleteConfirm(false);
-      setSelectedItem(null);
     }
   };
 
@@ -3018,6 +3223,25 @@ function SkillDetailPage() {
         />
       </div>
 
+      {/* Topic Selector for Shadowing */}
+      {isShadowingSkill && topics.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {topics.map((topicName) => (
+            <button
+              key={topicName}
+              onClick={() => setSelectedTopic(topicName)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border select-none cursor-pointer shadow-xs ${
+                selectedTopic === topicName
+                  ? "bg-linear-to-r from-pink-500 to-purple-500 text-white border-transparent"
+                  : "bg-[var(--card)] text-secondary-col border-[var(--border)] hover:bg-pink-500/10 hover:text-pink-500"
+              }`}
+            >
+              {topicName}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Table (Match Question Bank style) */}
       <div className="card-base overflow-hidden">
         {/* Table Header */}
@@ -3027,7 +3251,7 @@ function SkillDetailPage() {
               <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
                 Thumbnail
               </div>
-              <div className="col-span-3 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              <div className="col-span-4 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
                 Title
               </div>
               <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
@@ -3036,13 +3260,10 @@ function SkillDetailPage() {
               <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
                 Sentences
               </div>
-              <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-                Created At
-              </div>
               <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
                 Status
               </div>
-              <div className="col-span-1 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
                 Actions
               </div>
             </>
@@ -3092,12 +3313,11 @@ function SkillDetailPage() {
               {[1, 2, 3].map((n) => (
                 <div key={n} className="grid grid-cols-12 gap-4 items-center animate-pulse">
                   <div className="col-span-2 h-10 bg-[var(--border)] rounded-lg" />
-                  <div className="col-span-3 h-4 bg-[var(--border)] rounded" />
+                  <div className="col-span-4 h-4 bg-[var(--border)] rounded" />
                   <div className="col-span-2 h-4 bg-[var(--border)] rounded" />
                   <div className="col-span-1 h-4 bg-[var(--border)] rounded" />
-                  <div className="col-span-2 h-4 bg-[var(--border)] rounded" />
                   <div className="col-span-1 h-4 bg-[var(--border)] rounded" />
-                  <div className="col-span-1 h-8 bg-[var(--border)] rounded-lg" />
+                  <div className="col-span-2 h-8 bg-[var(--border)] rounded-lg" />
                 </div>
               ))}
             </div>
@@ -3127,7 +3347,7 @@ function SkillDetailPage() {
                         <Film className="w-4 h-4 text-muted-col" />
                       </div>
                     </div>
-                    <div className="col-span-3 font-medium text-sm text-primary-col">
+                    <div className="col-span-4 font-medium text-sm text-primary-col">
                       {item.title}
                     </div>
                     <div className="col-span-2 text-center text-sm text-secondary-col font-mono">
@@ -3135,9 +3355,6 @@ function SkillDetailPage() {
                     </div>
                     <div className="col-span-1 text-center text-sm font-medium text-muted-col">
                       {item.segments ? item.segments.length : 0}
-                    </div>
-                    <div className="col-span-2 text-center text-xs text-secondary-col">
-                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}
                     </div>
                     <div className="col-span-1 flex justify-center">
                       <StatusBadge status={(item as any).status || "active"} />
@@ -3177,7 +3394,7 @@ function SkillDetailPage() {
                     </div>
                   </>
                 )}
-                <div className={skill === "shadowing" ? "col-span-1 flex justify-end items-center gap-2" : "col-span-2 flex justify-end items-center gap-2"}>
+                <div className="col-span-2 flex justify-end items-center gap-2">
                   <button
                     onClick={() => handleEdit(item)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
@@ -3265,6 +3482,7 @@ function SkillDetailPage() {
               ) : editDetail ? (
                 <ShadowingEditForm
                   item={editDetail}
+                  existingTopics={existingTopics}
                   onSave={handleUpdate}
                   onCancel={() => {
                     setShowEditModal(false);
@@ -3294,7 +3512,11 @@ function SkillDetailPage() {
           <ListeningLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
         )}
         {skill === "shadowing" && (
-          <ShadowingLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
+          <ShadowingLessonForm
+            existingTopics={existingTopics}
+            onSave={handleCreate}
+            onCancel={() => setShowCreateModal(false)}
+          />
         )}
       </Modal>
 

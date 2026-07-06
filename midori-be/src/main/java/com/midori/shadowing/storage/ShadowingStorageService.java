@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -65,7 +64,9 @@ public class ShadowingStorageService {
     }
 
     /**
-     * Store multipart file, upload to Supabase, validate extension, and return response metadata
+     * Store multipart file, upload to Supabase synchronously, and return Supabase public URL.
+     * The video is uploaded directly to Supabase Storage — no local temp file needed for streaming.
+     * A local copy is still saved temporarily for FFmpeg/Whisper processing.
      */
     public ShadowingUploadResponse storeVideo(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -83,7 +84,7 @@ public class ShadowingStorageService {
         String fileName = videoId + "." + extension;
         Path targetLocation = this.uploadDir.resolve(fileName);
 
-        // 1. Save locally for processing (FFmpeg, Whisper)
+        // 1. Save locally for FFmpeg/Whisper processing
         try {
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
@@ -91,58 +92,65 @@ public class ShadowingStorageService {
             throw new RuntimeException("Failed to store file " + fileName, e);
         }
 
-        // 2. Parse or estimate video duration
+        // 2. Parse video duration from local file
         double duration = parseDuration(targetLocation.toFile(), extension);
 
-        // 3. Return the local stream URL immediately, and upload to Supabase in the background
-        String localStreamUrl = "/api/admin/shadowing/video/" + videoId;
-        
-        if (supabaseUrl != null && !supabaseUrl.isBlank() && serviceRoleKey != null && !serviceRoleKey.isBlank()) {
-            final byte[] fileBytes;
-            try {
-                fileBytes = file.getBytes();
-            } catch (IOException e) {
-                log.error("[Storage] Failed to read upload file bytes for background task", e);
-                return new ShadowingUploadResponse(videoId, localStreamUrl, duration);
-            }
-            final String contentType = file.getContentType() != null ? file.getContentType() : "video/" + extension;
+        // 3. Upload directly to Supabase Storage (synchronous)
+        String publicVideoUrl = uploadToSupabase(file, videoId, fileName);
 
-            CompletableFuture.runAsync(() -> {
-                String objectPath = "shadowing/" + fileName;
-                String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath;
-                log.info("[Storage] Starting background upload to Supabase Storage: {}", objectPath);
-                
-                try {
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.setContentType(MediaType.parseMediaType(contentType));
-                    headers.set("Authorization", "Bearer " + serviceRoleKey);
-                    headers.set("apikey", serviceRoleKey);
-                    headers.set("x-upsert", "true");
+        return new ShadowingUploadResponse(videoId, publicVideoUrl, duration);
+    }
 
-                    HttpEntity<byte[]> request = new HttpEntity<>(fileBytes, headers);
-                    
-                    // Set client request factory timeouts to avoid hanging indefinitely
-                    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-                    factory.setConnectTimeout(30000); // 30s
-                    factory.setReadTimeout(120000);   // 120s
-                    
-                    RestTemplate restTemplate = new RestTemplate(factory);
-                    ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.POST, request, String.class);
-
-                    if (response.getStatusCode().is2xxSuccessful()) {
-                        String publicUrl = supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + objectPath;
-                        supabaseUploads.put(videoId, publicUrl);
-                        log.info("[Storage] Background Supabase upload completed: {}", publicUrl);
-                    } else {
-                        log.warn("[Storage] Background Supabase upload returned non-2xx: {}", response.getStatusCode());
-                    }
-                } catch (Exception e) {
-                    log.error("[Storage] Background Supabase upload failed for video ID {}. Error: {}", videoId, e.getMessage());
-                }
-            });
+    /**
+     * Upload video bytes to Supabase Storage and return the public URL.
+     * Falls back to local stream URL if Supabase is not configured.
+     */
+    private String uploadToSupabase(MultipartFile file, String videoId, String fileName) {
+        if (supabaseUrl == null || supabaseUrl.isBlank()
+                || serviceRoleKey == null || serviceRoleKey.isBlank()) {
+            log.warn("[Storage] Supabase not configured. Returning local stream URL.");
+            return "/api/admin/shadowing/video/" + videoId;
         }
 
-        return new ShadowingUploadResponse(videoId, localStreamUrl, duration);
+        String objectPath = "shadowing/" + fileName;
+        String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath;
+        String contentType = file.getContentType() != null ? file.getContentType() : "video/" + fileName.substring(fileName.lastIndexOf(".") + 1);
+
+        log.info("[Storage] Uploading video to Supabase Storage: {}", objectPath);
+
+        try {
+            byte[] fileBytes = file.getBytes();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(contentType));
+            headers.set("Authorization", "Bearer " + serviceRoleKey);
+            headers.set("apikey", serviceRoleKey);
+            headers.set("x-upsert", "true");
+
+            HttpEntity<byte[]> request = new HttpEntity<>(fileBytes, headers);
+
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(30_000);
+            factory.setReadTimeout(300_000); // 5 min for large video upload
+
+            RestTemplate restTemplate = new RestTemplate(factory);
+            ResponseEntity<String> response = restTemplate.exchange(
+                    uploadUrl, HttpMethod.POST, request, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                String publicUrl = supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + objectPath;
+                supabaseUploads.put(videoId, publicUrl);
+                log.info("[Storage] Supabase upload successful: {}", publicUrl);
+                return publicUrl;
+            } else {
+                log.warn("[Storage] Supabase upload returned {}: {}. Falling back to local stream.",
+                        response.getStatusCode(), response.getBody());
+            }
+        } catch (Exception e) {
+            log.error("[Storage] Supabase upload failed: {}. Falling back to local stream.", e.getMessage());
+        }
+
+        return "/api/admin/shadowing/video/" + videoId;
     }
 
     /**
