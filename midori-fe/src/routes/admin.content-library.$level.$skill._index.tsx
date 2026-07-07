@@ -25,10 +25,14 @@ import {
   type ContentSkill,
   type VocabularyLesson,
   type GrammarLesson,
+  type ReadingLesson,
   type ListeningLesson,
   type ShadowingItem,
   type VocabularyItem,
   type GrammarItem,
+  type ReadingItem,
+  type ReadingVocabulary,
+  type ReadingQuestion,
   generateId,
 } from "@/mocks/contentLibraryMock";
 
@@ -70,6 +74,14 @@ const SKILL_CONFIG: Record<
     bg: "bg-sky-blue/15",
     border: "border-sky-blue/20",
     accent: "sky-blue",
+  },
+  reading: {
+    label: "Reading",
+    icon: BookOpen,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/15",
+    border: "border-emerald-500/20",
+    accent: "emerald",
   },
   shadowing: {
     label: "Shadowing",
@@ -985,6 +997,419 @@ function ListeningEditForm({
               className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
             >
               <Plus className="w-4 h-4" /> Add Item
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving || !form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25"
+        >
+          <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reading Edit Form ────────────────────────────────────────────────────────
+
+function ReadingEditForm({
+  lesson,
+  onSave,
+  onCancel,
+}: {
+  lesson: ReadingLesson;
+  onSave: (data: Partial<ReadingLesson>) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    lessonNumber: lesson.lessonNumber,
+    title: lesson.title,
+    status: (lesson as unknown as { status?: string }).status || "active",
+    items: [...lesson.items] as ReadingLesson["items"],
+  });
+  const [saving, setSaving] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const addItem = () => {
+    const newItem: ReadingItem = {
+      id: generateId("read"),
+      title: "",
+      passage: "",
+      translationVietnamese: "",
+      vocabularyHints: [],
+      questions: [],
+    };
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
+  };
+
+  const updateItem = (index: number, field: string, value: unknown) => {
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
+      return { ...f, items } as typeof f;
+    });
+  };
+
+  const removeItem = (index: number) => {
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      onSave({ ...form, id: lesson.id });
+      setSaving(false);
+    }, 200);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        {/* Lesson Information */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-sakura" />
+            <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
+          </div>
+          <div className="grid grid-cols-[120px_1fr_180px] gap-4">
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Reading Items */}
+        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-primary-col">Reading Passages</h3>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} passage{form.items.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
+          {form.items.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-col">
+                No reading passages yet. Click "Add Passage" below to add one.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {form.items.map((item, i) => {
+                const isExpanded = expandedItems.has(item.id);
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--border)] overflow-hidden"
+                  >
+                    {/* Item Header */}
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(item.id)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <div className="text-left">
+                          <span className="text-sm font-medium text-primary-col">
+                            {item.title || "New Passage"}
+                          </span>
+                        </div>
+                        {item.passage && (
+                          <span className="text-xs text-muted-col hidden sm:inline truncate max-w-[200px]">
+                            — {item.passage.substring(0, 40)}...
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-col hidden sm:inline">
+                          {item.questions?.length || 0} Q
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
+                          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                    </button>
+
+                    {/* Item Content */}
+                    {isExpanded && (
+                      <div className="px-4 py-4 glass-card space-y-3">
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Passage Title</label>
+                          <input
+                            value={item.title}
+                            onChange={(e) => updateItem(i, "title", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Passage title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
+                          <textarea
+                            value={item.passage}
+                            onChange={(e) => updateItem(i, "passage", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[100px]"
+                            placeholder="Paste Japanese reading passage here..."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
+                          <textarea
+                            value={item.translationVietnamese}
+                            onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                            placeholder="Vietnamese translation"
+                          />
+                        </div>
+
+                        {/* Vocabulary Hints */}
+                        <div className="border-t border-[var(--border)] pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs text-muted-col font-medium">Vocabulary Hints</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const hints = item.vocabularyHints || [];
+                                updateItem(i, "vocabularyHints", [
+                                  ...hints,
+                                  { japanese: "", reading: "", meaning: "" },
+                                ]);
+                              }}
+                              className="text-xs px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition"
+                            >
+                              + Add Vocab
+                            </button>
+                          </div>
+                          {(item.vocabularyHints || []).map((vocab, vi) => (
+                            <div key={vi} className="flex gap-2 mb-2 items-center">
+                              <input
+                                value={vocab.japanese}
+                                onChange={(e) => {
+                                  const hints = [...(item.vocabularyHints || [])];
+                                  hints[vi] = { ...hints[vi], japanese: e.target.value };
+                                  updateItem(i, "vocabularyHints", hints);
+                                }}
+                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                placeholder="Japanese"
+                              />
+                              <input
+                                value={vocab.reading}
+                                onChange={(e) => {
+                                  const hints = [...(item.vocabularyHints || [])];
+                                  hints[vi] = { ...hints[vi], reading: e.target.value };
+                                  updateItem(i, "vocabularyHints", hints);
+                                }}
+                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                placeholder="Reading"
+                              />
+                              <input
+                                value={vocab.meaning}
+                                onChange={(e) => {
+                                  const hints = [...(item.vocabularyHints || [])];
+                                  hints[vi] = { ...hints[vi], meaning: e.target.value };
+                                  updateItem(i, "vocabularyHints", hints);
+                                }}
+                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                placeholder="Meaning"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const hints = (item.vocabularyHints || []).filter((_, idx) => idx !== vi);
+                                  updateItem(i, "vocabularyHints", hints);
+                                }}
+                                className="text-red-400 hover:text-red-600 shrink-0"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Questions */}
+                        <div className="border-t border-[var(--border)] pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs text-muted-col font-medium">
+                              Questions ({item.questions?.length || 0})
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const questions = item.questions || [];
+                                updateItem(i, "questions", [
+                                  ...questions,
+                                  {
+                                    id: generateId("rq"),
+                                    question: "",
+                                    options: ["", "", "", ""],
+                                    correctAnswer: 0,
+                                    explanation: "",
+                                  },
+                                ]);
+                              }}
+                              className="text-xs px-2 py-1 rounded-md bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition"
+                            >
+                              + Add Q
+                            </button>
+                          </div>
+                          {(item.questions || []).map((q, qi) => (
+                            <div key={q.id} className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-primary-col">
+                                  Q{qi + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const questions = (item.questions || []).filter((_, idx) => idx !== qi);
+                                    updateItem(i, "questions", questions);
+                                  }}
+                                  className="text-red-400 hover:text-red-600"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <input
+                                value={q.question}
+                                onChange={(e) => {
+                                  const questions = [...(item.questions || [])];
+                                  questions[qi] = { ...questions[qi], question: e.target.value };
+                                  updateItem(i, "questions", questions);
+                                }}
+                                className="w-full px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col mb-2"
+                                placeholder="Question text"
+                              />
+                              <div className="space-y-1">
+                                {q.options.map((opt, oi) => (
+                                  <div key={oi} className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-col w-4 shrink-0">{String.fromCharCode(65 + oi)}.</span>
+                                    <input
+                                      value={opt}
+                                      onChange={(e) => {
+                                        const questions = [...(item.questions || [])];
+                                        const newOpts = [...questions[qi].options];
+                                        newOpts[oi] = e.target.value;
+                                        questions[qi] = { ...questions[qi], options: newOpts };
+                                        updateItem(i, "questions", questions);
+                                      }}
+                                      className="flex-1 px-2 py-1 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                      placeholder={`Option ${String.fromCharCode(65 + oi)}`}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const questions = [...(item.questions || [])];
+                                        questions[qi] = { ...questions[qi], correctAnswer: oi };
+                                        updateItem(i, "questions", questions);
+                                      }}
+                                      className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
+                                        q.correctAnswer === oi
+                                          ? "border-emerald-500 bg-emerald-500 text-white"
+                                          : "border-[var(--border)]"
+                                      }`}
+                                      title="Set as correct answer"
+                                    >
+                                      {q.correctAnswer === oi && (
+                                        <span className="w-2 h-2 rounded-full bg-white" />
+                                      )}
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                              <input
+                                value={q.explanation || ""}
+                                onChange={(e) => {
+                                  const questions = [...(item.questions || [])];
+                                  questions[qi] = { ...questions[qi], explanation: e.target.value };
+                                  updateItem(i, "questions", questions);
+                                }}
+                                className="w-full px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col mt-2"
+                                placeholder="Explanation (optional)"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Add Item Button */}
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Add Passage
             </button>
           </div>
         </div>
@@ -2057,6 +2482,407 @@ function ListeningLessonForm({
   );
 }
 
+function ReadingLessonForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (data: Partial<ReadingLesson>) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    lessonNumber: 1,
+    title: "",
+    status: "active",
+    items: [
+      {
+        id: generateId("read"),
+        title: "",
+        passage: "",
+        translationVietnamese: "",
+        vocabularyHints: [] as ReadingVocabulary[],
+        questions: [] as ReadingQuestion[],
+      },
+    ],
+  });
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set([generateId("read")]));
+
+  const updateItem = (index: number, field: string, value: unknown) => {
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
+      return { ...f, items } as typeof f;
+    });
+  };
+
+  const addItem = () => {
+    const newItem = {
+      id: generateId("read"),
+      title: "",
+      passage: "",
+      translationVietnamese: "",
+      vocabularyHints: [] as ReadingVocabulary[],
+      questions: [] as ReadingQuestion[],
+    };
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
+  };
+
+  const removeItem = (index: number) => {
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        {/* Lesson Information */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-sakura" />
+            <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
+          </div>
+          <div className="grid grid-cols-[120px_1fr_180px] gap-4">
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Number
+              </label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Lesson Title
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter lesson title"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Reading Items */}
+        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-primary-col">Reading Passages</h3>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} passage{form.items.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {form.items.map((item, i) => {
+              const isExpanded = expandedItems.has(item.id);
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-lg border border-[var(--border)] overflow-hidden"
+                >
+                  {/* Item Header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(item.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                        {i + 1}
+                      </span>
+                      <div className="text-left">
+                        <span className="text-sm font-medium text-primary-col">
+                          {item.title || "New Passage"}
+                        </span>
+                      </div>
+                      {item.passage && (
+                        <span className="text-xs text-muted-col hidden sm:inline truncate max-w-[200px]">
+                          — {item.passage.substring(0, 40)}...
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-col hidden sm:inline">
+                        {item.questions?.length || 0} Q
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeItem(i);
+                        }}
+                        className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <ChevronDown
+                        className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Item Content */}
+                  {isExpanded && (
+                    <div className="px-4 py-4 glass-card space-y-3">
+                      <div>
+                        <label className="block text-xs text-muted-col mb-1">Passage Title</label>
+                        <input
+                          value={item.title}
+                          onChange={(e) => updateItem(i, "title", e.target.value)}
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                          placeholder="Passage title"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
+                        <textarea
+                          value={item.passage}
+                          onChange={(e) => updateItem(i, "passage", e.target.value)}
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[100px]"
+                          placeholder="Paste Japanese reading passage here..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
+                        <textarea
+                          value={item.translationVietnamese}
+                          onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                          placeholder="Vietnamese translation"
+                        />
+                      </div>
+
+                      {/* Vocabulary Hints */}
+                      <div className="border-t border-[var(--border)] pt-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-muted-col font-medium">Vocabulary Hints</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const hints = item.vocabularyHints || [];
+                              updateItem(i, "vocabularyHints", [
+                                ...hints,
+                                { japanese: "", reading: "", meaning: "" },
+                              ]);
+                            }}
+                            className="text-xs px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition"
+                          >
+                            + Add Vocab
+                          </button>
+                        </div>
+                        {(item.vocabularyHints || []).map((vocab, vi) => (
+                          <div key={vi} className="flex gap-2 mb-2 items-center">
+                            <input
+                              value={vocab.japanese}
+                              onChange={(e) => {
+                                const hints = [...(item.vocabularyHints || [])];
+                                hints[vi] = { ...hints[vi], japanese: e.target.value };
+                                updateItem(i, "vocabularyHints", hints);
+                              }}
+                              className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                              placeholder="Japanese"
+                            />
+                            <input
+                              value={vocab.reading}
+                              onChange={(e) => {
+                                const hints = [...(item.vocabularyHints || [])];
+                                hints[vi] = { ...hints[vi], reading: e.target.value };
+                                updateItem(i, "vocabularyHints", hints);
+                              }}
+                              className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                              placeholder="Reading"
+                            />
+                            <input
+                              value={vocab.meaning}
+                              onChange={(e) => {
+                                const hints = [...(item.vocabularyHints || [])];
+                                hints[vi] = { ...hints[vi], meaning: e.target.value };
+                                updateItem(i, "vocabularyHints", hints);
+                              }}
+                              className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                              placeholder="Meaning"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const hints = (item.vocabularyHints || []).filter((_, idx) => idx !== vi);
+                                updateItem(i, "vocabularyHints", hints);
+                              }}
+                              className="text-red-400 hover:text-red-600 shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Questions */}
+                      <div className="border-t border-[var(--border)] pt-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-muted-col font-medium">
+                            Questions ({item.questions?.length || 0})
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const questions = item.questions || [];
+                              updateItem(i, "questions", [
+                                ...questions,
+                                {
+                                  id: generateId("rq"),
+                                  question: "",
+                                  options: ["", "", "", ""],
+                                  correctAnswer: 0,
+                                  explanation: "",
+                                },
+                              ]);
+                            }}
+                            className="text-xs px-2 py-1 rounded-md bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition"
+                          >
+                            + Add Q
+                          </button>
+                        </div>
+                        {(item.questions || []).map((q, qi) => (
+                          <div key={q.id} className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-semibold text-primary-col">Q{qi + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const questions = (item.questions || []).filter((_, idx) => idx !== qi);
+                                  updateItem(i, "questions", questions);
+                                }}
+                                className="text-red-400 hover:text-red-600"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <input
+                              value={q.question}
+                              onChange={(e) => {
+                                const questions = [...(item.questions || [])];
+                                questions[qi] = { ...questions[qi], question: e.target.value };
+                                updateItem(i, "questions", questions);
+                              }}
+                              className="w-full px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col mb-2"
+                              placeholder="Question text"
+                            />
+                            <div className="space-y-1">
+                              {q.options.map((opt, oi) => (
+                                <div key={oi} className="flex items-center gap-2">
+                                  <span className="text-xs text-muted-col w-4 shrink-0">
+                                    {String.fromCharCode(65 + oi)}.
+                                  </span>
+                                  <input
+                                    value={opt}
+                                    onChange={(e) => {
+                                      const questions = [...(item.questions || [])];
+                                      const newOpts = [...questions[qi].options];
+                                      newOpts[oi] = e.target.value;
+                                      questions[qi] = { ...questions[qi], options: newOpts };
+                                      updateItem(i, "questions", questions);
+                                    }}
+                                    className="flex-1 px-2 py-1 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                    placeholder={`Option ${String.fromCharCode(65 + oi)}`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const questions = [...(item.questions || [])];
+                                      questions[qi] = { ...questions[qi], correctAnswer: oi };
+                                      updateItem(i, "questions", questions);
+                                    }}
+                                    className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
+                                      q.correctAnswer === oi
+                                        ? "border-emerald-500 bg-emerald-500 text-white"
+                                        : "border-[var(--border)]"
+                                    }`}
+                                    title="Set as correct answer"
+                                  >
+                                    {q.correctAnswer === oi && (
+                                      <span className="w-2 h-2 rounded-full bg-white" />
+                                    )}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                            <input
+                              value={q.explanation || ""}
+                              onChange={(e) => {
+                                const questions = [...(item.questions || [])];
+                                questions[qi] = { ...questions[qi], explanation: e.target.value };
+                                updateItem(i, "questions", questions);
+                              }}
+                              className="w-full px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col mt-2"
+                              placeholder="Explanation (optional)"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Add Item Button */}
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Add Passage
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+        >
+          Create Lesson
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ShadowingLessonForm({
   onSave,
   onCancel,
@@ -2332,7 +3158,7 @@ function ExcelImportModal({
   level: JLPTLevel;
   onClose: () => void;
   onImport: (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -2463,21 +3289,21 @@ function ExcelImportModal({
           id: generateId("vocab"),
           lessonNumber: 99,
           title: `Imported ${skill} lesson`,
-          status: "active",
+          ...({ status: "active" } as Partial<VocabularyLesson>),
           items: [],
         },
         grammar: {
           id: generateId("gram"),
           lessonNumber: 99,
           title: `Imported ${skill} lesson`,
-          status: "active",
+          ...({ status: "active" } as Partial<GrammarLesson>),
           items: [],
         },
         listening: {
           id: generateId("list"),
           lessonNumber: 99,
           title: `Imported ${skill} lesson`,
-          status: "active",
+          ...({ status: "active" } as Partial<ListeningLesson>),
           items: [],
         },
         shadowing: {
@@ -2590,7 +3416,7 @@ function SkillDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<
-    VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | null
+    VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson | null
   >(null);
 
   const filtered = lessons.filter((item) => {
@@ -2603,20 +3429,20 @@ function SkillDetailPage() {
   });
 
   const handleCreate = (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => {
     createLesson(data);
     toast.success("Lesson created successfully");
     setShowCreateModal(false);
   };
 
-  const handleEdit = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem) => {
+  const handleEdit = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
     setSelectedItem(item);
     setShowEditModal(true);
   };
 
   const handleUpdate = (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => {
     if (!selectedItem) return;
     updateLesson(selectedItem.id, data);
@@ -2626,7 +3452,7 @@ function SkillDetailPage() {
   };
 
   const handleImport = (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => {
     createLesson(data);
     toast.success("Lesson imported successfully");
@@ -2642,7 +3468,7 @@ function SkillDetailPage() {
   };
 
   const getItemCount = (
-    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem,
+    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson,
   ): number => {
     if ("items" in item && Array.isArray(item.items)) return item.items.length;
     if ("segments" in item && Array.isArray(item.segments)) return item.segments.length;
@@ -2874,6 +3700,16 @@ function SkillDetailPage() {
                 }}
               />
             )}
+            {skill === "reading" && (
+              <ReadingEditForm
+                lesson={selectedItem as ReadingLesson}
+                onSave={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
           </>
         )}
       </Modal>
@@ -2896,6 +3732,9 @@ function SkillDetailPage() {
         )}
         {skill === "shadowing" && (
           <ShadowingLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
+        )}
+        {skill === "reading" && (
+          <ReadingLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
         )}
       </Modal>
 

@@ -35,6 +35,15 @@ const skillCards = [
     hoverBg: "hover:bg-sky-blue/10",
   },
   {
+    id: "reading",
+    label: "Reading",
+    icon: BookOpen,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/15",
+    border: "border-emerald-500/20",
+    hoverBg: "hover:bg-emerald-500/10",
+  },
+  {
     id: "shadowing",
     label: "Shadowing",
     icon: Mic,
@@ -75,7 +84,7 @@ function ContentLibraryLevelPage() {
       </div>
 
       {/* Skill Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {skillCards.map((skill, i) => (
           <Link
             key={skill.id}
