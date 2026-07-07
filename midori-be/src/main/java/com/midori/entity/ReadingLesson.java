@@ -1,4 +1,4 @@
-﻿package com.midori.entity;
+package com.midori.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

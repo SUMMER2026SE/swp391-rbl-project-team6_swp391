@@ -1,4 +1,4 @@
-﻿package com.midori.dto.reading;
+package com.midori.dto.reading;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;

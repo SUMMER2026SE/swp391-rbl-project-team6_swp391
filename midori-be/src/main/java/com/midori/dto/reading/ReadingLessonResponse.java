@@ -1,4 +1,4 @@
-﻿package com.midori.dto.reading;
+package com.midori.dto.reading;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

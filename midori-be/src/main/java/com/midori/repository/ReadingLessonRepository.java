@@ -1,4 +1,4 @@
-﻿package com.midori.repository;
+package com.midori.repository;
 
 import com.midori.entity.ReadingLesson;
 import org.springframework.data.jpa.repository.JpaRepository;
