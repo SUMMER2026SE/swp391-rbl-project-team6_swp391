@@ -15,4 +15,5 @@ public class ChatResponse {
     private UUID conversationId;
     private String reply;
     private Instant createdAt;
+    private String modelUsed;
 }

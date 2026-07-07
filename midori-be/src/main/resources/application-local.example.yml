@@ -58,14 +58,43 @@ app:
     from: YOUR_GMAIL_ADDRESS
   frontend:
     base-url: http://localhost:8081
-  # Admin bootstrap — auto-creates a default admin account on startup (local profile only).
-  # Set bootstrap-enabled to false to disable, or change email/password for local dev.
-  admin:
-    bootstrap-enabled: true
-    email: admin@midori.local
-    password: ChangeMe123!
 
 logging:
   level:
     com.midori: debug
     org.springframework.security: debug
+
+# ============================================================
+# AI Sensei Configuration
+# ============================================================
+# Provider: openrouter (recommended) or gemini
+# Get OpenRouter key at: https://openrouter.ai/keys
+# ============================================================
+ai:
+  provider: openrouter
+
+  openrouter:
+    api-key: ${OPENROUTER_API_KEY:}
+    # Primary model: tried first. Keep this list short.
+    # Default: openrouter/free (observed to be stable in the 2026-07-07 test).
+    # Avoid: deepseek/deepseek-chat-v3-0324:free (404),
+    #        nvidia/nemotron-3-ultra-550b-a55b:free (ResourceExhausted / 80s hangs),
+    #        openai/gpt-oss-120b:free as primary (frequent 429).
+    models: >
+      openrouter/free
+    # Optional: at most 1 fallback. Will be tried only after primary fails.
+    fallback-models: >
+      openai/gpt-oss-120b:free
+    # Per-call timeouts (ms). Cap read timeouts to keep UX responsive.
+    chat-timeout-ms: 15000
+    quiz-timeout-ms: 25000
+    connect-timeout-ms: 5000
+    # Cap model output length so one slow model can't burn the whole budget.
+    chat-max-tokens: 1400
+    quiz-max-tokens: 4096
+    # Optional: custom referer header
+    referer: ${AI_OPENROUTER_REFERER:http://localhost:8081}
+
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-3.1-flash

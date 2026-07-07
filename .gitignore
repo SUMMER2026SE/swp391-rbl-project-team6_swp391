@@ -33,6 +33,9 @@ build/
 # =============================================
 midori-be/src/main/resources/application-local.yml
 **/application-local.yml
+midori-be/.env
+midori-be/.env.local
+midori-be/.env.*
 
 # =============================================
 # Backend local uploads
