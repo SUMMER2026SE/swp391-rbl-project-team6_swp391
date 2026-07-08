@@ -21,14 +21,25 @@ public interface ExamRepository extends JpaRepository<Exam, UUID> {
 
     List<Exam> findByCreatedById(UUID userId);
 
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.questions WHERE e.id = :id")
+    @Query("SELECT DISTINCT e FROM Exam e LEFT JOIN FETCH e.questions WHERE e.id = :id")
     Optional<Exam> findByIdWithQuestions(@Param("id") UUID id);
 
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.questions WHERE e.createdBy.id = :userId ORDER BY e.createdAt DESC")
+    @Query("SELECT DISTINCT e FROM Exam e LEFT JOIN FETCH e.questions WHERE e.createdBy.id = :userId ORDER BY e.createdAt DESC")
     List<Exam> findAllByCreatorWithQuestions(@Param("userId") UUID userId);
 
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.questions WHERE e.status = :status ORDER BY e.createdAt DESC")
+    @Query("SELECT DISTINCT e FROM Exam e LEFT JOIN FETCH e.questions WHERE e.status = :status ORDER BY e.createdAt DESC")
     List<Exam> findAllByStatusWithQuestions(@Param("status") ExamStatus status);
 
+    @Query("SELECT DISTINCT e FROM Exam e LEFT JOIN FETCH e.questions ORDER BY e.createdAt DESC")
+    List<Exam> findAllWithQuestions();
+
+    @Query("SELECT DISTINCT e FROM Exam e LEFT JOIN FETCH e.questions WHERE e.assignedClass.id = :classId ORDER BY e.createdAt DESC")
+    List<Exam> findByAssignedClassIdWithQuestions(@Param("classId") UUID classId);
+
     long countByStatus(ExamStatus status);
+
+    List<Exam> findByAssignedClassId(UUID classId);
+
+    @Query("SELECT e.assignedClass.id, COUNT(e) FROM Exam e WHERE e.status = com.midori.entity.ExamStatus.PUBLISHED AND e.assignedClass.id IS NOT NULL GROUP BY e.assignedClass.id")
+    List<Object[]> countUpcomingExamsPerClass();
 }
