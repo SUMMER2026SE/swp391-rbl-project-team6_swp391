@@ -5,8 +5,8 @@ import com.midori.dto.response.AiImportJobResponse;
 import com.midori.entity.User;
 import com.midori.repository.UserRepository;
 import com.midori.service.AiExamImportService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,12 +19,17 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/ai")
-@RequiredArgsConstructor
-@Slf4j
 public class AiExamImportController {
+
+    private static final Logger log = LoggerFactory.getLogger(AiExamImportController.class);
 
     private final AiExamImportService aiExamImportService;
     private final UserRepository userRepository;
+
+    public AiExamImportController(AiExamImportService aiExamImportService, UserRepository userRepository) {
+        this.aiExamImportService = aiExamImportService;
+        this.userRepository = userRepository;
+    }
 
     @PostMapping(value = "/exams/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<AiImportJobResponse>> importExamFromPdf(
