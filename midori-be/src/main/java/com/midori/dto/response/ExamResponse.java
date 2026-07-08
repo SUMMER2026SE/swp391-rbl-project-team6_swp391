@@ -30,4 +30,15 @@ public class ExamResponse {
     private String status;
     private Instant createdAt;
     private Instant updatedAt;
+
+    private UUID assignedClassId;
+
+    private List<ExamQuestionResponse> questions;
+
+    // Student specific fields
+    private Integer score;
+    private Double percentage;
+    private Instant submittedAt;
+    private String feedback;
+    private Instant gradedAt;
 }
