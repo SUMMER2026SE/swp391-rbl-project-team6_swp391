@@ -342,246 +342,7 @@ const grammarLessonsN5: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN5: ReadingLesson[] = [
-  {
-    id: "read-n5-01",
-    lessonNumber: 1,
-    title: "Giới thiệu bản thân",
-    items: [
-      {
-        id: "read-n5-01-01",
-        title: "Giới thiệu bản thân",
-        passage:
-          "私の名前は田中です。にほんごのがくせい です。がっこう で べんきょうします。らいしゅう、ともだちとちらほらをみにいきます。",
-        translationVietnamese:
-          "Tên tôi là Tanaka. Tôi là sinh viên tiếng Nhật. Tôi học ở trường. Tuần sau, tôi sẽ đi xem hoa anh đào với bạn.",
-        vocabularyHints: [
-          { japanese: "名前", reading: "なまえ", meaning: "tên" },
-          { japanese: "学生", reading: "がくせい", meaning: "sinh viên" },
-          { japanese: "勉強", reading: "べんきょう", meaning: "học tập" },
-          { japanese: "友達", reading: "ともだち", meaning: "bạn bè" },
-          { japanese: "見る", reading: "みる", meaning: "nhìn, xem" },
-        ],
-        questions: [
-          {
-            id: "rq-n5-01-01",
-            question: "作者の名前は何ですか。",
-            options: ["山本", "田中", "鈴木", "伊藤"],
-            correctAnswer: 1,
-            explanation: "私の名前は田中です。→ Tên tôi là Tanaka.",
-          },
-          {
-            id: "rq-n5-01-02",
-            question: "作者は学生ですか。",
-            options: ["はい、学生です", "いいえ、先生です", "いいえ、働きます", "わかりません"],
-            correctAnswer: 0,
-            explanation: "にほんごのがくせい です。→ Tôi là sinh viên tiếng Nhật.",
-          },
-          {
-            id: "rq-n5-01-03",
-            question: "作者はどこでべんきょうしますか。",
-            options: ["いえ", "がっこう", "ぎんこう", "びょういん"],
-            correctAnswer: 1,
-            explanation: "がっこう で べんきょうします。→ Tôi học ở trường.",
-          },
-          {
-            id: "rq-n5-01-04",
-            question: "作者はらいしゅう何をしますか。",
-            options: ["映画をみます", "花見をします", "かいものをします", "はしを たべます"],
-            correctAnswer: 1,
-            explanation: "ちらほらをみにいきます。→ Sẽ đi xem hoa anh đào.",
-          },
-          {
-            id: "rq-n5-01-05",
-            question: "「ともだち」は何という意味ですか。",
-            options: ["先生", "家族", "友達", "猫"],
-            correctAnswer: 2,
-            explanation: "ともだち = 友達 = bạn bè",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n5-02",
-    lessonNumber: 2,
-    title: "Một ngày của tôi",
-    items: [
-      {
-        id: "read-n5-02-01",
-        title: "Một ngày của tôi",
-        passage:
-          "まいあさ、6じにおきます。7じに朝ごはんをたべます。8じにがっこうへいきます。がっこうではにほんごをべんきょうします。",
-        translationVietnamese:
-          "Mỗi sáng tôi dậy lúc 6 giờ. 7 giờ ăn sáng. 8 giờ đi học. Ở trường tôi học tiếng Nhật.",
-        vocabularyHints: [
-          { japanese: "毎朝", reading: "まいあさ", meaning: "mỗi sáng" },
-          { japanese: "起きる", reading: "おきる", meaning: "thức dậy" },
-          { japanese: "朝ごはん", reading: "あさがごはん", meaning: "bữa sáng" },
-          { japanese: "食べる", reading: "たべる", meaning: "ăn" },
-          { japanese: "行く", reading: "いく", meaning: "đi" },
-        ],
-        questions: [
-          {
-            id: "rq-n5-02-01",
-            question: "作者はいつおきますか。",
-            options: ["5時", "6時", "7時", "8時"],
-            correctAnswer: 1,
-            explanation: "まいあさ、6じにおきます。→ Mỗi sáng dậy lúc 6 giờ.",
-          },
-          {
-            id: "rq-n5-02-02",
-            question: "作者は7時に何をしますか。",
-            options: ["ねます", "はしを たべます", "がっこうへ いきます", "べんきょうします"],
-            correctAnswer: 1,
-            explanation: "7じに朝ごはんをたべます。→ 7 giờ ăn sáng.",
-          },
-          {
-            id: "rq-n5-02-03",
-            question: "作者はどこでべんきょうしますか。",
-            options: ["いえ", "がっこう", "えいが", "ぎんこう"],
-            correctAnswer: 1,
-            explanation: "がっこうではにほんごをべんきょうします。→ Ở trường học tiếng Nhật.",
-          },
-          {
-            id: "rq-n5-02-04",
-            question: "「たべます」のroditional形はどれですか。",
-            options: ["たべむ", "たべる", "たべった", "たべない"],
-            correctAnswer: 1,
-            explanation: "たべる是食べる的dictionary形（基本形）。",
-          },
-          {
-            id: "rq-n5-02-05",
-            question: "がっこうへ いく meaningは何ですか。",
-            options: ["学校に行く", "学校にいる", "学校を出す", "学校を見せる"],
-            correctAnswer: 0,
-            explanation: "いく = 行く = đi。がっこう へ いく = đi đến trường。",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n5-03",
-    lessonNumber: 3,
-    title: "家族",
-    items: [
-      {
-        id: "read-n5-03-01",
-        title: "私の家族",
-        passage:
-          "私の家族は4人です。父はせんせいです。母はかいしゃいんです。あには大学生です。いもうとは高校生です。私はにほんごをべんきょうしています。",
-        translationVietnamese:
-          "Gia đình tôi có 4 người. Bố tôi là giáo viên. Mẹ tôi là nhân viên công ty. Anh trai tôi là sinh viên đại học. Em gái tôi là học sinh cấp 3. Tôi đang học tiếng Nhật.",
-        vocabularyHints: [
-          { japanese: "家族", reading: "かぞく", meaning: "gia đình" },
-          { japanese: "父", reading: "ちち", meaning: "bố" },
-          { japanese: "母", reading: "はは", meaning: "mẹ" },
-          { japanese: "兄", reading: "あに", meaning: "anh trai" },
-          { japanese: "姉妹", reading: "いもうと", meaning: "em gái" },
-          { japanese: "先生", reading: "せんせい", meaning: "giáo viên" },
-          { japanese: "高校生", reading: "こうこうせい", meaning: "học sinh cấp 3" },
-        ],
-        questions: [
-          {
-            id: "rq-n5-03-01",
-            question: "家族の人数はいくらですか。",
-            options: ["2人", "3人", "4人", "5人"],
-            correctAnswer: 2,
-            explanation: "私の家族は4人です。→ Gia đình tôi có 4 người.",
-          },
-          {
-            id: "rq-n5-03-02",
-            question: "父のしごとは何ですか。",
-            options: ["医者", "先生", "科学家", "警察"],
-            correctAnswer: 1,
-            explanation: "父はせんせいです。→ Bố tôi là giáo viên.",
-          },
-          {
-            id: "rq-n5-03-03",
-            question: "あには何年生ですか。",
-            options: ["高校生", "中学生", "小学生", "大学生"],
-            correctAnswer: 3,
-            explanation: "あには大学生です。→ Anh trai tôi là sinh viên đại học.",
-          },
-          {
-            id: "rq-n5-03-04",
-            question: "「かいしゃいん」は何を意味しますか。",
-            options: ["銀行員", "店員", "会社に入った", "研究者"],
-            correctAnswer: 2,
-            explanation: "かいしゃいん = 会社に入った = nhân viên công ty",
-          },
-          {
-            id: "rq-n5-03-05",
-            question: "作者はいま何をしていますか。",
-            options: ["日本語を教えています", "日本語をべんきょうしています", "日本語で話しています", "日本語の本を読んでいます"],
-            correctAnswer: 1,
-            explanation: "私はにほんごをべんきょうしています。→ Tôi đang học tiếng Nhật。",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n5-04",
-    lessonNumber: 4,
-    title: "趣味と休日の過ごし方",
-    items: [
-      {
-        id: "read-n5-04-01",
-        title: "趣味と休日の過ごし方",
-        passage:
-          "私の趣味は音楽です。ひまなとき、耳机で音楽を聞きます。たび也很好きです。らいねん、台湾に行くつもりです。ともだちとりにんぎょを たのしみにしています。",
-        translationVietnamese:
-          "Sở thích của tôi là âm nhạc. Lúc rảnh, tôi nghe nhạc bằng tai nghe. Tôi cũng thích đi du lịch. Năm sau tôi định đi Đài Loan. Tôi đang mong chờ được đi cùng bạn bè.",
-        vocabularyHints: [
-          { japanese: "趣味", reading: "しゅみ", meaning: "sở thích" },
-          { japanese: "音楽", reading: "おんがく", meaning: "âm nhạc" },
-          { japanese: "耳机", reading: "ディズ", meaning: "tai nghe" },
-          { japanese: "旅", reading: "たび", meaning: "du lịch" },
-          { japanese: "りにんぎょ", reading: "りにんぎょ", meaning: "mong chờ" },
-        ],
-        questions: [
-          {
-            id: "rq-n5-04-01",
-            question: "作者の趣味は何ですか。",
-            options: ["スポーツ", "音楽", "読書", "料理"],
-            correctAnswer: 1,
-            explanation: "私の趣味は音楽です。→ Sở thích của tôi là âm nhạc.",
-          },
-          {
-            id: "rq-n5-04-02",
-            question: "作者はひまなとき何をしますか。",
-            options: ["スポーツをします", "音楽を聞きます", "本を読みます", "ねます"],
-            correctAnswer: 1,
-            explanation: "ひまなとき、耳机で音楽を聞きます。→ Lúc rảnh, tôi nghe nhạc bằng tai nghe.",
-          },
-          {
-            id: "rq-n5-04-03",
-            question: "作者はらいねんどこに行くつもりですか。",
-            options: ["日本", "台湾", "韓国", "ベトナム"],
-            correctAnswer: 1,
-            explanation: "らいねん、台湾に行くつもりです。→ Năm sau tôi định đi Đài Loan.",
-          },
-          {
-            id: "rq-n5-04-04",
-            question: "「つもりです」の文法的な意味は何ですか。",
-            options: ["〜而易い", "〜の予定", "〜だろう", "〜ようだ"],
-            correctAnswer: 1,
-            explanation: "つもりです = có dự định, có kế hoạch làm gì",
-          },
-          {
-            id: "rq-n5-04-05",
-            question: "作者は誰とりにんぎょていますか。",
-            options: ["家族と", "ともだちと", "ひとりで", "先生と"],
-            correctAnswer: 1,
-            explanation: "ともだちとりにんぎょを たのしみにしています。→ Tôi đang mong chờ được đi cùng bạn bè.",
-          },
-        ],
-      },
-    ],
-  },
-];
+const readingLessonsN5: ReadingLesson[] = [];
 
 const listeningLessonsN5: ListeningLesson[] = [
   {
@@ -859,44 +620,7 @@ const grammarLessonsN4: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN4: ReadingLesson[] = [
-  {
-    id: "read-n4-01",
-    lessonNumber: 1,
-    title: "Thư từ và Email",
-    items: [
-      {
-        id: "read-n4-01-01",
-        title: "Thư từ",
-        passage: "太郎さんへ きのうの手紙をどうもありがとう。らいしゅうのミーティングのことですが、3じからです。まっている地点に行きます。meeting について、もう少し詳しく聞こいたいですが。よろしくおいねがいします。",
-        translationVietnamese: "Gửi Taro, cảm ơn thư hôm qua của bạn. Về cuộc họp tuần sau, bắt đầu từ 3 giờ. Tôi sẽ đến địa điểm đã hẹn. Về cuộc họp, tôi muốn nghe chi tiết hơn một chút. Nhờ bạn giúp đỡ nhé。",
-        questions: [
-          {
-            id: "rq-n4-01-01",
-            question: "ミーティングはいつからですか？",
-            options: ["2時", "3時", "4時", "5時"],
-            correctAnswer: 1,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n4-02",
-    lessonNumber: 2,
-    title: "Email mời tiệc",
-    items: [
-      {
-        id: "read-n4-02-01",
-        title: "Email",
-        passage:
-          "田中さんへ らいしゅうのの日曜日にPartyがあります。6じからです。あなたも来ますか。",
-        translationVietnamese: "Tuần sau chủ nhật có tiệc. Bắt đầu từ 6 giờ. Bạn cũng đến chứ?",
-        questions: [],
-      },
-    ],
-  },
-];
+const readingLessonsN4: ReadingLesson[] = [];
 
 const listeningLessonsN4: ListeningLesson[] = [
   {
@@ -1023,116 +747,7 @@ const grammarLessonsN3: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN3: ReadingLesson[] = [
-  {
-    id: "read-n3-01",
-    lessonNumber: 1,
-    title: "Văn hóa làm việc tại Nhật Bản",
-    items: [
-      {
-        id: "read-n3-01-01",
-        title: "Văn hóa làm việc tại Nhật Bản",
-        passage: "日本の会社では加班ることは当たり前になっています。でも、最近、働き改革が必要だという声が高まっています。政府は企業に長時間労働の是正を働きかけています。Work-life balanceの重要性がようやく認識されつつあります。",
-        translationVietnamese: "Ở các công ty Nhật Bản, làm thêm giờ đã trở nên bình thường. Tuy nhiên, gần đây, tiếng nói yêu cầu cải cách cách làm việc đang tăng lên. Chính phủ đang thúc đẩy các doanh nghiệp sửa chữa việc làm việc quá sức. Tầm quan trọng của cân bằng công việc-cuộc sống cuối cùng đang dần được nhận thức.",
-        vocabularyHints: [
-          { japanese: "残業", reading: "ざんぎょう", meaning: "làm thêm giờ" },
-          { japanese: "当たり前", reading: "あたりまえ", meaning: "bình thường, đương nhiên" },
-          { japanese: "働き改革", reading: "はたらきかいかく", meaning: "cải cách cách làm việc" },
-          { japanese: "是正", reading: "ぜせい", meaning: "sửa chữa, khắc phục" },
-          { japanese: "Work-life balance", reading: "ワークライフバランス", meaning: "cân bằng công việc-cuộc sống" },
-        ],
-        questions: [
-          { id: "rq-n3-01-01", question: "日本の会社では残業についてどうなっていますか。", options: ["珍しい", "当たり前になっている", "禁止されている", "減少している"], correctAnswer: 1, explanation: "日本の会社では残業ることは当たり前になっています。→ Ở các công ty Nhật, làm thêm giờ đã trở nên bình thường。" },
-          { id: "rq-n3-01-02", question: "最近高まっている声は何ですか。", options: ["全球化", "働き改革", "技術革新", "環境保護"], correctAnswer: 1, explanation: "最近、働き改革が必要だという声が高まっています。→ Gần đây tiếng nói yêu cầu cải cách cách làm việc đang tăng lên。" },
-          { id: "rq-n3-01-03", question: "政府在做什么？", options: ["企業を罰する", "企業に長時間労働の是正を働きかけている", "新しい法律を作っている", "労働時間を延長している"], correctAnswer: 1, explanation: "政府は企業に長時間労働の是正を働きかけています。→ Chính phủ đang thúc đẩy các doanh nghiệp sửa chữa việc làm việc quá sức。" },
-          { id: "rq-n3-01-04", question: "Work-life balanceについてどう述べられていますか。", options: ["もう時代遅れた", "ようやく認識されつつある", "政府に反対されている", "企業には関係しない"], correctAnswer: 1, explanation: "Work-life balanceの重要性がようやく認識されつつあります。→ Tầm quan trọng của cân bằng công việc-cuộc sống cuối cùng đang dần được nhận thức。" },
-          { id: "rq-n3-01-05", question: "この文章の main topicは何ですか。", options: ["日本の経済", "会社の種類", "日本の労働環境の改善傾向", "教育問題"], correctAnswer: 2, explanation: "日本の労働環境の改善傾向について述べられています。" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n3-02",
-    lessonNumber: 2,
-    title: "Biến đổi khí hậu và môi trường",
-    items: [
-      {
-        id: "read-n3-02-01",
-        title: "Biến đổi khí hậu và môi trường",
-        passage: "地球温暖化の進行は深刻な問題です。豪雨や熱波、干ばつなどの異常気象が世界各地で起きています。日本でも夏天が続くようになりました。再生可能エネルギーの導入が急務とされています。",
-        translationVietnamese: "Sự tiến triển của hiện tượng ấm lên toàn cầu là một vấn đề nghiêm trọng. Các hiện tượng thời tiết bất thường như mưa lớn, sóng nhiệt, hạn hán đang xảy ra trên khắp thế giới. Ở Nhật Bản cũng vậy, những mùa hè nắng nóng kéo dài. Việc chuyển đổi sang năng lượng tái tạo được coi là cấp bách.",
-        vocabularyHints: [
-          { japanese: "地球温暖化", reading: "ちきゅうおんだんか", meaning: "hiện tượng ấm lên toàn cầu" },
-          { japanese: "異常気象", reading: "いじょうきしょう", meaning: "thời tiết bất thường" },
-          { japanese: "熱波", reading: "ねっぱ", meaning: "sóng nhiệt" },
-          { japanese: "干ばつ", reading: "かんばつ", meaning: "hạn hán" },
-          { japanese: "再生可能エネルギー", reading: "さいせいかんのうエネルギー", meaning: "năng lượng tái tạo" },
-        ],
-        questions: [
-          { id: "rq-n3-02-01", question: "地球温暖化の進行はどのような問題ですか。", options: ["軽い問題", "深刻な問題", "一時的な問題", "解決済みの問題"], correctAnswer: 1, explanation: "地球温暖化の進行は深刻な問題です。→ Sự tiến triển của hiện tượng ấm lên toàn cầu là một vấn đề nghiêm trọng。" },
-          { id: "rq-n3-02-02", question: "世界各地で起きている異常気象の例として述べられていないものはどれですか。", options: ["豪雨", "熱波", "干ばつ", "大雪"], correctAnswer: 3, explanation: "豪雨や熱波、干ばつなどの異常気象が世界各地で起きています。大雪は述べられていません。" },
-          { id: "rq-n3-02-03", question: "日本での夏の傾向について正确的是哪些。", options: ["涼しくなった", "湿気が減った", "夏天が続くようになった", "全く変わらない"], correctAnswer: 2, explanation: "日本しても夏天が続くようになりました。→ Ở Nhật Bản cũng vậy, những mùa hè nắng nóng kéo dài。" },
-          { id: "rq-n3-02-04", question: "再生可能エネルギーの導入はどう考えられていますか。", options: ["将来的な目標", "急務とされている", "没有必要", "企業に任されている"], correctAnswer: 1, explanation: "再生可能エネルギーの導入が急務とされています。→ Việc chuyển đổi sang năng lượng tái tạo được coi là cấp bách。" },
-          { id: "rq-n3-02-05", question: "この文章はどういう種類の文章ですか。", options: ["広告", "小説", "説明文", "招待状"], correctAnswer: 2, explanation: "環境問題についての説明文です。" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n3-03",
-    lessonNumber: 3,
-    title: " Du lịch và trải nghiệm văn hóa",
-    items: [
-      {
-        id: "read-n3-03-01",
-        title: " Du lịch và trải nghiệm văn hóa",
-        passage: "日本旅行がますます人気になっています。京都や奈良のような歴史的な都市だけでなく、地方の小さな町にも注目が集まっています。現地の生活を体験できる民宿の利用が増えています。料理や伝統工芸を習う旅行者も多いです。",
-        translationVietnamese: "Du lịch Nhật Bản ngày càng phổ biến. Không chỉ các thành phố lịch sử như Kyoto hay Nara, mà ngay cả những thị trấn nhỏ ở vùng nông thôn cũng đang thu hút sự chú ý. Việc sử dụng các nhà nghỉ kiểu dân dụng (minshuku) để trải nghiệm cuộc sống địa phương đang tăng lên. Nhiều du khách cũng học nấu ăn và các nghề thủ công truyền thống.",
-        vocabularyHints: [
-          { japanese: "民宿", reading: "みんしゅく", meaning: "nhà nghỉ kiểu dân dụng" },
-          { japanese: "伝統工芸", reading: "でんとうこうげい", meaning: "nghề thủ công truyền thống" },
-          { japanese: "注目", reading: "ちゅうもく", meaning: "sự chú ý" },
-          { japanese: "地方", reading: "ちほう", meaning: "vùng, địa phương" },
-          { japanese: "体験", reading: "たいけん", meaning: "trải nghiệm" },
-        ],
-        questions: [
-          { id: "rq-n3-03-01", question: "日本旅行は今どうなっていますか。", options: ["人気が衰えている", "ますます人気になっている", "危険な状態", "既に終わった"], correctAnswer: 1, explanation: "日本旅行が愈来愈 популярностьになっています。→ Du lịch Nhật Bản ngày càng phổ biến。" },
-          { id: "rq-n3-03-02", question: "注目が集まっているのはどんな都市や町ですか。", options: ["東京や大阪だけ", "京都や奈良のような歴史的な都市だけでなく、地方の小さな町にも", " только大城市", "农村のみ"], correctAnswer: 1, explanation: "京都や奈良のような歴史的な都市だけでなく、地方の小さな町にも注目が集まっています。→ Không chỉ các thành phố lịch sử, mà ngay cả những thị trấn nhỏ ở vùng nông thôn cũng đang thu hút sự chú ý。" },
-          { id: "rq-n3-03-03", question: "民宿が増加している理由は何ですか。", options: ["安いから", "現地の生活を体験できるから", "ホテルの予約が取れないから", "友達が少ないから"], correctAnswer: 1, explanation: "現地の生活を体験できる民宿の利用が増えています。→ Việc sử dụng các nhà nghỉ kiểu dân dụng để trải nghiệm cuộc sống địa phương đang tăng lên。" },
-          { id: "rq-n3-03-04", question: "旅行者が何を習うことが多いですか。", options: ["言語と数学", "料理と伝統工芸", "科学と技術", "政治と歴史"], correctAnswer: 1, explanation: "料理や伝統工芸を習う旅行者も多いです。→ Nhiều du khách cũng học nấu ăn và các nghề thủ công truyền thống。" },
-          { id: "rq-n3-03-05", question: "この文章の内容と一致しているのはどれですか。", options: ["日本旅行は危険である", "旅行者数は减少している", "旅游体验正在多样化", "日本人だけが旅行する"], correctAnswer: 2, explanation: "旅行者们正在体验当地生活、学习传统文化等方式使旅行体验多样化。" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n3-04",
-    lessonNumber: 4,
-    title: " здоровый образ жизни và хабитус",
-    items: [
-      {
-        id: "read-n3-04-01",
-        title: " здоровый образ жизни và хабитус",
-        passage: "現代人は运动不足になりがちです。智能手机の普及により、座っている時間が长くなり、体重が増加する傾向があります。専門家は毎日30分程度の運動を推奨しています。定期的な运动はストレス减轻にも効果的です。",
-        translationVietnamese: "Người hiện đại có xu hướng thiếu vận động. Do sự phổ biến của điện thoại thông minh, thời gian ngồi tăng lên và xu hướng tăng cân đang gia tăng. Các chuyên gia khuyến nghị tập thể dục khoảng 30 phút mỗi ngày. Vận động đều đặn cũng có hiệu quả trong việc giảm stress.",
-        vocabularyHints: [
-          { japanese: "运动不足", reading: "うんどうぶそく", meaning: "thiếu vận động" },
-          { japanese: "智能手机", reading: "スマートフォン", meaning: "điện thoại thông minh" },
-          { japanese: "体重", reading: "たいじゅう", meaning: "cân nặng" },
-          { japanese: "推奨", reading: "すいしょう", meaning: "khuyến nghị" },
-          { japanese: "ストレス軽減", reading: "ストレスけいげん", meaning: "giảm stress" },
-        ],
-        questions: [
-          { id: "rq-n3-04-01", question: "現代人はどのような雰囲构になりがちですか。", options: ["運動不足", "運動过量", "睡眠过多", "食欲增进"], correctAnswer: 0, explanation: "現代人は運動不足になりがちです。→ Người hiện đại có xu hướng thiếu vận động。" },
-          { id: "rq-n3-04-02", question: "智能手机の普及によりどんなことが起きていますか。", options: ["運動時間が増加した", "座っている時間が长くなり、体重が増加する傾向がある", "睡眠の質が向上した", "食欲が減った"], correctAnswer: 1, explanation: "智能手机の普及により、座っている時間が长くなり、体重が増加する傾向があります。→ Do sự phổ biến của điện thoại thông minh, thời gian ngồi tăng lên và xu hướng tăng cân đang gia tăng。" },
-          { id: "rq-n3-04-03", question: "専門家は毎日どれくらいの運動を推奨していますか。", options: ["10分程度", "30分程度", "1時間程度", "2時間程度"], correctAnswer: 1, explanation: "専門家は毎日30分程度の運動を推奨しています。→ Các chuyên gia khuyến nghị tập thể dục khoảng 30 phút mỗi ngày。" },
-          { id: "rq-n3-04-04", question: "定期的な運動の効果として述べられていないのはどれですか。", options: ["体重減少", "ストレス軽減", "健康增进", "視力回復"], correctAnswer: 3, explanation: "定期的な運動はストレス軽減にも効果的です。視力回復は述べられていません。" },
-          { id: "rq-n3-04-05", question: "この文章の main purposeは何ですか。", options: [" 제품을宣伝すること", "健康に関する情報を提供すること", "运动機器を売ること", "新しいアプリを推广すること"], correctAnswer: 1, explanation: "健康に関する有益な情報を提供することを目的としています。" },
-        ],
-      },
-    ],
-  },
-];
+const readingLessonsN3: ReadingLesson[] = [];
 
 const listeningLessonsN3: ListeningLesson[] = [
   {
@@ -1205,24 +820,7 @@ const grammarLessonsN2: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN2: ReadingLesson[] = [
-  {
-    id: "read-n2-01",
-    lessonNumber: 1,
-    title: "Bài 1 - Bài đọc N2",
-    items: [
-      {
-        id: "read-n2-01-01",
-        title: "Bài đọc N2",
-        passage:
-          "現代社会において、情報技術の発展はめざましいものがある。しかし、その一方で情報の信頼性问题也越来越严重。",
-        translationVietnamese:
-          "Trong xã hội hiện đại, sự phát triển của công nghệ thông tin rất đáng chú ý. Tuy nhiên, mặt khác, vấn đề độ tin cậy của thông tin ngày càng nghiêm trọng.",
-        questions: [],
-      },
-    ],
-  },
-];
+const readingLessonsN2: ReadingLesson[] = [];
 
 const listeningLessonsN2: ListeningLesson[] = [
   {
@@ -2023,6 +1621,42 @@ export function resetContentStore(): void {
 
 export function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// ─── Admin Reading Adapter ────────────────────────────────────────────────────
+
+/**
+ * Adapter to convert a mock ReadingLesson (from contentLibraryMock) into
+ * AdminReadingLesson shape expected by the backend-aligned service.
+ * This allows the route to render mock reading lessons while using the
+ * backend service for real CRUD operations.
+ */
+export function readingAdminAdapter(
+  mockLesson: ReadingLesson,
+  level: JLPTLevel,
+): import("@/types/content-library").AdminReadingLesson {
+  const firstItem = mockLesson.items[0];
+  return {
+    id: mockLesson.id,
+    jlptLevel: level,
+    lessonNumber: mockLesson.lessonNumber,
+    title: mockLesson.title,
+    description: mockLesson.description || null,
+    passage: firstItem?.passage || "",
+    vietnameseTranslation: firstItem?.translationVietnamese || null,
+    estimatedMinutes: null,
+    difficulty: null,
+    isActive: (mockLesson as unknown as { status?: string }).status !== "inactive",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    questions: (firstItem?.questions || []).map((q, idx) => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation,
+    })),
+  };
 }
 
 // Run validation on module load

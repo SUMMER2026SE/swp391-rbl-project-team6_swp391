@@ -106,9 +106,9 @@ function LessonDetailPage() {
           />
         ) : null;
       case "READING":
-        return skill.readingPassages ? (
+        return skill.readingLessonId ? (
           <ReadingModule
-            passages={skill.readingPassages}
+            lessonNumber={lesson.number}
             onComplete={(xp) => handleSkillComplete(skillType, xp)}
           />
         ) : null;
