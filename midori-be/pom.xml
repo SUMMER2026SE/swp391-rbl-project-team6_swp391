@@ -103,22 +103,7 @@
             <artifactId>pdfbox-tools</artifactId>
             <version>2.0.31</version>
         </dependency>
-        <!-- AI Provider Dependencies -->
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-aiplatform</artifactId>
-            <version>3.30.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.theokanning.openai-gpt4-java</groupId>
-            <artifactId>service</artifactId>
-            <version>0.18.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.deepseek</groupId>
-            <artifactId>deepseek-java</artifactId>
-            <version>0.1.0</version>
-        </dependency>
+        <!-- AI Provider Dependencies (all providers use pure WebClient REST — no SDK needed) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
