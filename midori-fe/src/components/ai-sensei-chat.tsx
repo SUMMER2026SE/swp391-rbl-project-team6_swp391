@@ -979,10 +979,6 @@ function PracticeMode({
   const [usedFallback, setUsedFallback] = useState(false);
   const [fillBlankInput, setFillBlankInput] = useState("");
 
-  useEffect(() => {
-    handleRetry();
-  }, [selectedMaterial?.id, questionType]);
-
   const handleGenerate = async () => {
     if (!selectedMaterial) {
       setError("Vui lòng chọn tài liệu để tạo quiz.");
@@ -1119,6 +1115,8 @@ function PracticeMode({
     setUsedFallback(false);
     setError(null);
     setFillBlankInput("");
+    // Leave selectedMaterial, questionCount, questionType, difficulty as-is so
+    // the user can immediately re-tap Generate with the same settings.
   };
 
   const computeScore = (): { score: number; percent: number } => {
@@ -1632,7 +1630,7 @@ export function AISenseiPage() {
   const [chatBootState, setChatBootState] = useState<"loading" | "ready" | "error">("loading");
 
   // Edit mode state
-  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; materialContext?: MaterialContent } | null>(null);
   const [editInput, setEditInput] = useState("");
   const [isSavingEdit, setSavingEdit] = useState(false);
 
@@ -1904,8 +1902,10 @@ export function AISenseiPage() {
         await loadConversations();
       } catch (error: any) {
         console.error("Failed to send message", error);
-        if (error?.message?.includes("not configured") || error?.message?.includes("GEMINI_API_KEY")) {
-          setApiError("AI provider chưa được cấu hình. Vui lòng set GEMINI_API_KEY.");
+        if (error?.message?.includes("not configured") || error?.message?.includes("OPENROUTER_API_KEY") || error?.message?.includes("GEMINI_API_KEY")) {
+          setApiError("AI provider chưa được cấu hình. Vui lòng liên hệ quản trị viên.");
+        } else if (error?.message?.includes("429")) {
+          setApiError("AI đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
         } else {
           setApiError("Gửi tin nhắn thất bại. Vui lòng thử lại.");
         }

@@ -69,9 +69,19 @@ logging:
 # ============================================================
 # Provider: openrouter (recommended) or gemini
 # Get OpenRouter key at: https://openrouter.ai/keys
+#
+# IMPORTANT: When ai.fallback.enabled=false (strict AI mode),
+# quiz generation returns an error instead of local fallback
+# when the AI provider fails (429/quota/timeout/etc).
 # ============================================================
 ai:
   provider: openrouter
+
+  # Strict AI mode: set to false to disable local quiz fallback.
+  # When false, provider errors (429/quota/timeout) return an error
+  # to the frontend instead of generating questions from material content.
+  # Default: false (strict mode — students see real AI only).
+  fallback-enabled: false
 
   openrouter:
     api-key: ${OPENROUTER_API_KEY:}

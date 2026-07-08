@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -39,6 +40,13 @@ public class AiServiceImpl implements AiService {
     private final AiLlmProvider llmProvider;
     private final ObjectMapper objectMapper;
     private final String aiProvider;
+    private final boolean fallbackEnabled;
+
+    // Compiled pattern for stripping think tags — matches both XML-style and plain tags
+    private static final Pattern THINK_TAG_PATTERN = Pattern.compile(
+            "(?s)<think>.*?</think>|<think>.*?</think>",
+            Pattern.CASE_INSENSITIVE
+    );
 
     private static final String SYSTEM_PROMPT_BASE = """
             Bạn là AI Sensei của MIDORI, trợ lý học tiếng Nhật chuyên nghiệp cho người Việt.
@@ -120,17 +128,29 @@ public class AiServiceImpl implements AiService {
             AiMessageRepository messageRepository,
             @Qualifier("openRouterAiProvider") AiLlmProvider llmProvider,
             ObjectMapper objectMapper,
-            @Value("${ai.provider:openrouter}") String aiProvider) {
+            @Value("${ai.provider:openrouter}") String aiProvider,
+            @Value("${ai.fallback-enabled:false}") boolean fallbackEnabled) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.llmProvider = llmProvider;
         this.objectMapper = objectMapper;
         this.aiProvider = aiProvider;
-        log.info("[AiService] AI Service initialized with provider: {}", aiProvider);
+        this.fallbackEnabled = fallbackEnabled;
+        log.info("[AiService] AI Service initialized with provider: {}, fallbackEnabled: {}", aiProvider, fallbackEnabled);
     }
 
     private boolean isLlmProviderConfigured() {
         return llmProvider != null && llmProvider.isConfigured();
+    }
+
+    /**
+     * Strip XML-style and plain think tags from AI response content before persisting.
+     * Models like DeepSeek-R1 may emit <think>...</think> or <think>...</think> internally;
+     * these must not reach the user or DB.
+     */
+    private String sanitizeAiContent(String content) {
+        if (content == null) return null;
+        return THINK_TAG_PATTERN.matcher(content).replaceAll("").trim();
     }
 
     /**
@@ -255,6 +275,9 @@ public class AiServiceImpl implements AiService {
             reply = "Xin lỗi, AI Sensei chưa tạo được câu trả lời. Vui lòng thử lại.";
         }
 
+        // Strip think/internal tags before persisting
+        reply = sanitizeAiContent(reply);
+
         // Save ASSISTANT response
         AiMessage aiMessage = AiMessage.builder()
                 .conversation(conversation)
@@ -316,41 +339,53 @@ public class AiServiceImpl implements AiService {
                 log.error("[AiService] Error generating questions from AI: {}", e.getMessage());
                 String errorDetail = e.getMessage();
                 if (errorDetail.contains("429")) {
-                    log.warn("[AiService] AI provider quota exceeded, trying local fallback");
+                    errorMessage = "Xin lỗi, AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.";
                 } else if (errorDetail.contains("401") || errorDetail.contains("403")) {
                     errorMessage = "API key AI không hợp lệ. Vui lòng liên hệ quản trị viên.";
                 } else if (errorDetail.contains("400")) {
                     errorMessage = "Yêu cầu không hợp lệ. Vui lòng thử lại.";
                 } else if (errorDetail.contains("quota") || errorDetail.contains("empty")) {
-                    log.warn("[AiService] AI provider quota exceeded, trying local fallback");
-                } else if (errorDetail.contains("invalid") || errorDetail.contains("JSON")) {
-                    log.warn("[AiService] AI returned invalid JSON, trying local fallback");
+                    errorMessage = "Xin lỗi, đã hết quota API. Vui lòng thử lại sau.";
                 } else {
-                    log.warn("[AiService] AI provider error: {}, trying local fallback", errorDetail);
+                    errorMessage = "Xin lỗi, đã xảy ra lỗi khi tạo quiz. Vui lòng thử lại sau.";
                 }
             }
         } else {
-            log.info("[AiService] AI provider not configured, using local fallback");
-            errorMessage = "AI provider chưa được cấu hình. Đang tạo quiz từ dữ liệu bài học...";
+            log.info("[AiService] AI provider not configured");
+            errorMessage = "AI provider chưa được cấu hình. Vui lòng liên hệ quản trị viên để cấu hình API.";
         }
 
-        // Local fallback if AI failed or not configured
+        // In strict mode (fallbackEnabled=false), return error instead of generating local fallback
         if (questions.isEmpty()) {
-            log.warn("[AiService] AI quiz generation failed, using local fallback");
-            log.info("[AiService] Fallback input -> materialType=N/A, materialTitle={}, materialContentLength={}, questionType={}, questionCount={}",
-                    topic, materialContent != null ? materialContent.length() : 0, questionType, actualCount);
+            if (!fallbackEnabled) {
+                // Strict mode: propagate error to frontend, do not generate local quiz
+                log.warn("[AiService] AI quiz generation failed in strict mode (fallbackEnabled=false). errorMessage={}",
+                        errorMessage);
+                return GenerateQuestionsResponse.builder()
+                        .materialTitle(topic)
+                        .questions(List.of())
+                        .errorMessage(errorMessage != null ? errorMessage
+                                : "Xin lỗi, đã xảy ra lỗi khi tạo quiz. Vui lòng thử lại sau.")
+                        .isFallback(false)
+                        .source("AI")
+                        .build();
+            }
+
+            // Legacy fallback mode (fallbackEnabled=true): generate questions from material content
+            log.warn("[AiService] AI quiz generation failed, using local fallback (fallbackEnabled=true)");
             if (materialContent == null || materialContent.isBlank()) {
                 log.warn("[AiService] Local fallback skipped: materialContent empty");
-            }
-            questions = generateLocalQuestions(topic, materialContent, actualCount, questionType, difficulty);
-            usedFallback = true;
-            source = "LOCAL_FALLBACK";
-
-            if (!questions.isEmpty()) {
-                log.info("[AiService] Local fallback generated {} questions", questions.size());
-                errorMessage = null; // Clear error, fallback worked
-            } else if (errorMessage == null) {
                 errorMessage = "Tài liệu chưa đủ dữ liệu để tạo quiz.";
+            } else {
+                questions = generateLocalQuestions(topic, materialContent, actualCount, questionType, difficulty);
+                if (!questions.isEmpty()) {
+                    usedFallback = true;
+                    source = "LOCAL_FALLBACK";
+                    errorMessage = null; // Fallback succeeded
+                    log.info("[AiService] Local fallback generated {} questions", questions.size());
+                } else {
+                    errorMessage = "Tài liệu chưa đủ dữ liệu để tạo quiz.";
+                }
             }
         }
 
@@ -838,6 +873,9 @@ public class AiServiceImpl implements AiService {
             log.warn("[AiService] LLM returned null/blank response on regenerate");
             newReply = "Xin lỗi, AI Sensei chưa tạo được câu trả lời. Vui lòng thử lại.";
         }
+
+        // Strip think/internal tags before persisting
+        newReply = sanitizeAiContent(newReply);
 
         AiMessage newAssistantMessage = AiMessage.builder()
                 .conversation(targetMessage.getConversation())
