@@ -3610,7 +3610,7 @@ function SkillDetailPage() {
     const firstPassage = (data.passages ?? []).find((passage) => passage.passage.trim());
     const mainPassage = firstPassage?.passage ?? data.passage ?? "";
     const questions = (data.passages ?? []).flatMap((passage) =>
-      passage.questions.map((q, idx) => ({
+      (passage.questions ?? []).map((q, idx) => ({
         questionOrder: idx + 1,
         question: q.question,
         optionA: q.options[0] || "",
@@ -3925,7 +3925,7 @@ function SkillDetailPage() {
                     </span>
                   </div>
                   <div className="col-span-2 text-center">
-                    <span className="text-sm font-medium text-muted-col">{item.questions.length}</span>
+                    <span className="text-sm font-medium text-muted-col">{item.questions?.length ?? 0}</span>
                   </div>
                   <div className="col-span-1 flex justify-center">
                     <StatusBadge status={item.isActive ? "active" : "inactive"} />
@@ -4158,6 +4158,30 @@ function ReadingDetailModal({
 }) {
   if (!open) return null;
 
+  // Transform API response to component format
+  const transformedLesson = lesson ? {
+    ...lesson,
+    questions: (lesson.questions ?? []).map((q) => {
+      // Check if options is already an array (form format) or needs conversion (API format)
+      if (Array.isArray(q.options)) {
+        return q;
+      }
+      // Convert API format (optionA, optionB, optionC, optionD) to array format
+      return {
+        ...q,
+        options: [
+          (q as any).optionA ?? "",
+          (q as any).optionB ?? "",
+          (q as any).optionC ?? "",
+          (q as any).optionD ?? "",
+        ],
+        correctAnswer: typeof q.correctAnswer === 'string'
+          ? ['A', 'B', 'C', 'D'].indexOf((q.correctAnswer as string).toUpperCase())
+          : (q.correctAnswer ?? 0),
+      };
+    }),
+  } : null;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <motion.div
@@ -4209,14 +4233,14 @@ function ReadingDetailModal({
             <div className="text-center py-12 text-red-500 text-sm">
               Failed to load reading lesson details.
             </div>
-          ) : lesson ? (
+          ) : transformedLesson ? (
             <div className="space-y-6">
-              {lesson.description && (
+              {transformedLesson.description && (
                 <div className="glass-card p-4">
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
                     Description
                   </h3>
-                  <p className="text-sm text-secondary-col">{lesson.description}</p>
+                  <p className="text-sm text-secondary-col">{transformedLesson.description}</p>
                 </div>
               )}
 
@@ -4226,26 +4250,26 @@ function ReadingDetailModal({
                 </h3>
                 <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)]">
                   <p className="text-sm text-primary-col leading-relaxed whitespace-pre-wrap">
-                    {lesson.passage}
+                    {transformedLesson.passage}
                   </p>
                 </div>
               </div>
 
-              {lesson.vietnameseTranslation && (
+              {transformedLesson.vietnameseTranslation && (
                 <div className="glass-card p-4">
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
                     Vietnamese Translation
                   </h3>
-                  <p className="text-sm text-secondary-col leading-relaxed">{lesson.vietnameseTranslation}</p>
+                  <p className="text-sm text-secondary-col leading-relaxed">{transformedLesson.vietnameseTranslation}</p>
                 </div>
               )}
 
-              {lesson.questions.length > 0 && (
+              {(transformedLesson.questions?.length ?? 0) > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide">
-                    Questions ({lesson.questions.length})
+                    Questions ({transformedLesson.questions?.length ?? 0})
                   </h3>
-                  {lesson.questions.map((q: ReadingQuestion, qi: number) => (
+                  {transformedLesson.questions.map((q: ReadingQuestion, qi: number) => (
                     <div
                       key={q.id || qi}
                       className="glass-card p-4 space-y-3 border-l-4 border-emerald-500"
@@ -4347,7 +4371,7 @@ function ReadingBackendEditForm({
         ? [createEmptyPassage()]
         : lesson.passages.map((passage) => ({
             ...passage,
-            questions: passage.questions.map((question) => ({ ...question })),
+            questions: (passage.questions ?? []).map((question) => ({ ...question })),
           }));
 
     return {
@@ -4375,7 +4399,7 @@ function ReadingBackendEditForm({
       lesson.passages && lesson.passages.length > 0
         ? lesson.passages.map((passage) => ({
             ...passage,
-            questions: passage.questions.map((question) => ({ ...question })),
+            questions: (passage.questions ?? []).map((question) => ({ ...question })),
           }))
         : [
             {
@@ -4383,7 +4407,7 @@ function ReadingBackendEditForm({
               title: lesson.title,
               passage: lesson.passage,
               translationVietnamese: lesson.vietnameseTranslation ?? "",
-              questions: lesson.questions.map((question) => ({ ...question })),
+              questions: (lesson.questions ?? []).map((question) => ({ ...question })),
             },
           ];
 
@@ -4471,7 +4495,7 @@ function ReadingBackendEditForm({
         passage.id === passageId
           ? {
               ...passage,
-              questions: passage.questions.map((question) =>
+              questions: (passage.questions ?? []).map((question) =>
                 question.id === questionId ? { ...question, ...patch } : question,
               ),
             }
@@ -4480,7 +4504,7 @@ function ReadingBackendEditForm({
     }));
   };
 
-  const derivedQuestions = (form.passages ?? []).flatMap((passage) => passage.questions);
+  const derivedQuestions = (form.passages ?? []).flatMap((passage) => passage.questions ?? []);
 
   if (!open) return null;
 
@@ -4629,7 +4653,7 @@ function ReadingBackendEditForm({
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-col">
-                        {passage.questions.length} question{passage.questions.length === 1 ? "" : "s"}
+                        {(passage.questions?.length ?? 0)} question{(passage.questions?.length ?? 0) === 1 ? "" : "s"}
                       </span>
                       {(form.passages ?? []).length > 1 && (
                         <button
@@ -4682,7 +4706,7 @@ function ReadingBackendEditForm({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-primary-col">
-                        Questions ({passage.questions.length})
+                        Questions ({passage.questions?.length ?? 0})
                       </span>
                       <button
                         type="button"
@@ -4693,7 +4717,7 @@ function ReadingBackendEditForm({
                       </button>
                     </div>
 
-                    {passage.questions.length === 0 ? (
+                    {(passage.questions?.length ?? 0) === 0 ? (
                       <div className="text-center py-6">
                         <p className="text-sm text-muted-col">
                           No questions yet. Click "Add Question" to add one.
@@ -4701,7 +4725,7 @@ function ReadingBackendEditForm({
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {passage.questions.map((question, questionIndex) => (
+                        {(passage.questions ?? []).map((question, questionIndex) => (
                           <div
                             key={question.id}
                             className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3"
