@@ -1,19 +1,25 @@
 package com.midori.ai;
 
 import com.midori.ai.config.AiConfigProperties;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class AiProviderFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(AiProviderFactory.class);
 
     private final AiConfigProperties config;
     private final List<AiProvider> providers;
+
+    public AiProviderFactory(AiConfigProperties config, List<AiProvider> providers) {
+        this.config = config;
+        this.providers = providers;
+    }
 
     public AiProvider resolve() {
         AiProviderType requested = AiProviderType.valueOf(config.getProvider().toUpperCase());
