@@ -7,7 +7,8 @@ import com.midori.ai.AiProviderType;
 import com.midori.ai.ExamParsingPrompt;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,8 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-@Slf4j
 public class GeminiProvider implements AiProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiProvider.class);
 
     private final AiConfigProperties config;
     private final ObjectMapper objectMapper;
@@ -44,8 +46,7 @@ public class GeminiProvider implements AiProvider {
     @Override
     public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
         if (config.getGemini().getApiKey() == null || config.getGemini().getApiKey().isBlank()) {
-            throw new AiParsingException(
-                    "Gemini API key is not configured. Set app.ai.gemini.api-key in application properties.");
+            throw new AiParsingException("Gemini API key is not configured. Set ai.gemini.api-key in application properties.");
         }
 
         String prompt = ExamParsingPrompt.buildPrompt(extractedText, filename);
@@ -53,6 +54,7 @@ public class GeminiProvider implements AiProvider {
         long startMs = System.currentTimeMillis();
 
         try {
+            @SuppressWarnings("unchecked")
             Map<String, Object> response = webClientBuilder
                     .baseUrl(config.getGemini().getBaseUrl())
                     .build()
@@ -114,7 +116,7 @@ public class GeminiProvider implements AiProvider {
         return parseJsonContent(text);
     }
 
-    protected AiExamParseResponse parseJsonContent(String rawContent) throws AiParsingException {
+    public AiExamParseResponse parseJsonContent(String rawContent) throws AiParsingException {
         String json = extractJson(rawContent);
         try {
             AiExamParseResponse result = objectMapper.readValue(json, AiExamParseResponse.class);
@@ -126,10 +128,10 @@ public class GeminiProvider implements AiProvider {
         }
     }
 
-    protected String extractJson(String raw) {
+    public String extractJson(String raw) {
         String trimmed = raw.trim();
-        int start = trimmed.indexOf("{");
-        int end = trimmed.lastIndexOf("}");
+        int start = trimmed.indexOf('{');
+        int end = trimmed.lastIndexOf('}');
         if (start == -1 || end == -1 || end <= start) {
             throw new AiParsingException("No JSON object found in response: " + trimmed.substring(0, Math.min(100, trimmed.length())));
         }
