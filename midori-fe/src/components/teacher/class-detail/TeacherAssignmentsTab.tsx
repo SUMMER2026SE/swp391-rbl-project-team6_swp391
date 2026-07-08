@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/page-ui";
 import { Link } from "@tanstack/react-router";
 import {
@@ -17,6 +18,7 @@ import {
   Plus
 } from "lucide-react";
 import type { TeacherClassInfo, TeacherAssignment } from "@/types/teacher-class";
+import { homeworkApi } from "@/lib/api/homework";
 import { toast } from "sonner";
 
 interface TeacherAssignmentsTabProps {
@@ -25,6 +27,7 @@ interface TeacherAssignmentsTabProps {
 }
 
 interface Submission {
+  id?: string;
   studentId: string;
   studentName: string;
   studentEmail: string;
@@ -37,76 +40,16 @@ interface Submission {
   duration?: string;
 }
 
-// Smart mock submission generator that satisfies Yêu cầu F:
-// - Có ít nhất: 1 học sinh đã nộp và có điểm, 1 nộp chưa chấm, 1 chưa nộp, 1 nộp trễ.
-// - Khớp với danh sách học sinh của class.
-function getMockSubmissionsFor(assignment: TeacherAssignment, students: any[]): Submission[] {
-  return students.map((student, idx) => {
-    let status: "Submitted" | "Not submitted" | "Late" | "Graded";
-    
-    // Explicitly distribute statuses for first 4 students to guarantee presence of each state
-    if (idx === 0) {
-      status = "Graded";
-    } else if (idx === 1) {
-      status = "Submitted";
-    } else if (idx === 2) {
-      status = "Late";
-    } else if (idx === 3) {
-      status = "Not submitted";
-    } else {
-      // Cycle for the rest
-      const remainder = idx % 4;
-      if (remainder === 0) status = "Graded";
-      else if (remainder === 1) status = "Submitted";
-      else if (remainder === 2) status = "Late";
-      else status = "Not submitted";
-    }
 
-    let score: number | undefined;
-    let feedback = "";
-    let submittedAt: string | undefined;
-    let studentAnswer = "";
-    let duration = "25 mins";
-
-    if (status === "Graded") {
-      score = 9.0;
-      submittedAt = "2026-06-18 14:25";
-      feedback = "Excellent results! Good grammar usage and smooth sentences.";
-      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. A (Correct)\n2. B (Correct)\n3. A (Correct)\n4. C (Correct)\n\nStudent's short answer:\nTôi rất thích học tiếng Nhật tại lớp Midori. Chúc sensei nhiều sức khỏe!`;
-      duration = "15 mins";
-    } else if (status === "Submitted") {
-      submittedAt = "2026-06-19 09:10";
-      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. A (Correct)\n2. C (Incorrect - Correct: B)\n3. B (Correct)\n4. C (Correct)\n\nStudent's short answer:\nEm mong muốn học tốt hơn mỗi ngày. Cảm ơn cô giáo!`;
-      duration = "18 mins";
-    } else if (status === "Late") {
-      score = 7.5;
-      submittedAt = "2026-06-21 11:45"; // deadline is June 20, so June 21 is Late
-      feedback = "Please submit on time. Watch out for particle choices.";
-      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. B (Incorrect)\n2. C (Correct)\n3. A (Correct)\n4. D (Incorrect)\n\nStudent's short answer:\nEm xin lỗi vì nộp bài muộn ạ. Em sẽ chú ý hạn nộp bài lần sau.`;
-      duration = "30 mins";
-    }
-
-    return {
-      studentId: student.id,
-      studentName: student.name,
-      studentEmail: student.email,
-      studentAvatar: student.avatar,
-      status,
-      submittedAt,
-      score,
-      feedback,
-      studentAnswer,
-      duration,
-    };
-  });
-}
 
 export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTabProps) {
+  const queryClient = useQueryClient();
   // Navigation state: "list" | "submissions" | "detail"
   const [viewStep, setViewStep] = useState<"list" | "submissions" | "detail">("list");
   const [selectedAssignment, setSelectedAssignment] = useState<TeacherAssignment | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
 
   // Filter & sorting states for Step 1
   const [filter, setFilter] = useState("All");
@@ -118,6 +61,7 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
   // Step 3: Grading form states
   const [gradeScore, setGradeScore] = useState<number>(0);
   const [gradeFeedback, setGradeFeedback] = useState<string>("");
+  const [isSavingGrade, setIsSavingGrade] = useState(false);
 
   const filters = ["All", "Active", "Need Grading", "Completed"];
   const sortOptions = [
@@ -133,9 +77,8 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
       const q = urlQ.toLowerCase();
       list = list.filter((a) =>
         a.title.toLowerCase().includes(q) ||
-        a.skill.toLowerCase().includes(q) ||
-        a.type.toLowerCase().includes(q) ||
-        a.deadline.toLowerCase().includes(q),
+        (a.moduleType || "").toLowerCase().includes(q) ||
+        (a.deadline || "").toLowerCase().includes(q),
       );
     }
 
@@ -204,12 +147,33 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
   };
 
   // Actions transitions
-  const handleOpenSubmissions = (assignment: TeacherAssignment) => {
+  const handleOpenSubmissions = async (assignment: TeacherAssignment) => {
     setSelectedAssignment(assignment);
-    const list = getMockSubmissionsFor(assignment, classInfo.students);
-    setSubmissions(list);
+    setSubmissions([]);
     setSubFilter("All");
     setViewStep("submissions");
+    setIsLoadingSubmissions(true);
+    try {
+      const raw = await homeworkApi.getHomeworkSubmissions(assignment.id);
+      const mapped: Submission[] = (raw ?? []).map((s) => ({
+        id: s.id,
+        studentId: s.studentId,
+        studentName: s.studentName,
+        studentEmail: s.studentEmail,
+        studentAvatar: s.studentName ? s.studentName[0].toUpperCase() : "?",
+        status: s.status === "GRADED" ? "Graded" : "Submitted",
+        submittedAt: s.submittedAt ? s.submittedAt.replace("T", " ").slice(0, 16) : undefined,
+        score: s.score,
+        feedback: s.feedback,
+        studentAnswer: s.submissionText,
+        duration: undefined,
+      }));
+      setSubmissions(mapped);
+    } catch {
+      toast.error("Failed to load submissions.");
+    } finally {
+      setIsLoadingSubmissions(false);
+    }
   };
 
   const handleOpenDetail = (submission: Submission) => {
@@ -219,7 +183,7 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
     setViewStep("detail");
   };
 
-  const handleSaveGrade = (e: React.FormEvent) => {
+  const handleSaveGrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSubmission) return;
 
@@ -229,21 +193,33 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
       return;
     }
 
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.studentId === selectedSubmission.studentId
-          ? {
-              ...sub,
-              status: "Graded",
-              score: gradeScore,
-              feedback: gradeFeedback,
-            }
-          : sub
-      )
-    );
-
-    toast.success(`Successfully graded ${selectedSubmission.studentName}'s homework!`);
-    setViewStep("submissions");
+    setIsSavingGrade(true);
+    try {
+      if (!selectedSubmission.id) {
+        toast.error("Cannot grade: submission ID is missing.");
+        return;
+      }
+      await homeworkApi.gradeSubmission(selectedSubmission.id, {
+        score: gradeScore,
+        feedback: gradeFeedback,
+      });
+      void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
+      void queryClient.invalidateQueries({ queryKey: ["classDetail", classInfo.id] });
+      void queryClient.invalidateQueries({ queryKey: ["classStudents", classInfo.id] });
+      setSubmissions((prev) =>
+        prev.map((sub) =>
+          sub.studentId === selectedSubmission.studentId
+            ? { ...sub, status: "Graded", score: gradeScore, feedback: gradeFeedback }
+            : sub
+        )
+      );
+      toast.success(`Successfully graded ${selectedSubmission.studentName}'s homework!`);
+      setViewStep("submissions");
+    } catch {
+      toast.error("Failed to save grade. Please try again.");
+    } finally {
+      setIsSavingGrade(false);
+    }
   };
 
   // Filtered submissions list in Step 2
@@ -391,10 +367,10 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
 
                 <button
                   type="submit"
-                  disabled={selectedSubmission.status === "Not submitted"}
+                  disabled={selectedSubmission.status === "Not submitted" || isSavingGrade}
                   className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:opacity-90 transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-display uppercase tracking-wider"
                 >
-                  <Award className="w-4 h-4" /> Save Grade & Feedback
+                  <Award className="w-4 h-4" /> {isSavingGrade ? "Saving..." : "Save Grade & Feedback"}
                 </button>
               </form>
             </Card>
@@ -408,11 +384,11 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
   // STEP 2: ASSIGNMENT SUBMISSIONS LIST
   // ----------------------------------------------------
   if (viewStep === "submissions" && selectedAssignment) {
-    const totalStudents = classInfo.students.length;
+    const totalStudents = classInfo.students?.length ?? submissions.length;
     const submittedCount = submissions.filter((s) => s.status === "Submitted" || s.status === "Graded" || s.status === "Late").length;
     const gradedCount = submissions.filter((s) => s.status === "Graded").length;
     const missingCount = submissions.filter((s) => s.status === "Not submitted").length;
-    const compRate = Math.round((submittedCount / (totalStudents || 1)) * 100);
+    const compRate = totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0;
 
     return (
       <div className="space-y-5">
@@ -426,6 +402,15 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
           </button>
         </div>
 
+        {/* Loading state */}
+        {isLoadingSubmissions && (
+          <div className="flex items-center justify-center py-16 text-muted-foreground text-sm gap-2">
+            <Clock className="w-5 h-5 animate-spin" /> Loading submissions…
+          </div>
+        )}
+
+        {!isLoadingSubmissions && (
+        <>
         {/* Brief Stats & Header */}
         <div className="p-6 rounded-3xl bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200/50 dark:border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -576,6 +561,8 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     );
   }

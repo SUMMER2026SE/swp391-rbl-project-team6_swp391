@@ -1,16 +1,12 @@
 package com.midori.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.rendering.PDFRenderer;
-import org.apache.pdfbox.text.PDFTextStripper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,10 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@Slf4j
 public class PdfTextExtractor {
 
-    private static final int MAX_PAGES_FOR_OCR = 5;
+    private static final Logger log = LoggerFactory.getLogger(PdfTextExtractor.class);
 
     public record ExtractionResult(
             String fullText,
@@ -33,65 +28,56 @@ public class PdfTextExtractor {
     public ExtractionResult extract(MultipartFile file) throws IOException {
         validateFile(file);
 
-        try (PDDocument document = PDDocument.load(file.getInputStream())) {
-            int pageCount = document.getNumberOfPages();
-            log.info("PDF loaded: {} pages, size={}", pageCount, file.getSize());
+        org.apache.pdfbox.pdmodel.PDDocument document =
+                org.apache.pdfbox.pdmodel.PDDocument.load(file.getInputStream());
+        int pageCount = document.getNumberOfPages();
+        log.info("PDF loaded: {} pages, size={}", pageCount, file.getSize());
 
-            List<String> pageTexts = new ArrayList<>();
-            StringBuilder fullText = new StringBuilder();
-            boolean likelyScanned = false;
+        List<String> pageTexts = new ArrayList<>();
+        StringBuilder fullText = new StringBuilder();
+        boolean likelyScanned = false;
 
-            for (int i = 0; i < pageCount; i++) {
-                PDPage page = document.getPage(i);
-                String pageText = extractPageText(document, i);
+        for (int i = 0; i < pageCount; i++) {
+            org.apache.pdfbox.pdmodel.PDPage page = document.getPage(i);
+            String pageText = extractPageText(document, i);
 
-                if (pageText == null || pageText.trim().isEmpty()) {
-                    pageText = "[SCANNED_PAGE_" + i + "]";
-                    likelyScanned = true;
-                } else {
-                    pageText = pageText.trim();
-                }
-
-                pageTexts.add(pageText);
-                if (!pageText.startsWith("[SCANNED_PAGE")) {
-                    fullText.append(pageText).append("\n");
-                }
+            if (pageText == null || pageText.trim().isEmpty()) {
+                pageText = "[SCANNED_PAGE_" + i + "]";
+                likelyScanned = true;
+            } else {
+                pageText = pageText.trim();
             }
 
-            String rawText = fullText.toString();
-            boolean textBasedScan = isLikelyScanned(rawText, pageCount);
-
-            log.info("Extraction complete: {} chars, {} pages, scanned={}",
-                    rawText.length(), pageCount, likelyScanned || textBasedScan);
-
-            return new ExtractionResult(
-                    rawText,
-                    pageTexts,
-                    likelyScanned || textBasedScan,
-                    pageCount
-            );
+            pageTexts.add(pageText);
+            if (!pageText.startsWith("[SCANNED_PAGE")) {
+                fullText.append(pageText).append("\n");
+            }
         }
+
+        document.close();
+
+        String rawText = fullText.toString();
+        boolean textBasedScan = isLikelyScanned(rawText, pageCount);
+
+        log.info("Extraction complete: {} chars, {} pages, scanned={}",
+                rawText.length(), pageCount, likelyScanned || textBasedScan);
+
+        return new ExtractionResult(rawText, pageTexts, likelyScanned || textBasedScan, pageCount);
     }
 
-    public String extractTextFromPage(MultipartFile file, int pageIndex) throws IOException {
-        try (PDDocument document = PDDocument.load(file.getInputStream())) {
-            return extractPageText(document, pageIndex);
-        }
+    public byte[] renderPageToImage(MultipartFile file, int pageIndex, float dpi) throws IOException {
+        org.apache.pdfbox.pdmodel.PDDocument document =
+                org.apache.pdfbox.pdmodel.PDDocument.load(file.getInputStream());
+        org.apache.pdfbox.rendering.PDFRenderer renderer = new org.apache.pdfbox.rendering.PDFRenderer(document);
+        BufferedImage image = renderer.renderImageWithDPI(pageIndex, dpi);
+        document.close();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "PNG", baos);
+        return baos.toByteArray();
     }
 
-    public byte[] renderPageToImage(MultipartFile file, int pageIndex, float dpi)
-            throws IOException {
-        try (PDDocument document = PDDocument.load(file.getInputStream())) {
-            PDFRenderer renderer = new PDFRenderer(document);
-            BufferedImage image = renderer.renderImageWithDPI(pageIndex, dpi);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "PNG", baos);
-            return baos.toByteArray();
-        }
-    }
-
-    private String extractPageText(PDDocument document, int pageIndex) throws IOException {
-        PDFTextStripper stripper = new PDFTextStripper();
+    private String extractPageText(org.apache.pdfbox.pdmodel.PDDocument document, int pageIndex) throws IOException {
+        org.apache.pdfbox.text.PDFTextStripper stripper = new org.apache.pdfbox.text.PDFTextStripper();
         stripper.setStartPage(pageIndex + 1);
         stripper.setEndPage(pageIndex + 1);
         return stripper.getText(document);
@@ -99,14 +85,11 @@ public class PdfTextExtractor {
 
     private boolean isLikelyScanned(String text, int pageCount) {
         if (pageCount == 0) return true;
-
         double charsPerPage = (double) text.length() / pageCount;
-
         if (charsPerPage < 100) {
-            log.warn("Very low text density: {} chars/page — likely scanned", charsPerPage);
+            log.warn("Very low text density: {} chars/page -- likely scanned", charsPerPage);
             return true;
         }
-
         String lowerText = text.toLowerCase();
         int questionIndicators = 0;
         String[] markers = {
@@ -117,13 +100,11 @@ public class PdfTextExtractor {
         for (String marker : markers) {
             questionIndicators += countOccurrences(lowerText, marker);
         }
-
         if (questionIndicators < 2 && pageCount > 2) {
-            log.warn("Low question density: {} markers found across {} pages — likely scanned",
+            log.warn("Low question density: {} markers found across {} pages -- likely scanned",
                     questionIndicators, pageCount);
             return true;
         }
-
         return false;
     }
 
