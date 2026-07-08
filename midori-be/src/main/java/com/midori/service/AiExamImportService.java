@@ -1,6 +1,5 @@
 package com.midori.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.AiExamParseResponse;
 import com.midori.ai.AiParsingException;
@@ -9,8 +8,8 @@ import com.midori.ai.AiProviderFactory;
 import com.midori.entity.*;
 import com.midori.exception.BadRequestException;
 import com.midori.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -23,9 +22,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class AiExamImportService {
+
+    private static final Logger log = LoggerFactory.getLogger(AiExamImportService.class);
 
     private final PdfTextExtractor pdfTextExtractor;
     private final AiProviderFactory aiProviderFactory;
@@ -35,6 +34,25 @@ public class AiExamImportService {
     private final UserRepository userRepository;
     private final ClassRepository classRepository;
     private final ObjectMapper objectMapper;
+
+    public AiExamImportService(
+            PdfTextExtractor pdfTextExtractor,
+            AiProviderFactory aiProviderFactory,
+            ExamRepository examRepository,
+            ExamQuestionRepository examQuestionRepository,
+            AiImportJobRepository aiImportJobRepository,
+            UserRepository userRepository,
+            ClassRepository classRepository,
+            ObjectMapper objectMapper) {
+        this.pdfTextExtractor = pdfTextExtractor;
+        this.aiProviderFactory = aiProviderFactory;
+        this.examRepository = examRepository;
+        this.examQuestionRepository = examQuestionRepository;
+        this.aiImportJobRepository = aiImportJobRepository;
+        this.userRepository = userRepository;
+        this.classRepository = classRepository;
+        this.objectMapper = objectMapper;
+    }
 
     public record ImportInitResult(UUID jobId) {}
 
