@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/page-ui";
 import {
   Search,
@@ -22,6 +23,7 @@ interface AssignmentsTabProps {
 }
 
 export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortOption, setSortOption] = useState("deadline");
@@ -29,6 +31,13 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
   const [selectedScore, setSelectedScore] = useState<ScoreBreakdown | null>(null);
   const [doingAssignment, setDoingAssignment] = useState<Assignment | null>(null);
   const [reviewingAssignment, setReviewingAssignment] = useState<Assignment | null>(null);
+
+  const formatDate = (date: string | undefined | null): string => {
+    if (!date || date === "-" || date === "None") return "No deadline";
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "No deadline";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
 
   // Helper: map assignment to status groups
   const getAssignmentStatus = (item: Assignment) => {
@@ -126,6 +135,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           title: activeAssignment.title,
           timeLimit: activeAssignment.timeLimit,
           maxScore: activeAssignment.maxScore,
+          type: activeAssignment.type ?? "Homework",
         }}
         reviewMode={isReview}
         onClose={() => {
@@ -136,6 +146,8 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           if (doingAssignment) doingAssignment.status = "Submitted";
           setDoingAssignment(null);
           setReviewingAssignment(null);
+          void queryClient.invalidateQueries({ queryKey: ["classExams", classInfo.id] });
+          void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
         }}
       />
     );
@@ -267,7 +279,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                       <span className="font-bold text-primary">{item.moduleType}</span>
                       <span>•</span>
                       <span className="flex items-center gap-0.5">
-                        <Calendar className="w-3 h-3" /> Due: {item.deadline}
+                        <Calendar className="w-3 h-3" /> Due: {formatDate(item.deadline)}
                       </span>
                       <span>•</span>
                       <span>Time: {item.timeLimit > 0 ? `${item.timeLimit}m` : "Unlimited"}</span>
@@ -306,7 +318,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
             <div className="text-center py-12">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground/55 mb-3" />
               <p className="text-sm text-muted-foreground font-semibold">
-                No homework matches search or filter.
+                No assignments match your search or filter.
               </p>
             </div>
           )}
@@ -348,7 +360,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                       <Calendar className="w-3.5 h-3.5" /> Deadline
                     </span>
                     <span className="font-semibold text-foreground dark:text-white">
-                      {item.deadline}
+                      {formatDate(item.deadline)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -390,7 +402,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
             <div className="sm:col-span-2 text-center py-12 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-sm text-muted-foreground font-semibold">
-                No homework matches search or filter.
+                No assignments match your search or filter.
               </p>
             </div>
           )}
