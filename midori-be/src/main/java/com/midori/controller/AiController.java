@@ -13,6 +13,7 @@ import com.midori.security.CustomUserDetails;
 import com.midori.service.AiService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,6 +25,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
+@Slf4j
 public class AiController {
 
     private final AiService aiService;
@@ -32,7 +34,11 @@ public class AiController {
     public ResponseEntity<ApiResponse<ChatResponse>> chat(
             @Valid @RequestBody ChatRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ChatResponse response = aiService.chat(userDetails.getId(), request.getConversationId(), request.getMessage());
+        ChatResponse response = aiService.chat(
+                userDetails.getId(),
+                request.getConversationId(),
+                request.getMessage(),
+                request.getSelectedMaterial());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
@@ -62,11 +68,15 @@ public class AiController {
     @PostMapping("/generate-questions")
     public ResponseEntity<ApiResponse<GenerateQuestionsResponse>> generateQuestions(
             @Valid @RequestBody GenerateQuestionsRequest request) {
+        String normalizedType = request.getNormalizedType();
+        log.info("[AiController] generate-questions request: questionType={}, questionCount={}, materialTitle={}",
+                normalizedType, request.getCount(), request.getMaterialTitle());
         GenerateQuestionsResponse response = aiService.generateQuestions(
-                request.getTopic(),
+                request.getMaterialTitle() != null ? request.getMaterialTitle() : request.getTopic(),
                 request.getLevel(),
                 request.getCount(),
-                request.getType());
+                normalizedType,
+                request.getMaterialContent());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -85,7 +95,7 @@ public class AiController {
             @PathVariable UUID messageId,
             @Valid @RequestBody UpdateAiMessageRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        ConversationMessagesResponse response = aiService.updateUserMessage(id, messageId, userDetails.getId(), request.getContent());
+        ConversationMessagesResponse response = aiService.updateUserMessage(id, messageId, userDetails.getId(), request.getContent(), request.getSelectedMaterial());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

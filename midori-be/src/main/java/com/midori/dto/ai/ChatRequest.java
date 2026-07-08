@@ -15,4 +15,15 @@ public class ChatRequest {
     @NotBlank(message = "Message is required")
     @Size(max = 4000, message = "Message must be at most 4000 characters")
     private String message;
+
+    private MaterialInfo selectedMaterial;
+
+    @Data
+    public static class MaterialInfo {
+        private String id;
+        private String title;
+        private String type;
+        private String level;
+        private String content;
+    }
 }

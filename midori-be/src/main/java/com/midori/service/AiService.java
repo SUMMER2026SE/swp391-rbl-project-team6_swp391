@@ -1,6 +1,7 @@
 package com.midori.service;
 
 import com.midori.dto.ai.AiConversationResponse;
+import com.midori.dto.ai.ChatRequest;
 import com.midori.dto.ai.ChatResponse;
 import com.midori.dto.ai.ConversationMessagesResponse;
 import com.midori.dto.ai.GenerateQuestionsResponse;
@@ -17,13 +18,13 @@ public interface AiService {
 
     ConversationMessagesResponse getConversationMessages(UUID conversationId, UUID userId);
 
-    ChatResponse chat(UUID userId, UUID conversationId, String message);
+    ChatResponse chat(UUID userId, UUID conversationId, String message, ChatRequest.MaterialInfo selectedMaterial);
 
-    GenerateQuestionsResponse generateQuestions(String topic, String level, Integer count, String type);
+    GenerateQuestionsResponse generateQuestions(String topic, String level, Integer count, String type, String materialContent);
 
     void deleteConversation(UUID conversationId, UUID userId);
 
     AiConversationResponse updateConversationTitle(UUID conversationId, UUID userId, String title);
 
-    ConversationMessagesResponse updateUserMessage(UUID conversationId, UUID messageId, UUID userId, String content);
+    ConversationMessagesResponse updateUserMessage(UUID conversationId, UUID messageId, UUID userId, String content, ChatRequest.MaterialInfo selectedMaterial);
 }
