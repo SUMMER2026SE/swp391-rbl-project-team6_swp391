@@ -1,39 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Card, LevelBadge, Progress, PageHeader } from "@/components/page-ui";
 import { BookOpen, Clock, ArrowRight, GraduationCap, Award, RefreshCw, Trophy } from "lucide-react";
-import { mockClasses } from "@/mock/classes";
+import { useQuery } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
 import type { DetailedClassInfo, ClassStatus } from "@/types/class-detail";
 
-// ==================== STUDENT ENROLLMENT MOCK DATA ====================
-// Current logged-in student (mock - later will come from auth context/API)
-const currentStudent = {
-  id: 1,
-  name: "Student A",
-};
-
-// Mock enrollments - which classes this student is enrolled in
-// ID format matches mockClasses.id
-const mockEnrollments = [
-  { studentId: 1, classId: "class-1" },
-  { studentId: 1, classId: "class-2" },
-];
-
-// Get enrolled class IDs for current student
-const enrolledClassIds = mockEnrollments
-  .filter((e) => e.studentId === currentStudent.id)
-  .map((e) => e.classId);
-
-// Filter classes to only show enrolled ones
-const enrolledClasses = mockClasses.filter((c) => enrolledClassIds.includes(c.id));
-
-// Get unique levels from enrolled classes (for Learning Modules filtering)
-const enrolledLevels = Array.from(new Set(enrolledClasses.map((c) => c.level)));
-
 // ==================== STUDENT ACCESSIBLE LEVELS ====================
-// Mock: Levels assigned/purchased for this student in Midori
-// This will later come from: purchased courses, enrollment records, assigned classes
-export const studentAccessibleLevels: string[] = enrolledLevels;
+export const studentAccessibleLevels: string[] = ["N5", "N4", "N3", "N2", "N1"];
 
 export const Route = createFileRoute("/student/classes")({
   component: StudentClassesPage,
@@ -289,10 +263,7 @@ function TabButton({
 
 // ==================== EMPTY STATE ====================
 
-function EmptyState({ type }: { type: TabType }) {
-  // Check if student has any enrolled classes at all
-  const hasNoEnrolledClasses = enrolledClasses.length === 0;
-
+function EmptyState({ type, hasNoEnrolledClasses }: { type: TabType; hasNoEnrolledClasses: boolean }) {
   const content = {
     active: {
       icon: BookOpen,
@@ -340,12 +311,47 @@ function StudentClassesPage() {
   const isIndex =
     location.pathname === "/student/classes" || location.pathname === "/student/classes/";
 
+  const { data: dbClasses = [], isLoading, isError } = useQuery({
+    queryKey: ["studentJoinedClasses"],
+    queryFn: () => classesApi.getJoinedClasses(),
+  });
+
+  const enrolledClasses = useMemo(() => {
+    return dbClasses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      level: (c.level || "N5") as any,
+      status: (c.status?.toLowerCase() === "active" ? "active" : "completed") as any,
+      teacher: "Teacher",
+      teacherAvatarInitials: "T",
+      assignments: [],
+      nextDeadline: "-",
+      createdDate: c.createdAt ? c.createdAt.split("T")[0] : "",
+      completionDate: c.updatedAt ? c.updatedAt.split("T")[0] : "",
+    }));
+  }, [dbClasses]);
+
   if (!isIndex) {
     return <Outlet />;
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12 text-red-500">
+        Failed to load classes from the server. Please try again.
+      </div>
+    );
+  }
+
   // Filter enrolled classes by status
-  // Using enrolledClasses (filtered by student's enrollment) instead of mockClasses
   const activeClasses = enrolledClasses
     .filter((c) => c.status === "active")
     .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
@@ -407,7 +413,7 @@ function StudentClassesPage() {
 
       {/* Classes Grid or Empty State */}
       {currentClasses.length === 0 ? (
-        <EmptyState type={activeTab} />
+        <EmptyState type={activeTab} hasNoEnrolledClasses={enrolledClasses.length === 0} />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {currentClasses.map((cls, index) => (

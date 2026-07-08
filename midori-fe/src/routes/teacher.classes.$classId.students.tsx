@@ -1,14 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { getStudentsByClass } from "@/data/teacher-data";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
 import { LevelBadge } from "@/components/teacher/badges";
 import { PreviewSheet, InviteStudentsDialog, ConfirmDialog } from "@/components/teacher/dialogs";
-import { Search, UserPlus, Mail, Send, Trash2, MoreVertical, AlertTriangle } from "lucide-react";
+import { Search, UserPlus, Mail, Send, Trash2, MoreVertical, AlertTriangle, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,11 +29,32 @@ function StudentsPage() {
   const { classId } = Route.useParams();
   const { q: urlQ } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const students = getStudentsByClass(classId);
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"active" | "invited">("active");
   const [open, setOpen] = useState<string | null>(null);
   const [invite, setInvite] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+
+  const { data: rawStudents = [], isLoading } = useQuery({
+    queryKey: ["classStudents", classId],
+    queryFn: () => classesApi.getClassStudents(classId),
+  });
+
+  const students = useMemo(() => {
+    return rawStudents.map((s) => ({
+      id: s.studentId,
+      name: s.fullName || s.email,
+      email: s.email,
+      avatar: s.avatar || "",
+      level: "N5",
+      status: s.status?.toLowerCase() === "pending" ? "invited" : "active",
+      progress: 0,
+      averageScore: "—",
+      attendance: 0,
+      lastActive: "—",
+      weakSkill: "—",
+    }));
+  }, [rawStudents]);
 
   const active = students.filter((s) => s.status !== "invited");
   const invited = students.filter((s) => s.status === "invited");
@@ -44,6 +66,26 @@ function StudentsPage() {
   const handlePageSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     navigate({ search: { q: e.target.value || undefined } });
   };
+
+  const handleRemoveStudent = async (studentId: string) => {
+    try {
+      await classesApi.removeStudentFromClass(classId, studentId);
+      queryClient.invalidateQueries({ queryKey: ["classStudents", classId] });
+      toast.success("Student removed");
+    } catch {
+      toast.error("Failed to remove student.");
+    } finally {
+      setRemoving(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -235,7 +277,7 @@ function StudentsPage() {
         )}
       </PreviewSheet>
 
-      <InviteStudentsDialog open={invite} onOpenChange={setInvite} />
+      <InviteStudentsDialog open={invite} onOpenChange={setInvite} classId={classId} />
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}
@@ -243,7 +285,7 @@ function StudentsPage() {
         description="This action removes the student from this class. You can re-invite later."
         confirmLabel="Remove"
         destructive
-        onConfirm={() => toast.success("Student removed")}
+        onConfirm={() => handleRemoveStudent(removing!)}  
       />
     </div>
   );
