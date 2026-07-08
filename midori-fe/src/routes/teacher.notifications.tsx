@@ -1,9 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { notifications as raw } from "@/data/teacher-data";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getNotifications, markAsRead, markAllAsRead } from "@/lib/api/notifications";
 import { PreviewSheet } from "@/components/teacher/dialogs";
 import {
   Bell,
@@ -14,10 +15,20 @@ import {
   User,
   Settings,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { Notification } from "@/data/teacher-data";
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  time: string;
+  link?: string;
+}
 
 export const Route = createFileRoute("/teacher/notifications")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -182,10 +193,28 @@ function NotificationPreviewSheet({
 function TeacherNotificationsPage() {
   const { q: urlQ } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const [notifications, setNotifications] = useState<Notification[]>(raw);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>("All");
   const [previewNotification, setPreviewNotification] = useState<Notification | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  const { data: apiData, isLoading } = useQuery({
+    queryKey: ["teacherNotifications"],
+    queryFn: () => getNotifications(),
+  });
+
+  const notifications: Notification[] = useMemo(() => {
+    if (!apiData?.notifications) return [];
+    return apiData.notifications.map((n) => ({
+      id: String(n.id),
+      title: n.title,
+      message: n.content,
+      type: n.type?.toLowerCase() ?? "system",
+      read: n.isRead,
+      time: n.createdAt ? n.createdAt.slice(0, 10) : "",
+      link: undefined,
+    }));
+  }, [apiData]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -199,14 +228,24 @@ function TeacherNotificationsPage() {
     return n.title.toLowerCase().includes(q) || n.message.toLowerCase().includes(q) || n.type.toLowerCase().includes(q);
   });
 
-  const handleMarkRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    toast.success("Marked as read");
+  const handleMarkRead = async (id: string) => {
+    try {
+      await markAsRead(Number(id));
+      queryClient.invalidateQueries({ queryKey: ["teacherNotifications"] });
+      toast.success("Marked as read");
+    } catch {
+      toast.error("Failed to mark as read.");
+    }
   };
 
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    toast.success(`All ${notifications.length} notifications marked as read`);
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllAsRead();
+      queryClient.invalidateQueries({ queryKey: ["teacherNotifications"] });
+      toast.success(`All notifications marked as read`);
+    } catch {
+      toast.error("Failed to mark all as read.");
+    }
   };
 
   const handlePreview = (notification: Notification) => {
@@ -275,28 +314,36 @@ function TeacherNotificationsPage() {
 
       {/* Notifications list */}
       <div className="space-y-3">
-        {filteredNotifications.map((notification) => (
-          <NotificationCard
-            key={notification.id}
-            notification={notification}
-            onMarkRead={handleMarkRead}
-            onPreview={handlePreview}
-          />
-        ))}
-        {filteredNotifications.length === 0 && (
-          <Card>
-            <CardContent className="p-10 text-center">
-              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-muted">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <h3 className="text-base font-semibold">No notifications</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {activeTab === "Unread"
-                  ? "You've read all your notifications."
-                  : `No ${activeTab} notifications right now.`}
-              </p>
-            </CardContent>
-          </Card>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            {filteredNotifications.map((notification) => (
+              <NotificationCard
+                key={notification.id}
+                notification={notification}
+                onMarkRead={handleMarkRead}
+                onPreview={handlePreview}
+              />
+            ))}
+            {filteredNotifications.length === 0 && (
+              <Card>
+                <CardContent className="p-10 text-center">
+                  <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-muted">
+                    <Bell className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-base font-semibold">No notifications</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {activeTab === "Unread"
+                      ? "You've read all your notifications."
+                      : `No ${activeTab} notifications right now.`}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
       </div>
 

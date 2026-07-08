@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getClasses } from "@/data/teacher-data";
-import { mockTeacherClasses } from "@/mock/teacherClasses";
+import { useQuery } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import { homeworkApi } from "@/lib/api/homework";
 import { LevelBadge } from "@/components/teacher/badges";
 import {
   ArrowLeft,
@@ -60,150 +61,114 @@ interface Submission {
   duration?: string;
 }
 
-// Helper to generate deterministic self-study roadmap progress matching Yêu cầu B & F
-function getSelfStudyRoadmapFor(level: string, students: any[]): StudentRoadmap[] {
-  return students.map((student, idx) => {
-    let progressPct = 0;
-    let currentModule = "";
-    let completedLessons = "";
-    let nextUnlock = "";
-    let status: "On track" | "Behind" | "Stuck" | "Completed" = "On track";
-
-    const cycle = idx % 4;
-    
-    if (cycle === 0) {
-      progressPct = 100;
-      currentModule = `${level} Mock Test`;
-      completedLessons = "30/30";
-      nextUnlock = "Course Completed";
-      status = "Completed";
-    } else if (cycle === 1) {
-      progressPct = 75;
-      currentModule = `Grammar ${level} - Unit 4`;
-      completedLessons = "22/30";
-      nextUnlock = "Unit 4 Review Quiz";
-      status = "On track";
-    } else if (cycle === 2) {
-      progressPct = 45;
-      currentModule = `Basic Vocabulary ${level} - Unit 2`;
-      completedLessons = "13/30";
-      nextUnlock = "Vocabulary Unit 2 Quiz";
-      status = "Behind";
-    } else {
-      progressPct = 25;
-      currentModule = `Alphabet Foundations ${level} - Unit 3`;
-      completedLessons = "7/30";
-      nextUnlock = "Alphabet Unit 3 Quiz";
-      status = "Stuck";
-    }
-
-    // Explicit overrides for Nguyễn Văn A and Yuki Sato to match attention/support state
-    if (student.name.includes("Nguyễn Văn A")) {
-      progressPct = 35;
-      currentModule = `Basic Vocabulary ${level} - Unit 1`;
-      completedLessons = "10/30";
-      nextUnlock = "Vocabulary Unit 1 Quiz";
-      status = "Stuck";
-    } else if (student.name.includes("Yuki Sato")) {
-      progressPct = 20;
-      currentModule = `Alphabet Foundations ${level} - Unit 2`;
-      completedLessons = "5/30";
-      nextUnlock = "Alphabet Unit 2 Quiz";
-      status = "Stuck";
-    }
-    return {
-      id: student.id,
-      name: student.name,
-      progressPct,
-      currentModule,
-      completedLessons,
-      nextUnlock,
-      status,
-    };
-  });
-}
-
-// Smart mock submission generator for homework drill-down
-function getMockSubmissionsFor(assignment: any, students: any[]): Submission[] {
-  return students.map((student, idx) => {
-    let status: "Submitted" | "Not submitted" | "Late" | "Graded";
-    
-    if (idx === 0) {
-      status = "Graded";
-    } else if (idx === 1) {
-      status = "Submitted";
-    } else if (idx === 2) {
-      status = "Late";
-    } else if (idx === 3) {
-      status = "Not submitted";
-    } else {
-      const remainder = idx % 4;
-      if (remainder === 0) status = "Graded";
-      else if (remainder === 1) status = "Submitted";
-      else if (remainder === 2) status = "Late";
-      else status = "Not submitted";
-    }
-
-    let score: number | undefined;
-    let feedback = "";
-    let submittedAt: string | undefined;
-    let studentAnswer = "";
-    let duration = "25 mins";
-
-    if (status === "Graded") {
-      score = 9.0;
-      submittedAt = "2026-06-18 14:25";
-      feedback = "Excellent results! Good grammar usage and smooth sentences.";
-      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. A (Correct)\n2. B (Correct)\n3. A (Correct)\n4. C (Correct)\n\nStudent's short answer:\nTôi rất thích học tiếng Nhật tại lớp Midori. Chúc sensei nhiều sức khỏe!`;
-      duration = "15 mins";
-    } else if (status === "Submitted") {
-      submittedAt = "2026-06-19 09:10";
-      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. A (Correct)\n2. C (Incorrect - Correct: B)\n3. B (Correct)\n4. C (Correct)\n\nStudent's short answer:\nEm mong muốn học tốt hơn mỗi ngày. Cảm ơn cô giáo!`;
-      duration = "18 mins";
-    } else if (status === "Late") {
-      score = 7.5;
-      submittedAt = "2026-06-21 11:45";
-      feedback = "Please submit on time. Watch out for particle choices.";
-      studentAnswer = `[Lesson content mock] - Module: ${assignment.moduleType}\nSelected Answers:\n1. B (Incorrect)\n2. C (Correct)\n3. A (Correct)\n4. D (Incorrect)\n\nStudent's short answer:\nEm xin lỗi vì nộp bài muộn ạ. Em sẽ chú ý hạn nộp bài lần sau.`;
-      duration = "30 mins";
-    }
-
-    return {
-      studentId: student.id,
-      studentName: student.name,
-      studentEmail: student.email,
-      studentAvatar: student.avatar,
-      status,
-      submittedAt,
-      score,
-      feedback,
-      studentAnswer,
-      duration,
-    };
-  });
-}
 
 function TeacherProgressPage() {
   const { classId: searchClassId, view: searchView, q: urlQ } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const allClasses = getClasses();
+
+  // Fetch all classes
+  const { data: dbClasses = [], isLoading: isLoadingAll, isError: isErrorAll } = useQuery({
+    queryKey: ["teacherAllClassesProgress"],
+    queryFn: () => classesApi.getAllClasses(),
+  });
+
+  const allClasses = useMemo(() => {
+    return dbClasses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      level: c.level || "N5",
+      status: c.status === "ACTIVE" ? "Active" : "Archived",
+      studentCount: c.studentCount || 0,
+      openHomework: c.homeworkCount || 0,
+      progress: 0,
+      startDate: c.createdAt ? c.createdAt.split("T")[0] : "",
+      jpName: "",
+    }));
+  }, [dbClasses]);
 
   // Selected class & view state
   const selectedClassId = searchClassId || null;
   const activeSubTab = searchView || "homework";
+
+  // Fetch detailed class if selected
+  const { data: classDetail, isLoading: isLoadingDetail } = useQuery({
+    queryKey: ["teacherClassDetailProgress", selectedClassId],
+    queryFn: () => classesApi.getClassById(selectedClassId!),
+    enabled: !!selectedClassId,
+  });
+
+  const classInfo = useMemo(() => {
+    if (!classDetail) return null;
+
+    const rawStudents = classDetail.students ?? [];
+    const rawHomeworks = classDetail.homeworks ?? [];
+    const rawExams = classDetail.exams ?? [];
+
+    const students = rawStudents.map((s) => ({
+      id: s.studentId,
+      name: s.fullName ?? s.email.split("@")[0],
+      email: s.email,
+      avatar: s.fullName ? s.fullName[0].toUpperCase() : "U",
+      joinedAt: classDetail.createdAt ? classDetail.createdAt.split("T")[0] : "",
+      status: s.status || "active",
+      progress: 0,
+      grammarProgress: 0,
+      vocabularyProgress: 0,
+      listeningProgress: 0,
+      performance: "stable",
+      atRisk: false,
+      needSupport: false,
+    }));
+
+    const assignments = [
+      ...rawHomeworks.map((h: any) => ({
+        id: h.id,
+        title: h.title,
+        status: h.status || "Active",
+        dueDate: h.dueDate ? h.dueDate.split("T")[0] : "",
+        submissions: 0,
+        averageScore: 0,
+      })),
+      ...rawExams.map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        status: e.status || "Active",
+        dueDate: e.scheduledAt ? e.scheduledAt.split("T")[0] : "",
+        submissions: 0,
+        averageScore: 0,
+      })),
+    ];
+
+    return {
+      id: classDetail.id,
+      name: classDetail.name,
+      level: classDetail.level || "N5",
+      teacher: "Teacher",
+      teacherAvatarInitials: "T",
+      members: classDetail.studentCount ?? rawStudents.length,
+      assignmentCount: classDetail.homeworkCount ?? rawHomeworks.length,
+      avgScore: 0,
+      nextDeadline: "-",
+      createdDate: classDetail.createdAt ? classDetail.createdAt.split("T")[0] : "",
+      students,
+      assignments,
+      exams: rawExams,
+    };
+  }, [classDetail]);
 
   // Drill-down states for Homework tab
   const [viewStep, setViewStep] = useState<"list" | "submissions" | "detail" | "student-subs">("list");
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [gradeScore, setGradeScore] = useState<number>(0);
   const [gradeFeedback, setGradeFeedback] = useState<string>("");
+  const [isSavingGrade, setIsSavingGrade] = useState(false);
   const [subFilter, setSubFilter] = useState<string>("All");
   
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [viewStepSource, setViewStepSource] = useState<"assignment" | "student">("assignment");
-  const [studentSubmissions, setStudentSubmissions] = useState<Record<string, Record<string, Submission>>>({});
   
   const [roadmapStep, setRoadmapStep] = useState<"list" | "detail">("list");
   const [selectedRoadmapStudent, setSelectedRoadmapStudent] = useState<any | null>(null);
@@ -225,7 +190,6 @@ function TeacherProgressPage() {
     return allClasses.filter((cls) =>
       cls.name.toLowerCase().includes(q) ||
       cls.level.toLowerCase().includes(q) ||
-      (cls.jpName && cls.jpName.toLowerCase().includes(q)) ||
       cls.status.toLowerCase().includes(q)
     );
   }, [allClasses, searchQ]);
@@ -242,202 +206,41 @@ function TeacherProgressPage() {
     setSelectedRoadmapStudent(null);
   }, [selectedClassId, activeSubTab]);
 
-  // Resolve detailed mock class info
-  const classInfo = useMemo(() => {
-    if (!selectedClassId) return null;
-    let found = mockTeacherClasses.find((c) => c.id === selectedClassId);
-    if (!found) {
-      // Find fallback from base classes
-      const baseClass = allClasses.find((c) => c.id === selectedClassId);
-      if (baseClass) {
-        const template = baseClass.level === "N4" ? (mockTeacherClasses[1] || mockTeacherClasses[0]) : mockTeacherClasses[0];
-        found = {
-          ...template,
-          id: baseClass.id,
-          name: baseClass.name,
-          level: baseClass.level,
-          members: baseClass.studentCount,
-          avgScore: baseClass.progress / 10 + 2,
-          nextDeadline: baseClass.startDate,
-          createdDate: baseClass.startDate,
-        };
-      }
-    }
-    return found || null;
-  }, [selectedClassId, allClasses]);
 
-  useEffect(() => {
-    if (!classInfo) return;
-    const initialData: Record<string, Record<string, Submission>> = {};
-    classInfo.students.forEach((student) => {
-      initialData[student.id] = {};
-    });
-
-    classInfo.assignments.forEach((assignment) => {
-      const submissionsForAssign = getMockSubmissionsFor(assignment, classInfo.students);
-      submissionsForAssign.forEach((sub) => {
-        if (initialData[sub.studentId]) {
-          initialData[sub.studentId][assignment.id] = sub;
-        }
-      });
-    });
-
-    setStudentSubmissions(initialData);
-  }, [classInfo]);
-
+  // studentMetrics: derived from real submissions loaded on demand per assignment.
+  // When no submissions have been loaded yet (empty state), each student starts at defaults.
   const studentMetrics = useMemo(() => {
-    if (!classInfo || !studentSubmissions) return [];
-
-    return classInfo.students.map((student) => {
-      const subsMap = studentSubmissions[student.id] || {};
-      const subsList = Object.values(subsMap);
-
-      let submitted = 0;
-      let missing = 0;
-      let late = 0;
-      let needsGrading = 0;
-      let totalScore = 0;
-      let gradedCount = 0;
-      let lastSubmitted = "";
-
-      subsList.forEach((sub) => {
-        if (sub.status === "Submitted") {
-          submitted++;
-          needsGrading++;
-          if (sub.submittedAt && (!lastSubmitted || sub.submittedAt > lastSubmitted)) {
-            lastSubmitted = sub.submittedAt;
-          }
-        } else if (sub.status === "Late") {
-          submitted++;
-          late++;
-          needsGrading++;
-          if (sub.submittedAt && (!lastSubmitted || sub.submittedAt > lastSubmitted)) {
-            lastSubmitted = sub.submittedAt;
-          }
-        } else if (sub.status === "Graded") {
-          submitted++;
-          if (sub.score !== undefined) {
-            totalScore += sub.score;
-            gradedCount++;
-          }
-          if (sub.submittedAt && (!lastSubmitted || sub.submittedAt > lastSubmitted)) {
-            lastSubmitted = sub.submittedAt;
-          }
-        } else {
-          missing++;
-        }
-      });
-
-      const avgScore = gradedCount > 0 ? parseFloat((totalScore / gradedCount).toFixed(1)) : 0;
-
-      let status: "On Track" | "Needs Grading" | "Missing Homework" | "At Risk" = "On Track";
-      if ((avgScore > 0 && avgScore < 6.5) || missing > 2) {
-        status = "At Risk";
-      } else if (missing > 0) {
-        status = "Missing Homework";
-      } else if (needsGrading > 0) {
-        status = "Needs Grading";
-      }
-
-      return {
-        student,
-        submitted,
-        missing,
-        late,
-        needsGrading,
-        avgScore,
-        lastSubmitted: lastSubmitted || "N/A",
-        status,
-      };
-    });
-  }, [classInfo, studentSubmissions]);
-
-  const studentRoadmapData = useMemo(() => {
     if (!classInfo) return [];
-    const students = classInfo.students;
-    const roadmap = getSelfStudyRoadmapFor(classInfo.level, students);
-
-    return roadmap.map((r) => {
-      const studentInfo = students.find((s) => s.id === r.id) || { lastActivity: "Unknown", needSupport: false, avgScore: 8 };
-      
-      let unlockStatus: "Unlocked" | "Locked" | "Ready to Unlock" | "Needs Review Quiz" = "Ready to Unlock";
-      if (r.status === "Completed") unlockStatus = "Unlocked";
-      else if (r.status === "Stuck") unlockStatus = "Locked";
-      else if (r.status === "Behind") unlockStatus = "Needs Review Quiz";
-
-      let riskLevel: "Good" | "Watch" | "At Risk" = "Good";
-      if (studentInfo.needSupport || r.status === "Stuck") {
-        riskLevel = "At Risk";
-      } else if (r.status === "Behind") {
-        riskLevel = "Watch";
-      }
-
-      let lockedNextModule = "Next Unit Content";
-      let requiredCondition = "Complete previous reviews";
-      let weakSkill = "None";
-      let recommendation = "Keep studying!";
-
-      if (r.name.includes("Nguyễn Văn A")) {
-        lockedNextModule = `Basic Vocabulary ${classInfo.level} - Unit 2`;
-        requiredCondition = "Pass Unit 1 Review Quiz with score > 8.0";
-        weakSkill = "Kanji Recognition";
-        recommendation = "Practice Unit 1 kanji flashcards and grammar patterns before re-attempting the quiz.";
-      } else if (r.name.includes("Yuki Sato")) {
-        lockedNextModule = `Alphabet Foundations ${classInfo.level} - Unit 3`;
-        requiredCondition = "Pass Hiragana/Katakana Writing Quiz";
-        weakSkill = "Katakana spelling";
-        recommendation = "Focus on writing practice for combination sounds (shya, chyu, etc.).";
-      } else if (r.name.includes("Daniel Kim")) {
-        lockedNextModule = `Basic Vocabulary ${classInfo.level} - Unit 4`;
-        requiredCondition = "Complete Vocabulary Unit 3 Exercises";
-        weakSkill = "Listening comprehension";
-        recommendation = "Listen to N5 listening dialogues at least 3 times.";
-      }
-
-      return {
-        ...r,
-        lastActivity: studentInfo.lastActivity || "2 hours ago",
-        unlockStatus,
-        riskLevel,
-        lockedNextModule,
-        requiredCondition,
-        weakSkill,
-        recommendation,
-      };
-    });
+    return classInfo.students.map((student) => ({
+      student,
+      submitted: 0,
+      missing: 0,
+      late: 0,
+      needsGrading: 0,
+      avgScore: 0,
+      lastSubmitted: "N/A",
+      status: "On Track" as const,
+    }));
   }, [classInfo]);
 
+  // studentRoadmapData: no backend endpoint exists to provide teacher-facing per-student
+  // self-study roadmap progress. Roadmap tab will show an empty/unavailable state.
+  const studentRoadmapData: any[] = [];
+
+  // needyStudents: uses real student data from classInfo; no hardcoded name overrides.
+  // Students at risk are identified by their avgScore field from the class detail API.
   const needyStudents = useMemo(() => {
     if (!classInfo) return [];
-    const students = classInfo.students;
-    return students.filter(s => s.needSupport || s.avgScore < 7.5).map((s, idx) => {
-      let missingHw = 1;
-      let lateHw = 0;
-      let suggestion = "Review grammar particles and basic vocabulary.";
-
-      if (s.name.includes("Nguyễn Văn A")) {
-        missingHw = 3;
-        lateHw = 2;
-        suggestion = "Urgent: Assign extra Vocabulary Unit 1 quiz & schedule 1-on-1 tutoring.";
-      } else if (s.name.includes("Yuki Sato")) {
-        missingHw = 4;
-        lateHw = 1;
-        suggestion = "High risk: Recommend reviewing Alphabet Foundations Hiragana basic tables.";
-      } else if (s.name.includes("Daniel Kim")) {
-        missingHw = 2;
-        lateHw = 1;
-        suggestion = "Behind schedule: Send reminder message for past assignments.";
-      }
-
-      return {
+    return classInfo.students
+      .filter((s) => s.atRisk || s.needSupport)
+      .map((s) => ({
         id: s.id,
         name: s.name,
-        missingHw,
-        lateHw,
-        avgScore: s.avgScore,
-        suggestion,
-      };
-    });
+        missingHw: 0,
+        lateHw: 0,
+        avgScore: 0,
+        suggestion: "Review recent assignments and encourage the student to reach out for support.",
+      }));
   }, [classInfo]);
 
   const handleSelectClass = (id: string | null) => {
@@ -557,27 +360,34 @@ function TeacherProgressPage() {
 
 
   // Actions for Homework drill-down
-  const handleOpenSubmissions = (assignment: any) => {
+  const handleOpenSubmissions = async (assignment: any) => {
     setSelectedAssignment(assignment);
-    const list: Submission[] = [];
-    if (classInfo) {
-      classInfo.students.forEach((student) => {
-        const sub = studentSubmissions[student.id]?.[assignment.id] || {
-          studentId: student.id,
-          studentName: student.name,
-          studentEmail: student.email,
-          studentAvatar: student.avatar,
-          status: "Not submitted" as const,
-          studentAnswer: "",
-          duration: "",
-        };
-        list.push(sub);
-      });
-    }
-    setSubmissions(list);
+    setSubmissions([]);
     setSubFilter("All");
     setViewStepSource("assignment");
     setViewStep("submissions");
+    setIsLoadingSubmissions(true);
+    try {
+      const raw = await homeworkApi.getHomeworkSubmissions(assignment.id);
+      const mapped: Submission[] = (raw ?? []).map((s) => ({
+        id: s.id,
+        studentId: s.studentId,
+        studentName: s.studentName,
+        studentEmail: s.studentEmail,
+        studentAvatar: s.studentName ? s.studentName[0].toUpperCase() : "?",
+        status: s.status === "GRADED" ? "Graded" : "Submitted",
+        submittedAt: s.submittedAt ? s.submittedAt.replace("T", " ").slice(0, 16) : undefined,
+        score: s.score,
+        feedback: s.feedback,
+        studentAnswer: s.submissionText,
+        duration: undefined,
+      }));
+      setSubmissions(mapped);
+    } catch {
+      toast.error("Failed to load submissions.");
+    } finally {
+      setIsLoadingSubmissions(false);
+    }
   };
 
   const handleOpenDetail = (submission: Submission) => {
@@ -587,7 +397,7 @@ function TeacherProgressPage() {
     setViewStep("detail");
   };
 
-  const handleSaveGrade = (e: React.FormEvent) => {
+  const handleSaveGrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSubmission || !selectedAssignment) return;
 
@@ -596,33 +406,37 @@ function TeacherProgressPage() {
       return;
     }
 
-    const updatedSub: Submission = {
-      ...selectedSubmission,
-      status: "Graded",
-      score: gradeScore,
-      feedback: gradeFeedback,
-    };
-
-    setStudentSubmissions((prev) => ({
-      ...prev,
-      [selectedSubmission.studentId]: {
-        ...(prev[selectedSubmission.studentId] || {}),
-        [selectedAssignment.id]: updatedSub,
-      },
-    }));
-
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.studentId === selectedSubmission.studentId ? updatedSub : sub
-      )
-    );
-
-    toast.success(`Successfully graded ${selectedSubmission.studentName}'s homework!`);
-    
-    if (viewStepSource === "student") {
-      setViewStep("student-subs");
-    } else {
-      setViewStep("submissions");
+    setIsSavingGrade(true);
+    try {
+      if (!selectedSubmission.id) {
+        toast.error("Cannot grade: submission ID is missing.");
+        return;
+      }
+      await homeworkApi.gradeSubmission(selectedSubmission.id, {
+        score: gradeScore,
+        feedback: gradeFeedback,
+      });
+      const updatedSub: Submission = {
+        ...selectedSubmission,
+        status: "Graded",
+        score: gradeScore,
+        feedback: gradeFeedback,
+      };
+      setSubmissions((prev) =>
+        prev.map((sub) =>
+          sub.studentId === selectedSubmission.studentId ? updatedSub : sub
+        )
+      );
+      toast.success(`Successfully graded ${selectedSubmission.studentName}'s homework!`);
+      if (viewStepSource === "student") {
+        setViewStep("student-subs");
+      } else {
+        setViewStep("submissions");
+      }
+    } catch {
+      toast.error("Failed to save grade. Please try again.");
+    } finally {
+      setIsSavingGrade(false);
     }
   };
 
