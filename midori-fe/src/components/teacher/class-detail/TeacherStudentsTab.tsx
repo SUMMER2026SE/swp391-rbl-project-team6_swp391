@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { Card } from "@/components/page-ui";
-import { Users, Award, LineChart, Flame, AlertTriangle, Eye, UserPlus } from "lucide-react";
+import { Users, Award, LineChart, Flame, AlertTriangle, Eye, UserPlus, Trash2 } from "lucide-react";
 import type { TeacherClassInfo } from "@/types/teacher-class";
 import { useNavigate } from "@tanstack/react-router";
-import { InviteStudentsDialog } from "@/components/teacher/dialogs";
+import { InviteStudentsDialog, ConfirmDialog } from "@/components/teacher/dialogs";
+import { useQueryClient } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import { toast } from "sonner";
 
 interface TeacherStudentsTabProps {
   classInfo: TeacherClassInfo;
@@ -14,6 +17,21 @@ interface TeacherStudentsTabProps {
 export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ }: TeacherStudentsTabProps) {
   const navigate = useNavigate();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const [removing, setRemoving] = useState<any | null>(null);
+
+  const handleRemoveStudent = async (studentId: string) => {
+    try {
+      await classesApi.removeStudentFromClass(classInfo.id, studentId);
+      toast.success("Student removed successfully!");
+      void queryClient.invalidateQueries({ queryKey: ["classStudents", classInfo.id] });
+      void queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", classInfo.id] });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to remove student.");
+    } finally {
+      setRemoving(null);
+    }
+  };
 
   const filteredStudents = useMemo(() => {
     if (!urlQ) return classInfo.students;
@@ -66,13 +84,21 @@ export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ }: TeacherStud
               {/* Header profile */}
               <div className="flex items-center gap-3 mb-4">
                 <div
-                  className={`w-10 h-10 rounded-full font-black text-xs grid place-items-center ${
+                  className={`w-10 h-10 rounded-full font-black text-xs grid place-items-center overflow-hidden ${
                     student.needSupport
                       ? "bg-red-500/10 text-red-500"
                       : "bg-primary/10 text-primary"
                   }`}
                 >
-                  {student.avatar}
+                  {student.avatar && (student.avatar.startsWith("http") || student.avatar.includes("/")) ? (
+                    <img
+                      src={student.avatar}
+                      alt={student.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    student.avatar || student.name[0]
+                  )}
                 </div>
                 <div>
                   <h4 className="font-display font-bold text-sm text-foreground dark:text-white leading-tight">
@@ -124,12 +150,18 @@ export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ }: TeacherStud
             </div>
 
             {/* Quick Actions */}
-            <div className="flex border-t border-slate-100 dark:border-white/5 pt-3">
+            <div className="flex gap-2 border-t border-slate-100 dark:border-white/5 pt-3">
               <button
                 onClick={() => navigate({ to: "/teacher/progress", search: { classId: classInfo.id, view: "homework" } })}
-                className="w-full py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold transition flex items-center justify-center gap-1"
+                className="flex-1 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-bold transition flex items-center justify-center gap-1"
               >
                 <Eye className="w-3.5 h-3.5" /> View in Progress
+              </button>
+              <button
+                onClick={() => setRemoving(student)}
+                className="py-1.5 px-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[10px] font-bold transition flex items-center justify-center gap-1 shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Remove
               </button>
             </div>
           </Card>
@@ -140,9 +172,19 @@ export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ }: TeacherStud
       <InviteStudentsDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
+        classId={classInfo.id}
         className={classInfo.name}
         classLevel={classInfo.level}
         teacherName={classInfo.teacher}
+      />
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(o) => !o && setRemoving(null)}
+        title="Remove Student"
+        description={`Are you sure you want to remove this student from this class?\n\nStudent: ${removing?.name ?? ""}`}
+        confirmLabel="Remove"
+        destructive
+        onConfirm={() => handleRemoveStudent(removing.id)}
       />
     </div>
   );
