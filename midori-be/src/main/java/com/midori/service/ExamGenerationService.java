@@ -1,6 +1,8 @@
 package com.midori.service;
 
 import com.midori.dto.request.CreateExamRequest;
+import com.midori.dto.request.UpdateExamQuestionsRequest;
+import com.midori.dto.request.UpdateExamRequest;
 import com.midori.dto.response.ExamResponse;
 import com.midori.dto.response.StudentExamResponse;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,4 +33,12 @@ public interface ExamGenerationService {
     StudentExamResponse submitStudentExam(UUID studentExamId, List<Integer> answers);
 
     ExamResponse assignExamToClass(UUID examId, UUID classId);
+
+    List<ExamResponse> getExamsByClass(UUID classId);
+
+    List<StudentExamResponse> getStudentExamResultsByClass(UUID classId);
+
+    ExamResponse updateExam(UUID examId, UpdateExamRequest request);
+
+    ExamResponse updateExamQuestions(UUID examId, UpdateExamQuestionsRequest request);
 }

@@ -1,6 +1,9 @@
 package com.midori.service;
 
 import com.midori.dto.request.CreateExamRequest;
+import com.midori.dto.request.UpdateExamQuestionsRequest;
+import com.midori.dto.request.UpdateExamRequest;
+import com.midori.dto.response.ExamQuestionResponse;
 import com.midori.dto.response.ExamResponse;
 import com.midori.dto.response.StudentExamResponse;
 import com.midori.entity.*;
@@ -29,6 +32,7 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
     private final VocabularyWordRepository vocabularyWordRepository;
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
+    private final TeacherQuestionRepository teacherQuestionRepository;
 
     private static final Random RANDOM = new Random();
 
@@ -37,6 +41,15 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
     public ExamResponse createExam(CreateExamRequest request, UserDetails userDetails) {
         User teacher = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        ExamStatus initialStatus = ExamStatus.DRAFT;
+        if (request.getStatus() != null) {
+            try {
+                initialStatus = ExamStatus.valueOf(request.getStatus().toUpperCase());
+            } catch (Exception e) {
+                // Keep default
+            }
+        }
 
         Exam exam = Exam.builder()
                 .title(request.getTitle())
@@ -52,8 +65,17 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 .difficultyMedium(request.getDifficultyMedium() != null ? request.getDifficultyMedium() : 0)
                 .difficultyHard(request.getDifficultyHard() != null ? request.getDifficultyHard() : 0)
                 .createdBy(teacher)
-                .status(ExamStatus.DRAFT)
+                .status(initialStatus)
                 .build();
+
+        if (request.getClassIds() != null && !request.getClassIds().isEmpty()) {
+            String classIdStr = request.getClassIds().get(0);
+            if (classIdStr != null && !classIdStr.trim().isEmpty()) {
+                ClassEntity classEntity = classRepository.findById(UUID.fromString(classIdStr))
+                        .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
+                exam.setAssignedClass(classEntity);
+            }
+        }
 
         exam = examRepository.save(exam);
 
@@ -61,11 +83,51 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         exam.setQuestions(questions);
         exam = examRepository.save(exam);
 
+        if (exam.getAssignedClass() != null && exam.getStatus() == ExamStatus.PUBLISHED) {
+            List<User> students = exam.getAssignedClass().getStudents();
+            if (students != null) {
+                for (User student : students) {
+                    try {
+                        startStudentExam(exam.getId(), student.getId());
+                    } catch (Exception e) {
+                        // Log or ignore if student exam already exists
+                    }
+                }
+            }
+        }
+
         return mapToExamResponse(exam);
     }
 
     private List<ExamQuestion> generateQuestionsFromBank(Exam exam, CreateExamRequest request) {
         List<ExamQuestion> allQuestions = new ArrayList<>();
+
+        if (request.getQuestionIds() != null && !request.getQuestionIds().isEmpty()) {
+            List<TeacherQuestion> tqs = teacherQuestionRepository.findAllById(request.getQuestionIds());
+            for (int i = 0; i < tqs.size(); i++) {
+                TeacherQuestion tq = tqs.get(i);
+                
+                Difficulty diff;
+                try {
+                    diff = Difficulty.valueOf(tq.getDifficulty().toUpperCase());
+                } catch (Exception e) {
+                    diff = Difficulty.MEDIUM;
+                }
+
+                ExamQuestion question = ExamQuestion.builder()
+                        .exam(exam)
+                        .questionText(tq.getPrompt())
+                        .options(new ArrayList<>(tq.getOptions()))
+                        .correctAnswerIndex(tq.getCorrectAnswerIndex())
+                        .explanation(tq.getExplanation())
+                        .difficulty(diff)
+                        .displayOrder(i + 1)
+                        .points(tq.getPoints() != null ? tq.getPoints() : 1)
+                        .build();
+                allQuestions.add(question);
+            }
+            return examQuestionRepository.saveAll(allQuestions);
+        }
 
         GrammarLevel level = GrammarLevel.valueOf(request.getLevel());
 
@@ -315,7 +377,7 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         StudentExam studentExam = studentExamRepository.findByIdWithQuestions(studentExamId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student exam not found"));
 
-        if (studentExam.getStatus() == StudentExamStatus.SUBMITTED) {
+        if (studentExam.getStatus() == StudentExamStatus.GRADED || studentExam.getStatus() == StudentExamStatus.SUBMITTED) {
             throw new BadRequestException("Exam already submitted");
         }
 
@@ -338,7 +400,7 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
 
         studentExamQuestionRepository.saveAll(questions);
 
-        studentExam.setStatus(StudentExamStatus.SUBMITTED);
+        studentExam.setStatus(StudentExamStatus.GRADED);
         studentExam.setSubmittedAt(java.time.Instant.now());
         studentExam.setScore(score);
         studentExam.setTotalPoints(totalPoints);
@@ -350,6 +412,7 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ExamResponse getExamById(UUID examId) {
         Exam exam = examRepository.findByIdWithQuestions(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -357,15 +420,17 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExamResponse> getAllExams() {
-        return examRepository.findAll().stream()
+        return examRepository.findAllWithQuestions().stream()
                 .map(this::mapToExamResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExamResponse> getExamsByTeacher(UUID teacherId) {
-        return examRepository.findByCreatedById(teacherId).stream()
+        return examRepository.findAllByCreatorWithQuestions(teacherId).stream()
                 .map(this::mapToExamResponse)
                 .collect(Collectors.toList());
     }
@@ -377,6 +442,20 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         exam.setStatus(ExamStatus.PUBLISHED);
         exam = examRepository.save(exam);
+
+        if (exam.getAssignedClass() != null) {
+            List<User> students = exam.getAssignedClass().getStudents();
+            if (students != null) {
+                for (User student : students) {
+                    try {
+                        startStudentExam(exam.getId(), student.getId());
+                    } catch (Exception e) {
+                        // ignore/skip
+                    }
+                }
+            }
+        }
+
         return mapToExamResponse(exam);
     }
 
@@ -386,6 +465,138 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         examRepository.delete(exam);
+    }
+
+    @Override
+    @Transactional
+    public ExamResponse updateExam(UUID examId, UpdateExamRequest request) {
+        Exam exam = examRepository.findByIdWithQuestions(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            exam.setTitle(request.getTitle().trim());
+        }
+        if (request.getLevel() != null && !request.getLevel().isBlank()) {
+            try {
+                exam.setLevel(GrammarLevel.valueOf(request.getLevel().toUpperCase()));
+            } catch (Exception e) {
+                throw new BadRequestException("Invalid level: " + request.getLevel());
+            }
+        }
+        if (request.getTimeLimit() != null) {
+            exam.setTimeLimit(request.getTimeLimit());
+        }
+        if (request.getTotalQuestions() != null) {
+            exam.setTotalQuestions(request.getTotalQuestions());
+        }
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            try {
+                ExamStatus newStatus = ExamStatus.valueOf(request.getStatus().toUpperCase());
+                exam.setStatus(newStatus);
+
+                if (newStatus == ExamStatus.PUBLISHED && exam.getAssignedClass() != null) {
+                    List<User> students = exam.getAssignedClass().getStudents();
+                    if (students != null) {
+                        for (User student : students) {
+                            try {
+                                startStudentExam(exam.getId(), student.getId());
+                            } catch (Exception e) {
+                                // ignore duplicate student exam
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                throw new BadRequestException("Invalid status: " + request.getStatus());
+            }
+        }
+        if (request.getCategory() != null) {
+            exam.setCategory(request.getCategory());
+        }
+        if (request.getClassIds() != null && !request.getClassIds().isEmpty()) {
+            String classIdStr = request.getClassIds().get(0);
+            if (classIdStr != null && !classIdStr.trim().isEmpty()) {
+                ClassEntity classEntity = classRepository.findById(UUID.fromString(classIdStr))
+                        .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
+                exam.setAssignedClass(classEntity);
+            }
+        }
+
+        exam = examRepository.save(exam);
+        return mapToExamResponse(exam);
+    }
+
+    @Override
+    @Transactional
+    public ExamResponse updateExamQuestions(UUID examId, UpdateExamQuestionsRequest request) {
+        Exam exam = examRepository.findByIdWithQuestions(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        if (request.getQuestions() == null) {
+            throw new BadRequestException("Questions payload is required");
+        }
+
+        // Index existing questions by id for diff (update vs create vs delete)
+        Map<UUID, ExamQuestion> existing = new HashMap<>();
+        if (exam.getQuestions() != null) {
+            for (ExamQuestion q : exam.getQuestions()) {
+                existing.put(q.getId(), q);
+            }
+        }
+
+        List<ExamQuestion> incoming = new ArrayList<>();
+        Set<UUID> keepIds = new HashSet<>();
+
+        for (int i = 0; i < request.getQuestions().size(); i++) {
+            var payload = request.getQuestions().get(i);
+            ExamQuestion q;
+            Integer points = payload.getPoints() != null ? payload.getPoints() : 1;
+            Integer order = payload.getDisplayOrder() != null ? payload.getDisplayOrder() : (i + 1);
+            Integer correct = payload.getCorrectAnswerIndex() != null ? payload.getCorrectAnswerIndex() : 0;
+            List<String> options = payload.getOptions() != null ? new ArrayList<>(payload.getOptions()) : new ArrayList<>();
+
+            if (payload.getId() != null && !payload.getId().isBlank()) {
+                try {
+                    UUID existingId = UUID.fromString(payload.getId());
+                    if (existing.containsKey(existingId)) {
+                        q = existing.get(existingId);
+                        q.setQuestionText(payload.getPrompt());
+                        q.setOptions(options);
+                        q.setCorrectAnswerIndex(correct);
+                        q.setPoints(points);
+                        q.setDisplayOrder(order);
+                        keepIds.add(existingId);
+                        incoming.add(q);
+                        continue;
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // not a valid UUID → treat as new
+                }
+            }
+
+            q = ExamQuestion.builder()
+                    .exam(exam)
+                    .questionText(payload.getPrompt())
+                    .options(options)
+                    .correctAnswerIndex(correct)
+                    .displayOrder(order)
+                    .points(points)
+                    .difficulty(Difficulty.MEDIUM)
+                    .build();
+            incoming.add(q);
+        }
+
+        // Replace the whole collection — orphanRemoval=true takes care of deletes,
+        // and Hibernate persists any entity instances we add (kept ones are still
+        // attached because we reused the same managed objects, new ones are transient).
+        exam.setQuestions(new ArrayList<>(incoming));
+
+        if (exam.getTotalQuestions() == null || exam.getTotalQuestions() != incoming.size()) {
+            exam.setTotalQuestions(incoming.size());
+        }
+
+        exam = examRepository.save(exam);
+        return mapToExamResponse(exam);
     }
 
     @Override
@@ -412,6 +623,7 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
         exam.setAssignedClass(classEntity);
+        exam.setStatus(ExamStatus.PUBLISHED);
         exam = examRepository.save(exam);
 
         List<User> students = classEntity.getStudents();
@@ -422,23 +634,59 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         return mapToExamResponse(exam);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ExamResponse> getExamsByClass(UUID classId) {
+        return examRepository.findByAssignedClassIdWithQuestions(classId).stream()
+                .map(this::mapToExamResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StudentExamResponse> getStudentExamResultsByClass(UUID classId) {
+        return studentExamRepository.findByExamAssignedClassId(classId).stream()
+                .map(se -> mapToStudentExamResponse(se, false))
+                .collect(Collectors.toList());
+    }
+
     private ExamResponse mapToExamResponse(Exam exam) {
+        List<ExamQuestionResponse> questionDtos = null;
+        if (exam.getQuestions() != null) {
+            questionDtos = exam.getQuestions().stream()
+                    .sorted((a, b) -> {
+                        Integer oa = a.getDisplayOrder() != null ? a.getDisplayOrder() : 0;
+                        Integer ob = b.getDisplayOrder() != null ? b.getDisplayOrder() : 0;
+                        return oa.compareTo(ob);
+                    })
+                    .map(q -> ExamQuestionResponse.builder()
+                            .id(q.getId())
+                            .prompt(q.getQuestionText())
+                            .options(q.getOptions() != null ? new ArrayList<>(q.getOptions()) : new ArrayList<>())
+                            .correctAnswerIndex(q.getCorrectAnswerIndex())
+                            .points(q.getPoints() != null ? q.getPoints() : 1)
+                            .displayOrder(q.getDisplayOrder())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
         return ExamResponse.builder()
                 .id(exam.getId())
                 .title(exam.getTitle())
-                .level(exam.getLevel().name())
+                .level(exam.getLevel() != null ? exam.getLevel().name() : null)
                 .totalQuestions(exam.getTotalQuestions())
                 .timeLimit(exam.getTimeLimit())
-                .examMode(exam.getExamMode().name())
-                .questionReuse(exam.getQuestionReuse().name())
+                .examMode(exam.getExamMode() != null ? exam.getExamMode().name() : null)
+                .questionReuse(exam.getQuestionReuse() != null ? exam.getQuestionReuse().name() : null)
                 .randomizeAnswers(exam.getRandomizeAnswers())
                 .category(exam.getCategory())
                 .difficultyEasy(exam.getDifficultyEasy())
                 .difficultyMedium(exam.getDifficultyMedium())
                 .difficultyHard(exam.getDifficultyHard())
-                .status(exam.getStatus().name())
+                .status(exam.getStatus() != null ? exam.getStatus().name() : null)
                 .createdAt(exam.getCreatedAt())
                 .updatedAt(exam.getUpdatedAt())
+                .assignedClassId(exam.getAssignedClass() != null ? exam.getAssignedClass().getId() : null)
+                .questions(questionDtos != null ? questionDtos : new ArrayList<>())
                 .build();
     }
 
@@ -468,6 +716,8 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 .score(se.getScore())
                 .totalPoints(se.getTotalPoints())
                 .percentage(se.getPercentage())
+                .feedback(se.getFeedback())
+                .gradedAt(se.getGradedAt())
                 .questions(questions)
                 .createdAt(se.getCreatedAt())
                 .build();
