@@ -79,6 +79,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/teacher/**").authenticated()
+                        .requestMatchers("/api/ai/**").authenticated()
                         .requestMatchers("/api/vocabulary/**").authenticated()
                         .requestMatchers("/api/kanji/**").authenticated()
                         .anyRequest().authenticated())
