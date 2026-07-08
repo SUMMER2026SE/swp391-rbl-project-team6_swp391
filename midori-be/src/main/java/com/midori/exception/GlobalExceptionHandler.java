@@ -57,6 +57,34 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Validation failed", errors));
     }
 
+    @ExceptionHandler(AIProcessingException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAIProcessingException(AIProcessingException ex) {
+        log.error("AI processing failed: provider={}, error={}", ex.getProvider(), ex.getMessage(), ex);
+        String message = "AI processing failed";
+        if (ex.getProvider() != null) {
+            message = "AI processing failed using " + ex.getProvider() + ": " + ex.getMessage();
+        }
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(message));
+    }
+
+    @ExceptionHandler(PDFProcessingException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePDFProcessingException(PDFProcessingException ex) {
+        log.error("PDF processing failed: error={}", ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("PDF processing failed: " + ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
+        log.error("Illegal state: {}", ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unhandled exception in request", ex);
