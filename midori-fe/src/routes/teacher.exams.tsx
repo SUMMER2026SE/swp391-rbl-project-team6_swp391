@@ -1,6 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
+import {
+  examsApi,
+  mapExamUiStatus,
+  type ExamResponse,
+  type ExamQuestionResponse as ApiQuestion,
+} from "@/lib/api/exams";
+import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
+import { classesApi } from "@/lib/api/classes";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import {
   Plus,
   Search,
@@ -35,6 +47,7 @@ import {
   ChevronUp,
   Circle,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -62,6 +75,7 @@ interface ManualExam {
   time: number;
   status: ExamStatus;
   questions: ManualQuestion[];
+  totalQuestions: number;
   date: string;
 }
 
@@ -75,141 +89,6 @@ interface GeneratedQuestion {
   difficulty: Difficulty;
   jlptLevel: JLPTLevel;
 }
-
-// ─── Initial Data ─────────────────────────────────────────────────────────────
-
-const initialExams: ManualExam[] = [
-  {
-    id: "exam_1",
-    title: "JLPT N4 Grammar Final",
-    level: "N4",
-    examType: "Grammar",
-    time: 60,
-    status: "published",
-    questions: [
-      {
-        id: "q_1",
-        question: "Nakamura san to kekkon shite imasu.",
-        options: [
-          "Nakamura san wa gakusei desu",
-          "Nakamura san wa ishiki ga arimasu",
-          "Nakamura san to kekkon shite imasu",
-          "Nakamura san wa nihongo o benkyou shite imasu",
-        ],
-        correctAnswer: 2,
-        explanation: "To be married = to live together with a spouse",
-        score: 5,
-      },
-      {
-        id: "q_2",
-        question: "Kono hon o yomu koto ga dekimasu.",
-        options: [
-          "I can read this book",
-          "I must read this book",
-          "I will read this book",
-          "I like reading this book",
-        ],
-        correctAnswer: 0,
-        explanation: "Koto ga dekimasu expresses ability.",
-        score: 5,
-      },
-    ],
-    date: "2 weeks ago",
-  },
-  {
-    id: "exam_2",
-    title: "JLPT N3 Vocabulary Test",
-    level: "N3",
-    examType: "Vocabulary",
-    time: 45,
-    status: "published",
-    questions: [
-      {
-        id: "q_3",
-        question: "Kankyou (environment) no imi wo machiga te imasu.",
-        options: ["shizen", "shuui / surroundings", "keizai", "bunka"],
-        correctAnswer: 1,
-        explanation: "Kankyou means environment/surroundings.",
-        score: 5,
-      },
-    ],
-    date: "3 weeks ago",
-  },
-  {
-    id: "exam_3",
-    title: "N2 Listening Comprehension",
-    level: "N2",
-    examType: "Listening",
-    time: 40,
-    status: "pending",
-    questions: [],
-    date: "1 day ago",
-  },
-  {
-    id: "exam_4",
-    title: "N5 Kanji Quiz",
-    level: "N5",
-    examType: "Vocabulary",
-    time: 20,
-    status: "published",
-    questions: [],
-    date: "1 month ago",
-  },
-  {
-    id: "exam_5",
-    title: "JLPT N3 Mixed Practice",
-    level: "N3",
-    examType: "Mixed",
-    time: 90,
-    status: "draft",
-    questions: [
-      {
-        id: "q_4",
-        question: "Nagame nagara ronbun o kakimashita.",
-        options: [
-          "While watching the scenery, I wrote the paper",
-          "I wrote the paper after watching the scenery",
-          "I will write the paper after watching the scenery",
-          "I like watching the scenery and writing papers",
-        ],
-        correctAnswer: 0,
-        explanation: "~nagara means while doing something.",
-        score: 5,
-      },
-    ],
-    date: "Just now",
-  },
-  {
-    id: "exam_6",
-    title: "JLPT N1 Advanced Grammar",
-    level: "N1",
-    examType: "Grammar",
-    time: 60,
-    status: "draft",
-    questions: [],
-    date: "3 days ago",
-  },
-  {
-    id: "exam_7",
-    title: "N5 Basic Vocabulary",
-    level: "N5",
-    examType: "Vocabulary",
-    time: 30,
-    status: "published",
-    questions: [],
-    date: "1 week ago",
-  },
-  {
-    id: "exam_8",
-    title: "JLPT N4 Reading Comprehension",
-    level: "N4",
-    examType: "Grammar",
-    time: 50,
-    status: "pending",
-    questions: [],
-    date: "4 days ago",
-  },
-];
 
 // Sample AI generated questions (for PDF Generator — DO NOT MODIFY)
 const sampleGeneratedQuestions: GeneratedQuestion[] = [
@@ -336,13 +215,103 @@ function createEmptyQuestion(jlptLevel: JLPTLevel = "N3"): ManualQuestion {
   };
 }
 
+function mapApiQuestionsToManual(questions?: ApiQuestion[]): ManualQuestion[] {
+  if (!questions || questions.length === 0) return [];
+  return questions
+    .slice()
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+    .map((q): ManualQuestion => ({
+      id: q.id,
+      question: q.prompt,
+      options: q.options && q.options.length > 0 ? q.options : ["", "", "", ""],
+      correctAnswer: typeof q.correctAnswerIndex === "number" ? q.correctAnswerIndex : 0,
+      explanation: "",
+      score: typeof q.points === "number" ? q.points : 5,
+    }));
+}
+
+function mapApiExamToManual(api: ExamResponse): ManualExam {
+  return {
+    id: api.id,
+    title: api.title,
+    level: api.level as JLPTLevel,
+    examType: (api.category || "Grammar") as ExamType,
+    time: api.timeLimit,
+    status: mapExamUiStatus(api.status),
+    totalQuestions: api.totalQuestions,
+    questions: mapApiQuestionsToManual(api.questions),
+    date: api.createdAt ? new Date(api.createdAt).toLocaleDateString() : "—",
+  };
+}
+
+function manualQuestionsToPayload(questions: ManualQuestion[]): {
+  id?: string;
+  prompt: string;
+  options: string[];
+  correctAnswerIndex: number;
+  points: number;
+  displayOrder: number;
+}[] {
+  return questions.map((q, idx) => {
+    const isExistingUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q.id);
+    return {
+      ...(isExistingUuid ? { id: q.id } : {}),
+      prompt: q.question,
+      options: q.options.map((o) => o ?? ""),
+      correctAnswerIndex: q.correctAnswer,
+      points: q.score,
+      displayOrder: idx + 1,
+    };
+  });
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export const Route = createFileRoute("/teacher/exams")({ component: ExamsPage });
+export const Route = createFileRoute("/teacher/exams")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    classId: typeof search.classId === "string" ? search.classId : undefined,
+  }),
+  component: ExamsPage,
+});
 
 function ExamsPage() {
-  // ── Exams list state ──────────────────────────────────────────────────────
-  const [exams, setExams] = useState<ManualExam[]>(initialExams);
+  const { user } = useAuth();
+  const { classId } = Route.useSearch() as any;
+  const queryClient = useQueryClient();
+
+  const { data: dbExams = [], isLoading, refetch } = useQuery({
+    queryKey: ["exams", classId || user?.id],
+    queryFn: () => {
+      if (classId) {
+        return examsApi.getExamsByClass(classId);
+      }
+      return examsApi.getExamsByTeacher(user!.id);
+    },
+    enabled: !!classId || !!user?.id,
+  });
+
+  const { data: filteredClass } = useQuery({
+    queryKey: ["teacherClassDetail", classId],
+    queryFn: () => classesApi.getClassById(classId!),
+    enabled: !!classId,
+  });
+
+  const exams = useMemo((): ManualExam[] => {
+    return (dbExams as ExamResponse[]).map((e): ManualExam => ({
+      id: e.id,
+      title: e.title,
+      level: e.level as JLPTLevel,
+      examType: (e.category || "Grammar") as ExamType,
+      time: e.timeLimit,
+      status: mapExamUiStatus(e.status),
+      totalQuestions: e.totalQuestions,
+      questions: mapApiQuestionsToManual(e.questions),
+      date: e.createdAt
+        ? new Date(e.createdAt).toLocaleDateString()
+        : "—",
+    }));
+  }, [dbExams]);
+
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -541,54 +510,131 @@ function ExamsPage() {
     if (editingManualQuestion?.id === id) setEditingManualQuestion(null);
   };
 
-  const handleSaveManualExam = (status: ExamStatus = "draft") => {
+  const handleSaveManualExam = async (status: ExamStatus = "draft") => {
     if (!manualDraft.title?.trim()) {
-      alert("Please enter an exam title.");
+      toast.error("Please enter an exam title.");
       return;
     }
-    const newExam: ManualExam = {
-      id: `exam_${Date.now()}`,
-      title: manualDraft.title!,
-      level: manualDraft.level || "N3",
-      examType: manualDraft.examType || "Grammar",
-      time: manualDraft.time || 45,
-      status,
-      questions: manualDraft.questions || [],
-      date: "Just now",
-    };
-    setExams((prev) => [newExam, ...prev]);
-    setShowManualCreate(false);
-    resetManualDraft();
-    setCurrentPage(1);
-    alert(status === "published" ? `Exam "${newExam.title}" published!` : `Draft saved!`);
+    const draftQuestions = manualDraft.questions || [];
+    if (draftQuestions.length === 0) {
+      toast.error("Please add at least one question.");
+      return;
+    }
+    for (let i = 0; i < draftQuestions.length; i++) {
+      const q = draftQuestions[i];
+      if (!q.question?.trim()) {
+        toast.error(`Question ${i + 1} has an empty question prompt.`);
+        return;
+      }
+      if (!q.options || q.options.length < 2) {
+        toast.error(`Question ${i + 1} must have at least 2 options.`);
+        return;
+      }
+      if (q.options.some((opt) => !opt?.trim())) {
+        toast.error(`Please fill out all options for Question ${i + 1}.`);
+        return;
+      }
+    }
+    try {
+      const savedQuestionIds: string[] = [];
+      const draftQuestions = manualDraft.questions || [];
+      for (const q of draftQuestions) {
+        const res = await teacherQuestionsApi.createQuestion({
+          prompt: q.question,
+          options: q.options,
+          correctAnswerIndex: q.correctAnswer,
+          points: q.score,
+          questionType: "MULTIPLE_CHOICE",
+          difficulty: "MEDIUM",
+          explanation: q.explanation || "Exam manual question",
+        });
+        savedQuestionIds.push(res.id);
+      }
+
+      await examsApi.createExam({
+        title: manualDraft.title,
+        level: manualDraft.level || "N3",
+        totalQuestions: draftQuestions.length,
+        timeLimit: manualDraft.time || 45,
+        classIds: classId ? [classId] : [],
+        questionIds: savedQuestionIds,
+        status: status === "published" ? "PUBLISHED" : "DRAFT",
+      });
+
+      toast.success(status === "published" ? "Exam published & assigned!" : "Draft saved!");
+      refetch();
+      setShowManualCreate(false);
+      resetManualDraft();
+      setCurrentPage(1);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to save exam.");
+    }
   };
 
   // ── View / Edit / Delete handlers ─────────────────────────────────────────
   const handleViewExam = (exam: ManualExam) => setShowViewExam(exam);
   const handleCloseView = () => setShowViewExam(null);
 
-  const handleOpenEdit = (exam: ManualExam) => {
-    setShowEditExam({ ...exam, questions: [...exam.questions] });
+  const handleOpenEdit = async (exam: ManualExam) => {
+    try {
+      const fresh = await examsApi.getExamById(exam.id);
+      setShowEditExam(mapApiExamToManual(fresh));
+    } catch (err: any) {
+      // Fallback to whatever is in the list (questions may already be cached there now).
+      setShowEditExam({ ...exam, questions: [...exam.questions] });
+      toast.warning(
+        err?.message ||
+          "Could not fetch the latest exam detail; showing local copy.",
+      );
+    }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!showEditExam) return;
-    setExams((prev) => prev.map((e) => (e.id === showEditExam.id ? { ...showEditExam } : e)));
-    setShowEditExam(null);
-    alert("Exam updated successfully!");
+    try {
+      await examsApi.updateExam(showEditExam.id, {
+        title: showEditExam.title,
+        level: showEditExam.level,
+        timeLimit: showEditExam.time,
+        totalQuestions: showEditExam.questions.length,
+        status: showEditExam.status === "published" ? "PUBLISHED" : "DRAFT",
+      });
+      await examsApi.updateExamQuestions(showEditExam.id, {
+        questions: manualQuestionsToPayload(showEditExam.questions),
+      });
+      toast.success("Exam updated successfully!");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["exams"] }),
+        queryClient.invalidateQueries({ queryKey: ["exam", showEditExam.id] }),
+      ]);
+      await refetch();
+      setShowEditExam(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save exam changes.");
+    }
   };
 
-  const handleDeleteExam = (id: string) => {
-    setExams((prev) => prev.filter((e) => e.id !== id));
-    setShowDeleteConfirm(null);
-    setCurrentPage(1);
+  const handleDeleteExam = async (id: string) => {
+    try {
+      await examsApi.deleteExam(id);
+      toast.success("Exam deleted successfully!");
+      refetch();
+      setShowDeleteConfirm(null);
+      setCurrentPage(1);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete exam.");
+    }
   };
 
-  const handlePublishExam = (id: string) => {
-    setExams((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, status: "published" as ExamStatus } : e)),
-    );
-    alert("Exam published successfully!");
+  const handlePublishExam = async (id: string) => {
+    try {
+      await examsApi.publishExam(id);
+      toast.success("Exam published successfully!");
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to publish exam.");
+    }
   };
 
   const handleSearch = (val: string) => {
@@ -608,7 +654,9 @@ function ExamsPage() {
         <div>
           <h1 className="text-2xl font-display font-black">Exam Builder</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Create JLPT exams with AI-powered PDF analysis
+            {classId && filteredClass
+              ? `Showing exams for ${filteredClass.name}`
+              : "Create JLPT exams with AI-powered PDF analysis"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -703,11 +751,38 @@ function ExamsPage() {
 
       {/* Exam cards */}
       <div className="space-y-3">
-        {paginatedExams.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700"
+              >
+                <div className="flex items-center gap-4">
+                  <Skeleton className="w-14 h-14 rounded-2xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading exams…
+            </div>
+          </div>
+        ) : paginatedExams.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <ClipboardCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="font-semibold">No exams found</p>
-            <p className="text-sm">Try adjusting your search or filters</p>
+            <p className="font-semibold">
+              {exams.length === 0 ? "No exams yet" : "No exams found"}
+            </p>
+            <p className="text-sm">
+              {exams.length === 0
+                ? "Create your first exam using Manual Create or AI PDF Generator."
+                : "Try adjusting your search or filters."}
+            </p>
           </div>
         ) : (
           paginatedExams.map((exam, i) => (
@@ -749,7 +824,7 @@ function ExamsPage() {
                   </div>
                   <div className="flex items-center gap-4 text-[10px] text-muted-foreground flex-wrap">
                     <span className="flex items-center gap-1">
-                      <ClipboardCheck className="w-3 h-3" /> {exam.questions.length} questions
+                      <ClipboardCheck className="w-3 h-3" /> {exam.totalQuestions} questions
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" /> {exam.time} min
@@ -1627,7 +1702,7 @@ function ExamsPage() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center p-3 rounded-xl bg-muted/50">
                     <div className="font-display font-black text-xl">
-                      {showViewExam.questions.length}
+                      {showViewExam.totalQuestions}
                     </div>
                     <div className="text-[10px] text-muted-foreground">Questions</div>
                   </div>
@@ -1645,7 +1720,10 @@ function ExamsPage() {
 
                 {showViewExam.questions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">This exam has no questions yet.</p>
+                    <p className="text-sm">
+                      Question details are not loaded. This exam has {showViewExam.totalQuestions}{" "}
+                      question(s).
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">

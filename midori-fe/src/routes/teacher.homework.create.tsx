@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import { homeworkApi } from "@/lib/api/homework";
 import {
   Select,
   SelectContent,
@@ -14,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  getClasses,
   getQuestionTopics,
   getQuestionTopicById,
   getQuestionsForRandomGeneration,
@@ -45,11 +47,15 @@ export const Route = createFileRoute("/teacher/homework/create")({
 function CreateHomework() {
   const { classId, source, resourceId, topicId } = Route.useSearch();
   const navigate = useNavigate();
-  const classes = getClasses();
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
   const lockedClass = classId ? classes.find((c) => c.id === classId) : null;
   const init: Method | null = (source as Method) ?? null;
   const [method, setMethod] = useState<Method | null>(init);
   const [done, setDone] = useState<string | null>(null);
+  const [createdClassId, setCreatedClassId] = useState<string | null>(null);
 
   const handleBack = () => {
     if (classId) {
@@ -57,6 +63,11 @@ function CreateHomework() {
     } else {
       navigate({ to: "/teacher/homework" });
     }
+  };
+
+  const handleDone = (title: string, assignedClassId: string) => {
+    setCreatedClassId(assignedClassId);
+    setDone(title);
   };
 
   if (done) {
@@ -75,6 +86,13 @@ function CreateHomework() {
             <ClipboardList className="mr-2 h-4 w-4" />
             Assign another
           </Button>
+          {createdClassId && (
+            <Button asChild variant="outline">
+              <Link to="/teacher/classes/$classId/homework" params={{ classId: createdClassId }}>
+                View class homework
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link to="/teacher/homework">Back to homework</Link>
           </Button>
@@ -86,10 +104,10 @@ function CreateHomework() {
   if (!method) {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader 
-          eyebrow="New homework" 
-          title="How do you want to create this homework?" 
-          subtitle="Pick the source of the questions and content." 
+        <PageHeader
+          eyebrow="New homework"
+          title="How do you want to create this homework?"
+          subtitle="Pick the source of the questions and content."
           showBack={true}
           onBack={handleBack}
         />
@@ -112,8 +130,8 @@ function CreateHomework() {
         <ArrowLeft className="mr-1 h-4 w-4" />
         Change method
       </Button>
-      {method === "manual" && <ManualHW lockedClass={lockedClass} onDone={setDone} />}
-      {method === "question-bank" && <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={setDone} />}
+      {method === "manual" && <ManualHW lockedClass={lockedClass} onDone={handleDone} />}
+      {method === "question-bank" && <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />}
     </div>
   );
 }
@@ -158,8 +176,8 @@ function CommonFields({
 }: {
   form: Record<string, unknown>;
   set: (v: Record<string, unknown>) => void;
-  classes: ReturnType<typeof getClasses>;
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
+  classes: { id: string; name: string; level: string }[];
+  lockedClass: { id: string; name: string; level: string } | null;
 }) {
   return (
     <>
@@ -177,7 +195,7 @@ function CommonFields({
             onValueChange={(v: string) => set({ ...form, classId: v })}
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Select a class" />
             </SelectTrigger>
             <SelectContent>
               {classes.map((c) => (
@@ -231,10 +249,14 @@ function ManualHW({
   lockedClass,
   onDone,
 }: {
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
-  onDone: (t: string) => void;
+  lockedClass: any | null;
+  onDone: (t: string, classId: string) => void;
 }) {
-  const classes = getClasses();
+  const queryClient = useQueryClient();
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
   const [form, setForm] = useState({
     classId: lockedClass?.id ?? classes[0]?.id ?? "",
     title: "",
@@ -245,7 +267,56 @@ function ManualHW({
     duration: 60,
   });
   const [preview, setPreview] = useState(false);
-  const valid = !!(form.title && form.instructions && form.dueDate);
+  const [isSaving, setIsSaving] = useState(false);
+  const valid = !!(form.title && form.instructions && form.dueDate && form.classId);
+
+  const handleAssign = async () => {
+    if (!valid) return;
+    setIsSaving(true);
+    try {
+      await homeworkApi.createHomework({
+        classId: form.classId,
+        title: form.title,
+        instructions: form.instructions,
+        dueDate: new Date(form.dueDate).toISOString(),
+        maxScore: form.maxScore,
+        attempts: form.attempts,
+      });
+      // Invalidate all related queries so class homework tab refreshes immediately
+      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", form.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", form.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClasses"] });
+      toast.success("Homework assigned successfully!");
+      onDone(form.title, form.classId);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to assign homework. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!valid) return;
+    setIsSaving(true);
+    try {
+      await homeworkApi.createHomework({
+        classId: form.classId,
+        title: form.title,
+        instructions: form.instructions,
+        dueDate: new Date(form.dueDate).toISOString(),
+        maxScore: form.maxScore,
+        attempts: form.attempts,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", form.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", form.classId] });
+      toast.success("Draft saved!");
+      onDone(form.title, form.classId);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to save draft. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -289,25 +360,19 @@ function ManualHW({
             <Button
               className="w-full"
               variant="outline"
-              disabled={!valid}
-              onClick={() => {
-                toast.success("Draft saved");
-                onDone(form.title);
-              }}
+              disabled={!valid || isSaving}
+              onClick={handleSaveDraft}
             >
               <Save className="mr-2 h-4 w-4" />
-              Save draft
+              {isSaving ? "Saving..." : "Save draft"}
             </Button>
             <Button
               className="w-full"
-              disabled={!valid}
-              onClick={() => {
-                toast.success("Homework assigned");
-                onDone(form.title);
-              }}
+              disabled={!valid || isSaving}
+              onClick={handleAssign}
             >
               <Send className="mr-2 h-4 w-4" />
-              Assign homework
+              {isSaving ? "Assigning..." : "Assign homework"}
             </Button>
           </div>
         </div>
@@ -332,11 +397,15 @@ function QuestionBankHW({
   topicId,
   onDone,
 }: {
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
+  lockedClass: any | null;
   topicId?: string;
-  onDone: (t: string) => void;
+  onDone: (t: string, classId: string) => void;
 }) {
-  const classes = getClasses();
+  const queryClient = useQueryClient();
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
   const topics = getQuestionTopics();
   const init = topicId ? getQuestionTopicById(topicId) : null;
   if (topicId && !init) toast.warning("Topic not found in Question Bank");
@@ -354,10 +423,12 @@ function QuestionBankHW({
     duration: 45,
   });
   const [preview, setPreview] = useState<Question[] | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const available = useMemo(() => getAggregatedTopicCounts(selectedTopics), [selectedTopics]);
   const distOk = isDistValid(form.dist, form.total, available);
   const canGenerate = selectedTopics.length > 0 && distOk;
+  const canAssign = canGenerate && !!form.dueDate && !!form.classId;
 
   const toggleTopic = (id: string) =>
     setSelectedTopics((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -372,6 +443,31 @@ function QuestionBankHW({
     });
     setPreview(qs);
     toast.success(`Generated ${qs.length} questions`);
+  };
+
+  const handleAssign = async () => {
+    if (!canAssign) return;
+    setIsSaving(true);
+    try {
+      await homeworkApi.createHomework({
+        classId: form.classId,
+        title: form.title as string,
+        instructions: `Question Bank homework: ${selectedTopics.join(", ")}. ${form.total} questions.`,
+        dueDate: new Date(form.dueDate).toISOString(),
+        maxScore: form.maxScore,
+        attempts: form.attempts,
+      });
+      // Invalidate all related queries so class homework tab refreshes immediately
+      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", form.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", form.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClasses"] });
+      toast.success("Homework assigned successfully!");
+      onDone(form.title as string, form.classId);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to assign homework. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -503,14 +599,11 @@ function QuestionBankHW({
             </Button>
             <Button
               className="w-full"
-              disabled={!canGenerate || !form.dueDate}
-              onClick={() => {
-                toast.success("Homework assigned");
-                onDone(form.title as string);
-              }}
+              disabled={!canAssign || isSaving}
+              onClick={handleAssign}
             >
               <Send className="mr-2 h-4 w-4" />
-              Assign homework
+              {isSaving ? "Assigning..." : "Assign homework"}
             </Button>
           </div>
         </div>
