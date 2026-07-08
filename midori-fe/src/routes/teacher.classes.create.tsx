@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
+import { useQueryClient } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,7 @@ export const Route = createFileRoute("/teacher/classes/create")({
 const steps = ["Identity", "Level & Schedule", "Capacity", "Review"] as const;
 
 function CreateClass() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [created, setCreated] = useState(false);
@@ -232,9 +235,20 @@ function CreateClass() {
               </Button>
             ) : (
               <Button
-                onClick={() => {
-                  toast.success("Class created");
-                  setCreated(true);
+                onClick={async () => {
+                  try {
+                    await classesApi.createClass({
+                      name: form.name,
+                      level: form.level,
+                      maxStudents: form.capacity,
+                      description: form.description,
+                    });
+                    queryClient.invalidateQueries({ queryKey: ["teacherAllClasses"] });
+                    toast.success("Class created");
+                    setCreated(true);
+                  } catch (e) {
+                    toast.error("Failed to create class");
+                  }
                 }}
               >
                 <GraduationCap className="mr-2 h-4 w-4" />

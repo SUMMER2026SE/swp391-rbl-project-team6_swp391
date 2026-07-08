@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getClasses } from "@/data/teacher-data";
+import { useQuery } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
 import { LevelBadge } from "@/components/teacher/badges";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -20,6 +21,7 @@ import {
   TrendingUp as TgIcon,
   MoreVertical,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -88,7 +90,26 @@ function ClassesLayout() {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [inviteFor, setInviteFor] = useState<string | null>(null);
 
-  const all = getClasses();
+  const { data: dbClasses = [], isLoading } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getAllClasses(),
+  });
+
+  const all = useMemo(() => {
+    return dbClasses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      jpName: "",
+      level: c.level || "N5",
+      status: c.status === "ACTIVE" ? "Active" : c.status === "ARCHIVED" ? "Archived" : "Draft",
+      studentCount: c.studentCount || 0,
+      capacity: c.maxStudents || 30,
+      openHomework: c.homeworkCount || 0,
+      upcomingExams: c.upcomingExamCount || 0,
+      progress: 0,
+      schedule: c.createdAt ? `Created ${c.createdAt.slice(0, 10)}` : "",
+    }));
+  }, [dbClasses]);
 
   const filtered = useMemo(() => {
     return all.filter((c) => {
@@ -155,7 +176,11 @@ function ClassesLayout() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             No classes match your filters.
@@ -271,6 +296,7 @@ function ClassesLayout() {
       <InviteStudentsDialog
         open={!!inviteFor}
         onOpenChange={(o) => !o && setInviteFor(null)}
+        classId={inviteFor ?? undefined}
         className={all.find((c) => c.id === inviteFor)?.name}
       />
     </div>
