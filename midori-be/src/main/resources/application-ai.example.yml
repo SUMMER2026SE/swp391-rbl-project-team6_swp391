@@ -1,0 +1,59 @@
+# AI PDF Exam Generator - Example Configuration
+# Copy this file to application-local.yml and configure your AI provider
+
+# ========================
+# AI PROVIDER CONFIGURATION
+# ========================
+# You must configure at least ONE provider. The system will automatically
+# select the best available provider based on priority and availability.
+
+# OPTION 1: Google Gemini (RECOMMENDED)
+# Best for: Japanese text understanding, multimodal content, cost-effective
+# Cost: ~$0.000125 per 1K tokens (very cheap)
+# Get API key: https://makersuite.google.com/app/apikey
+ai:
+  gemini:
+    api-key: YOUR_GEMINI_API_KEY_HERE
+    model: gemini-1.5-flash
+    enabled: true
+
+# OPTION 2: OpenAI GPT
+# Best for: Reliable JSON output, general purpose
+# Cost: ~$0.00015 per 1K tokens
+# Get API key: https://platform.openai.com/api-keys
+# ai:
+#   openai:
+#     api-key: YOUR_OPENAI_API_KEY_HERE
+#     model: gpt-4o-mini
+#     base-url: https://api.openai.com/v1
+#     enabled: true
+
+# OPTION 3: DeepSeek
+# Best for: Cost-effective, good for structured tasks
+# Cost: ~$0.00012 per 1K tokens (cheapest)
+# Get API key: https://platform.deepseek.com/
+# ai:
+#   deepseek:
+#     api-key: YOUR_DEEPSEEK_API_KEY_HERE
+#     model: deepseek-chat
+#     enabled: true
+
+# ========================
+# PDF PROCESSING CONFIG
+# ========================
+  pdf:
+    max-file-size: 10485760   # 10MB in bytes
+    async-threshold: 1048576   # 1MB - files larger than this use async processing
+
+# ========================
+# OCR CONFIGURATION
+# ========================
+  ocr:
+    enabled: true
+    # simulated: true  # Uncomment for real OCR integration
+    
+# For production OCR, consider:
+# 1. Tesseract OCR (local installation)
+# 2. Google Cloud Vision API
+# 3. AWS Textract
+# 4. Azure Computer Vision
