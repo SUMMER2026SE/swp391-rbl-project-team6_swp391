@@ -46,4 +46,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                                    @Param("status") UserStatus status,
                                    @Param("keyword") String keyword,
                                    Pageable pageable);
+
+    @Query("SELECT u.assignedClass.id, COUNT(u) FROM User u WHERE u.assignedClass.id IS NOT NULL GROUP BY u.assignedClass.id")
+    List<Object[]> countStudentsPerClass();
 }
