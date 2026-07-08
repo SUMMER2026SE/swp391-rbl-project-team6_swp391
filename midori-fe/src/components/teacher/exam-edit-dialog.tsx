@@ -18,13 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { Exam, JLPTLevel } from "@/data/teacher-data";
+import type { TeacherExamView, JLPTLevel } from "@/types/teacher-exam";
 
 interface ExamEditDialogProps {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  exam: Exam | null;
-  onSave: (updated: Exam) => void;
+  exam: TeacherExamView | null;
+  onSave: (updated: TeacherExamView) => void;
 }
 
 const JLPT_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
@@ -65,7 +65,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
       return;
     }
 
-    const updated: Exam = {
+    const updated: TeacherExamView = {
       ...exam,
       title: title.trim(),
       level,
@@ -75,7 +75,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
     };
 
     onSave(updated);
-    toast.success("Exam updated");
+    toast.info("Exam update API is not available yet. Changes were not saved to the server.");
     onOpenChange(false);
   };
 
