@@ -1,4 +1,4 @@
-package com.midori.ai;
+package com.midori.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;

@@ -6,22 +6,19 @@ public final class ExamParsingPrompt {
 
     public static String buildPrompt(String extractedText, String filename) {
         return """
-                You are an expert exam parser. Your task is to analyze exam content extracted from a PDF
-                and convert it into a structured JSON format.
+                You are an expert exam parser. Your primary task is to digitize and parse the exam questions
+                and options EXACTLY as they are written in the provided PDF text. Do not rewrite, simplify,
+                or generate new questions. Your goal is to save the teacher from typing the exam questions manually.
 
                 ## INSTRUCTIONS
 
-                1. Parse ALL questions found in the provided text. Be thorough — do not skip questions.
-                2. Identify the EXAM TITLE from the document (e.g., "N3 Midterm Grammar Exam", "JLPT Practice Test").
-                   If no title is found, generate a descriptive one based on the content.
-                3. Identify question types: MULTIPLE_CHOICE, TRUE_FALSE, FILL_IN_BLANK, SHORT_ANSWER.
-                4. For MULTIPLE_CHOICE questions: extract all options (A, B, C, D or more) and identify the correct answer.
-                5. For TRUE_FALSE questions: set type="TRUE_FALSE" and include exactly 2 options: "True" and "False".
-                6. For FILL_IN_BLANK: set type="FILL_IN_BLANK", put the answer in the first option slot.
-                7. Detect difficulty if indicated (Easy/Medium/Hard), otherwise default to MEDIUM.
-                8. Extract explanations if present in the document.
-                9. Return ONLY valid JSON. No markdown, no code fences, no explanations.
-                10. The JSON must be parseable by a standard JSON parser.
+                1. Extract ALL questions and options EXACTLY as they appear in the PDF text. Preserve the original phrasing, kanji, grammar, and vocabulary.
+                2. Do not skip questions. Be very thorough.
+                3. Identify the EXAM TITLE from the document. If none is found, generate a title using the filename.
+                4. For MULTIPLE_CHOICE questions: extract all options (A, B, C, D, etc.) exactly as written.
+                5. For each question, identify the correct answer choice from the context or the answer key in the document.
+                6. If the PDF text contains an answer key at the end, use it to select the correct answer index.
+                7. Return ONLY valid JSON matching the format below. Do not wrap in markdown code fences or add conversational text.
 
                 ## OUTPUT FORMAT
 
@@ -44,18 +41,14 @@ public final class ExamParsingPrompt {
                     }
                   ]
                 }
-                ```
 
-                ## IMPORTANT RULES
+                ## CRITICAL RULES
 
-                - NEVER return anything other than valid JSON.
-                - Do NOT wrap the JSON in markdown code fences.
-                - Each answer must have exactly one "isCorrect": true.
-                - All MULTIPLE_CHOICE questions must have at least 2 options.
-                - If an answer key is found at the end of the document, use it to match answers to questions.
-                - For ambiguous questions, default to MULTIPLE_CHOICE with MEDIUM difficulty.
-                - Questions about Japanese language (kanji, grammar, vocabulary) are common — handle Japanese text properly.
-                - The content field should contain the full question text.
+                - DO NOT rewrite or modify the question text or options. Keep them 100% identical to the source text.
+                - Support Japanese characters properly. Do not translate them to English.
+                - Ensure every question has options corresponding to the choices in the PDF.
+                - If the document does not specify a correct answer, make your best educational guess for which option is correct.
+                - Output raw valid JSON. Do not include ```json ... ``` markdown formatting in your response.
 
                 ## SOURCE DOCUMENT
 
