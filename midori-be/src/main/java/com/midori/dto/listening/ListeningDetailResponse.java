@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -26,4 +27,6 @@ public class ListeningDetailResponse {
     private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
+
+    private List<ListeningQuestionResponse> questions;
 }
