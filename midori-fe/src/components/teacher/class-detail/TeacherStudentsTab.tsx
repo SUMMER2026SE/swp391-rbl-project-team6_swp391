@@ -12,9 +12,10 @@ interface TeacherStudentsTabProps {
   classInfo: TeacherClassInfo;
   onSelectTab?: (tab: string) => void;
   urlQ?: string;
+  isArchived?: boolean;
 }
 
-export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ }: TeacherStudentsTabProps) {
+export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ, isArchived }: TeacherStudentsTabProps) {
   const navigate = useNavigate();
   const [inviteOpen, setInviteOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -51,13 +52,15 @@ export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ }: TeacherStud
           <Users className="w-4.5 h-4.5 text-primary" />
           Class Roster ({filteredStudents.length} {urlQ ? `of ${classInfo.students.length}` : ""} Students)
         </h3>
-        <button
-          onClick={() => setInviteOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 text-[11px] font-bold transition shadow-sm font-display uppercase tracking-wider"
-        >
-          <UserPlus className="w-3.5 h-3.5" />
-          Invite Student
-        </button>
+        {!isArchived && (
+          <button
+            onClick={() => setInviteOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 text-[11px] font-bold transition shadow-sm font-display uppercase tracking-wider"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            Invite Student
+          </button>
+        )}
       </div>
 
       {/* Roster Cards Grid */}
@@ -157,12 +160,14 @@ export function TeacherStudentsTab({ classInfo, onSelectTab, urlQ }: TeacherStud
               >
                 <Eye className="w-3.5 h-3.5" /> View in Progress
               </button>
-              <button
-                onClick={() => setRemoving(student)}
-                className="py-1.5 px-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[10px] font-bold transition flex items-center justify-center gap-1 shrink-0"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Remove
-              </button>
+              {!isArchived && (
+                <button
+                  onClick={() => setRemoving(student)}
+                  className="py-1.5 px-3 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 text-[10px] font-bold transition flex items-center justify-center gap-1 shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Remove
+                </button>
+              )}
             </div>
           </Card>
         ))}

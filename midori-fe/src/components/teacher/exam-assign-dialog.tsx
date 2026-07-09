@@ -53,7 +53,6 @@ export function ExamAssignDialog({ open, onOpenChange, exam, onSuccess }: ExamAs
 
   const canAssign = !!(
     exam &&
-    exam.status !== "Draft" &&
     selectedClassId &&
     !isAssigning
   );
@@ -61,11 +60,6 @@ export function ExamAssignDialog({ open, onOpenChange, exam, onSuccess }: ExamAs
   const handleAssign = async () => {
     if (!exam || !selectedClassId) return;
 
-    // Guard: exam must not be a draft
-    if (exam.status === "Draft") {
-      toast.error("Please publish the exam before assigning it to a class.");
-      return;
-    }
     if (!selectedClassId) {
       toast.error("Please select a class.");
       return;
@@ -95,9 +89,6 @@ export function ExamAssignDialog({ open, onOpenChange, exam, onSuccess }: ExamAs
             {exam && (
               <span className="block mt-1 font-medium text-foreground">
                 Exam: {exam.title}
-                {exam.status === "Draft" && (
-                  <span className="ml-2 text-amber-500 text-xs">(Draft — publish first)</span>
-                )}
               </span>
             )}
           </DialogDescription>
