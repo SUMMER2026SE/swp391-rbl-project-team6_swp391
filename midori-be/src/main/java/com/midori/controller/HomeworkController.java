@@ -300,6 +300,9 @@ public class HomeworkController {
             }
         }
 
+        long totalSub = homeworkSubmissionRepository.countByHomeworkId(homework.getId());
+        long ungrSub = homeworkSubmissionRepository.countByHomeworkIdAndStatus(homework.getId(), com.midori.entity.HomeworkSubmission.SubmissionStatus.SUBMITTED);
+
         return HomeworkResponse.builder()
                 .id(homework.getId())
                 .classId(homework.getAssignedClass().getId())
@@ -314,7 +317,8 @@ public class HomeworkController {
                 .updatedAt(homework.getUpdatedAt())
                 .questions(questionResponses)
                 .totalQuestions(homework.getQuestions() != null ? homework.getQuestions().size() : 0)
-                .submissionCount(0)
+                .submissionCount((int) totalSub)
+                .ungradedCount((int) ungrSub)
                 .timeLimit(homework.getTimeLimit())
                 .teacherName(teacherName)
                 .remainingAttempts(remainingAttempts)

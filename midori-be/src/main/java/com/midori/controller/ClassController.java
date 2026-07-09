@@ -11,7 +11,8 @@ import com.midori.repository.ExamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.*;import com.midori.security.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 import java.util.Map;
@@ -30,8 +31,9 @@ public class ClassController {
     private final ExamRepository examRepository;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ClassResponse>>> getAllClasses() {
-        List<ClassEntity> allEntities = classService.getAllClasses();
+    public ResponseEntity<ApiResponse<List<ClassResponse>>> getAllClasses(
+            @RequestParam(required = false) String status) {
+        List<ClassEntity> allEntities = classService.getAllClasses(status);
 
         // Perform exactly 3 aggregated GROUP BY queries to get all counts
         Map<UUID, Long> studentCounts = userRepository.countStudentsPerClass().stream()
@@ -63,6 +65,24 @@ public class ClassController {
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(classes));
+    }
+
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<ApiResponse<ClassResponse>> archiveClass(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ClassResponse response = classService.archiveClass(id, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success("Class archived successfully", response));
+    }
+
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<ClassResponse>> restoreClass(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        ClassResponse response = classService.restoreClass(id, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success("Class restored successfully", response));
     }
 
     @GetMapping("/{id}")
