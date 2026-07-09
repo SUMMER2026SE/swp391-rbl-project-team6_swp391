@@ -20,13 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Homework } from "@/data/teacher-data";
+import type { HomeworkResponse } from "@/lib/api/homework";
 
 interface HomeworkEditDialogProps {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  homework: Homework | null;
-  onSave: (updated: Homework) => void;
+  homework: HomeworkResponse | null;
+  onSave: (updated: HomeworkResponse) => void;
 }
 
 export function HomeworkEditDialog({
@@ -40,13 +40,13 @@ export function HomeworkEditDialog({
   const [dueDate, setDueDate] = useState("");
   const [maxScore, setMaxScore] = useState(100);
   const [attempts, setAttempts] = useState(1);
-  const [status, setStatus] = useState<"Draft" | "Assigned" | "Closed">("Assigned");
+  const [status, setStatus] = useState<"DRAFT" | "ASSIGNED" | "CLOSED">("ASSIGNED");
 
   useEffect(() => {
     if (homework) {
       setTitle(homework.title);
-      setInstructions(homework.instructions);
-      setDueDate(homework.dueDate);
+      setInstructions(homework.instructions || "");
+      setDueDate(homework.dueDate ? homework.dueDate.slice(0, 10) : "");
       setMaxScore(homework.maxScore);
       setAttempts(homework.attempts);
       setStatus(homework.status);
@@ -55,7 +55,7 @@ export function HomeworkEditDialog({
 
   const handleSave = () => {
     if (!homework) return;
-    const updated: Homework = {
+    const updated: HomeworkResponse = {
       ...homework,
       title,
       instructions,
@@ -65,7 +65,6 @@ export function HomeworkEditDialog({
       status,
     };
     onSave(updated);
-    toast.success("Homework updated");
     onOpenChange(false);
   };
 
@@ -117,15 +116,15 @@ export function HomeworkEditDialog({
               <Label htmlFor="hw-status">Status</Label>
               <Select
                 value={status}
-                onValueChange={(v) => setStatus(v as "Draft" | "Assigned" | "Closed")}
+                onValueChange={(v) => setStatus(v as "DRAFT" | "ASSIGNED" | "CLOSED")}
               >
                 <SelectTrigger id="hw-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Draft">Draft</SelectItem>
-                  <SelectItem value="Assigned">Assigned</SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
+                  <SelectItem value="CLOSED">Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>

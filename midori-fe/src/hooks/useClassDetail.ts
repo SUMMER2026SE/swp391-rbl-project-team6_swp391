@@ -31,10 +31,15 @@ export function useClassDetail(classId: string) {
   // Map homework and exams to the "assignments" array structure expected by the frontend
   const assignments = useMemo((): Assignment[] => {
     const hwMapped = homeworkList.map((hw: any): Assignment => {
-      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" = "Not Started";
+      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" = "Not Started";
       if (hw.submissionStatus === "GRADED") mappedStatus = "Graded";
       else if (hw.submissionStatus === "SUBMITTED") mappedStatus = "Submitted";
       else if (hw.submissionStatus === "IN_PROGRESS") mappedStatus = "In Progress";
+
+      const isExpired = hw.dueDate ? new Date(hw.dueDate).getTime() < new Date().getTime() : false;
+      if (isExpired && mappedStatus !== "Graded" && mappedStatus !== "Submitted") {
+        mappedStatus = "Overdue";
+      }
 
       if (mappedStatus === "Not Started" && hw.status === "CLOSED") {
         mappedStatus = "Graded";
@@ -56,12 +61,17 @@ export function useClassDetail(classId: string) {
 
     const examMapped = examList.map((ex: any): Assignment => {
       // Map backend status (NOT_STARTED / IN_PROGRESS / SUBMITTED / GRADED) to UI
-      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" = "Not Started";
+      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" = "Not Started";
       const rawStatus = ex.status as string;
       if (rawStatus === "GRADED") mappedStatus = "Graded";
       else if (rawStatus === "SUBMITTED") mappedStatus = "Submitted";
       else if (rawStatus === "IN_PROGRESS") mappedStatus = "In Progress";
       else if (rawStatus === "NOT_STARTED") mappedStatus = "Not Started";
+
+      const isExpired = ex.scheduledAt || ex.updatedAt ? new Date(ex.scheduledAt || ex.updatedAt).getTime() < new Date().getTime() : false;
+      if (isExpired && mappedStatus !== "Graded" && mappedStatus !== "Submitted") {
+        mappedStatus = "Overdue";
+      }
 
       return {
         id: ex.id,
