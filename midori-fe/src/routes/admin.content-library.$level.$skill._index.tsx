@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Cloud,
   CloudOff,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useContentLibrary } from "@/services/contentLibraryService";
 import {
@@ -42,6 +43,8 @@ import {
   type AdminReadingLesson,
   type AdminReadingPassage,
   type ReadingQuestion,
+  type AdminListeningLesson,
+  type ListeningQuestion,
 } from "@/types/content-library";
 import {
   useFetchReadingLessons,
@@ -52,6 +55,16 @@ import {
   usePublishReadingLesson,
   useUnpublishReadingLesson,
 } from "@/services/adminReadingService";
+import {
+  useFetchListeningLessons,
+  useFetchListeningDetail,
+  useCreateListeningLesson,
+  useUpdateListeningLesson,
+  useDeleteListeningLesson,
+  usePublishListeningLesson,
+  useUnpublishListeningLesson,
+} from "@/services/adminListeningService";
+import { adminListeningApi } from "@/lib/api/listening";
 
 export const Route = createFileRoute("/admin/content-library/$level/$skill/_index")({
   component: SkillDetailPage,
@@ -780,49 +793,67 @@ function ListeningEditForm({
   lesson,
   onSave,
   onCancel,
+  mode = "edit",
 }: {
-  lesson: ListeningLesson;
-  onSave: (data: Partial<ListeningLesson>) => void;
+  lesson: AdminListeningLesson;
+  onSave: (data: Partial<AdminListeningLesson>) => void;
   onCancel: () => void;
+  mode?: "create" | "edit" | "view";
 }) {
   const [form, setForm] = useState({
-    lessonNumber: lesson.lessonNumber,
-    title: lesson.title,
-    status: (lesson as unknown as { status?: string }).status || "active",
-    items: [...lesson.items] as ListeningLesson["items"],
+    lessonNumber: lesson.lessonNumber || 1,
+    title: lesson.title || "",
+    description: lesson.description || "",
+    audioUrl: lesson.audioUrl || "",
+    transcript: lesson.transcript || "",
+    estimatedMinutes: lesson.estimatedMinutes || "",
+    difficulty: lesson.difficulty || "",
+    status: lesson.isActive ? "active" : "inactive",
+    questions: [...(lesson.questions || [])] as ListeningQuestion[],
   });
   const [saving, setSaving] = useState(false);
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
 
-  const addItem = () => {
-    const newItem = {
-      id: generateId("list"),
-      title: "",
-      audioUrl: "",
-      transcriptJapanese: "",
-      translationVietnamese: "",
-      questions: [],
+  const addQuestion = () => {
+    const newQuestion: ListeningQuestion = {
+      id: `temp-${Date.now()}`,
+      questionOrder: form.questions.length + 1,
+      question: "",
+      optionA: "",
+      optionB: "",
+      optionC: "",
+      optionD: "",
+      correctAnswer: "A",
+      explanation: null,
+      questionType: "MULTIPLE_CHOICE",
     };
-    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems((prev) => new Set([...prev, newItem.id]));
+    setForm((f) => ({ ...f, questions: [...f.questions, newQuestion] }));
+    setExpandedQuestions((prev) => new Set([...prev, form.questions.length]));
   };
 
-  const updateItem = (index: number, field: string, value: string) => {
+  const updateQuestion = (index: number, field: string, value: string | number | null) => {
     setForm((f) => {
-      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
-      return { ...f, items } as typeof f;
+      const questions = f.questions.map((q, i) =>
+        i === index ? { ...q, [field]: value } : q
+      );
+      return { ...f, questions };
     });
   };
 
-  const removeItem = (index: number) => {
-    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+  const removeQuestion = (index: number) => {
+    setForm((f) => {
+      const questions = f.questions
+        .filter((_, i) => i !== index)
+        .map((q, i) => ({ ...q, questionOrder: i + 1 }));
+      return { ...f, questions };
+    });
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedItems((prev) => {
+  const toggleExpand = (index: number) => {
+    setExpandedQuestions((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
       return next;
     });
   };
@@ -830,7 +861,16 @@ function ListeningEditForm({
   const handleSave = () => {
     setSaving(true);
     setTimeout(() => {
-      onSave({ ...form, id: lesson.id });
+      onSave({
+        ...form,
+        id: lesson.id,
+        isActive: form.status === "active",
+        estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
+        description: form.description || null,
+        transcript: form.transcript || null,
+        audioUrl: form.audioUrl || null,
+        difficulty: form.difficulty || null,
+      });
       setSaving(false);
     }, 200);
   };
@@ -842,10 +882,10 @@ function ListeningEditForm({
         {/* Lesson Information */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-4 h-4 text-sakura" />
+            <Headphones className="w-4 h-4 text-sky-blue" />
             <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
           </div>
-          <div className="grid grid-cols-[120px_1fr_180px] gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">
                 Lesson Number
@@ -868,6 +908,26 @@ function ListeningEditForm({
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
               />
             </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                placeholder="Lesson description"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Audio File
+              </label>
+              <AudioUploader
+                value={form.audioUrl}
+                onChange={(url) => setForm((f) => ({ ...f, audioUrl: url }))}
+              />
+            </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
               <select
@@ -876,64 +936,72 @@ function ListeningEditForm({
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
               >
                 <option value="active">Active</option>
-                <option value="draft">Draft</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
           </div>
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-secondary-col mb-1.5">
+              Japanese Transcript
+            </label>
+            <textarea
+              value={form.transcript}
+              onChange={(e) => setForm((f) => ({ ...f, transcript: e.target.value }))}
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]"
+              placeholder="Japanese transcript"
+            />
+          </div>
         </div>
 
-        {/* Listening Items */}
+        {/* Listening Questions */}
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-primary-col">Listening Items</h3>
+            <h3 className="text-sm font-semibold text-primary-col">Listening Questions</h3>
             <p className="text-xs text-muted-col mt-0.5">
-              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+              {form.questions.length} question{form.questions.length !== 1 ? "s" : ""}
             </p>
           </div>
 
-          {form.items.length === 0 ? (
+          {form.questions.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted-col">
-                No listening items yet. Click "Add Item" below to add one.
+                No questions yet. Click "Add Question" below to add one.
               </p>
             </div>
           ) : (
             <div className="space-y-2">
-              {form.items.map((item, i) => {
-                const isExpanded = expandedItems.has(item.id);
+              {form.questions.map((q, i) => {
+                const isExpanded = expandedQuestions.has(i);
                 return (
                   <div
-                    key={item.id}
+                    key={q.id}
                     className="rounded-lg border border-[var(--border)] overflow-hidden"
                   >
-                    {/* Item Header */}
+                    {/* Question Header */}
                     <button
                       type="button"
-                      onClick={() => toggleExpand(item.id)}
+                      onClick={() => toggleExpand(i)}
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center">
                           {i + 1}
                         </span>
                         <div className="text-left">
                           <span className="text-sm font-medium text-primary-col">
-                            {item.title || "New Item"}
+                            {q.question || "New Question"}
                           </span>
                         </div>
-                        {item.audioUrl && (
-                          <span className="text-xs text-muted-col hidden sm:inline">
-                            — Audio attached
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-col">
+                          {q.questionType || "MULTIPLE_CHOICE"}
+                        </span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeItem(i);
+                            removeQuestion(i);
                           }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
@@ -945,57 +1013,57 @@ function ListeningEditForm({
                       </div>
                     </button>
 
-                    {/* Item Content */}
+                    {/* Question Content */}
                     {isExpanded && (
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Item Title</label>
-                          <input
-                            value={item.title}
-                            onChange={(e) => updateItem(i, "title", e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-                            placeholder="Item title"
+                          <label className="block text-xs text-muted-col mb-1">Question Text</label>
+                          <textarea
+                            value={q.question}
+                            onChange={(e) => updateQuestion(i, "question", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
+                            placeholder="Enter the question text..."
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs text-muted-col mb-1">Upload Audio</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="file"
-                              accept=".mp3,.wav,.m4a"
-                              className="hidden"
-                              id={`audio-upload-${item.id}`}
-                            />
-                            <label
-                              htmlFor={`audio-upload-${item.id}`}
-                              className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col cursor-pointer hover:bg-[var(--accent)] transition flex items-center gap-2"
-                            >
-                              <Upload className="w-4 h-4" />
-                              {item.audioUrl || "Choose file..."}
-                            </label>
-                          </div>
-                          <p className="text-xs text-muted-col mt-1">Supported: .mp3, .wav, .m4a</p>
+
+                        {/* Options */}
+                        <div className="space-y-2">
+                          <label className="block text-xs text-muted-col">Options</label>
+                          {(["A", "B", "C", "D"] as const).map((opt) => (
+                            <div key={opt} className="flex items-center gap-2">
+                              <span className="text-xs text-muted-col w-4 shrink-0">{opt}.</span>
+                              <input
+                                value={q[`option${opt}` as keyof ListeningQuestion] as string}
+                                onChange={(e) => updateQuestion(i, `option${opt}`, e.target.value)}
+                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                placeholder={`Option ${opt}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => updateQuestion(i, "correctAnswer", opt)}
+                                className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
+                                  q.correctAnswer === opt
+                                    ? "border-emerald-500 bg-emerald-500 text-white"
+                                    : "border-[var(--border)]"
+                                }`}
+                                title="Set as correct answer"
+                              >
+                                {q.correctAnswer === opt && (
+                                  <span className="w-2 h-2 rounded-full bg-white" />
+                                )}
+                              </button>
+                            </div>
+                          ))}
                         </div>
+
+                        {/* Explanation */}
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">
-                            Japanese Transcript
-                          </label>
+                          <label className="block text-xs text-muted-col mb-1">Explanation (optional)</label>
                           <textarea
-                            value={item.transcriptJapanese}
-                            onChange={(e) => updateItem(i, "transcriptJapanese", e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
-                            placeholder="Japanese transcript"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-muted-col mb-1">
-                            Vietnamese Translation
-                          </label>
-                          <textarea
-                            value={item.translationVietnamese}
-                            onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
-                            placeholder="Vietnamese translation"
+                            value={q.explanation || ""}
+                            onChange={(e) => updateQuestion(i, "explanation", e.target.value)}
+                            className="w-full px-3 py-2 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
+                            placeholder="Explanation for the correct answer..."
                           />
                         </div>
                       </div>
@@ -1006,14 +1074,14 @@ function ListeningEditForm({
             </div>
           )}
 
-          {/* Add Item Button - At Bottom */}
+          {/* Add Question Button */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
             <button
-              onClick={addItem}
+              onClick={addQuestion}
               type="button"
               className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
             >
-              <Plus className="w-4 h-4" /> Add Item
+              <Plus className="w-4 h-4" /> Add Question
             </button>
           </div>
         </div>
@@ -2249,74 +2317,209 @@ function GrammarLessonForm({
   );
 }
 
+// ─── Audio Uploader Component ───────────────────────────────────────────────────
+
+function AudioUploader({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  disabled?: boolean;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (file: File) => {
+    if (!file.type.startsWith("audio/")) {
+      setError("Please upload an audio file");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File size must be less than 10MB");
+      return;
+    }
+
+    setError(null);
+    setIsUploading(true);
+
+    try {
+      const url = URL.createObjectURL(file);
+      onChange(url);
+    } catch (err) {
+      setError("Failed to upload file");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+          <Headphones className="w-5 h-5 text-emerald-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-primary-col truncate">
+            {value.split("/").pop() || "Audio file"}
+          </p>
+          <p className="text-xs text-muted-col">Audio uploaded</p>
+        </div>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div
+        onDrop={disabled ? undefined : handleDrop}
+        onDragOver={disabled ? undefined : handleDragOver}
+        onDragLeave={disabled ? undefined : handleDragLeave}
+        onClick={disabled ? undefined : () => fileInputRef.current?.click()}
+        className={`
+          relative flex flex-col items-center justify-center p-6 rounded-lg border-2 border-dashed transition-all
+          ${disabled ? "opacity-50 cursor-not-allowed" : "border-[var(--border)] hover:border-sky-blue/50 hover:bg-sky-blue/5 cursor-pointer"}
+          ${isDragging ? "border-sky-blue bg-sky-blue/10" : ""}
+          ${isUploading ? "opacity-50 pointer-events-none" : ""}
+        `}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={handleInputChange}
+          className="hidden"
+        />
+        {isUploading ? (
+          <>
+            <div className="w-10 h-10 rounded-xl bg-sky-blue/20 flex items-center justify-center mb-3 animate-pulse">
+              <Upload className="w-5 h-5 text-sky-blue" />
+            </div>
+            <p className="text-sm text-primary-col">Uploading...</p>
+          </>
+        ) : (
+          <>
+            <div className="w-10 h-10 rounded-xl bg-sky-blue/20 flex items-center justify-center mb-3">
+              <Headphones className="w-5 h-5 text-sky-blue" />
+            </div>
+            <p className="text-sm text-primary-col font-medium">Drop audio file here</p>
+            <p className="text-xs text-muted-col mt-1">or click to browse</p>
+          </>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
 function ListeningLessonForm({
   onSave,
   onCancel,
 }: {
-  onSave: (data: Partial<ListeningLesson>) => void;
+  onSave: (data: Partial<AdminListeningLesson>) => void;
   onCancel: () => void;
 }) {
   const [form, setForm] = useState({
     lessonNumber: 1,
     title: "",
+    description: "",
+    audioUrl: "",
+    transcript: "",
+    estimatedMinutes: "",
+    difficulty: "",
     status: "active",
-    items: [
-      {
-        id: generateId("list"),
-        title: "",
-        audioUrl: "",
-        transcriptJapanese: "",
-        translationVietnamese: "",
-        questions: [],
-      },
-    ],
+    questions: [] as ListeningQuestion[],
   });
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
 
-  const updateItem = (index: number, field: string, value: string) => {
+  const addQuestion = () => {
+    const newQuestion: ListeningQuestion = {
+      id: `temp-${Date.now()}`,
+      questionOrder: form.questions.length + 1,
+      question: "",
+      optionA: "",
+      optionB: "",
+      optionC: "",
+      optionD: "",
+      correctAnswer: "A",
+      explanation: null,
+      questionType: "MULTIPLE_CHOICE",
+    };
+    setForm((f) => ({ ...f, questions: [...f.questions, newQuestion] }));
+    setExpandedQuestions((prev) => new Set([...prev, form.questions.length]));
+  };
+
+  const updateQuestion = (index: number, field: string, value: string | number | null) => {
     setForm((f) => {
-      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
-      return { ...f, items } as typeof f;
+      const questions = f.questions.map((q, i) =>
+        i === index ? { ...q, [field]: value } : q
+      );
+      return { ...f, questions };
     });
   };
 
-  const addItem = () => {
-    const newItem = {
-      id: generateId("list"),
-      title: "",
-      audioUrl: "",
-      transcriptJapanese: "",
-      translationVietnamese: "",
-      questions: [],
-    };
-    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
-    setExpandedItems((prev) => new Set([...prev, newItem.id]));
+  const removeQuestion = (index: number) => {
+    setForm((f) => {
+      const questions = f.questions
+        .filter((_, i) => i !== index)
+        .map((q, i) => ({ ...q, questionOrder: i + 1 }));
+      return { ...f, questions };
+    });
   };
 
-  const removeItem = (index: number) => {
-    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
-  };
-
-  const toggleExpand = (id: string) => {
-    setExpandedItems((prev) => {
+  const toggleExpand = (index: number) => {
+    setExpandedQuestions((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
       return next;
     });
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col" style={{ minHeight: "500px" }}>
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
         {/* Lesson Information */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-4 h-4 text-sakura" />
+            <Headphones className="w-4 h-4 text-sky-blue" />
             <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
           </div>
-          <div className="grid grid-cols-[120px_1fr_180px] gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">
                 Lesson Number
@@ -2340,6 +2543,26 @@ function ListeningLessonForm({
                 placeholder="Enter lesson title"
               />
             </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                placeholder="Lesson description"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                Audio File
+              </label>
+              <AudioUploader
+                value={form.audioUrl}
+                onChange={(url) => setForm((f) => ({ ...f, audioUrl: url }))}
+              />
+            </div>
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
               <select
@@ -2348,63 +2571,72 @@ function ListeningLessonForm({
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
               >
                 <option value="active">Active</option>
-                <option value="draft">Draft</option>
+                <option value="inactive">Inactive</option>
               </select>
             </div>
           </div>
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-secondary-col mb-1.5">
+              Japanese Transcript
+            </label>
+            <textarea
+              value={form.transcript}
+              onChange={(e) => setForm((f) => ({ ...f, transcript: e.target.value }))}
+              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]"
+              placeholder="Japanese transcript"
+            />
+          </div>
         </div>
 
-        {/* Listening Items */}
+        {/* Listening Questions */}
         <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-primary-col">Listening Items</h3>
+            <h3 className="text-sm font-semibold text-primary-col">Listening Questions</h3>
             <p className="text-xs text-muted-col mt-0.5">
-              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+              {form.questions.length} question{form.questions.length !== 1 ? "s" : ""}
             </p>
           </div>
 
-          {form.items.length === 0 ? (
+          {form.questions.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted-col">
-                No listening items yet. Click "Add Item" below to add one.
+                No questions yet. Click "Add Question" below to add one.
               </p>
             </div>
           ) : (
             <div className="space-y-2">
-              {form.items.map((item, i) => {
-                const isExpanded = expandedItems.has(item.id);
+              {form.questions.map((q, i) => {
+                const isExpanded = expandedQuestions.has(i);
                 return (
                   <div
-                    key={item.id}
+                    key={q.id}
                     className="rounded-lg border border-[var(--border)] overflow-hidden"
                   >
-                    {/* Item Header */}
+                    {/* Question Header */}
                     <button
                       type="button"
-                      onClick={() => toggleExpand(item.id)}
+                      onClick={() => toggleExpand(i)}
                       className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center">
                           {i + 1}
                         </span>
                         <div className="text-left">
                           <span className="text-sm font-medium text-primary-col">
-                            {item.title || "New Item"}
+                            {q.question || "New Question"}
                           </span>
                         </div>
-                        {item.audioUrl && (
-                          <span className="text-xs text-muted-col hidden sm:inline">
-                            — Audio attached
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-col">
+                          {q.questionType || "MULTIPLE_CHOICE"}
+                        </span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeItem(i);
+                            removeQuestion(i);
                           }}
                           className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                         >
@@ -2416,46 +2648,57 @@ function ListeningLessonForm({
                       </div>
                     </button>
 
-                    {/* Item Content */}
+                    {/* Question Content */}
                     {isExpanded && (
                       <div className="px-4 py-4 glass-card space-y-3">
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Item Title</label>
-                          <input
-                            value={item.title}
-                            onChange={(e) => updateItem(i, "title", e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-                            placeholder="Item title"
+                          <label className="block text-xs text-muted-col mb-1">Question Text</label>
+                          <textarea
+                            value={q.question}
+                            onChange={(e) => updateQuestion(i, "question", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
+                            placeholder="Enter the question text..."
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs text-muted-col mb-1">Upload Audio</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="file"
-                              accept=".mp3,.wav,.m4a"
-                              className="hidden"
-                              id={`create-audio-${i}`}
-                            />
-                            <label
-                              htmlFor={`create-audio-${i}`}
-                              className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col cursor-pointer hover:bg-[var(--accent)] transition flex items-center gap-2"
-                            >
-                              <Upload className="w-4 h-4" />
-                              {item.audioUrl || "Choose file..."}
-                            </label>
-                          </div>
-                          <p className="text-xs text-muted-col mt-1">Supported: .mp3, .wav, .m4a</p>
+
+                        {/* Options */}
+                        <div className="space-y-2">
+                          <label className="block text-xs text-muted-col">Options</label>
+                          {(["A", "B", "C", "D"] as const).map((opt) => (
+                            <div key={opt} className="flex items-center gap-2">
+                              <span className="text-xs text-muted-col w-4 shrink-0">{opt}.</span>
+                              <input
+                                value={q[`option${opt}` as keyof ListeningQuestion] as string}
+                                onChange={(e) => updateQuestion(i, `option${opt}`, e.target.value)}
+                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                placeholder={`Option ${opt}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => updateQuestion(i, "correctAnswer", opt)}
+                                className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
+                                  q.correctAnswer === opt
+                                    ? "border-emerald-500 bg-emerald-500 text-white"
+                                    : "border-[var(--border)]"
+                                }`}
+                                title="Set as correct answer"
+                              >
+                                {q.correctAnswer === opt && (
+                                  <span className="w-2 h-2 rounded-full bg-white" />
+                                )}
+                              </button>
+                            </div>
+                          ))}
                         </div>
+
+                        {/* Explanation */}
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">
-                            Japanese Transcript
-                          </label>
+                          <label className="block text-xs text-muted-col mb-1">Explanation (optional)</label>
                           <textarea
-                            value={item.transcriptJapanese}
-                            onChange={(e) => updateItem(i, "transcriptJapanese", e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
-                            placeholder="Japanese transcript"
+                            value={q.explanation || ""}
+                            onChange={(e) => updateQuestion(i, "explanation", e.target.value)}
+                            className="w-full px-3 py-2 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
+                            placeholder="Explanation for the correct answer..."
                           />
                         </div>
                       </div>
@@ -2466,14 +2709,14 @@ function ListeningLessonForm({
             </div>
           )}
 
-          {/* Add Item Button - At Bottom */}
+          {/* Add Question Button */}
           <div className="mt-4 pt-4 border-t border-[var(--border)]">
             <button
-              onClick={addItem}
+              onClick={addQuestion}
               type="button"
               className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
             >
-              <Plus className="w-4 h-4" /> Add Item
+              <Plus className="w-4 h-4" /> Add Question
             </button>
           </div>
         </div>
@@ -2488,7 +2731,15 @@ function ListeningLessonForm({
           Cancel
         </button>
         <button
-          onClick={() => onSave(form)}
+          onClick={() => onSave({
+            ...form,
+            isActive: form.status === "active",
+            estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
+            description: form.description || null,
+            transcript: form.transcript || null,
+            audioUrl: form.audioUrl || null,
+            difficulty: form.difficulty || null,
+          })}
           disabled={!form.title.trim()}
           className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
         >
@@ -3363,26 +3614,57 @@ function ExcelImportModal({
         </div>
       </div>
 
-      {/* File Upload */}
-      <div className="border-2 border-dashed border-[var(--border)] rounded-xl p-8 text-center">
-        <Upload className="w-10 h-10 mx-auto text-muted-col mb-3" />
-        <p className="text-sm text-secondary-col mb-2">
-          Drop your Excel file here or click to browse
-        </p>
+      {/* File Upload - Drag & Drop Style */}
+      <div
+        onClick={() => document.getElementById("excel-upload")?.click()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const f = e.dataTransfer.files[0];
+          if (f) setFile(f);
+        }}
+        onDragOver={(e) => e.preventDefault()}
+        className={`
+          relative flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed cursor-pointer transition-all
+          ${file ? "border-emerald-500/50 bg-emerald-500/5" : "border-[var(--border)] hover:border-sky-blue/50 hover:bg-sky-blue/5"}
+        `}
+      >
         <input
+          id="excel-upload"
           type="file"
           accept=".xlsx,.xls,.csv"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
           className="hidden"
-          id="excel-upload"
         />
-        <label
-          htmlFor="excel-upload"
-          className="inline-block px-4 py-2 text-sm rounded-xl border border-[var(--border)] text-secondary-col hover:bg-[var(--accent)] cursor-pointer transition"
-        >
-          Select File
-        </label>
-        {file && <p className="mt-2 text-sm text-primary-col">{file.name}</p>}
+        {file ? (
+          <div className="flex items-center gap-4 w-full">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+              <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-primary-col truncate">{file.name}</p>
+              <p className="text-xs text-muted-col">
+                {(file.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFile(null);
+              }}
+              className="p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="w-12 h-12 rounded-xl bg-sky-blue/20 flex items-center justify-center mb-4">
+              <Upload className="w-6 h-6 text-sky-blue" />
+            </div>
+            <p className="text-sm text-primary-col font-medium">Drop Excel file here</p>
+            <p className="text-xs text-muted-col mt-1">or click to browse (.xlsx, .xls, .csv)</p>
+          </>
+        )}
       </div>
 
       <div className="flex gap-3 pt-4 border-t border-[var(--border)]">
@@ -3446,6 +3728,7 @@ function SkillDetailPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<
     VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson | null
@@ -3459,14 +3742,16 @@ function SkillDetailPage() {
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
 
-  const filtered = lessons.filter((item) => {
-    if (!search.trim()) return true;
-    const s = search.toLowerCase();
-    return (
-      ("title" in item && item.title?.toLowerCase().includes(s)) ||
-      ("lessonNumber" in item && String((item as VocabularyLesson).lessonNumber).includes(s))
-    );
-  });
+  const filtered = lessons.filter(
+    (item): item is VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson => {
+      if (!search.trim()) return true;
+      const s = search.toLowerCase();
+      return (
+        ("title" in item && item.title?.toLowerCase().includes(s)) ||
+        ("lessonNumber" in item && String((item as VocabularyLesson).lessonNumber).includes(s))
+      );
+    },
+  );
 
   // Backend-driven reading lessons
   const backendFiltered = readingLessons.filter((item) => {
@@ -3491,6 +3776,16 @@ function SkillDetailPage() {
   const handleEdit = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
     setSelectedItem(item);
     setShowEditModal(true);
+  };
+
+  const handleView = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
+    setSelectedItem(item);
+    setShowViewModal(true);
+  };
+
+  const handleDeleteClick = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
+    setSelectedItem(item);
+    setShowDeleteConfirm(true);
   };
 
   const handleUpdate = (
@@ -3599,14 +3894,7 @@ function SkillDetailPage() {
     });
   };
 
-  const normalizeDifficulty = (value: string | null | undefined): string | undefined => {
-    if (!value) return undefined;
-    const normalized = value.trim().toUpperCase();
-    return ["EASY", "MEDIUM", "HARD"].includes(normalized) ? normalized : undefined;
-  };
-
   const handleReadSave = (data: AdminReadingLesson) => {
-    const difficulty = normalizeDifficulty(data.difficulty);
     const firstPassage = (data.passages ?? []).find((passage) => passage.passage.trim());
     const mainPassage = firstPassage?.passage ?? data.passage ?? "";
     const questions = (data.passages ?? []).flatMap((passage) =>
@@ -3630,8 +3918,6 @@ function SkillDetailPage() {
         description: data.description ?? undefined,
         passage: mainPassage,
         vietnameseTranslation: data.vietnameseTranslation ?? undefined,
-        estimatedMinutes: data.estimatedMinutes ?? undefined,
-        difficulty: difficulty ?? undefined,
         isActive: data.isActive,
       },
       passages: (data.passages ?? []).map((passage, index) => ({
@@ -3671,6 +3957,207 @@ function SkillDetailPage() {
       createReadingMutation.mutate(payload, mutateOptions);
     } else {
       updateReadingMutation.mutate(payload, mutateOptions);
+    }
+  };
+
+  // ── Backend listening hooks (used only when skill === "listening") ──
+  const listeningQuery = useFetchListeningLessons(upperLevel);
+  const listeningLessons: AdminListeningLesson[] = (listeningQuery.data ?? []) as AdminListeningLesson[];
+
+  const [listeningDetailId, setListeningDetailId] = useState<string | null>(null);
+  // Use ref to always get the latest lessonId (fixes closure bug in mutation)
+  const listeningDetailIdRef = useRef<string | null>(null);
+  const listeningDetailQuery = useFetchListeningDetail(listeningDetailId ?? "");
+  const listeningDetail: AdminListeningLesson | null =
+    (listeningDetailQuery.data != null ? listeningDetailQuery.data : null) as AdminListeningLesson | null;
+
+  // Update ref when detailId changes
+  useEffect(() => {
+    listeningDetailIdRef.current = listeningDetailId;
+  }, [listeningDetailId]);
+
+  const createListeningMutation = useCreateListeningLesson(upperLevel);
+  const updateListeningMutation = useUpdateListeningLesson(upperLevel, listeningDetailId ?? "");
+  const deleteListeningMutation = useDeleteListeningLesson(upperLevel);
+  const publishListeningMutation = usePublishListeningLesson(upperLevel);
+  const unpublishListeningMutation = useUnpublishListeningLesson(upperLevel);
+
+  // ── Listening-specific modals & state ──
+  const [showListeningDetailModal, setShowListeningDetailModal] = useState(false);
+  const [showListeningEditModal, setShowListeningEditModal] = useState(false);
+  const [listeningSelectedLesson, setListeningSelectedLesson] = useState<AdminListeningLesson | null>(null);
+  const [listeningEditMode, setListeningEditMode] = useState<"create" | "edit" | "view" | undefined>("create");
+
+  // Backend-driven listening lessons
+  const listeningBackendFiltered = listeningLessons.filter((item) => {
+    if (!search.trim()) return true;
+    const s = search.toLowerCase();
+    return (
+      item.title?.toLowerCase().includes(s) ||
+      String(item.lessonNumber).includes(s) ||
+      (item.jlptLevel?.toLowerCase().includes(s) ?? false) ||
+      (item.difficulty?.toLowerCase().includes(s) ?? false)
+    );
+  });
+
+  const handleListeningView = (lesson: AdminListeningLesson) => {
+    setListeningSelectedLesson(lesson);
+    setListeningDetailId(lesson.id);
+    setListeningEditMode("view");
+    setShowListeningDetailModal(true);
+  };
+
+  const handleListeningEdit = (lesson: AdminListeningLesson) => {
+    setListeningSelectedLesson(lesson);
+    setListeningDetailId(lesson.id);
+    setListeningEditMode("edit");
+    setShowListeningEditModal(true);
+  };
+
+  const handleListeningCreate = () => {
+    setListeningSelectedLesson(null);
+    setListeningDetailId(null);
+    setListeningEditMode("create");
+    setShowListeningEditModal(true);
+  };
+
+  const handleListeningDelete = (lesson: AdminListeningLesson) => {
+    setListeningSelectedLesson(lesson);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleListeningPublish = (lesson: AdminListeningLesson) => {
+    setListeningSelectedLesson(lesson);
+    setShowPublishConfirm(true);
+  };
+
+  const handleListeningUnpublish = (lesson: AdminListeningLesson) => {
+    setListeningSelectedLesson(lesson);
+    setShowUnpublishConfirm(true);
+  };
+
+  const confirmListeningPublish = () => {
+    if (!listeningSelectedLesson) return;
+    publishListeningMutation.mutate(listeningSelectedLesson.id, {
+      onSuccess: () => {
+        toast.success("Listening lesson published successfully");
+        setShowPublishConfirm(false);
+        setListeningSelectedLesson(null);
+      },
+      onError: () => {
+        toast.error("Failed to publish listening lesson");
+        setShowPublishConfirm(false);
+      },
+    });
+  };
+
+  const confirmListeningUnpublish = () => {
+    if (!listeningSelectedLesson) return;
+    unpublishListeningMutation.mutate(listeningSelectedLesson.id, {
+      onSuccess: () => {
+        toast.success("Listening lesson unpublished successfully");
+        setShowUnpublishConfirm(false);
+        setListeningSelectedLesson(null);
+      },
+      onError: () => {
+        toast.error("Failed to unpublish listening lesson");
+        setShowUnpublishConfirm(false);
+      },
+    });
+  };
+
+  const confirmListeningDelete = () => {
+    if (!listeningSelectedLesson) return;
+    deleteListeningMutation.mutate(listeningSelectedLesson.id, {
+      onSuccess: () => {
+        toast.success("Listening lesson deleted successfully");
+        setShowDeleteConfirm(false);
+        setListeningSelectedLesson(null);
+      },
+      onError: () => {
+        toast.error("Failed to delete listening lesson");
+        setShowDeleteConfirm(false);
+      },
+    });
+  };
+
+  const handleListeningSave = (data: Partial<AdminListeningLesson>) => {
+    const questions = (data.questions ?? []).map((q, idx) => ({
+      questionOrder: idx + 1,
+      question: q.question,
+      optionA: q.optionA || "",
+      optionB: q.optionB || "",
+      optionC: q.optionC || "",
+      optionD: q.optionD || "",
+      correctAnswer: q.correctAnswer || "A",
+      explanation: q.explanation ?? undefined,
+      questionType: q.questionType ?? "MULTIPLE_CHOICE",
+    }));
+
+    const payload = {
+      lesson: {
+        jlptLevel: listeningEditMode === "create" ? upperLevel : listeningSelectedLesson?.jlptLevel || upperLevel,
+        lessonNumber: data.lessonNumber ?? listeningSelectedLesson?.lessonNumber ?? 1,
+        title: data.title ?? listeningSelectedLesson?.title ?? "",
+        description: data.description ?? listeningSelectedLesson?.description ?? undefined,
+        audioUrl: data.audioUrl ?? listeningSelectedLesson?.audioUrl ?? undefined,
+        transcript: data.transcript ?? listeningSelectedLesson?.transcript ?? undefined,
+        isActive: data.isActive ?? listeningSelectedLesson?.isActive ?? true,
+      },
+      questions,
+    };
+
+    console.log("[LISTENING SAVE]", { mode: listeningEditMode, payload });
+
+    const mutateOptions = {
+      onSuccess: () => {
+        toast.success(
+          listeningEditMode === "create"
+            ? "Listening lesson created successfully"
+            : "Listening lesson updated successfully",
+        );
+        setShowListeningEditModal(false);
+        setShowCreateModal(false);
+        setListeningEditMode(undefined);
+        setListeningSelectedLesson(null);
+        listeningQuery.refetch().catch(console.error);
+      },
+      onError: (error: unknown) => {
+        console.error("[LISTENING SAVE ERROR]", error);
+        const message =
+          error instanceof Error
+            ? error.message
+            : listeningEditMode === "create"
+              ? "Failed to create listening lesson"
+              : "Failed to update listening lesson";
+        toast.error(message);
+      },
+    };
+
+    if (listeningEditMode === "create") {
+      createListeningMutation.mutate(payload, mutateOptions);
+    } else {
+      // Get lessonId from selectedLesson (which is set when edit is clicked)
+      const lessonId = listeningSelectedLesson?.id;
+      if (!lessonId) {
+        toast.error("No lesson selected for update");
+        return;
+      }
+      adminListeningApi.updateListeningLesson(lessonId, payload)
+        .then(() => {
+          toast.success("Listening lesson updated successfully");
+          setShowListeningEditModal(false);
+          setListeningSelectedLesson(null);
+          listeningQuery.refetch();
+        })
+        .catch((error: unknown) => {
+          console.error("[LISTENING SAVE ERROR]", error);
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to update listening lesson";
+          toast.error(message);
+        });
     }
   };
 
@@ -3715,7 +4202,7 @@ function SkillDetailPage() {
             <Upload className="w-4 h-4" /> Import Excel
           </button>
           <button
-            onClick={() => (skill === "reading" ? handleReadCreate() : setShowCreateModal(true))}
+            onClick={() => (skill === "reading" ? handleReadCreate() : skill === "listening" ? handleListeningCreate() : setShowCreateModal(true))}
             className="px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Create Lesson
@@ -3735,120 +4222,11 @@ function SkillDetailPage() {
       </div>
 
       {/* Table (Match Question Bank style) */}
-      {skill !== "reading" ? (
+      {skill === "reading" || skill === "listening" ? (
+        /* ── Backend-driven Table (Reading & Listening) ── */
         <div className="card-base overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-            <div
-              className={
-                skill === "listening"
-                  ? "col-span-1 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
-                  : "col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
-              }
-            >
-              Lesson
-            </div>
-            <div
-              className={
-                skill === "listening"
-                  ? "col-span-3 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
-                  : "col-span-4 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold"
-              }
-            >
-              Title
-            </div>
-            {skill === "listening" && (
-              <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
-                Audio File
-              </div>
-            )}
-            {skill !== "shadowing" && skill !== "listening" && (
-              <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-                Items
-              </div>
-            )}
-            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Status
-            </div>
-            <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Actions
-            </div>
-          </div>
-          {/* Table Rows */}
-          <div className="divide-y divide-[var(--border)]">
-            {filtered.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-[var(--accent)]/50 transition items-center"
-              >
-                <div
-                  className={
-                    skill === "listening"
-                      ? "col-span-1 text-sm font-medium text-muted-col whitespace-nowrap"
-                      : "col-span-2 text-sm font-medium text-muted-col whitespace-nowrap"
-                  }
-                >
-                  #{(item as VocabularyLesson).lessonNumber || "-"}
-                </div>
-                <div className={skill === "listening" ? "col-span-3" : "col-span-4"}>
-                  <div className="font-medium text-sm text-primary-col">{item.title}</div>
-                </div>
-                {skill === "listening" && (
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-1.5 text-sm text-muted-col">
-                      <Headphones className="w-3.5 h-3.5" />
-                      <span className="truncate">
-                        {(item as ListeningLesson).items?.[0]?.audioUrl || "No audio"}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {skill !== "shadowing" && skill !== "listening" && (
-                  <div className="col-span-2 text-center">
-                    <span className="text-sm font-medium text-muted-col">{getItemCount(item)}</span>
-                  </div>
-                )}
-                <div className="col-span-2 flex justify-center">
-                  <StatusBadge status={(item as unknown as { status?: string }).status} />
-                </div>
-                <div className="col-span-2 flex justify-end items-center gap-2">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    View
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setShowDeleteConfirm(true);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-            {filtered.length === 0 && (
-              <div className="px-5 py-12 text-center">
-                <p className="text-sm text-muted-col">
-                  No {config.label.toLowerCase()} content found{search ? " matching your search" : ""}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* ── Reading Backend Table ── */
-        <div className="card-base overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b separator">
+          <div className="grid grid-cols-10 gap-3 px-5 py-3 border-b separator">
             <div className="col-span-1 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Lesson #
             </div>
@@ -3857,12 +4235,6 @@ function SkillDetailPage() {
             </div>
             <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
               JLPT
-            </div>
-            <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Difficulty
-            </div>
-            <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Est. Min
             </div>
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Questions
@@ -3876,98 +4248,261 @@ function SkillDetailPage() {
           </div>
           {/* Table Rows */}
           <div className="divide-y divide-[var(--border)]">
-            {readingQuery.isLoading ? (
+            {skill === "reading" ? (
+              readingQuery.isLoading ? (
+                <div className="px-5 py-12 text-center">
+                  <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-muted-col mt-2">Loading reading lessons...</p>
+                </div>
+              ) : readingQuery.isError ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-red-500">Failed to load reading lessons.</p>
+                </div>
+              ) : backendFiltered.length === 0 ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-muted-col">
+                    No reading content found{search ? " matching your search" : ""}
+                  </p>
+                </div>
+              ) : (
+                backendFiltered.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="grid grid-cols-10 gap-3 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
+                  >
+                    <div className="col-span-1 text-sm font-medium text-muted-col whitespace-nowrap">
+                      #{item.lessonNumber}
+                    </div>
+                    <div className="col-span-4">
+                      <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                      {item.description && (
+                        <div className="text-xs text-muted-col truncate mt-0.5">{item.description}</div>
+                      )}
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">
+                        {item.jlptLevel}
+                      </span>
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <span className="text-sm font-medium text-muted-col">{item.questions?.length ?? 0}</span>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <StatusBadge status={item.isActive ? "active" : "inactive"} />
+                    </div>
+                    <div className="col-span-2 flex justify-end items-center gap-1.5">
+                      <button
+                        onClick={() => handleReadView(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleReadEdit(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleReadDelete(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      {item.isActive ? (
+                        <button
+                          onClick={() => handleReadUnpublish(item)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+                          title="Unpublish"
+                        >
+                          <CloudOff className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleReadPublish(item)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition text-xs font-medium"
+                          title="Publish"
+                        >
+                          <Cloud className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))
+              )
+            ) : (
+              listeningQuery.isLoading ? (
+                <div className="px-5 py-12 text-center">
+                  <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-muted-col mt-2">Loading listening lessons...</p>
+                </div>
+              ) : listeningQuery.isError ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-red-500">Failed to load listening lessons.</p>
+                </div>
+              ) : listeningBackendFiltered.length === 0 ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-muted-col">
+                    No listening content found{search ? " matching your search" : ""}
+                  </p>
+                </div>
+              ) : (
+                listeningBackendFiltered.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="grid grid-cols-10 gap-3 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
+                  >
+                    <div className="col-span-1 text-sm font-medium text-muted-col whitespace-nowrap">
+                      #{item.lessonNumber}
+                    </div>
+                    <div className="col-span-4">
+                      <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                      {item.description && (
+                        <div className="text-xs text-muted-col truncate mt-0.5">{item.description}</div>
+                      )}
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">
+                        {item.jlptLevel}
+                      </span>
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <span className="text-sm font-medium text-muted-col">{item.questions?.length ?? 0}</span>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <StatusBadge status={item.isActive ? "active" : "inactive"} />
+                    </div>
+                    <div className="col-span-2 flex justify-end items-center gap-1.5">
+                      <button
+                        onClick={() => handleListeningView(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleListeningEdit(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleListeningDelete(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      {item.isActive ? (
+                        <button
+                          onClick={() => handleListeningUnpublish(item)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+                          title="Unpublish"
+                        >
+                          <CloudOff className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleListeningPublish(item)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition text-xs font-medium"
+                          title="Publish"
+                        >
+                          <Cloud className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))
+              )
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ── Mock Data Tables (vocabulary, grammar, shadowing) ── */
+        <div className="card-base overflow-hidden">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
+            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Lesson
+            </div>
+            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Type
+            </div>
+            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Level
+            </div>
+            <div className="col-span-3 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Description
+            </div>
+            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Actions
+            </div>
+          </div>
+          {/* Table Body */}
+          <div className="divide-y divide-[var(--border)]">
+            {filtered.length === 0 ? (
               <div className="px-5 py-12 text-center">
-                <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-muted-col mt-2">Loading reading lessons...</p>
-              </div>
-            ) : readingQuery.isError ? (
-              <div className="px-5 py-12 text-center">
-                <p className="text-sm text-red-500">Failed to load reading lessons.</p>
-              </div>
-            ) : backendFiltered.length === 0 ? (
-              <div className="px-5 py-12 text-center">
-                <p className="text-sm text-muted-col">
-                  No reading content found{search ? " matching your search" : ""}
-                </p>
+                <p className="text-sm text-muted-col">No lessons found for this level and skill.</p>
               </div>
             ) : (
-              backendFiltered.map((item, i) => (
+              filtered.map((item, i) => (
                 <motion.div
                   key={item.id}
-                  initial={{ opacity: 0, y: 4 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="grid grid-cols-12 gap-3 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
+                  className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-[var(--accent)] transition"
                 >
-                  <div className="col-span-1 text-sm font-medium text-muted-col whitespace-nowrap">
-                    #{item.lessonNumber}
+                  <div className="col-span-2">
+                    <p className="text-sm font-semibold text-primary-col">{item.title}</p>
+                    <p className="text-xs text-muted-col mt-0.5">#{"lessonNumber" in item ? (item as VocabularyLesson | GrammarLesson | ListeningLesson | ReadingLesson).lessonNumber : "—"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent)] text-xs font-medium text-primary-col">
+                      <SkillIcon className="w-3 h-3" />
+                      {config.label}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-lg bg-[var(--accent)] text-xs font-bold text-primary-col">
+                      {upperLevel}
+                    </span>
                   </div>
                   <div className="col-span-3">
-                    <div className="font-medium text-sm text-primary-col">{item.title}</div>
-                    {item.description && (
-                      <div className="text-xs text-muted-col truncate mt-0.5">{item.description}</div>
-                    )}
+                    <p className="text-xs text-secondary-col line-clamp-2">
+                      {"description" in item ? (item as { description?: string | null }).description || "—" : "—"}
+                    </p>
                   </div>
-                  <div className="col-span-1 text-center">
-                    <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">
-                      {item.jlptLevel}
-                    </span>
-                  </div>
-                  <div className="col-span-1 text-center">
-                    <span className="text-xs text-muted-col">
-                      {item.difficulty || "-"}
-                    </span>
-                  </div>
-                  <div className="col-span-1 text-center">
-                    <span className="text-xs text-muted-col">
-                      {item.estimatedMinutes != null ? `${item.estimatedMinutes}m` : "-"}
-                    </span>
-                  </div>
-                  <div className="col-span-2 text-center">
-                    <span className="text-sm font-medium text-muted-col">{item.questions?.length ?? 0}</span>
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <StatusBadge status={item.isActive ? "active" : "inactive"} />
-                  </div>
-                  <div className="col-span-2 flex justify-end items-center gap-1.5">
+                  <div className="col-span-3 flex items-center justify-end gap-2">
                     <button
-                      onClick={() => handleReadView(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+                      onClick={() => handleEdit(item)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[var(--accent)] text-primary-col hover:bg-[var(--border)] transition text-xs font-medium"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      View
                     </button>
                     <button
-                      onClick={() => handleReadEdit(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
+                      onClick={() => handleEdit(item)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      Edit
                     </button>
                     <button
-                      onClick={() => handleReadDelete(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20 transition text-xs font-medium"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                    {item.isActive ? (
-                      <button
-                        onClick={() => handleReadUnpublish(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
-                        title="Unpublish"
-                      >
-                        <CloudOff className="w-3.5 h-3.5" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleReadPublish(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition text-xs font-medium"
-                        title="Publish"
-                      >
-                        <Cloud className="w-3.5 h-3.5" />
-                      </button>
-                    )}
                   </div>
                 </motion.div>
               ))
@@ -3975,7 +4510,6 @@ function SkillDetailPage() {
           </div>
         </div>
       )}
-
       {/* Delete Confirmation */}
       <ConfirmDialog
         open={showDeleteConfirm}
@@ -3983,17 +4517,28 @@ function SkillDetailPage() {
           setShowDeleteConfirm(false);
           setSelectedItem(null);
           setReadingSelectedLesson(null);
+          setListeningSelectedLesson(null);
         }}
         onConfirm={
           skill === "reading" && readingSelectedLesson
             ? confirmReadDelete
-            : handleDelete
+            : skill === "listening" && listeningSelectedLesson
+              ? confirmListeningDelete
+              : handleDelete
         }
-        title={skill === "reading" && readingSelectedLesson ? "Delete Reading Lesson" : "Delete Lesson"}
+        title={
+          skill === "reading" && readingSelectedLesson
+            ? "Delete Reading Lesson"
+            : skill === "listening" && listeningSelectedLesson
+              ? "Delete Listening Lesson"
+              : "Delete Lesson"
+        }
         message={
           skill === "reading" && readingSelectedLesson
             ? `Are you sure you want to delete "${readingSelectedLesson.title}"? This action cannot be undone.`
-            : `Are you sure you want to delete "${selectedItem?.title}"? This action cannot be undone.`
+            : skill === "listening" && listeningSelectedLesson
+              ? `Are you sure you want to delete "${listeningSelectedLesson.title}"? This action cannot be undone.`
+              : `Are you sure you want to delete "${selectedItem?.title}"? This action cannot be undone.`
         }
       />
 
@@ -4003,10 +4548,29 @@ function SkillDetailPage() {
         onClose={() => {
           setShowPublishConfirm(false);
           setReadingSelectedLesson(null);
+          setListeningSelectedLesson(null);
         }}
-        onConfirm={confirmReadPublish}
-        title="Publish Reading Lesson"
-        message={`Are you sure you want to publish "${readingSelectedLesson?.title}"? It will become available to students.`}
+        onConfirm={
+          skill === "reading" && readingSelectedLesson
+            ? confirmReadPublish
+            : skill === "listening" && listeningSelectedLesson
+              ? confirmListeningPublish
+              : confirmReadPublish
+        }
+        title={
+          skill === "reading" && readingSelectedLesson
+            ? "Publish Reading Lesson"
+            : skill === "listening" && listeningSelectedLesson
+              ? "Publish Listening Lesson"
+              : "Publish Lesson"
+        }
+        message={
+          skill === "reading" && readingSelectedLesson
+            ? `Are you sure you want to publish "${readingSelectedLesson?.title}"? It will become available to students.`
+            : skill === "listening" && listeningSelectedLesson
+              ? `Are you sure you want to publish "${listeningSelectedLesson?.title}"? It will become available to students.`
+              : ""
+        }
       />
 
       <ConfirmDialog
@@ -4014,10 +4578,29 @@ function SkillDetailPage() {
         onClose={() => {
           setShowUnpublishConfirm(false);
           setReadingSelectedLesson(null);
+          setListeningSelectedLesson(null);
         }}
-        onConfirm={confirmReadUnpublish}
-        title="Unpublish Reading Lesson"
-        message={`Are you sure you want to unpublish "${readingSelectedLesson?.title}"? It will no longer be available to students.`}
+        onConfirm={
+          skill === "reading" && readingSelectedLesson
+            ? confirmReadUnpublish
+            : skill === "listening" && listeningSelectedLesson
+              ? confirmListeningUnpublish
+              : confirmReadUnpublish
+        }
+        title={
+          skill === "reading" && readingSelectedLesson
+            ? "Unpublish Reading Lesson"
+            : skill === "listening" && listeningSelectedLesson
+              ? "Unpublish Listening Lesson"
+              : "Unpublish Lesson"
+        }
+        message={
+          skill === "reading" && readingSelectedLesson
+            ? `Are you sure you want to unpublish "${readingSelectedLesson?.title}"? It will no longer be available to students.`
+            : skill === "listening" && listeningSelectedLesson
+              ? `Are you sure you want to unpublish "${listeningSelectedLesson?.title}"? It will no longer be available to students.`
+              : ""
+        }
       />
 
       {/* Edit Modal */}
@@ -4052,16 +4635,6 @@ function SkillDetailPage() {
                 }}
               />
             )}
-            {skill === "listening" && (
-              <ListeningEditForm
-                lesson={selectedItem as ListeningLesson}
-                onSave={handleUpdate}
-                onCancel={() => {
-                  setShowEditModal(false);
-                  setSelectedItem(null);
-                }}
-              />
-            )}
             {skill === "shadowing" && (
               <ShadowingEditForm
                 item={selectedItem as ShadowingItem}
@@ -4088,9 +4661,6 @@ function SkillDetailPage() {
         )}
         {skill === "grammar" && (
           <GrammarLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
-        )}
-        {skill === "listening" && (
-          <ListeningLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
         )}
         {skill === "shadowing" && (
           <ShadowingLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
@@ -4136,6 +4706,34 @@ function SkillDetailPage() {
           setReadingSelectedLesson(null);
         }}
         isSaving={createReadingMutation.isPending || updateReadingMutation.isPending}
+      />
+
+      {/* ── Listening Backend: Detail Modal ── */}
+      <ListeningDetailModal
+        open={showListeningDetailModal}
+        onClose={() => {
+          setShowListeningDetailModal(false);
+          setListeningSelectedLesson(null);
+          setListeningDetailId(null);
+          setListeningEditMode(undefined);
+        }}
+        lesson={(listeningDetail ?? listeningSelectedLesson)}
+        isLoading={listeningDetailQuery.isLoading}
+        isError={listeningDetailQuery.isError}
+      />
+
+      {/* ── Listening Backend: Create/Edit Modal ── */}
+      <ListeningBackendEditForm
+        open={showListeningEditModal}
+        mode={listeningEditMode}
+        lesson={listeningDetail ?? listeningSelectedLesson}
+        onSave={handleListeningSave}
+        onCancel={() => {
+          setShowListeningEditModal(false);
+          setListeningSelectedLesson(null);
+          setListeningDetailId(null);
+          setListeningEditMode(undefined);
+        }}
       />
     </div>
   );
@@ -4584,7 +5182,7 @@ function ReadingBackendEditForm({
                 placeholder="Optional description"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-secondary-col mb-1.5">
                   JLPT Level
@@ -4601,27 +5199,16 @@ function ReadingBackendEditForm({
               </div>
               <div>
                 <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                  Difficulty
+                  Active
                 </label>
-                <input
-                  value={form.difficulty ?? ""}
-                  onChange={(e) => updateField("difficulty", e.target.value || null)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition"
-                  placeholder="e.g. beginner"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                  Est. Minutes
-                </label>
-                <input
-                  type="number"
-                  value={form.estimatedMinutes ?? ""}
-                  onChange={(e) => updateField("estimatedMinutes", e.target.value ? +e.target.value : null)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition"
-                  placeholder="e.g. 15"
-                  min={1}
-                />
+                <select
+                  value={form.isActive ? "active" : "inactive"}
+                  onChange={(e) => updateField("isActive", e.target.value === "active")}
+                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition cursor-pointer"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
             </div>
           </div>
@@ -4830,6 +5417,476 @@ function ReadingBackendEditForm({
             <Save className="w-4 h-4" />
             {isSaving ? "Saving..." : mode === "create" ? "Create Lesson" : "Save Changes"}
           </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Listening Backend: Detail Modal ───────────────────────────────────────────
+
+function ListeningDetailModal({
+  open,
+  onClose,
+  lesson,
+  isLoading,
+  isError,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lesson: AdminListeningLesson | null;
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative z-10 w-full max-w-4xl glass-modal rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: "90vh" }}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b separator shrink-0">
+          <div>
+            <h2 className="font-display font-bold text-primary-col text-base">
+              {lesson?.title ?? "Listening Lesson Detail"}
+            </h2>
+            {lesson && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-col">JLPT {lesson.jlptLevel}</span>
+                {lesson.difficulty && (
+                  <>
+                    <span className="text-xs text-muted-col">•</span>
+                    <span className="text-xs text-muted-col">{lesson.difficulty}</span>
+                  </>
+                )}
+                {lesson.estimatedMinutes != null && (
+                  <>
+                    <span className="text-xs text-muted-col">•</span>
+                    <span className="text-xs text-muted-col">{lesson.estimatedMinutes} min</span>
+                  </>
+                )}
+                <span className="text-xs text-muted-col">•</span>
+                <StatusBadge status={lesson.isActive ? "active" : "inactive"} />
+              </div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="inline-block w-6 h-6 border-2 border-sky-blue border-t-transparent rounded-full animate-spin" />
+              <span className="ml-3 text-sm text-muted-col">Loading...</span>
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12 text-red-500 text-sm">
+              Failed to load listening lesson details.
+            </div>
+          ) : lesson ? (
+            <div className="space-y-6">
+              {lesson.description && (
+                <div className="glass-card p-4">
+                  <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
+                    Description
+                  </h3>
+                  <p className="text-sm text-secondary-col">{lesson.description}</p>
+                </div>
+              )}
+
+              {lesson.audioUrl && (
+                <div className="glass-card p-4">
+                  <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-3">
+                    Audio
+                  </h3>
+                  <audio
+                    controls
+                    src={lesson.audioUrl}
+                    className="w-full h-10 rounded-lg"
+                  />
+                </div>
+              )}
+
+              {lesson.transcript && (
+                <div className="glass-card p-4">
+                  <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
+                    Japanese Transcript
+                  </h3>
+                  <p className="text-sm text-primary-col leading-relaxed whitespace-pre-wrap bg-[var(--card)] rounded-lg p-4 border border-[var(--border)]">
+                    {lesson.transcript}
+                  </p>
+                </div>
+              )}
+
+              {(lesson.questions?.length ?? 0) > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide">
+                    Questions ({lesson.questions?.length ?? 0})
+                  </h3>
+                  {lesson.questions.map((q: ListeningQuestion, qi: number) => (
+                    <div
+                      key={q.id || qi}
+                      className="glass-card p-4 space-y-3 border-l-4 border-sky-blue"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                          {qi + 1}
+                        </span>
+                        <p className="text-sm font-medium text-primary-col">{q.question || "No question text"}</p>
+                      </div>
+                      <div className="space-y-1.5 ml-9">
+                        {(["A", "B", "C", "D"] as const).map((opt) => {
+                          const optValue = q[`option${opt}` as keyof ListeningQuestion] as string;
+                          const isCorrect = q.correctAnswer === opt;
+                          return (
+                            <div
+                              key={opt}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+                                isCorrect
+                                  ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 font-medium"
+                                  : "bg-[var(--card)] border border-[var(--border)] text-secondary-col"
+                              }`}
+                            >
+                              <span className="font-bold shrink-0">{opt}.</span>
+                              <span>{optValue || "No option"}</span>
+                              {isCorrect && (
+                                <span className="ml-auto text-emerald-600 font-semibold">Correct</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {q.explanation && (
+                        <div className="ml-9 mt-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                          <p className="text-xs text-blue-600">
+                            <span className="font-semibold">Explanation: </span>
+                            {q.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-col text-sm">
+              No lesson data available.
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Listening Backend: Edit Modal ────────────────────────────────────────────
+
+function ListeningBackendEditForm({
+  open,
+  mode,
+  lesson,
+  onSave,
+  onCancel,
+}: {
+  open: boolean;
+  mode: "create" | "edit" | "view" | undefined;
+  lesson: AdminListeningLesson | null;
+  onSave: (data: Partial<AdminListeningLesson>) => void;
+  onCancel: () => void;
+}) {
+  if (!open) return null;
+
+  const [form, setForm] = useState({
+    lessonNumber: lesson?.lessonNumber || 1,
+    title: lesson?.title || "",
+    description: lesson?.description || "",
+    audioUrl: lesson?.audioUrl || "",
+    transcript: lesson?.transcript || "",
+    estimatedMinutes: lesson?.estimatedMinutes || "",
+    difficulty: lesson?.difficulty || "",
+    status: lesson?.isActive ? "active" : "inactive",
+    questions: [...(lesson?.questions || [])] as ListeningQuestion[],
+  });
+
+  const isViewMode = mode === "view";
+  const isEditMode = mode === "edit";
+
+  const addQuestion = () => {
+    const newQuestion: ListeningQuestion = {
+      id: `temp-${Date.now()}`,
+      questionOrder: form.questions.length + 1,
+      question: "",
+      optionA: "",
+      optionB: "",
+      optionC: "",
+      optionD: "",
+      correctAnswer: "A",
+      explanation: null,
+      questionType: "MULTIPLE_CHOICE",
+    };
+    setForm((f) => ({ ...f, questions: [...f.questions, newQuestion] }));
+  };
+
+  const updateQuestion = (index: number, field: string, value: string | number | null) => {
+    setForm((f) => {
+      const questions = f.questions.map((q, i) =>
+        i === index ? { ...q, [field]: value } : q
+      );
+      return { ...f, questions };
+    });
+  };
+
+  const removeQuestion = (index: number) => {
+    setForm((f) => {
+      const questions = f.questions
+        .filter((_, i) => i !== index)
+        .map((q, i) => ({ ...q, questionOrder: i + 1 }));
+      return { ...f, questions };
+    });
+  };
+
+  const handleSave = () => {
+    onSave({
+      ...form,
+      id: lesson?.id || "",
+      isActive: form.status === "active",
+      estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
+      description: form.description || null,
+      transcript: form.transcript || null,
+      audioUrl: form.audioUrl || null,
+      difficulty: form.difficulty || null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative z-10 w-full max-w-4xl glass-modal rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: "90vh" }}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b separator shrink-0">
+          <div>
+            <h2 className="font-display font-bold text-primary-col text-base">
+              {mode === "create" ? "Create" : "Edit"} Listening Lesson
+            </h2>
+            {lesson?.title && (
+              <p className="text-xs text-muted-col mt-0.5">{lesson.title}</p>
+            )}
+          </div>
+          <button
+            onClick={onCancel}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+          <div className="space-y-6">
+            {/* Lesson Information */}
+            <div className="glass-card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Headphones className="w-4 h-4 text-sky-blue" />
+                <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                    Lesson Number
+                  </label>
+                  <input
+                    type="number"
+                    value={form.lessonNumber}
+                    onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                    min={1}
+                    disabled={isViewMode}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                    Lesson Title
+                  </label>
+                  <input
+                    value={form.title}
+                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                    disabled={isViewMode}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                    disabled={isViewMode}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                    Audio File
+                  </label>
+                  <AudioUploader
+                    value={form.audioUrl}
+                    onChange={(url) => setForm((f) => ({ ...f, audioUrl: url }))}
+                    disabled={isViewMode}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+                    disabled={isViewMode}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                  Japanese Transcript
+                </label>
+                <textarea
+                  value={form.transcript}
+                  onChange={(e) => setForm((f) => ({ ...f, transcript: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]"
+                  disabled={isViewMode}
+                />
+              </div>
+            </div>
+
+            {/* Listening Questions */}
+            <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-primary-col">Listening Questions</h3>
+                  <p className="text-xs text-muted-col mt-0.5">
+                    {form.questions.length} question{form.questions.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                {!isViewMode && (
+                  <button
+                    onClick={addQuestion}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium hover:bg-emerald-500/20 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Question
+                  </button>
+                )}
+              </div>
+
+              {form.questions.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-col">
+                    No questions yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {form.questions.map((q, i) => (
+                    <div
+                      key={q.id}
+                      className="rounded-lg border border-[var(--border)] overflow-hidden"
+                    >
+                      <div className="px-4 py-3 bg-[var(--accent)]/40">
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center">
+                            {i + 1}
+                          </span>
+                          <span className="text-sm font-medium text-primary-col">
+                            {q.question || "New Question"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="px-4 py-4 space-y-3 bg-[var(--card)]">
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Question Text</label>
+                          <textarea
+                            value={q.question}
+                            onChange={(e) => updateQuestion(i, "question", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                            disabled={isViewMode}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-xs text-muted-col">Options</label>
+                          {(["A", "B", "C", "D"] as const).map((opt) => (
+                            <div key={opt} className="flex items-center gap-2">
+                              <span className="text-xs text-muted-col w-4 shrink-0">{opt}.</span>
+                              <input
+                                value={q[`option${opt}` as keyof ListeningQuestion] as string}
+                                onChange={(e) => updateQuestion(i, `option${opt}`, e.target.value)}
+                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                                disabled={isViewMode}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => !isViewMode && updateQuestion(i, "correctAnswer", opt)}
+                                className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
+                                  q.correctAnswer === opt
+                                    ? "border-emerald-500 bg-emerald-500 text-white"
+                                    : "border-[var(--border)]"
+                                } ${isViewMode ? "cursor-default" : "cursor-pointer"}`}
+                                title="Set as correct answer"
+                                disabled={isViewMode}
+                              >
+                                {q.correctAnswer === opt && (
+                                  <span className="w-2 h-2 rounded-full bg-white" />
+                                )}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+          <button
+            onClick={onCancel}
+            className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+          >
+            {isViewMode ? "Close" : "Cancel"}
+          </button>
+          {!isViewMode && (
+            <button
+              onClick={handleSave}
+              disabled={!form.title.trim()}
+              className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+            >
+              <Save className="w-4 h-4" />
+              {mode === "create" ? "Create Lesson" : "Save Changes"}
+            </button>
+          )}
         </div>
       </motion.div>
     </div>
