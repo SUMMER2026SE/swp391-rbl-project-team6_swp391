@@ -23,6 +23,7 @@ import { ExamGradeDrawer } from "@/components/teacher/exam-grade-drawer";
 export interface TeacherClassExamsTabProps {
   classId: string;
   urlQ?: string;
+  isArchived?: boolean;
 }
 
 function mapApiExamToView(e: ExamResponse, classId: string): TeacherExamView {
@@ -50,7 +51,7 @@ function mapApiExamToView(e: ExamResponse, classId: string): TeacherExamView {
   };
 }
 
-export function TeacherClassExamsTab({ classId, urlQ }: TeacherClassExamsTabProps) {
+export function TeacherClassExamsTab({ classId, urlQ, isArchived }: TeacherClassExamsTabProps) {
   const queryClient = useQueryClient();
 
   const { data: rawList = [], isLoading } = useQuery({
@@ -153,21 +154,23 @@ export function TeacherClassExamsTab({ classId, urlQ }: TeacherClassExamsTabProp
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-muted-foreground">{filteredList.length} exams</h2>
-        <Button asChild>
-          <Link
-            to="/teacher/exams/create"
-            search={{
-              classId,
-              source: undefined,
-              topicId: undefined,
-              jlptSetId: undefined,
-              mode: undefined,
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New exam
-          </Link>
-        </Button>
+        {!isArchived && (
+          <Button asChild>
+            <Link
+              to="/teacher/exams/create"
+              search={{
+                classId,
+                source: undefined,
+                topicId: undefined,
+                jlptSetId: undefined,
+                mode: undefined,
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New exam
+            </Link>
+          </Button>
+        )}
       </div>
 
       {filteredList.length === 0 ? (
@@ -245,28 +248,8 @@ export function TeacherClassExamsTab({ classId, urlQ }: TeacherClassExamsTabProp
       </div>
       )}
 
-      <PreviewSheet open={!!sel} onOpenChange={(o) => !o && setOpen(null)} title={sel?.title ?? ""}>
-        {sel && (
-          <div className="space-y-3 text-sm">
-            <p>
-              {sel.totalQuestions} questions · {sel.duration} min · {sel.attempts} attempt(s)
-            </p>
-            <p>Source: {sel.source.replace("-", " ")}</p>
-            {sel.averageScore !== undefined && (
-              <p>
-                Class average: <b>{sel.averageScore}%</b>
-              </p>
-            )}
-            <div className="flex gap-2 pt-2">
-              <Button className="flex-1" onClick={() => setAssignExam(sel.id)}>
-                Assign to students
-              </Button>
-              <Button variant="outline" onClick={() => setGradeExam(sel.id)}>
-                <ClipboardCheck className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+      <PreviewSheet open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={sel?.title ?? ""}>
+        {sel && <ExamPreviewContent examId={open!} classId={classId} onAssign={() => setAssignExam(open)} onGrade={() => setGradeExam(open)} />}
       </PreviewSheet>
 
       <ConfirmDialog
@@ -300,6 +283,116 @@ export function TeacherClassExamsTab({ classId, urlQ }: TeacherClassExamsTabProp
         onGrade={handleExamGrade}
         onRemind={handleExamRemind}
       />
+    </div>
+  );
+}
+
+interface ExamPreviewContentProps {
+  examId: string;
+  classId: string;
+  onAssign: () => void;
+  onGrade: () => void;
+}
+
+function ExamPreviewContent({ examId, classId, onAssign, onGrade }: ExamPreviewContentProps) {
+  const { data: exam, isLoading } = useQuery({
+    queryKey: ["examDetails", examId],
+    queryFn: () => examsApi.getExamById(examId),
+    enabled: !!examId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-2">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <span className="text-xs text-muted-foreground">Loading questions...</span>
+      </div>
+    );
+  }
+
+  if (!exam) {
+    return (
+      <div className="py-6 text-center text-sm text-muted-foreground">
+        Could not load exam details.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Meta Stats */}
+      <div className="grid grid-cols-3 gap-2 bg-muted/40 p-3 rounded-xl text-center text-xs">
+        <div>
+          <div className="text-muted-foreground text-[10px] uppercase font-bold">Questions</div>
+          <div className="font-bold text-sm mt-0.5">{exam.totalQuestions}</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground text-[10px] uppercase font-bold">Duration</div>
+          <div className="font-bold text-sm mt-0.5">{exam.timeLimit}m</div>
+        </div>
+        <div>
+          <div className="text-muted-foreground text-[10px] uppercase font-bold">Status</div>
+          <div className="font-bold text-sm mt-0.5 uppercase tracking-wide text-primary">
+            {exam.status}
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-2">
+        <Button className="flex-1" onClick={onAssign}>
+          Assign to students
+        </Button>
+        <Button variant="outline" onClick={onGrade}>
+          <ClipboardCheck className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Questions list */}
+      <div className="space-y-4 pt-2">
+        <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Question List</h4>
+        {exam.questions && exam.questions.length > 0 ? (
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+            {exam.questions.map((q, idx) => (
+              <div key={q.id || idx} className="p-4 rounded-xl border bg-card space-y-2.5">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-xs font-bold text-primary">Question {idx + 1}</span>
+                  {q.points !== undefined && (
+                    <span className="text-[10px] font-semibold bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+                      {q.points} pt{q.points !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs font-semibold text-foreground">{q.prompt}</div>
+
+                {q.options && q.options.length > 0 && (
+                  <div className="grid gap-1.5 grid-cols-1 mt-1">
+                    {q.options.map((opt, oIdx) => {
+                      const isCorrect = oIdx === q.correctAnswerIndex;
+                      return (
+                        <div
+                          key={oIdx}
+                          className={`p-2 rounded-lg border text-xs transition ${
+                            isCorrect
+                              ? "bg-emerald-500/10 border-emerald-500/35 text-emerald-700 dark:text-emerald-400 font-medium"
+                              : "bg-muted/30 border-border/40 text-muted-foreground"
+                          }`}
+                        >
+                          <span className="font-bold mr-1">{String.fromCharCode(65 + oIdx)}.</span> {opt}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground italic text-center py-4">
+            No questions assigned to this exam yet.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

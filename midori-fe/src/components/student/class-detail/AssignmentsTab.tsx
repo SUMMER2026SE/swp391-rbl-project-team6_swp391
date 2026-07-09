@@ -104,7 +104,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
     if (item.status === "Graded" || item.status === "Submitted") {
       // Open review workspace directly
       setReviewingAssignment(item);
-    } else {
+    } else if (classInfo.status !== "archived") {
       setDoingAssignment(item);
     }
   };
@@ -289,7 +289,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
 
                 <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
                   <button
-                    disabled={item.status === "Overdue"}
+                    disabled={item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted")}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAction(item);
@@ -297,14 +297,14 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                     className={`px-3 py-1.5 rounded-xl font-black text-[10px] uppercase transition shadow-sm border ${
                       item.status === "Graded" || item.status === "Submitted"
                         ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                        : item.status === "Overdue"
+                        : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                           ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
                           : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
                     }`}
                   >
                     {item.status === "Graded" || item.status === "Submitted"
                       ? "View Result"
-                      : item.status === "Overdue"
+                      : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                         ? "Locked"
                         : "Start"}
                   </button>
@@ -375,7 +375,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
               {/* Actions */}
               <div className="flex gap-2 border-t border-slate-100 dark:border-white/5 pt-3">
                 <button
-                  disabled={item.status === "Overdue"}
+                  disabled={item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted")}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAction(item);
@@ -383,14 +383,14 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                   className={`w-full py-2 rounded-xl text-[10px] font-black uppercase transition shadow-sm border ${
                     item.status === "Graded" || item.status === "Submitted"
                       ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                      : item.status === "Overdue"
+                      : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                         ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
                         : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
                   }`}
                 >
                   {item.status === "Graded" || item.status === "Submitted"
                     ? "View Result"
-                    : item.status === "Overdue"
+                    : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                       ? "Locked"
                       : "Start"}
                 </button>

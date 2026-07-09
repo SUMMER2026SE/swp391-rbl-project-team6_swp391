@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/page-ui";
 import { Link } from "@tanstack/react-router";
 import {
@@ -15,15 +15,29 @@ import {
   AlertCircle,
   Clock3,
   HelpCircle,
-  Plus
+  Plus,
+  MoreVertical,
+  Eye,
+  Edit,
+  Trash2
 } from "lucide-react";
 import type { TeacherClassInfo, TeacherAssignment } from "@/types/teacher-class";
 import { homeworkApi } from "@/lib/api/homework";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/teacher/dialogs";
+import { ViewHomeworkDialog } from "../homework-detail-dialog";
+import { HomeworkEditDialog } from "../homework-edit-dialog";
 
 interface TeacherAssignmentsTabProps {
   classInfo: TeacherClassInfo;
   urlQ?: string;
+  isArchived?: boolean;
 }
 
 interface Submission {
@@ -42,7 +56,7 @@ interface Submission {
 
 
 
-export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTabProps) {
+export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAssignmentsTabProps) {
   const queryClient = useQueryClient();
   // Navigation state: "list" | "submissions" | "detail"
   const [viewStep, setViewStep] = useState<"list" | "submissions" | "detail">("list");
@@ -62,6 +76,60 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
   const [gradeScore, setGradeScore] = useState<number>(0);
   const [gradeFeedback, setGradeFeedback] = useState<string>("");
   const [isSavingGrade, setIsSavingGrade] = useState(false);
+
+  // View / Edit / Delete states
+  const [viewHwId, setViewHwId] = useState<string | null>(null);
+  const [editHwId, setEditHwId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const { data: editingHomework } = useQuery({
+    queryKey: ["homeworkDetails", editHwId],
+    queryFn: () => homeworkApi.getTeacherHomeworkById(editHwId!),
+    enabled: !!editHwId,
+  });
+
+  const handleSaveEdit = async (updated: any) => {
+    if (!editHwId) return;
+    toast.promise(
+      homeworkApi.updateHomework(editHwId, {
+        title: updated.title,
+        instructions: updated.instructions,
+        dueDate: updated.dueDate,
+        maxScore: updated.maxScore,
+        attempts: updated.attempts,
+        status: updated.status,
+        questionIds: updated.questions?.map((q: any) => q.id) || [],
+      }),
+      {
+        loading: "Updating homework...",
+        success: () => {
+          setEditHwId(null);
+          void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
+          void queryClient.invalidateQueries({ queryKey: ["teacherAllHomeworks"] });
+          return "Homework updated successfully.";
+        },
+        error: (err: any) => `Failed to update homework: ${err.message || "Unknown error"}`,
+      }
+    );
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    toast.promise(
+      homeworkApi.deleteHomework(id),
+      {
+        loading: "Deleting homework...",
+        success: () => {
+          void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
+          void queryClient.invalidateQueries({ queryKey: ["teacherAllHomeworks"] });
+          return "Homework deleted successfully.";
+        },
+        error: (err: any) => `Failed to delete homework: ${err.message || "Unknown error"}`,
+      }
+    );
+  };
 
   const filters = ["All", "Active", "Need Grading", "Completed"];
   const sortOptions = [
@@ -83,10 +151,20 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
     }
 
     if (filter !== "All") {
+      const now = new Date().getTime();
       list = list.filter((a) => {
-        if (filter === "Active") return a.status === "Active";
-        if (filter === "Need Grading") return a.status === "Active" && a.totalSubmissions > 0;
-        if (filter === "Completed") return a.status === "Closed" && a.notSubmittedCount === 0;
+        const isExpired = a.deadline ? new Date(a.deadline).getTime() < now : false;
+        const hasUngraded = a.ungradedCount !== undefined && a.ungradedCount > 0;
+        
+        if (filter === "Active") {
+          return !isExpired && a.status !== "Closed";
+        }
+        if (filter === "Need Grading") {
+          return hasUngraded;
+        }
+        if (filter === "Completed") {
+          return (isExpired || a.status === "Closed") && !hasUngraded;
+        }
         return true;
       });
     }
@@ -578,13 +656,15 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
           <ClipboardList className="w-4.5 h-4.5 text-primary" />
           Class Homework ({processedAssignments.length} Assignments)
         </h3>
-        <Link
-          to="/teacher/homework/create"
-          search={{ classId: classInfo.id, source: undefined, resourceId: undefined, topicId: undefined }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-black text-xs hover:opacity-90 transition-all shadow-sm font-display uppercase tracking-wider"
-        >
-          <Plus className="w-3.5 h-3.5" /> Assign Homework
-        </Link>
+        {!isArchived && (
+          <Link
+            to="/teacher/homework/create"
+            search={{ classId: classInfo.id, source: undefined, resourceId: undefined, topicId: undefined }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-black text-xs hover:opacity-90 transition-all shadow-sm font-display uppercase tracking-wider"
+          >
+            <Plus className="w-3.5 h-3.5" /> Assign Homework
+          </Link>
+        )}
       </div>
 
       {/* Filters & Sorting Controls */}
@@ -639,13 +719,40 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
                   <span className="text-[10px] uppercase font-black tracking-widest text-primary font-display">
                     {assignment.moduleType}
                   </span>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(
-                      assignment.status,
-                    )}`}
-                  >
-                    {assignment.status}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusColor(
+                        assignment.status,
+                      )}`}
+                    >
+                      {assignment.status}
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="h-6 w-6 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground">
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => setViewHwId(assignment.id)}>
+                          <Eye className="mr-2 h-4 w-4" /> View Details
+                        </DropdownMenuItem>
+                        {!isArchived && (
+                          <>
+                            <DropdownMenuItem onSelect={() => setEditHwId(assignment.id)}>
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => setPendingDeleteId(assignment.id)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
 
                 <h4 className="font-display font-bold text-base text-foreground dark:text-white mb-2 leading-tight">
@@ -696,6 +803,29 @@ export function TeacherAssignmentsTab({ classInfo, urlQ }: TeacherAssignmentsTab
           </div>
         )}
       </div>
+
+      <ViewHomeworkDialog
+        open={!!viewHwId}
+        onOpenChange={(o) => !o && setViewHwId(null)}
+        homeworkId={viewHwId}
+      />
+
+      <HomeworkEditDialog
+        open={!!editHwId}
+        onOpenChange={(o) => !o && setEditHwId(null)}
+        homework={editingHomework || null}
+        onSave={handleSaveEdit}
+      />
+
+      <ConfirmDialog
+        open={!!pendingDeleteId}
+        onOpenChange={(o) => !o && setPendingDeleteId(null)}
+        title="Delete Homework"
+        description="Are you sure you want to delete this homework assignment? This action cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
