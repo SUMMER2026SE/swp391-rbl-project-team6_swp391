@@ -39,8 +39,9 @@ export interface UpdateClassRequest {
 
 export const classesApi = {
   // Public/Shared Class APIs
-  getAllClasses(): Promise<ClassResponse[]> {
-    return api.get<ClassResponse[]>("/classes");
+  getAllClasses(status?: string): Promise<ClassResponse[]> {
+    const url = status ? `/classes?status=${status}` : "/classes";
+    return api.get<ClassResponse[]>(url);
   },
 
   getClassById(id: string): Promise<ClassResponse> {
@@ -48,8 +49,9 @@ export const classesApi = {
   },
 
   // Student Class APIs
-  getJoinedClasses(): Promise<ClassResponse[]> {
-    return api.get<ClassResponse[]>("/student/classes");
+  getJoinedClasses(status?: string): Promise<ClassResponse[]> {
+    const url = status ? `/student/classes?status=${status}` : "/student/classes";
+    return api.get<ClassResponse[]>(url);
   },
 
   getStudentClassDetail(classId: string): Promise<ClassResponse> {
@@ -79,6 +81,10 @@ export const classesApi = {
 
   archiveClass(id: string): Promise<ClassResponse> {
     return api.put<ClassResponse>(`/teacher/classes/${id}/archive`);
+  },
+
+  restoreClass(id: string): Promise<ClassResponse> {
+    return api.put<ClassResponse>(`/teacher/classes/${id}/restore`);
   },
 
   getClassStudents(id: string): Promise<StudentClassResponse[]> {

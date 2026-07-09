@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, LayoutDashboard, ClipboardList, Users, Award, Loader2 } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ClipboardList, Users, Award, Loader2, Archive } from "lucide-react";
 import { Card } from "@/components/page-ui";
 import { useQuery } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
@@ -64,6 +64,7 @@ function TeacherClassDetailPage() {
       avgScore: 0,
       nextDeadline: "-",
       createdDate: new Date(classDetail.createdAt).toLocaleDateString(),
+      status: classDetail.status,
       students: students.map(s => ({
         id: s.studentId,
         name: s.fullName || "Pending Accept",
@@ -80,10 +81,11 @@ function TeacherClassDetailPage() {
         moduleType: "Grammar" as const,
         assignedDate: h.createdAt ? h.createdAt.slice(0, 10) : "",
         deadline: h.dueDate ? h.dueDate.slice(0, 10) : "",
-        totalSubmissions: 0,
+        totalSubmissions: h.submissionCount || 0,
         notSubmittedCount: 0,
         avgScore: 0,
         status: h.status === "ASSIGNED" ? "Active" as const : h.status === "CLOSED" ? "Closed" as const : "Upcoming" as const,
+        ungradedCount: h.ungradedCount || 0,
       })),
       activities: [],
       materials: [
@@ -160,8 +162,20 @@ function TeacherClassDetailPage() {
     );
   }
 
+  const isArchived = classInfo.status === "ARCHIVED";
+
   return (
     <div className="space-y-6">
+      {/* Archived Banner */}
+      {isArchived && (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-400/40 bg-amber-50/80 dark:bg-amber-900/20 px-5 py-3.5 text-amber-700 dark:text-amber-300">
+          <Archive className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="text-sm font-bold">This class has been archived.</p>
+            <p className="text-xs opacity-80">All actions are disabled. Go back to your classes to restore it.</p>
+          </div>
+        </div>
+      )}
       {/* Large Class Hero Header Section */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-purple-500/20 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
         <div className="flex items-center gap-4">
@@ -242,13 +256,13 @@ function TeacherClassDetailPage() {
           <TeacherDashboardTab classInfo={classInfo} classExams={classExams} onSelectTab={setActiveTab} />
         )}
         {activeTab === "students" && (
-          <TeacherStudentsTab classInfo={classInfo} onSelectTab={setActiveTab} urlQ={urlQ} />
+          <TeacherStudentsTab classInfo={classInfo} onSelectTab={setActiveTab} urlQ={urlQ} isArchived={isArchived} />
         )}
         {activeTab === "homework" && (
-          <TeacherAssignmentsTab classInfo={classInfo} urlQ={urlQ} />
+          <TeacherAssignmentsTab classInfo={classInfo} urlQ={urlQ} isArchived={isArchived} />
         )}
         {activeTab === "exams" && (
-          <TeacherClassExamsTab classId={classInfo.id} urlQ={urlQ} />
+          <TeacherClassExamsTab classId={classInfo.id} urlQ={urlQ} isArchived={isArchived} />
         )}
       </div>
     </div>

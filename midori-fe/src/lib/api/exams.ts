@@ -114,6 +114,18 @@ export const examsApi = {
 
   getStudentExamResultsByClass: (classId: string) =>
     api.get<StudentExamResponse[]>(`/exams/class/${classId}/results`),
+
+  importExamFromPdf: (file: File, classId: string, level?: string, status?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("classId", classId);
+    if (level) formData.append("level", level);
+    if (status) formData.append("status", status);
+    return api.post<{ jobId: string; status: string; message: string }>("/ai/exams/import", formData);
+  },
+
+  getImportStatus: (jobId: string) =>
+    api.get<{ jobId: string; status: string; message: string; examId?: string }>(`/ai/exams/import/${jobId}`),
 };
 
 export interface StudentExamResponse {
