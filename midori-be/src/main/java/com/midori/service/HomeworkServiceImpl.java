@@ -31,6 +31,13 @@ public class HomeworkServiceImpl implements HomeworkService {
     @Override
     @Transactional
     public Homework createHomework(Homework homework, List<UUID> questionIds) {
+        if (homework.getAssignedClass() != null) {
+            com.midori.entity.ClassEntity classEntity = classRepository.findById(homework.getAssignedClass().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
+            if (classEntity.getStatus() == com.midori.entity.ClassEntity.ClassStatus.ARCHIVED) {
+                throw new com.midori.exception.BadRequestException("Class is archived and cannot receive new homework assignments");
+            }
+        }
         if (questionIds != null && !questionIds.isEmpty()) {
             List<TeacherQuestion> questions = teacherQuestionRepository.findAllById(questionIds);
             homework.setQuestions(questions);

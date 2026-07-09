@@ -73,6 +73,9 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
             if (classIdStr != null && !classIdStr.trim().isEmpty()) {
                 ClassEntity classEntity = classRepository.findById(UUID.fromString(classIdStr))
                         .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
+                if (classEntity.getStatus() == ClassEntity.ClassStatus.ARCHIVED) {
+                    throw new com.midori.exception.BadRequestException("Class is archived and cannot receive new exams");
+                }
                 exam.setAssignedClass(classEntity);
             }
         }
@@ -141,11 +144,14 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         int mediumCount = request.getDifficultyMedium() != null ? request.getDifficultyMedium() : 0;
         int hardCount = request.getDifficultyHard() != null ? request.getDifficultyHard() : 0;
 
+        Set<String> savedPrompts = new HashSet<>();
+
         for (Grammar grammar : grammars) {
             if (allQuestions.size() >= request.getTotalQuestions()) break;
 
             List<String> options = generateOptions(grammar);
             int correctIndex = RANDOM.nextInt(options.size());
+            Difficulty diff = selectDifficulty(easyCount, mediumCount, hardCount, allQuestions);
 
             ExamQuestion question = ExamQuestion.builder()
                     .exam(exam)
@@ -154,12 +160,36 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                     .options(options)
                     .correctAnswerIndex(correctIndex)
                     .explanation(grammar.getMeaning())
-                    .difficulty(selectDifficulty(easyCount, mediumCount, hardCount, allQuestions))
+                    .difficulty(diff)
                     .displayOrder(allQuestions.size() + 1)
                     .points(1)
                     .build();
 
             allQuestions.add(question);
+
+            try {
+                String promptText = grammar.getTitle() != null ? grammar.getTitle().trim() : "";
+                if (!promptText.isEmpty() && !savedPrompts.contains(promptText) &&
+                        !teacherQuestionRepository.existsByTeacherIdAndPrompt(exam.getCreatedBy().getId(), promptText)) {
+                    
+                    savedPrompts.add(promptText);
+                    TeacherQuestion tq = TeacherQuestion.builder()
+                            .teacher(exam.getCreatedBy())
+                            .prompt(promptText)
+                            .questionType("Multiple Choice")
+                            .difficulty(diff.name())
+                            .correctAnswerIndex(correctIndex)
+                            .explanation(grammar.getMeaning())
+                            .tags(level.name() + ", Grammar")
+                            .status("ACTIVE")
+                            .points(1)
+                            .options(new ArrayList<>(options))
+                            .build();
+                    teacherQuestionRepository.saveAndFlush(tq);
+                }
+            } catch (Exception e) {
+                log.error("Failed to save generated exam question to bank", e);
+            }
         }
 
         Collections.shuffle(allQuestions, RANDOM);
@@ -593,6 +623,33 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
 
         if (exam.getTotalQuestions() == null || exam.getTotalQuestions() != incoming.size()) {
             exam.setTotalQuestions(incoming.size());
+        }
+
+        Set<String> savedPrompts = new HashSet<>();
+        for (ExamQuestion eq : incoming) {
+            try {
+                String promptText = eq.getQuestionText() != null ? eq.getQuestionText().trim() : "";
+                if (!promptText.isEmpty() && !savedPrompts.contains(promptText) &&
+                        !teacherQuestionRepository.existsByTeacherIdAndPrompt(exam.getCreatedBy().getId(), promptText)) {
+                    
+                    savedPrompts.add(promptText);
+                    TeacherQuestion tq = TeacherQuestion.builder()
+                            .teacher(exam.getCreatedBy())
+                            .prompt(promptText)
+                            .questionType("Multiple Choice")
+                            .difficulty(eq.getDifficulty() != null ? eq.getDifficulty().name() : "MEDIUM")
+                            .correctAnswerIndex(eq.getCorrectAnswerIndex())
+                            .explanation(eq.getExplanation() != null ? eq.getExplanation() : "")
+                            .tags(exam.getLevel().name() + ", Grammar")
+                            .status("ACTIVE")
+                            .points(eq.getPoints() != null ? eq.getPoints() : 1)
+                            .options(new ArrayList<>(eq.getOptions()))
+                            .build();
+                    teacherQuestionRepository.saveAndFlush(tq);
+                }
+            } catch (Exception e) {
+                log.error("Failed to save updated exam question to bank", e);
+            }
         }
 
         exam = examRepository.save(exam);

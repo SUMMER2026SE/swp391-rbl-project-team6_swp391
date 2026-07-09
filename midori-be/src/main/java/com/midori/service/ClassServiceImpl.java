@@ -44,8 +44,16 @@ public class ClassServiceImpl implements ClassService {
     private final StudentExamRepository studentExamRepository;
 
     @Override
-    public List<ClassEntity> getAllClasses() {
-        return classRepository.findAll();
+    public List<ClassEntity> getAllClasses(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return classRepository.findByStatus(ClassEntity.ClassStatus.ACTIVE);
+        } else if ("ACTIVE".equalsIgnoreCase(status)) {
+            return classRepository.findByStatus(ClassEntity.ClassStatus.ACTIVE);
+        } else if ("ARCHIVED".equalsIgnoreCase(status)) {
+            return classRepository.findByStatus(ClassEntity.ClassStatus.ARCHIVED);
+        } else {
+            return classRepository.findAll();
+        }
     }
 
     @Override
@@ -54,7 +62,7 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
-    public List<ClassResponse> getStudentClasses(UUID studentId) {
+    public List<ClassResponse> getStudentClasses(UUID studentId, String status) {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", studentId));
 
@@ -62,7 +70,22 @@ public class ClassServiceImpl implements ClassService {
         if (assignedClass == null) {
             return java.util.Collections.emptyList();
         }
-        return java.util.Collections.singletonList(mapToClassResponse(assignedClass));
+
+        boolean match = false;
+        if (status == null || status.trim().isEmpty()) {
+            match = assignedClass.getStatus() == ClassEntity.ClassStatus.ACTIVE;
+        } else if ("ACTIVE".equalsIgnoreCase(status)) {
+            match = assignedClass.getStatus() == ClassEntity.ClassStatus.ACTIVE;
+        } else if ("ARCHIVED".equalsIgnoreCase(status)) {
+            match = assignedClass.getStatus() == ClassEntity.ClassStatus.ARCHIVED;
+        } else {
+            match = true; // "ALL"
+        }
+
+        if (match) {
+            return java.util.Collections.singletonList(mapToClassResponse(assignedClass));
+        }
+        return java.util.Collections.emptyList();
     }
 
     @Override
@@ -74,7 +97,7 @@ public class ClassServiceImpl implements ClassService {
         if (assignedClass == null || !assignedClass.getId().equals(classId)) {
             // Verify class exists to return 404 instead of 403 if it is a non-existent class
             classRepository.findById(classId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
             throw new com.midori.exception.AccessDeniedException("Student is not enrolled in this class");
         }
 
@@ -104,10 +127,17 @@ public class ClassServiceImpl implements ClassService {
     @Transactional
     public ClassResponse updateClass(UUID classId, UpdateClassRequest request, UUID teacherId) {
         ClassEntity classEntity = classRepository.findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
-        if (!classEntity.getTeacher().getId().equals(teacherId)) {
-            throw new com.midori.exception.AccessDeniedException("You do not have permission to manage this class");
+        User user = userRepository.findById(teacherId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", teacherId));
+        boolean isAdmin = user.getRole() == com.midori.entity.Role.ADMIN;
+        if (!classEntity.getTeacher().getId().equals(teacherId) && !isAdmin) {
+            throw new com.midori.exception.AccessDeniedException("You are not allowed to manage this class");
+        }
+
+        if (classEntity.getStatus() == ClassEntity.ClassStatus.ARCHIVED) {
+            throw new BadRequestException("Class is archived and cannot be edited");
         }
 
         classEntity.setName(request.getName());
@@ -123,13 +153,42 @@ public class ClassServiceImpl implements ClassService {
     @Transactional
     public ClassResponse archiveClass(UUID classId, UUID teacherId) {
         ClassEntity classEntity = classRepository.findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
 
-        if (!classEntity.getTeacher().getId().equals(teacherId)) {
-            throw new com.midori.exception.AccessDeniedException("You do not have permission to manage this class");
+        User user = userRepository.findById(teacherId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", teacherId));
+        boolean isAdmin = user.getRole() == com.midori.entity.Role.ADMIN;
+        if (!classEntity.getTeacher().getId().equals(teacherId) && !isAdmin) {
+            throw new com.midori.exception.AccessDeniedException("You are not allowed to manage this class");
+        }
+
+        if (classEntity.getStatus() == ClassEntity.ClassStatus.ARCHIVED) {
+            throw new BadRequestException("Class is already archived");
         }
 
         classEntity.setStatus(ClassEntity.ClassStatus.ARCHIVED);
+        ClassEntity updatedClass = classRepository.save(classEntity);
+        return mapToClassResponse(updatedClass);
+    }
+
+    @Override
+    @Transactional
+    public ClassResponse restoreClass(UUID classId, UUID teacherId) {
+        ClassEntity classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
+
+        User user = userRepository.findById(teacherId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", teacherId));
+        boolean isAdmin = user.getRole() == com.midori.entity.Role.ADMIN;
+        if (!classEntity.getTeacher().getId().equals(teacherId) && !isAdmin) {
+            throw new com.midori.exception.AccessDeniedException("You are not allowed to manage this class");
+        }
+
+        if (classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE) {
+            throw new BadRequestException("Class is already active");
+        }
+
+        classEntity.setStatus(ClassEntity.ClassStatus.ACTIVE);
         ClassEntity updatedClass = classRepository.save(classEntity);
         return mapToClassResponse(updatedClass);
     }
