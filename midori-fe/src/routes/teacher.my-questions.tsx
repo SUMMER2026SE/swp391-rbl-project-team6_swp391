@@ -13,10 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import {
-  initialMockQuestions,
-  MockQuestion,
-} from "@/data/mockQuestions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { teacherQuestionsApi, TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
+import { Loader2 } from "lucide-react";
+import { MockQuestion } from "@/data/mockQuestions";
 import { MyQuestionCard } from "@/components/teacher/my-questions/MyQuestionCard";
 import { MyQuestionModal } from "@/components/teacher/my-questions/MyQuestionModal";
 import { DeleteDialog } from "@/components/teacher/my-questions/DeleteDialog";
@@ -31,12 +31,63 @@ export const Route = createFileRoute("/teacher/my-questions")({
 
 const JLPT_ORDER: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 
+function mapApiQuestionToMockQuestion(q: TeacherQuestionResponse): MockQuestion {
+  const tagsList = q.tags ? q.tags.split(",").map((t: string) => t.trim()) : [];
+  
+  // Detect level
+  let detectedLevel: JLPTLevel = "N5";
+  for (const lvl of JLPT_ORDER) {
+    if (tagsList.includes(lvl) || q.difficulty?.toUpperCase().includes(lvl)) {
+      detectedLevel = lvl;
+      break;
+    }
+  }
+
+  // Detect skill
+  let detectedSkill = "Grammar";
+  if (tagsList.includes("vocabulary")) detectedSkill = "Vocabulary";
+  else if (tagsList.includes("kanji")) detectedSkill = "Kanji";
+  else if (tagsList.includes("reading")) detectedSkill = "Reading";
+
+  let difficultyMapped = "Medium";
+  if (q.difficulty) {
+    difficultyMapped = q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1).toLowerCase();
+  }
+
+  return {
+    id: q.id,
+    title: q.prompt ? (q.prompt.length > 40 ? q.prompt.slice(0, 40) + "..." : q.prompt) : "Question",
+    type: q.questionType || "Multiple Choice",
+    level: detectedLevel,
+    skill: detectedSkill as any,
+    difficulty: difficultyMapped as any,
+    content: q.prompt,
+    choices: q.options || [],
+    correctAnswer: q.options && q.options[q.correctAnswerIndex] ? q.options[q.correctAnswerIndex] : "",
+    explanation: q.explanation || "",
+    tags: tagsList,
+    createdAt: q.createdAt,
+    updatedAt: q.updatedAt,
+    usageCount: 0,
+    status: q.status === "ACTIVE" ? "Active" : "Archived",
+  };
+}
+
 function MyQuestionsPage() {
-  const [questions, setQuestions] = useState<MockQuestion[]>(initialMockQuestions);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<JLPTLevel | "All">("All");
   const [sortBy, setSortBy] = useState<SortOption>("Newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const { data: rawQuestions = [], isLoading } = useQuery({
+    queryKey: ["teacherQuestions"],
+    queryFn: () => teacherQuestionsApi.getQuestions(),
+  });
+
+  const questions = useMemo(() => {
+    return rawQuestions.map(mapApiQuestionToMockQuestion);
+  }, [rawQuestions]);
 
   // Modal State
   const [modalMode, setModalMode] = useState<"view" | "edit" | "create">("view");
@@ -115,71 +166,79 @@ function MyQuestionsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveQuestion = (
+  const handleSaveQuestion = async (
     data: Omit<MockQuestion, "id" | "createdAt" | "updatedAt" | "usageCount"> & { id?: string }
   ) => {
-    const nowStr = new Date().toISOString();
-    if (data.id) {
-      // Edit
-      setQuestions((prev) =>
-        prev.map((q) =>
-          q.id === data.id
-            ? {
-                ...q,
-                ...data,
-                updatedAt: nowStr,
-              }
-            : q
-        )
-      );
-      toast.success("Question updated successfully.");
-    } else {
-      // Create (Fallback for duplicate flow / modal state handling)
-      const newQuestion: MockQuestion = {
-        ...data,
-        id: `q-${Date.now()}`,
-        usageCount: 0,
-        createdAt: nowStr,
-        updatedAt: nowStr,
-      };
-      setQuestions((prev) => [newQuestion, ...prev]);
-      toast.success("Question created successfully.");
+    const isNewOption = !data.id || data.id.startsWith("q-");
+    const correctAnswerIndex = data.choices.indexOf(data.correctAnswer) >= 0 ? data.choices.indexOf(data.correctAnswer) : 0;
+    
+    const reqBody = {
+      prompt: data.content,
+      questionType: data.type || "Multiple Choice",
+      difficulty: data.difficulty?.toUpperCase() || "MEDIUM",
+      correctAnswerIndex,
+      explanation: data.explanation,
+      tags: [...(data.tags || []), data.level, data.skill.toLowerCase()].join(", "),
+      options: data.choices,
+    };
+
+    try {
+      if (!isNewOption && data.id) {
+        await teacherQuestionsApi.updateQuestion(data.id, reqBody);
+        toast.success("Question updated successfully.");
+      } else {
+        await teacherQuestionsApi.createQuestion(reqBody);
+        toast.success("Question created successfully.");
+      }
+      void queryClient.invalidateQueries({ queryKey: ["teacherQuestions"] });
+      setIsModalOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save question");
     }
   };
 
-  const handleDuplicateQuestion = (q: MockQuestion) => {
-    const nowStr = new Date().toISOString();
-    const duplicated: MockQuestion = {
-      ...q,
-      id: `q-${Date.now()}`,
-      title: `${q.title} (Copy)`,
-      usageCount: 0,
-      createdAt: nowStr,
-      updatedAt: nowStr,
-      status: "Active",
-    };
-    setQuestions((prev) => [duplicated, ...prev]);
-    toast.success(`Duplicated question as "${duplicated.title}".`);
+  const handleDuplicateQuestion = async (q: MockQuestion) => {
+    try {
+      const full = await teacherQuestionsApi.getQuestionById(q.id);
+      await teacherQuestionsApi.createQuestion({
+        prompt: `${full.prompt} (Copy)`,
+        questionType: full.questionType,
+        difficulty: full.difficulty,
+        correctAnswerIndex: full.correctAnswerIndex,
+        explanation: full.explanation || "",
+        tags: full.tags || "",
+        options: full.options,
+      });
+      toast.success("Question duplicated successfully.");
+      void queryClient.invalidateQueries({ queryKey: ["teacherQuestions"] });
+    } catch (err: any) {
+      toast.error("Failed to duplicate question.");
+    }
   };
 
-  const handleArchiveToggle = (q: MockQuestion) => {
-    const updatedStatus = q.status === "Active" ? "Archived" : "Active";
-    setQuestions((prev) =>
-      prev.map((item) =>
-        item.id === q.id
-          ? {
-              ...item,
-              status: updatedStatus,
-              updatedAt: new Date().toISOString(),
-            }
-          : item
-      )
-    );
-    toast.success(
-      updatedStatus === "Archived"
-        ? "Question archived successfully."
-        : "Question restored successfully."
-    );
+  const handleArchiveToggle = async (q: MockQuestion) => {
+    const updatedStatus = q.status === "Active" ? "ARCHIVED" : "ACTIVE";
+    try {
+      const full = await teacherQuestionsApi.getQuestionById(q.id);
+      await teacherQuestionsApi.updateQuestion(q.id, {
+        prompt: full.prompt,
+        questionType: full.questionType,
+        difficulty: full.difficulty,
+        correctAnswerIndex: full.correctAnswerIndex,
+        explanation: full.explanation || "",
+        tags: full.tags || "",
+        options: full.options,
+        status: updatedStatus,
+      });
+      toast.success(
+        updatedStatus === "ARCHIVED"
+          ? "Question archived successfully."
+          : "Question restored successfully."
+      );
+      void queryClient.invalidateQueries({ queryKey: ["teacherQuestions"] });
+    } catch (err: any) {
+      toast.error("Failed to update status.");
+    }
   };
 
   const handleDeleteClick = (q: MockQuestion) => {
@@ -187,10 +246,15 @@ function MyQuestionsPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (questionToDelete) {
-      setQuestions((prev) => prev.filter((q) => q.id !== questionToDelete.id));
-      toast.success("Question deleted successfully.");
+      try {
+        await teacherQuestionsApi.deleteQuestion(questionToDelete.id);
+        toast.success("Question deleted successfully.");
+        void queryClient.invalidateQueries({ queryKey: ["teacherQuestions"] });
+      } catch (err: any) {
+        toast.error("Failed to delete question.");
+      }
       setIsDeleteDialogOpen(false);
       setQuestionToDelete(null);
     }
@@ -249,7 +313,12 @@ function MyQuestionsPage() {
       </div>
 
       {/* Grouped JLPT Level Sections */}
-      {!hasMatchingQuestions ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-2">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Loading your questions...</span>
+        </div>
+      ) : !hasMatchingQuestions ? (
         <Card className="py-16 text-center border-border/60 shadow-sm flex flex-col items-center justify-center space-y-4">
           <p className="text-muted-foreground text-base">
             {selectedLevel !== "All" || searchQuery

@@ -90,57 +90,7 @@ interface GeneratedQuestion {
   jlptLevel: JLPTLevel;
 }
 
-// Sample AI generated questions (for PDF Generator — DO NOT MODIFY)
-const sampleGeneratedQuestions: GeneratedQuestion[] = [
-  {
-    id: "gen_q1",
-    type: "vocabulary",
-    question: "Kankyou no imi wo machiga te imasu.",
-    options: ["shizen", "shuui / surroundings environment", "keizai", "bunka"],
-    correctAnswer: 1,
-    explanation: "Kankyou means environment/surroundings. Kankyou mondai wa environmental issues.",
-    difficulty: "medium",
-    jlptLevel: "N3",
-  },
-  {
-    id: "gen_q2",
-    type: "grammar",
-    question: "Nagara no imi wo sagashite imasu.",
-    options: ["while", "during", "even though / although", "because"],
-    correctAnswer: 2,
-    explanation: "Nagara expresses even though/although - similar to noni but more formal.",
-    difficulty: "medium",
-    jlptLevel: "N3",
-  },
-  {
-    id: "gen_q3",
-    type: "multiple-choice",
-    question:
-      "Seikaku na keigo wo erande kudasai: Michi wo ___ toki, kyoukan ga abunai to koe wo kakemashita.",
-    options: ["aruki nagara", "aruite ita", "aruite ita toki", "aruki nagara datta"],
-    correctAnswer: 2,
-    explanation: "Aruite ita toki is the correct form - past progressive + temporal marker.",
-    difficulty: "hard",
-    jlptLevel: "N2",
-  },
-  {
-    id: "gen_q4",
-    type: "reading",
-    question:
-      "Kono bunsyou no naiyou to icchi suru mono wo erande kudasai: Kono kaisha dewa, kankyou e no hairyo wo juuyou to site imasu. Risairukuru katsudou ni mo sekkyoku teki ni sankashite imasu.",
-    options: [
-      "Kono kaisha wa keizai rieki dake wo juuyou site imasu",
-      "Kono kaisha wa kankyou mondai ni ki ni natte imasen",
-      "Kono kaisha wa kankyou e no hairyo to risairukuru katsudou wo taisetu ni site imasu",
-      "Kono kaisha no risairukuru katsudou e no sanka wa ninji de aru",
-    ],
-    correctAnswer: 2,
-    explanation:
-      "Bunsyou dewa kankyou e no hairyo wo juuyou to iimasu, risairukuru katsudou ni sekkyoku sanka to arimasu.",
-    difficulty: "medium",
-    jlptLevel: "N3",
-  },
-];
+// Sample AI generated questions placeholder removed.
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -329,6 +279,13 @@ function ExamsPage() {
   const [examLevel, setExamLevel] = useState<JLPTLevel>("N3");
   const [editingQuestion, setEditingQuestion] = useState<GeneratedQuestion | null>(null);
   const [editingDraft, setEditingDraft] = useState<GeneratedQuestion | null>(null);
+  const [selectedClassIdForUpload, setSelectedClassIdForUpload] = useState<string>(classId || "");
+  const [generatedExamId, setGeneratedExamId] = useState<string | null>(null);
+
+  const { data: selectableClasses = [] } = useQuery({
+    queryKey: ["selectableClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -360,55 +317,89 @@ function ExamsPage() {
   const safePage = Math.min(currentPage, totalPages);
   const paginatedExams = filteredExams.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  // ── PDF Generator handlers (UNCHANGED — DO NOT MODIFY) ─────────────────────
-  const simulateAnalysis = useCallback(async (file: File) => {
-    setIsAnalyzing(true);
-    const stages = [
-      "Extracting text from PDF...",
-      "Identifying vocabulary terms...",
-      "Analyzing grammar patterns...",
-      "Generating reading comprehension...",
-      "Creating multiple-choice questions...",
-      "Applying JLPT difficulty levels...",
-      "Finalizing question bank...",
-    ];
-    for (let i = 0; i < stages.length; i++) {
-      setAnalysisStage(stages[i]);
-      await new Promise((r) => setTimeout(r, 600 + Math.random() * 400));
-    }
-    const questions = sampleGeneratedQuestions.map((q, idx) => ({
-      ...q,
-      id: `q_${Date.now()}_${idx}`,
-      question:
-        idx === 0
-          ? `PDF "${file.name.replace(".pdf", "")}" based vocabulary questions.`
-          : q.question,
-    }));
-    setGeneratedQuestions(questions);
-    setSelectedQuestions(new Set(questions.map((q) => q.id)));
-    setIsAnalyzing(false);
-  }, []);
+  const startPolling = useCallback((jobId: string) => {
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      try {
+        attempts++;
+        if (attempts > 60) {
+          clearInterval(interval);
+          setIsAnalyzing(false);
+          toast.error("AI Generation timed out. Please try again.");
+          return;
+        }
+        const res = await examsApi.getImportStatus(jobId);
+        if (res.status === "SUCCESS" || res.status === "COMPLETED") {
+          clearInterval(interval);
+          if (res.examId) {
+            setGeneratedExamId(res.examId);
+            const examDetails = await examsApi.getExamById(res.examId);
+            setExamTitle(examDetails.title);
+            if (examDetails.questions && examDetails.questions.length > 0) {
+              const mapped = examDetails.questions.map((q) => ({
+                id: q.id,
+                type: "multiple-choice" as QuestionType,
+                question: q.prompt,
+                options: q.options || [],
+                correctAnswer: q.correctAnswerIndex,
+                explanation: "",
+                difficulty: "medium" as Difficulty,
+                jlptLevel: examLevel,
+              }));
+              setGeneratedQuestions(mapped);
+              setSelectedQuestions(new Set(mapped.map((q) => q.id)));
+            } else {
+              setGeneratedQuestions([]);
+              setSelectedQuestions(new Set());
+            }
+          }
+          setIsAnalyzing(false);
+          toast.success("AI Exam Questions generated successfully!");
+        } else if (res.status === "FAILED") {
+          clearInterval(interval);
+          setIsAnalyzing(false);
+          toast.error(res.message || "AI processing failed.");
+        } else {
+          setAnalysisStage(
+            res.status === "PROCESSING"
+              ? "AI is extracting and generating questions..."
+              : "Queued for processing..."
+          );
+        }
+      } catch (err: any) {
+        console.error("Polling error:", err);
+      }
+    }, 2000);
+  }, [examLevel]);
 
   const handleFileUpload = useCallback(
-    (file: File) => {
+    async (file: File) => {
       if (!file.name.endsWith(".pdf")) {
-        alert("Please upload a PDF file");
+        toast.error("Please upload a PDF file");
         return;
       }
-      setUploadedFile(file);
-      setUploadProgress(0);
-      const interval = setInterval(() => {
-        setUploadProgress((p) => {
-          if (p >= 100) {
-            clearInterval(interval);
-            simulateAnalysis(file);
-            return 100;
-          }
-          return p + Math.random() * 15;
-        });
-      }, 200);
+      const targetClassId = classId || selectedClassIdForUpload;
+      if (!targetClassId) {
+        toast.error("Please select a target class before uploading.");
+        return;
+      }
+      try {
+        setUploadedFile(file);
+        setUploadProgress(20);
+        setIsAnalyzing(true);
+        setAnalysisStage("Uploading PDF to server...");
+        
+        const response = await examsApi.importExamFromPdf(file, targetClassId, examLevel, "DRAFT");
+        setUploadProgress(100);
+        setAnalysisStage("Queued for processing...");
+        startPolling(response.jobId);
+      } catch (err: any) {
+        setIsAnalyzing(false);
+        setUploadedFile(null);
+        toast.error(err.message || "Failed to upload PDF");
+      }
     },
-    [simulateAnalysis],
+    [classId, selectedClassIdForUpload, examLevel, startPolling],
   );
 
   const handleDrop = useCallback(
@@ -455,20 +446,84 @@ function ExamsPage() {
     setEditingDraft(null);
   }, [editingDraft]);
 
-  const handlePublish = useCallback(() => {
-    const finalQuestions = generatedQuestions.filter((q) => selectedQuestions.has(q.id));
-    alert(`Exam "${examTitle}" published with ${finalQuestions.length} questions!`);
+  const handlePublish = useCallback(async () => {
+    if (!generatedExamId) return;
+    try {
+      const payload = {
+        questions: generatedQuestions
+          .filter((q) => selectedQuestions.has(q.id))
+          .map((q, idx) => {
+            const isNew = q.id.startsWith("custom_");
+            return {
+              ...(!isNew ? { id: q.id } : {}),
+              prompt: q.question,
+              options: q.options || [],
+              correctAnswerIndex: Number(q.correctAnswer),
+              points: 1,
+              displayOrder: idx + 1,
+            };
+          })
+      };
+      await examsApi.updateExam(generatedExamId, { title: examTitle, level: examLevel });
+      await examsApi.updateExamQuestions(generatedExamId, payload);
+      await examsApi.publishExam(generatedExamId);
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      toast.success("Exam published successfully!");
+      setShowPDFGenerator(false);
+      setUploadedFile(null);
+      setGeneratedQuestions([]);
+      setSelectedQuestions(new Set());
+      setExamTitle("");
+      setGeneratedExamId(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to publish exam");
+    }
+  }, [generatedExamId, examTitle, examLevel, generatedQuestions, selectedQuestions, queryClient]);
+
+  const handleSaveDraft = useCallback(async () => {
+    if (!generatedExamId) return;
+    try {
+      const payload = {
+        questions: generatedQuestions
+          .filter((q) => selectedQuestions.has(q.id))
+          .map((q, idx) => {
+            const isNew = q.id.startsWith("custom_");
+            return {
+              ...(!isNew ? { id: q.id } : {}),
+              prompt: q.question,
+              options: q.options || [],
+              correctAnswerIndex: Number(q.correctAnswer),
+              points: 1,
+              displayOrder: idx + 1,
+            };
+          })
+      };
+      await examsApi.updateExam(generatedExamId, { title: examTitle, level: examLevel });
+      await examsApi.updateExamQuestions(generatedExamId, payload);
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      toast.success("Draft saved successfully!");
+      setShowPDFGenerator(false);
+      setUploadedFile(null);
+      setGeneratedQuestions([]);
+      setSelectedQuestions(new Set());
+      setExamTitle("");
+      setGeneratedExamId(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save draft");
+    }
+  }, [generatedExamId, examTitle, examLevel, generatedQuestions, selectedQuestions, queryClient]);
+
+  const handleClosePDFGenerator = useCallback(() => {
     setShowPDFGenerator(false);
     setUploadedFile(null);
+    setUploadProgress(0);
+    setIsAnalyzing(false);
+    setAnalysisStage("");
     setGeneratedQuestions([]);
     setSelectedQuestions(new Set());
     setExamTitle("");
-  }, [examTitle, generatedQuestions, selectedQuestions]);
-
-  const handleSaveDraft = useCallback(() => {
-    const finalQuestions = generatedQuestions.filter((q) => selectedQuestions.has(q.id));
-    alert(`Draft saved with ${finalQuestions.length} questions!`);
-  }, [examTitle, generatedQuestions, selectedQuestions]);
+    setGeneratedExamId(null);
+  }, []);
 
   // ── Manual Create handlers ────────────────────────────────────────────────
   const resetManualDraft = () => {
@@ -913,7 +968,7 @@ function ExamsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => !isAnalyzing && setShowPDFGenerator(false)}
+            onClick={() => !isAnalyzing && handleClosePDFGenerator()}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -936,7 +991,7 @@ function ExamsPage() {
                 </div>
                 {!isAnalyzing && (
                   <button
-                    onClick={() => setShowPDFGenerator(false)}
+                    onClick={handleClosePDFGenerator}
                     className="p-2 rounded-xl hover:bg-muted transition"
                   >
                     <X className="w-5 h-5" />
@@ -947,6 +1002,46 @@ function ExamsPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 {!uploadedFile && !isAnalyzing && (
                   <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Class Selector (if not context-bound) */}
+                      {!classId && selectableClasses.length > 0 && (
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground block mb-1.5">
+                            Target Class (Required)
+                          </label>
+                          <select
+                            value={selectedClassIdForUpload}
+                            onChange={(e) => setSelectedClassIdForUpload(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                          >
+                            <option value="">Select a class...</option>
+                            {selectableClasses.map((cls) => (
+                              <option key={cls.id} value={cls.id}>
+                                {cls.name} ({cls.level})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      {/* JLPT Level Selector (needed before generation) */}
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1.5">
+                          JLPT Target Level
+                        </label>
+                        <select
+                          value={examLevel}
+                          onChange={(e) => setExamLevel(e.target.value as JLPTLevel)}
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                        >
+                          {["N5", "N4", "N3", "N2", "N1"].map((l) => (
+                            <option key={l} value={l}>
+                              {l}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
                     <div
                       onDrop={handleDrop}
                       onDragOver={handleDragOver}
@@ -980,44 +1075,6 @@ function ExamsPage() {
                           if (f) handleFileUpload(f);
                         }}
                       />
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-bold mb-3">Or start with a template:</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {[
-                          { label: "JLPT N5", desc: "Basic vocabulary", level: "N5" as JLPTLevel },
-                          { label: "JLPT N4", desc: "Everyday Japanese", level: "N4" as JLPTLevel },
-                          { label: "JLPT N3", desc: "Intermediate", level: "N3" as JLPTLevel },
-                          {
-                            label: "JLPT N2",
-                            desc: "Upper-intermediate",
-                            level: "N2" as JLPTLevel,
-                          },
-                        ].map((t) => (
-                          <button
-                            key={t.label}
-                            onClick={() => {
-                              setExamLevel(t.level);
-                              setUploadedFile({
-                                name: `${t.label}_template.pdf`,
-                              } as unknown as File);
-                              setUploadProgress(100);
-                              setTimeout(
-                                () =>
-                                  simulateAnalysis({
-                                    name: `${t.label}_template.pdf`,
-                                  } as unknown as File),
-                                500,
-                              );
-                            }}
-                            className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary hover:bg-primary/5 transition text-left"
-                          >
-                            <div className="text-sm font-bold">{t.label}</div>
-                            <div className="text-[10px] text-muted-foreground">{t.desc}</div>
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 )}
@@ -1155,6 +1212,13 @@ function ExamsPage() {
                                 setEditingQuestion(q);
                               }}
                               onDelete={handleDeleteQuestion}
+                              onSelectCorrectAnswer={(qId, ansIdx) => {
+                                setGeneratedQuestions((prev) =>
+                                  prev.map((item) =>
+                                    item.id === qId ? { ...item, correctAnswer: ansIdx } : item
+                                  )
+                                );
+                              }}
                             />
                           </div>
                         </div>
@@ -1187,13 +1251,7 @@ function ExamsPage() {
               {generatedQuestions.length > 0 && !isAnalyzing && (
                 <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-muted/20">
                   <button
-                    onClick={() => {
-                      setShowPDFGenerator(false);
-                      setUploadedFile(null);
-                      setGeneratedQuestions([]);
-                      setSelectedQuestions(new Set());
-                      setExamTitle("");
-                    }}
+                    onClick={handleClosePDFGenerator}
                     className="px-4 py-2 rounded-xl text-sm font-semibold hover:bg-muted transition"
                   >
                     Cancel
@@ -2126,11 +2184,13 @@ function GenQuestionCard({
   index,
   onEdit,
   onDelete,
+  onSelectCorrectAnswer,
 }: {
   q: GeneratedQuestion;
   index: number;
   onEdit: (q: GeneratedQuestion) => void;
   onDelete: (id: string) => void;
+  onSelectCorrectAnswer?: (qId: string, ansIdx: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -2154,16 +2214,26 @@ function GenQuestionCard({
           <p className="text-sm font-medium">{q.question}</p>
           {q.options && (
             <div className="mt-2 space-y-1">
-              {q.options.map((opt, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center gap-2 p-2 rounded-lg text-xs ${q.correctAnswer === i ? "bg-green-50 text-green-600 dark:bg-green-950/30" : "bg-muted/50"}`}
-                >
-                  <span className="font-bold w-5">{String.fromCharCode(65 + i)}.</span>
-                  <span>{opt}</span>
-                  {q.correctAnswer === i && <Check className="w-3.5 h-3.5 ml-auto" />}
-                </div>
-              ))}
+              {q.options.map((opt, i) => {
+                const isCorrect = q.correctAnswer === i;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => onSelectCorrectAnswer?.(q.id, i)}
+                    className={`w-full flex items-center gap-2 p-2 rounded-lg text-xs text-left transition ${
+                      isCorrect
+                        ? "bg-emerald-500 text-white font-bold dark:bg-emerald-600 shadow-sm"
+                        : "bg-muted/50 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    <span className={`font-bold w-5 ${isCorrect ? "text-white" : "text-muted-foreground"}`}>
+                      {String.fromCharCode(65 + i)}.
+                    </span>
+                    <span>{opt}</span>
+                    {isCorrect && <Check className="w-3.5 h-3.5 ml-auto text-white" />}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
