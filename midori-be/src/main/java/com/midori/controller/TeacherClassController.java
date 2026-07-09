@@ -50,6 +50,14 @@ public class TeacherClassController {
         return ResponseEntity.ok(ApiResponse.success("Class archived successfully", classResponse));
     }
 
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<ClassResponse>> restoreClass(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID id) {
+        ClassResponse classResponse = classService.restoreClass(id, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success("Class restored successfully", classResponse));
+    }
+
     @GetMapping("/{id}/students")
     public ResponseEntity<ApiResponse<List<StudentClassResponse>>> getClassStudents(
             @AuthenticationPrincipal CustomUserDetails userDetails,

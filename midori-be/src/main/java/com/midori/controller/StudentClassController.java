@@ -25,8 +25,9 @@ public class StudentClassController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ClassResponse>>> getJoinedClasses(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<ClassResponse> classes = classService.getStudentClasses(userDetails.getId());
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String status) {
+        List<ClassResponse> classes = classService.getStudentClasses(userDetails.getId(), status);
         return ResponseEntity.ok(ApiResponse.success(classes));
     }
 

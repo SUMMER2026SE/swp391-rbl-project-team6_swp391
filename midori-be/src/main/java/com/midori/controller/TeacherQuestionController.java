@@ -28,6 +28,7 @@ public class TeacherQuestionController {
 
     private final TeacherQuestionService teacherQuestionService;
     private final UserRepository userRepository;
+    private final com.midori.repository.TeacherQuestionRepository teacherQuestionRepository;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TeacherQuestionResponse>> createQuestion(
@@ -90,7 +91,28 @@ public class TeacherQuestionController {
     public ResponseEntity<ApiResponse<List<TeacherQuestionResponse>>> getQuestions(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<TeacherQuestion> questions = teacherQuestionService.findQuestionsByTeacher(userDetails.getId());
-        List<TeacherQuestionResponse> responses = questions.stream().map(this::mapToResponse).toList();
+        
+        java.util.Map<String, TeacherQuestion> uniqueMap = new java.util.LinkedHashMap<>();
+        java.util.List<TeacherQuestion> duplicatesToDelete = new java.util.ArrayList<>();
+        
+        for (TeacherQuestion q : questions) {
+            String key = q.getPrompt() != null ? q.getPrompt().trim() : "";
+            if (!uniqueMap.containsKey(key)) {
+                uniqueMap.put(key, q);
+            } else {
+                duplicatesToDelete.add(q);
+            }
+        }
+        
+        if (!duplicatesToDelete.isEmpty()) {
+            try {
+                teacherQuestionRepository.deleteAll(duplicatesToDelete);
+            } catch (Exception e) {
+                // Ignore silent delete errors
+            }
+        }
+        
+        List<TeacherQuestionResponse> responses = uniqueMap.values().stream().map(this::mapToResponse).toList();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
