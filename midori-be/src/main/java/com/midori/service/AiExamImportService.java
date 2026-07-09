@@ -1,10 +1,11 @@
 package com.midori.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.midori.ai.AiExamParseResponse;
+import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.AiParsingException;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderFactory;
+import com.midori.dto.response.AiImportJobResponse;
 import com.midori.entity.*;
 import com.midori.exception.BadRequestException;
 import com.midori.repository.*;
@@ -34,6 +35,7 @@ public class AiExamImportService {
     private final UserRepository userRepository;
     private final ClassRepository classRepository;
     private final ObjectMapper objectMapper;
+    private final TeacherQuestionRepository teacherQuestionRepository;
 
     public AiExamImportService(
             PdfTextExtractor pdfTextExtractor,
@@ -43,7 +45,8 @@ public class AiExamImportService {
             AiImportJobRepository aiImportJobRepository,
             UserRepository userRepository,
             ClassRepository classRepository,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            TeacherQuestionRepository teacherQuestionRepository) {
         this.pdfTextExtractor = pdfTextExtractor;
         this.aiProviderFactory = aiProviderFactory;
         this.examRepository = examRepository;
@@ -52,6 +55,7 @@ public class AiExamImportService {
         this.userRepository = userRepository;
         this.classRepository = classRepository;
         this.objectMapper = objectMapper;
+        this.teacherQuestionRepository = teacherQuestionRepository;
     }
 
     public record ImportInitResult(UUID jobId) {}
@@ -230,6 +234,26 @@ public class AiExamImportService {
                     .category(determineCategory(qdto.getType()))
                     .build();
             questions.add(eq);
+
+            try {
+                if (!teacherQuestionRepository.existsByTeacherIdAndPrompt(exam.getCreatedBy().getId(), eq.getQuestionText())) {
+                    TeacherQuestion tq = TeacherQuestion.builder()
+                            .teacher(exam.getCreatedBy())
+                            .prompt(eq.getQuestionText())
+                            .questionType("Multiple Choice")
+                            .difficulty(difficulty.name())
+                            .correctAnswerIndex(correctIdx)
+                            .explanation(eq.getExplanation() != null ? eq.getExplanation() : "")
+                            .tags(exam.getLevel().name() + ", AI Import")
+                            .status("ACTIVE")
+                            .points(1)
+                            .options(new ArrayList<>(options))
+                            .build();
+                    teacherQuestionRepository.save(tq);
+                }
+            } catch (Exception e) {
+                log.error("Failed to save AI imported question to bank", e);
+            }
         }
         return questions;
     }

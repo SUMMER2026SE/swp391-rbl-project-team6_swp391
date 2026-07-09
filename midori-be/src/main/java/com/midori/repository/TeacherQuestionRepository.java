@@ -12,4 +12,5 @@ public interface TeacherQuestionRepository extends JpaRepository<TeacherQuestion
     List<TeacherQuestion> findByTeacherId(UUID teacherId);
     List<TeacherQuestion> findByTeacherIdAndStatus(UUID teacherId, String status);
     List<TeacherQuestion> findByTeacherIdOrderByCreatedAtDesc(UUID teacherId);
+    boolean existsByTeacherIdAndPrompt(UUID teacherId, String prompt);
 }
