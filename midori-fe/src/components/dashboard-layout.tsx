@@ -1038,16 +1038,13 @@ export function DashboardLayout({
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6">
+        <main className="flex-1 p-3 md:p-6 lg:pb-6 xl:pb-6 pb-24 lg:pb-6 min-h-0 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
           >
-            {(() => {
-              console.log("[DashboardLayout] Rendering children for role:", role);
-              return children;
-            })()}
+            {children}
           </motion.div>
         </main>
 
