@@ -27,6 +27,7 @@ public class HomeworkResponse {
     private java.util.List<com.midori.dto.questiondto.TeacherQuestionResponse> questions;
     private Integer totalQuestions;
     private Integer submissionCount;
+    private Integer ungradedCount;
     private Integer remainingAttempts;
     private Integer timeLimit;
     private String teacherName;
