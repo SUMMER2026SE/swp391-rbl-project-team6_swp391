@@ -1,11 +1,3 @@
--- ============================================================
--- V15__ai_conversations.sql
--- Adds AI conversation/messaging tables for the AI tutor feature.
--- Owned by Đạt's branch on main. Kept as a standalone migration
--- here so environments that have not yet received this branch can
--- still apply it cleanly. Statements are idempotent via IF NOT EXISTS.
--- ============================================================
-
 CREATE TABLE IF NOT EXISTS ai_conversations (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),

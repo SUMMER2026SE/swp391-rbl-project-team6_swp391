@@ -33,6 +33,7 @@ import {
   type ContentSkill,
   type VocabularyLesson,
   type GrammarLesson,
+  type ReadingLesson,
   type ListeningLesson,
   type ShadowingItem,
   type VocabularyItem,
@@ -81,6 +82,14 @@ const SKILL_CONFIG: Record<
     bg: "bg-sky-blue/15",
     border: "border-sky-blue/20",
     accent: "sky-blue",
+  },
+  reading: {
+    label: "Reading",
+    icon: BookOpen,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/15",
+    border: "border-emerald-500/20",
+    accent: "emerald",
   },
   shadowing: {
     label: "Shadowing",
@@ -1015,6 +1024,221 @@ function ListeningEditForm({
           className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25"
         >
           <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReadingLessonForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (data: Partial<ReadingLesson>) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    lessonNumber: 1,
+    title: "",
+    status: "active",
+    items: [
+      {
+        id: generateId("read"),
+        title: "",
+        passage: "",
+        translationVietnamese: "",
+        questions: [],
+      },
+    ],
+  });
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const updateItem = (index: number, field: string, value: string) => {
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
+      return { ...f, items } as typeof f;
+    });
+  };
+
+  const addItem = () => {
+    const newItem: ReadingLesson["items"][number] = {
+      id: generateId("read"),
+      title: "",
+      passage: "",
+      translationVietnamese: "",
+      questions: [],
+    };
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
+  };
+
+  const removeItem = (index: number) => {
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
+          </div>
+          <div className="grid grid-cols-[120px_1fr_180px] gap-4">
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter lesson title"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-primary-col">Reading Items</h3>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
+          {form.items.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-col">
+                No reading items yet. Click "Add Item" below to add one.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {form.items.map((item, i) => {
+                const isExpanded = expandedItems.has(item.id);
+                return (
+                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(item.id)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-md bg-emerald-500/15 text-emerald-500 text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-medium text-primary-col">
+                          {item.title || "New Item"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
+                          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-4 py-4 glass-card space-y-3">
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Item Title</label>
+                          <input
+                            value={item.title}
+                            onChange={(e) => updateItem(i, "title", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Item title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
+                          <textarea
+                            value={item.passage}
+                            onChange={(e) => updateItem(i, "passage", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[100px]"
+                            placeholder="Japanese passage"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
+                          <textarea
+                            value={item.translationVietnamese}
+                            onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                            placeholder="Vietnamese translation"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Add Item
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+        >
+          Create Lesson
         </button>
       </div>
     </div>
@@ -2684,6 +2908,226 @@ function ShadowingLessonForm({
   return <ShadowingFormBody existingTopics={existingTopics} level={level} onSave={onSave} onCancel={onCancel} />;
 }
 
+// ─── Reading Edit Form (Match Question Bank styles) ─────────────────────────────
+
+function ReadingEditForm({
+  lesson,
+  onSave,
+  onCancel,
+}: {
+  lesson: ReadingLesson;
+  onSave: (data: Partial<ReadingLesson>) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    lessonNumber: lesson.lessonNumber,
+    title: lesson.title,
+    status: (lesson as unknown as { status?: string }).status || "active",
+    items: [...lesson.items] as ReadingLesson["items"],
+  });
+  const [saving, setSaving] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const addItem = () => {
+    const newItem: ReadingLesson["items"][number] = {
+      id: generateId("read"),
+      title: "",
+      passage: "",
+      translationVietnamese: "",
+      questions: [],
+    };
+    setForm((f) => ({ ...f, items: [...f.items, newItem] }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
+  };
+
+  const updateItem = (index: number, field: string, value: string) => {
+    setForm((f) => {
+      const items = f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
+      return { ...f, items } as typeof f;
+    });
+  };
+
+  const removeItem = (index: number) => {
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }));
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      onSave({ ...form, id: lesson.id });
+      setSaving(false);
+    }, 200);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
+          </div>
+          <div className="grid grid-cols-[120px_1fr_180px] gap-4">
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Number</label>
+              <input
+                type="number"
+                value={form.lessonNumber}
+                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                min={1}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Lesson Title</label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter lesson title"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-primary-col">Reading Items</h3>
+            <p className="text-xs text-muted-col mt-0.5">
+              {form.items.length} item{form.items.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
+          {form.items.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-col">
+                No reading items yet. Click "Add Item" below to add one.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {form.items.map((item, i) => {
+                const isExpanded = expandedItems.has(item.id);
+                return (
+                  <div key={item.id} className="rounded-lg border border-[var(--border)] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(item.id)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-md bg-emerald-500/15 text-emerald-500 text-xs font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-medium text-primary-col">
+                          {item.title || "New Item"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(i);
+                          }}
+                          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <ChevronDown
+                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-4 py-4 glass-card space-y-3">
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Item Title</label>
+                          <input
+                            value={item.title}
+                            onChange={(e) => updateItem(i, "title", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                            placeholder="Item title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
+                          <textarea
+                            value={item.passage}
+                            onChange={(e) => updateItem(i, "passage", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[100px]"
+                            placeholder="Japanese passage"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
+                          <textarea
+                            value={item.translationVietnamese}
+                            onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
+                            placeholder="Vietnamese translation"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <button
+              onClick={addItem}
+              type="button"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Add Item
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+        <button
+          onClick={onCancel}
+          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving || !form.title.trim()}
+          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+        >
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Excel Import Modal (Match Question Bank) ─────────────────────────────────
 
 function ExcelImportModal({
@@ -2696,7 +3140,7 @@ function ExcelImportModal({
   level: JLPTLevel;
   onClose: () => void;
   onImport: (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem>,
   ) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -2707,6 +3151,7 @@ function ExcelImportModal({
       vocabulary: "Vocabulary",
       grammar: "Grammar",
       listening: "Listening",
+      reading: "Reading",
       shadowing: "Shadowing",
     };
     return labels[skill] || skill;
@@ -2776,6 +3221,32 @@ function ExcelImportModal({
           "Good Morning",
         ],
       },
+      reading: {
+        columns: [
+          "Lesson Number",
+          "Lesson Title",
+          "Passage Japanese",
+          "Translation Vietnamese",
+          "Question",
+          "Option 1",
+          "Option 2",
+          "Option 3",
+          "Option 4",
+          "Correct Answer Index",
+        ],
+        example: [
+          "1",
+          "Giới thiệu bản thân",
+          "私の名前は田中です。",
+          "Tên tôi là Tanaka.",
+          "作者の名前は？",
+          "田中さん",
+          "山本さん",
+          "鈴木さん",
+          "伊藤さん",
+          "0",
+        ],
+      },
       shadowing: {
         columns: [
           "Lesson Number",
@@ -2821,7 +3292,7 @@ function ExcelImportModal({
     setTimeout(() => {
       const mockData: Record<
         string,
-        Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>
+        Partial<VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem>
       > = {
         vocabulary: {
           id: generateId("vocab"),
@@ -2839,6 +3310,13 @@ function ExcelImportModal({
         },
         listening: {
           id: generateId("list"),
+          lessonNumber: 99,
+          title: `Imported ${skill} lesson`,
+          status: "active",
+          items: [],
+        },
+        reading: {
+          id: generateId("read"),
           lessonNumber: 99,
           title: `Imported ${skill} lesson`,
           status: "active",
@@ -2941,7 +3419,7 @@ function SkillDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedItem, setSelectedItem] = useState<
-    VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | null
+    VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem | null
   >(null);
 
   const { lessons, createLesson, updateLesson, deleteLesson } = useContentLibrary(
@@ -3046,7 +3524,7 @@ function SkillDetailPage() {
   });
 
   const handleCreate = async (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem>,
   ) => {
     if (isShadowingSkill) {
       setShadowingSaving(true);
@@ -3068,13 +3546,13 @@ function SkillDetailPage() {
     }
   };
 
-  const handleEdit = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem) => {
+  const handleEdit = (item: VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem) => {
     setSelectedItem(item);
     setShowEditModal(true);
   };
 
   const handleUpdate = async (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem>,
   ) => {
     if (!selectedItem) return;
     if (isShadowingSkill) {
@@ -3100,7 +3578,7 @@ function SkillDetailPage() {
   };
 
   const handleImport = (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem>,
+    data: Partial<VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem>,
   ) => {
     createLesson(data);
     toast.success("Lesson imported successfully");
@@ -3150,7 +3628,7 @@ function SkillDetailPage() {
   };
 
   const getItemCount = (
-    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem,
+    item: VocabularyLesson | GrammarLesson | ReadingLesson | ListeningLesson | ShadowingItem,
   ): number => {
     if ("items" in item && Array.isArray(item.items)) return item.items.length;
     if ("segments" in item && Array.isArray(item.segments)) return item.segments.length;
@@ -3528,6 +4006,16 @@ function SkillDetailPage() {
                 }}
               />
             )}
+            {skill === "reading" && (
+              <ReadingEditForm
+                lesson={selectedItem as ReadingLesson}
+                onSave={handleUpdate}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedItem(null);
+                }}
+              />
+            )}
             {skill === "listening" && (
               <ListeningEditForm
                 lesson={selectedItem as ListeningLesson}
@@ -3573,6 +4061,9 @@ function SkillDetailPage() {
         )}
         {skill === "grammar" && (
           <GrammarLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
+        )}
+        {skill === "reading" && (
+          <ReadingLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
         )}
         {skill === "listening" && (
           <ListeningLessonForm onSave={handleCreate} onCancel={() => setShowCreateModal(false)} />
