@@ -41,7 +41,7 @@ import {
   List,
   Inbox,
 } from "lucide-react";
-import { listeningApi } from "@/lib/api/listening";
+import { listeningApi } from "@/lib/api/listeningApi";
 import { ApiError } from "@/lib/api/client";
 
 type ExerciseType = "Dictation" | "Blank Fill" | "Multiple Choice";
