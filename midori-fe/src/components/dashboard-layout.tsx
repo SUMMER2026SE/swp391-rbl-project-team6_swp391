@@ -22,8 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
-import type { Notification } from "@/types/notification";
+import { useNotifications } from "@/lib/context/notification-context";
 
 // Hierarchical navigation types
 type NavItemBase = {
@@ -198,64 +197,13 @@ export function DashboardLayout({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const studentNotifications: Notification[] = [
-    {
-      id: 1,
-      title: "New grammar lesson available",
-      desc: "~ãªã‘ã‚Œã°ãªã‚‰ãªã„ pattern is ready",
-      time: "2 min ago",
-      unread: true,
-      icon: GraduationCap,
-    },
-    {
-      id: 2,
-      title: "Daily streak reminder",
-      desc: "Complete today's lesson to keep your 32-day streak!",
-      time: "1 hour ago",
-      unread: true,
-      icon: Flame,
-    },
-    {
-      id: 3,
-      title: "Weekly leaderboard update",
-      desc: "You're now #4 â€” just 80 XP behind #3!",
-      time: "3 hours ago",
-      unread: false,
-      icon: Trophy,
-    },
-    {
-      id: 4,
-      title: "AI Sensei feedback",
-      desc: "Sensei reviewed your shadowing session",
-      time: "Yesterday",
-      unread: false,
-      icon: Bot,
-    },
-    {
-      id: 5,
-      title: "New badge earned",
-      desc: "You unlocked 'Week Warrior' badge!",
-      time: "2 days ago",
-      unread: false,
-      icon: Sparkles,
-    },
-  ];
+  // Use global notification context for real data
+  const { notifications, unreadCount } = useNotifications();
 
-  const teacherNotifications = TEACHER_NOTIFICATIONS;
-
-  const notifications: Notification[] =
-    role === "teacher"
-      ? teacherNotifications.map((n, i) => ({
-        id: i + 1,
-        title: n.title,
-        desc: n.message,
-        time: n.time,
-        unread: !n.read,
-        icon: BookOpen,
-      }))
-      : studentNotifications;
-
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  // Admin role uses DashboardLayout too but admin has its own notification page
+  // No need to show dropdown badge for admin (they manage notifications)
+  const showBadge = role !== "admin";
+  const dropdownNotifications = notifications.slice(0, 4);
   // Check if student is active (joined a class)
   const isStudentActiveStudent = role === "student" && isStudentActive(user);
   const isStudentGuestStudent = role === "student" && !isStudentActive(user);
@@ -267,9 +215,7 @@ export function DashboardLayout({
     return item;
   });
 
-  const notificationsPath = `/${role}/notifications`;
-
-  const dropdownNotifications = notifications.slice(0, 4);
+  const notificationsPath = role === "admin" ? "/admin/notification" : `/${role}/notifications`;
 
   useEffect(() => {
     if (!notifOpen && !userMenuOpen) return;
@@ -892,7 +838,7 @@ export function DashboardLayout({
                   className="relative p-2 rounded-xl nav-item"
                 >
                   <Bell className="w-5 h-5 text-secondary-col" />
-                  {notifications.some((n) => n.unread) && (
+                  {showBadge && unreadCount > 0 && (
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--jp-red)]" />
                   )}
                 </button>
@@ -961,13 +907,15 @@ export function DashboardLayout({
                       </div>
 
                       <div className="border-t border-gray-100 dark:border-white/10 p-2 flex-shrink-0 bg-white dark:bg-[#0f1117]">
-                        <Link
-                          to={notificationsPath}
-                          onClick={() => setNotifOpen(false)}
+                        <button
+                          onClick={() => {
+                            setNotifOpen(false);
+                            nav({ to: notificationsPath as never });
+                          }}
                           className="w-full block py-2.5 text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition"
                         >
                           View all notifications
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>

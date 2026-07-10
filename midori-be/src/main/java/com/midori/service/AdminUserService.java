@@ -93,7 +93,7 @@ public class AdminUserService {
                 savedUser,
                 "Teacher Rejected",
                 content,
-                NotificationType.CONTENT_REJECTED
+                NotificationType.TEACHER_REJECTED
         );
 
         log.info("Rejected teacher application: {} ({})", savedUser.getEmail(), userId);

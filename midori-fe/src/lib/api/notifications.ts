@@ -5,7 +5,11 @@ import { api } from "./client";
 export interface NotificationResponse {
   id: number;
   title: string;
-  content: string;
+  /**
+   * Notification body. The backend treats this as nullable (matches the DB
+   * column), so consumers should fall back to an empty string when missing.
+   */
+  content: string | null;
   type: string;
   isRead: boolean;
   createdAt: string;

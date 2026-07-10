@@ -64,6 +64,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/levels").permitAll()
+                        // WebSocket endpoint - authentication is performed inside
+                        // NotificationWebSocketHandler using the ?token= query
+                        // parameter, so the security chain must let the upgrade
+                        // request through without trying to read a header.
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()

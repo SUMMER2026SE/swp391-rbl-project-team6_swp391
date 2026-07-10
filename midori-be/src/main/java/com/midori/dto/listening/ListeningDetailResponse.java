@@ -1,8 +1,12 @@
 package com.midori.dto.listening;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -12,21 +16,17 @@ import java.util.UUID;
 public class ListeningDetailResponse {
 
     private UUID id;
-    private String level;
-    private UUID teacherId;
-    private String teacherName;
+    private String jlptLevel;
+    private Integer lessonNumber;
     private String title;
+    private String description;
     private String audioUrl;
-    private String audioFileName;
-    private String audioType;
-    private String meaning;
     private String transcript;
-    private String status;
-    private UUID approvedBy;
-    private Instant approvedAt;
+    private Integer estimatedMinutes;
+    private String difficulty;
+    private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
-    private String topic;
 
-    private String exerciseType;
+    private List<ListeningQuestionResponse> questions;
 }

@@ -1,85 +1,28 @@
-// ─── Content Library Types ────────────────────────────────────────────────────
-
-// JLPT Level
-export type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
-
-// ─── Listening Modes & Status ─────────────────────────────────────────────────
-export type ListeningMode = "dictation" | "quiz" | "both";
-export type ListeningStatus = "draft" | "processing" | "reviewed" | "published";
-
-// ─── Grammar ──────────────────────────────────────────────────────────────────
-export interface GrammarItem {
+export interface AdminReadingLesson {
   id: string;
-  grammarStructure: string; // JLPT pattern like "～は～です"
-  meaning: string;
-  exampleSentences: {
-    sentence: string;
-    meaning: string;
-  }[];
-  jlptLevel: JLPTLevel;
-  tags: string[];
+  jlptLevel: string;
+  lessonNumber: number;
+  title: string;
+  description: string | null;
+  passage: string;
+  vietnameseTranslation: string | null;
+  estimatedMinutes: number | null;
+  difficulty: string | null;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  questions: ReadingQuestion[];
+  passages?: AdminReadingPassage[];
 }
 
-// ─── Vocabulary ──────────────────────────────────────────────────────────────
-export interface VocabularyItem {
-  id: string;
-  word: string; // Kanji
-  hiragana: string;
-  meaning: string;
-  exampleSentence: {
-    sentence: string;
-    meaning: string;
-  };
-  lessonId: string;
-  jlptLevel: JLPTLevel;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ─── Listening ────────────────────────────────────────────────────────────────
-export interface ListeningQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation?: string;
-  hintWords?: string[];
-  linkedSegmentId?: string;
-}
-
-export interface ListeningTranscript {
-  raw: string;
-  cleaned: string;
-  segments: ListeningSegment[];
-}
-
-export interface ListeningSegment {
-  id: string;
-  startTime: number;
-  endTime: number;
-  text: string;
-  translation: string;
-  hintWords?: string[];
-}
-
-export interface ListeningItem {
+export interface AdminReadingPassage {
   id: string;
   title: string;
-  audioUrl: string;
-  mode?: ListeningMode; // Optional for backward compatibility
-  transcript?: ListeningTranscript | string;
-  questions: ListeningQuestion[];
-  jlptLevel: JLPTLevel;
-  tags: string[];
-  duration: number;
-  createdAt: string;
-  updatedAt: string;
+  passage: string;
+  translationVietnamese: string;
+  questions: ReadingQuestion[];
 }
 
-// ─── Reading ─────────────────────────────────────────────────────────────────
 export interface ReadingQuestion {
   id: string;
   question: string;
@@ -88,91 +31,62 @@ export interface ReadingQuestion {
   explanation?: string;
 }
 
-export interface ReadingItem {
+// ─── Listening Types (matching backend ListeningLesson → ListeningQuestion) ───────
+
+export interface AdminListeningLesson {
   id: string;
+  jlptLevel: string;
+  lessonNumber: number;
   title: string;
-  passageText: string;
-  comprehensionQuestions: ReadingQuestion[];
-  jlptLevel: JLPTLevel;
-  tags: string[];
-  estimatedTime: number; // in minutes
+  description: string | null;
+  audioUrl: string | null;
+  transcript: string | null;
+  estimatedMinutes: number | null;
+  difficulty: string | null;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  questions: ListeningQuestion[];
 }
 
-// ─── Shadowing ───────────────────────────────────────────────────────────────
-export interface ShadowingSegment {
+export interface ListeningQuestion {
   id: string;
-  startTime: number;
-  endTime: number;
-  text: string;
-  translation: string;
-  pitchAccent?: string;
+  questionOrder: number;
+  question: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctAnswer: string;
+  explanation: string | null;
+  questionType: string;
 }
 
-export interface ShadowingItem {
-  id: string;
+export interface ListeningLessonRequest {
+  jlptLevel: string;
+  lessonNumber: number;
   title: string;
-  audioUrl: string;
-  script: ShadowingSegment[];
-  practiceSegments: {
-    segmentId: string;
-    repetitions: number;
-    speed: number; // 0.5, 0.75, 1.0
-  }[];
-  jlptLevel: JLPTLevel;
-  tags: string[];
-  duration: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ─── Flashcard ───────────────────────────────────────────────────────────────
-export interface Flashcard {
-  id: string;
-  front: string; // word / question
-  back: string; // meaning / answer
-  jlptLevel: JLPTLevel;
-  lessonId: string; // links to lesson for organization
-  tags: string[]; // grammar, vocab, reading support, etc.
+  description?: string;
   audioUrl?: string;
-  exampleSentence?: {
-    sentence: string;
-    meaning: string;
-  };
-  difficulty: "easy" | "medium" | "hard";
-  createdAt: string;
-  updatedAt: string;
+  transcript?: string;
+  estimatedMinutes?: number;
+  difficulty?: string;
+  isActive?: boolean;
 }
 
-// ─── Content Library State ────────────────────────────────────────────────────
-export interface ContentLibraryState {
-  grammar: GrammarItem[];
-  vocabulary: VocabularyItem[];
-  listening: ListeningItem[];
-  reading: ReadingItem[];
-  shadowing: ShadowingItem[];
-  flashcards: Flashcard[];
+export interface ListeningQuestionRequest {
+  questionOrder: number;
+  question: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctAnswer: string;
+  explanation?: string;
+  questionType?: string;
 }
 
-// ─── Filter Types ────────────────────────────────────────────────────────────
-export interface ContentFilter {
-  level?: JLPTLevel;
-  search?: string;
-  tags?: string[];
-}
-
-// ─── API Response Types ────────────────────────────────────────────────────────
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+export interface ListeningLessonWithQuestionsRequest {
+  lesson: ListeningLessonRequest;
+  questions: ListeningQuestionRequest[];
 }

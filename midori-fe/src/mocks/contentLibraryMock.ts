@@ -32,11 +32,18 @@ export interface ReadingQuestion {
   explanation?: string;
 }
 
+export interface ReadingVocabulary {
+  japanese: string;
+  reading: string;
+  meaning: string;
+}
+
 export interface ReadingItem {
   id: string;
   title: string;
   passage: string;
   translationVietnamese: string;
+  vocabularyHints?: ReadingVocabulary[];
   questions: ReadingQuestion[];
 }
 
@@ -335,77 +342,7 @@ const grammarLessonsN5: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN5: ReadingLesson[] = [
-  {
-    id: "read-n5-01",
-    lessonNumber: 1,
-    title: "Bài 1 - Giới thiệu bản thân",
-    items: [
-      {
-        id: "read-n5-01-01",
-        title: "Giới thiệu bản thân",
-        passage:
-          "私の名前は田中です。にほんごのがくせい です。がっこう で べんきょうします。らいしゅう、ともだちとちらほらをみにいきます。",
-        translationVietnamese:
-          "Tên tôi là Tanaka. Tôi là sinh viên tiếng Nhật. Tôi học ở trường. Tuần sau, tôi sẽ đi xem hoa anh đào với bạn.",
-        questions: [
-          {
-            id: "rq-n5-01-01",
-            question: "作者は誰ですか？",
-            options: ["田中さん", "山本さん", "鈴木さん", "伊藤さん"],
-            correctAnswer: 0,
-            explanation: "私の名前は田中です。→ Tên tôi là Tanaka.",
-          },
-          {
-            id: "rq-n5-01-02",
-            question: "作者は学生ですか？",
-            options: ["はい、学生です", "いいえ、先生です", "いいえ、働きます", "わかりません"],
-            correctAnswer: 0,
-            explanation: "にほんごのがくせい です。→ Tôi là sinh viên tiếng Nhật.",
-          },
-          {
-            id: "rq-n5-01-03",
-            question: "作者は何を見ますか？",
-            options: ["映画", "花", "桜", "山"],
-            correctAnswer: 2,
-            explanation: "ちらほらをみにいきます。→ Sẽ đi xem hoa anh đào.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n5-02",
-    lessonNumber: 2,
-    title: "Bài 2 - Một ngày của tôi",
-    items: [
-      {
-        id: "read-n5-02-01",
-        title: "Một ngày của tôi",
-        passage:
-          "まいあさ、6じにおきます。7じに朝ごはんをたべます。8じにがっこうへいきます。がっこうではにほんごをべんきょうします。",
-        translationVietnamese:
-          "Mỗi sáng tôi dậy lúc 6 giờ. 7 giờ ăn sáng. 8 giờ đi học. Ở trường tôi học tiếng Nhật.",
-        questions: [
-          {
-            id: "rq-n5-02-01",
-            question: "作者はいつおきますか？",
-            options: ["5時", "6時", "7時", "8時"],
-            correctAnswer: 1,
-            explanation: "まいあさ、6じにおきます。→ Mỗi sáng dậy lúc 6 giờ.",
-          },
-          {
-            id: "rq-n5-02-02",
-            question: "作者はどこでべんきょうしますか？",
-            options: ["いえ", "がっこう", "えいが", "ぎんこう"],
-            correctAnswer: 1,
-            explanation: "がっこうではにほんごをべんきょうします。→ Ở trường học tiếng Nhật.",
-          },
-        ],
-      },
-    ],
-  },
-];
+const readingLessonsN5: ReadingLesson[] = [];
 
 const listeningLessonsN5: ListeningLesson[] = [
   {
@@ -683,46 +620,7 @@ const grammarLessonsN4: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN4: ReadingLesson[] = [
-  {
-    id: "read-n4-01",
-    lessonNumber: 1,
-    title: "Bài 1 - Thư từ",
-    items: [
-      {
-        id: "read-n4-01-01",
-        title: "Thư từ",
-        passage:
-          "太郎さんへ きのうの手紙をどうもありがとう。らいしゅうのミーティングのことですが、3じからです。まっている地点に行きます。",
-        translationVietnamese:
-          "Cảm ơn thư hôm qua của bạn. Về cuộc họp tuần sau, bắt đầu từ 3 giờ. Tôi sẽ đến địa điểm đã hẹn.",
-        questions: [
-          {
-            id: "rq-n4-01-01",
-            question: "ミーティングはいつからですか？",
-            options: ["2時", "3時", "4時", "5時"],
-            correctAnswer: 1,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "read-n4-02",
-    lessonNumber: 2,
-    title: "Bài 2 - Email",
-    items: [
-      {
-        id: "read-n4-02-01",
-        title: "Email",
-        passage:
-          "田中さんへ らいしゅうのの日曜日にPartyがあります。6じからです。あなたも来ますか。",
-        translationVietnamese: "Tuần sau chủ nhật có tiệc. Bắt đầu từ 6 giờ. Bạn cũng đến chứ?",
-        questions: [],
-      },
-    ],
-  },
-];
+const readingLessonsN4: ReadingLesson[] = [];
 
 const listeningLessonsN4: ListeningLesson[] = [
   {
@@ -849,24 +747,7 @@ const grammarLessonsN3: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN3: ReadingLesson[] = [
-  {
-    id: "read-n3-01",
-    lessonNumber: 1,
-    title: "Bài 1 - Bài đọc N3",
-    items: [
-      {
-        id: "read-n3-01-01",
-        title: "Bài đọc N3",
-        passage:
-          "日本の会社では加班ることは当たり前になっています。でも、最近、働き改革が必要だという声が高まっています。",
-        translationVietnamese:
-          "Ở các công ty Nhật Bản, làm thêm giờ đã trở nên bình thường. Tuy nhiên, gần đây, tiếng nói yêu cầu cải cách cách làm việc đang tăng lên.",
-        questions: [],
-      },
-    ],
-  },
-];
+const readingLessonsN3: ReadingLesson[] = [];
 
 const listeningLessonsN3: ListeningLesson[] = [
   {
@@ -939,24 +820,7 @@ const grammarLessonsN2: GrammarLesson[] = [
   },
 ];
 
-const readingLessonsN2: ReadingLesson[] = [
-  {
-    id: "read-n2-01",
-    lessonNumber: 1,
-    title: "Bài 1 - Bài đọc N2",
-    items: [
-      {
-        id: "read-n2-01-01",
-        title: "Bài đọc N2",
-        passage:
-          "現代社会において、情報技術の発展はめざましいものがある。しかし、その一方で情報の信頼性问题也越来越严重。",
-        translationVietnamese:
-          "Trong xã hội hiện đại, sự phát triển của công nghệ thông tin rất đáng chú ý. Tuy nhiên, mặt khác, vấn đề độ tin cậy của thông tin ngày càng nghiêm trọng.",
-        questions: [],
-      },
-    ],
-  },
-];
+const readingLessonsN2: ReadingLesson[] = [];
 
 const listeningLessonsN2: ListeningLesson[] = [
   {
@@ -1757,6 +1621,42 @@ export function resetContentStore(): void {
 
 export function generateId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// ─── Admin Reading Adapter ────────────────────────────────────────────────────
+
+/**
+ * Adapter to convert a mock ReadingLesson (from contentLibraryMock) into
+ * AdminReadingLesson shape expected by the backend-aligned service.
+ * This allows the route to render mock reading lessons while using the
+ * backend service for real CRUD operations.
+ */
+export function readingAdminAdapter(
+  mockLesson: ReadingLesson,
+  level: JLPTLevel,
+): import("@/types/content-library").AdminReadingLesson {
+  const firstItem = mockLesson.items[0];
+  return {
+    id: mockLesson.id,
+    jlptLevel: level,
+    lessonNumber: mockLesson.lessonNumber,
+    title: mockLesson.title,
+    description: mockLesson.description || null,
+    passage: firstItem?.passage || "",
+    vietnameseTranslation: firstItem?.translationVietnamese || null,
+    estimatedMinutes: null,
+    difficulty: null,
+    isActive: (mockLesson as unknown as { status?: string }).status !== "inactive",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    questions: (firstItem?.questions || []).map((q, idx) => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation,
+    })),
+  };
 }
 
 // Run validation on module load

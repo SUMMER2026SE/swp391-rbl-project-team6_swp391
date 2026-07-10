@@ -27,6 +27,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // WebSocket upgrade requests are handled by NotificationWebSocketHandler
+        // which authenticates via the `token` query parameter (browsers cannot
+        // send custom headers on the WS upgrade). Skipping the JWT filter here
+        // also avoids reading the body of the upgrade request.
+        String path = request.getRequestURI();
+        return path != null && path.startsWith("/ws/");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {

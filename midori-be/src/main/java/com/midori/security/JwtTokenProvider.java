@@ -77,4 +77,23 @@ public class JwtTokenProvider {
         }
         return false;
     }
+
+    /**
+     * Parse the JWT and return its claims. Unlike {@link #validateToken} this
+     * also surfaces the parsed body so callers that need the userId/email do
+     * not have to parse the token a second time. Returns {@code null} when the
+     * token is invalid or expired.
+     */
+    public Claims parseClaims(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (JwtException | IllegalArgumentException ex) {
+            log.debug("JWT parse failed: {}", ex.getMessage());
+            return null;
+        }
+    }
 }

@@ -44,13 +44,13 @@ public class DashboardServiceImpl implements DashboardService {
         long approvedFlashcardSets = flashcardSetRepository.countByStatus(com.midori.entity.FlashcardSetStatus.APPROVED);
 
         long totalListeningLessons = listeningLessonRepository.count();
-        long pendingListeningLessons = listeningLessonRepository.countByStatus("PENDING");
-        long approvedListeningLessons = listeningLessonRepository.countByStatus("APPROVED");
+        long inactiveListeningLessons = listeningLessonRepository.countByIsActive(false);
+        long activeListeningLessons = listeningLessonRepository.countByIsActive(true);
 
         long totalVocabularyLessons = vocabularyLessonRepository.count();
         long publishedVocabularyLessons = vocabularyLessonRepository.countByIsPublished(true);
 
-        long pendingContent = pendingGrammar + pendingFlashcardSets + pendingListeningLessons;
+        long pendingContent = pendingGrammar + pendingFlashcardSets + inactiveListeningLessons;
         long totalProgressRecords = userLearningProgressRepository.count();
 
         return AdminDashboardSummaryResponse.builder()
@@ -68,8 +68,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .totalListeningLessons(totalListeningLessons)
                 .pendingFlashcardSets(pendingFlashcardSets)
                 .approvedFlashcardSets(approvedFlashcardSets)
-                .pendingListeningLessons(pendingListeningLessons)
-                .approvedListeningLessons(approvedListeningLessons)
+                .pendingListeningLessons(inactiveListeningLessons)
+                .approvedListeningLessons(activeListeningLessons)
                 .publishedVocabularyLessons(publishedVocabularyLessons)
                 .totalProgressRecords(totalProgressRecords)
                 .build();

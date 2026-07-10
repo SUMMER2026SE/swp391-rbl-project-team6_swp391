@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -21,42 +23,39 @@ public class ListeningLesson {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "level", nullable = false, length = 10)
-    private String level;
+    @Column(name = "jlpt_level", nullable = false, length = 10)
+    private String jlptLevel;
 
-    @Column(name = "teacher_id", nullable = false)
-    private UUID teacherId;
+    @Column(name = "lesson_number", nullable = false)
+    private Integer lessonNumber;
 
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(name = "audio_url", length = 500)
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "audio_url", columnDefinition = "TEXT")
     private String audioUrl;
-
-    @Column(name = "audio_file_name", length = 255)
-    private String audioFileName;
-
-    @Column(name = "audio_type", length = 50)
-    private String audioType;
-
-    @Column(name = "answer_key", columnDefinition = "TEXT")
-    private String meaning;
 
     @Column(columnDefinition = "TEXT")
     private String transcript;
 
-    @Column(name = "topic", length = 100)
-    private String topic;
+    @Column(name = "estimated_minutes")
+    private Integer estimatedMinutes;
 
-    @Column(nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Difficulty difficulty;
+
+    @Column(name = "is_active", nullable = false)
     @Builder.Default
-    private String status = "PENDING";
+    private Boolean isActive = true;
 
-    @Column(name = "approved_by")
-    private UUID approvedBy;
-
-    @Column(name = "approved_at")
-    private Instant approvedAt;
+    @OneToMany(mappedBy = "listeningLesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("questionOrder ASC")
+    @Builder.Default
+    private List<ListeningQuestion> questions = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -65,7 +64,4 @@ public class ListeningLesson {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    @Column(name = "exercise_type", length = 50)
-    private String exerciseType;
 }
