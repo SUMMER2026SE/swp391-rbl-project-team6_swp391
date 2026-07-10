@@ -35,15 +35,6 @@ const skillCards = [
     hoverBg: "hover:bg-sky-blue/10",
   },
   {
-    id: "reading",
-    label: "Reading",
-    icon: BookOpen,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/15",
-    border: "border-emerald-500/20",
-    hoverBg: "hover:bg-emerald-500/10",
-  },
-  {
     id: "shadowing",
     label: "Shadowing",
     icon: Mic,
