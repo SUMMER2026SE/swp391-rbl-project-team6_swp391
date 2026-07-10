@@ -1,4 +1,14 @@
-CREATE TABLE IF NOT EXISTS ai_usage_logs (
+-- ============================================================
+-- V23__ai_usage_logs.sql
+-- ============================================================
+-- NOTE: V22 is intentionally skipped — that version slot is
+-- reserved for Ngân's in-flight migration. Do not create V22.
+-- ============================================================
+-- Per-feature AI usage telemetry: prompt/completion tokens,
+-- latency, status. Complements the shadowing-specific table
+-- in V21__ai_shadowing_usage_logs.sql which tracks per-pipeline
+-- timings for the shadowing feature.
+-- ============================================================
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     lesson_id UUID,

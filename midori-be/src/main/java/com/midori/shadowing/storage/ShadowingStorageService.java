@@ -148,7 +148,7 @@ public class ShadowingStorageService {
         if (supabaseUrl == null || supabaseUrl.isBlank()
                 || serviceRoleKey == null || serviceRoleKey.isBlank()) {
             log.warn("[Storage] Supabase not configured. Returning local stream URL.");
-            return "/api/admin/shadowing/video/" + videoId;
+            return "/api/student/shadowing/video/" + videoId;
         }
 
         String objectPath = "shadowing/" + fileName;
@@ -198,7 +198,7 @@ public class ShadowingStorageService {
             log.error("[Storage] Supabase upload failed: {}. Falling back to local stream.", e.getMessage());
         }
 
-        return "/api/admin/shadowing/video/" + videoId;
+        return "/api/student/shadowing/video/" + videoId;
     }
 
     /**

@@ -1,6 +1,12 @@
+-- ============================================================
 -- V24__pending_video_uploads.sql
--- Persists Supabase public URLs for shadowing videos so the mapping survives
--- backend restarts (previously held only in a ConcurrentHashMap).
+-- ============================================================
+-- NOTE: V22 is intentionally skipped (see V23 for context).
+-- ============================================================
+-- Persists Supabase public URLs for shadowing videos so the mapping
+-- survives backend restarts (previously held only in a
+-- ConcurrentHashMap).
+-- ============================================================
 
 CREATE TABLE IF NOT EXISTS pending_video_uploads (
     id UUID PRIMARY KEY,

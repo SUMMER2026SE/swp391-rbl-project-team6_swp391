@@ -7,13 +7,22 @@ import com.midori.security.CustomUserDetails;
 import com.midori.shadowing.ai.ShadowingAiService;
 import com.midori.shadowing.dto.ShadowingGenerateResponse;
 import com.midori.shadowing.service.ShadowingService;
+import com.midori.shadowing.storage.ShadowingStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.UrlResource;
+import org.springframework.core.io.support.ResourceRegion;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRange;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +39,7 @@ public class StudentShadowingController {
     private final ShadowingAiService shadowingAiService;
     private final UserProfileRepository userProfileRepository;
     private final com.midori.repository.UserRepository userRepository;
+    private final ShadowingStorageService shadowingStorageService;
 
     /**
      * Get list of shadowing lessons filtered by student's JLPT level.
@@ -121,6 +131,53 @@ public class StudentShadowingController {
                 errorResult.put("diff", new ArrayList<>());
             }
             return ResponseEntity.ok(ApiResponse.success(errorResult));
+        }
+    }
+
+    /**
+     * Stream a shadowing video for an authenticated student.
+     * If a Supabase public URL is available, redirects the client to it
+     * (zero backend bandwidth). Otherwise streams the locally-uploaded file
+     * with HTTP range support.
+     */
+    @GetMapping("/video/{videoId}")
+    public ResponseEntity<?> streamVideo(
+            @PathVariable String videoId,
+            @RequestHeader HttpHeaders headers) {
+        String supabaseUrl = shadowingStorageService.getSupabaseUrl(videoId);
+        if (supabaseUrl != null && !supabaseUrl.isBlank()) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, supabaseUrl)
+                    .build();
+        }
+
+        File file = shadowingStorageService.getVideoFile(videoId);
+        if (file == null || !file.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            UrlResource video = new UrlResource(file.toURI());
+            long contentLength = video.contentLength();
+            long chunkSize = 1024 * 1024L;
+            List<HttpRange> ranges = headers.getRange();
+            ResourceRegion region;
+            if (!ranges.isEmpty()) {
+                HttpRange range = ranges.get(0);
+                long start = range.getRangeStart(contentLength);
+                long end = range.getRangeEnd(contentLength);
+                long rangeLength = Math.min(chunkSize, end - start + 1);
+                region = new ResourceRegion(video, start, rangeLength);
+            } else {
+                region = new ResourceRegion(video, 0, Math.min(chunkSize, contentLength));
+            }
+            MediaType mediaType = MediaTypeFactory.getMediaType(video).orElse(MediaType.APPLICATION_OCTET_STREAM);
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .contentType(mediaType)
+                    .body(region);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 

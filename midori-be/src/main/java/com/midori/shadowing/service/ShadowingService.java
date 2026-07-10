@@ -198,9 +198,9 @@ public class ShadowingService {
             ShadowingLesson lesson = new ShadowingLesson();
             lesson.setTitle("Shadowing Lesson " + videoFile.getName());
             lesson.setJlptLevel("N5");
-            // Prefer Supabase public URL if available (video already uploaded there), fallback to local stream
+            // Prefer Supabase public URL if available (video already uploaded there), fallback to student-authenticated stream
             String supabaseVideoUrl = shadowingStorageService.getSupabaseUrl(videoId);
-            lesson.setVideoUrl(supabaseVideoUrl != null ? supabaseVideoUrl : "/api/admin/shadowing/video/" + videoId);
+            lesson.setVideoUrl(supabaseVideoUrl != null ? supabaseVideoUrl : "/api/student/shadowing/video/" + videoId);
             lesson.setDuration(videoDuration);
             lesson.setSentences(sentences);
 
@@ -231,7 +231,7 @@ public class ShadowingService {
             long videoSizeBytes = videoFile.length();
             String videoSizeFormatted = formatFileSize(videoSizeBytes);
             boolean supabaseSuccess = supabaseVideoUrl != null
-                    && !supabaseVideoUrl.startsWith("/api/admin/shadowing/video/");
+                    && !supabaseVideoUrl.startsWith("/api/student/shadowing/video/");
 
             log.info("========== Shadowing Pipeline Benchmark ==========");
             log.info("Video Duration       : {}s", videoDuration);
@@ -298,6 +298,9 @@ public class ShadowingService {
             if (supabaseUrl != null) {
                 videoUrl = supabaseUrl;
                 log.info("[ShadowingService] Replaced local stream URL with Supabase URL: {}", videoUrl);
+            } else {
+                videoUrl = "/api/student/shadowing/video/" + videoId;
+                log.info("[ShadowingService] Rewrote admin stream URL to student-authenticated URL: {}", videoUrl);
             }
         }
 

@@ -19,6 +19,7 @@ import org.springframework.http.HttpRange;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -104,10 +105,10 @@ public class AdminShadowingController {
     }
 
     /**
-     * Endpoint to stream uploaded video files.
+     * Endpoint to stream uploaded video files (admin only).
+     * Students must go through /api/student/shadowing/video/{videoId}.
      */
     @GetMapping("/video/{videoId}")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<ResourceRegion> streamVideo(
             @PathVariable String videoId,
             @RequestHeader HttpHeaders headers) {
