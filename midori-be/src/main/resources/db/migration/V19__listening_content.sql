@@ -8,7 +8,7 @@
 -- Listening Lessons
 -- ============================================================
 
-CREATE TABLE listening_lessons (
+CREATE TABLE IF NOT EXISTS listening_lessons (
     id                      UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
     jlpt_level              VARCHAR(10)         NOT NULL,
     lesson_number           INTEGER             NOT NULL,
@@ -37,8 +37,8 @@ COMMENT ON COLUMN listening_lessons.is_active IS 'Trạng thái kích hoạt: TR
 -- Indexes
 -- ============================================================
 
-CREATE INDEX idx_listening_lessons_jlpt_level ON listening_lessons(jlpt_level);
-CREATE INDEX idx_listening_lessons_lesson_number ON listening_lessons(lesson_number);
-CREATE INDEX idx_listening_lessons_difficulty ON listening_lessons(difficulty);
-CREATE INDEX idx_listening_lessons_is_active ON listening_lessons(is_active);
-CREATE INDEX idx_listening_lessons_level_active ON listening_lessons(jlpt_level, is_active);
+CREATE INDEX IF NOT EXISTS idx_listening_lessons_jlpt_level ON listening_lessons(jlpt_level);
+CREATE INDEX IF NOT EXISTS idx_listening_lessons_lesson_number ON listening_lessons(lesson_number);
+CREATE INDEX IF NOT EXISTS idx_listening_lessons_difficulty ON listening_lessons(difficulty);
+CREATE INDEX IF NOT EXISTS idx_listening_lessons_is_active ON listening_lessons(is_active);
+CREATE INDEX IF NOT EXISTS idx_listening_lessons_level_active ON listening_lessons(jlpt_level, is_active);

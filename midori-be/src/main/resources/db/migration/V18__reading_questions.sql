@@ -8,7 +8,7 @@
 -- Reading Questions
 -- ============================================================
 
-CREATE TABLE reading_questions (
+CREATE TABLE IF NOT EXISTS reading_questions (
     id                      UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
     reading_lesson_id       UUID                NOT NULL,
     question_order          INTEGER             NOT NULL,
@@ -43,5 +43,5 @@ COMMENT ON COLUMN reading_questions.explanation IS 'Giải thích đáp án đú
 -- Indexes
 -- ============================================================
 
-CREATE INDEX idx_reading_questions_lesson_id ON reading_questions(reading_lesson_id);
-CREATE INDEX idx_reading_questions_order ON reading_questions(reading_lesson_id, question_order);
+CREATE INDEX IF NOT EXISTS idx_reading_questions_lesson_id ON reading_questions(reading_lesson_id);
+CREATE INDEX IF NOT EXISTS idx_reading_questions_order ON reading_questions(reading_lesson_id, question_order);

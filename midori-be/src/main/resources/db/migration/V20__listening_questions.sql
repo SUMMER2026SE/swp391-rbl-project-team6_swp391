@@ -8,7 +8,7 @@
 -- Listening Questions
 -- ============================================================
 
-CREATE TABLE listening_questions (
+CREATE TABLE IF NOT EXISTS listening_questions (
     id                      UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
     listening_lesson_id     UUID                NOT NULL,
     question_order          INTEGER             NOT NULL,
@@ -50,5 +50,5 @@ COMMENT ON COLUMN listening_questions.audio_url IS 'Audio clip riêng cho câu h
 -- Indexes
 -- ============================================================
 
-CREATE INDEX idx_listening_questions_lesson_id ON listening_questions(listening_lesson_id);
-CREATE INDEX idx_listening_questions_order ON listening_questions(listening_lesson_id, question_order);
+CREATE INDEX IF NOT EXISTS idx_listening_questions_lesson_id ON listening_questions(listening_lesson_id);
+CREATE INDEX IF NOT EXISTS idx_listening_questions_order ON listening_questions(listening_lesson_id, question_order);
