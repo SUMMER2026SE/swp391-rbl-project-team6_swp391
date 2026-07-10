@@ -158,11 +158,15 @@ public class HomeworkController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User student = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userDetails.getId()));
-        if (student.getAssignedClass() == null) {
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        if (assignedClasses == null || assignedClasses.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(java.util.Collections.emptyList()));
         }
-        List<Homework> homeworks = homeworkService.findHomeworkByClass(student.getAssignedClass().getId());
-        List<HomeworkResponse> responses = homeworks.stream().map(this::mapToHomeworkResponse).toList();
+        List<Homework> allHomeworks = new java.util.ArrayList<>();
+        for (ClassEntity c : assignedClasses) {
+            allHomeworks.addAll(homeworkService.findHomeworkByClass(c.getId()));
+        }
+        List<HomeworkResponse> responses = allHomeworks.stream().map(this::mapToHomeworkResponse).toList();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -184,7 +188,18 @@ public class HomeworkController {
         User student = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userDetails.getId()));
         Homework homework = homeworkService.findHomeworkById(id);
-        if (student.getAssignedClass() == null || !student.getAssignedClass().getId().equals(homework.getAssignedClass().getId())) {
+        
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        boolean isEnrolled = false;
+        if (assignedClasses != null) {
+            for (ClassEntity c : assignedClasses) {
+                if (c.getId().equals(homework.getAssignedClass().getId())) {
+                    isEnrolled = true;
+                    break;
+                }
+            }
+        }
+        if (!isEnrolled) {
             throw new com.midori.exception.AccessDeniedException("You are not enrolled in this class");
         }
         return ResponseEntity.ok(ApiResponse.success(mapToHomeworkResponse(homework)));
@@ -199,7 +214,18 @@ public class HomeworkController {
         User student = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userDetails.getId()));
         Homework homework = homeworkService.findHomeworkById(id);
-        if (student.getAssignedClass() == null || !student.getAssignedClass().getId().equals(homework.getAssignedClass().getId())) {
+        
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        boolean isEnrolled = false;
+        if (assignedClasses != null) {
+            for (ClassEntity c : assignedClasses) {
+                if (c.getId().equals(homework.getAssignedClass().getId())) {
+                    isEnrolled = true;
+                    break;
+                }
+            }
+        }
+        if (!isEnrolled) {
             throw new com.midori.exception.AccessDeniedException("You are not enrolled in this class");
         }
         HomeworkSubmission submission = HomeworkSubmission.builder()
@@ -221,7 +247,18 @@ public class HomeworkController {
         User student = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userDetails.getId()));
         Homework homework = homeworkService.findHomeworkById(id);
-        if (student.getAssignedClass() == null || !student.getAssignedClass().getId().equals(homework.getAssignedClass().getId())) {
+        
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        boolean isEnrolled = false;
+        if (assignedClasses != null) {
+            for (ClassEntity c : assignedClasses) {
+                if (c.getId().equals(homework.getAssignedClass().getId())) {
+                    isEnrolled = true;
+                    break;
+                }
+            }
+        }
+        if (!isEnrolled) {
             throw new com.midori.exception.AccessDeniedException("You are not enrolled in this class");
         }
         try {

@@ -94,3 +94,8 @@ CREATE TABLE IF NOT EXISTS homework_questions (
 -- Alter exam_questions to link to teacher_questions
 ALTER TABLE exam_questions ADD COLUMN IF NOT EXISTS source_teacher_question_id UUID REFERENCES teacher_questions(id);
 
+-- Migrate existing student class assignments from users.class_id to class_students join table
+INSERT INTO class_students (class_id, student_id)
+SELECT class_id, id FROM users
+WHERE class_id IS NOT NULL
+ON CONFLICT (class_id, student_id) DO NOTHING;

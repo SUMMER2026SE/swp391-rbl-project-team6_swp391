@@ -14,8 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
-import com.midori.repository.TeacherQuestionRepository;
+import com.midori.entity.ClassEntity;
 import com.midori.entity.TeacherQuestion;
+import com.midori.repository.TeacherQuestionRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -175,7 +176,18 @@ public class HomeworkServiceImpl implements HomeworkService {
     public List<Homework> findHomeworksByClassForStudent(UUID classId, UUID studentId) {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", studentId));
-        if (student.getAssignedClass() == null || !student.getAssignedClass().getId().equals(classId)) {
+        
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        boolean isEnrolled = false;
+        if (assignedClasses != null) {
+            for (ClassEntity c : assignedClasses) {
+                if (c.getId().equals(classId)) {
+                    isEnrolled = true;
+                    break;
+                }
+            }
+        }
+        if (!isEnrolled) {
             throw new com.midori.exception.AccessDeniedException("You are not enrolled in this class");
         }
         return homeworkRepository.findByAssignedClassIdOrderByCreatedAtDesc(classId);
