@@ -37,7 +37,7 @@ public class ClassEntity {
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
-    @OneToMany(mappedBy = "assignedClass", cascade = CascadeType.ALL)
+    @ManyToMany(mappedBy = "assignedClasses", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @Builder.Default
     private List<User> students = new ArrayList<>();
 

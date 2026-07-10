@@ -38,7 +38,7 @@ public class ClassServiceImpl implements ClassService {
     private final HomeworkService homeworkService;
     private final ExamGenerationService examGenerationService;
     private final VocabularyService vocabularyService;
-    private final ListeningService listeningService;
+    private final ListeningLessonService listeningLessonService;
     private final GrammarService grammarService;
     private final com.midori.repository.HomeworkSubmissionRepository homeworkSubmissionRepository;
     private final StudentExamRepository studentExamRepository;
@@ -66,26 +66,28 @@ public class ClassServiceImpl implements ClassService {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", studentId));
 
-        ClassEntity assignedClass = student.getAssignedClass();
-        if (assignedClass == null) {
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        if (assignedClasses == null || assignedClasses.isEmpty()) {
             return java.util.Collections.emptyList();
         }
 
-        boolean match = false;
-        if (status == null || status.trim().isEmpty()) {
-            match = assignedClass.getStatus() == ClassEntity.ClassStatus.ACTIVE;
-        } else if ("ACTIVE".equalsIgnoreCase(status)) {
-            match = assignedClass.getStatus() == ClassEntity.ClassStatus.ACTIVE;
-        } else if ("ARCHIVED".equalsIgnoreCase(status)) {
-            match = assignedClass.getStatus() == ClassEntity.ClassStatus.ARCHIVED;
-        } else {
-            match = true; // "ALL"
+        List<ClassResponse> list = new ArrayList<>();
+        for (ClassEntity classEntity : assignedClasses) {
+            boolean match = false;
+            if (status == null || status.trim().isEmpty()) {
+                match = true;
+            } else if ("ACTIVE".equalsIgnoreCase(status)) {
+                match = classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE;
+            } else if ("ARCHIVED".equalsIgnoreCase(status)) {
+                match = classEntity.getStatus() == ClassEntity.ClassStatus.ARCHIVED;
+            } else {
+                match = true; // "ALL"
+            }
+            if (match) {
+                list.add(mapToClassResponse(classEntity));
+            }
         }
-
-        if (match) {
-            return java.util.Collections.singletonList(mapToClassResponse(assignedClass));
-        }
-        return java.util.Collections.emptyList();
+        return list;
     }
 
     @Override
@@ -93,8 +95,18 @@ public class ClassServiceImpl implements ClassService {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", studentId));
 
-        ClassEntity assignedClass = student.getAssignedClass();
-        if (assignedClass == null || !assignedClass.getId().equals(classId)) {
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        ClassEntity assignedClass = null;
+        if (assignedClasses != null) {
+            for (ClassEntity c : assignedClasses) {
+                if (c.getId().equals(classId)) {
+                    assignedClass = c;
+                    break;
+                }
+            }
+        }
+
+        if (assignedClass == null) {
             // Verify class exists to return 404 instead of 403 if it is a non-existent class
             classRepository.findById(classId)
                     .orElseThrow(() -> new ResourceNotFoundException("Class not found"));
@@ -223,11 +235,15 @@ public class ClassServiceImpl implements ClassService {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", studentId));
 
-        if (student.getAssignedClass() == null || !student.getAssignedClass().getId().equals(classId)) {
+        boolean enrolled = false;
+        if (student.getAssignedClasses() != null) {
+            enrolled = student.getAssignedClasses().removeIf(c -> c.getId().equals(classId));
+        }
+
+        if (!enrolled) {
             throw new BadRequestException("Student is not in this class");
         }
 
-        student.setAssignedClass(null);
         userRepository.save(student);
     }
 
@@ -252,18 +268,22 @@ public class ClassServiceImpl implements ClassService {
             throw new BadRequestException("Only students can be added to a class");
         }
 
-        if (student.getAssignedClass() != null) {
-            if (student.getAssignedClass().getId().equals(classId)) {
-                throw new BadRequestException("Student is already in this class");
+        if (student.getAssignedClasses() != null) {
+            for (ClassEntity c : student.getAssignedClasses()) {
+                if (c.getId().equals(classId)) {
+                    throw new BadRequestException("Student is already in this class");
+                }
             }
-            throw new BadRequestException("Student is already assigned to another class");
         }
 
         if (classEntity.getStudents().size() >= classEntity.getMaxStudents()) {
             throw new BadRequestException("Class is already full");
         }
 
-        student.setAssignedClass(classEntity);
+        if (student.getAssignedClasses() == null) {
+            student.setAssignedClasses(new java.util.HashSet<>());
+        }
+        student.getAssignedClasses().add(classEntity);
         userRepository.save(student);
 
         return mapToStudentClassResponse(student);
@@ -341,13 +361,13 @@ public class ClassServiceImpl implements ClassService {
             combinedLessons.add(map);
         });
         
-        listeningService.getListeningListForStudent(levelStr).forEach(listening -> {
+        listeningLessonService.getActiveListeningLessonsByLevel(levelStr).forEach(listening -> {
             Map<String, Object> map = new HashMap<>();
             map.put("type", "LISTENING");
             map.put("id", listening.getId());
             map.put("title", listening.getTitle());
-            map.put("level", listening.getLevel());
-            map.put("topic", listening.getTopic());
+            map.put("level", listening.getJlptLevel());
+            map.put("topic", listening.getDescription());
             combinedLessons.add(map);
         });
 
