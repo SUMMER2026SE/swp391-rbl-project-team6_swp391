@@ -1,7 +1,5 @@
 -- ============================================================
--- V24__pending_video_uploads.sql
--- ============================================================
--- NOTE: V22 is intentionally skipped (see V23 for context).
+-- V23__pending_video_uploads.sql
 -- ============================================================
 -- Persists Supabase public URLs for shadowing videos so the mapping
 -- survives backend restarts (previously held only in a

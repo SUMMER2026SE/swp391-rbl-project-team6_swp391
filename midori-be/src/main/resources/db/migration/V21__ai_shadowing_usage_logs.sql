@@ -1,42 +1,15 @@
 -- ============================================================
 -- Migration: V21__ai_shadowing_usage_logs.sql
 -- ============================================================
--- Scope: AI conversation/messaging tables (already merged by team)
--- plus the shadowing-specific usage telemetry tables used by the
--- ShadowingService pipeline.
---
--- ai_conversations / ai_messages were merged earlier on team branch
--- (originally V15 on that branch) and must remain available here for
--- environments that never received V15. Statements use IF NOT EXISTS
--- so re-running on top of an already-migrated schema is a no-op.
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS ai_conversations (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id),
-    title VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS ai_messages (
-    id UUID PRIMARY KEY,
-    conversation_id UUID NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_id ON ai_conversations(user_id);
-CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation_id ON ai_messages(conversation_id);
-
--- ------------------------------------------------------------
--- Shadowing-specific usage telemetry
--- ------------------------------------------------------------
--- Per-video pipeline runs (audio extraction, Whisper, Gemini, DB save)
--- so admins can audit which videos took how long and on which model.
--- Kept distinct from ai_usage_logs (V23) which tracks generic AI token
+-- Shadowing-specific usage telemetry for the ShadowingService
+-- pipeline (audio extraction, Whisper, Gemini, DB save). Kept
+-- distinct from ai_usage_logs (V22) which tracks generic AI token
 -- usage across all features.
+--
+-- NOTE: ai_conversations / ai_messages live in V15__ai_conversations.sql
+-- (Đạt's migration on main) and are no longer defined here. Statements
+-- below are idempotent via IF NOT EXISTS so re-running on top of an
+-- already-migrated schema is a no-op.
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS shadowing_usage_logs (

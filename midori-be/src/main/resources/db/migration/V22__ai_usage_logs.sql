@@ -1,8 +1,5 @@
 -- ============================================================
--- V23__ai_usage_logs.sql
--- ============================================================
--- NOTE: V22 is intentionally skipped — that version slot is
--- reserved for Ngân's in-flight migration. Do not create V22.
+-- V22__ai_usage_logs.sql
 -- ============================================================
 -- Per-feature AI usage telemetry: prompt/completion tokens,
 -- latency, status. Complements the shadowing-specific table
