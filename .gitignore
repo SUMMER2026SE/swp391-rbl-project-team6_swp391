@@ -139,3 +139,9 @@ midori-be/src/main/java/com/midori/HashGenerator.java
 # Sample media files
 # =============================================
 midori-fe/uploads/shadowing/*.mp4
+
+# =============================================
+# Root-level dev run logs (not committed)
+# =============================================
+logs-backend.txt
+logs-frontend.txt

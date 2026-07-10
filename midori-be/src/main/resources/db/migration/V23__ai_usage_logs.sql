@@ -9,6 +9,7 @@
 -- in V21__ai_shadowing_usage_logs.sql which tracks per-pipeline
 -- timings for the shadowing feature.
 -- ============================================================
+CREATE TABLE IF NOT EXISTS ai_usage_logs (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     lesson_id UUID,
