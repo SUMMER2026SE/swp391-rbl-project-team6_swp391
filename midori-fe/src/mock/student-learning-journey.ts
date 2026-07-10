@@ -41,6 +41,7 @@ export interface SkillContent {
   readingText?: string;
   readingQuestions?: QuizQuestion[];
   readingPassages?: ReadingPassage[];
+  readingLessonId?: string;
   listeningAudio?: string;
   listeningQuestions?: QuizQuestion[];
 }
@@ -153,42 +154,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-1-1",
-            title: "Daily Greeting",
-            passageText:
-              "こんにちは。わたしはメアリーです。にほんごのがくせいですか。はい、にほんごのがくせいです。",
-            difficulty: "easy",
-            estimatedTime: 3,
-            questions: [
-              {
-                id: "r1-1",
-                type: "multiple_choice",
-                question: "What is the person's name?",
-                options: ["John", "Mary", "Tanaka", "Kenji"],
-                correctAnswer: "Mary",
-              },
-            ],
-          },
-          {
-            id: "rp-1-2",
-            title: "Self Introduction",
-            passageText:
-              "はじめまして。わたしは学生です。にほんごを勉強しています。どうぞよろしくお願いします。",
-            difficulty: "easy",
-            estimatedTime: 4,
-            questions: [
-              {
-                id: "r1-2",
-                type: "multiple_choice",
-                question: "What is the person studying?",
-                options: ["English", "Japanese", "Chinese", "Korean"],
-                correctAnswer: "Japanese",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-01",
       },
       {
         type: "LISTENING",
@@ -270,25 +236,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-2-1",
-            title: "Daily Conversation",
-            passageText:
-              "メアリーさんは今日，元気ですか。はい、元気をありがとうございます。今日は天気がいいですね。はい、とてもいい天気です。",
-            difficulty: "easy",
-            estimatedTime: 3,
-            questions: [
-              {
-                id: "r2-1",
-                type: "multiple_choice",
-                question: "How is the weather today according to the conversation?",
-                options: ["Bad", "Good", "Cold", "Rainy"],
-                correctAnswer: "Good",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-02",
       },
       {
         type: "LISTENING",
@@ -375,25 +323,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-3-1",
-            title: "My Family",
-            passageText:
-              "私の家族は四人です。父はシステムエンジニアです。母は看護婦です。私には兄弟がありません。",
-            difficulty: "easy",
-            estimatedTime: 3,
-            questions: [
-              {
-                id: "r3-1",
-                type: "multiple_choice",
-                question: "How many people are in the family?",
-                options: ["Two", "Three", "Four", "Five"],
-                correctAnswer: "Four",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-03",
       },
       {
         type: "LISTENING",
@@ -476,25 +406,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-4-1",
-            title: "My Room",
-            passageText:
-              "私の部屋は白い壁があります。赤いカーテンと青いベッドがあります。窓は丸いです。",
-            difficulty: "easy",
-            estimatedTime: 3,
-            questions: [
-              {
-                id: "r4-1",
-                type: "multiple_choice",
-                question: "What color are the curtains?",
-                options: ["White", "Blue", "Red", "Black"],
-                correctAnswer: "Red",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-04",
       },
       {
         type: "LISTENING",
@@ -576,25 +488,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-5-1",
-            title: "Breakfast",
-            passageText:
-              "朝ごはんにご飯を食べます。卵と野菜も食べます。水を飲みます。朝ごはんは大切です。",
-            difficulty: "easy",
-            estimatedTime: 3,
-            questions: [
-              {
-                id: "r5-1",
-                type: "multiple_choice",
-                question: "What is mentioned as important?",
-                options: ["Lunch", "Dinner", "Breakfast", "Snack"],
-                correctAnswer: "Breakfast",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-05",
       },
       {
         type: "LISTENING",
@@ -676,25 +570,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-6-1",
-            title: "Daily Routine",
-            passageText:
-              "私は毎朝六時半に起きます。七時に朝ごはんを食べます。八時に家を出ます。九時から五時まで学校があります。",
-            difficulty: "medium",
-            estimatedTime: 4,
-            questions: [
-              {
-                id: "r6-1",
-                type: "multiple_choice",
-                question: "What time does the person wake up?",
-                options: ["6:00", "6:30", "7:00", "8:00"],
-                correctAnswer: "6:30",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-06",
       },
       {
         type: "LISTENING",
@@ -776,30 +652,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-7-1",
-            title: "My School",
-            passageText:
-              "私の学校は駅前にあります。銀行は学校の隣です。病院は少し遠いです。每日自転車で通います。",
-            difficulty: "medium",
-            estimatedTime: 4,
-            questions: [
-              {
-                id: "r7-1",
-                type: "multiple_choice",
-                question: "Where is the school located?",
-                options: [
-                  "Near the park",
-                  "In front of the station",
-                  "Next to the hospital",
-                  "Far from the station",
-                ],
-                correctAnswer: "In front of the station",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-07",
       },
       {
         type: "LISTENING",
@@ -881,25 +734,7 @@ export const JOURNEY_LESSONS: Lesson[] = [
       },
       {
         type: "READING",
-        readingPassages: [
-          {
-            id: "rp-8-1",
-            title: "Shopping",
-            passageText:
-              "果物屋でりんごを買いました。一个百五十円です。安くておいしいです。友達にも上げました。",
-            difficulty: "medium",
-            estimatedTime: 4,
-            questions: [
-              {
-                id: "r8-1",
-                type: "multiple_choice",
-                question: "How much was one apple?",
-                options: ["100 yen", "150 yen", "200 yen", "250 yen"],
-                correctAnswer: "150 yen",
-              },
-            ],
-          },
-        ],
+        readingLessonId: "reading-08",
       },
       {
         type: "LISTENING",

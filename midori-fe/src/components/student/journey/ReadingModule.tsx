@@ -16,27 +16,95 @@ import {
   Sparkles,
   AlertCircle,
 } from "lucide-react";
-import { type QuizQuestion } from "@/mock/student-learning-journey";
 import { cn } from "@/lib/utils";
 import { createShuffledOptions, type AnswerOption } from "@/lib/quiz-utils";
+import {
+  studentReadingApi,
+  type ReadingDetailResponse,
+} from "@/lib/api/reading";
+import { useQuery } from "@tanstack/react-query";
+
+interface ReadingQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  explanation?: string;
+}
 
 export interface ReadingPassage {
   id: string;
   title: string;
   passageText: string;
-  questions: QuizQuestion[];
+  questions: ReadingQuestion[];
   difficulty?: string;
   estimatedTime?: number;
 }
 
 interface ReadingModuleProps {
-  passages: ReadingPassage[];
+  lessonNumber: number;
   onComplete: (xpEarned: number) => void;
 }
 
 type ViewState = "list" | "detail" | "submitted";
 
-export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
+function toReadingPassages(detail: ReadingDetailResponse): ReadingPassage[] {
+  return [
+    {
+      id: detail.id,
+      title: detail.title,
+      passageText: detail.passage,
+      questions: detail.questions.map((question) => ({
+        id: question.id,
+        question: question.question,
+        options: [question.optionA, question.optionB, question.optionC, question.optionD],
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation ?? undefined,
+      })),
+      difficulty: detail.difficulty ?? undefined,
+      estimatedTime: detail.estimatedMinutes ?? undefined,
+    },
+  ];
+}
+
+export function ReadingModule({ lessonNumber, onComplete }: ReadingModuleProps) {
+  const {
+    data: readingLessons,
+    isLoading: lessonsLoading,
+    isError: lessonsError,
+    error: lessonsErrorObj,
+  } = useQuery({
+    queryKey: ["student-reading-lessons"],
+    queryFn: () => studentReadingApi.getReadingLessons(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const matchedLesson = readingLessons?.find((item) => item.lessonNumber === lessonNumber) ?? null;
+  const realReadingLessonId = matchedLesson?.id ?? null;
+
+  const {
+    data: readingDetail,
+    isLoading: detailLoading,
+    isError: detailError,
+    error: detailErrorObj,
+  } = useQuery({
+    queryKey: ["student-reading", realReadingLessonId],
+    queryFn: () => studentReadingApi.getReadingLesson(realReadingLessonId!),
+    enabled: !!realReadingLessonId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const passages = readingDetail ? toReadingPassages(readingDetail) : [];
+  const isLoading = lessonsLoading || detailLoading;
+  const isError = lessonsError || detailError;
+  const error = lessonsErrorObj ?? detailErrorObj;
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : readingDetail
+        ? "Failed to load reading lesson."
+        : "Reading lesson identifier is missing or invalid.";
+
   const [viewState, setViewState] = useState<ViewState>("list");
   const [selectedPassageId, setSelectedPassageId] = useState<string | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Map<string, string>>(new Map());
@@ -534,101 +602,129 @@ export function ReadingModule({ passages, onComplete }: ReadingModuleProps) {
 
   return (
     <div className="space-y-4">
-      {/* Learning Progress Steps */}
-      <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-        {/* Reading List Step */}
-        <button
-          onClick={() => {
-            if (viewState !== "detail" && viewState !== "submitted") {
-              setViewState("list");
-            }
-          }}
-          disabled={viewState === "detail" || viewState === "submitted"}
-          className={cn(
-            "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1",
-            viewState === "list"
-              ? "bg-card text-foreground shadow-sm"
-              : completedCount === passages.length && isPassingScore
-                ? "bg-sky-blue/15 text-sky-blue"
-                : "text-muted-foreground",
-          )}
-        >
-          {completedCount === passages.length && isPassingScore ? (
-            <CheckCircle2 className="w-3 h-3" />
-          ) : (
-            <BookOpen className="w-3 h-3" />
-          )}
-          Passages
-        </button>
-
-        {/* Current Passage Step */}
-        {selectedPassage && (
-          <button
-            disabled={viewState !== "detail" && viewState !== "submitted"}
-            className={cn(
-              "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1 truncate",
-              viewState === "detail" || viewState === "submitted"
-                ? "bg-card text-foreground shadow-sm"
-                : completedPassages.has(selectedPassage.id)
-                  ? "bg-sky-blue/15 text-sky-blue"
-                  : "text-muted-foreground",
-            )}
-          >
-            {completedPassages.has(selectedPassage.id) ? (
-              <CheckCircle2 className="w-3 h-3 shrink-0" />
-            ) : viewState === "submitted" ? (
-              <Trophy className="w-3 h-3 shrink-0" />
-            ) : (
-              <BookText className="w-3 h-3 shrink-0" />
-            )}
-            <span className="truncate">{selectedPassage.title}</span>
-          </button>
-        )}
-      </div>
-
-      {/* Completion Status */}
-      {passages.length > 1 && (
-        <div className="flex items-center gap-4 text-xs text-muted-foreground bg-card rounded-lg p-3 border border-border/50">
-          <div className="flex items-center gap-1.5">
-            <BookOpen className="w-3.5 h-3.5 text-sky-blue" />
-            <span>
-              Passages: {completedCount}/{passages.length}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <BookText className="w-3.5 h-3.5 text-sky-blue" />
-            <span>
-              Questions: {totalQuestions}/{totalQuestions}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Trophy
-              className={cn(
-                "w-3.5 h-3.5",
-                isPassingScore ? "text-emerald-500" : "text-muted-foreground",
-              )}
-            />
-            <span className={isPassingScore ? "text-emerald-600 font-semibold" : ""}>
-              {isPassingScore ? "Passed" : "Min 75%"}
-            </span>
-          </div>
+      {isLoading && (
+        <div className="flex items-center justify-center min-h-[240px] text-sm text-muted-foreground">
+          Loading reading lesson...
         </div>
       )}
 
-      {/* Content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${viewState}-${selectedPassageId}`}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
-        >
-          {viewState === "list" && <ListView />}
-          {viewState === "detail" && <DetailView />}
-          {viewState === "submitted" && <SubmittedView />}
-        </motion.div>
-      </AnimatePresence>
+      {!isLoading && isError && (
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+          <AlertCircle className="w-8 h-8 text-red-500" />
+          <p className="text-sm text-foreground">Failed to load reading lesson</p>
+          <p className="text-xs text-red-500">{errorMessage}</p>
+        </div>
+      )}
+
+      {!isLoading && !isError && passages.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+          <BookOpen className="w-8 h-8 text-muted-foreground" />
+          <p className="text-sm text-foreground">No reading passages available</p>
+          <p className="text-xs text-muted-foreground">
+            This lesson does not have any reading content yet.
+          </p>
+        </div>
+      )}
+
+      {!isLoading && !isError && passages.length > 0 && (
+        <>
+          {/* Learning Progress Steps */}
+          <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+            {/* Reading List Step */}
+            <button
+              onClick={() => {
+                if (viewState !== "detail" && viewState !== "submitted") {
+                  setViewState("list");
+                }
+              }}
+              disabled={viewState === "detail" || viewState === "submitted"}
+              className={cn(
+                "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1",
+                viewState === "list"
+                  ? "bg-card text-foreground shadow-sm"
+                  : completedCount === passages.length && isPassingScore
+                    ? "bg-sky-blue/15 text-sky-blue"
+                    : "text-muted-foreground",
+              )}
+            >
+              {completedCount === passages.length && isPassingScore ? (
+                <CheckCircle2 className="w-3 h-3" />
+              ) : (
+                <BookOpen className="w-3 h-3" />
+              )}
+              Passages
+            </button>
+
+            {/* Current Passage Step */}
+            {selectedPassage && (
+              <button
+                disabled={viewState !== "detail" && viewState !== "submitted"}
+                className={cn(
+                  "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1 truncate",
+                  viewState === "detail" || viewState === "submitted"
+                    ? "bg-card text-foreground shadow-sm"
+                    : completedPassages.has(selectedPassage.id)
+                      ? "bg-sky-blue/15 text-sky-blue"
+                      : "text-muted-foreground",
+                )}
+              >
+                {completedPassages.has(selectedPassage.id) ? (
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                ) : viewState === "submitted" ? (
+                  <Trophy className="w-3 h-3 shrink-0" />
+                ) : (
+                  <BookText className="w-3 h-3 shrink-0" />
+                )}
+                <span className="truncate">{selectedPassage.title}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Completion Status */}
+          {passages.length > 1 && (
+            <div className="flex items-center gap-4 text-xs text-muted-foreground bg-card rounded-lg p-3 border border-border/50">
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-sky-blue" />
+                <span>
+                  Passages: {completedCount}/{passages.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <BookText className="w-3.5 h-3.5 text-sky-blue" />
+                <span>
+                  Questions: {totalQuestions}/{totalQuestions}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Trophy
+                  className={cn(
+                    "w-3.5 h-3.5",
+                    isPassingScore ? "text-emerald-500" : "text-muted-foreground",
+                  )}
+                />
+                <span className={isPassingScore ? "text-emerald-600 font-semibold" : ""}>
+                  {isPassingScore ? "Passed" : "Min 75%"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${viewState}-${selectedPassageId}`}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {viewState === "list" && <ListView />}
+              {viewState === "detail" && <DetailView />}
+              {viewState === "submitted" && <SubmittedView />}
+            </motion.div>
+          </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

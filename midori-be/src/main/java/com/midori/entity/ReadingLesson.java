@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "listening_lessons")
+@Table(name = "reading_lessons")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ListeningLesson {
+public class ReadingLesson {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -35,11 +35,11 @@ public class ListeningLesson {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "audio_url", columnDefinition = "TEXT")
-    private String audioUrl;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String passage;
 
-    @Column(columnDefinition = "TEXT")
-    private String transcript;
+    @Column(name = "vietnamese_translation", columnDefinition = "TEXT")
+    private String vietnameseTranslation;
 
     @Column(name = "estimated_minutes")
     private Integer estimatedMinutes;
@@ -52,10 +52,10 @@ public class ListeningLesson {
     @Builder.Default
     private Boolean isActive = true;
 
-    @OneToMany(mappedBy = "listeningLesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "readingLesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionOrder ASC")
     @Builder.Default
-    private List<ListeningQuestion> questions = new ArrayList<>();
+    private List<ReadingQuestion> questions = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

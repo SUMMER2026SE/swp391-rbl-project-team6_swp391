@@ -1,4 +1,4 @@
-package com.midori.dto.listening;
+package com.midori.dto.reading;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,20 +13,20 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ListeningDetailResponse {
+public class ReadingDetailResponse {
 
     private UUID id;
     private String jlptLevel;
     private Integer lessonNumber;
     private String title;
     private String description;
-    private String audioUrl;
-    private String transcript;
+    private String passage;
+    private String vietnameseTranslation;
     private Integer estimatedMinutes;
     private String difficulty;
     private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
 
-    private List<ListeningQuestionResponse> questions;
+    private List<ReadingQuestionResponse> questions;
 }
