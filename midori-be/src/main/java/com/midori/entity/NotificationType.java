@@ -5,5 +5,6 @@ public enum NotificationType {
     CONTENT_APPROVED,
     CONTENT_REJECTED,
     TEACHER_APPROVED,
+    TEACHER_REJECTED,
     SYSTEM
 }

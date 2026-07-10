@@ -285,6 +285,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = userResponseToUser(data.user);
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
+      // Notify other providers (e.g. NotificationContext) that the auth
+      // credentials have changed so they can re-open / close the realtime
+      // push channel. We use a custom DOM event rather than a context to
+      // keep the auth layer free of cross-provider imports.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("midori:auth-changed"));
+      }
       return hydrated;
     },
 
@@ -309,6 +316,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("midori:auth-changed"));
+      }
       return hydrated;
     },
 
@@ -316,6 +326,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.removeToken();
       localStorage.removeItem(TOKEN_KEY);
       persistUser(null);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("midori:auth-changed"));
+      }
     },
 
     updateCurrentUser: (patch: Partial<User>) => {

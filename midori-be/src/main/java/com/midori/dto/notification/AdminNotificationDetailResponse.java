@@ -6,22 +6,25 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NotificationResponse {
+public class AdminNotificationDetailResponse {
 
     private Long id;
     private String title;
-    /**
-     * Notification body. The DB column allows null (see V10__notifications.sql)
-     * so the field is intentionally nullable here to mirror the storage
-     * contract rather than imposing a non-null assumption that does not hold.
-     */
     private String content;
     private String type;
-    private Boolean isRead;
+    private Instant scheduledAt;
+    private String targetType;
+    private String targetRole;
+    private UUID targetClassId;
+    private String displayStatus;
     private Instant createdAt;
+    private Instant updatedAt;
+    private Instant sentAt;
+    private Long recipientCount;
 }

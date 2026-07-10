@@ -11,9 +11,9 @@ import { Logo } from "@/components/logo";
 import { SakuraBg } from "@/components/sakura-bg";
 import { useTheme, useAuth, getUserAvatar, getAvatarInitial } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { notifications as mockNotifs } from "@/data/teacher-data";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNotifications } from "@/lib/context/notification-context";
 
 // ─── Nav structure ────────────────────────────────────────────────
 type NavItem = { to: string; label: string; icon: React.ElementType; exact?: boolean };
@@ -180,7 +180,8 @@ export function TeacherShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const unread = mockNotifs.filter((n) => !n.read).length;
+  const { unreadCount, notifications } = useNotifications();
+  const unread = unreadCount;
 
   const avatar = getUserAvatar(user);
   const initials = getAvatarInitial(user);
@@ -473,54 +474,59 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                         style={{ maxHeight: "calc(520px - 116px)" }}
                       >
                         <div className="p-2 space-y-1">
-                          {mockNotifs.slice(0, 5).map((n) => (
-                            <div
-                              key={n.id}
-                              className={cn(
-                                "w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150",
-                                !n.read
-                                  ? "bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
-                                  : "hover:bg-gray-50 dark:hover:bg-white/[0.04]",
-                              )}
-                            >
+                          {notifications.slice(0, 5).map((n) => {
+                            const Icon = n.icon;
+                            return (
                               <div
+                                key={n.id}
                                 className={cn(
-                                  "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5",
-                                  !n.read
-                                    ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400"
-                                    : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400",
+                                  "w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150",
+                                  n.unread
+                                    ? "bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
+                                    : "hover:bg-gray-50 dark:hover:bg-white/[0.04]",
                                 )}
                               >
-                                <Bell className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-                                    {n.title}
-                                  </span>
-                                  {!n.read && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />
+                                <div
+                                  className={cn(
+                                    "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5",
+                                    n.unread
+                                      ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400"
+                                      : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400",
                                   )}
+                                >
+                                  <Icon className="w-4 h-4" />
                                 </div>
-                                <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
-                                  {n.message}
-                                </p>
-                                <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">
-                                  {n.time}
-                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                                      {n.title}
+                                    </span>
+                                    {n.unread && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />
+                                    )}
+                                  </div>
+                                  <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
+                                    {n.desc}
+                                  </p>
+                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">
+                                    {n.time}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                       <div className="border-t border-gray-100 dark:border-white/10 p-2 flex-shrink-0 bg-white dark:bg-[#0f1117]">
-                        <Link
-                          to="/teacher/notifications"
-                          onClick={() => setNotifOpen(false)}
+                        <button
+                          onClick={() => {
+                            setNotifOpen(false);
+                            navigate({ to: "/teacher/notifications", search: { q: "" } });
+                          }}
                           className="w-full block py-2.5 text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition"
                         >
                           View all notifications
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>
