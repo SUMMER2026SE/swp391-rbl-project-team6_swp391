@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi, type StudentShadowingLesson, type AIFeedback, type DiffToken } from "@/lib/api/studentShadowing";
-import { cn } from "@/lib/utils";
+import { cn, getAbsoluteVideoUrl } from "@/lib/utils";
 
 type TranscriptMode = "japanese" | "japanese-vn";
 type PracticeState = "intro" | "practicing" | "recording" | "feedback" | "result";
@@ -86,12 +86,6 @@ const getThumbnail = (id: string) => {
   ];
   const hash = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return images[hash % images.length];
-};
-
-const getAbsoluteVideoUrl = (url: string) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return `http://localhost:8080${url}`;
 };
 
 const formatDuration = (seconds: number) => {

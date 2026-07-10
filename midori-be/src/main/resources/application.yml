@@ -10,7 +10,7 @@ supabase:
   url: ${SUPABASE_URL:}
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
-    bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
+    bucket: ${SUPABASE_STORAGE_BUCKET:shadowing-videos}
 
 groq:
   api-key: ${GROQ_API_KEY:AQ.Ab8RN6I9aM9-4krMqGtVnydEI2LNv_sX5Wn1GunnSxSgs96Xig}

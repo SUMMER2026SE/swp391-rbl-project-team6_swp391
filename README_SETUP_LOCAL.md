@@ -9,8 +9,83 @@
 | Database | Supabase PostgreSQL (SSL required) | — |
 | Mail | Gmail SMTP (STARTTLS port 587) | — |
 | Login | Email/password + Google OAuth (popup) | — |
+| Media | **FFmpeg** (bắt buộc cho Shadowing) | — |
 
 **Repo:** `https://github.com/SUMMER2026SE/swp391-rbl-project-team6_swp391.git`
+
+---
+
+## 2.5. Cài đặt FFmpeg (BẮT BUỘC cho Shadowing)
+
+Project **KHÔNG** chứa sẵn file FFmpeg (vì là binary nặng ~80–150MB).
+
+### Tải FFmpeg
+
+Tải bản build cho hệ điều hành của bạn tại:
+**https://www.gyan.dev/ffmpeg/builds/**
+
+### Option 1 — Giải nén vào thư mục project (khuyến nghị)
+
+Giải nén sao cho cấu trúc thư mục trông như sau:
+
+```
+midori-be/
+└── ffmpeg-8.1.2-full_build/
+    ├── bin/
+    │   ├── ffmpeg.exe      (Windows)
+    │   └── ffprobe.exe
+    ├── doc/
+    ├── presets/
+    ├── LICENSE
+    └── README.txt
+```
+
+Application sẽ tự động tìm FFmpeg tại:
+`midori-be/ffmpeg-8.1.2-full_build/bin/ffmpeg.exe` (Windows)
+`midori-be/ffmpeg-8.1.2-full_build/bin/ffmpeg` (Linux/macOS)
+
+### Option 2 — Cài đặt FFmpeg vào hệ thống
+
+Cài FFmpeg bằng package manager rồi thêm vào biến môi trường `PATH`:
+
+```powershell
+# Windows (Chocolatey)
+choco install ffmpeg
+
+# Windows (winget)
+winget install Gyan.FFmpeg
+
+# macOS
+brew install ffmpeg
+
+# Ubuntu / Debian
+sudo apt install ffmpeg
+```
+
+Application sẽ dùng `ffmpeg` từ hệ thống nếu không tìm thấy ở Option 1.
+
+### Kiểm tra cài đặt
+
+```powershell
+# Nếu dùng Option 1
+midori-be\ffmpeg-8.1.2-full_build\bin\ffmpeg.exe -version
+
+# Nếu dùng Option 2 (FFmpeg trong PATH)
+ffmpeg -version
+```
+
+### Nếu thiếu FFmpeg
+
+Tính năng **Shadowing** sẽ không hoạt động và sẽ báo lỗi tương tự:
+
+```
+java.io.IOException: Cannot run program "ffmpeg"
+```
+
+**Các tính năng phụ thuộc FFmpeg:**
+- Trích xuất audio từ video (shadowing)
+- Transcoding audio cho lesson
+- Xử lý subtitle / timing
 
 ---
 

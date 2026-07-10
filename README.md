@@ -28,6 +28,7 @@
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
 - [Local Development Setup](#local-development-setup)
+- [FFmpeg Installation](#ffmpeg-installation)
 - [Admin & Vocabulary Setup](#admin--vocabulary-setup)
 - [Environment Files](#environment-files)
 - [User Roles](#user-roles)
@@ -224,6 +225,80 @@ See detailed guide: [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)
    ```powershell
    .\scripts\run-frontend.ps1
    ```
+
+---
+
+## FFmpeg Installation
+
+This project **requires FFmpeg** for the **Shadowing** feature (audio extraction, transcoding, and subtitle processing).
+
+### The repository does NOT include FFmpeg binaries
+
+FFmpeg binaries are large (typically 80–150 MB) and excluded from version control. Every developer must install FFmpeg locally.
+
+### Download
+
+Download the build for your operating system from:
+
+**https://www.gyan.dev/ffmpeg/builds/**
+
+### Option 1 — Extract into the project folder (recommended)
+
+Extract FFmpeg so the layout looks like:
+
+```
+midori-be/
+└── ffmpeg-8.1.2-full_build/
+    ├── bin/
+    │   ├── ffmpeg.exe      (Windows)
+    │   └── ffprobe.exe
+    ├── doc/
+    ├── presets/
+    ├── LICENSE
+    └── README.txt
+```
+
+The application will look for the FFmpeg executable at:
+- `midori-be/ffmpeg-8.1.2-full_build/bin/ffmpeg.exe` (Windows)
+- `midori-be/ffmpeg-8.1.2-full_build/bin/ffmpeg` (Linux/macOS)
+
+### Option 2 — Install FFmpeg system-wide and add to PATH
+
+```powershell
+# Windows (Chocolatey)
+choco install ffmpeg
+
+# Windows (winget)
+winget install Gyan.FFmpeg
+
+# macOS
+brew install ffmpeg
+
+# Ubuntu / Debian
+sudo apt install ffmpeg
+```
+
+The application will fall back to the system-wide `ffmpeg` if the project-local copy is not found.
+
+### Verify installation
+
+```powershell
+# Option 1
+midori-be\ffmpeg-8.1.2-full_build\bin\ffmpeg.exe -version
+
+# Option 2 (system PATH)
+ffmpeg -version
+```
+
+### If FFmpeg is missing
+
+The **Shadowing** feature will fail with an error similar to:
+
+```
+java.io.IOException: Cannot run program "ffmpeg"
+```
+
+> Do not remove this documentation.
 
 ---
 

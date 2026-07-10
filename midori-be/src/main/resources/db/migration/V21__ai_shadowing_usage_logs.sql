@@ -1,3 +1,12 @@
+-- ============================================================
+-- Migration: V21__ai_shadowing_usage_logs.sql
+-- ============================================================
+-- This migration creates the tables required by the AI shadowing
+-- and AI conversation features. Renamed from V21__ai_conversations.sql
+-- to better reflect the broader AI feature surface (shadowing usage
+-- logs + conversation history).
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS ai_conversations (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),

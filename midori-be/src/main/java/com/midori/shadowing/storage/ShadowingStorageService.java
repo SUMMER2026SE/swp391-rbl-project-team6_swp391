@@ -3,6 +3,8 @@ package com.midori.shadowing.storage;
 import com.midori.exception.BadRequestException;
 import com.midori.shadowing.dto.ShadowingBenchmark;
 import com.midori.shadowing.dto.ShadowingUploadResponse;
+import com.midori.shadowing.entities.PendingVideoUpload;
+import com.midori.shadowing.repository.PendingVideoUploadRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,20 +25,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class ShadowingStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(ShadowingStorageService.class);
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("mp4", "mov", "mkv", "avi", "webm");
-    
-    // Concurrent map to keep track of completed Supabase uploads
-    private static final Map<String, String> supabaseUploads = new ConcurrentHashMap<>();
+
+    private final PendingVideoUploadRepository pendingVideoUploadRepository;
 
     private final Path uploadDir = Paths.get("uploads", "shadowing");
 
@@ -46,10 +46,11 @@ public class ShadowingStorageService {
     @Value("${supabase.service-role-key:}")
     private String serviceRoleKey;
 
-    @Value("${supabase.storage.bucket:listening-audios}")
+    @Value("${supabase.storage.bucket:shadowing-videos}")
     private String bucket;
 
-    public ShadowingStorageService() {
+    public ShadowingStorageService(PendingVideoUploadRepository pendingVideoUploadRepository) {
+        this.pendingVideoUploadRepository = pendingVideoUploadRepository;
         try {
             Files.createDirectories(uploadDir);
         } catch (IOException e) {
@@ -58,10 +59,14 @@ public class ShadowingStorageService {
     }
 
     /**
-     * Retrieve the Supabase storage URL if it was uploaded successfully in the background
+     * Retrieve the persisted Supabase public URL for a videoId, or null if the
+     * upload was never completed (or backend is configured to skip Supabase).
+     * Replaces the previous in-memory ConcurrentHashMap so URLs survive server restart.
      */
     public String getSupabaseUrl(String videoId) {
-        return supabaseUploads.get(videoId);
+        return pendingVideoUploadRepository.findByVideoId(videoId)
+                .map(PendingVideoUpload::getSupabasePublicUrl)
+                .orElse(null);
     }
 
     /**
@@ -108,7 +113,7 @@ public class ShadowingStorageService {
         // 2. Parse video duration from local file
         double duration = parseDuration(targetLocation.toFile(), extension);
 
-        // 3. Upload directly to Supabase Storage (synchronous)
+        // 3. Upload directly to Supabase Storage (synchronous) and persist URL
         long supabaseStart = System.currentTimeMillis();
         String publicVideoUrl = uploadToSupabase(file, videoId, fileName);
         bench.setUploadSupabaseMs(System.currentTimeMillis() - supabaseStart);
@@ -135,9 +140,11 @@ public class ShadowingStorageService {
 
     /**
      * Upload video bytes to Supabase Storage and return the public URL.
-     * Falls back to local stream URL if Supabase is not configured.
+     * If Supabase is not configured, returns the local stream URL.
+     * On success, the public URL is persisted to the database (pending_video_uploads)
+     * so that the mapping survives server restart.
      */
-    private String uploadToSupabase(MultipartFile file, String videoId, String fileName) {
+    public String uploadToSupabase(MultipartFile file, String videoId, String fileName) {
         if (supabaseUrl == null || supabaseUrl.isBlank()
                 || serviceRoleKey == null || serviceRoleKey.isBlank()) {
             log.warn("[Storage] Supabase not configured. Returning local stream URL.");
@@ -148,13 +155,12 @@ public class ShadowingStorageService {
         String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath;
 
         // Use video-specific content type so Supabase can serve it correctly.
-        // Fall back to application/octet-stream if the bucket rejects video/mp4
-        // (e.g. buckets configured with strict audio-only allowed_mime_types).
-        String contentType = file.getContentType() != null ? file.getContentType() : "video/" + fileName.substring(fileName.lastIndexOf(".") + 1);
+        String contentType = file.getContentType() != null
+                ? file.getContentType()
+                : "video/" + fileName.substring(fileName.lastIndexOf(".") + 1);
 
-        log.info("[Storage] Uploading video to Supabase Storage: {}", objectPath);
+        log.info("[Storage] Uploading video to Supabase Storage bucket '{}': {}", bucket, objectPath);
         log.info("[Storage] Upload Content-Type: {}", contentType);
-        log.info("[Storage] Upload URL: {}", uploadUrl);
 
         try {
             byte[] fileBytes = file.getBytes();
@@ -180,16 +186,13 @@ public class ShadowingStorageService {
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 String publicUrl = supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + objectPath;
-                supabaseUploads.put(videoId, publicUrl);
+                persistSupabaseUpload(videoId, objectPath, publicUrl, contentType, fileBytes.length);
                 log.info("[Storage] Supabase upload successful: {}", publicUrl);
                 return publicUrl;
             } else {
                 String responseBody = response.getBody() != null ? response.getBody() : "(empty)";
-                log.warn("[Storage] Supabase upload returned {}: {}. Falling back to local stream.",
+                log.error("[Storage] Supabase upload returned {}: {}. Falling back to local stream.",
                         response.getStatusCode(), responseBody);
-                // Retry with application/octet-stream to bypass bucket MIME-type restriction
-                log.info("[Storage] Retrying Supabase upload with application/octet-stream...");
-                return uploadToSupabaseFallback(file, videoId, fileName, objectPath, uploadUrl);
             }
         } catch (Exception e) {
             log.error("[Storage] Supabase upload failed: {}. Falling back to local stream.", e.getMessage());
@@ -199,46 +202,29 @@ public class ShadowingStorageService {
     }
 
     /**
-     * Fallback uploader that forces application/octet-stream to bypass bucket MIME-type restrictions.
-     * Used when the primary upload is rejected with HTTP 415.
+     * Persist a successful Supabase upload to the database so the URL survives server restart.
+     * Stores the videoId, object path, public URL, content type and size.
      */
-    private String uploadToSupabaseFallback(MultipartFile file, String videoId, String fileName,
-                                            String objectPath, String uploadUrl) {
+    private void persistSupabaseUpload(String videoId, String objectPath, String publicUrl,
+                                       String contentType, long sizeBytes) {
         try {
-            byte[] fileBytes = file.getBytes();
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.set("Authorization", "Bearer " + serviceRoleKey);
-            headers.set("apikey", serviceRoleKey);
-            headers.set("x-upsert", "true");
-
-            HttpEntity<byte[]> request = new HttpEntity<>(fileBytes, headers);
-
-            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-            factory.setConnectTimeout(30_000);
-            factory.setReadTimeout(300_000);
-
-            RestTemplate restTemplate = new RestTemplate(factory);
-            ResponseEntity<String> response = restTemplate.exchange(
-                    uploadUrl, HttpMethod.POST, request, String.class);
-
-            log.info("[Storage] Supabase Fallback Upload HTTP Status: {}", response.getStatusCode());
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                String publicUrl = supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + objectPath;
-                supabaseUploads.put(videoId, publicUrl);
-                log.info("[Storage] Supabase fallback upload successful: {}", publicUrl);
-                return publicUrl;
-            } else {
-                String responseBody = response.getBody() != null ? response.getBody() : "(empty)";
-                log.warn("[Storage] Supabase fallback upload also returned {}: {}",
-                        response.getStatusCode(), responseBody);
-            }
+            PendingVideoUpload record = pendingVideoUploadRepository.findByVideoId(videoId)
+                    .orElseGet(() -> {
+                        PendingVideoUpload p = new PendingVideoUpload();
+                        p.setVideoId(videoId);
+                        p.setCreatedAt(Instant.now());
+                        return p;
+                    });
+            record.setStorageObjectPath(objectPath);
+            record.setSupabasePublicUrl(publicUrl);
+            record.setContentType(contentType);
+            record.setSizeBytes(sizeBytes);
+            record.setUpdatedAt(Instant.now());
+            pendingVideoUploadRepository.save(record);
         } catch (Exception e) {
-            log.error("[Storage] Supabase fallback upload failed: {}", e.getMessage());
+            log.error("[Storage] Failed to persist Supabase upload record for videoId {}: {}",
+                    videoId, e.getMessage());
         }
-        return "/api/admin/shadowing/video/" + videoId;
     }
 
     /**
@@ -284,7 +270,7 @@ public class ShadowingStorageService {
                     byte[] boxType = new byte[4];
                     raf.readFully(boxType);
                     String typeStr = new String(boxType);
-                    
+
                     if (boxSize == 0) {
                         break;
                     }

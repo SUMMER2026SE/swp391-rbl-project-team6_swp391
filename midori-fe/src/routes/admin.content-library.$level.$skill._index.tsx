@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { getAbsoluteVideoUrl } from "@/lib/utils";
 import {
   BookOpen,
   GraduationCap,
@@ -1072,12 +1073,6 @@ function ShadowingFormBody({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-
-  const getAbsoluteVideoUrl = (url: string) => {
-    if (!url) return "";
-    if (url.startsWith("http")) return url;
-    return `http://localhost:8080${url}`;
-  };
 
   // File Upload
   const handleFileUpload = async (file: File) => {

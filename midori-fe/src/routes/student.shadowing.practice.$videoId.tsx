@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi, type StudentShadowingLesson, type AIFeedback, type DiffToken } from "@/lib/api/studentShadowing";
-import { cn } from "@/lib/utils";
+import { cn, getAbsoluteVideoUrl } from "@/lib/utils";
 import { toast } from "sonner";
 
 type PracticeState = "intro" | "practicing" | "recording" | "feedback" | "result";
@@ -62,12 +62,6 @@ interface SelectedTokenInfo {
 export const Route = createFileRoute("/student/shadowing/practice/$videoId")({
   component: ShadowingPracticePage,
 });
-
-const getAbsoluteVideoUrl = (url: string) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return `http://localhost:8080${url}`;
-};
 
 function scoreColor(score: number) {
   if (score >= 90) return "text-emerald-500 dark:text-emerald-400";

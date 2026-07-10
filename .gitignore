@@ -119,3 +119,23 @@ temp/
 # =============================================
 *.mjs
 *.cjs
+
+# =============================================
+# Large binaries and tools (not needed in repo)
+# FFmpeg binaries are large (~80-150MB) and excluded from version control.
+# Each developer must install FFmpeg locally for the Shadowing feature.
+# The README.md inside the folder is kept so users know what to do.
+# =============================================
+midori-be/ffmpeg-8.1.2-full_build/
+!midori-be/ffmpeg-8.1.2-full_build/README.md
+
+# =============================================
+# Utility scripts (not production code)
+# =============================================
+midori-be/HashGenerator.java
+midori-be/src/main/java/com/midori/HashGenerator.java
+
+# =============================================
+# Sample media files
+# =============================================
+midori-fe/uploads/shadowing/*.mp4
