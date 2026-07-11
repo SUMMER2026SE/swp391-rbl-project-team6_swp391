@@ -11,6 +11,11 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data?: T;
+  /**
+   * Optional field-level validation errors keyed by field name. Returned by
+   * `MethodArgumentNotValidException` so the FE can surface per-field messages.
+   */
+  errors?: Record<string, string>;
 }
 
 export interface UserResponse {

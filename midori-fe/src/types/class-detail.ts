@@ -11,6 +11,8 @@ export interface Assignment {
   id: string;
   title: string;
   moduleType: "Vocabulary" | "Grammar" | "Listening" | "Reading" | "Shadowing" | "Writing";
+  /** Discriminator for the workspace — "Exam" or "Homework". */
+  type?: "Exam" | "Homework";
   assignedDate: string;
   deadline: string;
   timeLimit: number; // in minutes, 0 means no limit

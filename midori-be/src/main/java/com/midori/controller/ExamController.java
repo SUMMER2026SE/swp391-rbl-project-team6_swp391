@@ -1,7 +1,10 @@
 package com.midori.controller;
 
+import com.midori.common.ApiResponse;
 import com.midori.dto.request.CreateExamRequest;
 import com.midori.dto.request.SubmitExamRequest;
+import com.midori.dto.request.UpdateExamQuestionsRequest;
+import com.midori.dto.request.UpdateExamRequest;
 import com.midori.dto.response.ExamResponse;
 import com.midori.dto.response.StudentExamResponse;
 import com.midori.service.ExamGenerationService;
@@ -24,76 +27,104 @@ public class ExamController {
     private final ExamGenerationService examGenerationService;
 
     @PostMapping
-    public ResponseEntity<ExamResponse> createExam(
+    public ResponseEntity<ApiResponse<ExamResponse>> createExam(
             @Valid @RequestBody CreateExamRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         ExamResponse exam = examGenerationService.createExam(request, userDetails);
-        return ResponseEntity.status(HttpStatus.CREATED).body(exam);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Exam created successfully", exam));
     }
 
     @GetMapping
-    public ResponseEntity<List<ExamResponse>> getAllExams() {
+    public ResponseEntity<ApiResponse<List<ExamResponse>>> getAllExams() {
         List<ExamResponse> exams = examGenerationService.getAllExams();
-        return ResponseEntity.ok(exams);
+        return ResponseEntity.ok(ApiResponse.success(exams));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ExamResponse> getExam(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<ExamResponse>> getExam(@PathVariable UUID id) {
         ExamResponse exam = examGenerationService.getExamById(id);
-        return ResponseEntity.ok(exam);
+        return ResponseEntity.ok(ApiResponse.success(exam));
     }
 
     @GetMapping("/teacher/{teacherId}")
-    public ResponseEntity<List<ExamResponse>> getExamsByTeacher(@PathVariable UUID teacherId) {
+    public ResponseEntity<ApiResponse<List<ExamResponse>>> getExamsByTeacher(@PathVariable UUID teacherId) {
         List<ExamResponse> exams = examGenerationService.getExamsByTeacher(teacherId);
-        return ResponseEntity.ok(exams);
+        return ResponseEntity.ok(ApiResponse.success(exams));
     }
 
     @PostMapping("/{id}/publish")
-    public ResponseEntity<ExamResponse> publishExam(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<ExamResponse>> publishExam(@PathVariable UUID id) {
         ExamResponse exam = examGenerationService.publishExam(id);
-        return ResponseEntity.ok(exam);
+        return ResponseEntity.ok(ApiResponse.success("Exam published successfully", exam));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteExam(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> deleteExam(@PathVariable UUID id) {
         examGenerationService.deleteExam(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success("Exam deleted successfully", null));
     }
 
     @PostMapping("/{id}/assign/{classId}")
-    public ResponseEntity<ExamResponse> assignExamToClass(
+    public ResponseEntity<ApiResponse<ExamResponse>> assignExamToClass(
             @PathVariable UUID id,
             @PathVariable UUID classId) {
         ExamResponse exam = examGenerationService.assignExamToClass(id, classId);
-        return ResponseEntity.ok(exam);
+        return ResponseEntity.ok(ApiResponse.success("Exam assigned successfully", exam));
     }
 
     @PostMapping("/{id}/start")
-    public ResponseEntity<StudentExamResponse> startExam(
+    public ResponseEntity<ApiResponse<StudentExamResponse>> startExam(
             @PathVariable UUID id,
             @RequestParam UUID studentId) {
         StudentExamResponse studentExam = examGenerationService.startStudentExam(id, studentId);
-        return ResponseEntity.ok(studentExam);
+        return ResponseEntity.ok(ApiResponse.success("Exam started successfully", studentExam));
     }
 
     @GetMapping("/student-exams/{studentExamId}")
-    public ResponseEntity<StudentExamResponse> getStudentExam(@PathVariable UUID studentExamId) {
+    public ResponseEntity<ApiResponse<StudentExamResponse>> getStudentExam(@PathVariable UUID studentExamId) {
         StudentExamResponse studentExam = examGenerationService.getStudentExam(studentExamId);
-        return ResponseEntity.ok(studentExam);
+        return ResponseEntity.ok(ApiResponse.success(studentExam));
     }
 
     @GetMapping("/student-exams/student/{studentId}")
-    public ResponseEntity<List<StudentExamResponse>> getStudentExams(@PathVariable UUID studentId) {
+    public ResponseEntity<ApiResponse<List<StudentExamResponse>>> getStudentExams(@PathVariable UUID studentId) {
         List<StudentExamResponse> exams = examGenerationService.getStudentExams(studentId);
-        return ResponseEntity.ok(exams);
+        return ResponseEntity.ok(ApiResponse.success(exams));
     }
 
     @PostMapping("/student-exams/{studentExamId}/submit")
-    public ResponseEntity<StudentExamResponse> submitExam(
+    public ResponseEntity<ApiResponse<StudentExamResponse>> submitExam(
             @PathVariable UUID studentExamId,
             @Valid @RequestBody SubmitExamRequest request) {
         StudentExamResponse result = examGenerationService.submitStudentExam(studentExamId, request.getAnswers());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(ApiResponse.success("Exam submitted successfully", result));
+    }
+
+    @GetMapping("/class/{classId}")
+    public ResponseEntity<ApiResponse<List<ExamResponse>>> getExamsByClass(@PathVariable UUID classId) {
+        List<ExamResponse> exams = examGenerationService.getExamsByClass(classId);
+        return ResponseEntity.ok(ApiResponse.success(exams));
+    }
+
+    @GetMapping("/class/{classId}/results")
+    public ResponseEntity<ApiResponse<List<StudentExamResponse>>> getStudentExamResultsByClass(@PathVariable UUID classId) {
+        List<StudentExamResponse> results = examGenerationService.getStudentExamResultsByClass(classId);
+        return ResponseEntity.ok(ApiResponse.success(results));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<ExamResponse>> updateExam(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateExamRequest request) {
+        ExamResponse exam = examGenerationService.updateExam(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Exam updated successfully", exam));
+    }
+
+    @PutMapping("/{id}/questions")
+    public ResponseEntity<ApiResponse<ExamResponse>> updateExamQuestions(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateExamQuestionsRequest request) {
+        ExamResponse exam = examGenerationService.updateExamQuestions(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Exam questions synced successfully", exam));
     }
 }

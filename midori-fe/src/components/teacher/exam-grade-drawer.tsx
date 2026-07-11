@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -22,14 +23,18 @@ import {
   X,
   CheckCircle2,
   Clock,
+  Loader2,
 } from "lucide-react";
-import { getAllStudents, type Exam, type Student } from "@/data/teacher-data";
+import { classesApi } from "@/lib/api/classes";
+import { examsApi } from "@/lib/api/exams";
+import type { TeacherExamView } from "@/types/teacher-exam";
 import { cn } from "@/lib/utils";
 
 interface ExamGradeDrawerProps {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  exam: Exam | null;
+  exam: TeacherExamView | null;
+  classId: string;
   onGrade: (studentId: string, score: number) => void;
   onRemind: (studentId: string) => void;
 }
@@ -48,51 +53,62 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function generateMockAttempts(exam: Exam | null, allStudents: Student[]): ExamAttempt[] {
-  if (!exam) return [];
-
-  const classStudents = allStudents.filter((s) => s.id.startsWith(exam.classId + "-"));
-
-  if (classStudents.length === 0) {
-    return [];
-  }
-
-  const baseAvg = exam.averageScore ?? 65;
-  const poolSize = classStudents.length;
-  const submittedCount = Math.max(1, Math.floor(poolSize * 0.75));
-
-  return classStudents.map((s, i) => {
-    const isSubmitted = i < submittedCount;
-    const score = isSubmitted ? Math.max(0, Math.min(100, baseAvg + (i % 7) * 5 - 15)) : null;
-
-    const daysAgo = Math.floor(Math.random() * 3) + 1;
-    const date = new Date();
-    date.setDate(date.getDate() - daysAgo);
-    const submittedAt = isSubmitted ? date.toISOString().split("T")[0] : null;
-
-    return {
-      studentId: s.id,
-      studentName: s.name,
-      score,
-      submitted: isSubmitted,
-      submittedAt,
-    };
-  });
-}
-
 export function ExamGradeDrawer({
   open,
   onOpenChange,
   exam,
+  classId,
   onGrade,
   onRemind,
 }: ExamGradeDrawerProps) {
-  const allStudents = getAllStudents();
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
+    queryKey: ["classStudents", classId],
+    queryFn: () => classesApi.getClassStudents(classId),
+    enabled: open && !!classId,
+  });
+
+  const { data: results = [], isLoading: resultsLoading } = useQuery({
+    queryKey: ["examResultsByClass", classId],
+    queryFn: () => examsApi.getStudentExamResultsByClass(classId),
+    enabled: open && !!classId,
+  });
+
   const [gradeStudentId, setGradeStudentId] = useState<string | null>(null);
   const [gradeScore, setGradeScore] = useState("");
   const [submittedScores, setSubmittedScores] = useState<Record<string, number>>({});
 
-  const attempts = useMemo(() => generateMockAttempts(exam, allStudents), [exam, allStudents]);
+  const attempts = useMemo((): ExamAttempt[] => {
+    if (!exam) return [];
+
+    const examResults = results.filter((r) => r.examId === exam.id);
+    const resultByStudent = new Map(examResults.map((r) => [r.studentId, r]));
+
+    return students.map((s) => {
+      const result = resultByStudent.get(s.studentId);
+      const submitted =
+        result?.status === "SUBMITTED" ||
+        result?.status === "GRADED" ||
+        !!result?.submittedAt;
+      const score =
+        result?.percentage != null
+          ? Math.round(result.percentage)
+          : result?.score != null && result?.totalPoints
+            ? Math.round((result.score / result.totalPoints) * 100)
+            : null;
+
+      return {
+        studentId: s.studentId,
+        studentName: s.fullName || s.email,
+        score: submitted ? score : null,
+        submitted,
+        submittedAt: result?.submittedAt
+          ? new Date(result.submittedAt).toLocaleDateString()
+          : null,
+      };
+    });
+  }, [exam, results, students]);
+
+  const isLoading = studentsLoading || resultsLoading;
 
   const stats = useMemo(() => {
     const submitted = attempts.filter((a) => a.submitted);
@@ -124,7 +140,7 @@ export function ExamGradeDrawer({
     setGradeScore(attempt && attempt.score !== null ? String(attempt.score) : "");
   };
 
-  const handleSubmitScore = () => {
+  const handleSubmitScore = async () => {
     if (!gradeStudentId || gradeScore === "") return;
     const score = parseInt(gradeScore, 10);
     if (isNaN(score) || score < 0 || score > 100) {
@@ -132,14 +148,26 @@ export function ExamGradeDrawer({
       return;
     }
 
-    const student = attempts.find((a) => a.studentId === gradeStudentId);
-    const name = student?.studentName ?? gradeStudentId;
+    const examResults = results.filter((r) => r.examId === exam?.id);
+    const studentResult = examResults.find((r) => r.studentId === gradeStudentId);
+    const studentExamId = studentResult?.id;
 
-    setSubmittedScores((prev) => ({ ...prev, [gradeStudentId]: score }));
-    onGrade(gradeStudentId, score);
-    toast.success(`Score saved for ${name}`);
-    setGradeStudentId(null);
-    setGradeScore("");
+    if (!studentExamId) {
+      toast.error("No active student exam session found to grade.");
+      return;
+    }
+
+    try {
+      await examsApi.gradeStudentExam(studentExamId, score);
+      setSubmittedScores((prev) => ({ ...prev, [gradeStudentId]: score }));
+      onGrade(gradeStudentId, score);
+      toast.success("Score updated successfully!");
+      setGradeStudentId(null);
+      setGradeScore("");
+    } catch (err: any) {
+      const msg = err instanceof Error ? err.message : "Failed to grade exam.";
+      toast.error(msg);
+    }
   };
 
   const handleRemind = (studentId: string) => {
@@ -165,6 +193,13 @@ export function ExamGradeDrawer({
           </SheetHeader>
 
           <div className="mt-4 space-y-5">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading submissions…
+              </div>
+            ) : (
+            <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-lg border bg-card p-3 text-center">
                 <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-1">
@@ -285,13 +320,10 @@ export function ExamGradeDrawer({
 
                         <div className="flex items-center gap-2 shrink-0">
                           {attempt.submitted && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenGrade(attempt.studentId)}
-                            >
-                              {displayScore !== null ? "Edit" : "Grade"}
-                            </Button>
+                            <span className="text-xs text-success font-semibold flex items-center gap-1">
+                              <CheckCircle2 className="h-4 w-4 text-success" />
+                              Submitted
+                            </span>
                           )}
                           {!attempt.submitted && (
                             <Button
@@ -311,75 +343,10 @@ export function ExamGradeDrawer({
                 </div>
               )}
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <Dialog
-        open={gradeStudentId !== null}
-        onOpenChange={(o) => {
-          if (!o) handleGradeCancel();
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Grade Exam</DialogTitle>
-            <DialogDescription>
-              Enter the score for{" "}
-              <span className="font-medium text-foreground">{gradeStudent?.studentName ?? ""}</span>
-              . Score is out of 100 points.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="grade-score">Score (0–100)</Label>
-              <Input
-                id="grade-score"
-                type="number"
-                min={0}
-                max={100}
-                placeholder="e.g. 85"
-                value={gradeScore}
-                onChange={(e) => setGradeScore(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSubmitScore();
-                }}
-              />
-            </div>
-            {gradeScore !== "" && !isNaN(parseInt(gradeScore, 10)) && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Grade preview</span>
-                  <span>{gradeScore}/100</span>
-                </div>
-                <Progress
-                  value={Math.max(0, Math.min(100, parseInt(gradeScore, 10)))}
-                  className="h-2"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>Fail</span>
-                  <span>Pass</span>
-                  <span>Excellent</span>
-                </div>
-              </div>
+            </>
             )}
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={handleGradeCancel}>
-              Cancel
-            </Button>
-            <Button
-              disabled={gradeScore === "" || isNaN(parseInt(gradeScore, 10))}
-              onClick={handleSubmitScore}
-            >
-              <CheckCircle2 className="h-4 w-4 mr-1.5" />
-              Submit Score
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </SheetContent>
+      </Sheet>    </>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -15,11 +16,12 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, Send, AlertCircle, User, BookOpen, Hash, Clock, X } from "lucide-react";
+import { AlertCircle, BookOpen, Hash, X, UserPlus } from "lucide-react";
+import { classesApi } from "@/lib/api/classes";
+import { ApiError } from "@/lib/api/client";
 
 function isValidEmail(email: string): boolean {
   const trimmed = email.trim().toLowerCase();
@@ -51,67 +53,118 @@ function parseEmails(input: string): { valid: string[]; invalid: string[] } {
 export function InviteStudentsDialog({
   open,
   onOpenChange,
+  classId,
   className,
   classLevel,
   teacherName,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** Required: the class to invite students into. */
+  classId?: string;
   className?: string;
   classLevel?: string;
   teacherName?: string;
 }) {
+  const queryClient = useQueryClient();
   const [emailsInput, setEmailsInput] = useState("");
-  const [optionalMessage, setOptionalMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   const { valid, invalid } = useMemo(() => parseEmails(emailsInput), [emailsInput]);
 
-  const canSend = valid.length > 0 && invalid.length === 0;
+  const canSend = valid.length > 0 && invalid.length === 0 && !!classId;
+
+  const invalidateClassQueries = (id: string) => {
+    // Teacher-side: refresh the screens that show this class's students
+    void queryClient.invalidateQueries({ queryKey: ["classStudents", id] });
+    void queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", id] });
+    void queryClient.invalidateQueries({ queryKey: ["teacherAllClasses"] });
+    // Student-side: when the newly-added student opens their dashboard /
+    // classes list, they should already see the class. Invalidate any
+    // currently-mounted student queries too (no-op if not mounted).
+    void queryClient.invalidateQueries({ queryKey: ["studentJoinedClassesDashboard"] });
+    void queryClient.invalidateQueries({ queryKey: ["studentJoinedClasses"] });
+  };
 
   const handleSend = async () => {
-    if (!canSend) return;
-
-    setSending(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSending(false);
-
-    const classDisplay = className ?? "this class";
-    const levelDisplay = classLevel ? ` ${classLevel}` : "";
-
-    if (valid.length === 1) {
-      toast.success(`Invitation sent to ${valid[0]} for${levelDisplay} ${classDisplay}.`);
-    } else {
-      toast.success(`Invitations sent to ${valid.length} students for${levelDisplay} ${classDisplay}.`);
+    if (!canSend) {
+      if (!classId) {
+        toast.error("Cannot add students: no class selected.");
+      } else if (valid.length === 0) {
+        toast.error("Please enter at least one valid email.");
+      } else if (invalid.length > 0) {
+        toast.error("Please fix invalid email addresses before adding.");
+      }
+      return;
     }
 
-    setEmailsInput("");
-    setOptionalMessage("");
-    onOpenChange(false);
+    setSending(true);
+    let successCount = 0;
+    const failed: { email: string; message: string }[] = [];
+
+    for (const email of valid) {
+      try {
+        await classesApi.inviteStudent(classId!, email);
+        successCount += 1;
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Unknown error";
+        failed.push({ email, message });
+      }
+    }
+
+    setSending(false);
+
+    if (failed.length === 0) {
+      const levelDisplay = classLevel ? ` ${classLevel}` : "";
+      const classDisplay = className ?? "this class";
+      if (successCount === 1) {
+        toast.success(`Added ${valid[0]} to${levelDisplay} ${classDisplay}.`);
+      } else {
+        toast.success(
+          `Added ${successCount} students to${levelDisplay} ${classDisplay}.`,
+        );
+      }
+      invalidateClassQueries(classId!);
+      setEmailsInput("");
+      onOpenChange(false);
+      return;
+    }
+
+    // Partial or total failure
+    if (successCount > 0) {
+      invalidateClassQueries(classId!);
+      toast.warning(
+        `${successCount} student${successCount === 1 ? "" : "s"} added, ${failed.length} failed.`,
+      );
+    }
+    for (const f of failed) {
+      toast.error(`${f.email}: ${f.message}`);
+    }
   };
 
   const handleClose = () => {
+    if (sending) return;
     onOpenChange(false);
   };
 
   const displayClassName = className ?? "the class";
   const displayLevel = classLevel ?? "N5";
-  const displayTeacher = teacherName ?? "Your teacher";
-  const previewSubject = `You're invited to join ${displayClassName} on MIDORI`;
-  const previewBody = optionalMessage
-    ? `Hello,\n\n${displayTeacher} has invited you to join the class "${displayClassName}" on MIDORI.\n\nClass level: ${displayLevel}\nYou can accept this invitation to access lessons, homework, exams, and progress tracking for this class.\n\nTeacher message:\n"${optionalMessage}"\n\nClick the invitation link to join the class.\n\nBest regards,\nMIDORI Team`
-    : `Hello,\n\n${displayTeacher} has invited you to join the class "${displayClassName}" on MIDORI.\n\nClass level: ${displayLevel}\nYou can accept this invitation to access lessons, homework, exams, and progress tracking for this class.\n\nClick the invitation link to join the class.\n\nBest regards,\nMIDORI Team`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-primary" />
-            Invite Students
+            <UserPlus className="w-5 h-5 text-primary" />
+            Add Students
           </DialogTitle>
           <DialogDescription>
-            Add students to {displayClassName} by email. They'll receive an invitation link.
+            Add students to {displayClassName} by email. They will be enrolled immediately.
           </DialogDescription>
         </DialogHeader>
 
@@ -137,7 +190,7 @@ export function InviteStudentsDialog({
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-1">
               <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
                 <AlertCircle className="w-4 h-4" />
-                Please fix invalid email addresses before sending invitations.
+                Please fix invalid email addresses before adding students.
               </div>
               <div className="text-xs text-destructive/80 space-y-0.5">
                 {invalid.map((email, i) => (
@@ -147,88 +200,59 @@ export function InviteStudentsDialog({
             </div>
           )}
 
-          {/* Optional message */}
-          <div className="space-y-1.5">
-            <Label htmlFor="invite-message">Optional message</Label>
-            <Textarea
-              id="invite-message"
-              rows={2}
-              placeholder="Write a short message for your students..."
-              value={optionalMessage}
-              onChange={(e) => setOptionalMessage(e.target.value)}
-              className="resize-none"
-            />
-          </div>
-
-          {/* Invitation preview */}
-          <div className="rounded-xl border border-border bg-muted/30 overflow-hidden">
-            <div className="bg-muted/50 px-4 py-2 border-b border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5" />
-                Invitation Preview
-              </p>
-            </div>
-            <div className="p-4 space-y-3 text-sm">
-              {/* Meta info */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <User className="w-3.5 h-3.5" />
-                  <span>Sender:</span>
-                </div>
-                <div className="font-medium text-foreground truncate">{displayTeacher} / Teacher</div>
-
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Class:</span>
-                </div>
-                <div className="font-medium text-foreground truncate">{displayClassName}</div>
-
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Hash className="w-3.5 h-3.5" />
-                  <span>Level:</span>
-                </div>
-                <div className="font-medium text-foreground">{displayLevel}</div>
-
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Invited:</span>
-                </div>
-                <div className="font-medium text-foreground">
-                  {valid.length > 0 ? `${valid.length} student${valid.length !== 1 ? "s" : ""}` : "—"}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-border" />
-
-              {/* Subject */}
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Subject:</p>
-                <p className="font-medium text-foreground leading-snug">{previewSubject}</p>
-              </div>
-
-              {/* Body */}
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Body:</p>
-                <div className="rounded-lg bg-background/80 border border-border p-3 text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {previewBody}
-                </div>
+          {/* No class context warning */}
+          {!classId && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                <AlertCircle className="w-4 h-4" />
+                No class selected. Please open this dialog from a class page.
               </div>
             </div>
+          )}
+
+          {/* Summary of who's being added */}
+          <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2 text-sm">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Summary
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Class:</span>
+              </div>
+              <div className="font-medium text-foreground truncate">{displayClassName}</div>
+
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Hash className="w-3.5 h-3.5" />
+                <span>Level:</span>
+              </div>
+              <div className="font-medium text-foreground">{displayLevel}</div>
+
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Will be added:</span>
+              </div>
+              <div className="font-medium text-foreground">
+                {valid.length > 0 ? `${valid.length} student${valid.length !== 1 ? "s" : ""}` : "—"}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground pt-1">
+              Students will be enrolled immediately and will see the class on their dashboard. No email is sent.
+            </p>
           </div>
 
           {/* Recipients summary */}
           {valid.length > 0 && invalid.length === 0 && (
             <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
               <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-primary">{valid.length}</span> student{valid.length !== 1 ? "s" : ""} will receive this invitation
+                <span className="font-semibold text-primary">{valid.length}</span> student{valid.length !== 1 ? "s" : ""} will be added to this class
               </p>
             </div>
           )}
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={sending}>
             Cancel
           </Button>
           <Button
@@ -238,12 +262,12 @@ export function InviteStudentsDialog({
             {sending ? (
               <>
                 <span className="animate-spin mr-2">⟳</span>
-                Sending...
+                Adding...
               </>
             ) : (
               <>
-                <Send className="mr-2 h-4 w-4" />
-                Send invites
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add students
               </>
             )}
           </Button>

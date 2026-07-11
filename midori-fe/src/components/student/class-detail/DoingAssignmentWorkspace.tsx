@@ -27,6 +27,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
+import { homeworkApi } from "@/lib/api/homework";
+import { examsApi } from "@/lib/api/exams";
+import { toast } from "sonner";
 
 interface DoingAssignmentWorkspaceProps {
   assignment: {
@@ -34,6 +37,7 @@ interface DoingAssignmentWorkspaceProps {
     title: string;
     timeLimit: string | number;
     maxScore: number;
+    type?: "Exam" | "Homework";
   };
   onClose: () => void;
   onSubmit: (id: string) => void;
@@ -52,15 +56,12 @@ export function DoingAssignmentWorkspace({
 
   // Exam state
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  // In reviewMode, pre-fill a realistic submitted answer set (indices 0-4 mapped)
-  const [answers, setAnswers] = useState<Record<number, number>>(
-    reviewMode ? { 0: 1, 1: 2, 2: 0, 3: 0, 4: 0 } : {},
-  );
+  const [answers, setAnswers] = useState<Record<number, number>>({});
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [violations, setViolations] = useState(0);
   const [showViolationWarning, setShowViolationWarning] = useState(false);
   const [lastViolationType, setLastViolationType] = useState("");
-  const [timeLeft, setTimeLeft] = useState(reviewMode ? 0 : 1200); // 20:00 mins in seconds
+  const [timeLeft, setTimeLeft] = useState(reviewMode ? 0 : 1200); // default 20 mins
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"Saving..." | "Saved">("Saved");
@@ -73,116 +74,151 @@ export function DoingAssignmentWorkspace({
   const [reviewNotes, setReviewNotes] = useState<Record<number, string>>({});
   const [notesStatus, setNotesStatus] = useState<Record<number, string>>({});
 
-  const questions = [
-    {
-      q: 'Translate: "This is a pencil." in Japanese.',
-      options: ["これは本です。", "これは鉛筆です。", "あれはペンです。", "それは鉛筆です。"],
-      correctIdx: 1,
-      type: "Translation",
-      points: 20,
-      skill: "Vocabulary",
-      weakness: "Demonstratives / Classroom Nouns",
-      recommendation: { title: "Vocabulary Lesson 2", link: "/student/vocabulary" },
-      aiFeedback: {
-        explanation:
-          "The Japanese word for pencil is '鉛筆' (enpitsu). '本' means book, 'ペン' means pen.",
-        grammar: "これは [Noun] です (This is [Noun]).",
-        vocabulary: "鉛筆 (えんぴつ) = pencil; 本 (ほん) = book; ペン = pen.",
-        commonMistake:
-          "Confusing 'これ' (this near speaker) with 'それ' (that near listener) or 'あれ' (that far from both).",
-        suggestion: "Review basic classroom vocabulary and demonstratives (ko-so-a-do series).",
-      },
-    },
-    {
-      q: "Which particle is used to mark the topic of a sentence?",
-      options: ["が (ga)", "を (wo)", "は (wa)", "に (ni)"],
-      correctIdx: 2,
-      type: "Grammar Particle",
-      points: 20,
-      skill: "Particles",
-      weakness: "Subject/Topic Particles",
-      recommendation: { title: "Grammar Lesson 1", link: "/student/grammar" },
-      aiFeedback: {
-        explanation:
-          "The particle 'は' (pronounced 'wa' as a particle) marks the topic of the sentence. 'が' marks the grammatical subject.",
-        grammar: "Topic Marker: [Noun] は [Information about topic].",
-        vocabulary:
-          "は (wa) = topic marker; が (ga) = subject marker; を (wo) = direct object marker.",
-        commonMistake:
-          "Confusing topic (は) and subject (が) particles is the most common mistake for beginners.",
-        suggestion:
-          "Focus on the context: は is used for general truths or established topics; が is used for new or emphasized information.",
-      },
-    },
-    {
-      q: 'Translate: "Where is the toilet?" in Japanese.',
-      options: [
-        "お手洗いはどこですか。",
-        "駅はどこですか。",
-        "ここはお手洗いですか。",
-        "お手洗いはあそこです。",
-      ],
-      correctIdx: 0,
-      type: "Survival Phrase",
-      points: 20,
-      skill: "Reading Comprehension",
-      weakness: "Directives & Travel phrases",
-      recommendation: { title: "Reading Lesson 3", link: "/student/reading" },
-      aiFeedback: {
-        explanation: "'お手洗い' (otearai) means toilet/restroom. 'どこ' (doko) means where.",
-        grammar: "[Topic] は どこ ですか (Where is [Topic]?).",
-        vocabulary: "お手洗い (おてあらい) = restroom; どこ = where; 駅 (えき) = station.",
-        commonMistake: "Using 'ここ' (here) instead of 'どこ' (where).",
-        suggestion:
-          "Memorize asking directions for essential locations like restrooms, stations, and hotels.",
-      },
-    },
-    {
-      q: 'What is the reading of the kanji "日本語"?',
-      options: [
-        "にほんご (nihongo)",
-        "にっぽんご (nippongo)",
-        "にほんじん (nihonjin)",
-        "にほん (nihon)",
-      ],
-      correctIdx: 0,
-      type: "Kanji Reading",
-      points: 20,
-      skill: "Kanji",
-      weakness: "Country/Language Suffixes",
-      recommendation: { title: "Vocabulary Lesson 2", link: "/student/vocabulary" },
-      aiFeedback: {
-        explanation:
-          "日本語 is read as 'にほんご' (nihongo). '日' (ni) + '本' (hon) + '語' (go/language).",
-        grammar: "[Country] + 語 = Language of that country.",
-        vocabulary:
-          "日本語 (にほんご) = Japanese language; 日本人 (にほんじん) = Japanese person; 日本 (にほん) = Japan.",
-        commonMistake: "Adding 'じん' (person suffix) or reading '語' as 'が'.",
-        suggestion:
-          "Learn country names and language suffixes together to build vocabulary systematically.",
-      },
-    },
-    {
-      q: 'Complete the sentence: "私は学生 ______。"',
-      options: ["です (desu)", "ます (masu)", "でした (deshita)", "あります (arimasu)"],
-      correctIdx: 0,
-      type: "Sentence Completion",
-      points: 20,
-      skill: "Grammar",
-      weakness: "Basic Copula Verbs",
-      recommendation: { title: "Grammar Lesson 2", link: "/student/grammar" },
-      aiFeedback: {
-        explanation:
-          "'です' (desu) is the polite copula meaning 'to be' (am/is/are) in the present positive tense.",
-        grammar: "Noun A は Noun B です (A is B).",
-        vocabulary:
-          "学生 (がくせい) = student; です = polite 'to be'; でした = past polite 'to be'.",
-        commonMistake: "Using 'ます' (verb ending) for Nouns, or 'あります' (inanimate existence).",
-        suggestion:
-          "Ensure helper copulas (です) match the type of the word preceding it (noun/adjective).",
-      },
-    },
-  ];
+  // Dynamic states
+  const [loading, setLoading] = useState(true);
+  const [studentExamId, setStudentExamId] = useState<string | null>(null);
+  const [dbHomework, setDbHomework] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [submission, setSubmission] = useState<any>(null);
+
+  // Manual homework states
+  const [manualText, setManualText] = useState("");
+  const [manualAttachment, setManualAttachment] = useState("");
+  const [submittingManual, setSubmittingManual] = useState(false);
+
+  useEffect(() => {
+    if (submission && (!submission.submissionText || !submission.submissionText.startsWith("{"))) {
+      setManualText(submission.submissionText || "");
+      setManualAttachment(submission.attachmentUrl || "");
+    }
+  }, [submission]);
+
+  const handleSubmitManual = async () => {
+    if (!manualText.trim() && !manualAttachment.trim()) {
+      toast.error("Please provide an answer or an attachment link.");
+      return;
+    }
+    setSubmittingManual(true);
+    try {
+      const req = {
+        submissionText: manualText,
+        attachmentUrl: manualAttachment
+      };
+      const res = await homeworkApi.submitHomework(assignment.id, req);
+      setSubmission(res);
+      setIsSubmitted(true);
+      toast.success("Homework submitted successfully!");
+      onSubmit(assignment.id);
+    } catch (err: any) {
+      console.error("Failed to submit manual homework", err);
+      toast.error(err?.message || "Failed to submit homework.");
+    } finally {
+      setSubmittingManual(false);
+    }
+  };
+
+  const loadHomeworkData = useCallback(async (shouldShowLoading = true) => {
+    try {
+      if (shouldShowLoading) {
+        setLoading(true);
+      }
+      
+      const isExam = assignment.type === "Exam";
+      let hw: any;
+      if (isExam) {
+        hw = await examsApi.startExam(assignment.id, user?.id || "");
+        setStudentExamId(hw.id);
+      } else {
+        hw = await homeworkApi.getStudentHomeworkById(assignment.id);
+      }
+      
+      console.log("ACTUAL_API_RESPONSE_PAYLOAD:", JSON.stringify(hw));
+      setDbHomework(hw);
+      
+      const rawQuestions = hw.questions || [];
+      const mappedQuestions = rawQuestions.map((q: any) => ({
+        id: q.id,
+        q: q.questionText || q.prompt || "",
+        jpPrompt: q.jpPrompt || "",
+        options: q.options || [],
+        correctIdx: q.correctAnswerIndex !== undefined && q.correctAnswerIndex !== null ? q.correctAnswerIndex : undefined,
+        type: q.questionType || "MULTIPLE_CHOICE",
+        points: q.points || 1,
+        skill: q.topicId || "General",
+        weakness: q.difficulty || "Medium",
+        aiFeedback: {
+          explanation: q.explanation || "No explanation available.",
+          grammar: "Focus on topic grammar points.",
+          vocabulary: "Review vocabulary matching this question.",
+          commonMistake: "Verify answer option choices carefully.",
+          suggestion: "Keep practicing related grammar and vocabulary."
+        }
+      }));
+      
+      console.log("MAPPED_QUESTIONS_TABLE:");
+      console.table(mappedQuestions);
+      setQuestions(mappedQuestions);
+
+      const limit = hw.timeLimit || assignment.timeLimit;
+      if (limit && Number(limit) > 0) {
+        setTimeLeft(Number(limit) * 60);
+      } else {
+        setTimeLeft(999999);
+      }
+
+      if (isExam) {
+        if (hw.status === "SUBMITTED" || hw.status === "GRADED") {
+          setIsSubmitted(true);
+          setSubmission(hw);
+          const newAnswers: Record<number, number> = {};
+          mappedQuestions.forEach((q: any, idx: number) => {
+            const rawQ = rawQuestions.find((rq: any) => rq.id === q.id);
+            if (rawQ && rawQ.selectedAnswerIndex !== undefined && rawQ.selectedAnswerIndex !== null) {
+              newAnswers[idx] = rawQ.selectedAnswerIndex;
+            }
+          });
+          setAnswers(newAnswers);
+        }
+      } else {
+        try {
+          const subResponse = await homeworkApi.getStudentSubmission(assignment.id);
+          if (subResponse) {
+            const sub = subResponse;
+            setSubmission(sub);
+            if (sub.status === "GRADED" || sub.status === "SUBMITTED") {
+              setIsSubmitted(true);
+              if (sub.submissionText) {
+                try {
+                  const parsedAnswers = JSON.parse(sub.submissionText);
+                  const newAnswers: Record<number, number> = {};
+                  mappedQuestions.forEach((q: any, idx: number) => {
+                    if (parsedAnswers[q.id] !== undefined) {
+                      newAnswers[idx] = parsedAnswers[q.id];
+                    }
+                  });
+                  setAnswers(newAnswers);
+                } catch (e) {
+                  console.error("Failed to parse submission answers", e);
+                }
+              }
+            }
+          }
+        } catch (subErr) {
+          console.log("No submission found yet or error fetching submission", subErr);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading workspace data", err);
+    } finally {
+      if (shouldShowLoading) {
+        setLoading(false);
+      }
+    }
+  }, [assignment.id, assignment.type, assignment.timeLimit, user?.id]);
+
+  useEffect(() => {
+    loadHomeworkData(true);
+  }, [loadHomeworkData]);
 
   // Auto-Save Effect
   useEffect(() => {
@@ -401,24 +437,284 @@ export function DoingAssignmentWorkspace({
     setIsSubmitted(false);
   }, []);
 
+  const handleSubmitExam = async () => {
+    try {
+      setShowSubmitDialog(false);
+      setAutoSaveStatus("Saving...");
+      
+      const submitAnswersMap: Record<string, number> = {};
+      questions.forEach((q, idx) => {
+        if (answers[idx] !== undefined) {
+          submitAnswersMap[q.id] = answers[idx];
+        }
+      });
+
+      const isExam = assignment.type === "Exam";
+      let res: any;
+      if (isExam) {
+        res = await examsApi.submitExam(studentExamId!, { answers: submitAnswersMap });
+      } else {
+        const req = {
+          submissionText: JSON.stringify(submitAnswersMap),
+          answers: submitAnswersMap
+        };
+        res = await homeworkApi.submitHomework(assignment.id, req);
+      }
+      
+      setSubmission(res);
+      setIsSubmitted(true);
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      try {
+        await loadHomeworkData(false);
+      } catch (err) {
+        console.error("Failed to reload homework details after submission", err);
+      }
+      onSubmit(assignment.id);
+    } catch (err) {
+      console.error("Failed to submit homework", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-50/95 dark:bg-[#0a0c14]/95 backdrop-blur-sm">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground font-semibold">Loading homework details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    const isGraded = submission?.status === "GRADED";
+    const statusText = submission?.status === "GRADED" ? "Graded" : submission?.status === "SUBMITTED" ? "Submitted" : "Not Started";
+
+    return (
+      <div className="fixed inset-0 z-[200] overflow-y-auto bg-slate-50/95 dark:bg-[#0a0c14]/95 backdrop-blur-sm p-4 sm:p-6 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-6 pt-10 pb-16">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 transition"
+              >
+                <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+              </button>
+              <div>
+                <span className="text-[10px] uppercase font-black tracking-wider text-muted-foreground">
+                  Manual Homework Workspace
+                </span>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-tight">
+                  {assignment.title}
+                </h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                  isGraded
+                    ? "bg-green-500/10 text-green-500 border-green-500/20"
+                    : submission?.status === "SUBMITTED"
+                      ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                      : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                }`}
+              >
+                {statusText}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Left/Main Column: Instructions & Submission Form */}
+            <div className="md:col-span-2 space-y-6">
+              
+              {/* Instructions Card */}
+              <Card className="p-6 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0d1020]/45 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-primary">
+                  <FileText className="w-5 h-5" />
+                  <h3 className="font-display font-black text-sm uppercase tracking-wider">
+                    Instructions
+                  </h3>
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                  {dbHomework?.instructions || "No instructions provided by the teacher."}
+                </div>
+              </Card>
+
+              {/* Action/Form Card */}
+              <Card className="p-6 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0d1020]/45 shadow-sm space-y-5">
+                <div className="flex items-center gap-2 text-indigo-500">
+                  <BookOpen className="w-5 h-5" />
+                  <h3 className="font-display font-black text-sm uppercase tracking-wider">
+                    Your Response
+                  </h3>
+                </div>
+
+                {!isSubmitted ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Write your answer or comments below *
+                      </label>
+                      <textarea
+                        rows={8}
+                        value={manualText}
+                        onChange={(e) => setManualText(e.target.value)}
+                        placeholder="Type your response here..."
+                        className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-primary transition"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Attachment Link / Drive Link (Optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={manualAttachment}
+                        onChange={(e) => setManualAttachment(e.target.value)}
+                        placeholder="https://drive.google.com/..."
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 text-sm outline-none focus:ring-2 focus:ring-primary transition"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleSubmitManual}
+                      disabled={submittingManual || (!manualText.trim() && !manualAttachment.trim())}
+                      className="w-full py-3.5 bg-primary hover:opacity-95 disabled:opacity-50 text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2"
+                    >
+                      {submittingManual ? "Submitting..." : "Submit Assignment"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-white/5">
+                      <span className="text-[10px] font-black uppercase text-muted-foreground block mb-2">
+                        Submitted Answer
+                      </span>
+                      <p className="text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-300">
+                        {submission?.submissionText || "No text answer provided."}
+                      </p>
+                    </div>
+
+                    {submission?.attachmentUrl && (
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-white/5 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-muted-foreground block mb-0.5">
+                            Attachment
+                          </span>
+                          <a
+                            href={submission.attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary font-semibold hover:underline break-all"
+                          >
+                            {submission.attachmentUrl}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+
+            </div>
+
+            {/* Right Column: Info & Grade feedback */}
+            <div className="space-y-6">
+              
+              {/* Grading / Score Feedback Card */}
+              {isGraded ? (
+                <Card className="p-5 border border-green-500/30 bg-green-500/5 dark:bg-green-950/10 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 text-green-500">
+                    <Award className="w-5 h-5 animate-bounce" />
+                    <h3 className="font-display font-black text-sm uppercase tracking-wider">
+                      Grade & Feedback
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-baseline gap-1.5 justify-center py-2 border-b border-green-500/10">
+                      <span className="text-4xl font-black text-green-500">
+                        {submission?.score !== null ? submission.score : "--"}
+                      </span>
+                      <span className="text-muted-foreground text-xs">/ {assignment.maxScore} pts</span>
+                    </div>
+
+                    {submission?.feedback ? (
+                      <div className="space-y-1">
+                        <span className="text-[9px] uppercase font-black tracking-wider text-muted-foreground block">
+                          Teacher's Feedback
+                        </span>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed italic">
+                          "{submission.feedback}"
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center italic">
+                        No written feedback provided.
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              ) : (
+                <Card className="p-5 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0d1020]/45 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 text-indigo-500">
+                    <Clock className="w-5 h-5" />
+                    <h3 className="font-display font-black text-sm uppercase tracking-wider">
+                      Details
+                    </h3>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                      <span className="text-muted-foreground">Max Score</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{assignment.maxScore} pts</span>
+                    </div>
+                    {submission?.submittedAt && (
+                      <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                        <span className="text-muted-foreground">Submitted At</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {new Date(submission.submittedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   const answeredCount = Object.keys(answers).length;
   const remainingCount = questions.length - answeredCount;
   const flaggedCount = Object.values(flagged).filter(Boolean).length;
 
   const scoreEarned = questions.reduce((acc, q, idx) => {
-    return acc + (answers[idx] === q.correctIdx ? q.points : 0);
+    return acc + (q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx ? q.points : 0);
   }, 0);
-  const correctCount = questions.filter((q, idx) => answers[idx] === q.correctIdx).length;
+  const correctCount = questions.filter((q, idx) => q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx).length;
   const wrongCount = questions.length - correctCount;
   const isPassed = scoreEarned >= assignment.maxScore * 0.5;
 
-  const selectedReviewQuestion = questions[currentReviewIndex];
-  const isReviewCorrect = answers[currentReviewIndex] === selectedReviewQuestion.correctIdx;
+  const selectedReviewQuestion = questions[currentReviewIndex] || null;
+  const isReviewCorrect = selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number"
+    ? answers[currentReviewIndex] === selectedReviewQuestion.correctIdx
+    : false;
 
   // Weak areas statistics calculation
   const weakAreasStats = questions.reduce(
     (acc, q, idx) => {
-      if (answers[idx] !== q.correctIdx) {
+      if (q && answers[idx] !== q.correctIdx) {
         acc[q.skill] = (acc[q.skill] || 0) + 1;
       }
       return acc;
@@ -502,7 +798,7 @@ export function DoingAssignmentWorkspace({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
-                    const firstWrong = questions.findIndex((q, i) => answers[i] !== q.correctIdx);
+                    const firstWrong = questions.findIndex((q, i) => q && typeof q.correctIdx === "number" && answers[i] !== q.correctIdx);
                     setCurrentReviewIndex(firstWrong >= 0 ? firstWrong : 0);
                   }}
                   className="py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition"
@@ -526,7 +822,7 @@ export function DoingAssignmentWorkspace({
             </h4>
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
-                const correct = answers[idx] === q.correctIdx;
+                const correct = q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx;
                 const isSelected = currentReviewIndex === idx;
                 return (
                   <button
@@ -591,12 +887,17 @@ export function DoingAssignmentWorkspace({
             <h3 className="font-display font-bold text-base sm:text-lg text-foreground dark:text-white leading-relaxed">
               {selectedReviewQuestion.q}
             </h3>
+            {selectedReviewQuestion.jpPrompt && (
+              <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                {selectedReviewQuestion.jpPrompt}
+              </p>
+            )}
 
             {/* Choice Review Options */}
             <div className="space-y-3">
-              {selectedReviewQuestion.options.map((opt, optIdx) => {
+              {selectedReviewQuestion && selectedReviewQuestion.options && selectedReviewQuestion.options.map((opt, optIdx) => {
                 const wasChosen = answers[currentReviewIndex] === optIdx;
-                const isCorrect = selectedReviewQuestion.correctIdx === optIdx;
+                const isCorrect = selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number" && selectedReviewQuestion.correctIdx === optIdx;
                 return (
                   <div
                     key={optIdx}
@@ -650,17 +951,17 @@ export function DoingAssignmentWorkspace({
 
             <div className="space-y-4 text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300">
               {/* Question Mistake Card Difference details */}
-              {!isReviewCorrect && (
+              {!isReviewCorrect && selectedReviewQuestion && selectedReviewQuestion.options && (
                 <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-xs flex flex-col gap-1.5">
                   <div className="font-bold text-red-500">Difference Highlight:</div>
                   <p>
                     You confused{" "}
                     <strong className="text-red-500">
-                      "{selectedReviewQuestion.options[answers[currentReviewIndex]]}"
+                      "{selectedReviewQuestion.options[answers[currentReviewIndex]] || ""}"
                     </strong>{" "}
                     with the correct option{" "}
                     <strong className="text-green-500">
-                      "{selectedReviewQuestion.options[selectedReviewQuestion.correctIdx]}"
+                      "{typeof selectedReviewQuestion.correctIdx === "number" && selectedReviewQuestion.options[selectedReviewQuestion.correctIdx] ? selectedReviewQuestion.options[selectedReviewQuestion.correctIdx] : ""}"
                     </strong>
                     .
                   </p>
@@ -1006,6 +1307,11 @@ export function DoingAssignmentWorkspace({
                 <h2 className="font-display font-bold text-xl text-foreground dark:text-white leading-relaxed">
                   {questions[currentQuestion].q}
                 </h2>
+                {questions[currentQuestion].jpPrompt && (
+                  <p className="text-lg text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                    {questions[currentQuestion].jpPrompt}
+                  </p>
+                )}
               </Card>
             </div>
 
@@ -1132,10 +1438,7 @@ export function DoingAssignmentWorkspace({
                 Continue Exam
               </button>
               <button
-                onClick={() => {
-                  setShowSubmitDialog(false);
-                  setIsSubmitted(true);
-                }}
+                onClick={handleSubmitExam}
                 className="px-5 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs shadow"
               >
                 Submit Anyway

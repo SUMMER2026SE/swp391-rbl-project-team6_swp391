@@ -41,4 +41,8 @@ public class CreateExamRequest {
     private Integer difficultyHard;
 
     private List<String> classIds;
+
+    private List<java.util.UUID> questionIds;
+
+    private String status;
 }

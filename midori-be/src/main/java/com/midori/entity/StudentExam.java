@@ -59,6 +59,12 @@ public class StudentExam {
     @Builder.Default
     private StudentExamStatus status = StudentExamStatus.NOT_STARTED;
 
+    @Column(name = "feedback")
+    private String feedback;
+
+    @Column(name = "graded_at")
+    private Instant gradedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

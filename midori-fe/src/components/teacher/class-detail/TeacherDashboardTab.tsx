@@ -5,21 +5,38 @@ import {
   AlertTriangle, ArrowRight, UserPlus, Sparkles, BookOpenCheck, ShieldAlert
 } from "lucide-react";
 import type { TeacherClassInfo, TeacherStudent } from "@/types/teacher-class";
-import { getHomeworkByClass, getExamsByClass } from "@/data/teacher-data";
+import type { ExamResponse } from "@/lib/api/exams";
+import { mapExamUiStatus } from "@/lib/api/exams";
+import { getHomeworkByClass } from "@/data/teacher-data";
 import { useNavigate } from "@tanstack/react-router";
 import { InviteStudentsDialog } from "@/components/teacher/dialogs";
 
 interface TeacherDashboardTabProps {
   classInfo: TeacherClassInfo;
+  classExams?: ExamResponse[];
   onSelectTab: (tabId: string) => void;
 }
 
-export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboardTabProps) {
+export function TeacherDashboardTab({ classInfo, classExams = [], onSelectTab }: TeacherDashboardTabProps) {
   const navigate = useNavigate();
   const classId = classInfo.id;
   const [inviteOpen, setInviteOpen] = useState(false);
   const homeworkList = getHomeworkByClass(classId);
-  const examList = getExamsByClass(classId);
+  const examList = classExams.map((e) => ({
+    id: e.id,
+    title: e.title,
+    scheduledAt: e.createdAt
+      ? new Date(e.createdAt).toLocaleDateString()
+      : "—",
+    duration: e.timeLimit,
+    totalQuestions: e.totalQuestions,
+    status:
+      mapExamUiStatus(e.status) === "published"
+        ? "Scheduled"
+        : mapExamUiStatus(e.status) === "pending"
+          ? "Scheduled"
+          : "Draft",
+  }));
 
   // Helper for computing risk levels dynamically
   const getRiskInfo = (student: TeacherStudent) => {
@@ -172,8 +189,16 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
                     <div key={student.id} className="p-3 rounded-xl border border-slate-200/60 dark:border-white/10 bg-white dark:bg-slate-900/50 flex flex-col gap-1.5 text-xs shadow-sm">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 grid place-items-center font-bold text-[9px]">
-                            {student.avatar || student.name[0]}
+                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 grid place-items-center font-bold text-[9px] overflow-hidden">
+                            {student.avatar && (student.avatar.startsWith("http") || student.avatar.includes("/")) ? (
+                              <img
+                                src={student.avatar}
+                                alt={student.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              student.avatar || student.name[0]
+                            )}
                           </div>
                           <span className="font-bold text-foreground dark:text-white text-sm">{student.name}</span>
                         </div>
@@ -306,6 +331,7 @@ export function TeacherDashboardTab({ classInfo, onSelectTab }: TeacherDashboard
       <InviteStudentsDialog
         open={inviteOpen}
         onOpenChange={setInviteOpen}
+        classId={classInfo.id}
         className={classInfo.name}
       />
     </div>

@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,15 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LevelBadge } from "@/components/teacher/badges";
-import {
-  getClasses,
-  getHomework,
-  getExams,
-  getAllStudents,
-  getNotifications,
-  teacherProfile,
-  getProgressOverview,
-} from "@/data/teacher-data";
+import { useQuery } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import { homeworkApi } from "@/lib/api/homework";
+import { getNotifications as getLiveNotifications } from "@/lib/api/notifications";
+import { useAuth } from "@/lib/auth";
 import {
   GraduationCap, Users, ClipboardList, FileText, AlertTriangle, ArrowRight,
   Plus, HelpCircle, TrendingUp, CheckCircle2, Clock,
@@ -26,25 +23,73 @@ export const Route = createFileRoute("/teacher/")({
 });
 
 function Dashboard() {
-  const classes = getClasses();
-  const hw = getHomework();
-  const ex = getExams();
-  const students = getAllStudents();
-  const notifs = getNotifications().slice(0, 4);
-  const overview = getProgressOverview();
+  const { user } = useAuth();
+
+  const { data: dbClasses = [], isLoading: isLoadingClasses } = useQuery({
+    queryKey: ["teacherClassesDashboard"],
+    queryFn: () => classesApi.getAllClasses(),
+  });
+
+  const { data: dbHomeworks = [], isLoading: isLoadingHomeworks } = useQuery({
+    queryKey: ["teacherHomeworksDashboard"],
+    queryFn: () => homeworkApi.getTeacherHomeworks(),
+  });
+
+  const { data: dbNotifications, isLoading: isLoadingNotifications } = useQuery({
+    queryKey: ["teacherNotificationsDashboard"],
+    queryFn: () => getLiveNotifications(),
+  });
+
+  const isLoading = isLoadingClasses || isLoadingHomeworks || isLoadingNotifications;
+
+  const classes = useMemo(() => {
+    return dbClasses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      level: c.level || "N5",
+      status: c.status === "ACTIVE" ? "Active" : "Archived",
+      studentCount: c.studentCount || 0,
+      homeworkCount: c.homeworkCount || 0,
+      createdAt: c.createdAt,
+    }));
+  }, [dbClasses]);
+
+  const hw = useMemo(() => {
+    return dbHomeworks.map((h) => ({
+      id: h.id,
+      classId: h.classId,
+      title: h.title,
+      dueDate: h.dueDate ? h.dueDate.split("T")[0] : "",
+      status: h.status === "ASSIGNED" ? "Assigned" : h.status === "CLOSED" ? "Closed" : "Draft",
+    }));
+  }, [dbHomeworks]);
+
+  const notifs = useMemo(() => {
+    if (!dbNotifications?.notifications) return [];
+    return dbNotifications.notifications.slice(0, 4).map((n) => ({
+      id: n.id,
+      title: n.title,
+      message: n.content,
+      read: n.isRead,
+      time: n.createdAt ? n.createdAt.split("T")[0] : "",
+      link: "/teacher/notifications",
+    }));
+  }, [dbNotifications]);
 
   const activeClasses = classes.filter((c) => c.status === "Active");
   const dueSoon = hw.filter((h) => h.status === "Assigned").slice(0, 4);
-  const upcomingExams = ex.filter((e) => e.status === "Scheduled");
-  const pendingGrading = hw.reduce((s, h) => s + h.pendingGrading, 0);
-  const atRisk = students.filter((s) => s.status === "at-risk");
-  const attention = classes.filter((c) => c.attention > 0);
+  const upcomingExams: any[] = [];
+  const pendingGrading = 0;
+  const atRisk: any[] = [];
+  const attention: any[] = [];
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
+
+  const totalStudents = classes.reduce((sum, c) => sum + c.studentCount, 0);
 
   const stats = [
     {
@@ -55,7 +100,7 @@ function Dashboard() {
     },
     {
       label: "Total students",
-      value: overview.totalStudents,
+      value: totalStudents,
       icon: Users,
       tone: "bg-info/10 text-info",
     },
@@ -94,12 +139,19 @@ function Dashboard() {
     { to: "/teacher/reports", label: "Reports", icon: HelpCircle },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
         eyebrow={today}
-        title={`おかえりなさい, ${teacherProfile.name.split(" ")[0]}-sensei`}
+        title={`おかえりなさい, ${user?.name ? user.name.split(" ")[0] : "Sensei"}`}
         subtitle="Here's what needs your attention today across your classes and students."
         actions={
           <>

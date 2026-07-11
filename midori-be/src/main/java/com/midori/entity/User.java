@@ -47,9 +47,14 @@ public class User {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private UserProfile profile;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id")
-    private ClassEntity assignedClass;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "class_students",
+        joinColumns = @JoinColumn(name = "student_id"),
+        inverseJoinColumns = @JoinColumn(name = "class_id")
+    )
+    @Builder.Default
+    private java.util.Set<ClassEntity> assignedClasses = new java.util.HashSet<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

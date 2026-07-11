@@ -1,9 +1,45 @@
 spring:
   profiles:
     active: local
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
 
 supabase:
   url: ${SUPABASE_URL:}
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
+
+# AI Configuration
+# At least one provider must be configured for AI features to work
+ai:
+  # Gemini (Recommended for Japanese text - best for multimodal content)
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-1.5-flash
+    enabled: false
+
+  # OpenAI (Most reliable JSON output)
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: gpt-4o-mini
+    base-url: https://api.openai.com/v1
+    enabled: false
+
+  # DeepSeek (Cost-effective alternative)
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: deepseek-chat
+    enabled: false
+
+  # PDF Processing Configuration
+  pdf:
+    max-file-size: 10485760  # 10MB
+    async-threshold: 1048576  # 1MB - files larger than this use async processing
+
+  # OCR Configuration
+  ocr:
+    enabled: true
+    simulated: true  # Set to false and configure real OCR for production

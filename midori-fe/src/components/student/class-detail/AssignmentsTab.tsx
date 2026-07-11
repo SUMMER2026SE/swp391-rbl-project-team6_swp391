@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/page-ui";
 import {
   Search,
@@ -22,6 +23,7 @@ interface AssignmentsTabProps {
 }
 
 export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortOption, setSortOption] = useState("deadline");
@@ -29,6 +31,13 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
   const [selectedScore, setSelectedScore] = useState<ScoreBreakdown | null>(null);
   const [doingAssignment, setDoingAssignment] = useState<Assignment | null>(null);
   const [reviewingAssignment, setReviewingAssignment] = useState<Assignment | null>(null);
+
+  const formatDate = (date: string | undefined | null): string => {
+    if (!date || date === "-" || date === "None") return "No deadline";
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "No deadline";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
 
   // Helper: map assignment to status groups
   const getAssignmentStatus = (item: Assignment) => {
@@ -95,7 +104,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
     if (item.status === "Graded" || item.status === "Submitted") {
       // Open review workspace directly
       setReviewingAssignment(item);
-    } else {
+    } else if (classInfo.status !== "archived") {
       setDoingAssignment(item);
     }
   };
@@ -126,6 +135,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           title: activeAssignment.title,
           timeLimit: activeAssignment.timeLimit,
           maxScore: activeAssignment.maxScore,
+          type: activeAssignment.type ?? "Homework",
         }}
         reviewMode={isReview}
         onClose={() => {
@@ -136,6 +146,8 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           if (doingAssignment) doingAssignment.status = "Submitted";
           setDoingAssignment(null);
           setReviewingAssignment(null);
+          void queryClient.invalidateQueries({ queryKey: ["classExams", classInfo.id] });
+          void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
         }}
       />
     );
@@ -267,7 +279,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                       <span className="font-bold text-primary">{item.moduleType}</span>
                       <span>•</span>
                       <span className="flex items-center gap-0.5">
-                        <Calendar className="w-3 h-3" /> Due: {item.deadline}
+                        <Calendar className="w-3 h-3" /> Due: {formatDate(item.deadline)}
                       </span>
                       <span>•</span>
                       <span>Time: {item.timeLimit > 0 ? `${item.timeLimit}m` : "Unlimited"}</span>
@@ -277,7 +289,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
 
                 <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
                   <button
-                    disabled={item.status === "Overdue"}
+                    disabled={item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted")}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAction(item);
@@ -285,14 +297,14 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                     className={`px-3 py-1.5 rounded-xl font-black text-[10px] uppercase transition shadow-sm border ${
                       item.status === "Graded" || item.status === "Submitted"
                         ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                        : item.status === "Overdue"
+                        : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                           ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
                           : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
                     }`}
                   >
                     {item.status === "Graded" || item.status === "Submitted"
                       ? "View Result"
-                      : item.status === "Overdue"
+                      : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                         ? "Locked"
                         : "Start"}
                   </button>
@@ -306,7 +318,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
             <div className="text-center py-12">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground/55 mb-3" />
               <p className="text-sm text-muted-foreground font-semibold">
-                No homework matches search or filter.
+                No assignments match your search or filter.
               </p>
             </div>
           )}
@@ -348,7 +360,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                       <Calendar className="w-3.5 h-3.5" /> Deadline
                     </span>
                     <span className="font-semibold text-foreground dark:text-white">
-                      {item.deadline}
+                      {formatDate(item.deadline)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -363,7 +375,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
               {/* Actions */}
               <div className="flex gap-2 border-t border-slate-100 dark:border-white/5 pt-3">
                 <button
-                  disabled={item.status === "Overdue"}
+                  disabled={item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted")}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAction(item);
@@ -371,14 +383,14 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
                   className={`w-full py-2 rounded-xl text-[10px] font-black uppercase transition shadow-sm border ${
                     item.status === "Graded" || item.status === "Submitted"
                       ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                      : item.status === "Overdue"
+                      : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                         ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-white/5 dark:text-slate-500 dark:border-white/5 shadow-none"
                         : "bg-primary text-primary-foreground border-transparent hover:opacity-95"
                   }`}
                 >
                   {item.status === "Graded" || item.status === "Submitted"
                     ? "View Result"
-                    : item.status === "Overdue"
+                    : (item.status === "Overdue" || (classInfo.status === "archived" && item.status !== "Graded" && item.status !== "Submitted"))
                       ? "Locked"
                       : "Start"}
                 </button>
@@ -390,7 +402,7 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
             <div className="sm:col-span-2 text-center py-12 bg-white/50 dark:bg-indigo-950/10 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-sm text-muted-foreground font-semibold">
-                No homework matches search or filter.
+                No assignments match your search or filter.
               </p>
             </div>
           )}

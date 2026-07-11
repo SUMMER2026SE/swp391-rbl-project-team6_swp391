@@ -34,4 +34,6 @@ public interface StudentExamRepository extends JpaRepository<StudentExam, UUID> 
     long countByExamId(UUID examId);
 
     long countByStatus(StudentExamStatus status);
+
+    List<StudentExam> findByExamAssignedClassId(UUID classId);
 }

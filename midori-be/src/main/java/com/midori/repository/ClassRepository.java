@@ -22,4 +22,8 @@ public interface ClassRepository extends JpaRepository<ClassEntity, UUID> {
 
     @Query("SELECT c FROM ClassEntity c LEFT JOIN FETCH c.teacher LEFT JOIN FETCH c.students WHERE c.teacher.id = :teacherId AND c.status = 'ACTIVE'")
     List<ClassEntity> findActiveByTeacherId(@Param("teacherId") UUID teacherId);
+
+    List<ClassEntity> findByStatus(ClassEntity.ClassStatus status);
+
+    List<ClassEntity> findByTeacherIdAndStatus(UUID teacherId, ClassEntity.ClassStatus status);
 }

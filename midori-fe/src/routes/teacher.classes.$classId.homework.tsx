@@ -1,9 +1,12 @@
+import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ClipboardList } from "lucide-react";
-import { mockTeacherClasses } from "@/mock/teacherClasses";
-import { getClassById } from "@/data/teacher-data";
+import { useQuery } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import { homeworkApi } from "@/lib/api/homework";
 import { TeacherAssignmentsTab } from "@/components/teacher/class-detail/TeacherAssignmentsTab";
 import { Card } from "@/components/page-ui";
+import type { TeacherAssignment } from "@/types/teacher-class";
 
 export const Route = createFileRoute("/teacher/classes/$classId/homework")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -15,26 +18,92 @@ export const Route = createFileRoute("/teacher/classes/$classId/homework")({
 function ClassHomeworkPage() {
   const { classId } = Route.useParams();
   const { q: urlQ } = Route.useSearch();
-  
-  // Find mock class detail or construct one from base class metadata
-  let classInfo = mockTeacherClasses.find((c) => c.id === classId);
-  
-  if (!classInfo) {
-    const baseClass = getClassById(classId);
-    if (baseClass) {
-      const template = baseClass.level === "N4" ? (mockTeacherClasses[1] || mockTeacherClasses[0]) : mockTeacherClasses[0];
-      classInfo = {
-        ...template,
-        id: baseClass.id,
-        name: baseClass.name,
-        level: baseClass.level,
-        members: baseClass.studentCount,
-        assignmentCount: baseClass.openHomework,
-        avgScore: baseClass.progress / 10 + 2,
-        nextDeadline: baseClass.startDate,
-        createdDate: baseClass.startDate,
-      };
-    }
+
+  // Fetch class details (for meta info: name, studentCount, etc.)
+  const { data: classDetail, isLoading: isLoadingClass, isError } = useQuery({
+    queryKey: ["teacherClassDetail", classId],
+    queryFn: () => classesApi.getClassById(classId),
+    enabled: !!classId,
+  });
+
+  // Fetch homework for this specific class from the real backend endpoint
+  const { data: homeworkList = [], isLoading: isLoadingHomework } = useQuery({
+    queryKey: ["teacherHomeworksByClass", classId],
+    queryFn: () => homeworkApi.getHomeworksByClass(classId),
+    enabled: !!classId,
+  });
+
+  const isLoading = isLoadingClass || isLoadingHomework;
+
+  const classInfo = useMemo(() => {
+    if (!classDetail) return undefined;
+
+    const rawStudents = (classDetail as any).students ?? [];
+
+    const students = rawStudents.map((s: any) => ({
+      id: s.studentId,
+      name: s.fullName ?? s.email.split("@")[0],
+      email: s.email,
+      avatar: s.fullName ? s.fullName[0].toUpperCase() : "U",
+      joinedAt: classDetail.createdAt ? classDetail.createdAt.split("T")[0] : "",
+      status: s.status || "active",
+      progress: 0,
+      grammarProgress: 0,
+      vocabularyProgress: 0,
+      listeningProgress: 0,
+      performance: "stable",
+      atRisk: false,
+    }));
+
+    // Map HomeworkResponse → TeacherAssignment for the tab component
+    const assignments: TeacherAssignment[] = homeworkList.map((h) => ({
+      id: h.id,
+      title: h.title,
+      moduleType: "Vocabulary" as const,  // generic fallback; backend doesn't provide module type yet
+      assignedDate: h.createdAt ? h.createdAt.split("T")[0] : "",
+      deadline: h.dueDate ? h.dueDate.split("T")[0] : "",
+      totalSubmissions: h.submissionCount ?? 0,
+      notSubmittedCount: 0,
+      avgScore: 0,
+      status: h.status === "ASSIGNED" ? "Active" : h.status === "CLOSED" ? "Closed" : "Upcoming",
+    }));
+
+    return {
+      id: classDetail.id,
+      name: classDetail.name,
+      level: classDetail.level || "N5",
+      teacher: "Teacher",
+      teacherAvatarInitials: "T",
+      members: classDetail.studentCount ?? rawStudents.length,
+      // Use live homework count from the fetched list — real-time accurate
+      assignmentCount: homeworkList.length,
+      avgScore: 0,
+      nextDeadline: homeworkList.length > 0
+        ? homeworkList
+            .filter((h) => h.dueDate)
+            .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0]?.dueDate?.split("T")[0] ?? "-"
+        : "-",
+      createdDate: classDetail.createdAt ? classDetail.createdAt.split("T")[0] : "",
+      students,
+      assignments,
+      exams: [],
+    };
+  }, [classDetail, homeworkList]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12 text-red-500">
+        Failed to load class details from the server. Please try again.
+      </div>
+    );
   }
 
   if (!classInfo) {
@@ -79,12 +148,12 @@ function ClassHomeworkPage() {
             Homework Management — {classInfo.name}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Manage assignments, review submissions and grade student answers.
+            {classInfo.assignmentCount} assignment{classInfo.assignmentCount !== 1 ? "s" : ""} assigned to this class.
           </p>
         </div>
       </div>
 
-      {/* Render the core tab component */}
+      {/* Render the core tab component with live homework data */}
       <TeacherAssignmentsTab classInfo={classInfo} urlQ={urlQ} />
     </div>
   );

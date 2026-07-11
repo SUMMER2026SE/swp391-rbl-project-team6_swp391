@@ -22,6 +22,7 @@ export interface TeacherAssignment {
   notSubmittedCount: number;
   avgScore: number;
   status: "Active" | "Closed" | "Upcoming";
+  ungradedCount?: number;
 }
 
 export interface TeacherActivity {
@@ -76,6 +77,7 @@ export interface TeacherClassInfo {
   nextDeadline: string;
   createdDate: string;
   progress?: number;
+  status?: "ACTIVE" | "ARCHIVED";
   students: TeacherStudent[];
   assignments: TeacherAssignment[];
   activities: TeacherActivity[];
@@ -90,3 +92,4 @@ export interface TeacherClassInfo {
     description?: string;
   }>;
 }
+

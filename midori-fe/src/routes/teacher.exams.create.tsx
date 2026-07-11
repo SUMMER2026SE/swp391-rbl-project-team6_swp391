@@ -1,11 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import { examsApi } from "@/lib/api/exams";
+import { ApiError } from "@/lib/api/client";
+import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
 import {
   Select,
   SelectContent,
@@ -14,15 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  getClasses,
-  getQuestionTopics,
-  getQuestionTopicById,
-  getQuestionsForRandomGeneration,
+  buildTopicsFromQuestions,
   getAggregatedTopicCounts,
-  getJlptExamSets,
-  getJlptSetById,
-  type Question,
-} from "@/data/teacher-data";
+  getTopicById,
+  mapApiQuestion,
+  pickRandomQuestions,
+  type BankQuestionView,
+} from "@/lib/exam/questionBank";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
@@ -42,6 +45,7 @@ import {
   Plus,
   Trash2,
   Pencil,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -51,6 +55,7 @@ type Method = "manual" | "question-bank" | "jlpt-bank";
 export const Route = createFileRoute("/teacher/exams/create")({
   validateSearch: (s: Record<string, unknown>) => ({
     classId: typeof s.classId === "string" ? s.classId : undefined,
+    examId: typeof s.examId === "string" ? s.examId : undefined,
     source:
       s.source === "question-bank" || s.source === "jlpt-bank"
         ? (s.source as "question-bank" | "jlpt-bank")
@@ -63,13 +68,22 @@ export const Route = createFileRoute("/teacher/exams/create")({
 });
 
 function CreateExam() {
-  const { classId, source, topicId, jlptSetId } = Route.useSearch();
+  const { classId, examId, source, topicId, jlptSetId } = Route.useSearch();
   const navigate = useNavigate();
-  const classes = getClasses();
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
+  const { data: existingExam } = useQuery({
+    queryKey: ["exam", examId],
+    queryFn: () => (examId ? examsApi.getExamById(examId) : Promise.resolve(null)),
+    enabled: !!examId,
+  });
   const lockedClass = classId ? classes.find((c) => c.id === classId) : null;
   const init: Method | null = (source as Method) ?? null;
   const [method, setMethod] = useState<Method | null>(init);
   const [done, setDone] = useState<string | null>(null);
+  const [doneExamId, setDoneExamId] = useState<string | null>(null);
 
   const handleBack = () => {
     if (classId) {
@@ -152,7 +166,17 @@ function CreateExam() {
         <ArrowLeft className="mr-1 h-4 w-4" />
         Change method
       </Button>
-      {method === "manual" && <ManualExam lockedClass={lockedClass} onDone={setDone} />}
+      {method === "manual" && (
+        <ManualExam
+          lockedClass={lockedClass}
+          examId={examId}
+          existingExam={existingExam}
+          onDone={(title, savedExamId) => {
+            setDone(title);
+            setDoneExamId(savedExamId ?? null);
+          }}
+        />
+      )}
       {method === "question-bank" && (
         <RandomExam lockedClass={lockedClass} topicId={topicId} onDone={setDone} />
       )}
@@ -213,26 +237,223 @@ interface ManualQ {
   points: number;
 }
 
+type ExamAction = "DRAFT" | "PUBLISHED";
+type SubmitState = { status: ExamAction } | null;
+
+function validateDraft(form: { title: string }, questions: ManualQ[]): string | null {
+  if (!form.title.trim()) return "Please enter an exam title.";
+  return null;
+}
+
+function validatePublish(
+  form: { title: string; duration: number },
+  questions: ManualQ[],
+): string | null {
+  const draftErr = validateDraft(form, questions);
+  if (draftErr) return draftErr;
+  if (questions.length === 0) return "Please add at least one question.";
+  if (form.duration <= 0) return "Duration must be greater than 0.";
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    if (!q.text.trim()) return `Question ${i + 1} has an empty question prompt.`;
+    if (!q.options || q.options.length < 2)
+      return `Question ${i + 1} must have at least 2 options.`;
+    if (q.options.some((o) => !o.trim()))
+      return `Please fill out all options for Question ${i + 1}.`;
+    if (q.correct < 0 || q.correct >= q.options.length)
+      return `Question ${i + 1} needs a correct answer selected.`;
+    if (q.points <= 0) return `Question ${i + 1} needs a positive score.`;
+  }
+  return null;
+}
+
 function ManualExam({
   lockedClass,
+  examId,
+  existingExam,
   onDone,
 }: {
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
-  onDone: (t: string) => void;
+  lockedClass: any | null;
+  examId?: string;
+  existingExam?: any;
+  onDone: (title: string, examId?: string) => void;
 }) {
-  const classes = getClasses();
-  const [form, setForm] = useState({
-    classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: "",
-    level: lockedClass?.level ?? "N5",
-    duration: 60,
-    attempts: 1,
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
   });
-  const [questions, setQuestions] = useState<ManualQ[]>([
-    { id: "q1", text: "", options: ["", "", "", ""], correct: 0, points: 2 },
-  ]);
-  const [editIdx, setEditIdx] = useState<number | null>(0);
+
+  const initForm = {
+    classId:
+      existingExam?.assignedClassId ??
+      existingExam?.classId ??
+      lockedClass?.id ??
+      classes[0]?.id ??
+      "",
+    title: existingExam?.title ?? "",
+    level: existingExam?.level ?? lockedClass?.level ?? "N5",
+    duration: existingExam?.timeLimit ?? 60,
+    attempts: existingExam?.attempts ?? 1,
+  };
+
+  const [form, setForm] = useState(initForm);
+  const queryClient = useQueryClient();
+  const [submitting, setSubmitting] = useState<SubmitState>(null);
+  const [questions, setQuestions] = useState<ManualQ[]>(
+    existingExam?.questions?.length
+      ? existingExam.questions.map((q: any) => ({
+          id: q.id,
+          text: q.prompt ?? q.questionText ?? "",
+          options: Array.isArray(q.options) && q.options.length > 0
+            ? q.options
+            : ["", "", "", ""],
+          correct: typeof q.correctAnswerIndex === "number"
+            ? q.correctAnswerIndex
+            : 0,
+          points: typeof q.points === "number" ? q.points : 2,
+        }))
+      : [{ id: "q1", text: "", options: ["", "", "", ""], correct: 0, points: 2 }],
+  );
+  const [editIdx, setEditIdx] = useState<number | null>(
+    existingExam?.questions?.length ? null : 0,
+  );
   const [preview, setPreview] = useState(false);
+
+  const submitExam = useCallback(
+    async (status: ExamAction) => {
+      if (submitting) return;
+
+      const validationError =
+        status === "DRAFT"
+          ? validateDraft(form, questions)
+          : validatePublish(form, questions);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
+
+      setSubmitting({ status });
+      let savedExamId: string | undefined;
+
+      try {
+        if (examId) {
+          // ── EDIT path: update the existing exam metadata + questions ──────────
+          await examsApi.updateExam(examId, {
+            title: form.title.trim(),
+            level: form.level,
+            timeLimit: form.duration,
+            totalQuestions: questions.length,
+            classIds: form.classId ? [form.classId] : [],
+            status,
+          });
+          savedExamId = examId;
+
+          // Sync questions: backend returns the same shape on this endpoint,
+          // so we can map straight from ManualQ. existing questions keep their
+          // UUID, new ones omit `id` so backend inserts them.
+          const payload = questions.map((q, idx) => {
+            const isExistingUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q.id);
+            return {
+              ...(isExistingUuid ? { id: q.id } : {}),
+              prompt: q.text,
+              options: q.options.map((o) => o ?? ""),
+              correctAnswerIndex: q.correct,
+              points: q.points,
+              displayOrder: idx + 1,
+            };
+          });
+          await examsApi.updateExamQuestions(examId, { questions: payload });
+        } else {
+          // ── CREATE path: parallel question creation + rollback on failure ──────
+          const createResults = await Promise.allSettled(
+            questions.map((q) =>
+              teacherQuestionsApi.createQuestion({
+                prompt: q.text,
+                options: q.options,
+                correctAnswerIndex: q.correct,
+                points: q.points,
+                questionType: "MULTIPLE_CHOICE",
+                difficulty: "MEDIUM",
+                explanation: "Exam manual question",
+              }),
+            ),
+          );
+
+          // Collect successes; surface first failure without orphan cleanup
+          const successes: { id: string }[] = [];
+          for (let i = 0; i < createResults.length; i++) {
+            const result = createResults[i];
+            if (result.status === "fulfilled") {
+              successes.push(result.value);
+            } else {
+              // Rollback already-saved questions before surfacing the error
+              await Promise.allSettled(
+                successes.map((s) => teacherQuestionsApi.deleteQuestion(s.id)),
+              );
+              const reason = result.reason;
+              const msg =
+                reason instanceof ApiError
+                  ? reason.message
+                  : reason?.message ?? "Failed to save question.";
+              toast.error(`Question ${i + 1}: ${msg}`);
+              return; // exits without touching submitting state — finally handles it
+            }
+          }
+
+          const savedExam = await examsApi.createExam({
+            title: form.title.trim(),
+            level: form.level,
+            totalQuestions: questions.length,
+            timeLimit: form.duration,
+            classIds: form.classId ? [form.classId] : [],
+            questionIds: successes.map((s) => s.id),
+            status,
+          });
+          savedExamId = savedExam.id;
+        }
+
+        // ── React Query: invalidate all exam lists in parallel ──────────────────
+        const invalidations = [
+          queryClient.invalidateQueries({ queryKey: ["exams"] }),
+          queryClient.invalidateQueries({ queryKey: ["teacherExams"] }),
+          ...(form.classId
+            ? [
+                queryClient.invalidateQueries({ queryKey: ["examsByClass", form.classId] }),
+                queryClient.invalidateQueries({ queryKey: ["classExams", form.classId] }),
+                queryClient.invalidateQueries({
+                  queryKey: ["teacherClassExams", form.classId],
+                }),
+              ]
+            : []),
+          ...(savedExamId
+            ? [queryClient.invalidateQueries({ queryKey: ["exam", savedExamId] })]
+            : []),
+        ];
+        await Promise.all(invalidations);
+
+        // ── UX ────────────────────────────────────────────────────────────────
+        if (status === "PUBLISHED") {
+          toast.success("Exam published successfully.");
+          onDone(form.title, savedExamId);
+        } else {
+          toast.success("Draft saved. You can keep editing.");
+        }
+      } catch (err: unknown) {
+        const apiErr = err as ApiError;
+        const message =
+          apiErr?.message ??
+          (status === "DRAFT" ? "Failed to save draft." : "Failed to publish exam.");
+        toast.error(message);
+      } finally {
+        setSubmitting(null);
+      }
+    },
+    [submitting, form, questions, examId, queryClient, onDone],
+  );
+
+  const isPending = submitting !== null;
+  const isSavingDraft = submitting?.status === "DRAFT";
+  const isPublishing = submitting?.status === "PUBLISHED";
 
   const totalPoints = questions.reduce((s, q) => s + q.points, 0);
   const valid = !!(
@@ -446,25 +667,27 @@ function ManualExam({
             <Button
               className="w-full"
               variant="outline"
-              disabled={!valid}
-              onClick={() => {
-                toast.success("Draft saved");
-                onDone(form.title);
-              }}
+              disabled={isPending}
+              onClick={() => submitExam("DRAFT")}
             >
-              <Save className="mr-2 h-4 w-4" />
-              Save draft
+              {isSavingDraft ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isSavingDraft ? "Saving draft..." : "Save draft"}
             </Button>
             <Button
               className="w-full"
-              disabled={!valid}
-              onClick={() => {
-                toast.success("Exam published");
-                onDone(form.title);
-              }}
+              disabled={isPending}
+              onClick={() => submitExam("PUBLISHED")}
             >
-              <Send className="mr-2 h-4 w-4" />
-              Publish & assign
+              {isPublishing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {isPublishing ? "Publishing..." : "Publish & assign"}
             </Button>
           </div>
         </div>
@@ -505,13 +728,24 @@ function RandomExam({
   topicId,
   onDone,
 }: {
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
+  lockedClass: any | null;
   topicId?: string;
   onDone: (t: string) => void;
 }) {
-  const classes = getClasses();
-  const topics = getQuestionTopics();
-  const init = topicId ? getQuestionTopicById(topicId) : null;
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
+  const { data: bankQuestions = [], isLoading: bankLoading } = useQuery({
+    queryKey: ["teacherQuestions"],
+    queryFn: () => teacherQuestionsApi.getQuestions(),
+  });
+  const topics = useMemo(() => buildTopicsFromQuestions(bankQuestions), [bankQuestions]);
+  const questionPool = useMemo(
+    () => bankQuestions.map(mapApiQuestion),
+    [bankQuestions],
+  );
+  const init = topicId ? getTopicById(topics, topicId) : null;
   if (topicId && !init) toast.warning("Topic not found in Question Bank");
 
   const [form, setForm] = useState({
@@ -522,11 +756,65 @@ function RandomExam({
     duration: 60,
     dist: { easy: 40, medium: 40, hard: 20 },
   });
+  const queryClient = useQueryClient();
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedTopics, setSelectedTopics] = useState<string[]>(init ? [init.id] : []);
-  const [generated, setGenerated] = useState<Question[] | null>(null);
+  const [generated, setGenerated] = useState<BankQuestionView[] | null>(null);
   const [locked, setLocked] = useState<Set<string>>(new Set());
 
-  const available = useMemo(() => getAggregatedTopicCounts(selectedTopics), [selectedTopics]);
+  const handleSave = async (shouldPublish = false) => {
+    if (!generated) return;
+    setIsSaving(true);
+    try {
+      const savedQuestionIds: string[] = [];
+      for (const q of generated) {
+        const res = await teacherQuestionsApi.createQuestion({
+          prompt: q.prompt,
+          options: q.options,
+          correctAnswerIndex: q.correctAnswerIndex,
+          points: q.points,
+          questionType: "MULTIPLE_CHOICE",
+          difficulty: q.difficulty.toUpperCase(),
+          explanation: "Exam random question",
+        });
+        savedQuestionIds.push(res.id);
+      }
+
+      await examsApi.createExam({
+        title: form.title,
+        level: form.level,
+        totalQuestions: form.total,
+        timeLimit: form.duration,
+        classIds: form.classId ? [form.classId] : [],
+        questionIds: savedQuestionIds,
+        status: shouldPublish ? "PUBLISHED" : "DRAFT",
+      });
+
+      if (shouldPublish) {
+        toast.success("Exam published & assigned successfully!");
+      } else {
+        toast.success("Draft saved successfully!");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["exams"] });
+      if (form.classId) {
+        await queryClient.invalidateQueries({ queryKey: ["examsByClass", form.classId] });
+        await queryClient.invalidateQueries({ queryKey: ["classExams", form.classId] });
+      }
+
+      onDone(form.title);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to save exam.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const available = useMemo(
+    () => getAggregatedTopicCounts(topics, selectedTopics),
+    [topics, selectedTopics],
+  );
   const distOk = isDistValid(form.dist, form.total, available);
   const canGen = selectedTopics.length > 0 && distOk;
 
@@ -734,24 +1022,18 @@ function RandomExam({
             </Button>
             <Button
               variant="outline"
-              disabled={!generated}
-              onClick={() => {
-                toast.success("Draft saved");
-                onDone(form.title);
-              }}
+              disabled={!generated || isSaving}
+              onClick={() => handleSave(false)}
             >
               <Save className="mr-2 h-4 w-4" />
-              Save draft
+              {isSaving ? "Saving..." : "Save draft"}
             </Button>
             <Button
-              disabled={!generated}
-              onClick={() => {
-                toast.success("Exam published");
-                onDone(form.title);
-              }}
+              disabled={!generated || isSaving}
+              onClick={() => handleSave(true)}
             >
               <Send className="mr-2 h-4 w-4" />
-              Publish & assign
+              {isSaving ? "Publishing..." : "Publish & assign"}
             </Button>
           </div>
 
@@ -830,11 +1112,14 @@ function JlptExam({
   jlptSetId,
   onDone,
 }: {
-  lockedClass: ReturnType<typeof getClasses>[number] | null;
+  lockedClass: any | null;
   jlptSetId?: string;
   onDone: (t: string) => void;
 }) {
-  const classes = getClasses();
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
   const sets = getJlptExamSets();
   const init = jlptSetId ? getJlptSetById(jlptSetId) : null;
   if (jlptSetId && !init) toast.warning("JLPT set not found");
@@ -846,7 +1131,47 @@ function JlptExam({
     instructions: "Bring writing materials. The exam will run for the full duration.",
     dueDate: "",
   });
+  const queryClient = useQueryClient();
+  const [isSaving, setIsSaving] = useState(false);
   const [preview, setPreview] = useState(false);
+
+  const handleSave = async (shouldPublish = false) => {
+    if (!set) return;
+    setIsSaving(true);
+    try {
+      await examsApi.createExam({
+        title: form.title,
+        level: set.level,
+        totalQuestions: set.totalQuestions,
+        timeLimit: set.duration,
+        classIds: form.classId ? [form.classId] : [],
+        category: "JLPT",
+        difficultyEasy: set.mix.easy,
+        difficultyMedium: set.mix.medium,
+        difficultyHard: set.mix.hard,
+        status: shouldPublish ? "PUBLISHED" : "DRAFT",
+      });
+
+      if (shouldPublish) {
+        toast.success("Exam published & assigned successfully!");
+      } else {
+        toast.success("Draft saved successfully!");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["exams"] });
+      if (form.classId) {
+        await queryClient.invalidateQueries({ queryKey: ["examsByClass", form.classId] });
+        await queryClient.invalidateQueries({ queryKey: ["classExams", form.classId] });
+      }
+
+      onDone(form.title);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to save exam.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const valid = !!(set && form.title && form.dueDate);
 
@@ -989,29 +1314,23 @@ function JlptExam({
               <Eye className="mr-2 h-4 w-4" />
               Preview set
             </Button>
-            <Button
-              className="w-full"
-              variant="outline"
-              disabled={!valid}
-              onClick={() => {
-                toast.success("Draft saved");
-                onDone(form.title);
-              }}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Save draft
-            </Button>
-            <Button
-              className="w-full"
-              disabled={!valid}
-              onClick={() => {
-                toast.success("Exam published");
-                onDone(form.title);
-              }}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Use this set & publish
-            </Button>
+             <Button
+               className="w-full"
+               variant="outline"
+               disabled={!valid || isSaving}
+               onClick={() => handleSave(false)}
+             >
+               <Save className="mr-2 h-4 w-4" />
+               {isSaving ? "Saving..." : "Save draft"}
+             </Button>
+             <Button
+               className="w-full"
+               disabled={!valid || isSaving}
+               onClick={() => handleSave(true)}
+             >
+               <Sparkles className="mr-2 h-4 w-4" />
+               {isSaving ? "Publishing..." : "Use this set & publish"}
+             </Button>
           </div>
         </div>
       </div>

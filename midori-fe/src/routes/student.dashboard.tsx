@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { studentProgressApi } from "@/lib/api/studentProgress";
+import { classesApi } from "@/lib/api/classes";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 
@@ -25,30 +26,40 @@ function StudentHome() {
 
   const {
     data: stats,
-    isLoading,
-    error,
+    isLoading: isLoadingStats,
+    error: statsError,
   } = useQuery({
     queryKey: ["progress-stats"],
     queryFn: () => studentProgressApi.getProgressStats(),
     staleTime: 60 * 1000,
   });
 
-  const errorMessage =
-    error instanceof ApiError ? error.message : "Failed to load dashboard progress.";
+  const {
+    data: dbClasses = [],
+    isLoading: isLoadingClasses,
+    error: classesError,
+  } = useQuery({
+    queryKey: ["studentJoinedClassesDashboard"],
+    queryFn: () => classesApi.getJoinedClasses(),
+  });
 
-  const streak = stats?.learningStreak ?? 32;
-  const totalXp = stats?.progressPercent ? Math.round(stats.progressPercent * 100) : 9820;
+  const isLoading = isLoadingStats || isLoadingClasses;
+  const error = statsError || classesError;
+  const errorMessage = "Failed to load dashboard progress.";
 
-  // Mock data for new features requested by user
-  const joinedClasses = [
-    { name: "Japanese Basic N5 - Class A", teacher: "Kenji Sensei", level: "N5" },
-    { name: "Elementary Kanji & Vocab - Class B", teacher: "Sakura Sensei", level: "N5" },
-  ];
+  const streak = stats?.learningStreak ?? 0;
+  const totalXp = stats?.progressPercent ? Math.round(stats.progressPercent * 100) : 0;
 
-  const upcomingDeadlines = [
-    { name: "Vocabulary Quiz Lesson 4", type: "Quiz", remainingDays: 2 },
-    { name: "Grammar Particle Practice", type: "Homework", remainingDays: 5 },
-  ];
+  const joinedClasses = dbClasses.map((c) => ({
+    name: c.name,
+    teacher: "Teacher",
+    level: c.level || "N5",
+  }));
+
+  const totalHomeworkCount = dbClasses.reduce((sum, c) => sum + (c.homeworkCount || 0), 0);
+  const totalExamCount = dbClasses.reduce((sum, c) => sum + (c.upcomingExamCount || 0), 0);
+
+  const upcomingDeadlines: any[] = [];
 
   return (
     <div className="space-y-6">
@@ -121,20 +132,26 @@ function StudentHome() {
               Joined Classes
             </h3>
             <div className="space-y-3">
-              {joinedClasses.map((cls, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-all"
-                >
-                  <div>
-                    <div className="font-semibold text-sm text-foreground">{cls.name}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      Teacher: {cls.teacher}
-                    </div>
-                  </div>
-                  <LevelBadge level={cls.level} />
+              {joinedClasses.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground">
+                  You have not joined any classes yet.
                 </div>
-              ))}
+              ) : (
+                joinedClasses.map((cls, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-all"
+                  >
+                    <div>
+                      <div className="font-semibold text-sm text-foreground">{cls.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        Teacher: {cls.teacher}
+                      </div>
+                    </div>
+                    <LevelBadge level={cls.level} />
+                  </div>
+                ))
+              )}
             </div>
           </Card>
 
@@ -147,23 +164,13 @@ function StudentHome() {
             <div className="grid grid-cols-2 gap-3">
               {[
                 {
-                  label: "Not Started",
-                  value: 2,
-                  color: "text-red-500 bg-red-50 dark:bg-red-950/20",
-                },
-                {
-                  label: "In Progress",
-                  value: 1,
-                  color: "text-amber-500 bg-amber-50 dark:bg-amber-950/20",
-                },
-                {
-                  label: "Submitted",
-                  value: 3,
+                  label: "Homework Assignments",
+                  value: totalHomeworkCount,
                   color: "text-blue-500 bg-blue-50 dark:bg-blue-950/20",
                 },
                 {
-                  label: "Graded",
-                  value: 4,
+                  label: "Upcoming Exams",
+                  value: totalExamCount,
                   color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20",
                 },
               ].map((stat, i) => (
@@ -193,28 +200,30 @@ function StudentHome() {
                 Upcoming Deadlines
               </h3>
               <div className="space-y-3">
-                {upcomingDeadlines.map((dl, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01]"
-                  >
-                    <div className="flex-1 min-w-0 mr-3">
-                      <div className="font-semibold text-sm text-foreground truncate">
-                        {dl.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{dl.type}</div>
-                    </div>
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
-                        dl.remainingDays <= 2
-                          ? "bg-red-500/10 text-red-500"
-                          : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300"
-                      }`}
-                    >
-                      {dl.remainingDays}d left
-                    </span>
+                {upcomingDeadlines.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-muted-foreground">
+                    No upcoming deadlines.
                   </div>
-                ))}
+                ) : (
+                  upcomingDeadlines.map((dl, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01]"
+                    >
+                      <div className="flex-1 min-w-0 mr-3">
+                        <div className="font-semibold text-sm text-foreground truncate">
+                          {dl.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{dl.type}</div>
+                      </div>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-300`}
+                      >
+                        {dl.remainingDays}d left
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           </div>

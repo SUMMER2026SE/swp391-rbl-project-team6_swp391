@@ -26,6 +26,8 @@ public class StudentExamResponse {
     private Integer score;
     private Integer totalPoints;
     private Double percentage;
+    private String feedback;
+    private Instant gradedAt;
     private List<QuestionResponse> questions;
     private Instant createdAt;
 

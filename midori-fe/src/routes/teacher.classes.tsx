@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getClasses } from "@/data/teacher-data";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
 import { LevelBadge } from "@/components/teacher/badges";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -14,12 +15,13 @@ import {
   BookOpenCheck,
   TrendingUp,
   Calendar,
-  Edit,
   UserPlus,
   Archive,
   TrendingUp as TgIcon,
   MoreVertical,
   ArrowRight,
+  Loader2,
+  RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,6 +29,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { InviteStudentsDialog } from "@/components/teacher/dialogs";
 import { cn } from "@/lib/utils";
@@ -85,10 +97,64 @@ function ClassesLayout() {
   }
 
   const [levelFilter, setLevelFilter] = useState<string>("All");
-  const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [statusFilter, setStatusFilter] = useState<string>("Active");
   const [inviteFor, setInviteFor] = useState<string | null>(null);
+  const [pendingArchive, setPendingArchive] = useState<{ id: string; name: string } | null>(null);
 
-  const all = getClasses();
+  const queryClient = useQueryClient();
+
+  const mappedStatus = useMemo(() => {
+    if (statusFilter === "All") return "ALL";
+    if (statusFilter === "Active") return "ACTIVE";
+    if (statusFilter === "Archived") return "ARCHIVED";
+    return undefined;
+  }, [statusFilter]);
+
+  const { data: dbClasses = [], isLoading } = useQuery({
+    queryKey: ["teacherAllClasses", mappedStatus],
+    queryFn: () => classesApi.getAllClasses(mappedStatus),
+  });
+
+  const confirmArchive = () => {
+    if (!pendingArchive) return;
+    const { id: classId, name: className } = pendingArchive;
+    setPendingArchive(null);
+    toast.promise(classesApi.archiveClass(classId), {
+      loading: `Archiving ${className}...`,
+      success: () => {
+        queryClient.invalidateQueries({ queryKey: ["teacherAllClasses"] });
+        return `"${className}" has been archived.`;
+      },
+      error: (err: any) => `Failed to archive class: ${err.message || "Unknown error"}`,
+    });
+  };
+
+  const handleRestore = (classId: string, className: string) => {
+    toast.promise(classesApi.restoreClass(classId), {
+      loading: `Restoring ${className}...`,
+      success: () => {
+        queryClient.invalidateQueries({ queryKey: ["teacherAllClasses"] });
+        return "Class restored successfully.";
+      },
+      error: (err: any) => `Failed to restore class: ${err.message || "Unknown error"}`,
+    });
+  };
+
+  const all = useMemo(() => {
+    return dbClasses.map((c) => ({
+      id: c.id,
+      name: c.name,
+      jpName: "",
+      level: c.level || "N5",
+      status: c.status === "ACTIVE" ? "Active" : c.status === "ARCHIVED" ? "Archived" : "Draft",
+      studentCount: c.studentCount || 0,
+      capacity: c.maxStudents || 30,
+      openHomework: c.homeworkCount || 0,
+      upcomingExams: c.upcomingExamCount || 0,
+      progress: 0,
+      schedule: c.createdAt ? `Created ${c.createdAt.slice(0, 10)}` : "",
+    }));
+  }, [dbClasses]);
 
   const filtered = useMemo(() => {
     return all.filter((c) => {
@@ -155,7 +221,11 @@ function ClassesLayout() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             No classes match your filters.
@@ -186,26 +256,35 @@ function ClassesLayout() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link to="/teacher/classes/$classId" params={{ classId: c.id }}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit class
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setInviteFor(c.id)}>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Invite students
-                      </DropdownMenuItem>
+                      {c.status !== "Archived" && (
+                        <DropdownMenuItem onSelect={() => setInviteFor(c.id)}>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Invite students
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem asChild>
                         <Link to="/teacher/classes/$classId/progress" params={{ classId: c.id }}>
                           <TgIcon className="mr-2 h-4 w-4" />
                           View progress
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => toast.success(`${c.name} archived`)}>
-                        <Archive className="mr-2 h-4 w-4" />
-                        Archive
-                      </DropdownMenuItem>
+                      {c.status !== "Archived" ? (
+                        <DropdownMenuItem
+                          onSelect={() => setPendingArchive({ id: c.id, name: c.name })}
+                          className="text-amber-600 focus:text-amber-600"
+                        >
+                          <Archive className="mr-2 h-4 w-4" />
+                          Archive
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onSelect={() => handleRestore(c.id, c.name)}
+                          className="text-emerald-600 focus:text-emerald-600"
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Restore
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -258,9 +337,11 @@ function ClassesLayout() {
                       <ArrowRight className="ml-1 h-3.5 w-3.5" />
                     </Link>
                   </Button>
-                  <Button variant="outline" onClick={() => setInviteFor(c.id)}>
-                    <UserPlus className="h-4 w-4" />
-                  </Button>
+                  {c.status !== "Archived" && (
+                    <Button variant="outline" onClick={() => setInviteFor(c.id)}>
+                      <UserPlus className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -271,8 +352,41 @@ function ClassesLayout() {
       <InviteStudentsDialog
         open={!!inviteFor}
         onOpenChange={(o) => !o && setInviteFor(null)}
+        classId={inviteFor ?? undefined}
         className={all.find((c) => c.id === inviteFor)?.name}
       />
+
+      {/* Archive Confirmation Dialog */}
+      <AlertDialog open={!!pendingArchive} onOpenChange={(o) => !o && setPendingArchive(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-amber-500" />
+              Archive this class?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                You are about to archive{" "}
+                <span className="font-semibold text-foreground">&ldquo;{pendingArchive?.name}&rdquo;</span>.
+              </span>
+              <span className="block text-amber-600 dark:text-amber-400">
+                ⚠ Once archived, you will not be able to add students, create homework, or create exams for this class.
+                You can restore the class at any time.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmArchive}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              Yes, archive class
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
