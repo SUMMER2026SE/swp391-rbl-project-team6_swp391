@@ -1,5 +1,5 @@
 -- Homework tables
--- V24__classes_homework_questionbank.sql
+-- V21__classes_homework_questionbank.sql
 
 CREATE TABLE IF NOT EXISTS homework (
     id UUID PRIMARY KEY,
