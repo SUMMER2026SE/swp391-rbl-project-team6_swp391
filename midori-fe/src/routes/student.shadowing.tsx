@@ -1,20 +1,37 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/page-ui";
 import { cn } from "@/lib/utils";
-import { Mic, Play, Clock, ChevronRight, Tag } from "lucide-react";
+import { Mic, Play, Clock, ChevronRight, Tag, Loader2 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { shadowingTopics, type JLPTLevel } from "@/mock/shadowing-student";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { studentShadowingApi, type ShadowingVideoSummaryResponse } from "@/lib/api/shadowing";
 
-// Mock student level
-const MOCK_STUDENT_LEVEL: JLPTLevel = "N5";
+type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 
 const levelGradients: Record<JLPTLevel, string> = {
   N5: "from-blue-400 to-cyan-400",
   N4: "from-green-400 to-emerald-400",
   N3: "from-yellow-400 to-orange-400",
+  N2: "from-purple-400 to-indigo-400",
+  N1: "from-red-400 to-pink-400",
+};
+
+// Helper to map English topics to Vietnamese translations
+export const getTopicVn = (topic: string): string => {
+  const mapping: Record<string, string> = {
+    "Daily Conversation": "Tự giới thiệu",
+    "Self Introduction": "Tự giới thiệu",
+    "School Life": "Đời sống học đường",
+    "Shopping": "Mua sắm",
+    "Restaurant": "Nhà hàng",
+    "Travel": "Du lịch",
+    "Business": "Kinh doanh",
+    "Academic": "Học thuật",
+  };
+  return mapping[topic] || topic;
 };
 
 export const Route = createFileRoute("/student/shadowing")({
@@ -24,18 +41,70 @@ export const Route = createFileRoute("/student/shadowing")({
 function ShadowingHomePage() {
   const routerState = useRouterState();
   const isChildRouteActive = routerState.location.pathname !== "/student/shadowing";
-  // Get topics for student's level only
-  const myTopics = useMemo(() => {
-    return shadowingTopics.filter((topic) => topic.jlptLevel === MOCK_STUDENT_LEVEL);
+
+  const [realVideos, setRealVideos] = useState<ShadowingVideoSummaryResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [studentLevel, setStudentLevel] = useState<JLPTLevel>("N5");
+  const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
+
+  useEffect(() => {
+    const loadVideos = async () => {
+      setIsLoading(true);
+      try {
+        const list = await studentShadowingApi.getVideos();
+        setRealVideos(list);
+      } catch (err) {
+        console.error("Error loading student shadowing videos:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadVideos();
   }, []);
+
+  // Group real videos by topic for the current student level
+  const myTopics = useMemo(() => {
+    const topicsMap = new Map<string, ShadowingVideoSummaryResponse[]>();
+    
+    realVideos.forEach(video => {
+      const vLevel = (video.jlptLevel || "N5") as JLPTLevel;
+      if (vLevel !== studentLevel) return;
+      const tName = video.topic || "General";
+      if (!topicsMap.has(tName)) {
+        topicsMap.set(tName, []);
+      }
+      topicsMap.get(tName)!.push(video);
+    });
+
+    const list: any[] = [];
+    topicsMap.forEach((videos, tName) => {
+      const firstVideo = videos[0];
+      const totalSecs = videos.reduce((acc, v) => acc + (v.duration || 0), 0);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      const durationStr = `${mins}:${secs.toString().padStart(2, "0")}`;
+
+      list.push({
+        id: tName.toLowerCase().replace(/\s+/g, "-"),
+        title: tName,
+        titleVn: getTopicVn(tName),
+        thumbnail: firstVideo.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=225&fit=crop",
+        jlptLevel: firstVideo.jlptLevel || "N5",
+        description: `Luyện phát âm chủ đề ${tName}`,
+        videoCount: videos.length,
+        totalDuration: durationStr,
+        videos: videos
+      });
+    });
+
+    return list;
+  }, [realVideos, studentLevel]);
 
   // Get unique categories from topics
   const categories = useMemo(() => {
     const cats = new Set(myTopics.map((t) => t.titleVn));
     return ["Tất cả", ...Array.from(cats)];
   }, [myTopics]);
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
 
   // Filter by category
   const filteredTopics = useMemo(() => {
@@ -45,6 +114,16 @@ function ShadowingHomePage() {
 
   if (isChildRouteActive) {
     return <Outlet />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center">
+        <SakuraBg count={14} />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <span className="text-xs text-muted-foreground mt-2">Đang tải danh sách bài học...</span>
+      </div>
+    );
   }
 
   return (
@@ -66,16 +145,31 @@ function ShadowingHomePage() {
             <div
               className={cn(
                 "w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-bold",
-                levelGradients[MOCK_STUDENT_LEVEL],
+                levelGradients[studentLevel] || "from-blue-400 to-cyan-400",
               )}
             >
               <Mic className="w-5 h-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Cấp độ của bạn</p>
-              <p className="font-bold text-foreground">JLPT {MOCK_STUDENT_LEVEL}</p>
+              <p className="font-bold text-foreground">JLPT {studentLevel}</p>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-3">
+              <Select value={studentLevel} onValueChange={(val) => {
+                setStudentLevel(val as JLPTLevel);
+                setSelectedCategory("Tất cả");
+              }}>
+                <SelectTrigger className="w-24 bg-background/50 border-[var(--border)] rounded-xl h-8 text-xs font-bold cursor-pointer">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
+                  <SelectItem value="N5">N5</SelectItem>
+                  <SelectItem value="N4">N4</SelectItem>
+                  <SelectItem value="N3">N3</SelectItem>
+                  <SelectItem value="N2">N2</SelectItem>
+                  <SelectItem value="N1">N1</SelectItem>
+                </SelectContent>
+              </Select>
               <span className="text-sm text-muted-foreground">{myTopics.length} chủ đề</span>
             </div>
           </div>
@@ -148,7 +242,7 @@ function ShadowingHomePage() {
                           <div
                             className={cn(
                               "w-14 h-14 rounded-full bg-linear-to-br flex items-center justify-center text-white shadow-lg",
-                              levelGradients[topic.jlptLevel],
+                              levelGradients[topic.jlptLevel as JLPTLevel] || "from-blue-400 to-cyan-400",
                             )}
                           >
                             <Play className="w-6 h-6 ml-1" />

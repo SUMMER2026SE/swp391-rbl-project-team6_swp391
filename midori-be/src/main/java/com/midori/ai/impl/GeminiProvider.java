@@ -36,6 +36,11 @@ interface RetryableCall<T> {
      */
     T execute(String apiKey) throws Exception;
 }
+
+@FunctionalInterface
+interface FallbackAction<T> {
+    T execute(String model, String apiKey) throws Exception;
+}
 @Slf4j
 @Component
 public class GeminiProvider implements AiProvider {
@@ -191,15 +196,107 @@ public class GeminiProvider implements AiProvider {
         throw lastError != null ? lastError : new RuntimeException("All Gemini API keys exhausted for " + operationLabel);
     }
 
+    private void validateConfig() {
+        String[] apiKeys = config.getGemini().getApiKeys();
+        if (apiKeys == null || apiKeys.length == 0) {
+            throw new IllegalStateException("GEMINI_API_KEY is missing. Please configure GEMINI_API_KEY or ai.gemini.api-keys.");
+        }
+        String model = config.getGemini().getModel();
+        if (model == null || model.isBlank()) {
+            throw new IllegalStateException("GEMINI_MODEL is missing. Please configure GEMINI_MODEL or ai.gemini.model.");
+        }
+    }
+
+    private List<String> getFallbackModels() {
+        List<String> models = new ArrayList<>();
+        String configuredModel = config.getGemini().getModel();
+
+        // 1. Primary model from GEMINI_MODEL env var (always first)
+        if (configuredModel != null && !configuredModel.isBlank()) {
+            models.add(configuredModel);
+        }
+
+        // 2. Fallback chain from GEMINI_FALLBACK_MODELS env var (no hardcoded strings)
+        List<String> fallbacks = config.getGemini().getFallbackModelsList();
+        for (String fb : fallbacks) {
+            if (!models.contains(fb)) {
+                models.add(fb);
+            }
+        }
+
+        log.info("[GeminiProvider] Resolved fallback chain ({} model(s)): {}", models.size(), models);
+        return models;
+    }
+
+    private boolean isFallbackStatusCode(int status) {
+        return status == 400 || status == 404 || status == 429 || status == 500 || status == 503;
+    }
+
+    private <T> T executeWithFallback(String operationLabel, FallbackAction<T> action) {
+        validateConfig();
+        List<String> models = getFallbackModels();
+        List<ModelFailure> failures = new ArrayList<>();
+
+        for (int i = 0; i < models.size(); i++) {
+            String model = models.get(i);
+            log.info("[GeminiProvider] [FALLBACK-LOOP] Attempting {} with model {} (attempt {}/{})", 
+                    operationLabel, model, i + 1, models.size());
+
+            try {
+                T result = executeWithKeyRetry(operationLabel, (apiKey) -> {
+                    return action.execute(model, apiKey);
+                });
+
+                // Track last model used successfully
+                lastModelUsed = model;
+                log.info("[GeminiProvider] [FALLBACK-LOOP] {} succeeded with model {}", operationLabel, model);
+                return result;
+
+            } catch (Exception e) {
+                Integer status = null;
+                String body = null;
+                String msg = e.getMessage();
+
+                // Find WebClientResponseException to get status code and body
+                Throwable cause = e;
+                while (cause != null && !(cause instanceof WebClientResponseException)) {
+                    cause = cause.getCause();
+                }
+
+                if (cause instanceof WebClientResponseException wcre) {
+                    status = wcre.getStatusCode().value();
+                    body = wcre.getResponseBodyAsString();
+                }
+
+                log.warn("[GeminiProvider] [FALLBACK-LOOP] {} failed with model {}. Status: {}, Error: {}", 
+                        operationLabel, model, status != null ? status : "N/A", msg);
+
+                failures.add(new ModelFailure(model, status, body, msg));
+
+                // If it is the last model, stop falling back
+                if (i == models.size() - 1) {
+                    break;
+                }
+
+                // If we have an explicit non-fallback HTTP status, stop falling back immediately
+                if (status != null && !isFallbackStatusCode(status)) {
+                    log.warn("[GeminiProvider] [FALLBACK-LOOP] Status {} does not warrant fallback. Aborting fallback loop.", status);
+                    break;
+                }
+            }
+        }
+
+        // All models failed, raise a detailed Exception
+        throw new GeminiFallbackException("All Gemini models failed for " + operationLabel, failures);
+    }
+
     // ============================================================
     // Chat Implementation
     // ============================================================
 
     @Override
     public String chat(String systemPrompt, String userMessage, List<String[]> conversationHistory) {
-        if (!isConfigured()) {
-            throw new IllegalStateException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
-        }
+        validateConfig();
 
         List<Map<String, Object>> contents = new ArrayList<>();
 
@@ -223,15 +320,14 @@ public class GeminiProvider implements AiProvider {
         requestBody.put("systemInstruction", systemInstruction);
         requestBody.put("generationConfig", generationConfig);
 
-        String model = config.getGemini().getModel();
         String baseUrl = config.getGemini().getBaseUrl();
         String apiKeysStr = config.getGemini().getApiKeysStr();
-        log.info("[GeminiProvider] CHAT REQUEST - Model: {}, BaseURL: {}", model, baseUrl);
+        log.info("[GeminiProvider] CHAT REQUEST - BaseURL: {}", baseUrl);
         log.info("[GeminiProvider] CHAT REQUEST - API Key loaded: {}", (apiKeysStr != null && !apiKeysStr.isBlank()) ? "YES" : "NO");
         log.info("[GeminiProvider] CHAT REQUEST - Request body: {}", requestBody);
         long startMs = System.currentTimeMillis();
 
-        return executeWithKeyRetry("chat", (apiKey) -> {
+        return executeWithFallback("chat", (model, apiKey) -> {
             String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
             String requestUrl = baseUrl + "/v1beta/models/" + model + ":generateContent?key=" + keyMasked;
             log.info("[GeminiProvider] CHAT REQUEST - URL: {}", requestUrl);
@@ -250,8 +346,7 @@ public class GeminiProvider implements AiProvider {
                     .block();
 
             long latencyMs = System.currentTimeMillis() - startMs;
-            log.info("[GeminiProvider] CHAT RESPONSE - Latency: {}ms, Response length: {} chars", latencyMs, rawResponse != null ? rawResponse.length() : 0);
-            lastModelUsed = model;
+            log.info("[GeminiProvider] CHAT RESPONSE - Model: {}, Latency: {}ms, Response length: {} chars", model, latencyMs, rawResponse != null ? rawResponse.length() : 0);
             return extractTextFromResponse(rawResponse);
         });
     }
@@ -263,9 +358,7 @@ public class GeminiProvider implements AiProvider {
     @Override
     public String generateQuestions(String materialTitle, String materialContent,
                                    int questionCount, String questionType, String difficulty) {
-        if (!isConfigured()) {
-            throw new IllegalStateException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
-        }
+        validateConfig();
 
         String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
                 materialTitle, materialContent, questionCount, questionType, difficulty);
@@ -278,10 +371,8 @@ public class GeminiProvider implements AiProvider {
         generationConfig.put("maxOutputTokens", 8192);
         requestBody.put("generationConfig", generationConfig);
 
-        String model = config.getGemini().getModel();
-        log.info("Using Gemini model: {}", model);
-
-        String rawText = executeWithKeyRetry("question generation", (apiKey) -> {
+        String rawText = executeWithFallback("question generation", (model, apiKey) -> {
+            log.info("[GeminiProvider] QUESTION GENERATION - Attempting with model: {}", model);
             String rawResponse = webClientBuilder
                     .baseUrl(config.getGemini().getBaseUrl())
                     .build()
@@ -294,7 +385,6 @@ public class GeminiProvider implements AiProvider {
                     .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                     .block();
 
-            lastModelUsed = model;
             return extractTextFromResponse(rawResponse);
         });
 
@@ -307,48 +397,26 @@ public class GeminiProvider implements AiProvider {
 
     @Override
     public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
-        if (!isConfigured()) {
-            throw new AiParsingException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
+        try {
+            validateConfig();
+        } catch (IllegalStateException e) {
+            throw new AiParsingException(e.getMessage(), e);
         }
 
         String prompt = AiPromptBuilder.buildExamParsingPrompt(extractedText, filename);
-        String model = config.getGemini().getModel();
-        log.info("Using Gemini model: {}", model);
         long startMs = System.currentTimeMillis();
 
-        int maxRetries = Math.max(1, keyManager.getKeyCount());
-        
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            String apiKey = keyManager.getCurrentKey();
-            
-            try {
-                Map<String, Object> response = callGeminiApi(model, apiKey, prompt);
-                long latencyMs = System.currentTimeMillis() - startMs;
-                log.info("Gemini API responded in {}ms for model {}", latencyMs, model);
-                lastModelUsed = model;
-                return parseResponse(response, latencyMs);
-
-            } catch (WebClientResponseException e) {
-                int status = e.getStatusCode().value();
-                if ((status == 429 || status == 401 || status == 403) && attempt < maxRetries - 1) {
-                    log.warn("[GeminiProvider] Rate limited or auth failed ({}). Retrying with next key...", status);
-                    keyManager.markKeyFailedAndGetNext();
-                    continue;
-                }
-                log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-                throw new AiParsingException("Gemini API error: " + e.getStatusCode() + " — " + e.getMessage(), e);
-            } catch (Exception e) {
-                if (attempt < maxRetries - 1) {
-                    log.warn("[GeminiProvider] Request failed: {}. Trying next key...", e.getMessage());
-                    keyManager.markKeyFailedAndGetNext();
-                    continue;
-                }
-                log.error("Gemini request failed: {}", e.getMessage());
-                throw new AiParsingException("Gemini request failed: " + e.getMessage(), e);
-            }
+        try {
+            Map<String, Object> response = executeWithFallback("exam parsing", (model, apiKey) -> {
+                return callGeminiApi(model, apiKey, prompt);
+            });
+            long latencyMs = System.currentTimeMillis() - startMs;
+            log.info("Gemini API responded in {}ms for model {}", latencyMs, lastModelUsed);
+            return parseResponse(response, latencyMs);
+        } catch (Exception e) {
+            log.error("Gemini exam parsing failed: {}", e.getMessage());
+            throw new AiParsingException("Gemini request failed: " + e.getMessage(), e);
         }
-
-        throw new AiParsingException("All Gemini API keys exhausted");
     }
 
     // ============================================================
@@ -357,16 +425,13 @@ public class GeminiProvider implements AiProvider {
 
     @Override
     public String translate(List<String> texts, String prompt) {
-        if (!isConfigured()) {
-            throw new IllegalStateException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
-        }
+        validateConfig();
 
         // INSTRUMENTATION: Log request start
         int requestNumber = incrementAndGetPipelineCount();
         globalRequestCounter.incrementAndGet();
         int sentenceCount = texts != null ? texts.size() : 0;
         int promptLength = prompt != null ? prompt.length() : 0;
-        // Estimate tokens (rough estimate: 1 token ≈ 4 characters)
         int estimatedTokens = promptLength / 4;
         
         Instant requestTimestamp = Instant.now();
@@ -382,7 +447,6 @@ public class GeminiProvider implements AiProvider {
         log.info("Prompt Length: {} chars", promptLength);
         log.info("Sentence Count: {}", sentenceCount);
         log.info("Estimated Tokens: ~{}", estimatedTokens);
-        log.info("Model: {}", config.getGemini().getModel());
         log.info("Pipeline Request Count: {}/global:{}", getPipelineRequestCount(), getGlobalRequestCount());
         log.info("=================================================");
 
@@ -395,12 +459,10 @@ public class GeminiProvider implements AiProvider {
         generationConfig.put("responseMimeType", "application/json");
         requestBody.put("generationConfig", generationConfig);
 
-        String model = config.getGemini().getModel();
-
         long startTime = System.currentTimeMillis();
         
         try {
-            String rawResponse = executeWithKeyRetry("translation", (apiKey) -> {
+            String rawResponse = executeWithFallback("translation", (model, apiKey) -> {
                 String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
                 String fullUrl = config.getGemini().getBaseUrl() + "/v1beta/models/" + model + ":generateContent?key=" + keyMasked;
                 
@@ -427,7 +489,6 @@ public class GeminiProvider implements AiProvider {
                 long httpDuration = System.currentTimeMillis() - httpStart;
                 log.info("[GeminiProvider] HTTP request completed in {}ms", httpDuration);
                 
-                lastModelUsed = model;
                 return rawResp;
             });
 

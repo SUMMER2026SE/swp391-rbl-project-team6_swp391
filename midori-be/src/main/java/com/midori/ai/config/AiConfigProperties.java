@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component;
  *   provider: gemini
  *   gemini:
  *     api-keys: key1,key2,key3  # Multiple keys for fallback
- *     model: gemini-2.5-flash
+ *     model: ${GEMINI_MODEL:gemini-3.5-flash}      # configurable — no hardcoded default in Java
+ *     fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
  *   openai:
  *     api-key: sk-xxx
  *     model: gpt-4o
@@ -97,7 +98,12 @@ public class AiConfigProperties {
         private String apiKeys;  // Comma-separated: key1,key2,key3
         private String singleApiKey;  // Legacy single key support
         private String baseUrl = "https://generativelanguage.googleapis.com";
-        private String model = "gemini-2.0-flash";
+        // No Java-level default — YAML / env-var is the single source of truth.
+        // If null, validateConfig() will fail-fast before any API call.
+        private String model = null;
+        // Comma-separated fallback model names tried in order when primary fails.
+        // e.g. "gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro"
+        private String fallbackModels = null;
 
         /**
          * Get all API keys as an array.
@@ -148,6 +154,26 @@ public class AiConfigProperties {
         public void setSingleApiKey(String v) { this.singleApiKey = v; }
         public void setBaseUrl(String v) { this.baseUrl = v; }
         public void setModel(String v) { this.model = v; }
+        public void setFallbackModels(String v) { this.fallbackModels = v; }
+
+        /**
+         * Returns the comma-separated fallback models string.
+         */
+        public String getFallbackModels() { return fallbackModels; }
+
+        /**
+         * Parses the fallback models string into an ordered List.
+         * Trims whitespace around each entry and filters blank entries.
+         */
+        public java.util.List<String> getFallbackModelsList() {
+            if (fallbackModels == null || fallbackModels.isBlank()) {
+                return java.util.List.of();
+            }
+            return java.util.Arrays.stream(fallbackModels.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .collect(java.util.stream.Collectors.toList());
+        }
 
         /**
          * Legacy support: also accepts "api-key" as single key.

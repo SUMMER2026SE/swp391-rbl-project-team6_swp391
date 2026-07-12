@@ -170,3 +170,78 @@ export const adminShadowingApi = {
     return json.data as ShadowingVideoUploadResponse;
   },
 };
+
+export interface ShadowingVideoSummaryResponse {
+  id: string;
+  title: string;
+  description: string | null;
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
+  duration: number | null;
+  jlptLevel: string | null;
+  difficulty: string | null;
+  lesson: string | null;
+  topic: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const studentShadowingApi = {
+  /**
+   * GET /api/student/shadowing/videos
+   */
+  getVideos: async (): Promise<ShadowingVideoSummaryResponse[]> => {
+    const response = await fetch("/api/student/shadowing/videos", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("midori_access_token") ?? ""}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch student shadowing videos: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return (json.data ?? []) as ShadowingVideoSummaryResponse[];
+  },
+
+  /**
+   * GET /api/student/shadowing/videos/{id}
+   */
+  getVideo: async (id: string): Promise<ShadowingVideoSummaryResponse> => {
+    const response = await fetch(`/api/student/shadowing/videos/${id}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("midori_access_token") ?? ""}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch student shadowing video: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return json.data as ShadowingVideoSummaryResponse;
+  },
+
+  /**
+   * GET /api/student/shadowing/videos/{id}/transcript
+   */
+  getTranscript: async (id: string): Promise<any> => {
+    const response = await fetch(`/api/student/shadowing/videos/${id}/transcript`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("midori_access_token") ?? ""}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch student shadowing transcript: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return json.data;
+  },
+};

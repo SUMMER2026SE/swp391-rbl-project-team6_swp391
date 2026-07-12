@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.AiProvider;
 import com.midori.ai.core.AiCoreService;
 import com.midori.ai.impl.GeminiProvider;
+import com.midori.ai.impl.GeminiFallbackException;
+import com.midori.ai.impl.ModelFailure;
 import com.midori.entity.*;
 import com.midori.repository.*;
 import com.midori.service.ShadowingAiProcessingService;
@@ -758,8 +760,35 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
                     .build();
             shadowingProcessingLogRepository.save(logEntity);
             log.info("[PROCESSING_LOG] step={}, status={}, message={}", step, status, message);
-        } catch (Exception e) {
-            log.error("[PIPELINE] Failed to write processing log: {}", e.getMessage());
+        } catch (Exception ex) {
+            log.warn("[PIPELINE] Failed to persist processing log: {}", ex.getMessage());
         }
+    }
+
+    private String formatErrorMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause != null && !(cause instanceof GeminiFallbackException)) {
+            cause = cause.getCause();
+        }
+
+        if (cause instanceof GeminiFallbackException gfe) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Gemini fallback exhaustion. Details:\n");
+            for (ModelFailure f : gfe.getFailures()) {
+                sb.append(String.format(" - Model: %s | Status: %s | Message: %s | Response: %s\n",
+                        f.getModel(),
+                        f.getHttpStatus() != null ? f.getHttpStatus() : "N/A",
+                        f.getErrorMessage(),
+                        f.getResponseBody() != null ? truncate(f.getResponseBody(), 250) : "N/A"));
+            }
+            return sb.toString();
+        }
+        return e.getMessage();
+    }
+
+    private String truncate(String text, int max) {
+        if (text == null) return "N/A";
+        if (text.length() <= max) return text;
+        return text.substring(0, max) + "...";
     }
 }

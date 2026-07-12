@@ -1,39 +1,41 @@
-import { useState, useEffect, useRef, Fragment } from "react";
-import { useNavigate, Link } from "@tanstack/react-router";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Search,
-  Plus,
-  Trash2,
-  Edit3,
-  Play,
-  Pause,
-  Clock,
-  Settings,
-  Eye,
-  Video,
-  Layers,
-  RefreshCw,
-  FileText,
-  CheckCircle2,
-  AlertTriangle,
-  Upload,
-  X,
-  ChevronRight,
+import * as React from "react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { 
+  Video, 
+  CheckCircle2, 
+  RefreshCw, 
+  AlertTriangle, 
+  Mic, 
+  Plus, 
+  Search, 
+  Trash2, 
+  Eye, 
+  EyeOff,
+  Layout,
+  Clock, 
+  X, 
+  Play, 
+  Pause, 
+  Upload, 
+  Volume2, 
   Info,
-  UploadCloud,
-  ArrowRight,
-  Check,
-  RotateCcw,
-  SlidersHorizontal,
+  ArrowLeft,
   Loader2,
-  LayoutGrid,
-  List,
-  Sparkles,
-  Trash,
-  Languages,
-  Save
+  Check
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectTrigger, 
+  SelectValue, 
+  SelectContent, 
+  SelectItem 
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -42,1566 +44,2173 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  type ShadowingVideo,
-  type JLPTLevel,
-  type VideoStatus,
-  type DifficultyLevel,
-  type SentenceItem
-} from "@/types/shadowing";
-import { adminShadowingApi, type ShadowingVideoUploadResponse, type ShadowingProcessingStatusResponse } from "@/lib/api/shadowing";
+import { adminShadowingApi } from "@/lib/api/shadowing";
+import { cn } from "@/lib/utils";
 
-interface AdminShadowingManagementProps {
-  defaultLevel?: JLPTLevel;
+// ─── Interfaces ──────────────────────────────────────────────────────────────
+export interface ShadowingLesson {
+  id: string;
+  title: string;
+  topic: string;
+  duration: string;
+  createdAt: string;
+  thumbnail: string;
+  status: "completed" | "processing" | "failed";
+  level: string; // "N5", "N4", "N3", etc.
+  isAiGenerated: boolean;
+  videoUrl?: string;
+  transcript?: TranscriptSegment[];
 }
 
-  // Sub-component to handle inline background polling for PROCESSING videos.
-  // Note: Log appending lives in the parent component's pollProcessingStatus.
-  // This component only tracks pipeline step progress (progress bar + stage icons).
-  function ProcessingCardContent({ video, onComplete }: { video: ShadowingVideo; onComplete: () => void }) {
-    const [progress, setProgress] = useState(0);
-    const [stages, setStages] = useState<Record<string, "waiting" | "processing" | "completed" | "failed">>({
-      download: "processing",
-      extract_audio: "waiting",
-      transcribe: "waiting",
-      translate: "waiting",
-      save_database: "waiting",
-    });
+export interface TranscriptSegment {
+  id: string;
+  startTime: number;
+  endTime: number;
+  jpText: string;
+  romaji?: string;
+  vnText: string;
+}
 
-    useEffect(() => {
-      let interval: NodeJS.Timeout;
+interface AdminShadowingManagementProps {
+  defaultLevel?: string;
+}
 
-      async function checkStatus() {
-        try {
-          const status = await adminShadowingApi.getProcessingStatus(video.id);
-          const currentStatus = status.status.toUpperCase();
+// Helper to format duration from seconds to MM:SS
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+}
 
-          if (currentStatus === "COMPLETED" || currentStatus === "READY") {
-            setProgress(100);
-            setStages({
-              download: "completed",
-              extract_audio: "completed",
-              transcribe: "completed",
-              translate: "completed",
-              save_database: "completed",
-            });
-            clearInterval(interval);
-            setTimeout(onComplete, 1000);
-            return;
-          }
+// Map backend status step name to frontend state
+function mapStepStatus(status?: string): "pending" | "processing" | "completed" | "failed" {
+  if (!status) return "pending";
+  if (status === "COMPLETED") return "completed";
+  if (status === "STARTED") return "processing";
+  if (status === "FAILED") return "failed";
+  return "pending";
+}
 
-          if (currentStatus === "FAILED") {
-            setStages(prev => {
-              const next = { ...prev };
-              const lastProcessing = Object.entries(next).find(([, v]) => v === "processing");
-              if (lastProcessing) next[lastProcessing[0]] = "failed";
-              return next;
-            });
-            clearInterval(interval);
-            setTimeout(onComplete, 500);
-            return;
-          }
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
-          if (status.currentStep) {
-            const stepUpper = status.currentStep.toUpperCase();
-            setStages(prev => {
-              const next = { ...prev };
-              switch (stepUpper) {
-                case "DOWNLOAD_VIDEO":
-                  next.download = "processing";
-                  next.extract_audio = "waiting";
-                  next.transcribe = "waiting";
-                  next.translate = "waiting";
-                  next.save_database = "waiting";
-                  setProgress(10);
-                  break;
-                case "EXTRACT_AUDIO":
-                  next.download = "completed";
-                  next.extract_audio = "processing";
-                  next.transcribe = "waiting";
-                  next.translate = "waiting";
-                  next.save_database = "waiting";
-                  setProgress(25);
-                  break;
-                case "TRANSCRIBE":
-                  next.download = "completed";
-                  next.extract_audio = "completed";
-                  next.transcribe = "processing";
-                  next.translate = "waiting";
-                  next.save_database = "waiting";
-                  setProgress(45);
-                  break;
-                case "TRANSLATE":
-                  next.download = "completed";
-                  next.extract_audio = "completed";
-                  next.transcribe = "completed";
-                  next.translate = "processing";
-                  next.save_database = "waiting";
-                  setProgress(70);
-                  break;
-                case "SAVE_DATABASE":
-                  next.download = "completed";
-                  next.extract_audio = "completed";
-                  next.transcribe = "completed";
-                  next.translate = "completed";
-                  next.save_database = "processing";
-                  setProgress(90);
-                  break;
-                case "COMPLETE":
-                  next.download = "completed";
-                  next.extract_audio = "completed";
-                  next.transcribe = "completed";
-                  next.translate = "completed";
-                  next.save_database = "completed";
-                  setProgress(100);
-                  break;
-              }
-              return next;
-            });
-          }
-        } catch (err) {
-          console.error("Error polling in card:", err);
-        }
-      }
-
-      checkStatus();
-      interval = setInterval(checkStatus, 4000);
-      return () => clearInterval(interval);
-    }, [video.id, onComplete]);
-
+// 1. Statistic Card
+export function StatisticCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  iconColor, 
+  iconBg 
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  iconColor: string;
+  iconBg: string;
+}) {
   return (
-    <div className="space-y-4 pt-2">
-      <div className="space-y-1.5">
-        <div className="flex justify-between text-xs font-bold text-foreground">
-          <span className="flex items-center gap-1">
-            <RefreshCw className="w-3 h-3 animate-spin text-primary" />
-            AI Processing pipeline
-          </span>
-          <span className="text-primary font-mono">{progress}%</span>
+    <div className="glass-card p-5 flex items-center justify-between">
+      <div className="space-y-1">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{title}</span>
+        <div className="text-2xl font-black text-primary-col">{value}</div>
+      </div>
+      <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", iconBg)}>
+        <Icon className={cn("w-5 h-5", iconColor)} />
+      </div>
+    </div>
+  );
+}
+
+// 2. Search & Filters Bar
+export function SearchBar({
+  searchQuery,
+  setSearchQuery,
+  selectedTopic,
+  setSelectedTopic,
+  selectedStatus,
+  setSelectedStatus,
+  selectedSort,
+  setSelectedSort
+}: {
+  searchQuery: string;
+  setSearchQuery: (v: string) => void;
+  selectedTopic: string;
+  setSelectedTopic: (v: string) => void;
+  selectedStatus: string;
+  setSelectedStatus: (v: string) => void;
+  selectedSort: string;
+  setSelectedSort: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-card/20 p-4 rounded-2xl border border-[var(--border)]">
+      {/* Search Input */}
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search Lesson..."
+          className="pl-9 bg-background/50 border-[var(--border)] rounded-xl h-10 w-full text-sm placeholder:text-muted-foreground/60"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* Select Dropdowns */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Topic Filter */}
+        <div className="w-full sm:w-[160px]">
+          <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+            <SelectTrigger className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm cursor-pointer">
+              <SelectValue placeholder="All Topics" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
+              <SelectItem value="all">All Topics</SelectItem>
+              <SelectItem value="Social & Business">Social & Business</SelectItem>
+              <SelectItem value="Daily Life">Daily Life</SelectItem>
+              <SelectItem value="Travel">Travel</SelectItem>
+              <SelectItem value="Academic">Academic</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden border border-[var(--border)]">
-          <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+
+        {/* Status Filter */}
+        <div className="w-full sm:w-[140px]">
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm cursor-pointer">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Sort Filter */}
+        <div className="w-full sm:w-[160px]">
+          <Select value={selectedSort} onValueChange={setSelectedSort}>
+            <SelectTrigger className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm cursor-pointer">
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="duration-asc">Duration (Short to Long)</SelectItem>
+              <SelectItem value="duration-desc">Duration (Long to Short)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 3. Shadowing Card
+export function ShadowingCard({
+  lesson,
+  onPreview,
+  onDelete
+}: {
+  lesson: ShadowingLesson;
+  onPreview: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="glass-card p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      {/* Left: Thumbnail (16:9) */}
+      <div className="relative w-full md:w-44 aspect-video rounded-2xl overflow-hidden bg-muted border border-[var(--border)] shrink-0 shadow-inner">
+        <img 
+          src={lesson.thumbnail} 
+          alt={lesson.title} 
+          className="w-full h-full object-cover select-none"
+        />
+        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/65 backdrop-blur-[2px] text-[10px] font-bold text-white flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {lesson.duration}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-muted-foreground pt-1 border-t border-[var(--border)]/60">
-        {[
-          { name: "Download Video", status: stages.download },
-          { name: "Extract Audio", status: stages.extract_audio },
-          { name: "Transcribe (Whisper)", status: stages.transcribe },
-          { name: "Translate (Gemini)", status: stages.translate },
-          { name: "Save to Database", status: stages.save_database },
-        ].map((stage, sIdx) => (
-          <div key={sIdx} className="flex items-center gap-1.5">
-            {stage.status === "completed" && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
-            {stage.status === "processing" && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />}
-            {stage.status === "waiting" && <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700 shrink-0" />}
-            {stage.status === "failed" && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
-            <span className={stage.status === "processing" ? "text-primary" : stage.status === "completed" ? "text-foreground" : ""}>
-              {stage.name}
-            </span>
+      {/* Center: Info */}
+      <div className="flex-1 min-w-0 flex flex-col justify-center space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {lesson.isAiGenerated && (
+            <Badge className="bg-primary/10 text-primary border-0 text-[10px] px-2 py-0.5 rounded-full font-black select-none hover:bg-primary/15 transition-colors">
+              AI Generated
+            </Badge>
+          )}
+          <Badge 
+            className={cn(
+              "text-[10px] px-2 py-0.5 rounded-full font-black border-0 select-none",
+              lesson.status === "completed" && "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/15",
+              lesson.status === "processing" && "bg-amber-500/10 text-amber-500 hover:bg-amber-500/15",
+              lesson.status === "failed" && "bg-rose-500/10 text-rose-500 hover:bg-rose-500/15"
+            )}
+          >
+            {lesson.status.charAt(0).toUpperCase() + lesson.status.slice(1)}
+          </Badge>
+        </div>
+        <h3 className="font-bold text-base text-primary-col truncate md:pr-4" title={lesson.title}>
+          {lesson.title}
+        </h3>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>Topic: <strong className="font-semibold text-secondary-col">{lesson.topic}</strong></span>
+          <span className="hidden sm:inline opacity-40">•</span>
+          <span>Created: {lesson.createdAt}</span>
+        </div>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex items-center justify-end gap-2 shrink-0 self-end md:self-auto w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-[var(--border)]">
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="rounded-xl h-9 px-4 font-bold border-[var(--border)] bg-background/40 hover:bg-accent text-secondary-col cursor-pointer transition flex items-center gap-1.5"
+          onClick={onPreview}
+          disabled={lesson.status !== "completed"}
+        >
+          <Eye className="w-4 h-4" />
+          Preview
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="rounded-xl h-9 w-9 p-0 hover:bg-rose-500/10 hover:text-rose-500 text-muted-foreground hover:border-0 cursor-pointer transition flex items-center justify-center"
+          onClick={onDelete}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// 4. Empty State
+export function EmptyState({ onUploadClick }: { onUploadClick: () => void }) {
+  return (
+    <div className="glass-card p-12 flex flex-col items-center justify-center text-center space-y-4 max-w-xl mx-auto mt-8">
+      <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground/60 mb-2">
+        <Mic className="w-7 h-7" />
+      </div>
+      <h3 className="text-lg font-bold text-primary-col">No Shadowing Lessons Yet</h3>
+      <p className="text-sm text-secondary-col max-w-sm">
+        Upload your first video to generate an AI Shadowing lesson.
+      </p>
+      <Button 
+        onClick={onUploadClick}
+        className="bg-gradient-to-r from-primary to-sakura text-white hover:opacity-95 rounded-xl px-5 h-10 border-0 flex items-center gap-2 cursor-pointer font-bold shadow-sm"
+      >
+        <Plus className="w-4 h-4" />
+        Upload Video
+      </Button>
+    </div>
+  );
+}
+
+// ─── Video Uploader Component ────────────────────────────────────────────────
+interface VideoUploaderProps {
+  onFileSelect: (file: File | null) => void;
+  selectedFile: File | null;
+  lessonTitle: string;
+  setLessonTitle: (v: string) => void;
+  lessonTopic: string;
+  setLessonTopic: (v: string) => void;
+  lessonDescription: string;
+  setLessonDescription: (v: string) => void;
+  isProcessing: boolean;
+  currentLevel: string;
+}
+
+export function VideoUploader({
+  onFileSelect,
+  selectedFile,
+  lessonTitle,
+  setLessonTitle,
+  lessonTopic,
+  setLessonTopic,
+  lessonDescription,
+  setLessonDescription,
+  isProcessing,
+  currentLevel
+}: VideoUploaderProps) {
+  const [isDragActive, setIsDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActive(true);
+    } else if (e.type === "dragleave") {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      validateAndSetFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      validateAndSetFile(e.target.files[0]);
+    }
+  };
+
+  const validateAndSetFile = (file: File) => {
+    const allowedExts = ["mp4", "mov", "avi"];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    
+    if (!allowedExts.includes(ext)) {
+      toast.error("Invalid file type. Only MP4, MOV, and AVI videos are supported.");
+      return;
+    }
+
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    if (file.size > maxSize) {
+      toast.error("File is too large. Maximum size allowed is 500MB.");
+      return;
+    }
+
+    onFileSelect(file);
+    if (!lessonTitle) {
+      setLessonTitle(file.name.replace(/\.[^/.]+$/, ""));
+    }
+  };
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {/* Left: Drag Drop Area */}
+      <div className="space-y-2">
+        <Label className="text-sm font-bold text-secondary-col">Upload Source Video</Label>
+        
+        {!selectedFile ? (
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "border-2 border-dashed border-[var(--border)] rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer min-h-[260px] transition-all bg-card/10 hover:bg-card/20",
+              isDragActive && "border-primary bg-primary/5 scale-[1.01]"
+            )}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept="video/mp4,video/quicktime,video/x-msvideo"
+              disabled={isProcessing}
+              onChange={handleChange}
+            />
+            <Upload className="w-10 h-10 text-muted-foreground/60 mb-3" />
+            <h4 className="text-sm font-bold text-primary-col mb-1">Drag & Drop Video Here</h4>
+            <p className="text-xs text-muted-foreground mb-4">or click to browse files</p>
+            <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-[var(--border)]">
+              MP4 • MOV • AVI • Max 500MB
+            </Badge>
           </div>
+        ) : (
+          <div className="border border-[var(--border)] bg-card/20 rounded-2xl p-5 min-h-[260px] flex flex-col justify-between">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <Video className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <h4 className="text-sm font-bold text-primary-col truncate" title={selectedFile.name}>
+                  {selectedFile.name}
+                </h4>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>Size: {formatBytes(selectedFile.size)}</span>
+                  <span>•</span>
+                  <span className="text-emerald-500 font-semibold flex items-center gap-0.5">
+                    Ready to upload
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-[var(--border)]">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onFileSelect(null)}
+                disabled={isProcessing}
+                className="rounded-xl h-9 text-xs border-[var(--border)] font-bold text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition"
+              >
+                Remove File
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right: Metadata Form */}
+      <div className="space-y-4">
+        <Label className="text-sm font-bold text-secondary-col flex items-center gap-1.5">
+          <Info className="w-4 h-4 text-primary" />
+          Lesson Metadata
+        </Label>
+        
+        <div className="glass-card p-5 space-y-4 border border-[var(--border)]">
+          {/* Lesson Title */}
+          <div className="space-y-1.5">
+            <Label htmlFor="title" className="text-xs font-bold text-muted-foreground">Lesson Title *</Label>
+            <Input
+              id="title"
+              placeholder="e.g. Intro Greeting Dialogue"
+              value={lessonTitle}
+              onChange={(e) => setLessonTitle(e.target.value)}
+              disabled={isProcessing}
+              className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm focus:ring-0"
+            />
+          </div>
+
+          {/* Topic & Level */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground">JLPT Level *</Label>
+              <Input
+                value={`${currentLevel} Level`}
+                disabled
+                className="bg-muted/30 border-[var(--border)] rounded-xl h-10 text-sm font-bold select-none cursor-not-allowed opacity-80"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground">Topic *</Label>
+              <Select value={lessonTopic} onValueChange={setLessonTopic} disabled={isProcessing}>
+                <SelectTrigger className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm cursor-pointer">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
+                  <SelectItem value="Daily Conversation">Daily Conversation</SelectItem>
+                  <SelectItem value="Social & Business">Social & Business</SelectItem>
+                  <SelectItem value="Travel">Travel</SelectItem>
+                  <SelectItem value="Academic">Academic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label htmlFor="desc" className="text-xs font-bold text-muted-foreground">Description</Label>
+            <textarea
+              id="desc"
+              placeholder="Brief lesson guidelines or notes..."
+              value={lessonDescription}
+              onChange={(e) => setLessonDescription(e.target.value)}
+              disabled={isProcessing}
+              className="w-full min-h-[90px] bg-background/50 border border-[var(--border)] rounded-xl p-3 text-sm placeholder:text-muted-foreground/60 focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Processing Progress Component ───────────────────────────────────────────
+interface ProcessingProgressProps {
+  status: "pending" | "processing" | "completed" | "failed";
+  progressPercent: number;
+  steps: {
+    id: string;
+    label: string;
+    status: "pending" | "processing" | "completed" | "failed";
+  }[];
+}
+
+export function ProcessingProgress({ status, progressPercent, steps }: ProcessingProgressProps) {
+  return (
+    <div className="space-y-6">
+      {/* Progress Bar */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+          <span>Overall Progress</span>
+          <span>{progressPercent}%</span>
+        </div>
+        <div className="w-full h-3 bg-muted/50 rounded-full overflow-hidden border border-[var(--border)] p-[1px]">
+          <div 
+            className="h-full rounded-full bg-gradient-to-r from-primary to-sakura transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stepper Pipeline (Horizontal) */}
+      <div className="flex flex-row items-start justify-between gap-1 overflow-x-auto pb-4 pt-2 min-w-full scrollbar-thin">
+        {steps.map((step, idx) => (
+          <React.Fragment key={step.id}>
+            {/* Step Element */}
+            <div className="flex flex-col items-center text-center space-y-2 min-w-[70px] flex-1">
+              {/* Step Circle */}
+              <div className="relative flex items-center justify-center">
+                {step.status === "completed" && (
+                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm">
+                    <Check className="w-4 h-4" />
+                  </div>
+                )}
+                {step.status === "processing" && (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-primary text-primary flex items-center justify-center animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </div>
+                )}
+                {step.status === "pending" && (
+                  <div className="w-8 h-8 rounded-full bg-muted border border-muted-foreground/35 flex items-center justify-center" />
+                )}
+                {step.status === "failed" && (
+                  <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center animate-bounce">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+
+              {/* Step Label */}
+              <div className="space-y-0.5">
+                <div className={cn(
+                  "text-[10px] font-black leading-tight max-w-[80px]",
+                  step.status === "completed" && "text-emerald-500",
+                  step.status === "processing" && "text-primary",
+                  step.status === "failed" && "text-rose-500",
+                  step.status === "pending" && "text-muted-foreground"
+                )}>
+                  {step.label}
+                </div>
+                <div className="text-[9px] text-muted-foreground/80 font-medium">
+                  {step.status === "completed" && "Completed"}
+                  {step.status === "processing" && "Processing"}
+                  {step.status === "pending" && "Pending"}
+                  {step.status === "failed" && "Failed"}
+                </div>
+              </div>
+            </div>
+
+            {/* Dashed Connector Line */}
+            {idx < steps.length - 1 && (
+              <div className="hidden sm:block flex-1 h-[2px] border-t-2 border-dashed border-[var(--border)] mt-4 self-start min-w-[20px]" />
+            )}
+          </React.Fragment>
         ))}
       </div>
     </div>
   );
 }
 
-export function AdminShadowingManagement({ defaultLevel }: AdminShadowingManagementProps) {
-  const navigate = useNavigate();
-  const [videos, setVideos] = useState<ShadowingVideo[]>([]);
-  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const [videoLoadError, setVideoLoadError] = useState<string | null>(null);
-  
-  // Search & Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [topicFilter, setTopicFilter] = useState<string>("all");
-  const [jlptFilter, setJlptFilter] = useState<string>("all");
+// ─── Transcript Table Component ──────────────────────────────────────────────
+interface TranscriptTableProps {
+  segments: TranscriptSegment[];
+}
 
-  // Modals & Popups
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [videoToDelete, setVideoToDelete] = useState<ShadowingVideo | null>(null);
+export function TranscriptTable({ segments }: TranscriptTableProps) {
+  return (
+    <div className="space-y-3">
+      <Label className="text-sm font-bold text-secondary-col flex items-center gap-1.5">
+        <Volume2 className="w-4 h-4 text-primary" />
+        AI Generated Transcript
+      </Label>
+      
+      <div className="glass-card overflow-hidden border border-[var(--border)] rounded-2xl">
+        <div className="max-h-[300px] overflow-y-auto scrollbar-thin">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-muted/40 border-b border-[var(--border)]">
+                <th className="p-3 text-xs font-bold text-muted-foreground w-[120px] uppercase">Time</th>
+                <th className="p-3 text-xs font-bold text-muted-foreground uppercase">Transcript</th>
+              </tr>
+            </thead>
+            <tbody>
+              {segments.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="p-8 text-center text-xs text-muted-foreground">
+                    No transcript segments found.
+                  </td>
+                </tr>
+              ) : (
+                segments.map((seg, idx) => (
+                  <tr 
+                    key={seg.id} 
+                    className={cn(
+                      "border-b border-[var(--border)] last:border-0 hover:bg-muted/10 transition-colors",
+                      idx % 2 === 1 && "bg-muted/5"
+                    )}
+                  >
+                    <td className="p-3 text-xs font-mono font-bold text-primary select-none align-top">
+                      {formatDuration(seg.startTime)}
+                    </td>
+                    <td className="p-3 space-y-1 align-top">
+                      <div className="text-sm font-bold text-primary-col leading-relaxed">
+                        {seg.jpText}
+                      </div>
+                      <div className="text-xs text-secondary-col leading-relaxed pl-2 border-l-2 border-primary/20">
+                        {seg.vnText}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  // Single-Page Workspace State
-  const [uploadStep, setUploadStep] = useState<1 | 3 | 4>(1);
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadedVideoId, setUploadedVideoId] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string>("");
+// ─── Lesson Actions Component ────────────────────────────────────────────────
+interface LessonActionsProps {
+  status: "pending" | "processing" | "completed" | "failed";
+  onPreview: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
 
-  // Metadata Fields
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [jlptLevel, setJlptLevel] = useState<JLPTLevel>(defaultLevel || "N5");
-  const [topic, setTopic] = useState("Daily Conversation");
-  const [lessonName, setLessonName] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
-  const [estimatedDuration, setEstimatedDuration] = useState("3:00");
+export function LessonActions({ status, onPreview, onSave, onCancel }: LessonActionsProps) {
+  return (
+    <div className="flex items-center justify-between border-t border-[var(--border)] pt-4 mt-6">
+      {/* Left Area: Cancel always visible */}
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onCancel}
+        className="rounded-xl h-10 px-5 border-[var(--border)] font-bold text-sm text-secondary-col bg-background/50 hover:bg-accent transition cursor-pointer"
+      >
+        Cancel
+      </Button>
 
-  // AI Pipeline Processing State
-  const [pipelineProgress, setPipelineProgress] = useState(0);
-  const [pipelineStepStatus, setPipelineStepStatus] = useState<Record<string, "waiting" | "processing" | "completed" | "failed">>({
-    download: "waiting",
-    extract_audio: "waiting",
-    transcribe: "waiting",
-    translate: "waiting",
-    save_database: "waiting",
-  });
-  const [processingLogs, setProcessingLogs] = useState<string[]>([]);
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState<number>(35);
-  const pipelineIntervalRef = useRef<NodeJS.Timeout | null>(null);
+      {/* Right Area: Preview & Save */}
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onPreview}
+          disabled={status !== "completed"}
+          className="rounded-xl h-10 px-5 border-[var(--border)] font-bold text-sm text-secondary-col bg-background/50 hover:bg-accent transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Eye className="w-4 h-4" />
+          Preview Lesson
+        </Button>
+        
+        <Button
+          type="button"
+          onClick={onSave}
+          disabled={status !== "completed"}
+          className="rounded-xl h-10 px-6 border-0 font-bold text-sm text-white bg-gradient-to-r from-primary to-sakura hover:opacity-95 shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Save Lesson
+        </Button>
+      </div>
+    </div>
+  );
+}
 
-  // Editor State
-  const [transcriptSentences, setTranscriptSentences] = useState<SentenceItem[]>([]);
-  const [subtitleLanguage, setSubtitleLanguage] = useState<"japanese" | "vietnamese">("japanese");
-  const [subtitleSearch, setSubtitleSearch] = useState("");
-  const [editingSubtitleId, setEditingSubtitleId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<{ japanese: string; vietnamese: string; startTime: number; endTime: number }>({ japanese: "", vietnamese: "", startTime: 0, endTime: 0 });
-  const uploadVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [uploadCurrentTime, setUploadCurrentTime] = useState(0);
-  const [uploadIsPlaying, setUploadIsPlaying] = useState(false);
-  const subtitleListRef = useRef<HTMLDivElement | null>(null);
+// ─── Main CreateShadowingLessonPage Sub-view ────────────────────────────────
+interface CreateShadowingLessonPageProps {
+  currentLevel: string;
+  onBack: () => void;
+  onSave: () => void;
+  onPreview: (lesson: ShadowingLesson) => void;
+}
 
-  // Load videos on mount
-  async function loadVideos() {
-    setIsLoadingVideos(true);
-    setVideoLoadError(null);
-    try {
-      const data = await adminShadowingApi.getAllVideos();
-      const mapped: ShadowingVideo[] = data.map((v: ShadowingVideoUploadResponse) => {
-        let status = (v.status || "processing").toLowerCase() as VideoStatus;
-        if (status === "ready" || status === "completed" || status === "published" || status === "draft") {
-          status = "completed";
-        } else if (status === "pending" || status === "processing") {
-          status = "processing";
-        } else {
-          status = "failed";
-        }
-        return {
-          id: v.id,
-          title: v.title,
-          description: v.description ?? "",
-          jlptLevel: (v.jlptLevel || "N5") as JLPTLevel,
-          lesson: v.lesson || "Lesson 1",
-          difficulty: (v.difficulty || "Beginner") as DifficultyLevel,
-          topic: v.topic || "Daily Conversation",
-          duration: v.duration ? `${Math.floor(v.duration / 60)}:${String(v.duration % 60).padStart(2, "0")}` : "0:00",
-          thumbnail: "",
-          status: status,
-          storagePath: v.storagePath ?? "",
-          videoUrl: v.videoUrl ?? "",
-          createdDate: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
-          updatedDate: new Date().toLocaleDateString(),
-          tags: [],
-          sentences: [],
-          sentenceCount: v.sentenceCount ?? 0,
-          statistics: {
-            totalStudents: 0,
-            completedCount: 0,
-            averageScore: 0,
-            averageCompletionTime: "0:00",
-          },
-        };
-      });
-      setVideos(mapped);
-    } catch (err) {
-      console.error("[AdminShadowing] Failed to load videos:", err);
-      setVideoLoadError(err instanceof Error ? err.message : "Failed to load videos");
-    } finally {
-      setIsLoadingVideos(false);
-    }
-  }
+export function CreateShadowingLessonPage({
+  currentLevel,
+  onBack,
+  onSave,
+  onPreview
+}: CreateShadowingLessonPageProps) {
+  // Form values
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonTopic, setLessonTopic] = useState("");
+  const [lessonDescription, setLessonDescription] = useState("");
+  const [lessonLevel, setLessonLevel] = useState(currentLevel);
+  const [lessonDifficulty, setLessonDifficulty] = useState("MEDIUM");
 
+  // Processing States
+  const [pipelineStatus, setPipelineStatus] = useState<"pending" | "processing" | "completed" | "failed">("pending");
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [newLessonData, setNewLessonData] = useState<ShadowingLesson | null>(null);
+  const [videoId, setVideoId] = useState<string | null>(null);
+
+  // Pagination & Tabs for transcript table
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<"jp" | "vn">("jp");
+  const itemsPerPage = 5;
+
+  const [steps, setSteps] = useState([
+    { id: "upload", label: "Upload Video", status: "pending" as const },
+    { id: "audio", label: "Extract Audio", status: "pending" as const },
+    { id: "speech", label: "Speech Recognition", status: "pending" as const },
+    { id: "jp", label: "Generate Japanese Transcript", status: "pending" as const },
+    { id: "vn", label: "Translate to Vietnamese", status: "pending" as const },
+    { id: "split", label: "Split Sentences", status: "pending" as const },
+    { id: "db", label: "Save Database", status: "pending" as const },
+    { id: "ready", label: "Ready", status: "pending" as const }
+  ]);
+
+  // Poll status from the backend using real API client
   useEffect(() => {
-    loadVideos();
-  }, []);
+    if (!videoId || pipelineStatus !== "processing") return;
 
-  // Filter & Sort
-  const filteredVideos = videos
-    .filter((vid) => {
-      const matchesSearch =
-        vid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vid.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vid.lesson.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesTopic = topicFilter === "all" || vid.topic === topicFilter;
-      const matchesJlpt = jlptFilter === "all" || vid.jlptLevel === jlptFilter;
-      return matchesSearch && matchesTopic && matchesJlpt;
-    })
-    .sort((a, b) => {
-      return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
-    });
+    const interval = setInterval(async () => {
+      try {
+        const fresh = await adminShadowingApi.getProcessingStatus(videoId);
+        
+        // Map logs to checklist steps
+        const logMap = new Map<string, string>();
+        if (fresh.logs) {
+          fresh.logs.forEach(log => {
+            logMap.set(log.step, log.status);
+          });
+        }
 
-  const loadSentencesForEdit = async (videoId: string) => {
+        const updatedSteps = [
+          { 
+            id: "upload", 
+            label: "Upload Video", 
+            status: "completed" as const 
+          },
+          { 
+            id: "audio", 
+            label: "Extract Audio", 
+            status: mapStepStatus(logMap.get("EXTRACT_AUDIO")) 
+          },
+          { 
+            id: "speech", 
+            label: "Speech Recognition", 
+            status: mapStepStatus(logMap.get("TRANSCRIBE")) 
+          },
+          { 
+            id: "jp", 
+            label: "Generate Japanese Transcript", 
+            status: mapStepStatus(logMap.get("TRANSCRIBE")) 
+          },
+          { 
+            id: "vn", 
+            label: "Translate to Vietnamese", 
+            status: mapStepStatus(logMap.get("TRANSLATE")) 
+          },
+          { 
+            id: "split", 
+            label: "Split Sentences", 
+            status: mapStepStatus(logMap.get("TRANSLATE") === "COMPLETED" ? (logMap.get("SAVE_DATABASE") || "STARTED") : "PENDING") 
+          },
+          { 
+            id: "db", 
+            label: "Save Database", 
+            status: mapStepStatus(logMap.get("SAVE_DATABASE")) 
+          },
+          { 
+            id: "ready", 
+            label: "Ready", 
+            status: fresh.status === "COMPLETED" ? ("completed" as const) : ("pending" as const)
+          }
+        ];
+
+        setSteps(updatedSteps);
+
+        // Calculate progress percentage
+        const completedCount = updatedSteps.filter(s => s.status === "completed").length;
+        
+        let percent = 0;
+        if (completedCount <= 1) percent = 12.5;
+        else if (completedCount === 2) percent = 25;
+        else if (completedCount === 3) percent = 37.5;
+        else if (completedCount === 4) percent = 50;
+        else if (completedCount === 5) percent = 62.5;
+        else if (completedCount === 6) percent = 75;
+        else if (completedCount === 7) percent = 87.5;
+        else if (completedCount === 8) percent = 100;
+
+        setProgressPercent(percent);
+
+        if (fresh.status === "COMPLETED") {
+          clearInterval(interval);
+          setPipelineStatus("completed");
+          toast.success("AI Shadowing lesson created successfully!");
+          fetchTranscript(videoId);
+        } else if (fresh.status === "FAILED") {
+          clearInterval(interval);
+          setPipelineStatus("failed");
+          toast.error("AI pipeline processing failed: " + (fresh.errorMessage || "Unknown error"));
+        }
+      } catch (err: any) {
+        console.error("Error fetching status from backend: ", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [videoId, pipelineStatus]);
+
+  // Fetch the real transcript segments after completed
+  const fetchTranscript = async (id: string) => {
     try {
-      setIsLoadingVideos(true);
-      const res = await fetch(`/api/student/shadowing/videos/${videoId}/transcript`, {
+      const res = await fetch(`/api/student/shadowing/videos/${id}/transcript`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("midori_access_token") ?? ""}`,
         },
       });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data && json.data.segments) {
-          const mappedSentences = json.data.segments.map((s: any) => ({
-            id: s.id.toString(),
-            startTime: s.startTime,
-            endTime: s.endTime,
-            japanese: s.jpText || "",
-            vietnamese: s.vnText || ""
-          }));
-          setTranscriptSentences(mappedSentences);
-        }
+
+      if (!res.ok) {
+        throw new Error(`Failed to load transcript: ${res.status}`);
       }
-      setUploadStep(4);
-      setIsUploadOpen(true);
-    } catch (e) {
-      console.error("Failed to load sentences for edit:", e);
-    } finally {
-      setIsLoadingVideos(false);
-    }
-  };
 
-  // Delete video Action
-  const handleDeleteConfirm = async () => {
-    if (videoToDelete) {
-      try {
-        await adminShadowingApi.deleteVideo(videoToDelete.id);
-        setVideos(prev => prev.filter(v => v.id !== videoToDelete.id));
-        setVideoToDelete(null);
-      } catch (err) {
-        console.error("Failed to delete video:", err);
-        alert("Xóa video thất bại. Vui lòng thử lại.");
-      }
-    }
-  };
-
-
-
-  // Handle source file selection
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setUploadedFile({ name: file.name, size: (file.size / (1024 * 1024)).toFixed(2) + " MB" });
-      setUploadError(null);
-      setIsUploading(true);
-      setUploadProgress(0);
-
-      try {
-        const formData = new FormData();
-        formData.append("title", file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " "));
-        formData.append("description", "");
-        formData.append("video", file);
-
-        const result = await adminShadowingApi.uploadVideo(formData);
-        setUploadedVideoId(result.id);
-        setVideoUrl(result.videoUrl ?? "");
-        setTitle(result.title ?? file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " "));
-        setUploadProgress(100);
-      } catch (err) {
-        console.error("[AdminShadowing] Upload failed:", err);
-        setUploadError(err instanceof Error ? err.message : "Upload failed. Check backend logs.");
-        setUploadedFile(null);
-        setUploadedVideoId(null);
-      } finally {
-        setIsUploading(false);
-      }
-    }
-  };
-
-  // Track seen log IDs to prevent duplicate frontend rendering.
-  // Each poll returns the FULL log array. Without ID tracking, the frontend
-  // generates a NEW timestamped string each poll from the same backend log row,
-  // causing the string comparison to fail and appending duplicates every 3s.
-  const seenLogIds = useRef<Set<string>>(new Set());
-
-  const pollProcessingStatus = (videoId: string) => {
-    if (pipelineIntervalRef.current) clearInterval(pipelineIntervalRef.current);
-    // Reset seen IDs when starting a new polling session (e.g., regenerate).
-    seenLogIds.current = new Set();
-
-    pipelineIntervalRef.current = setInterval(async () => {
-      try {
-        const status = await adminShadowingApi.getProcessingStatus(videoId);
-        const currentStatus = status.status.toUpperCase();
-
-        setPipelineProgress(prev => {
-          if (currentStatus === "COMPLETED") return 100;
-          if (currentStatus === "FAILED") return prev;
-          if (status.currentStep) {
-            const stepUpper = status.currentStep.toUpperCase();
-            switch (stepUpper) {
-              case "DOWNLOAD_VIDEO": return Math.min(prev, 15);
-              case "EXTRACT_AUDIO": return Math.min(prev, 30);
-              case "TRANSCRIBE": return Math.min(prev, 55);
-              case "TRANSLATE": return Math.min(prev, 80);
-              case "SAVE_DATABASE": return Math.min(prev, 95);
-              case "COMPLETE": return 100;
-            }
-          }
-          return Math.min(prev + 3, 90);
+      const json = await res.json();
+      if (json.data && json.data.segments) {
+        const segments: TranscriptSegment[] = json.data.segments.map((s: any) => ({
+          id: s.id.toString(),
+          startTime: s.startTime,
+          endTime: s.endTime,
+          jpText: s.jpText || "",
+          romaji: s.romaji || "",
+          vnText: s.vnText || ""
+        }));
+        
+        setNewLessonData(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            status: "completed" as const,
+            transcript: segments
+          };
         });
-
-        // Only append logs that haven't been seen before.
-        // Use log.id (UUID) as the deduplication key — not the generated
-        // display string — so that re-polling the same log row does NOT
-        // produce a new entry even when toLocaleTimeString() differs.
-        for (const log of status.logs ?? []) {
-          if (!seenLogIds.current.has(log.id)) {
-            seenLogIds.current.add(log.id);
-            setProcessingLogs(logs => {
-              const newLog = `[${new Date().toLocaleTimeString()}] ${log.step}: ${log.errorMessage ?? log.status}`;
-              return [...logs, newLog];
-            });
-          }
-        }
-
-        if (status.currentStep) {
-          const stepUpper = status.currentStep.toUpperCase();
-          const isFailed = currentStatus === "FAILED";
-
-          setPipelineStepStatus(prev => {
-            const next = { ...prev };
-            switch (stepUpper) {
-              case "DOWNLOAD_VIDEO":
-                next.download = isFailed ? "failed" : "processing";
-                break;
-              case "EXTRACT_AUDIO":
-                next.download = "completed";
-                next.extract_audio = isFailed ? "failed" : "processing";
-                break;
-              case "TRANSCRIBE":
-                next.download = "completed";
-                next.extract_audio = "completed";
-                next.transcribe = isFailed ? "failed" : "processing";
-                break;
-              case "TRANSLATE":
-                next.download = "completed";
-                next.extract_audio = "completed";
-                next.transcribe = "completed";
-                next.translate = isFailed ? "failed" : "processing";
-                break;
-              case "SAVE_DATABASE":
-                next.download = "completed";
-                next.extract_audio = "completed";
-                next.transcribe = "completed";
-                next.translate = "completed";
-                next.save_database = isFailed ? "failed" : "processing";
-                break;
-              case "COMPLETE":
-                next.download = "completed";
-                next.extract_audio = "completed";
-                next.transcribe = "completed";
-                next.translate = "completed";
-                next.save_database = isFailed ? "failed" : "completed";
-                break;
-            }
-            return next;
-          });
-        }
-
-        if (currentStatus === "COMPLETED") {
-          clearInterval(pipelineIntervalRef.current!);
-          setPipelineStepStatus({
-            download: "completed",
-            extract_audio: "completed",
-            transcribe: "completed",
-            translate: "completed",
-            save_database: "completed"
-          });
-          setPipelineProgress(100);
-          setProcessingLogs(logs => [...logs, `[${new Date().toLocaleTimeString()}] Pipeline completed successfully.`]);
-
-          // Fetch segments to show in workspace
-          try {
-            const res = await fetch(`/api/student/shadowing/videos/${videoId}/transcript`, {
-              method: "GET",
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("midori_access_token") ?? ""}`,
-              },
-            });
-            if (res.ok) {
-              const json = await res.json();
-              if (json.data && json.data.segments) {
-                const mappedSentences = json.data.segments.map((s: any) => ({
-                  id: s.id.toString(),
-                  startTime: s.startTime,
-                  endTime: s.endTime,
-                  japanese: s.jpText || "",
-                  vietnamese: s.vnText || ""
-                }));
-                setTranscriptSentences(mappedSentences);
-              }
-            }
-          } catch (e) {
-            console.error("Failed to load final sentences:", e);
-          }
-
-          setTimeout(() => setUploadStep(4), 1000);
-        } else if (currentStatus === "FAILED") {
-          clearInterval(pipelineIntervalRef.current!);
-          setProcessingLogs(logs => [...logs, `[${new Date().toLocaleTimeString()}] Pipeline FAILED: ${status.errorMessage ?? "Unknown error"}`]);
-        }
-      } catch (err) {
-        console.error("[AdminShadowing] Polling error:", err);
       }
-    }, 3000);
-  };
-
-  const handleFinishWizard = async (publishStatus: VideoStatus) => {
-    if (uploadedVideoId) {
-      try {
-        const updatePayload = {
-          title,
-          description,
-          jlptLevel,
-          difficulty: "Beginner",
-          lesson: lessonName || "Lesson 1",
-          topic,
-          status: publishStatus,
-          sentences: transcriptSentences.map(s => ({
-            startTime: s.startTime,
-            endTime: s.endTime,
-            jpText: s.japanese,
-            vnText: s.vietnamese
-          }))
-        };
-        await adminShadowingApi.updateVideo(uploadedVideoId, updatePayload);
-        await loadVideos();
-
-        setIsUploadOpen(false);
-        setUploadStep(1);
-        setUploadedFile(null);
-        setVideoUrl("");
-        setTitle("");
-        setDescription("");
-        setJlptLevel("N5");
-        setTopic("Daily Conversation");
-        setTagsInput("");
-        setUploadedVideoId(null);
-        setTranscriptSentences([]);
-      } catch (err) {
-        console.error("[AdminShadowing] Failed to save video details:", err);
-      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Could not fetch transcript segments.");
     }
   };
 
-  // Interactive Editor Action Helpers
-  const handleAddSentence = () => {
-    const newId = Math.random().toString(36).substr(2, 9);
-    setTranscriptSentences(prev => [
-      ...prev,
-      { id: newId, startTime: 0, endTime: 5, japanese: "日本語の文", vietnamese: "Câu dịch mới." }
+  const handleGenerateTranscript = async () => {
+    if (!selectedFile) return;
+
+    setPipelineStatus("processing");
+    setProgressPercent(12.5);
+    setSteps([
+      { id: "upload", label: "Upload Video", status: "completed" as const },
+      { id: "audio", label: "Extract Audio", status: "processing" as const },
+      { id: "speech", label: "Speech Recognition", status: "pending" as const },
+      { id: "jp", label: "Generate Japanese Transcript", status: "pending" as const },
+      { id: "vn", label: "Translate to Vietnamese", status: "pending" as const },
+      { id: "split", label: "Split Sentences", status: "pending" as const },
+      { id: "db", label: "Save Database", status: "pending" as const },
+      { id: "ready", label: "Ready", status: "pending" as const }
     ]);
-  };
 
-  const handleDeleteSentence = (id: string) => {
-    setTranscriptSentences(prev => prev.filter(s => s.id !== id));
-  };
+    const toastId = toast.loading("Uploading video and starting AI pipeline...");
+    try {
+      const formData = new FormData();
+      formData.append("title", lessonTitle.trim());
+      formData.append("description", lessonDescription.trim() || `Shadowing lesson for ${lessonLevel}`);
+      formData.append("video", selectedFile);
 
-  const handleMergeWithNext = (index: number) => {
-    if (index >= transcriptSentences.length - 1) return;
-    const current = transcriptSentences[index];
-    const next = transcriptSentences[index + 1];
-    const merged = {
-      ...current,
-      endTime: next.endTime,
-      japanese: current.japanese + " " + next.japanese,
-      vietnamese: current.vietnamese + " " + next.vietnamese
-    };
-    setTranscriptSentences(prev => {
-      const copy = [...prev];
-      copy.splice(index, 2, merged);
-      return copy;
-    });
-  };
+      // 1. Upload Video via real backend service client
+      const uploadedVideo = await adminShadowingApi.uploadVideo(formData);
+      
+      // 2. Update level, topic, and difficulty via real backend update API
+      await adminShadowingApi.updateVideo(uploadedVideo.id, {
+        jlptLevel: lessonLevel,
+        topic: lessonTopic,
+        difficulty: lessonDifficulty,
+        description: lessonDescription
+      });
 
-  const handleSplitSentence = (index: number) => {
-    const current = transcriptSentences[index];
-    const midTime = Math.round((current.startTime + current.endTime) / 2);
-    const first = {
-      ...current,
-      id: Math.random().toString(36).substr(2, 9),
-      endTime: midTime
-    };
-    const second = {
-      ...current,
-      id: Math.random().toString(36).substr(2, 9),
-      startTime: midTime
-    };
-    setTranscriptSentences(prev => {
-      const copy = [...prev];
-      copy.splice(index, 1, first, second);
-      return copy;
-    });
-  };
-
-  const seekVideoTo = (time: number) => {
-    if (uploadVideoRef.current) {
-      uploadVideoRef.current.currentTime = time;
-      uploadVideoRef.current.play();
-    } else {
-      const video = document.getElementById("edit-video-player") as HTMLVideoElement;
-      if (video) {
-        video.currentTime = time;
-        video.play();
-      }
+      toast.success("Video uploaded successfully. AI processing started!", { id: toastId });
+      
+      setVideoId(uploadedVideo.id);
+      
+      setNewLessonData({
+        id: uploadedVideo.id,
+        title: lessonTitle.trim(),
+        topic: lessonTopic,
+        duration: "00:00",
+        createdAt: new Date().toISOString().replace("T", " ").substring(0, 16),
+        thumbnail: lessonTopic === "Social & Business" 
+          ? "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=400&q=80"
+          : lessonTopic === "Travel"
+          ? "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=400&q=80"
+          : "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80",
+        status: "processing",
+        level: lessonLevel,
+        isAiGenerated: true,
+        videoUrl: uploadedVideo.videoUrl || undefined,
+        transcript: []
+      });
+    } catch (err: any) {
+      setPipelineStatus("failed");
+      toast.error(err.message || "Failed to start AI processing", { id: toastId });
     }
   };
 
-  // Active subtitle detection based on current playback time
-  const activeUploadSubtitle = transcriptSentences.find(
-    s => uploadCurrentTime >= s.startTime && uploadCurrentTime < s.endTime
+  const handleSave = () => {
+    if (newLessonData) {
+      onSave();
+    }
+  };
+
+  const handlePreview = () => {
+    if (newLessonData) {
+      onPreview(newLessonData);
+    }
+  };
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const [isDragActive, setIsDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActive(true);
+    } else if (e.type === "dragleave") {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      validateAndSetFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      validateAndSetFile(e.target.files[0]);
+    }
+  };
+
+  const validateAndSetFile = (file: File) => {
+    const allowedExts = ["mp4", "mov", "avi", "webm"];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    
+    if (!allowedExts.includes(ext)) {
+      toast.error("Invalid file type. Only MP4, MOV, WebM, and AVI videos are supported.");
+      return;
+    }
+
+    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+    if (file.size > maxSize) {
+      toast.error("File is too large. Maximum size allowed is 2GB.");
+      return;
+    }
+
+    setSelectedFile(file);
+    if (!lessonTitle) {
+      setLessonTitle(file.name.replace(/\.[^/.]+$/, ""));
+    }
+  };
+
+  // Pagination math
+  const totalItems = newLessonData?.transcript?.length || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const paginatedSegments = newLessonData?.transcript?.slice(startIndex, endIndex) || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-black text-primary-col flex items-center gap-2">
+            <span className="text-primary font-bold">✨</span> Create Shadowing Lesson
+          </h1>
+          <p className="text-sm text-secondary-col mt-0.5">
+            Upload a video, configure lesson information and generate AI subtitles automatically.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 self-end md:self-auto shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            className="rounded-xl h-10 px-5 border-[var(--border)] font-bold text-sm text-secondary-col bg-background/50 hover:bg-accent transition cursor-pointer"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={pipelineStatus !== "completed"}
+            className="rounded-xl h-10 px-6 border-0 font-bold text-sm text-white bg-gradient-to-r from-primary to-sakura hover:opacity-95 shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Create Lesson
+          </Button>
+        </div>
+      </div>
+
+      {/* 1. Lesson Information Section */}
+      <div className="glass-card p-6 space-y-4 border border-[var(--border)]">
+        <h3 className="text-base font-bold text-primary-col flex items-center gap-2">
+          <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black">
+            1
+          </span>
+          Lesson Information
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Lesson Title */}
+          <div className="space-y-1.5">
+            <Label htmlFor="title" className="text-xs font-bold text-muted-foreground">Lesson Title *</Label>
+            <Input
+              id="title"
+              placeholder="e.g. Daily Conversation at Cafe"
+              value={lessonTitle}
+              onChange={(e) => setLessonTitle(e.target.value)}
+              disabled={pipelineStatus !== "pending"}
+              className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm focus:ring-0"
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label htmlFor="desc" className="text-xs font-bold text-muted-foreground">Description (Optional)</Label>
+            <Input
+              id="desc"
+              placeholder="Enter a short description about this lesson..."
+              value={lessonDescription}
+              onChange={(e) => setLessonDescription(e.target.value)}
+              disabled={pipelineStatus !== "pending"}
+              className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm focus:ring-0"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* JLPT Level */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground">JLPT Level *</Label>
+            <Select 
+              value={lessonLevel} 
+              onValueChange={setLessonLevel} 
+              disabled={pipelineStatus !== "pending"}
+            >
+              <SelectTrigger className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
+                <SelectItem value="N5">N5</SelectItem>
+                <SelectItem value="N4">N4</SelectItem>
+                <SelectItem value="N3">N3</SelectItem>
+                <SelectItem value="N2">N2</SelectItem>
+                <SelectItem value="N1">N1</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Topic */}
+          <div className="space-y-1.5">
+            <Label htmlFor="topic" className="text-xs font-bold text-muted-foreground">Topic *</Label>
+            <Input
+              id="topic"
+              placeholder="e.g. Daily Conversation, Travel"
+              value={lessonTopic}
+              onChange={(e) => setLessonTopic(e.target.value)}
+              disabled={pipelineStatus !== "pending"}
+              className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm focus:ring-0"
+            />
+          </div>
+
+          {/* Estimated Difficulty */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-muted-foreground">Estimated Difficulty *</Label>
+            <Select 
+              value={lessonDifficulty} 
+              onValueChange={setLessonDifficulty} 
+              disabled={pipelineStatus !== "pending"}
+            >
+              <SelectTrigger className="bg-background/50 border-[var(--border)] rounded-xl h-10 text-sm cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
+                <SelectItem value="EASY">Easy</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HARD">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* 2 & 3. 2-Column Section: Video Upload & AI Processing */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* Column 1: Video Upload */}
+        <div className="glass-card p-6 border border-[var(--border)] flex flex-col justify-between space-y-4">
+          <h3 className="text-base font-bold text-primary-col flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black">
+              2
+            </span>
+            Video Upload
+          </h3>
+          
+          {!selectedFile ? (
+            <div
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "border-2 border-dashed border-[var(--border)] rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer min-h-[220px] transition-all bg-card/10 hover:bg-card/20",
+                isDragActive && "border-primary bg-primary/5 scale-[1.01]"
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="video/mp4,video/quicktime,video/x-msvideo,video/webm"
+                disabled={pipelineStatus !== "pending"}
+                onChange={handleChange}
+              />
+              <Upload className="w-10 h-10 text-muted-foreground/60 mb-3" />
+              <h4 className="text-sm font-bold text-primary-col mb-1">Drag & Drop your video here</h4>
+              <p className="text-xs text-muted-foreground mb-4">or <span className="text-primary font-semibold">browse your computer</span></p>
+              <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-[var(--border)]">
+                MP4 • MOV • WebM • AVI • Max 2GB • Max duration: 60 min
+              </Badge>
+            </div>
+          ) : (
+            <div className="border border-[var(--border)] bg-card/20 rounded-2xl p-5 min-h-[220px] flex flex-col justify-between">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <Video className="w-6 h-6" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h4 className="text-sm font-bold text-primary-col truncate" title={selectedFile.name}>
+                    {selectedFile.name}
+                  </h4>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>Size: {formatBytes(selectedFile.size)}</span>
+                    <span>•</span>
+                    <span className="text-emerald-500 font-semibold flex items-center gap-0.5">
+                      Ready to upload
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t border-[var(--border)] gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedFile(null)}
+                  disabled={pipelineStatus !== "pending"}
+                  className="rounded-xl h-9 text-xs border-[var(--border)] font-bold text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition"
+                >
+                  Delete
+                </Button>
+                <Button
+                  type="button"
+                  disabled={pipelineStatus !== "pending" || !selectedFile || !lessonTitle.trim()}
+                  onClick={handleGenerateTranscript}
+                  className="bg-gradient-to-r from-primary to-sakura text-white hover:opacity-95 border-0 rounded-xl font-bold h-9 px-4 text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {pipelineStatus === "processing" ? "Processing..." : "Generate Transcript"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Column 2: AI Processing */}
+        <div className="glass-card p-6 border border-[var(--border)] flex flex-col justify-between space-y-4">
+          <h3 className="text-base font-bold text-primary-col flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black">
+              3
+            </span>
+            AI Processing
+          </h3>
+
+          {pipelineStatus === "pending" ? (
+            <div className="flex flex-col items-center justify-center text-center text-muted-foreground py-10 min-h-[220px]">
+              <RefreshCw className="w-8 h-8 opacity-30 mb-2 animate-pulse" />
+              <span className="text-xs">AI pipeline will start after video upload.</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <ProcessingProgress
+                status={pipelineStatus}
+                progressPercent={progressPercent}
+                steps={steps}
+              />
+              {pipelineStatus === "completed" && (
+                <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3.5 mt-2">
+                  <div className="text-left space-y-1">
+                    <span className="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
+                      <Check className="w-4 h-4" />
+                      AI processing completed successfully!
+                    </span>
+                    <p className="text-[10px] text-muted-foreground pl-5">
+                      Total: {totalItems} sentences • {newLessonData?.duration || "00:00"} duration
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. Generated Transcripts Section */}
+      {pipelineStatus === "completed" && (
+        <div className="glass-card p-6 border border-[var(--border)] mt-6 space-y-6">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--border)] pb-3 gap-2">
+            <h3 className="text-base font-bold text-primary-col flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black">
+                4
+              </span>
+              Generated Transcripts
+            </h3>
+            
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-muted-foreground">
+                Total: {totalItems} sentences
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePreview}
+                className="bg-primary/10 hover:bg-primary/15 text-primary border-primary/20 rounded-xl h-9 px-4 font-bold flex items-center gap-1.5 transition cursor-pointer text-xs"
+              >
+                <Eye className="w-4 h-4" />
+                Preview
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSave}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 rounded-xl h-9 px-4 font-bold flex items-center gap-1.5 transition cursor-pointer text-xs shadow-sm"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex border-b border-[var(--border)] gap-4">
+            <button
+              onClick={() => { setActiveTab("jp"); setCurrentPage(1); }}
+              className={cn(
+                "pb-2 text-xs font-bold transition-all relative cursor-pointer",
+                activeTab === "jp"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-primary-col"
+              )}
+            >
+              Japanese Transcript
+            </button>
+            <button
+              onClick={() => { setActiveTab("vn"); setCurrentPage(1); }}
+              className={cn(
+                "pb-2 text-xs font-bold transition-all relative cursor-pointer",
+                activeTab === "vn"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-primary-col"
+              )}
+            >
+              Vietnamese Translation
+            </button>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-hidden border border-[var(--border)] rounded-2xl bg-card/10">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-muted/40 border-b border-[var(--border)]">
+                  <th className="p-3 text-[10px] font-black text-muted-foreground uppercase w-[60px]">#</th>
+                  <th className="p-3 text-[10px] font-black text-muted-foreground uppercase w-[100px]">Start Time</th>
+                  <th className="p-3 text-[10px] font-black text-muted-foreground uppercase w-[100px]">End Time</th>
+                  <th className="p-3 text-[10px] font-black text-muted-foreground uppercase">
+                    {activeTab === "jp" ? "Japanese (Original)" : "Vietnamese (Translation)"}
+                  </th>
+                  <th className="p-3 text-[10px] font-black text-muted-foreground uppercase w-[120px] text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedSegments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-xs text-muted-foreground">
+                      No transcript segments found.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedSegments.map((seg, idx) => {
+                    const originalIndex = startIndex + idx + 1;
+                    return (
+                      <tr 
+                        key={seg.id} 
+                        className="border-b border-[var(--border)] last:border-0 hover:bg-muted/5 transition-colors"
+                      >
+                        <td className="p-3 text-xs font-mono font-bold text-muted-foreground">
+                          {originalIndex}
+                        </td>
+                        <td className="p-3 text-xs font-mono font-bold text-primary">
+                          {formatDuration(seg.startTime)}
+                        </td>
+                        <td className="p-3 text-xs font-mono font-bold text-primary">
+                          {formatDuration(seg.endTime)}
+                        </td>
+                        <td className="p-3 py-4 space-y-1 align-middle">
+                          {activeTab === "jp" ? (
+                            <>
+                              <div className="text-sm font-bold text-primary-col leading-relaxed">
+                                {seg.jpText}
+                              </div>
+                              {seg.romaji && (
+                                <div className="text-[10px] text-muted-foreground leading-relaxed font-semibold">
+                                  {seg.romaji}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-sm font-medium text-secondary-col leading-relaxed">
+                              {seg.vnText}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 align-middle text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Play Row Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handlePreview}
+                              className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-accent text-secondary-col cursor-pointer transition flex items-center justify-center"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                            </Button>
+                            {/* View Row Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handlePreview}
+                              className="rounded-xl h-8 w-8 p-0 border-[var(--border)] hover:bg-accent text-secondary-col cursor-pointer transition flex items-center justify-center"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-[var(--border)] pt-4 mt-4">
+              <div className="text-xs text-muted-foreground font-semibold">
+                Showing {startIndex + 1} to {endIndex} of {totalItems} sentences
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="rounded-xl h-8 w-8 p-0 cursor-pointer disabled:opacity-40"
+                >
+                  &lt;
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum = i + 1;
+                  if (currentPage > 3 && totalPages > 5) {
+                    pageNum = currentPage - 3 + i;
+                    if (pageNum + (4 - i) > totalPages) {
+                      pageNum = totalPages - 4 + i;
+                    }
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={cn(
+                        "rounded-xl h-8 w-8 p-0 font-bold text-xs cursor-pointer",
+                        currentPage === pageNum && "bg-primary text-white"
+                      )}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <span className="text-xs text-muted-foreground px-1">...</span>
+                )}
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    className={cn(
+                      "rounded-xl h-8 w-8 p-0 font-bold text-xs cursor-pointer",
+                      currentPage === totalPages && "bg-primary text-white"
+                    )}
+                  >
+                    {totalPages}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="rounded-xl h-8 w-8 p-0 cursor-pointer disabled:opacity-40"
+                >
+                  &gt;
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main PreviewShadowingLessonPage Sub-view ───────────────────────────────
+interface PreviewShadowingLessonPageProps {
+  lesson: ShadowingLesson;
+  onBack: () => void;
+}
+
+export function PreviewShadowingLessonPage({
+  lesson,
+  onBack
+}: PreviewShadowingLessonPageProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [langFilter, setLangFilter] = useState<"jp" | "vi" | "both">("both");
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
+  const [transcriptEnabled, setTranscriptEnabled] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const activeSentenceRef = useRef<HTMLDivElement | null>(null);
+
+  // Monitor fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFull = !!(
+        document.fullscreenElement ||
+        (videoRef.current && (videoRef.current as any).webkitDisplayingFullscreen)
+      );
+      setIsFullscreen(isFull);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  // Re-build text track cues dynamically for native fullscreen mode
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !lesson.transcript || lesson.transcript.length === 0) return;
+
+    let track = Array.from(video.textTracks).find(t => t.label === "midori-subs");
+    if (!track) {
+      track = video.addTextTrack("subtitles", "midori-subs", "vi");
+    }
+
+    // Native subtitles showing only when enabled AND video is in fullscreen.
+    // When windowed, our custom React subtitle overlay is used instead to avoid double subs.
+    track.mode = (subtitlesEnabled && isFullscreen) ? "showing" : "disabled";
+
+    if (track.cues) {
+      const cuesArray = Array.from(track.cues);
+      cuesArray.forEach(cue => {
+        track!.removeCue(cue);
+      });
+    }
+
+    if (subtitlesEnabled) {
+      const CueClass = window.VTTCue || window.TextTrackCue;
+      if (CueClass) {
+        lesson.transcript.forEach(s => {
+          let text = "";
+          if (langFilter === "jp") text = s.jpText;
+          else if (langFilter === "vi") text = s.vnText;
+          else text = `${s.jpText}\n${s.vnText}`;
+
+          try {
+            const cue = new CueClass(s.startTime, s.endTime, text);
+            track!.addCue(cue);
+          } catch (e) {
+            console.error("Error creating cue:", e);
+          }
+        });
+      }
+    }
+  }, [lesson.transcript, subtitlesEnabled, langFilter, isFullscreen]);
+
+  // Auto-scroll logic
+  useEffect(() => {
+    if (activeSentenceRef.current) {
+      activeSentenceRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+      });
+    }
+  }, [currentTime]);
+
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    setCurrentTime(e.currentTarget.currentTime);
+  };
+
+  const handleSentenceClick = (s: TranscriptSegment) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = s.startTime;
+      setCurrentTime(s.startTime);
+    }
+  };
+
+  const activeSubtitle = lesson.transcript?.find(
+    s => currentTime >= s.startTime && currentTime < s.endTime
   );
 
-  // Auto-scroll to active subtitle
-  useEffect(() => {
-    if (activeUploadSubtitle && subtitleListRef.current) {
-      const el = subtitleListRef.current.querySelector(`[data-subtitle-id="${activeUploadSubtitle.id}"]`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const getCurrentSentenceIndex = () => {
+    if (!lesson.transcript || lesson.transcript.length === 0) return -1;
+    const idx = lesson.transcript.findIndex(
+      s => currentTime >= s.startTime && currentTime < s.endTime
+    );
+    if (idx !== -1) return idx;
+    for (let i = lesson.transcript.length - 1; i >= 0; i--) {
+      if (currentTime >= lesson.transcript[i].startTime) {
+        return i;
+      }
     }
-  }, [activeUploadSubtitle?.id]);
-
-  // Format seconds to MM:SS
-  const formatTimestamp = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    return 0;
   };
 
-  // Inline editing helpers
-  const startEditing = (sen: SentenceItem) => {
-    setEditingSubtitleId(sen.id);
-    setEditDraft({ japanese: sen.japanese, vietnamese: sen.vietnamese, startTime: sen.startTime, endTime: sen.endTime });
+  const currentIndex = getCurrentSentenceIndex();
+  const currentSentence = currentIndex !== -1 && lesson.transcript 
+    ? lesson.transcript[currentIndex] 
+    : null;
+
+  const handlePrevSentence = () => {
+    if (!lesson.transcript || currentIndex <= 0) return;
+    const prevSeg = lesson.transcript[currentIndex - 1];
+    if (videoRef.current) {
+      videoRef.current.currentTime = prevSeg.startTime;
+      setCurrentTime(prevSeg.startTime);
+    }
   };
 
-  const saveEditing = () => {
-    if (!editingSubtitleId) return;
-    setTranscriptSentences(prev => prev.map(s =>
-      s.id === editingSubtitleId
-        ? { ...s, japanese: editDraft.japanese, vietnamese: editDraft.vietnamese, startTime: editDraft.startTime, endTime: editDraft.endTime }
-        : s
-    ));
-    setEditingSubtitleId(null);
-  };
-
-  const cancelEditing = () => {
-    setEditingSubtitleId(null);
-  };
-
-  // Filtered subtitles for search
-  const filteredUploadSubtitles = transcriptSentences.filter(s => {
-    if (!subtitleSearch) return true;
-    const q = subtitleSearch.toLowerCase();
-    return s.japanese.toLowerCase().includes(q) || s.vietnamese.toLowerCase().includes(q);
-  });
-
-  const renderStatusBadge = (status: VideoStatus) => {
-    switch (status) {
-      case "completed":
-        return <Badge className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-lg text-[10px]">AI Ready</Badge>;
-      case "processing":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-500/20 text-blue-300 font-bold px-2 py-0.5 rounded-lg text-[10px] inline-flex items-center gap-1">
-            <RefreshCw className="w-3 h-3 animate-spin" />
-            Processing
-          </Badge>
-        );
-      case "uploading":
-        return (
-          <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-lg text-[10px] inline-flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            Uploading
-          </Badge>
-        );
-      case "failed":
-        return <Badge variant="destructive" className="font-bold px-2 py-0.5 rounded-lg text-[10px]">AI Failed</Badge>;
-      default:
-        return <Badge variant="outline" className="text-[10px] rounded-lg">{status}</Badge>;
+  const handleNextSentence = () => {
+    if (!lesson.transcript || currentIndex === -1 || currentIndex >= lesson.transcript.length - 1) return;
+    const nextSeg = lesson.transcript[currentIndex + 1];
+    if (videoRef.current) {
+      videoRef.current.currentTime = nextSeg.startTime;
+      setCurrentTime(nextSeg.startTime);
     }
   };
 
   return (
-    <Fragment>
-      {/* 1. PAGE HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/40 dark:bg-slate-900/35 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 p-6 rounded-3xl shadow-xl shadow-slate-100/10 dark:shadow-none transition-all duration-300">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-black text-foreground inline-flex items-center gap-2">
-            <Video className="w-8 h-8 text-primary drop-shadow-[0_2px_8px_rgba(var(--primary-rgb),0.3)]" />
-            Shadowing Management
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create, transcribe, translate and manage AI Shadowing lessons for student exercises
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <Button 
-            onClick={() => {
-              setIsUploadOpen(true);
-              setUploadStep(1);
-              setUploadedFile(null);
-              setVideoUrl("");
-              setTitle("");
-              setDescription("");
-              setJlptLevel("N5");
-              setTopic("Daily Conversation");
-              setTagsInput("");
-              setUploadedVideoId(null);
-              setTranscriptSentences([]);
-            }}
-            className="bg-gradient-to-r from-primary to-sakura hover:opacity-95 text-white font-bold rounded-2xl px-5 py-6 inline-flex items-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/35 transition-all duration-300 active:scale-95 w-full md:w-auto animate-pulse-subtle"
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between border-b border-[var(--border)] gap-4">
+        <div className="flex items-start gap-4">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onBack}
+            className="w-10 h-10 p-0 rounded-xl hover:bg-card/30 shrink-0 flex items-center justify-center text-muted-foreground hover:text-primary-col"
           >
-            <Plus className="w-5 h-5" />
-            Upload Video
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-        </div>
-      </div>
-
-      {/* 2. STATISTICS KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        {[
-          { title: "Total Lessons", count: videos.length, icon: Video, color: "text-blue-500 bg-blue-500/10" },
-          { title: "Completed", count: videos.filter(v => v.status === "completed").length, icon: CheckCircle2, color: "text-emerald-500 bg-emerald-500/10" },
-          { title: "Processing", count: videos.filter(v => v.status === "processing").length, icon: RefreshCw, color: "text-amber-500 bg-amber-500/10 animate-spin-slow" },
-          { title: "Failed", count: videos.filter(v => v.status === "failed").length, icon: AlertTriangle, color: "text-rose-500 bg-rose-500/10" }
-        ].map((stat, idx) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={idx} className="border border-[var(--border)] bg-white/40 dark:bg-slate-900/35 backdrop-blur-xl p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{stat.title}</p>
-                  <h3 className="text-2xl font-black text-foreground mt-1.5">{stat.count}</h3>
-                </div>
-                <div className={`p-2.5 rounded-xl ${stat.color}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* 3. FILTER BAR */}
-      <div className="mt-6 bg-white/40 dark:bg-slate-900/35 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 p-4 rounded-3xl shadow-xl shadow-slate-100/5 dark:shadow-none transition-all duration-300">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 flex h-10 w-full rounded-xl border border-white/20 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/45 px-3 py-1 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
-
-          {/* Topic Filter */}
           <div>
-            <select
-              value={topicFilter}
-              onChange={(e) => setTopicFilter(e.target.value)}
-              className="flex h-10 w-full rounded-xl border border-white/20 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/45 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 text-foreground cursor-pointer"
-            >
-              <option value="all" className="bg-background text-foreground">All Topics</option>
-              <option value="Daily Conversation" className="bg-background text-foreground">Daily Conversation</option>
-              <option value="Travel" className="bg-background text-foreground">Travel</option>
-              <option value="Restaurant" className="bg-background text-foreground">Restaurant</option>
-              <option value="School" className="bg-background text-foreground">School</option>
-              <option value="Business" className="bg-background text-foreground">Business</option>
-              <option value="Shopping" className="bg-background text-foreground">Shopping</option>
-              <option value="Culture" className="bg-background text-foreground">Culture</option>
-              <option value="Anime" className="bg-background text-foreground">Anime</option>
-              <option value="News" className="bg-background text-foreground">News</option>
-              <option value="Custom" className="bg-background text-foreground">Custom</option>
-            </select>
+            <h1 className="text-xl md:text-2xl font-display font-black text-primary-col">{lesson.title}</h1>
+            <p className="text-xs md:text-sm text-secondary-col mt-0.5">{lesson.level} • {lesson.topic}</p>
           </div>
+        </div>
 
-          {/* Level Filter */}
-          <div>
-            <select
-              value={jlptFilter}
-              onChange={(e) => setJlptFilter(e.target.value)}
-              className="flex h-10 w-full rounded-xl border border-white/20 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/45 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 text-foreground cursor-pointer"
-            >
-              <option value="all" className="bg-background text-foreground">All JLPT Levels</option>
-              <option value="N5" className="bg-background text-foreground">JLPT N5</option>
-              <option value="N4" className="bg-background text-foreground">JLPT N4</option>
-              <option value="N3" className="bg-background text-foreground">JLPT N3</option>
-              <option value="N2" className="bg-background text-foreground">JLPT N2</option>
-              <option value="N1" className="bg-background text-foreground">JLPT N1</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. LESSON CARDS GRID */}
-      {isLoadingVideos ? (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="border border-[var(--border)] bg-white/40 dark:bg-slate-900/35 p-5 rounded-2xl overflow-hidden shadow-sm flex flex-col gap-4">
-              <Skeleton className="aspect-video w-full rounded-xl" />
-              <Skeleton className="h-5 w-3/4 rounded" />
-              <div className="flex gap-2">
-                <Skeleton className="h-4 w-12 rounded" />
-                <Skeleton className="h-4 w-20 rounded" />
-              </div>
-              <Skeleton className="h-4 w-24 rounded mt-1" />
-              <Skeleton className="h-6 w-16 rounded mt-1" />
-              <div className="flex gap-2 mt-4 pt-3 border-t border-[var(--border)]/60">
-                <Skeleton className="h-8 flex-1 rounded-xl" />
-                <Skeleton className="h-8 flex-1 rounded-xl" />
-                <Skeleton className="h-8 w-8 rounded-xl shrink-0" />
-              </div>
-            </Card>
-          ))}
-        </div>
-      ) : videoLoadError ? (
-        <div className="mt-8 bg-destructive/10 border border-destructive/20 p-8 rounded-3xl text-center max-w-xl mx-auto text-destructive space-y-3">
-          <AlertTriangle className="w-10 h-10 mx-auto" />
-          <h3 className="font-bold text-base">Error Loading Lessons</h3>
-          <p className="text-sm">{videoLoadError}</p>
-        </div>
-      ) : filteredVideos.length === 0 ? (
-        <div className="mt-12 border-2 border-dashed border-[var(--border)] p-16 rounded-3xl text-center max-w-xl mx-auto space-y-5">
-          <Video className="w-12 h-12 text-muted-foreground/50 mx-auto" />
-          <div className="space-y-1.5">
-            <h3 className="font-bold text-lg text-foreground">No shadowing videos yet.</h3>
-            <p className="text-sm text-muted-foreground">Upload your first video to generate AI subtitles.</p>
-          </div>
-          <Button 
-            onClick={() => {
-              setIsUploadOpen(true);
-              setUploadStep(1);
-              setUploadedFile(null);
-              setVideoUrl("");
-              setTitle("");
-              setDescription("");
-              setJlptLevel("N5");
-              setTopic("Daily Conversation");
-              setTagsInput("");
-              setUploadedVideoId(null);
-              setTranscriptSentences([]);
-            }}
-            className="bg-primary hover:bg-primary/95 text-white font-bold rounded-xl px-5 py-5 inline-flex items-center gap-2 shadow-md shadow-primary/10 transition-all cursor-pointer"
+        {/* Toolbar Controls */}
+        <div className="flex flex-wrap items-center gap-3 self-end md:self-auto">
+          {/* Toggle Subtitles Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setSubtitlesEnabled(!subtitlesEnabled)}
+            className={cn(
+              "rounded-xl h-9 px-3 font-bold border-[var(--border)] transition flex items-center gap-1.5 text-xs cursor-pointer",
+              subtitlesEnabled 
+                ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/15" 
+                : "bg-background/40 hover:bg-accent text-secondary-col"
+            )}
           >
-            <Plus className="w-4 h-4" />
-            Upload Video
+            {subtitlesEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            {subtitlesEnabled ? "Hide Subtitles" : "Show Subtitles"}
           </Button>
-        </div>
-      ) : (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVideos.map((vid) => {
-            const isProcessing = vid.status === "processing";
-            return (
-              <Card 
-                key={vid.id} 
-                className="group border border-[var(--border)] bg-white/40 dark:bg-slate-900/35 backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full"
+
+          {/* Subtitles Language Filter (Only visible if subtitles are enabled) */}
+          {subtitlesEnabled && (
+            <div className="flex items-center bg-background/50 border border-[var(--border)] rounded-xl p-0.5 h-9">
+              <button
+                type="button"
+                onClick={() => setLangFilter("jp")}
+                className={cn(
+                  "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer h-7 flex items-center justify-center",
+                  langFilter === "jp"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:text-primary-col"
+                )}
               >
-                {/* 1. Thumbnail & Video Duration */}
-                <div className="relative aspect-video w-full bg-slate-950/80 overflow-hidden shrink-0">
-                  <img
-                    src={vid.thumbnail || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=340&fit=crop"}
-                    alt={vid.title}
-                    className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/75 text-white font-mono text-[10px] font-black tracking-wider flex items-center gap-1 shadow-md">
-                    <Clock className="w-3 h-3 text-sakura" />
-                    {vid.duration}
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
-                    {/* 2. Title */}
-                    <h4 className="font-bold text-foreground text-sm line-clamp-2 leading-snug group-hover:text-primary transition-colors">
-                      {vid.title}
-                    </h4>
-
-                    {/* 3. Small metadata row (Level & Topic) */}
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-muted-foreground">
-                      <Badge variant="outline" className="border-primary/20 text-primary font-bold px-2 py-0">
-                        {vid.jlptLevel}
-                      </Badge>
-                      <Badge variant="outline" className="border-muted/20 text-muted-foreground font-bold px-2 py-0">
-                        {vid.topic}
-                      </Badge>
-                    </div>
-
-                    {/* 4. Upload Date */}
-                    <div className="text-[10px] text-muted-foreground font-medium">
-                      Upload Date: {vid.createdDate}
-                    </div>
-
-                    {/* 5. Status Badge */}
-                    <div className="pt-1">
-                      {renderStatusBadge(vid.status)}
-                    </div>
-
-                    {/* Inline progress display for cards currently processing */}
-                    {isProcessing && (
-                      <ProcessingCardContent video={vid} onComplete={loadVideos} />
-                    )}
-                  </div>
-
-                  {/* 6. Action Buttons */}
-                  <div className="pt-3 border-t border-[var(--border)]/60 flex justify-between items-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <Link to={`/admin/shadowing/${vid.id}`}>
-                        <Button size="sm" variant="ghost" className="h-8 text-[11px] font-bold text-primary hover:bg-primary/10 rounded-xl px-2.5">
-                          <Eye className="w-3.5 h-3.5 mr-1" /> Preview
-                        </Button>
-                      </Link>
-                      {!isProcessing && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setUploadedVideoId(vid.id);
-                            setVideoUrl(vid.videoUrl);
-                            setTitle(vid.title);
-                            setDescription(vid.description);
-                            setJlptLevel(vid.jlptLevel);
-                            setTopic(vid.topic);
-                            setLessonName(vid.lesson);
-                            loadSentencesForEdit(vid.id);
-                          }}
-                          className="h-8 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 rounded-xl px-2.5"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 mr-1" /> Edit
-                        </Button>
-                      )}
-                    </div>
-
-                    {!isProcessing && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setVideoToDelete(vid)}
-                        className="w-8 h-8 rounded-xl hover:bg-destructive/10 text-destructive/80 hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 5. CREATE & UPLOAD WORKSPACE MODAL (SINGLE-PAGE) */}
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] overflow-y-auto rounded-3xl p-6 bg-white dark:bg-slate-950 border border-[var(--border)] text-foreground flex flex-col justify-between">
-          <DialogHeader className="border-b border-[var(--border)]/60 pb-3 flex flex-row items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-                {uploadStep === 4 ? "Interactive Shadowing Lesson Workspace" : "Create New Shadowing Lesson"}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                {uploadStep === 4 ? "Review generated timestamps and inline edit Japanese & Vietnamese subtitles." : "Upload media file and configure AI processing pipeline metadata."}
-              </DialogDescription>
+                日本語
+              </button>
+              <button
+                type="button"
+                onClick={() => setLangFilter("vi")}
+                className={cn(
+                  "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer h-7 flex items-center justify-center",
+                  langFilter === "vi"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:text-primary-col"
+                )}
+              >
+                Tiếng Việt
+              </button>
+              <button
+                type="button"
+                onClick={() => setLangFilter("both")}
+                className={cn(
+                  "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer h-7 flex items-center justify-center",
+                  langFilter === "both"
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground hover:text-primary-col"
+                )}
+              >
+                Cả hai
+              </button>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsUploadOpen(false)} className="rounded-xl w-8 h-8 cursor-pointer">
-              <X className="w-4 h-4" />
-            </Button>
-          </DialogHeader>
+          )}
 
-          <div className="flex-1 py-6 overflow-y-auto">
-            {/* STATE A: Initial Form & Upload */}
-            {uploadStep === 1 && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
-                {/* Left: Drag and Drop Upload */}
-                <div className="lg:col-span-6 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                      <Upload className="w-4.5 h-4.5 text-primary" />
-                      Upload Source Video
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Select or drop the video file you wish to process. The AI engine will analyze, transcribe, segment, and translate the text automatically.
-                    </p>
-                  </div>
+          {/* Toggle Transcript Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setTranscriptEnabled(!transcriptEnabled)}
+            className={cn(
+              "rounded-xl h-9 px-3 font-bold border-[var(--border)] transition flex items-center gap-1.5 text-xs cursor-pointer",
+              transcriptEnabled 
+                ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/15" 
+                : "bg-background/40 hover:bg-accent text-secondary-col"
+            )}
+          >
+            <Layout className="w-4 h-4" />
+            {transcriptEnabled ? "Hide Transcript" : "Show Transcript"}
+          </Button>
 
-                  <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-primary/30 hover:border-primary rounded-3xl p-8 bg-primary/5 hover:bg-primary/10 transition-all text-center relative group min-h-[300px]">
-                    <input
-                      type="file"
-                      accept="video/mp4,video/quicktime"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <UploadCloud className="w-16 h-16 text-primary/70 mb-4 group-hover:scale-110 transition-transform duration-300" />
-                    {isUploading ? (
-                      <div className="space-y-3">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
-                        <p className="text-sm font-bold text-foreground">Uploading video file...</p>
-                        <div className="w-48 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden mx-auto">
-                          <div className="bg-primary h-full rounded-full transition-all duration-300 animate-pulse" style={{ width: "100%" }} />
-                        </div>
-                      </div>
-                    ) : uploadedFile ? (
-                      <div className="space-y-2">
-                        <p className="text-sm font-bold text-foreground max-w-[280px] truncate mx-auto">{uploadedFile.name}</p>
-                        <p className="text-xs text-muted-foreground">{uploadedFile.size}</p>
-                        <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 font-bold px-2.5 py-0.5 rounded-lg text-xs">Uploaded & Ready</Badge>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-sm font-bold text-foreground">Drag & Drop Video Here</p>
-                        <p className="text-xs text-muted-foreground">Supports MP4, MOV formats up to 100MB</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+          <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 rounded-full font-black select-none text-xs">
+            Completed
+          </Badge>
+        </div>
+      </div>
 
-                {/* Right: Metadata Form */}
-                <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                      <Settings className="w-4.5 h-4.5 text-primary" />
-                      Lesson Metadata
-                    </h3>
-                    
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground/80">Lesson Title *</label>
-                      <input
-                        type="text"
-                        required
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="e.g., Intro Greeting Dialogue"
-                        className="flex h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--input)] px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                      />
-                    </div>
+      {/* Main Content Area */}
+      <div className={cn(
+        "grid gap-6 mt-6 items-start",
+        transcriptEnabled ? "grid-cols-1 lg:grid-cols-12" : "grid-cols-1 max-w-4xl mx-auto"
+      )}>
+        {/* Left Column: Video Player with YouTube Subtitles */}
+        <div className={cn(
+          "relative w-full aspect-video rounded-2xl overflow-hidden bg-black/90 border border-[var(--border)] shadow-lg flex items-center justify-center",
+          transcriptEnabled ? "lg:col-span-7" : "w-full"
+        )}>
+          {lesson.videoUrl ? (
+            <video
+              ref={videoRef}
+              src={lesson.videoUrl}
+              className="w-full h-full object-contain"
+              onTimeUpdate={handleTimeUpdate}
+              controls
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground text-sm p-4">
+              <Video className="w-12 h-12 opacity-35 mb-2" />
+              <span>No video source available</span>
+            </div>
+          )}
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground/80">Description</label>
-                      <textarea
-                        rows={3}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Brief lesson guidelines or notes..."
-                        className="flex w-full rounded-xl border border-[var(--border)] bg-[var(--input)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary resize-none"
-                      />
-                    </div>
+          {/* Subtitle Overlay (YouTube Style - Hidden when subtitles are turned off or in fullscreen to avoid duplicate) */}
+          {subtitlesEnabled && !isFullscreen && activeSubtitle && (
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 max-w-[85%] bg-black/75 px-4 py-2 rounded-lg text-white text-center text-sm md:text-base font-bold shadow-md select-none pointer-events-none z-10 transition-all duration-150">
+              <div className="leading-relaxed">{activeSubtitle.jpText}</div>
+              {activeSubtitle.vnText && (
+                <div className="text-xs md:text-sm text-gray-300 mt-1 font-semibold">{activeSubtitle.vnText}</div>
+              )}
+            </div>
+          )}
+        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-foreground/80">JLPT Level *</label>
-                        <select
-                          value={jlptLevel}
-                          onChange={(e) => setJlptLevel(e.target.value as JLPTLevel)}
-                          className="flex h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--input)] px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        >
-                          <option value="N5">N5 (Beginner)</option>
-                          <option value="N4">N4 (Elementary)</option>
-                          <option value="N3">N3 (Intermediate)</option>
-                          <option value="N2">N2 (Upper-Int)</option>
-                          <option value="N1">N1 (Advanced)</option>
-                        </select>
-                      </div>
+        {/* Right Column: Transcript Panel */}
+        {transcriptEnabled && (
+          <div className="flex flex-col border border-[var(--border)] rounded-2xl bg-card/20 overflow-hidden h-[400px] w-full lg:col-span-5">
+            {/* Panel Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-muted/40 gap-2 shrink-0">
+              <span className="text-sm font-bold text-secondary-col flex items-center gap-1.5">
+                <Volume2 className="w-4 h-4 text-primary" />
+                Transcript
+              </span>
 
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-foreground/80">Topic *</label>
-                        <select
-                          value={topic}
-                          onChange={(e) => setTopic(e.target.value)}
-                          className="flex h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--input)] px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        >
-                          <option value="Daily Conversation">Daily Conversation</option>
-                          <option value="Travel">Travel</option>
-                          <option value="Restaurant">Restaurant</option>
-                          <option value="School">School</option>
-                          <option value="Business">Business</option>
-                          <option value="Shopping">Shopping</option>
-                          <option value="Culture">Culture</option>
-                          <option value="Anime">Anime</option>
-                          <option value="News">News</option>
-                          <option value="Custom">Custom</option>
-                        </select>
-                      </div>
-                    </div>
+              {/* Language Filter Tabs */}
+              <div className="flex items-center bg-background/50 border border-[var(--border)] rounded-xl p-0.5">
+                <button
+                  onClick={() => setLangFilter("jp")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                    langFilter === "jp"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-primary-col"
+                  )}
+                >
+                  日本語
+                </button>
+                <button
+                  onClick={() => setLangFilter("vi")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                    langFilter === "vi"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-primary-col"
+                  )}
+                >
+                  Tiếng Việt
+                </button>
+                <button
+                  onClick={() => setLangFilter("both")}
+                  className={cn(
+                    "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                    langFilter === "both"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-primary-col"
+                  )}
+                >
+                  Cả hai
+                </button>
+              </div>
+            </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-foreground/80">Tags (comma-separated)</label>
-                      <input
-                        type="text"
-                        value={tagsInput}
-                        onChange={(e) => setTagsInput(e.target.value)}
-                        placeholder="greeting, anime, culture"
-                        className="flex h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--input)] px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
-                    <Button variant="outline" onClick={() => setIsUploadOpen(false)} className="rounded-xl border-[var(--border)] cursor-pointer">
-                      Cancel
-                    </Button>
-                    <Button
-                      disabled={!uploadedFile || isUploading || !title}
-                      onClick={() => {
-                        setUploadStep(3);
-                        setPipelineProgress(0);
-                        setEstimatedTimeRemaining(120);
-                        setPipelineStepStatus({
-                          download: "processing",
-                          extract_audio: "waiting",
-                          transcribe: "waiting",
-                          translate: "waiting",
-                          save_database: "waiting",
-                        });
-                        setProcessingLogs([
-                          `[${new Date().toLocaleTimeString()}] Upload confirmed. Video ID: ${uploadedVideoId}`,
-                          `[${new Date().toLocaleTimeString()}] Starting AI processing pipeline. This may take 30–180 seconds.`,
-                        ]);
-                        pollProcessingStatus(uploadedVideoId!);
-                      }}
-                      className="bg-primary hover:bg-primary/95 text-white font-bold rounded-xl px-5 flex items-center gap-1.5 shadow-md shadow-primary/10 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            {/* Transcript List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin">
+              {lesson.transcript && lesson.transcript.length > 0 ? (
+                lesson.transcript.map((s) => {
+                  const isActive = currentTime >= s.startTime && currentTime < s.endTime;
+                  return (
+                    <div
+                      key={s.id}
+                      ref={isActive ? activeSentenceRef : null}
+                      onClick={() => handleSentenceClick(s)}
+                      className={cn(
+                        "p-3 rounded-xl border border-transparent transition-all duration-200 cursor-pointer text-left",
+                        isActive
+                          ? "bg-primary/10 border-primary/20 shadow-sm shadow-primary/5 translate-x-1"
+                          : "hover:bg-muted/30 border-transparent"
+                      )}
                     >
-                      Start AI Processing
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STATE B: Live AI Processing Status Dashboard */}
-            {uploadStep === 3 && (
-              <div className="space-y-8 max-w-3xl mx-auto py-8">
-                <div className="text-center space-y-2">
-                  <h3 className="text-lg font-bold text-foreground">AI Transcription & Segmenting Pipeline</h3>
-                  <p className="text-xs text-muted-foreground">Please wait while our models analyze speech patterns, generate sentence segments, and translate translations.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-primary flex items-center gap-1">
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Pipeline Processing
-                    </span>
-                    <span className="font-mono text-primary">{pipelineProgress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden border border-[var(--border)]">
-                    <div className="bg-gradient-to-r from-primary to-sakura h-full rounded-full transition-all duration-500" style={{ width: `${pipelineProgress}%` }} />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                    <span>Active Stage</span>
-                    <span>Est. Time Remaining: ~{estimatedTimeRemaining}s</span>
-                  </div>
-                </div>
-
-                {/* Pipeline Step Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { name: "Downloading Video...", key: "download", desc: "Downloading video file from Supabase Storage" },
-                    { name: "Extracting Audio...", key: "extract_audio", desc: "Extracting 16kHz mono audio using FFmpeg" },
-                    { name: "Transcribing Speech...", key: "transcribe", desc: "Converting audio to Japanese text with Groq Whisper" },
-                    { name: "Generating Vietnamese Translation...", key: "translate", desc: "Translating transcript to Vietnamese with Gemini AI" },
-                    { name: "Saving to Database...", key: "save_database", desc: "Saving all transcript segments to the database" },
-                  ].map((step) => {
-                    const statusVal = pipelineStepStatus[step.key];
-                    return (
-                      <Card key={step.key} className="border border-[var(--border)] bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-xl flex items-start gap-3">
-                        <div className="mt-0.5">
-                          {statusVal === "completed" && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                          {statusVal === "processing" && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
-                          {statusVal === "waiting" && <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-800" />}
-                          {statusVal === "failed" && <AlertTriangle className="w-5 h-5 text-rose-500 animate-bounce" />}
+                      {/* Japanese */}
+                      {(langFilter === "jp" || langFilter === "both") && (
+                        <div className="text-sm font-bold text-primary-col mb-0.5 leading-relaxed">
+                          {s.jpText}
                         </div>
-                        <div className="space-y-0.5">
-                          <h4 className={`text-xs font-bold ${statusVal === "processing" ? "text-primary" : "text-foreground"}`}>{step.name}</h4>
-                          <p className="text-[10px] text-muted-foreground leading-normal">{step.desc}</p>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                {/* Logs Terminal */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">System logs</span>
-                  <div className="bg-slate-950 text-slate-300 font-mono text-[11px] p-4 rounded-2xl border border-slate-800 h-36 overflow-y-auto space-y-1 scrollbar-thin">
-                    {processingLogs.map((log, idx) => (
-                      <div key={idx} className="leading-relaxed">
-                        <span className="text-emerald-500 mr-2">&gt;</span>
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STATE C: Interactive Subtitle Editor Workspace */}
-            {uploadStep === 4 && (
-              <div className="space-y-6">
-                {/* Success Banner */}
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                  <div className="text-xs">
-                    <strong className="text-foreground block">AI Pipeline Completed</strong>
-                    <span className="text-muted-foreground">Review and edit the generated subtitles below.</span>
-                  </div>
-                </div>
-
-                {/* Main Split Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                  {/* Left: Video Player (~55%) */}
-                  <div className="lg:col-span-7 flex flex-col space-y-4">
-                    <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-[var(--border)] shadow-lg shadow-black/20">
-                      {videoUrl ? (
-                        <>
-                          <video
-                            ref={uploadVideoRef}
-                            id="edit-video-player"
-                            className="w-full h-full object-contain"
-                            src={videoUrl}
-                            onTimeUpdate={(e) => setUploadCurrentTime((e.target as HTMLVideoElement).currentTime)}
-                            onPlay={() => setUploadIsPlaying(true)}
-                            onPause={() => setUploadIsPlaying(false)}
-                          />
-                          {/* Subtitle overlay */}
-                          {activeUploadSubtitle && (
-                            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-sm text-center px-4 py-2.5 rounded-xl border border-white/10 max-w-[85%] shadow-2xl pointer-events-none z-10 select-none">
-                              <p className="text-white text-base font-bold leading-relaxed drop-shadow">
-                                {activeUploadSubtitle.japanese}
-                              </p>
-                              <p className="text-emerald-300 text-xs font-semibold mt-1 leading-normal drop-shadow">
-                                {activeUploadSubtitle.vietnamese}
-                              </p>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-center text-muted-foreground space-y-2">
-                          <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
-                          <p className="text-xs">Loading workspace player...</p>
+                      )}
+                      {/* Vietnamese */}
+                      {(langFilter === "vi" || langFilter === "both") && (
+                        <div className="text-xs text-secondary-col leading-relaxed">
+                          {s.vnText}
                         </div>
                       )}
                     </div>
-
-                    {/* Simple video controls */}
-                    <Card className="border border-[var(--border)] bg-white/40 dark:bg-slate-900/35 backdrop-blur-xl p-4 rounded-2xl shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => {
-                            if (uploadVideoRef.current) {
-                              uploadIsPlaying ? uploadVideoRef.current.pause() : uploadVideoRef.current.play();
-                            }
-                          }}
-                          className="w-10 h-10 rounded-xl border-[var(--border)] text-foreground hover:bg-primary/10 hover:text-primary cursor-pointer shrink-0"
-                        >
-                          {uploadIsPlaying ? <Pause className="w-4.5 h-4.5 fill-current" /> : <Play className="w-4.5 h-4.5 fill-current" />}
-                        </Button>
-                        <span className="text-[10px] font-bold font-mono text-muted-foreground w-11 shrink-0">
-                          {formatTimestamp(uploadCurrentTime)}
-                        </span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={uploadVideoRef.current?.duration || 100}
-                          step={0.1}
-                          value={uploadCurrentTime}
-                          onChange={(e) => {
-                            const t = parseFloat(e.target.value);
-                            if (uploadVideoRef.current) uploadVideoRef.current.currentTime = t;
-                            setUploadCurrentTime(t);
-                          }}
-                          className="flex-1 accent-primary h-1 rounded-lg cursor-pointer bg-slate-200 dark:bg-slate-800"
-                        />
-                        <span className="text-[10px] font-bold font-mono text-muted-foreground w-11 shrink-0 text-right">
-                          {formatTimestamp(uploadVideoRef.current?.duration || 0)}
-                        </span>
-                      </div>
-                    </Card>
-                  </div>
-
-                  {/* Right: Subtitle Editor (~45%) */}
-                  <div className="lg:col-span-5 flex flex-col">
-                    <Card className="border border-[var(--border)] bg-white/40 dark:bg-slate-900/35 backdrop-blur-xl rounded-2xl overflow-hidden flex flex-col h-full min-h-[420px]">
-                      {/* Top controls */}
-                      <div className="p-4 border-b border-[var(--border)]/60 bg-white/60 dark:bg-slate-950/40 space-y-3 shrink-0">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-sm flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-primary" />
-                            Subtitle Editor
-                          </span>
-                        </div>
-
-                        {/* Search + Language Switch */}
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                            <input
-                              type="text"
-                              placeholder="Search subtitles..."
-                              value={subtitleSearch}
-                              onChange={(e) => setSubtitleSearch(e.target.value)}
-                              className="pl-8 flex h-9 w-full rounded-xl border border-[var(--border)] bg-slate-50 dark:bg-slate-950 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                            />
-                          </div>
-                          <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-[var(--border)] shrink-0">
-                            <button
-                              onClick={() => setSubtitleLanguage("japanese")}
-                              className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded cursor-pointer transition-all ${
-                                subtitleLanguage === "japanese"
-                                  ? "bg-primary text-white shadow-sm"
-                                  : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            >
-                              Japanese
-                            </button>
-                            <button
-                              onClick={() => setSubtitleLanguage("vietnamese")}
-                              className={`text-[9px] font-extrabold px-2.5 py-1.5 rounded cursor-pointer transition-all ${
-                                subtitleLanguage === "vietnamese"
-                                  ? "bg-primary text-white shadow-sm"
-                                  : "text-muted-foreground hover:text-foreground"
-                              }`}
-                            >
-                              Vietnamese
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Subtitle list */}
-                      <div ref={subtitleListRef} className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[420px] scrollbar-thin">
-                        {filteredUploadSubtitles.map((sen, index) => {
-                          const isActive = activeUploadSubtitle?.id === sen.id;
-                          const isEditing = editingSubtitleId === sen.id;
-
-                          return (
-                            <div
-                              key={sen.id}
-                              data-subtitle-id={sen.id}
-                              className={`border rounded-xl transition-all duration-300 ${
-                                isActive
-                                  ? "bg-primary/5 dark:bg-primary/10 border-primary/40 ring-1 ring-primary/20"
-                                  : "bg-white dark:bg-slate-950 border-[var(--border)] hover:shadow-sm"
-                              }`}
-                            >
-                              {isEditing ? (
-                                /* Editing mode */
-                                <div className="p-3.5 space-y-3">
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                      <label className="text-[9px] font-black uppercase text-muted-foreground">Start Time (s)</label>
-                                      <input
-                                        type="number"
-                                        step="0.1"
-                                        value={editDraft.startTime}
-                                        onChange={(e) => setEditDraft(d => ({ ...d, startTime: parseFloat(e.target.value) || 0 }))}
-                                        className="w-full px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--input)] text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                                      />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <label className="text-[9px] font-black uppercase text-muted-foreground">End Time (s)</label>
-                                      <input
-                                        type="number"
-                                        step="0.1"
-                                        value={editDraft.endTime}
-                                        onChange={(e) => setEditDraft(d => ({ ...d, endTime: parseFloat(e.target.value) || 0 }))}
-                                        className="w-full px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--input)] text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <label className="text-[9px] font-black uppercase text-primary/80">Japanese</label>
-                                    <input
-                                      type="text"
-                                      value={editDraft.japanese}
-                                      onChange={(e) => setEditDraft(d => ({ ...d, japanese: e.target.value }))}
-                                      className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--input)] text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <label className="text-[9px] font-black uppercase text-emerald-600/80">Vietnamese</label>
-                                    <input
-                                      type="text"
-                                      value={editDraft.vietnamese}
-                                      onChange={(e) => setEditDraft(d => ({ ...d, vietnamese: e.target.value }))}
-                                      className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--input)] text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                                    />
-                                  </div>
-                                  <div className="flex justify-end gap-2 pt-1">
-                                    <Button size="sm" variant="outline" onClick={cancelEditing} className="h-7 text-[10px] font-bold rounded-lg px-2.5 cursor-pointer">
-                                      Cancel
-                                    </Button>
-                                    <Button size="sm" onClick={saveEditing} className="h-7 text-[10px] font-bold rounded-lg px-2.5 bg-primary text-white hover:bg-primary/95 cursor-pointer">
-                                      Save
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                /* Display mode */
-                                <div
-                                  className="p-3 cursor-pointer"
-                                  onClick={() => seekVideoTo(sen.startTime)}
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 min-w-0 space-y-1">
-                                      <span className="text-[10px] font-mono font-bold text-primary/70">
-                                        {formatTimestamp(sen.startTime)}
-                                      </span>
-                                      <p className="text-xs font-semibold text-foreground truncate">
-                                        {subtitleLanguage === "japanese" ? sen.japanese : sen.vietnamese}
-                                      </p>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-0.5 shrink-0">
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={(e) => { e.stopPropagation(); startEditing(sen); }}
-                                        className="w-7 h-7 rounded-lg hover:bg-primary/10 text-primary cursor-pointer"
-                                        title="Edit"
-                                      >
-                                        <Edit3 className="w-3.5 h-3.5" />
-                                      </Button>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteSentence(sen.id); }}
-                                        className="w-7 h-7 rounded-lg hover:bg-destructive/10 text-destructive/80 cursor-pointer"
-                                        title="Delete"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </Button>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={(e) => { e.stopPropagation(); handleSplitSentence(index); }}
-                                        className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 text-muted-foreground cursor-pointer"
-                                        title="Split"
-                                      >
-                                        <SlidersHorizontal className="w-3.5 h-3.5" />
-                                      </Button>
-                                      {index < transcriptSentences.length - 1 && (
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          onClick={(e) => { e.stopPropagation(); handleMergeWithNext(index); }}
-                                          className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 text-muted-foreground cursor-pointer"
-                                          title="Merge with next"
-                                        >
-                                          <Layers className="w-3.5 h-3.5" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* BOTTOM ACTION BAR */}
-          <div className="border-t border-[var(--border)] pt-4 mt-4 shrink-0 flex flex-col md:flex-row justify-between items-center gap-4">
-            {uploadStep === 4 ? (
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-bold text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Badge className="bg-primary/10 text-primary border-primary/20">{jlptLevel}</Badge>
-                </span>
-                <span className="flex items-center gap-1">
-                  Sentences: <strong className="text-foreground">{transcriptSentences.length}</strong>
-                </span>
-              </div>
-            ) : (
-              <div className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                <Info className="w-4 h-4 text-primary" />
-                Fill out fields on the right, drop video on the left, then click Start AI Processing.
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              {uploadStep === 4 ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsUploadOpen(false)}
-                    className="rounded-xl border-[var(--border)] text-xs font-bold cursor-pointer"
-                  >
-                    Discard
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setUploadStep(3);
-                      setPipelineProgress(0);
-                      setEstimatedTimeRemaining(120);
-                      setPipelineStepStatus({
-                        download: "processing",
-                        extract_audio: "waiting",
-                        transcribe: "waiting",
-                        translate: "waiting",
-                        save_database: "waiting",
-                      });
-                      setProcessingLogs([
-                        `[${new Date().toLocaleTimeString()}] Regenerating AI processing...`,
-                      ]);
-                      pollProcessingStatus(uploadedVideoId!);
-                    }}
-                    className="rounded-xl border-primary/30 text-primary text-xs font-bold hover:bg-primary/5 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                    Regenerate AI
-                  </Button>
-                  <Button
-                    onClick={() => handleFinishWizard("completed")}
-                    className="bg-primary hover:bg-primary/95 text-white font-bold rounded-xl px-5 shadow-lg shadow-primary/10 transition-all cursor-pointer"
-                  >
-                    <Save className="w-4 h-4 mr-1" />
-                    Save
-                  </Button>
-                </>
+                  );
+                })
               ) : (
-                <Button variant="outline" onClick={() => setIsUploadOpen(false)} className="rounded-xl border-[var(--border)] cursor-pointer">
-                  Cancel
-                </Button>
+                <div className="h-full flex items-center justify-center text-xs text-muted-foreground text-center p-4">
+                  No transcript sentences generated for this lesson.
+                </div>
               )}
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
 
-      {/* DELETE CONFIRMATION DIALOG */}
-      <Dialog open={!!videoToDelete} onOpenChange={(o) => !o && setVideoToDelete(null)}>
-        <DialogContent className="max-w-md rounded-2xl p-6 bg-white dark:bg-slate-950 border border-[var(--border)] text-foreground">
+      {/* NOW PLAYING Section */}
+      <div className="glass-card p-6 border border-[var(--border)] mt-6 text-center space-y-4">
+        <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+          NOW PLAYING
+        </div>
+        
+        <div className="min-h-[90px] flex flex-col justify-center space-y-2 px-4 max-w-2xl mx-auto">
+          {currentSentence ? (
+            <>
+              <div className="text-xl md:text-2xl font-black text-primary-col leading-relaxed">
+                {currentSentence.jpText}
+              </div>
+              <div className="text-sm md:text-base text-secondary-col font-medium leading-relaxed">
+                {currentSentence.vnText}
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-muted-foreground italic">
+              No segment playing. Play video to start.
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-6 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevSentence}
+            disabled={!lesson.transcript || currentIndex <= 0}
+            className="rounded-xl h-9 px-4 font-bold border-[var(--border)] bg-background/40 hover:bg-accent text-secondary-col cursor-pointer transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ◀ Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextSentence}
+            disabled={!lesson.transcript || currentIndex === -1 || currentIndex >= lesson.transcript.length - 1}
+            className="rounded-xl h-9 px-4 font-bold border-[var(--border)] bg-background/40 hover:bg-accent text-secondary-col cursor-pointer transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next ▶
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export function AdminShadowingManagement({ defaultLevel = "N5" }: AdminShadowingManagementProps) {
+  const currentLevel = defaultLevel.toUpperCase();
+
+  // Navigation View State: "list" or "create" or "preview"
+  const [view, setView] = useState<"list" | "create" | "preview">("list");
+  const [previousView, setPreviousView] = useState<"list" | "create">("list");
+
+  // Local State representing real DB items
+  const [lessons, setLessons] = useState<ShadowingLesson[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedSort, setSelectedSort] = useState("newest");
+
+  // Dialog States
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  // Focus Lesson States
+  const [selectedLesson, setSelectedLesson] = useState<ShadowingLesson | null>(null);
+  const [lessonToDelete, setLessonToDelete] = useState<ShadowingLesson | null>(null);
+
+  // Fetch real data on mount & level change
+  const fetchVideos = async () => {
+    setIsLoading(true);
+    try {
+      const data = await adminShadowingApi.getAllVideos();
+      setLessons(data.map(v => {
+        let mappedStatus: "completed" | "processing" | "failed" = "processing";
+        if (v.status === "COMPLETED") mappedStatus = "completed";
+        if (v.status === "FAILED") mappedStatus = "failed";
+
+        return {
+          id: v.id,
+          title: v.title,
+          topic: v.topic || "Daily Conversation",
+          duration: v.duration ? formatDuration(v.duration) : "00:00",
+          createdAt: v.createdAt ? new Date(v.createdAt).toISOString().replace("T", " ").substring(0, 16) : "N/A",
+          thumbnail: v.thumbnailUrl || (v.topic === "Social & Business" 
+            ? "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=400&q=80"
+            : v.topic === "Travel"
+            ? "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=400&q=80"
+            : "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80"),
+          status: mappedStatus,
+          level: v.jlptLevel || "N5",
+          isAiGenerated: true,
+          videoUrl: v.videoUrl || undefined
+        };
+      }));
+    } catch (err: any) {
+      toast.error("Failed to load shadowing lessons: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVideos();
+  }, [view]);
+
+  // Statistics calculation for the current selected level
+  const levelLessons = lessons.filter(l => l.level === currentLevel);
+  const totalCount = levelLessons.length;
+  const completedCount = levelLessons.filter(l => l.status === "completed").length;
+  const processingCount = levelLessons.filter(l => l.status === "processing").length;
+  const failedCount = levelLessons.filter(l => l.status === "failed").length;
+
+  // Filtered & Sorted Lessons list
+  const filteredLessons = levelLessons
+    .filter(lesson => {
+      const matchSearch = lesson.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchTopic = selectedTopic === "all" || lesson.topic === selectedTopic;
+      const matchStatus = selectedStatus === "all" || lesson.status === selectedStatus;
+      return matchSearch && matchTopic && matchStatus;
+    })
+    .sort((a, b) => {
+      if (selectedSort === "newest") {
+        return b.createdAt.localeCompare(a.createdAt);
+      }
+      if (selectedSort === "oldest") {
+        return a.createdAt.localeCompare(b.createdAt);
+      }
+      if (selectedSort === "duration-asc") {
+        return a.duration.localeCompare(b.duration);
+      }
+      if (selectedSort === "duration-desc") {
+        return b.duration.localeCompare(a.duration);
+      }
+      return 0;
+    });
+
+  // Action: Add simulated lesson to database list
+  const handleSaveNewLesson = () => {
+    setView("list");
+  };
+
+  // Action: Delete Lesson (Real API request)
+  const handleDeleteConfirm = async () => {
+    if (!lessonToDelete) return;
+    try {
+      await adminShadowingApi.deleteVideo(lessonToDelete.id);
+      setLessons(prev => prev.filter(l => l.id !== lessonToDelete.id));
+      setIsDeleteOpen(false);
+      setLessonToDelete(null);
+      toast.success("Lesson deleted successfully.");
+    } catch (err: any) {
+      toast.error("Failed to delete lesson: " + err.message);
+    }
+  };
+
+  const handlePreviewOpen = async (lesson: ShadowingLesson) => {
+    setPreviousView(view === "preview" ? previousView : (view as "list" | "create"));
+    setSelectedLesson({ ...lesson, transcript: [] });
+    setView("preview");
+
+    try {
+      const res = await fetch(`/api/student/shadowing/videos/${lesson.id}/transcript`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("midori_access_token") ?? ""}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to load transcript: ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (json.data && json.data.segments) {
+        const segments: TranscriptSegment[] = json.data.segments.map((s: any) => ({
+          id: s.id.toString(),
+          startTime: s.startTime,
+          endTime: s.endTime,
+          jpText: s.jpText || "",
+          vnText: s.vnText || ""
+        }));
+        setSelectedLesson(prev => prev ? { ...prev, transcript: segments } : null);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Could not fetch transcript segments.");
+    }
+  };
+
+  // Render Sub-view
+  if (view === "create") {
+    return (
+      <CreateShadowingLessonPage
+        currentLevel={currentLevel}
+        onBack={() => setView("list")}
+        onSave={handleSaveNewLesson}
+        onPreview={handlePreviewOpen}
+      />
+    );
+  }
+
+  if (view === "preview") {
+    return (
+      <PreviewShadowingLessonPage
+        lesson={selectedLesson!}
+        onBack={() => setView(previousView)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Header Banner */}
+      <div className="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <Video className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-display font-black text-primary-col">Shadowing Management</h1>
+            <p className="text-sm text-secondary-col mt-1">
+              Manage AI-generated Shadowing lessons created from uploaded videos.
+            </p>
+          </div>
+        </div>
+        <Button 
+          onClick={() => setView("create")}
+          className="bg-gradient-to-r from-primary to-sakura text-white hover:opacity-95 rounded-xl px-5 h-10 border-0 flex items-center gap-2 cursor-pointer font-bold shadow-sm w-fit self-end md:self-auto shrink-0 transition"
+        >
+          <Plus className="w-4 h-4" />
+          Upload Video
+        </Button>
+      </div>
+
+      {/* 2. Statistics Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatisticCard 
+          title="Total Lessons" 
+          value={totalCount} 
+          icon={Video} 
+          iconColor="text-sky-blue" 
+          iconBg="bg-sky-blue/15" 
+        />
+        <StatisticCard 
+          title="Completed" 
+          value={completedCount} 
+          icon={CheckCircle2} 
+          iconColor="text-emerald-500" 
+          iconBg="bg-emerald-500/10" 
+        />
+        <StatisticCard 
+          title="Processing" 
+          value={processingCount} 
+          icon={RefreshCw} 
+          iconColor="text-amber-500" 
+          iconBg="bg-amber-500/10" 
+        />
+        <StatisticCard 
+          title="Failed" 
+          value={failedCount} 
+          icon={AlertTriangle} 
+          iconColor="text-rose-500" 
+          iconBg="bg-rose-500/10" 
+        />
+      </div>
+
+      {/* 3. Filter Bar */}
+      <SearchBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedTopic={selectedTopic}
+        setSelectedTopic={setSelectedTopic}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+        selectedSort={selectedSort}
+        setSelectedSort={setSelectedSort}
+      />
+
+      {/* 4. Lesson List */}
+      {isLoading ? (
+        <div className="glass-card p-12 flex flex-col items-center justify-center text-center space-y-3">
+          <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+          <span className="text-sm font-semibold text-secondary-col">Loading lessons...</span>
+        </div>
+      ) : filteredLessons.length === 0 ? (
+        <EmptyState onUploadClick={() => setView("create")} />
+      ) : (
+        <div className="space-y-4">
+          {filteredLessons.map(lesson => (
+            <ShadowingCard
+              key={lesson.id}
+              lesson={lesson}
+              onPreview={() => handlePreviewOpen(lesson)}
+              onDelete={() => {
+                setLessonToDelete(lesson);
+                setIsDeleteOpen(true);
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ─── Delete Confirmation Dialog ─── */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="bg-popover border-[var(--border)] rounded-2xl max-w-sm w-[95%] p-6">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Delete Shadowing Lesson?</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-1 leading-normal">
-              Are you sure you want to permanently delete this lesson? This action cannot be undone. All segments and student completion data associated with this lesson will be lost.
+            <DialogTitle className="text-xl font-bold text-rose-500 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Lesson?
+            </DialogTitle>
+            <DialogDescription className="text-sm text-secondary-col mt-2">
+              Are you sure you want to delete <strong className="text-primary-col">"{lessonToDelete?.title}"</strong>? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-6 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setVideoToDelete(null)} className="rounded-xl border-[var(--border)] cursor-pointer">Cancel</Button>
-            <Button onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90 text-white font-bold rounded-xl cursor-pointer">Delete Lesson</Button>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteOpen(false)}
+              className="rounded-xl border-[var(--border)] font-bold text-sm cursor-pointer h-10"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDeleteConfirm}
+              className="bg-rose-500 text-white hover:bg-rose-600 border-0 rounded-xl font-bold text-sm cursor-pointer h-10"
+            >
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Fragment>
+    </div>
   );
 }

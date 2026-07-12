@@ -75,8 +75,6 @@ import { Route as StudentGrammarIndexRouteImport } from './routes/student.gramma
 import { Route as StudentGrammarGrammarIdRouteImport } from './routes/student.grammar.$grammarId'
 import { Route as StudentClassesClassIdRouteImport } from './routes/student.classes.$classId'
 import { Route as AdminTeachersTeacherIdRouteImport } from './routes/admin.teachers.$teacherId'
-import { Route as AdminShadowingIndexRouteImport } from './routes/admin.shadowing._index'
-import { Route as AdminShadowingVideoIdRouteImport } from './routes/admin.shadowing.$videoId'
 import { Route as AdminQuestionBankQuestionBuilderRouteImport } from './routes/admin.question-bank.question-builder'
 import { Route as AdminQuestionBankLessonDetailRouteImport } from './routes/admin.question-bank.lesson-detail'
 import { Route as AdminQuestionBankImportExcelRouteImport } from './routes/admin.question-bank.import-excel'
@@ -454,16 +452,6 @@ const AdminTeachersTeacherIdRoute = AdminTeachersTeacherIdRouteImport.update({
   path: '/$teacherId',
   getParentRoute: () => AdminTeachersRoute,
 } as any)
-const AdminShadowingIndexRoute = AdminShadowingIndexRouteImport.update({
-  id: '/shadowing/_index',
-  path: '/shadowing',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminShadowingVideoIdRoute = AdminShadowingVideoIdRouteImport.update({
-  id: '/shadowing/$videoId',
-  path: '/shadowing/$videoId',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminQuestionBankQuestionBuilderRoute =
   AdminQuestionBankQuestionBuilderRouteImport.update({
     id: '/question-bank/question-builder',
@@ -790,8 +778,6 @@ export interface FileRoutesByFullPath {
   '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
   '/admin/question-bank/lesson-detail': typeof AdminQuestionBankLessonDetailRoute
   '/admin/question-bank/question-builder': typeof AdminQuestionBankQuestionBuilderRoute
-  '/admin/shadowing/$videoId': typeof AdminShadowingVideoIdRoute
-  '/admin/shadowing': typeof AdminShadowingIndexRoute
   '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
@@ -900,8 +886,6 @@ export interface FileRoutesByTo {
   '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
   '/admin/question-bank/lesson-detail': typeof AdminQuestionBankLessonDetailRoute
   '/admin/question-bank/question-builder': typeof AdminQuestionBankQuestionBuilderRoute
-  '/admin/shadowing/$videoId': typeof AdminShadowingVideoIdRoute
-  '/admin/shadowing': typeof AdminShadowingIndexRoute
   '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
@@ -1015,8 +999,6 @@ export interface FileRoutesById {
   '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
   '/admin/question-bank/lesson-detail': typeof AdminQuestionBankLessonDetailRoute
   '/admin/question-bank/question-builder': typeof AdminQuestionBankQuestionBuilderRoute
-  '/admin/shadowing/$videoId': typeof AdminShadowingVideoIdRoute
-  '/admin/shadowing/_index': typeof AdminShadowingIndexRoute
   '/admin/teachers/$teacherId': typeof AdminTeachersTeacherIdRouteWithChildren
   '/student/classes/$classId': typeof StudentClassesClassIdRoute
   '/student/grammar/$grammarId': typeof StudentGrammarGrammarIdRouteWithChildren
@@ -1132,8 +1114,6 @@ export interface FileRouteTypes {
     | '/admin/question-bank/import-excel'
     | '/admin/question-bank/lesson-detail'
     | '/admin/question-bank/question-builder'
-    | '/admin/shadowing/$videoId'
-    | '/admin/shadowing'
     | '/admin/teachers/$teacherId'
     | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
@@ -1242,8 +1222,6 @@ export interface FileRouteTypes {
     | '/admin/question-bank/import-excel'
     | '/admin/question-bank/lesson-detail'
     | '/admin/question-bank/question-builder'
-    | '/admin/shadowing/$videoId'
-    | '/admin/shadowing'
     | '/admin/teachers/$teacherId'
     | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
@@ -1356,8 +1334,6 @@ export interface FileRouteTypes {
     | '/admin/question-bank/import-excel'
     | '/admin/question-bank/lesson-detail'
     | '/admin/question-bank/question-builder'
-    | '/admin/shadowing/$videoId'
-    | '/admin/shadowing/_index'
     | '/admin/teachers/$teacherId'
     | '/student/classes/$classId'
     | '/student/grammar/$grammarId'
@@ -1890,20 +1866,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTeachersTeacherIdRouteImport
       parentRoute: typeof AdminTeachersRoute
     }
-    '/admin/shadowing/_index': {
-      id: '/admin/shadowing/_index'
-      path: '/shadowing'
-      fullPath: '/admin/shadowing'
-      preLoaderRoute: typeof AdminShadowingIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/shadowing/$videoId': {
-      id: '/admin/shadowing/$videoId'
-      path: '/shadowing/$videoId'
-      fullPath: '/admin/shadowing/$videoId'
-      preLoaderRoute: typeof AdminShadowingVideoIdRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/question-bank/question-builder': {
       id: '/admin/question-bank/question-builder'
       path: '/question-bank/question-builder'
@@ -2284,8 +2246,6 @@ interface AdminRouteChildren {
   AdminQuestionBankImportExcelRoute: typeof AdminQuestionBankImportExcelRoute
   AdminQuestionBankLessonDetailRoute: typeof AdminQuestionBankLessonDetailRoute
   AdminQuestionBankQuestionBuilderRoute: typeof AdminQuestionBankQuestionBuilderRoute
-  AdminShadowingVideoIdRoute: typeof AdminShadowingVideoIdRoute
-  AdminShadowingIndexRoute: typeof AdminShadowingIndexRoute
   AdminJlptExamLevelIndexRoute: typeof AdminJlptExamLevelIndexRoute
   AdminJlptExamLevelCreateRoute: typeof AdminJlptExamLevelCreateRoute
   AdminJlptExamLevelExamIdEditRoute: typeof AdminJlptExamLevelExamIdEditRoute
@@ -2306,8 +2266,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminQuestionBankImportExcelRoute: AdminQuestionBankImportExcelRoute,
   AdminQuestionBankLessonDetailRoute: AdminQuestionBankLessonDetailRoute,
   AdminQuestionBankQuestionBuilderRoute: AdminQuestionBankQuestionBuilderRoute,
-  AdminShadowingVideoIdRoute: AdminShadowingVideoIdRoute,
-  AdminShadowingIndexRoute: AdminShadowingIndexRoute,
   AdminJlptExamLevelIndexRoute: AdminJlptExamLevelIndexRoute,
   AdminJlptExamLevelCreateRoute: AdminJlptExamLevelCreateRoute,
   AdminJlptExamLevelExamIdEditRoute: AdminJlptExamLevelExamIdEditRoute,

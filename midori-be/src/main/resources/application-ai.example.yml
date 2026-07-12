@@ -14,7 +14,10 @@
 ai:
   gemini:
     api-key: YOUR_GEMINI_API_KEY_HERE
-    model: gemini-2.5-flash
+    # Primary model — set GEMINI_MODEL env var to change without rebuild
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
+    # Fallback chain — set GEMINI_FALLBACK_MODELS env var to customize
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
     enabled: true
 
 # OPTION 2: OpenAI GPT

@@ -104,7 +104,11 @@ ai:
     # Multiple API keys (comma-separated) - RECOMMENDED for production
     # Example: AIzaSy...xxx,AIzaSy...yyy,AIzaSy...zzz
     api-keys: ${GEMINI_API_KEYS:}
-    model: gemini-2.5-flash
+    # Primary model — set GEMINI_MODEL env var, no code change/rebuild needed
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
+    # Fallback chain — tried in order when primary returns 404/429/500/503
+    # Set GEMINI_FALLBACK_MODELS env var to customize (comma-separated)
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
 
   # ============================================================
   # OPENAI CONFIGURATION

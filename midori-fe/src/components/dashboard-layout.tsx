@@ -165,9 +165,6 @@ const adminNav: NavItem[] = [
   // 6. Content Library
   { to: "/admin/content-library", label: "Content Library", icon: Library },
 
-  // 7. Shadowing Management
-  { to: "/admin/shadowing", label: "Shadowing Management", icon: Mic },
-
   // 8. Notification Management
   { to: "/admin/notification", label: "Notification", icon: Bell },
 

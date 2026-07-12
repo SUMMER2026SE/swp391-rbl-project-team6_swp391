@@ -3,9 +3,10 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
+import { studentShadowingApi } from "@/lib/api/shadowing";
+import { Loader2 } from "lucide-react";
+import { getTopicVn } from "../student.shadowing";
 import {
-  getVideoById,
-  getTopicForVideo,
   generateMockAIFeedback,
   type ShadowingSentence,
 } from "@/mock/shadowing-student";
@@ -32,24 +33,82 @@ function ReviewPage() {
   const params = Route.useParams();
   const videoId = params.videoId;
 
-  const video = useMemo(() => getVideoById(videoId), [videoId]);
-  const topic = useMemo(() => getTopicForVideo(videoId), [videoId]);
+  const [rawVideo, setRawVideo] = useState<any>(null);
+  const [transcript, setTranscript] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [reviewData, setReviewData] = useState<SentenceReview[]>([]);
 
-  // Generate mock review data
-  const [reviewData] = useState<SentenceReview[]>(() => {
-    if (!video) return [];
-    return video.sentences.map((sentence) => {
-      const feedback = generateMockAIFeedback(sentence.text);
-      return {
-        sentence,
-        score: feedback.overallScore,
-        feedback,
-      };
-    });
-  });
+  useEffect(() => {
+    const loadVideoAndTranscript = async () => {
+      setIsLoading(true);
+      try {
+        const v = await studentShadowingApi.getVideo(videoId);
+        const t = await studentShadowingApi.getTranscript(videoId);
+        setRawVideo(v);
+        setTranscript(t);
+
+        const sentences = (t?.segments ?? []).map((s: any, idx: number) => ({
+          id: s.id || idx.toString(),
+          startTime: s.startTime,
+          endTime: s.endTime,
+          text: s.jpText,
+          translation: s.vnText || ""
+        }));
+
+        const review = sentences.map((sentence: any) => {
+          const feedback = generateMockAIFeedback(sentence.text);
+          return {
+            sentence,
+            score: feedback.overallScore,
+            feedback,
+          };
+        });
+        setReviewData(review);
+      } catch (err) {
+        console.error("Error loading video details:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadVideoAndTranscript();
+  }, [videoId]);
+
+  const video = useMemo(() => {
+    if (!rawVideo) return null;
+    return {
+      id: rawVideo.id,
+      title: rawVideo.title,
+      description: rawVideo.description || "",
+      videoUrl: rawVideo.videoUrl,
+      thumbnail: rawVideo.thumbnailUrl || "",
+      duration: rawVideo.duration,
+      jlptLevel: rawVideo.jlptLevel || "N5",
+      topic: rawVideo.topic || "General"
+    };
+  }, [rawVideo]);
+
+  const topic = useMemo(() => {
+    if (!rawVideo) return null;
+    return {
+      id: (rawVideo.topic || "General").toLowerCase().replace(/\s+/g, "-"),
+      title: rawVideo.topic || "General",
+      titleVn: getTopicVn(rawVideo.topic || "General"),
+      jlptLevel: rawVideo.jlptLevel || "N5"
+    };
+  }, [rawVideo]);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const currentReview = reviewData[selectedIndex];
+
+  // Close loader early if loading is done
+  if (isLoading) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={14} />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   if (!video || !topic) {
     return (

@@ -16,13 +16,25 @@ import {
   Languages,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import {
-  getVideoById,
-  getTopicForVideo,
-  type VocabularyItem,
-  type GrammarPoint,
-  type TranscriptSegment,
-} from "@/mock/shadowing-student";
+import { studentShadowingApi } from "@/lib/api/shadowing";
+import { Loader2 } from "lucide-react";
+import { getTopicVn } from "../student.shadowing";
+
+export interface VocabularyItem {
+  word: string;
+  reading: string;
+  meaning: string;
+  partOfSpeech?: string;
+}
+
+export interface TranscriptSegment {
+  id: string;
+  startTime: number;
+  endTime: number;
+  text: string;
+  translation: string;
+  vocabulary: VocabularyItem[];
+}
 
 type TranscriptMode = "japanese" | "vietnamese" | "both";
 
@@ -35,8 +47,61 @@ function VideoLearningPage() {
   const videoId = params.videoId;
   const navigate = useNavigate();
 
-  const video = useMemo(() => getVideoById(videoId), [videoId]);
-  const topic = useMemo(() => getTopicForVideo(videoId), [videoId]);
+  const [rawVideo, setRawVideo] = useState<any>(null);
+  const [transcript, setTranscript] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadVideoAndTranscript = async () => {
+      setIsLoading(true);
+      try {
+        const v = await studentShadowingApi.getVideo(videoId);
+        const t = await studentShadowingApi.getTranscript(videoId);
+        setRawVideo(v);
+        setTranscript(t);
+      } catch (err) {
+        console.error("Error loading video details:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadVideoAndTranscript();
+  }, [videoId]);
+
+  const video = useMemo(() => {
+    if (!rawVideo) return null;
+    const segments: TranscriptSegment[] = (transcript?.segments ?? []).map((s: any, idx: number) => ({
+      id: s.id || idx.toString(),
+      startTime: s.startTime,
+      endTime: s.endTime,
+      text: s.jpText,
+      translation: s.vnText || "",
+      vocabulary: []
+    }));
+
+    return {
+      id: rawVideo.id,
+      title: rawVideo.title,
+      description: rawVideo.description || "",
+      videoUrl: rawVideo.videoUrl,
+      thumbnail: rawVideo.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=225&fit=crop",
+      duration: rawVideo.duration ? `${Math.floor(rawVideo.duration / 60)}:${(rawVideo.duration % 60).toString().padStart(2, "0")}` : "0:00",
+      jlptLevel: rawVideo.jlptLevel || "N5",
+      topic: rawVideo.topic || "General",
+      titleVn: rawVideo.topic || "General",
+      script: segments
+    };
+  }, [rawVideo, transcript]);
+
+  const topic = useMemo(() => {
+    if (!rawVideo) return null;
+    return {
+      id: (rawVideo.topic || "General").toLowerCase().replace(/\s+/g, "-"),
+      title: rawVideo.topic || "General",
+      titleVn: getTopicVn(rawVideo.topic || "General"),
+      jlptLevel: rawVideo.jlptLevel || "N5"
+    };
+  }, [rawVideo]);
 
   // UI States
   const [isPlaying, setIsPlaying] = useState(false);
@@ -47,6 +112,16 @@ function VideoLearningPage() {
   const [selectedSegment, setSelectedSegment] = useState<TranscriptSegment | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
+
+  // Close loader early if loading is done
+  if (isLoading) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={14} />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   // Handle word click
   const handleWordClick = useCallback((word: VocabularyItem, event: React.MouseEvent) => {
@@ -194,45 +269,45 @@ function VideoLearningPage() {
               <div className="sticky top-[140px] h-[calc(100vh-140px)] overflow-y-auto p-6 lg:p-8">
                 {/* Transcript Mode Toggle */}
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Languages className="w-4 h-4 text-muted-foreground" />
-                    <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                  <div className="flex items-center gap-2 w-full">
+                    <Languages className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex-1">
                       <button
                         onClick={() => setTranscriptMode("japanese")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
                           transcriptMode === "japanese"
-                            ? "bg-white dark:bg-slate-700 text-primary shadow"
-                            : "text-muted-foreground hover:text-slate-800"
+                            ? "bg-white dark:bg-slate-700 text-primary shadow-sm"
+                            : "text-muted-foreground hover:text-slate-800 dark:hover:text-white"
                         }`}
                       >
-                        Tiếng Nhật
+                        🇯🇵 Tiếng Nhật
                       </button>
                       <button
                         onClick={() => setTranscriptMode("vietnamese")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
                           transcriptMode === "vietnamese"
-                            ? "bg-white dark:bg-slate-700 text-primary shadow"
-                            : "text-muted-foreground hover:text-slate-800"
+                            ? "bg-white dark:bg-slate-700 text-primary shadow-sm"
+                            : "text-muted-foreground hover:text-slate-800 dark:hover:text-white"
                         }`}
                       >
-                        Tiếng Việt
+                        🇻🇳 Tiếng Việt
                       </button>
                       <button
                         onClick={() => setTranscriptMode("both")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
                           transcriptMode === "both"
-                            ? "bg-white dark:bg-slate-700 text-primary shadow"
-                            : "text-muted-foreground hover:text-slate-800"
+                            ? "bg-white dark:bg-slate-700 text-primary shadow-sm"
+                            : "text-muted-foreground hover:text-slate-800 dark:hover:text-white"
                         }`}
                       >
-                        Cả Hai
+                        ⚡ Cả Hai
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* Transcript */}
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {video.script.map((segment, index) => (
                     <motion.div
                       key={segment.id}
@@ -243,50 +318,51 @@ function VideoLearningPage() {
                     >
                       <button
                         onClick={(e) => handleSegmentClick(segment, e)}
-                        className="w-full text-left p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-primary/5 dark:hover:bg-primary/10 transition cursor-pointer"
+                        className="w-full text-left rounded-2xl bg-slate-50 dark:bg-slate-800/50 hover:bg-primary/5 dark:hover:bg-primary/10 transition-all cursor-pointer overflow-hidden border border-transparent hover:border-primary/20"
                       >
-                        <div className="flex items-start gap-3">
-                          <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                        {/* Card Header */}
+                        <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 border-b border-slate-200/60 dark:border-white/5">
+                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shrink-0">
                             {index + 1}
                           </span>
-                            <div className="flex-1">
-                            {(transcriptMode === "japanese" || transcriptMode === "both") && (
-                              <p
-                                className="text-lg text-slate-800 dark:text-white leading-relaxed"
-                                style={{ fontFamily: "var(--font-japanese, serif)" }}
-                              >
-                                {segment.text
-                                  .split(/([^\s。、！？「」『』（）〔〕【】]+)/g)
-                                  .map((part, i) => {
-                                    const vocab = segment.vocabulary.find((v) => v.word === part);
-                                    if (vocab) {
-                                      return (
-                                        <span
-                                          key={i}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleWordClick(vocab, e);
-                                          }}
-                                          className="inline-block px-0.5 py-0.5 -mx-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
-                                        >
-                                          {part}
-                                        </span>
-                                      );
-                                    }
-                                    return part;
-                                  })}
-                              </p>
-                            )}
-                            {transcriptMode === "vietnamese" && (
-                              <p className="text-sm text-muted-foreground">{segment.translation}</p>
-                            )}
-                            {transcriptMode === "both" && (
-                              <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">{segment.translation}</p>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {segment.startTime}s
-                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{segment.startTime}s</span>
+                        </div>
+
+                        {/* Card Body */}
+                        <div className="px-3 py-2.5 space-y-1.5">
+                          {(transcriptMode === "japanese" || transcriptMode === "both") && (
+                            <p
+                              className="text-base font-semibold text-slate-800 dark:text-white leading-relaxed"
+                              style={{ fontFamily: "var(--font-japanese, serif)" }}
+                            >
+                              {segment.text
+                                .split(/([^\s。、！？「」『』（）〔〕【】]+)/g)
+                                .map((part, i) => {
+                                  const vocab = segment.vocabulary.find((v) => v.word === part);
+                                  if (vocab) {
+                                    return (
+                                      <span
+                                        key={i}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleWordClick(vocab, e);
+                                        }}
+                                        className="inline-block px-0.5 py-0.5 -mx-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
+                                      >
+                                        {part}
+                                      </span>
+                                    );
+                                  }
+                                  return part;
+                                })}
+                            </p>
+                          )}
+                          {transcriptMode === "vietnamese" && (
+                            <p className="text-sm text-slate-600 dark:text-slate-300 italic">{segment.translation}</p>
+                          )}
+                          {transcriptMode === "both" && (
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 italic mt-0.5">{segment.translation}</p>
+                          )}
                         </div>
                       </button>
                     </motion.div>
