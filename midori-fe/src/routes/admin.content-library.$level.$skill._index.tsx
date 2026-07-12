@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { AdminShadowingManagement } from "@/components/admin/AdminShadowingManagement";
 import {
   BookOpen,
   GraduationCap,
@@ -3695,6 +3696,14 @@ function SkillDetailPage() {
   const navigate = useNavigate();
   const upperLevel = level.toUpperCase() as JLPTLevel;
   const config = SKILL_CONFIG[skill];
+
+  if (skill === "shadowing") {
+    return (
+      <div className="pb-12">
+        <AdminShadowingManagement defaultLevel={upperLevel} />
+      </div>
+    );
+  }
 
   const { lessons, createLesson, updateLesson, deleteLesson } = useContentLibrary(
     upperLevel,

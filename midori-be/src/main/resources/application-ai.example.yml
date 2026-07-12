@@ -14,7 +14,7 @@
 ai:
   gemini:
     api-key: YOUR_GEMINI_API_KEY_HERE
-    model: gemini-1.5-flash
+    model: gemini-2.5-flash
     enabled: true
 
 # OPTION 2: OpenAI GPT

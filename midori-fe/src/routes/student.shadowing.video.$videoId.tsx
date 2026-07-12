@@ -24,7 +24,7 @@ import {
   type TranscriptSegment,
 } from "@/mock/shadowing-student";
 
-type TranscriptMode = "japanese" | "japanese-vn";
+type TranscriptMode = "japanese" | "vietnamese" | "both";
 
 export const Route = createFileRoute("/student/shadowing/video/$videoId")({
   component: VideoLearningPage,
@@ -40,7 +40,7 @@ function VideoLearningPage() {
 
   // UI States
   const [isPlaying, setIsPlaying] = useState(false);
-  const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("japanese-vn");
+  const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("both");
   const [showWordPopup, setShowWordPopup] = useState(false);
   const [showSentencePopup, setShowSentencePopup] = useState(false);
   const [selectedWord, setSelectedWord] = useState<VocabularyItem | null>(null);
@@ -141,7 +141,6 @@ function VideoLearningPage() {
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                {video.duration}
               </div>
             </div>
           </div>
@@ -209,14 +208,24 @@ function VideoLearningPage() {
                         Tiếng Nhật
                       </button>
                       <button
-                        onClick={() => setTranscriptMode("japanese-vn")}
+                        onClick={() => setTranscriptMode("vietnamese")}
                         className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
-                          transcriptMode === "japanese-vn"
+                          transcriptMode === "vietnamese"
                             ? "bg-white dark:bg-slate-700 text-primary shadow"
                             : "text-muted-foreground hover:text-slate-800"
                         }`}
                       >
-                        Tiếng Nhật + Việt
+                        Tiếng Việt
+                      </button>
+                      <button
+                        onClick={() => setTranscriptMode("both")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                          transcriptMode === "both"
+                            ? "bg-white dark:bg-slate-700 text-primary shadow"
+                            : "text-muted-foreground hover:text-slate-800"
+                        }`}
+                      >
+                        Cả Hai
                       </button>
                     </div>
                   </div>
@@ -240,34 +249,39 @@ function VideoLearningPage() {
                           <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
                             {index + 1}
                           </span>
-                          <div className="flex-1">
-                            <p
-                              className="text-lg text-slate-800 dark:text-white leading-relaxed mb-1"
-                              style={{ fontFamily: "var(--font-japanese, serif)" }}
-                            >
-                              {segment.text
-                                .split(/([^\s。、！？「」『』（）〔〕【】]+)/g)
-                                .map((part, i) => {
-                                  const vocab = segment.vocabulary.find((v) => v.word === part);
-                                  if (vocab) {
-                                    return (
-                                      <span
-                                        key={i}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleWordClick(vocab, e);
-                                        }}
-                                        className="inline-block px-0.5 py-0.5 -mx-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
-                                      >
-                                        {part}
-                                      </span>
-                                    );
-                                  }
-                                  return part;
-                                })}
-                            </p>
-                            {transcriptMode === "japanese-vn" && (
+                            <div className="flex-1">
+                            {(transcriptMode === "japanese" || transcriptMode === "both") && (
+                              <p
+                                className="text-lg text-slate-800 dark:text-white leading-relaxed"
+                                style={{ fontFamily: "var(--font-japanese, serif)" }}
+                              >
+                                {segment.text
+                                  .split(/([^\s。、！？「」『』（）〔〕【】]+)/g)
+                                  .map((part, i) => {
+                                    const vocab = segment.vocabulary.find((v) => v.word === part);
+                                    if (vocab) {
+                                      return (
+                                        <span
+                                          key={i}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleWordClick(vocab, e);
+                                          }}
+                                          className="inline-block px-0.5 py-0.5 -mx-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition cursor-pointer underline decoration-dotted underline-offset-2"
+                                        >
+                                          {part}
+                                        </span>
+                                      );
+                                    }
+                                    return part;
+                                  })}
+                              </p>
+                            )}
+                            {transcriptMode === "vietnamese" && (
                               <p className="text-sm text-muted-foreground">{segment.translation}</p>
+                            )}
+                            {transcriptMode === "both" && (
+                              <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">{segment.translation}</p>
                             )}
                           </div>
                           <span className="text-[10px] text-muted-foreground shrink-0">

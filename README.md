@@ -306,6 +306,105 @@ All API endpoints are prefixed with `/api`.
 
 ---
 
+## FFmpeg Installation
+
+MIDORI uses FFmpeg and FFprobe for audio extraction in AI shadowing features (video → audio → transcription → translation pipeline).
+
+> **FFmpeg is NOT included in the repository** due to its large size (~80-100 MB per binary). Follow the instructions below to set it up.
+
+### Expected Folder Structure
+
+After installation, your project should look like this:
+
+```
+swp391-rbl-project-team6_swp391/
+├── midori-be/
+│   ├── scripts/
+│   │   └── setup-ffmpeg.ps1    ← Setup script (keep this)
+│   ├── ffmpeg/                   ← You create this folder
+│   │   └── bin/                 ← Extract FFmpeg here
+│   │       ├── ffmpeg.exe
+│   │       └── ffprobe.exe
+│   └── ...
+└── ...
+```
+
+### Method 1: Automated Setup (Recommended)
+
+1. Download FFmpeg:
+   - Visit https://www.gyan.dev/ffmpeg/builds/
+   - Download `ffmpeg-git-full.7z` or `ffmpeg-release-essentials.zip`
+
+2. Extract the downloaded archive
+
+3. Copy the `bin` folder contents to `midori-be/ffmpeg/bin/`:
+   ```
+   your-download-folder/
+   └── ffmpeg.exe        →  midori-be/ffmpeg/bin/ffmpeg.exe
+   └── ffprobe.exe       →  midori-be/ffmpeg/bin/ffprobe.exe
+   ```
+
+4. Validate the installation:
+   ```powershell
+   .\midori-be\scripts\setup-ffmpeg.ps1
+   ```
+
+### Method 2: Manual Configuration
+
+If you prefer to keep FFmpeg in a custom location (e.g., `C:\tools\ffmpeg`):
+
+1. Download FFmpeg from https://ffmpeg.org/download.html or https://www.gyan.dev/ffmpeg/builds/
+
+2. Set environment variables in your shell or `midori-be/.env`:
+   ```powershell
+   # Option A: Shell environment (temporary)
+   $env:FFMPEG_PATH = "C:\tools\ffmpeg\bin\ffmpeg.exe"
+   $env:FFPROBE_PATH = "C:\tools\ffmpeg\bin\ffprobe.exe"
+
+   # Option B: In midori-be/.env (persistent)
+   FFMPEG_PATH=C:\tools\ffmpeg\bin\ffmpeg.exe
+   FFPROBE_PATH=C:\tools\ffmpeg\bin\ffprobe.exe
+   ```
+
+3. Validate the installation:
+   ```powershell
+   .\midori-be\scripts\setup-ffmpeg.ps1
+   ```
+
+### Verify Installation
+
+Run the validation script:
+
+```powershell
+.\midori-be\scripts\setup-ffmpeg.ps1
+```
+
+Expected output:
+```
+============================================================
+MIDORI FFmpeg Setup Check
+============================================================
+
+Resolved paths:
+  FFMPEG_PATH=...\midori-be\ffmpeg\bin\ffmpeg.exe
+  FFPROBE_PATH=...\midori-be\ffmpeg\bin\ffprobe.exe
+
+[OK] ffmpeg version: ffmpeg version 7.x ...
+[OK] ffprobe version: ffprobe version 7.x ...
+[OK] FFmpeg is installed and validated.
+```
+
+### Common Errors
+
+| Error | Cause | Fix |
+| --- | --- | --- |
+| `FFmpeg is not configured or missing` | `ffmpeg.exe`/`ffprobe.exe` not found | Extract FFmpeg to `midori-be/ffmpeg/bin/` |
+| `CreateProcess error=2` | Wrong path or file not executable | Verify `FFMPEG_PATH` env var and file exists |
+| Backend starts but shadowing fails | Missing `ffprobe` | Install full FFmpeg build with `ffprobe` included |
+| FFmpeg not ignored by Git | `.gitignore` not updated | Ensure `ffmpeg/` folder is in `.gitignore` |
+
+---
+
 ## Troubleshooting
 
 | Problem                                      | Cause                                                    | Fix                                                                                                                      |

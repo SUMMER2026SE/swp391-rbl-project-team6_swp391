@@ -14,6 +14,7 @@ import {
   Home,
   Eye,
   Star,
+  Languages,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import {
@@ -66,6 +67,7 @@ function ShadowingPracticePage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(true); // Toggle hiển thị tiếng Việt
   const [sentenceResults, setSentenceResults] = useState<SentenceResult[]>([]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -240,7 +242,24 @@ function ShadowingPracticePage() {
                     >
                       {currentSentence.text}
                     </p>
-                    <p className="text-base text-muted-foreground">{currentSentence.translation}</p>
+                    {/* Toggle hiển thị tiếng Việt */}
+                    <button
+                      onClick={() => setShowTranslation(!showTranslation)}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 dark:bg-white/10 backdrop-blur-md border border-slate-200 dark:border-white/20 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-white/80 transition"
+                    >
+                      <Languages className="w-3.5 h-3.5" />
+                      {showTranslation ? "Ẩn tiếng Việt" : "Hiện tiếng Việt"}
+                    </button>
+                    {showTranslation && (
+                      <motion.p
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="text-base text-muted-foreground"
+                      >
+                        {currentSentence.translation}
+                      </motion.p>
+                    )}
                   </div>
 
                   {/* Recording status */}
@@ -385,7 +404,9 @@ function ShadowingPracticePage() {
                       >
                         {lastResult.text}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-1">{lastResult.translation}</p>
+                      {showTranslation && (
+                        <p className="text-sm text-muted-foreground mt-1">{lastResult.translation}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -495,9 +516,18 @@ function ShadowingPracticePage() {
 
                 {/* Per-sentence summary */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-slate-700 dark:text-white">
-                    Kết quả từng câu
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-white">
+                      Kết quả từng câu
+                    </h3>
+                    <button
+                      onClick={() => setShowTranslation(!showTranslation)}
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                    >
+                      <Languages className="w-3.5 h-3.5" />
+                      {showTranslation ? "Ẩn VN" : "Hiện VN"}
+                    </button>
+                  </div>
                   {sentenceResults.map((result, i) => (
                     <div
                       key={result.sentenceId}
@@ -512,12 +542,17 @@ function ShadowingPracticePage() {
                       >
                         {i + 1}
                       </span>
-                      <p
-                        className="flex-1 text-sm font-medium text-slate-800 dark:text-white truncate"
-                        style={{ fontFamily: "var(--font-japanese, serif)" }}
-                      >
-                        {result.text}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-sm font-medium text-slate-800 dark:text-white truncate"
+                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                        >
+                          {result.text}
+                        </p>
+                        {showTranslation && (
+                          <p className="text-xs text-muted-foreground truncate">{result.translation}</p>
+                        )}
+                      </div>
                       <span className={`text-lg font-black shrink-0 ${scoreColor(result.score)}`}>
                         {result.score}
                       </span>

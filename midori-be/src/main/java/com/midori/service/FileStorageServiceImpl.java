@@ -91,8 +91,10 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(contentType));
-        headers.set("Authorization", "Bearer " + serviceRoleKey);
         headers.set("apikey", serviceRoleKey);
+        if (!serviceRoleKey.startsWith("sb_secret_")) {
+            headers.set("Authorization", "Bearer " + serviceRoleKey);
+        }
         headers.set("x-upsert", "false");
 
         HttpEntity<byte[]> request;

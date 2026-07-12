@@ -38,9 +38,46 @@ midori-be/.env.local
 midori-be/.env.*
 
 # =============================================
+# FFmpeg binaries and archives
+# =============================================
+# FFmpeg executables (large binary files)
+midori-be/ffmpeg/
+midori-be/ffmpeg.exe
+midori-be/ffprobe.exe
+
+# FFmpeg archives and compressed files
+*.7z
+*.rar
+*.zip
+*ffmpeg*.zip
+*ffmpeg*.7z
+*ffmpeg*.rar
+ffmpeg.zip
+ffmpeg-*.zip
+ffmpeg-*.7z
+ffmpeg-full.zip
+ffmpeg-release-*.zip
+gyan-ffmpeg*.7z
+
+# Keep FFmpeg setup script
+!midori-be/scripts/setup-ffmpeg.ps1
+
+# =============================================
 # Backend local uploads
 # =============================================
 midori-be/uploads/
+
+# =============================================
+# Generated media / temp artifacts
+# =============================================
+*.mp3
+*.wav
+*.aac
+*.pcm
+*.tmp
+generated-audio/
+generated-video/
+processing-temp/
 
 # =============================================
 # Cloudflare / Wrangler

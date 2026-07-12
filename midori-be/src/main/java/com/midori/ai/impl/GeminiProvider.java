@@ -1,36 +1,115 @@
 package com.midori.ai.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.midori.ai.AiParsingException;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderType;
-import com.midori.ai.ExamParsingPrompt;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.midori.ai.AiParsingException;
+import com.midori.ai.key.GeminiKeyManager;
+import com.midori.ai.prompt.AiPromptBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Functional interface for API calls that can be retried across multiple keys.
+ * Each method in GeminiProvider passes its webclient call as a lambda here,
+ * and executeWithKeyRetry() handles the retry loop, rotation, and logging.
+ */
+@FunctionalInterface
+interface RetryableCall<T> {
+    /**
+     * Execute the API call with the currently active key.
+     * @param apiKey the key to use for this attempt
+     * @return the parsed response
+     */
+    T execute(String apiKey) throws Exception;
+}
+@Slf4j
 @Component
 public class GeminiProvider implements AiProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(GeminiProvider.class);
 
     private final AiConfigProperties config;
     private final ObjectMapper objectMapper;
     private final WebClient.Builder webClientBuilder;
+    private final GeminiKeyManager keyManager;
+    private volatile String lastModelUsed;
+    
+    // Global request counter for monitoring
+    private static final AtomicInteger globalRequestCounter = new AtomicInteger(0);
+    // Per-pipeline request counter (set via ThreadLocal of AtomicInteger for mutability)
+    private static final ThreadLocal<AtomicInteger> pipelineRequestCounter = ThreadLocal.withInitial(AtomicInteger::new);
 
     public GeminiProvider(AiConfigProperties config, ObjectMapper objectMapper, WebClient.Builder webClientBuilder) {
         this.config = config;
         this.objectMapper = objectMapper;
         this.webClientBuilder = webClientBuilder;
+        this.keyManager = new GeminiKeyManager(config.getGemini().getApiKeysStr());
+        
+        log.info("==============================================");
+        log.info("[GeminiProvider] INITIALIZED");
+        log.info("==============================================");
+        log.info("  Model: {}", config.getGemini().getModel());
+        log.info("  Base URL: {}", config.getGemini().getBaseUrl());
+        log.info("  API Keys configured: {}", keyManager.getKeyCount());
+        log.info("  API Key 1 loaded: {}", config.getGemini().getPrimaryApiKey() != null ? "YES" : "NO");
+        log.info("  Timeout: {}s", config.getTimeoutSeconds());
+        log.info("  Temperature: {}", config.getTemperature());
+        log.info("  Max Tokens: {}", config.getMaxTokens());
+        log.info("==============================================");
+        
+        if (config.getGemini().getApiKeysStr() != null && !config.getGemini().getApiKeysStr().isBlank()) {
+            String[] keys = config.getGemini().getApiKeysStr().split(",");
+            for (int i = 0; i < keys.length; i++) {
+                String maskedKey = keys[i].trim().substring(0, 4) + "..." + keys[i].trim().substring(keys[i].trim().length() - 4);
+                log.info("  Key {}: {} (last 6: {})", i + 1, maskedKey, keys[i].trim().substring(keys[i].trim().length() - 6));
+            }
+        }
+    }
+    
+    // ============================================================
+    // Request Counter Methods
+    // ============================================================
+    
+    /**
+     * Reset the pipeline request counter for a new video processing.
+     * Call this at the start of each video processing pipeline.
+     */
+    public void resetPipelineCounter() {
+        pipelineRequestCounter.get().set(0);
+        log.info("[GeminiProvider] Pipeline counter RESET for new video");
+    }
+
+    /**
+     * Increment and get the current pipeline request count.
+     */
+    private int incrementAndGetPipelineCount() {
+        return pipelineRequestCounter.get().incrementAndGet();
+    }
+
+    /**
+     * Get the current pipeline request count without incrementing.
+     */
+    public int getPipelineRequestCount() {
+        return pipelineRequestCounter.get().get();
+    }
+    
+    /**
+     * Get the global total request count across all pipelines.
+     */
+    public int getGlobalRequestCount() {
+        return globalRequestCounter.get();
     }
 
     @Override
@@ -44,49 +123,422 @@ public class GeminiProvider implements AiProvider {
     }
 
     @Override
-    public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
-        if (config.getGemini().getApiKey() == null || config.getGemini().getApiKey().isBlank()) {
-            throw new AiParsingException("Gemini API key is not configured. Set ai.gemini.api-key in application properties.");
+    public boolean isConfigured() {
+        return config.getGemini().isConfigured();
+    }
+
+    @Override
+    public List<String> getModels() {
+        return List.of(config.getGemini().getModel());
+    }
+
+    @Override
+    public String getLastModelUsed() {
+        return lastModelUsed;
+    }
+
+    // ============================================================
+    // Shared Retry Helper
+    // ============================================================
+
+    /**
+     * Execute a Gemini API call with automatic multi-key retry on 429.
+     *
+     * On HTTP 429: rotates to the next key and retries up to keyManager.getKeyCount() times.
+     * On other HTTP errors or exceptions: throws immediately.
+     *
+     * @param operationLabel human-readable label for log messages (e.g. "translation", "chat")
+     * @param call           the API call lambda; receives the current key, returns the parsed result
+     * @return the result from the successful call
+     * @throws RuntimeException on all errors after exhausting all keys
+     */
+    private <T> T executeWithKeyRetry(String operationLabel, RetryableCall<T> call) {
+        int maxRetries = Math.max(1, keyManager.getKeyCount());
+        RuntimeException lastError = null;
+
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            String apiKey = keyManager.getCurrentKey();
+            log.info("[GeminiProvider] Using Gemini key {}/{} for {}", attempt + 1, maxRetries, operationLabel);
+
+            try {
+                T result = call.execute(apiKey);
+                log.info("[GeminiProvider] {} succeeded with key {}/{}", operationLabel, attempt + 1, maxRetries);
+                return result;
+
+            } catch (WebClientResponseException e) {
+                int status = e.getStatusCode().value();
+                String responseBody = e.getResponseBodyAsString();
+                log.error("[GeminiProvider] HTTP ERROR - Status: {}, Response: {}", status, responseBody);
+                if ((status == 429 || status == 401 || status == 403) && attempt < maxRetries - 1) {
+                    log.warn("[GeminiProvider] HTTP {} received on {} with key {}/{} — rotating to next key", status, operationLabel, attempt + 1, maxRetries);
+                    keyManager.markKeyFailedAndGetNext();
+                    continue;
+                }
+                // Non-429/401/403 error or last key already exhausted
+                lastError = new RuntimeException("Gemini API error (" + status + "): " + responseBody, e);
+
+            } catch (Exception e) {
+                if (attempt < maxRetries - 1) {
+                    log.warn("[GeminiProvider] {} failed with key {}/{}: {} — trying next key", operationLabel, attempt + 1, maxRetries, e.getMessage());
+                    keyManager.markKeyFailedAndGetNext();
+                    continue;
+                }
+                lastError = new RuntimeException("Gemini " + operationLabel + " failed: " + e.getMessage(), e);
+            }
         }
 
-        String prompt = ExamParsingPrompt.buildPrompt(extractedText, filename);
+        log.error("[GeminiProvider] All {} Gemini key(s) exhausted for {}", maxRetries, operationLabel);
+        throw lastError != null ? lastError : new RuntimeException("All Gemini API keys exhausted for " + operationLabel);
+    }
+
+    // ============================================================
+    // Chat Implementation
+    // ============================================================
+
+    @Override
+    public String chat(String systemPrompt, String userMessage, List<String[]> conversationHistory) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
+        }
+
+        List<Map<String, Object>> contents = new ArrayList<>();
+
+        if (conversationHistory != null) {
+            for (String[] msg : conversationHistory) {
+                contents.add(createContentPart(msg[0], msg[1]));
+            }
+        }
+
+        contents.add(createContentPart("user", userMessage));
+
+        Map<String, Object> systemInstruction = new HashMap<>();
+        systemInstruction.put("parts", List.of(Map.of("text", systemPrompt)));
+
+        Map<String, Object> generationConfig = new HashMap<>();
+        generationConfig.put("temperature", 0.7);
+        generationConfig.put("maxOutputTokens", 2048);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("contents", contents);
+        requestBody.put("systemInstruction", systemInstruction);
+        requestBody.put("generationConfig", generationConfig);
+
         String model = config.getGemini().getModel();
+        String baseUrl = config.getGemini().getBaseUrl();
+        String apiKeysStr = config.getGemini().getApiKeysStr();
+        log.info("[GeminiProvider] CHAT REQUEST - Model: {}, BaseURL: {}", model, baseUrl);
+        log.info("[GeminiProvider] CHAT REQUEST - API Key loaded: {}", (apiKeysStr != null && !apiKeysStr.isBlank()) ? "YES" : "NO");
+        log.info("[GeminiProvider] CHAT REQUEST - Request body: {}", requestBody);
         long startMs = System.currentTimeMillis();
 
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = webClientBuilder
-                    .baseUrl(config.getGemini().getBaseUrl())
+        return executeWithKeyRetry("chat", (apiKey) -> {
+            String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
+            String requestUrl = baseUrl + "/v1beta/models/" + model + ":generateContent?key=" + keyMasked;
+            log.info("[GeminiProvider] CHAT REQUEST - URL: {}", requestUrl);
+            log.info("[GeminiProvider] CHAT REQUEST - Key index: {}/{}", keyManager.getKeyCount() > 0 ? "1" : "N/A", keyManager.getKeyCount());
+
+            String rawResponse = webClientBuilder
+                    .baseUrl(baseUrl)
                     .build()
                     .post()
-                    .uri("/v1beta/{model}:generateContent?key={key}", model, config.getGemini().getApiKey())
+                    .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(Map.of(
-                            "contents", List.of(Map.of(
-                                    "parts", List.of(Map.of("text", prompt))
-                            )),
-                            "generationConfig", Map.of(
-                                    "temperature", config.getTemperature(),
-                                    "maxOutputTokens", config.getMaxTokens(),
-                                    "responseMimeType", "application/json"
-                            )
-                    ))
+                    .bodyValue(requestBody)
                     .retrieve()
-                    .bodyToMono(Map.class)
+                    .bodyToMono(String.class)
                     .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                     .block();
 
             long latencyMs = System.currentTimeMillis() - startMs;
-            log.info("Gemini API responded in {}ms for model {}", latencyMs, model);
+            log.info("[GeminiProvider] CHAT RESPONSE - Latency: {}ms, Response length: {} chars", latencyMs, rawResponse != null ? rawResponse.length() : 0);
+            lastModelUsed = model;
+            return extractTextFromResponse(rawResponse);
+        });
+    }
 
-            return parseResponse(response, latencyMs);
+    // ============================================================
+    // Question Generation Implementation
+    // ============================================================
 
-        } catch (WebClientResponseException e) {
-            log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AiParsingException("Gemini API error: " + e.getStatusCode() + " — " + e.getMessage(), e);
+    @Override
+    public String generateQuestions(String materialTitle, String materialContent,
+                                   int questionCount, String questionType, String difficulty) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
+        }
+
+        String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
+                materialTitle, materialContent, questionCount, questionType, difficulty);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("contents", List.of(createContentPart("user", prompt)));
+
+        Map<String, Object> generationConfig = new HashMap<>();
+        generationConfig.put("temperature", 0.7);
+        generationConfig.put("maxOutputTokens", 8192);
+        requestBody.put("generationConfig", generationConfig);
+
+        String model = config.getGemini().getModel();
+        log.info("Using Gemini model: {}", model);
+
+        String rawText = executeWithKeyRetry("question generation", (apiKey) -> {
+            String rawResponse = webClientBuilder
+                    .baseUrl(config.getGemini().getBaseUrl())
+                    .build()
+                    .post()
+                    .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                    .block();
+
+            lastModelUsed = model;
+            return extractTextFromResponse(rawResponse);
+        });
+
+        return cleanJsonResponse(rawText);
+    }
+
+    // ============================================================
+    // Exam Parsing Implementation
+    // ============================================================
+
+    @Override
+    public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
+        if (!isConfigured()) {
+            throw new AiParsingException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
+        }
+
+        String prompt = AiPromptBuilder.buildExamParsingPrompt(extractedText, filename);
+        String model = config.getGemini().getModel();
+        log.info("Using Gemini model: {}", model);
+        long startMs = System.currentTimeMillis();
+
+        int maxRetries = Math.max(1, keyManager.getKeyCount());
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            String apiKey = keyManager.getCurrentKey();
+            
+            try {
+                Map<String, Object> response = callGeminiApi(model, apiKey, prompt);
+                long latencyMs = System.currentTimeMillis() - startMs;
+                log.info("Gemini API responded in {}ms for model {}", latencyMs, model);
+                lastModelUsed = model;
+                return parseResponse(response, latencyMs);
+
+            } catch (WebClientResponseException e) {
+                int status = e.getStatusCode().value();
+                if ((status == 429 || status == 401 || status == 403) && attempt < maxRetries - 1) {
+                    log.warn("[GeminiProvider] Rate limited or auth failed ({}). Retrying with next key...", status);
+                    keyManager.markKeyFailedAndGetNext();
+                    continue;
+                }
+                log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+                throw new AiParsingException("Gemini API error: " + e.getStatusCode() + " — " + e.getMessage(), e);
+            } catch (Exception e) {
+                if (attempt < maxRetries - 1) {
+                    log.warn("[GeminiProvider] Request failed: {}. Trying next key...", e.getMessage());
+                    keyManager.markKeyFailedAndGetNext();
+                    continue;
+                }
+                log.error("Gemini request failed: {}", e.getMessage());
+                throw new AiParsingException("Gemini request failed: " + e.getMessage(), e);
+            }
+        }
+
+        throw new AiParsingException("All Gemini API keys exhausted");
+    }
+
+    // ============================================================
+    // Translation Implementation
+    // ============================================================
+
+    @Override
+    public String translate(List<String> texts, String prompt) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("Gemini API key is not configured. Set ai.gemini.api-keys in application properties.");
+        }
+
+        // INSTRUMENTATION: Log request start
+        int requestNumber = incrementAndGetPipelineCount();
+        globalRequestCounter.incrementAndGet();
+        int sentenceCount = texts != null ? texts.size() : 0;
+        int promptLength = prompt != null ? prompt.length() : 0;
+        // Estimate tokens (rough estimate: 1 token ≈ 4 characters)
+        int estimatedTokens = promptLength / 4;
+        
+        Instant requestTimestamp = Instant.now();
+        
+        log.info("=================================================");
+        log.info("GEMINI REQUEST START #{}", requestNumber);
+        log.info("=================================================");
+        log.info("Request Number: {}", requestNumber);
+        log.info("Timestamp: {}", requestTimestamp);
+        log.info("Caller Class: GeminiProvider");
+        log.info("Caller Method: translate()");
+        log.info("Thread: {}", Thread.currentThread().getName());
+        log.info("Prompt Length: {} chars", promptLength);
+        log.info("Sentence Count: {}", sentenceCount);
+        log.info("Estimated Tokens: ~{}", estimatedTokens);
+        log.info("Model: {}", config.getGemini().getModel());
+        log.info("Pipeline Request Count: {}/global:{}", getPipelineRequestCount(), getGlobalRequestCount());
+        log.info("=================================================");
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("contents", List.of(createContentPart("user", prompt)));
+
+        Map<String, Object> generationConfig = new HashMap<>();
+        generationConfig.put("temperature", 0.1);
+        generationConfig.put("maxOutputTokens", 8192);
+        generationConfig.put("responseMimeType", "application/json");
+        requestBody.put("generationConfig", generationConfig);
+
+        String model = config.getGemini().getModel();
+
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            String rawResponse = executeWithKeyRetry("translation", (apiKey) -> {
+                String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
+                String fullUrl = config.getGemini().getBaseUrl() + "/v1beta/models/" + model + ":generateContent?key=" + keyMasked;
+                
+                log.info("[GeminiProvider] Making HTTP POST request:");
+                log.info("  URL: {}", fullUrl);
+                log.info("  API Key: {} (index: {}/{})", keyMasked, keyManager.getKeyCount() > 0 ? "1" : "N/A", keyManager.getKeyCount());
+                log.info("  Content-Type: application/json");
+                log.info("  Request Body Size: {} bytes", requestBody.toString().length());
+                
+                long httpStart = System.currentTimeMillis();
+                
+                String rawResp = webClientBuilder
+                        .baseUrl(config.getGemini().getBaseUrl())
+                        .build()
+                        .post()
+                        .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                        .block();
+                
+                long httpDuration = System.currentTimeMillis() - httpStart;
+                log.info("[GeminiProvider] HTTP request completed in {}ms", httpDuration);
+                
+                lastModelUsed = model;
+                return rawResp;
+            });
+
+            long totalDuration = System.currentTimeMillis() - startTime;
+            int responseLength = rawResponse != null ? rawResponse.length() : 0;
+            
+            log.info("=================================================");
+            log.info("GEMINI REQUEST END #{}", requestNumber);
+            log.info("=================================================");
+            log.info("Request Number: {}", requestNumber);
+            log.info("Status: SUCCESS");
+            log.info("Response Length: {} chars", responseLength);
+            log.info("Execution Time: {}ms", totalDuration);
+            log.info("Pipeline Request Count: {}/global:{}", getPipelineRequestCount(), getGlobalRequestCount());
+            log.info("=================================================");
+
+            return extractTextFromResponse(rawResponse);
+            
         } catch (Exception e) {
-            log.error("Gemini request failed: {}", e.getMessage(), e);
-            throw new AiParsingException("Gemini request failed: " + e.getMessage(), e);
+            long totalDuration = System.currentTimeMillis() - startTime;
+            
+            log.error("=================================================");
+            log.error("GEMINI REQUEST FAILED #{}", requestNumber);
+            log.error("=================================================");
+            log.error("Request Number: {}", requestNumber);
+            log.error("Status: FAILED");
+            log.error("Error: {}", e.getMessage());
+            log.error("Execution Time: {}ms", totalDuration);
+            log.error("Pipeline Request Count: {}/global:{}", getPipelineRequestCount(), getGlobalRequestCount());
+            log.error("=================================================");
+            
+            throw e;
+        }
+    }
+
+    // ============================================================
+    // Helper Methods
+    // ============================================================
+
+    private Map<String, Object> callGeminiApi(String model, String apiKey, String prompt) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("contents", List.of(createContentPart("user", prompt)));
+        
+        Map<String, Object> generationConfig = new HashMap<>();
+        generationConfig.put("temperature", config.getTemperature());
+        generationConfig.put("maxOutputTokens", config.getMaxTokens());
+        generationConfig.put("responseMimeType", "application/json");
+        requestBody.put("generationConfig", generationConfig);
+
+        String rawResponse = webClientBuilder
+                .baseUrl(config.getGemini().getBaseUrl())
+                .build()
+                .post()
+                .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+
+        try {
+            return objectMapper.readValue(rawResponse, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse Gemini response", e);
+        }
+    }
+
+    private Map<String, Object> createContentPart(String role, String content) {
+        Map<String, Object> part = new HashMap<>();
+        part.put("role", role);
+        part.put("parts", List.of(Map.of("text", content)));
+        return part;
+    }
+
+    private String extractTextFromResponse(String response) {
+        try {
+            if (response == null || response.isEmpty()) {
+                throw new RuntimeException("Empty response from Gemini");
+            }
+            Map<String, Object> root = objectMapper.readValue(response, Map.class);
+            
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> candidates = (List<Map<String, Object>>) root.get("candidates");
+            if (candidates == null || candidates.isEmpty()) {
+                throw new RuntimeException("Gemini returned no candidates");
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+            if (content == null) {
+                throw new RuntimeException("Gemini returned null content");
+            }
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+            if (parts == null || parts.isEmpty()) {
+                throw new RuntimeException("Gemini returned empty parts");
+            }
+
+            String text = (String) parts.get(0).get("text");
+            if (text == null || text.isBlank()) {
+                throw new RuntimeException("Gemini returned empty text");
+            }
+
+            return text;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[GeminiProvider] Failed to parse response: {}", e.getMessage());
+            throw new RuntimeException("Failed to parse Gemini response: " + e.getMessage(), e);
         }
     }
 
@@ -136,6 +588,28 @@ public class GeminiProvider implements AiProvider {
             throw new AiParsingException("No JSON object found in response: " + trimmed.substring(0, Math.min(100, trimmed.length())));
         }
         return trimmed.substring(start, end + 1);
+    }
+
+    public String cleanJsonResponse(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        String cleaned = raw.trim();
+        if (cleaned.startsWith("```json")) {
+            cleaned = cleaned.substring(7);
+        } else if (cleaned.startsWith("```")) {
+            cleaned = cleaned.substring(3);
+        }
+        if (cleaned.endsWith("```")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 3);
+        }
+        cleaned = cleaned.trim();
+        int firstBrace = cleaned.indexOf('{');
+        int lastBrace = cleaned.lastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+        }
+        return cleaned.trim();
     }
 
     private void validateResult(AiExamParseResponse result) throws AiParsingException {

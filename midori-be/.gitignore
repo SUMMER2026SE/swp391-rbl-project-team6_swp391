@@ -45,3 +45,39 @@ logs/
 
 # Local uploads (Supabase Storage now used)
 uploads/
+
+# FFmpeg local binaries (large executables - not in repo)
+ffmpeg/
+ffmpeg.exe
+ffprobe.exe
+
+# FFmpeg archives and compressed downloads
+*.7z
+*.rar
+*.zip
+*ffmpeg*.zip
+*ffmpeg*.7z
+*ffmpeg*.rar
+ffmpeg.zip
+ffmpeg-*.zip
+ffmpeg-*.7z
+ffmpeg-full.zip
+ffmpeg-release-*.zip
+gyan-ffmpeg*.7z
+
+# Keep setup scripts (NOT the binaries themselves)
+!scripts/setup-ffmpeg.ps1
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Generated media
+*.mp3
+*.wav
+*.aac
+*.pcm
+generated-audio/
+generated-video/
+processing-temp/
