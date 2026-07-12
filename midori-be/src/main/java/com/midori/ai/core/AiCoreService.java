@@ -39,7 +39,7 @@ public class AiCoreService {
 
     /**
      * Send a chat message using the configured AI provider.
-     * 
+     *
      * @param systemPrompt  the system prompt
      * @param userMessage   the user message
      * @param history      conversation history as [role, content] pairs
@@ -47,13 +47,13 @@ public class AiCoreService {
      */
     public String chat(String systemPrompt, String userMessage, List<String[]> history) {
         AiProvider provider = providerFactory.resolve();
-        return provider.chat(systemPrompt, userMessage, history);
+        return provider.chat(systemPrompt, userMessage, history, com.midori.ai.AiTaskType.COMPLEX_REASONING);
     }
 
     /**
      * Send a chat message with material context.
      */
-    public String chatWithMaterial(String materialTitle, String materialType, 
+    public String chatWithMaterial(String materialTitle, String materialType,
                                   String materialLevel, String materialContent,
                                   String userMessage, List<String[]> history) {
         String systemPrompt = AiPromptBuilder.buildChatSystemPromptWithMaterial(
@@ -71,7 +71,7 @@ public class AiCoreService {
     public String generateQuestions(String topic, String materialContent,
                                    int count, String type, String difficulty) {
         AiProvider provider = providerFactory.resolve();
-        return provider.generateQuestions(topic, materialContent, count, type, difficulty);
+        return provider.generateQuestions(topic, materialContent, count, type, difficulty, com.midori.ai.AiTaskType.COMPLEX_REASONING);
     }
 
     // ============================================================
@@ -81,10 +81,10 @@ public class AiCoreService {
     /**
      * Parse exam from PDF text using AI.
      */
-    public AiExamParseResponse parseExam(String extractedText, String filename) 
+    public AiExamParseResponse parseExam(String extractedText, String filename)
             throws AiProcessingException {
         AiProvider provider = providerFactory.resolve();
-        return provider.parseExamFromText(extractedText, filename);
+        return provider.parseExamFromText(extractedText, filename, com.midori.ai.AiTaskType.LONG_DOCUMENT_ANALYSIS);
     }
 
     // ============================================================
@@ -98,26 +98,26 @@ public class AiCoreService {
     public String translateJpToVi(List<String> japaneseSentences) {
         String[] sentences = japaneseSentences.toArray(new String[0]);
         String prompt = AiPromptBuilder.buildTranslationRequest(sentences);
-        
+
         AiProvider provider = providerFactory.resolve(AiProviderType.GEMINI);
-        return provider.translate(japaneseSentences, prompt);
+        return provider.translate(japaneseSentences, prompt, com.midori.ai.AiTaskType.SIMPLE_TRANSLATION);
     }
 
     /**
      * Translate ALL Japanese sentences to Vietnamese in ONE request.
      * This is the optimized version that sends all sentences in a single prompt.
-     * 
+     *
      * @param japaneseSentences All sentences to translate
      * @return JSON array of translations: [{"jp":"...","vi":"..."}]
      */
     public String translateJpToViSingleRequest(List<String> japaneseSentences) {
         String[] sentences = japaneseSentences.toArray(new String[0]);
         String prompt = AiPromptBuilder.buildTranslationRequestAll(sentences);
-        
+
         log.info("[AiCoreService] Single request translation for {} sentences", japaneseSentences.size());
-        
+
         AiProvider provider = providerFactory.resolve(AiProviderType.GEMINI);
-        return provider.translate(japaneseSentences, prompt);
+        return provider.translate(japaneseSentences, prompt, com.midori.ai.AiTaskType.SUBTITLE_TRANSLATION);
     }
 
     // ============================================================

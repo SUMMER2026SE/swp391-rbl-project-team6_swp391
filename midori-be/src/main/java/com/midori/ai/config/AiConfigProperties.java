@@ -104,6 +104,14 @@ public class AiConfigProperties {
         // Comma-separated fallback model names tried in order when primary fails.
         // e.g. "gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro"
         private String fallbackModels = null;
+        // Available models allowed for automatic task-based selection.
+        // When blank, the system falls back to primary/fallback models.
+        private String models = null;
+        // Task-specific model mapping. Keys must match AiTaskType names.
+        // Example: SIMPLE_TRANSLATION=gemini-3.5-flash,COMPLEX_REASONING=gemini-2.5-pro
+        private java.util.Map<String, String> taskModelMapping = new java.util.LinkedHashMap<>();
+        // Optional fallback chain used when a task-selected model is unavailable.
+        private String taskModelFallbacks = null;
 
         /**
          * Get all API keys as an array.
@@ -149,11 +157,17 @@ public class AiConfigProperties {
         public String getSingleApiKey() { return singleApiKey; }
         public String getBaseUrl() { return baseUrl; }
         public String getModel() { return model; }
+        public String getModels() { return models; }
+        public java.util.Map<String, String> getTaskModelMapping() { return taskModelMapping; }
+        public String getTaskModelFallbacks() { return taskModelFallbacks; }
 
         public void setApiKeys(String v) { this.apiKeys = v; }
         public void setSingleApiKey(String v) { this.singleApiKey = v; }
         public void setBaseUrl(String v) { this.baseUrl = v; }
         public void setModel(String v) { this.model = v; }
+        public void setModels(String v) { this.models = v; }
+        public void setTaskModelMapping(java.util.Map<String, String> v) { this.taskModelMapping = v; }
+        public void setTaskModelFallbacks(String v) { this.taskModelFallbacks = v; }
         public void setFallbackModels(String v) { this.fallbackModels = v; }
 
         /**

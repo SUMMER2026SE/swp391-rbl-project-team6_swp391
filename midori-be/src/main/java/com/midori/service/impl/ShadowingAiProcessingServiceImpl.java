@@ -6,8 +6,13 @@ import com.midori.ai.core.AiCoreService;
 import com.midori.ai.impl.GeminiProvider;
 import com.midori.ai.impl.GeminiFallbackException;
 import com.midori.ai.impl.ModelFailure;
+import com.midori.config.ShadowingSpeechConfig;
 import com.midori.entity.*;
 import com.midori.repository.*;
+import com.midori.service.AudioMetadata;
+import com.midori.service.SpeechModelSelector;
+import com.midori.service.SpeechProvider;
+import com.midori.service.SpeechRecognitionResult;
 import com.midori.service.ShadowingAiProcessingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +57,9 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
     private final WebClient.Builder webClientBuilder;
     private final TransactionTemplate transactionTemplate;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final SpeechProvider speechProvider;
+    private final SpeechModelSelector speechModelSelector;
+    private final ShadowingSpeechConfig speechConfig;
 
     @Value("${groq.api-key:}")
     private String groqApiKey;
@@ -308,76 +316,49 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
                     "Transcribing audio with Groq Whisper API...");
             log.info("[PIPELINE] STAGE=TRANSCRIBE");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(groqApiKey);
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            byte[] audioBytes = Files.readAllBytes(tempAudioFile.toPath());
+            AudioMetadata metadata = AudioMetadata.builder()
+                    .durationMs(0)
+                    .mimeType("audio/wav")
+                    .size(audioBytes.length)
+                    .channels(1)
+                    .build();
 
-            MultiValueMap<String, Object> whisperBody = new LinkedMultiValueMap<>();
-            whisperBody.add("file", new FileSystemResource(tempAudioFile));
-            whisperBody.add("model", "whisper-large-v3");
-            whisperBody.add("response_format", "verbose_json");
+            String model = speechModelSelector.selectModel(metadata);
 
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(whisperBody, headers);
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> groqResponse = restTemplate.postForObject(
-                    "https://api.groq.com/openai/v1/audio/transcriptions", requestEntity, Map.class
-            );
+            SpeechRecognitionResult recognitionResult = speechProvider.transcribe(audioBytes, metadata, model);
 
             whisperMs = System.currentTimeMillis() - stepStart;
 
-            if (groqResponse == null) {
+            if (recognitionResult == null || recognitionResult.transcript() == null) {
                 writeLog(videoId, null, ProcessingStep.TRANSCRIBE, ProcessingStatus.FAILED,
-                        "Groq Whisper API returned NULL response");
-                throw new RuntimeException("Groq Whisper API returned NULL response");
+                        "Speech provider returned NULL transcript");
+                throw new RuntimeException("Speech provider returned NULL transcript");
             }
 
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> groqSegments = (List<Map<String, Object>>) groqResponse.get("segments");
+            List<Map<String, Object>> segments = parseSegments(recognitionResult.transcript());
+            Double videoDuration = recognitionResult.durationSeconds();
 
-            List<Map<String, Object>> segments;
-            Double videoDuration = null;
+            log.info("[PIPELINE] TRANSCRIBE COMPLETED duration={}ms segments={} audioDuration={}s provider={} model={}",
+                    whisperMs, segments.size(), videoDuration != null ? String.format("%.1f", videoDuration) : "unknown", recognitionResult.provider(), recognitionResult.modelUsed());
+            writeLog(videoId, null, ProcessingStep.TRANSCRIBE, ProcessingStatus.COMPLETED,
+                    String.format("Transcription completed. Segments: %d, Duration: %s s, Latency: %d ms, Provider: %s, Model: %s",
+                            segments.size(),
+                            videoDuration != null ? String.format("%.1f", videoDuration) : "unknown",
+                            whisperMs,
+                            recognitionResult.provider(),
+                            recognitionResult.modelUsed()));
 
-            if (groqSegments == null) {
-                String text = (String) groqResponse.get("text");
-                if (text == null || text.isBlank()) {
-                    writeLog(videoId, null, ProcessingStep.TRANSCRIBE, ProcessingStatus.FAILED,
-                            "Groq Whisper API returned response without 'segments' or 'text'");
-                    throw new RuntimeException("Groq Whisper API returned response without 'segments' or 'text'");
-                }
-                log.warn("[PIPELINE] Groq returned no segments, only text. Creating synthetic segment.");
-                segments = List.of(Map.of("start", 0.0, "end", 30.0, "text", text.trim()));
-            } else {
-                segments = groqSegments;
-            }
-
-            if (groqResponse.containsKey("duration") && groqResponse.get("duration") != null) {
-                try {
-                    Number durNum = (Number) groqResponse.get("duration");
-                    videoDuration = durNum.doubleValue();
-                } catch (Exception e) {
-                    log.warn("[PIPELINE] Could not parse duration from Whisper response", e);
-                }
-            }
+            stepStart = System.currentTimeMillis();
+            writeLog(videoId, null, ProcessingStep.TRANSLATE, ProcessingStatus.STARTED,
+                    String.format("Translating %d sentences with Gemini (single request)...", segments.size()));
+            log.info("[PIPELINE] STAGE=TRANSLATE sentences={} (ONE Gemini request)", segments.size());
 
             List<String> jpSentences = new ArrayList<>();
             for (Map<String, Object> seg : segments) {
                 String text = (String) seg.getOrDefault("text", "");
                 jpSentences.add(text != null ? text.trim() : "");
             }
-
-            log.info("[PIPELINE] TRANSCRIBE COMPLETED duration={}ms segments={} audioDuration={}s",
-                    whisperMs, segments.size(), videoDuration != null ? String.format("%.1f", videoDuration) : "unknown");
-            writeLog(videoId, null, ProcessingStep.TRANSCRIBE, ProcessingStatus.COMPLETED,
-                    String.format("Transcription completed. Segments: %d, Duration: %s s, Latency: %d ms",
-                            segments.size(),
-                            videoDuration != null ? String.format("%.1f", videoDuration) : "unknown",
-                            whisperMs));
-
-            stepStart = System.currentTimeMillis();
-            writeLog(videoId, null, ProcessingStep.TRANSLATE, ProcessingStatus.STARTED,
-                    String.format("Translating %d sentences with Gemini (single request)...", jpSentences.size()));
-            log.info("[PIPELINE] STAGE=TRANSLATE sentences={} (ONE Gemini request)", jpSentences.size());
 
             // Gemini Request Counter - reset for each pipeline
             final int[] geminiRequestsCount = {0};
@@ -474,6 +455,24 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
                 log.warn("[PIPELINE] Cleanup failed", ex);
             }
         }
+    }
+
+    private List<Map<String, Object>> parseSegments(String transcript) {
+        if (transcript == null || transcript.isBlank()) {
+            return List.of();
+        }
+        String[] parts = transcript.split("\\n");
+        List<Map<String, Object>> segments = new ArrayList<>();
+        int index = 0;
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) continue;
+            segments.add(Map.of("index", index++, "text", trimmed, "start", 0.0, "end", 0.0));
+        }
+        if (segments.isEmpty()) {
+            segments.add(Map.of("index", 0, "text", transcript.trim(), "start", 0.0, "end", 0.0));
+        }
+        return segments;
     }
 
     /**

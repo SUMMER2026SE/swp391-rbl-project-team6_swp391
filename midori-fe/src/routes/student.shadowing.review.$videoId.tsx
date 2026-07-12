@@ -5,7 +5,7 @@ import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home } from
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi } from "@/lib/api/shadowing";
 import { Loader2 } from "lucide-react";
-import { getTopicVn } from "../student.shadowing";
+import { getTopicVn } from "./student.shadowing";
 import {
   generateMockAIFeedback,
   type ShadowingSentence,

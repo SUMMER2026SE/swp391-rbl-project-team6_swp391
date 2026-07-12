@@ -3700,7 +3700,10 @@ function SkillDetailPage() {
   if (skill === "shadowing") {
     return (
       <div className="pb-12">
-        <AdminShadowingManagement defaultLevel={upperLevel} />
+        <AdminShadowingManagement 
+          defaultLevel={upperLevel} 
+          onBack={() => navigate({ to: "/admin/content-library/$level", params: { level } })}
+        />
       </div>
     );
   }

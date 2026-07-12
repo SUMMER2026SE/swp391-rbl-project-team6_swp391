@@ -38,7 +38,7 @@ supabase:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
     videos-bucket: ${SUPABASE_VIDEOS_BUCKET:shadowing-videos}
 
-# Groq Whisper API (for shadowing video transcription)
+# Groq Whisper API (for shadowing video transcription + student pronunciation STT)
 groq:
   api-key: ${GROQ_API_KEY:}
 
@@ -47,6 +47,27 @@ groq:
 ffmpeg:
   path: ${FFMPEG_PATH:}
   probe-path: ${FFPROBE_PATH:}
+
+# ============================================================
+# Shadowing Speech/STT Configuration
+# ============================================================
+shadowing:
+  speech:
+    provider: ${SHADOWING_SPEECH_PROVIDER:groq}
+    profile: ${SHADOWING_SPEECH_PROFILE:balanced}
+    api-timeout-seconds: ${SHADOWING_SPEECH_API_TIMEOUT_SECONDS:120}
+    models:
+      fast: ${SHADOWING_SPEECH_MODEL_FAST:whisper-large-v3-turbo}
+      balanced: ${SHADOWING_SPEECH_MODEL_BALANCED:whisper-large-v3}
+      accurate: ${SHADOWING_SPEECH_MODEL_ACCURATE:whisper-large-v3}
+  evaluation:
+    similarity-threshold: ${SHADOWING_SIMILARITY_THRESHOLD:0.80}
+    gemini-threshold: ${SHADOWING_GEMINI_THRESHOLD:80}
+    max-recording-duration-seconds: ${SHADOWING_MAX_RECORDING_SECONDS:15}
+    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-3.5-flash}
+    api-timeout-seconds: ${SHADOWING_API_TIMEOUT_SECONDS:120}
+    cache-ttl-minutes: ${SHADOWING_CACHE_TTL_MINUTES:60}
+    cache-max-size: ${SHADOWING_CACHE_MAX_SIZE:10000}
 
 # ============================================================
 # AI Configuration

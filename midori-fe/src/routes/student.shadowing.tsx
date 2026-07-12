@@ -1,12 +1,10 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
-import { useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/page-ui";
 import { cn } from "@/lib/utils";
-import { Mic, Play, Clock, ChevronRight, Tag, Loader2 } from "lucide-react";
+import { Mic, Play, Clock, ChevronRight, Loader2 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { studentShadowingApi, type ShadowingVideoSummaryResponse } from "@/lib/api/shadowing";
 
 type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
@@ -19,8 +17,7 @@ const levelGradients: Record<JLPTLevel, string> = {
   N1: "from-red-400 to-pink-400",
 };
 
-// Helper to map English topics to Vietnamese translations
-export const getTopicVn = (topic: string): string => {
+const getTopicVn = (topic: string): string => {
   const mapping: Record<string, string> = {
     "Daily Conversation": "Tự giới thiệu",
     "Self Introduction": "Tự giới thiệu",
@@ -34,18 +31,35 @@ export const getTopicVn = (topic: string): string => {
   return mapping[topic] || topic;
 };
 
+export { getTopicVn };
+
 export const Route = createFileRoute("/student/shadowing")({
-  component: ShadowingHomePage,
+  component: ShadowingLayout,
 });
 
-function ShadowingHomePage() {
-  const routerState = useRouterState();
-  const isChildRouteActive = routerState.location.pathname !== "/student/shadowing";
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
+function ShadowingLayout() {
+  const location = useLocation();
+  const isIndex =
+    location.pathname === "/student/shadowing" || location.pathname === "/student/shadowing/";
+
+  if (isIndex) {
+    return <ShadowingListPage />;
+  }
+
+  return <Outlet />;
+}
+
+function ShadowingListPage() {
   const [realVideos, setRealVideos] = useState<ShadowingVideoSummaryResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [studentLevel, setStudentLevel] = useState<JLPTLevel>("N5");
-  const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
 
   useEffect(() => {
     const loadVideos = async () => {
@@ -62,59 +76,37 @@ function ShadowingHomePage() {
     loadVideos();
   }, []);
 
-  // Group real videos by topic for the current student level
-  const myTopics = useMemo(() => {
-    const topicsMap = new Map<string, ShadowingVideoSummaryResponse[]>();
-    
-    realVideos.forEach(video => {
-      const vLevel = (video.jlptLevel || "N5") as JLPTLevel;
-      if (vLevel !== studentLevel) return;
-      const tName = video.topic || "General";
-      if (!topicsMap.has(tName)) {
-        topicsMap.set(tName, []);
-      }
-      topicsMap.get(tName)!.push(video);
+  const topics = useMemo(() => {
+    const map = new Map<string, { title: string; count: number }>();
+    realVideos.forEach((v) => {
+      const name = (v.topic || "General").trim();
+      const current = map.get(name) || { title: name, count: 0 };
+      current.count += 1;
+      map.set(name, current);
     });
+    return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
+  }, [realVideos]);
 
-    const list: any[] = [];
-    topicsMap.forEach((videos, tName) => {
-      const firstVideo = videos[0];
-      const totalSecs = videos.reduce((acc, v) => acc + (v.duration || 0), 0);
-      const mins = Math.floor(totalSecs / 60);
-      const secs = totalSecs % 60;
-      const durationStr = `${mins}:${secs.toString().padStart(2, "0")}`;
-
-      list.push({
-        id: tName.toLowerCase().replace(/\s+/g, "-"),
-        title: tName,
-        titleVn: getTopicVn(tName),
-        thumbnail: firstVideo.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=225&fit=crop",
-        jlptLevel: firstVideo.jlptLevel || "N5",
-        description: `Luyện phát âm chủ đề ${tName}`,
-        videoCount: videos.length,
-        totalDuration: durationStr,
-        videos: videos
-      });
+  const filteredVideos = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const base = realVideos.filter((v) => {
+      const matchTopic = q ? (v.topic || "General").toLowerCase().includes(q) : true;
+      const matchLevel = selectedLevel ? (v.jlptLevel || "N5") === selectedLevel : true;
+      return matchTopic && matchLevel;
     });
-
-    return list;
-  }, [realVideos, studentLevel]);
-
-  // Get unique categories from topics
-  const categories = useMemo(() => {
-    const cats = new Set(myTopics.map((t) => t.titleVn));
-    return ["Tất cả", ...Array.from(cats)];
-  }, [myTopics]);
-
-  // Filter by category
-  const filteredTopics = useMemo(() => {
-    if (selectedCategory === "Tất cả") return myTopics;
-    return myTopics.filter((t) => t.titleVn === selectedCategory);
-  }, [myTopics, selectedCategory]);
-
-  if (isChildRouteActive) {
-    return <Outlet />;
-  }
+    return base
+      .map((v) => ({
+        id: v.id,
+        title: v.title,
+        description: v.description || "",
+        videoUrl: v.videoUrl,
+        thumbnail: v.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=225&fit=crop",
+        duration: v.duration ? formatDuration(v.duration) : "0:00",
+        jlptLevel: v.jlptLevel || "N5",
+        topic: v.topic || "General",
+      }))
+      .sort((a, b) => a.topic.localeCompare(b.topic));
+  }, [realVideos, searchQuery, selectedLevel]);
 
   if (isLoading) {
     return (
@@ -134,89 +126,83 @@ function ShadowingHomePage() {
           {/* Header */}
           <PageHeader title="Shadowing" subtitle="Luyện phát âm với AI Shadowing" />
 
-          {/* Student Level Badge */}
-          <div
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl mb-6",
-              "bg-blue-50 dark:bg-blue-950/30",
-              "border border-blue-200 dark:border-blue-800/50",
-            )}
-          >
-            <div
-              className={cn(
-                "w-10 h-10 rounded-xl bg-linear-to-br flex items-center justify-center text-white font-bold",
-                levelGradients[studentLevel] || "from-blue-400 to-cyan-400",
-              )}
-            >
-              <Mic className="w-5 h-5" />
+          {/* Topic Search */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Tìm theo chủ đề</label>
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Ví dụ: Daily Conversation, Shopping..."
+                  className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                />
+              </div>
+              <div className="mt-5">
+                <span className="text-sm text-muted-foreground">{filteredVideos.length} bài học</span>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Cấp độ của bạn</p>
-              <p className="font-bold text-foreground">JLPT {studentLevel}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {topics.map((topic) => (
+                <button
+                  key={topic.title}
+                  onClick={() => setSearchQuery(topic.title)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
+                    searchQuery.trim().toLowerCase() === topic.title.toLowerCase()
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:border-primary/40"
+                  }`}
+                >
+                  {topic.title}
+                  <span className="ml-1 text-[10px] text-muted-foreground">({topic.count})</span>
+                </button>
+              ))}
             </div>
-            <div className="ml-auto flex items-center gap-3">
-              <Select value={studentLevel} onValueChange={(val) => {
-                setStudentLevel(val as JLPTLevel);
-                setSelectedCategory("Tất cả");
-              }}>
-                <SelectTrigger className="w-24 bg-background/50 border-[var(--border)] rounded-xl h-8 text-xs font-bold cursor-pointer">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-[var(--border)] rounded-xl">
-                  <SelectItem value="N5">N5</SelectItem>
-                  <SelectItem value="N4">N4</SelectItem>
-                  <SelectItem value="N3">N3</SelectItem>
-                  <SelectItem value="N2">N2</SelectItem>
-                  <SelectItem value="N1">N1</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">{myTopics.length} chủ đề</span>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Lọc theo level:</span>
+              <button
+                onClick={() => setSelectedLevel(null)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
+                  selectedLevel === null ? "bg-primary/10 border-primary text-primary" : "bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:border-primary/40"
+                }`}
+              >
+                Tất cả
+              </button>
+              {(["N5", "N4", "N3", "N2", "N1"] as const).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setSelectedLevel(level)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
+                    selectedLevel === level ? "bg-primary/10 border-primary text-primary" : "bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:border-primary/40"
+                  }`}
+                >
+                  JLPT {level}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Category Filter */}
-          {categories.length > 1 && (
-            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-              <Tag className="w-4 h-4 text-muted-foreground shrink-0" />
-              <div className="flex gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? "bg-gradient-hero text-white shadow"
-                        : "text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Topic Grid */}
-          {filteredTopics.length === 0 ? (
+          {/* Video List */}
+          {filteredVideos.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
                 <Mic className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-lg font-semibold text-muted-foreground">Không có chủ đề nào</p>
-              <p className="text-sm text-muted-foreground mt-1">Chọn cấp độ khác để xem thêm</p>
+              <p className="text-lg font-semibold text-muted-foreground">Không có bài học nào</p>
+              <p className="text-sm text-muted-foreground mt-1">Thử chủ đề khác hoặc xóa từ khóa tìm kiếm</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTopics.map((topic, index) => (
+              {filteredVideos.map((video, index) => (
                 <motion.div
-                  key={topic.id}
+                  key={video.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.05 }}
                 >
                   <Link
-                    to="/student/shadowing/topic/$topicId"
-                    params={{ topicId: topic.id }}
+                    to="/student/shadowing/video/$videoId"
+                    params={{ videoId: video.id }}
                     className="block group"
                   >
                     <div
@@ -228,48 +214,46 @@ function ShadowingHomePage() {
                         "hover:border-primary/50",
                       )}
                     >
-                      {/* Thumbnail */}
                       <div className="relative aspect-video overflow-hidden">
                         <img
-                          src={topic.thumbnail}
-                          alt={topic.title}
+                          src={video.thumbnail}
+                          alt={video.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
-
-                        {/* Play Button Overlay */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <div
                             className={cn(
                               "w-14 h-14 rounded-full bg-linear-to-br flex items-center justify-center text-white shadow-lg",
-                              levelGradients[topic.jlptLevel as JLPTLevel] || "from-blue-400 to-cyan-400",
+                              levelGradients[video.jlptLevel as JLPTLevel] || "from-blue-400 to-cyan-400",
                             )}
                           >
                             <Play className="w-6 h-6 ml-1" />
                           </div>
                         </div>
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/70 text-white text-[10px] font-medium">
+                          {video.duration}
+                        </div>
                       </div>
 
-                      {/* Content */}
                       <div className="p-4">
                         <h3 className="font-semibold text-foreground mb-0.5 group-hover:text-primary transition-colors">
-                          {topic.title}
+                          {video.title}
                         </h3>
-                        <p className="text-sm text-muted-foreground mb-3">{topic.titleVn}</p>
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                          {video.description || video.topic}
+                        </p>
 
-                        {/* Stats */}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Play className="w-3.5 h-3.5" />
-                            {topic.videoCount} videos
-                          </span>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
-                            {topic.totalDuration}
+                            {video.duration}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                            JLPT {video.jlptLevel}
                           </span>
                         </div>
 
-                        {/* Arrow */}
                         <div className="mt-2 flex items-center justify-end">
                           <ChevronRight
                             className={cn(

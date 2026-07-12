@@ -73,6 +73,7 @@ export interface TranscriptSegment {
 
 interface AdminShadowingManagementProps {
   defaultLevel?: string;
+  onBack?: () => void;
 }
 
 // Helper to format duration from seconds to MM:SS
@@ -723,7 +724,7 @@ export function LessonActions({ status, onPreview, onSave, onCancel }: LessonAct
 interface CreateShadowingLessonPageProps {
   currentLevel: string;
   onBack: () => void;
-  onSave: () => void;
+  onSave: (videoId: string) => void;
   onPreview: (lesson: ShadowingLesson) => void;
 }
 
@@ -958,9 +959,21 @@ export function CreateShadowingLessonPage({
     }
   };
 
-  const handleSave = () => {
-    if (newLessonData) {
-      onSave();
+  const handleSave = async () => {
+    if (!newLessonData) return;
+
+    const toastId = toast.loading("Publishing lesson to students...");
+    try {
+      await adminShadowingApi.updateVideo(videoId!, {
+        status: "COMPLETED",
+        title: newLessonData.title,
+        topic: newLessonData.topic,
+        jlptLevel: newLessonData.level,
+      });
+      toast.success("Lesson published!", { id: toastId });
+      onSave(videoId!);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to publish lesson", { id: toastId });
     }
   };
 
@@ -1048,24 +1061,24 @@ export function CreateShadowingLessonPage({
             Upload a video, configure lesson information and generate AI subtitles automatically.
           </p>
         </div>
-        <div className="flex items-center gap-3 self-end md:self-auto shrink-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            className="rounded-xl h-10 px-5 border-[var(--border)] font-bold text-sm text-secondary-col bg-background/50 hover:bg-accent transition cursor-pointer"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={pipelineStatus !== "completed"}
-            className="rounded-xl h-10 px-6 border-0 font-bold text-sm text-white bg-gradient-to-r from-primary to-sakura hover:opacity-95 shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Create Lesson
-          </Button>
-        </div>
+      <div className="flex items-center gap-3 self-end md:self-auto shrink-0">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBack}
+          className="rounded-xl h-10 px-5 border-[var(--border)] font-bold text-sm text-secondary-col bg-background/50 hover:bg-accent transition cursor-pointer"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          onClick={handleSave}
+          disabled={!selectedFile || !lessonTitle.trim()}
+          className="rounded-xl h-10 px-6 border-0 font-bold text-sm text-white bg-gradient-to-r from-primary to-sakura hover:opacity-95 shadow-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {pipelineStatus === "processing" ? "Publish & Processing..." : "Create Lesson"}
+        </Button>
+      </div>
       </div>
 
       {/* 1. Lesson Information Section */}
@@ -1681,47 +1694,7 @@ export function PreviewShadowingLessonPage({
             {subtitlesEnabled ? "Hide Subtitles" : "Show Subtitles"}
           </Button>
 
-          {/* Subtitles Language Filter (Only visible if subtitles are enabled) */}
-          {subtitlesEnabled && (
-            <div className="flex items-center bg-background/50 border border-[var(--border)] rounded-xl p-0.5 h-9">
-              <button
-                type="button"
-                onClick={() => setLangFilter("jp")}
-                className={cn(
-                  "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer h-7 flex items-center justify-center",
-                  langFilter === "jp"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-primary-col"
-                )}
-              >
-                日本語
-              </button>
-              <button
-                type="button"
-                onClick={() => setLangFilter("vi")}
-                className={cn(
-                  "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer h-7 flex items-center justify-center",
-                  langFilter === "vi"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-primary-col"
-                )}
-              >
-                Tiếng Việt
-              </button>
-              <button
-                type="button"
-                onClick={() => setLangFilter("both")}
-                className={cn(
-                  "px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer h-7 flex items-center justify-center",
-                  langFilter === "both"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-primary-col"
-                )}
-              >
-                Cả hai
-              </button>
-            </div>
-          )}
+
 
           {/* Toggle Transcript Button */}
           <Button
@@ -1754,7 +1727,7 @@ export function PreviewShadowingLessonPage({
         {/* Left Column: Video Player with YouTube Subtitles */}
         <div className={cn(
           "relative w-full aspect-video rounded-2xl overflow-hidden bg-black/90 border border-[var(--border)] shadow-lg flex items-center justify-center",
-          transcriptEnabled ? "lg:col-span-7" : "w-full"
+          transcriptEnabled ? "lg:col-span-8" : "w-full"
         )}>
           {lesson.videoUrl ? (
             <video
@@ -1774,9 +1747,16 @@ export function PreviewShadowingLessonPage({
           {/* Subtitle Overlay (YouTube Style - Hidden when subtitles are turned off or in fullscreen to avoid duplicate) */}
           {subtitlesEnabled && !isFullscreen && activeSubtitle && (
             <div className="absolute bottom-16 left-1/2 -translate-x-1/2 max-w-[85%] bg-black/75 px-4 py-2 rounded-lg text-white text-center text-sm md:text-base font-bold shadow-md select-none pointer-events-none z-10 transition-all duration-150">
-              <div className="leading-relaxed">{activeSubtitle.jpText}</div>
-              {activeSubtitle.vnText && (
-                <div className="text-xs md:text-sm text-gray-300 mt-1 font-semibold">{activeSubtitle.vnText}</div>
+              {(langFilter === "jp" || langFilter === "both") && (
+                <div className="leading-relaxed">{activeSubtitle.jpText}</div>
+              )}
+              {(langFilter === "vi" || langFilter === "both") && activeSubtitle.vnText && (
+                <div className={cn(
+                  "text-xs md:text-sm text-gray-300 font-semibold",
+                  langFilter === "both" && "mt-1"
+                )}>
+                  {activeSubtitle.vnText}
+                </div>
               )}
             </div>
           )}
@@ -1784,7 +1764,7 @@ export function PreviewShadowingLessonPage({
 
         {/* Right Column: Transcript Panel */}
         {transcriptEnabled && (
-          <div className="flex flex-col border border-[var(--border)] rounded-2xl bg-card/20 overflow-hidden h-[400px] w-full lg:col-span-5">
+          <div className="flex flex-col border border-[var(--border)] rounded-2xl bg-card/20 overflow-hidden h-[400px] w-full lg:col-span-4">
             {/* Panel Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-muted/40 gap-2 shrink-0">
               <span className="text-sm font-bold text-secondary-col flex items-center gap-1.5">
@@ -1922,7 +1902,7 @@ export function PreviewShadowingLessonPage({
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export function AdminShadowingManagement({ defaultLevel = "N5" }: AdminShadowingManagementProps) {
+export function AdminShadowingManagement({ defaultLevel = "N5", onBack }: AdminShadowingManagementProps) {
   const currentLevel = defaultLevel.toUpperCase();
 
   // Navigation View State: "list" or "create" or "preview"
@@ -2016,7 +1996,7 @@ export function AdminShadowingManagement({ defaultLevel = "N5" }: AdminShadowing
     });
 
   // Action: Add simulated lesson to database list
-  const handleSaveNewLesson = () => {
+  const handleSaveNewLesson = (videoId: string) => {
     setView("list");
   };
 
@@ -2040,6 +2020,11 @@ export function AdminShadowingManagement({ defaultLevel = "N5" }: AdminShadowing
     setView("preview");
 
     try {
+      if (lesson.transcript && lesson.transcript.length > 0) {
+        setSelectedLesson(prev => prev ? { ...prev, transcript: lesson.transcript } : null);
+        return;
+      }
+
       const res = await fetch(`/api/student/shadowing/videos/${lesson.id}/transcript`, {
         method: "GET",
         headers: {
@@ -2094,6 +2079,16 @@ export function AdminShadowingManagement({ defaultLevel = "N5" }: AdminShadowing
       {/* 1. Header Banner */}
       <div className="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onBack}
+              className="w-10 h-10 p-0 rounded-xl hover:bg-card/30 shrink-0 flex items-center justify-center text-muted-foreground hover:text-primary-col border border-[var(--border)] bg-background/40"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <Video className="w-6 h-6" />
           </div>

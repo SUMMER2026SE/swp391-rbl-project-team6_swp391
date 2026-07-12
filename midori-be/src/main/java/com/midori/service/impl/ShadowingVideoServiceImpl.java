@@ -115,7 +115,7 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
     @Transactional(readOnly = true)
     public ShadowingVideoSummaryResponse getVideoSummary(UUID id) {
         log.info("[ShadowingVideo] Fetching video summary for students: {}", id);
-        ShadowingVideo video = shadowingVideoRepository.findById(id)
+        ShadowingVideo video = shadowingVideoRepository.findByIdWithTranscripts(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Video not found with ID: " + id));
         return toSummaryResponse(video);
     }
@@ -124,11 +124,12 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
     @Transactional(readOnly = true)
     public ShadowingTimestampsResponse getTimestamps(UUID id) {
         log.info("[ShadowingVideo] Fetching transcript timestamps for video: {}", id);
-        ShadowingVideo video = shadowingVideoRepository.findById(id)
+        ShadowingVideo video = shadowingVideoRepository.findByIdWithTranscripts(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Video not found with ID: " + id));
 
-        List<ShadowingTranscript> transcripts = shadowingTranscriptRepository
-                .findByShadowingVideoIdOrderBySentenceOrderAsc(id);
+        List<ShadowingTranscript> transcripts = video.getTranscripts() != null
+                ? video.getTranscripts()
+                : List.of();
 
         List<ShadowingTranscriptResponse> segments = transcripts.stream()
                 .map(this::toTranscriptResponse)
@@ -144,11 +145,12 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
     @Transactional(readOnly = true)
     public ShadowingTranslationResponse getTranslation(UUID id) {
         log.info("[ShadowingVideo] Fetching Vietnamese translation for video: {}", id);
-        ShadowingVideo video = shadowingVideoRepository.findById(id)
+        ShadowingVideo video = shadowingVideoRepository.findByIdWithTranscripts(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Video not found with ID: " + id));
 
-        List<ShadowingTranscript> transcripts = shadowingTranscriptRepository
-                .findByShadowingVideoIdOrderBySentenceOrderAsc(id);
+        List<ShadowingTranscript> transcripts = video.getTranscripts() != null
+                ? video.getTranscripts()
+                : List.of();
 
         List<ShadowingTranscriptResponse> translations = transcripts.stream()
                 .map(this::toTranscriptResponse)
