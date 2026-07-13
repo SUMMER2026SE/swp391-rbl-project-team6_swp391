@@ -1,31 +1,40 @@
 package com.midori.ai.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.midori.ai.AiParsingException;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderType;
-import com.midori.ai.ExamParsingPrompt;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.midori.ai.AiParsingException;
+import com.midori.ai.prompt.AiPromptBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Unified DeepSeek Provider implementing AiProvider interface.
+ * 
+ * Supports:
+ * - Chat/Conversation
+ * - Question Generation
+ * - Exam Parsing (PDF)
+ */
+@Slf4j
 @Component
 public class DeepSeekProvider implements AiProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(DeepSeekProvider.class);
 
     private final AiConfigProperties config;
     private final ObjectMapper objectMapper;
     private final WebClient.Builder webClientBuilder;
+    private volatile String lastModelUsed;
 
     public DeepSeekProvider(AiConfigProperties config, ObjectMapper objectMapper, WebClient.Builder webClientBuilder) {
         this.config = config;
@@ -44,50 +53,161 @@ public class DeepSeekProvider implements AiProvider {
     }
 
     @Override
-    public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
-        if (config.getDeepseek().getApiKey() == null || config.getDeepseek().getApiKey().isBlank()) {
-            throw new AiParsingException("DeepSeek API key is not configured. Set ai.deepseek.api-key in application properties.");
+    public boolean isConfigured() {
+        return config.getDeepseek().isConfigured();
+    }
+
+    @Override
+    public List<String> getModels() {
+        return List.of(config.getDeepseek().getModel());
+    }
+
+    @Override
+    public String getLastModelUsed() {
+        return lastModelUsed;
+    }
+
+    // ============================================================
+    // Chat Implementation
+    // ============================================================
+
+    @Override
+    public String chat(String systemPrompt, String userMessage, List<String[]> conversationHistory) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("DeepSeek API key is not configured.");
         }
 
-        String prompt = ExamParsingPrompt.buildPrompt(extractedText, filename);
-        String model = config.getDeepseek().getModel();
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+
+        if (conversationHistory != null) {
+            for (String[] msg : conversationHistory) {
+                String role = "USER".equalsIgnoreCase(msg[0]) ? "user" : "assistant";
+                messages.add(Map.of("role", role, "content", msg[1]));
+            }
+        }
+
+        messages.add(Map.of("role", "user", "content", userMessage));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", config.getDeepseek().getModel());
+        requestBody.put("messages", messages);
+        requestBody.put("temperature", 0.7);
+        requestBody.put("max_tokens", 2048);
+
+        return callDeepSeekApi(requestBody);
+    }
+
+    // ============================================================
+    // Question Generation Implementation
+    // ============================================================
+
+    @Override
+    public String generateQuestions(String materialTitle, String materialContent,
+                                   int questionCount, String questionType, String difficulty) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("DeepSeek API key is not configured.");
+        }
+
+        String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
+                materialTitle, materialContent, questionCount, questionType, difficulty);
+
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "user", "content", prompt));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", config.getDeepseek().getModel());
+        requestBody.put("messages", messages);
+        requestBody.put("temperature", 0.2);
+        requestBody.put("max_tokens", 4096);
+
+        String response = callDeepSeekApi(requestBody);
+        return cleanJsonResponse(response);
+    }
+
+    // ============================================================
+    // Exam Parsing Implementation
+    // ============================================================
+
+    @Override
+    public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
+        if (!isConfigured()) {
+            throw new AiParsingException("DeepSeek API key is not configured.");
+        }
+
+        String prompt = AiPromptBuilder.buildExamParsingPrompt(extractedText, filename);
         long startMs = System.currentTimeMillis();
 
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "user", "content", prompt));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", config.getDeepseek().getModel());
+        requestBody.put("messages", messages);
+        requestBody.put("temperature", config.getTemperature());
+        requestBody.put("max_tokens", config.getMaxTokens());
+
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = webClientBuilder
-                    .baseUrl(config.getDeepseek().getBaseUrl())
-                    .build()
-                    .post()
-                    .uri("/chat/completions")
-                    .header("Authorization", "Bearer " + config.getDeepseek().getApiKey())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(Map.of(
-                            "model", model,
-                            "messages", List.of(Map.of(
-                                    "role", "user",
-                                    "content", prompt
-                            )),
-                            "temperature", config.getTemperature(),
-                            "max_tokens", config.getMaxTokens()
-                    ))
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
-                    .block();
-
+            Map<String, Object> response = callDeepSeekApiRaw(requestBody);
             long latencyMs = System.currentTimeMillis() - startMs;
-            log.info("DeepSeek API responded in {}ms for model {}", latencyMs, model);
-
+            log.info("DeepSeek API responded in {}ms for model {}", latencyMs, config.getDeepseek().getModel());
+            lastModelUsed = config.getDeepseek().getModel();
             return parseResponse(response, latencyMs);
-
         } catch (WebClientResponseException e) {
             log.error("DeepSeek API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new AiParsingException("DeepSeek API error: " + e.getStatusCode() + " — " + e.getMessage(), e);
-        } catch (Exception e) {
-            log.error("DeepSeek request failed: {}", e.getMessage(), e);
-            throw new AiParsingException("DeepSeek request failed: " + e.getMessage(), e);
         }
+    }
+
+    // ============================================================
+    // Helper Methods
+    // ============================================================
+
+    private String callDeepSeekApi(Map<String, Object> requestBody) {
+        try {
+            Map<String, Object> response = callDeepSeekApiRaw(requestBody);
+            return extractContentFromResponse(response);
+        } catch (WebClientResponseException e) {
+            log.error("DeepSeek API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("DeepSeek API error: " + e.getStatusCode() + " — " + e.getMessage(), e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> callDeepSeekApiRaw(Map<String, Object> requestBody) {
+        return webClientBuilder
+                .baseUrl(config.getDeepseek().getBaseUrl())
+                .build()
+                .post()
+                .uri("/chat/completions")
+                .header("Authorization", "Bearer " + config.getDeepseek().getApiKey())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
+                .block();
+    }
+
+    @SuppressWarnings("unchecked")
+    private String extractContentFromResponse(Map<String, Object> response) {
+        List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
+        if (choices == null || choices.isEmpty()) {
+            throw new RuntimeException("DeepSeek returned empty choices");
+        }
+
+        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+        if (message == null) {
+            throw new RuntimeException("DeepSeek returned null message");
+        }
+
+        String content = (String) message.get("content");
+        if (content == null || content.isBlank()) {
+            throw new RuntimeException("DeepSeek returned empty content");
+        }
+
+        lastModelUsed = config.getDeepseek().getModel();
+        return content;
     }
 
     @SuppressWarnings("unchecked")
@@ -131,6 +251,28 @@ public class DeepSeekProvider implements AiProvider {
             throw new AiParsingException("No JSON object found in response: " + trimmed.substring(0, Math.min(100, trimmed.length())));
         }
         return trimmed.substring(start, end + 1);
+    }
+
+    public String cleanJsonResponse(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        String cleaned = raw.trim();
+        if (cleaned.startsWith("```json")) {
+            cleaned = cleaned.substring(7);
+        } else if (cleaned.startsWith("```")) {
+            cleaned = cleaned.substring(3);
+        }
+        if (cleaned.endsWith("```")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 3);
+        }
+        cleaned = cleaned.trim();
+        int firstBrace = cleaned.indexOf('{');
+        int lastBrace = cleaned.lastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+        }
+        return cleaned.trim();
     }
 
     private void validateResult(AiExamParseResponse result) throws AiParsingException {

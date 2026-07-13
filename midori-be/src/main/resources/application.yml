@@ -12,27 +12,81 @@ supabase:
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
 
+# ============================================================
 # AI Configuration
-# At least one provider must be configured for AI features to work
+# ============================================================
+# At least one provider must be configured for AI features to work.
+# 
+# SUPPORTED PROVIDERS:
+# - GEMINI (Recommended for Japanese - best multimodal support)
+# - OPENAI (Most reliable JSON output)
+# - DEEPSEEK (Cost-effective)
+# - OPENROUTER (Access to multiple models)
+#
+# MULTIPLE API KEYS:
+# For Gemini, you can specify multiple keys separated by commas:
+#   ai.gemini.api-keys: key1,key2,key3
+# Keys are used in rotation with automatic fallback.
+#
 ai:
-  # Gemini (Recommended for Japanese text - best for multimodal content)
-  gemini:
-    api-key: ${GEMINI_API_KEY:}
-    model: gemini-1.5-flash
-    enabled: false
+  # Default provider: GEMINI, OPENAI, DEEPSEEK, or OPENROUTER
+  provider: ${AI_PROVIDER:gemini}
+  
+  # Global settings
+  timeout-seconds: 120
+  temperature: 0.1
+  max-tokens: 8192
 
-  # OpenAI (Most reliable JSON output)
+  # Thread pool executor for background AI processing
+  executor:
+    core-pool-size: ${AI_EXECUTOR_CORE_POOL_SIZE:1}
+    max-pool-size: ${AI_EXECUTOR_MAX_POOL_SIZE:1}
+    queue-capacity: ${AI_EXECUTOR_QUEUE_CAPACITY:100}
+  
+  # Gemini (Recommended for Japanese text)
+  # Supports MULTIPLE API KEYS for automatic fallback!
+  gemini:
+    # Single key (legacy)
+    api-key: ${GEMINI_API_KEY}
+    # Multiple keys (comma-separated) - RECOMMENDED
+    api-keys: ${GEMINI_API_KEYS:}
+    # Primary model — change GEMINI_MODEL env var, no rebuild needed
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
+    # Fallback chain — tried in order when primary model returns 404/429/500/503
+    # Change GEMINI_FALLBACK_MODELS env var to adjust without rebuild
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
+    base-url: https://generativelanguage.googleapis.com
+    enabled: true
+
+  # OpenAI
   openai:
     api-key: ${OPENAI_API_KEY:}
-    model: gpt-4o-mini
+    model: gpt-4o
     base-url: https://api.openai.com/v1
     enabled: false
 
-  # DeepSeek (Cost-effective alternative)
+  # DeepSeek (Cost-effective)
   deepseek:
     api-key: ${DEEPSEEK_API_KEY:}
     model: deepseek-chat
+    base-url: https://api.deepseek.com/v1
     enabled: false
+
+  # OpenRouter (Access to multiple models)
+  openrouter:
+    api-key: ${OPENROUTER_API_KEY:}
+    # Primary model(s) - tried first
+    models: openrouter/free
+    # Fallback model(s) - tried if primary fails
+    fallback-models: openai/gpt-oss-120b:free
+    # Per-call timeouts (ms)
+    chat-timeout-ms: 15000
+    quiz-timeout-ms: 25000
+    connect-timeout-ms: 5000
+    # Max output tokens
+    chat-max-tokens: 1400
+    quiz-max-tokens: 4096
+    referer: ${AI_OPENROUTER_REFERER:http://localhost:8081}
 
   # PDF Processing Configuration
   pdf:
@@ -43,3 +97,7 @@ ai:
   ocr:
     enabled: true
     simulated: true  # Set to false and configure real OCR for production
+
+  # Fallback mode: when AI fails, generate questions locally from material content
+  # Set to false for strict mode (AI errors return error to frontend)
+  fallback-enabled: false
