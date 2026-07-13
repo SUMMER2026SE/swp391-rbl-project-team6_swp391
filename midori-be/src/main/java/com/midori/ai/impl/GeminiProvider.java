@@ -306,7 +306,7 @@ public class GeminiProvider implements AiProvider {
 
         Map<String, Object> generationConfig = new HashMap<>();
         generationConfig.put("temperature", 0.7);
-        generationConfig.put("maxOutputTokens", 2048);
+        generationConfig.put("maxOutputTokens", config.getMaxTokens() > 0 ? config.getMaxTokens() : 8192);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("contents", contents);

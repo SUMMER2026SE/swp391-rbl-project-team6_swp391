@@ -165,10 +165,10 @@ const adminNav: NavItem[] = [
   // 6. Content Library
   { to: "/admin/content-library", label: "Content Library", icon: Library },
 
-  // 7. Notification Management
+  // 8. Notification Management
   { to: "/admin/notification", label: "Notification", icon: Bell },
 
-  // 8. Profile
+  // 9. Profile
   { to: "/admin/profile", label: "Profile", icon: User },
 ];
 
