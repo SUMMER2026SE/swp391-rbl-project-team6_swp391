@@ -2,7 +2,6 @@ package com.midori.ai.core;
 
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderFactory;
-import com.midori.ai.AiProviderType;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.exception.AiProcessingException;
@@ -85,39 +84,6 @@ public class AiCoreService {
             throws AiProcessingException {
         AiProvider provider = providerFactory.resolve();
         return provider.parseExamFromText(extractedText, filename, com.midori.ai.AiTaskType.LONG_DOCUMENT_ANALYSIS);
-    }
-
-    // ============================================================
-    // Translation
-    // ============================================================
-
-    /**
-     * Translate Japanese sentences to Vietnamese.
-     * Uses Gemini provider internally.
-     */
-    public String translateJpToVi(List<String> japaneseSentences) {
-        String[] sentences = japaneseSentences.toArray(new String[0]);
-        String prompt = AiPromptBuilder.buildTranslationRequest(sentences);
-
-        AiProvider provider = providerFactory.resolve(AiProviderType.GEMINI);
-        return provider.translate(japaneseSentences, prompt, com.midori.ai.AiTaskType.SIMPLE_TRANSLATION);
-    }
-
-    /**
-     * Translate ALL Japanese sentences to Vietnamese in ONE request.
-     * This is the optimized version that sends all sentences in a single prompt.
-     *
-     * @param japaneseSentences All sentences to translate
-     * @return JSON array of translations: [{"jp":"...","vi":"..."}]
-     */
-    public String translateJpToViSingleRequest(List<String> japaneseSentences) {
-        String[] sentences = japaneseSentences.toArray(new String[0]);
-        String prompt = AiPromptBuilder.buildTranslationRequestAll(sentences);
-
-        log.info("[AiCoreService] Single request translation for {} sentences", japaneseSentences.size());
-
-        AiProvider provider = providerFactory.resolve(AiProviderType.GEMINI);
-        return provider.translate(japaneseSentences, prompt, com.midori.ai.AiTaskType.SUBTITLE_TRANSLATION);
     }
 
     // ============================================================

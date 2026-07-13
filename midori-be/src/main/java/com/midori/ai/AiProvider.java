@@ -111,28 +111,6 @@ public interface AiProvider {
     }
 
     // ============================================================
-    // Translation
-    // ============================================================
-
-    /**
-     * Translate text from one language to another.
-     *
-     * @param texts list of source texts
-     * @param prompt translation instruction prompt
-     * @return JSON string containing translations as [source, target] pairs
-     */
-    String translate(List<String> texts, String prompt);
-
-    /**
-     * Translate text from one language to another with an explicit task type hint.
-     *
-     * <p>The default implementation delegates to {@link #translate(List, String)}.
-     */
-    default String translate(List<String> texts, String prompt, AiTaskType taskType) {
-        return translate(texts, prompt);
-    }
-
-    // ============================================================
     // Utilities
     // ============================================================
 

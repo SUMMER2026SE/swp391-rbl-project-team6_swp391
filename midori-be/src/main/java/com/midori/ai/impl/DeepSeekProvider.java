@@ -160,15 +160,6 @@ public class DeepSeekProvider implements AiProvider {
     }
 
     // ============================================================
-    // Translation Implementation (DeepSeek doesn't support this well, throw exception)
-    // ============================================================
-
-    @Override
-    public String translate(List<String> texts, String prompt) {
-        throw new UnsupportedOperationException("DeepSeek provider does not support translation. Use GeminiProvider instead.");
-    }
-
-    // ============================================================
     // Helper Methods
     // ============================================================
 

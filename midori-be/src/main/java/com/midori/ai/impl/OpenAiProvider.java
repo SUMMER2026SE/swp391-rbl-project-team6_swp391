@@ -159,15 +159,6 @@ public class OpenAiProvider implements AiProvider {
     }
 
     // ============================================================
-    // Translation Implementation (OpenAI doesn't support this well, throw exception)
-    // ============================================================
-
-    @Override
-    public String translate(List<String> texts, String prompt) {
-        throw new UnsupportedOperationException("OpenAI provider does not support translation. Use GeminiProvider instead.");
-    }
-
-    // ============================================================
     // Helper Methods
     // ============================================================
 

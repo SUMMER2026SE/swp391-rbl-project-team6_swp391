@@ -289,16 +289,6 @@ public class OpenRouterProvider implements AiProvider {
     }
 
     // ============================================================
-    // Translation Implementation (OpenRouter can do this)
-    // ============================================================
-
-    @Override
-    public String translate(List<String> texts, String prompt) {
-        // Use Gemini for translation if available
-        throw new UnsupportedOperationException("OpenRouter does not support translation efficiently. Use GeminiProvider instead.");
-    }
-
-    // ============================================================
     // Helper Methods
     // ============================================================
 

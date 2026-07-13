@@ -8,14 +8,8 @@ package com.midori.ai;
  * and optional fallbacks in {@code ai.gemini.task-model-fallbacks}.
  */
 public enum AiTaskType {
-    /** Fast, low-cost tasks such as short translation or light chat. */
-    SIMPLE_TRANSLATION,
-    /** Subtitle-level translation where latency matters. */
-    SUBTITLE_TRANSLATION,
     /** Optical character recognition from images. */
     OCR,
-    /** Audio transcription and related speech tasks. */
-    AUDIO_TRANSLATION,
     /** Long-form document parsing, analysis, or summarization. */
     LONG_DOCUMENT_ANALYSIS,
     /** Complex reasoning, planning, or deep analysis tasks. */
