@@ -67,15 +67,19 @@ logging:
 # ============================================================
 # AI Sensei Configuration
 # ============================================================
-# Provider: openrouter (recommended) or gemini
-# Get OpenRouter key at: https://openrouter.ai/keys
+# Supported providers: gemini, openai, deepseek, openrouter
 #
-# IMPORTANT: When ai.fallback.enabled=false (strict AI mode),
+# MULTIPLE API KEYS (GEMINI):
+# For Gemini, you can specify multiple keys separated by commas for automatic fallback:
+#   ai.gemini.api-keys: key1,key2,key3
+#
+# IMPORTANT: When ai.fallback-enabled=false (strict AI mode),
 # quiz generation returns an error instead of local fallback
 # when the AI provider fails (429/quota/timeout/etc).
 # ============================================================
 ai:
-  provider: openrouter
+  # Default provider: gemini, openai, deepseek, or openrouter
+  provider: gemini
 
   # Strict AI mode: set to false to disable local quiz fallback.
   # When false, provider errors (429/quota/timeout) return an error
@@ -83,13 +87,51 @@ ai:
   # Default: false (strict mode — students see real AI only).
   fallback-enabled: false
 
+  # ============================================================
+  # GEMINI CONFIGURATION (Recommended for Japanese)
+  # ============================================================
+  # Supports MULTIPLE API KEYS with automatic fallback!
+  # Keys are rotated automatically when one fails (rate limit, quota, etc.)
+  #
+  # Single key format:
+  #   ai.gemini.api-key: YOUR_API_KEY
+  #
+  # Multiple keys format (RECOMMENDED):
+  #   ai.gemini.api-keys: KEY1,KEY2,KEY3
+  gemini:
+    # Single API key (legacy format)
+    api-key: ${GEMINI_API_KEY:}
+    # Multiple API keys (comma-separated) - RECOMMENDED for production
+    # Example: AIzaSy...xxx,AIzaSy...yyy,AIzaSy...zzz
+    api-keys: ${GEMINI_API_KEYS:}
+    # Primary model — set GEMINI_MODEL env var, no code change/rebuild needed
+    model: ${GEMINI_MODEL:gemini-3.5-flash}
+    # Fallback chain — tried in order when primary returns 404/429/500/503
+    # Set GEMINI_FALLBACK_MODELS env var to customize (comma-separated)
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
+
+  # ============================================================
+  # OPENAI CONFIGURATION
+  # ============================================================
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: gpt-4o
+
+  # ============================================================
+  # DEEPSEEK CONFIGURATION
+  # ============================================================
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+
+  # ============================================================
+  # OPENROUTER CONFIGURATION
+  # ============================================================
   openrouter:
     api-key: ${OPENROUTER_API_KEY:}
     # Primary model: tried first. Keep this list short.
-    # Default: openrouter/free (observed to be stable in the 2026-07-07 test).
+    # Default: openrouter/free (observed to be stable)
     # Avoid: deepseek/deepseek-chat-v3-0324:free (404),
-    #        nvidia/nemotron-3-ultra-550b-a55b:free (ResourceExhausted / 80s hangs),
-    #        openai/gpt-oss-120b:free as primary (frequent 429).
+    #        nvidia/nemotron-3-ultra-550b-a55b:free (hangs)
     models: >
       openrouter/free
     # Optional: at most 1 fallback. Will be tried only after primary fails.
@@ -105,6 +147,12 @@ ai:
     # Optional: custom referer header
     referer: ${AI_OPENROUTER_REFERER:http://localhost:8081}
 
-  gemini:
-    api-key: ${GEMINI_API_KEY:}
-    model: gemini-3.1-flash
+# ============================================================
+# Supabase Storage Configuration
+# ============================================================
+supabase:
+  url: ${SUPABASE_URL:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  storage:
+    bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
+    videos-bucket: ${SUPABASE_VIDEOS_BUCKET:shadowing-videos}

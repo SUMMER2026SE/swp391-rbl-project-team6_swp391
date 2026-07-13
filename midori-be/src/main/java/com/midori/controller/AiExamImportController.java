@@ -4,7 +4,7 @@ import com.midori.common.ApiResponse;
 import com.midori.dto.response.AiImportJobResponse;
 import com.midori.entity.User;
 import com.midori.repository.UserRepository;
-import com.midori.service.AiExamImportService;
+import com.midori.service.impl.AiExamImportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

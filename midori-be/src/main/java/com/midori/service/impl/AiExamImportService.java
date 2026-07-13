@@ -1,14 +1,14 @@
-package com.midori.service;
+package com.midori.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.midori.ai.core.AiCoreService;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.AiParsingException;
-import com.midori.ai.AiProvider;
-import com.midori.ai.AiProviderFactory;
 import com.midori.dto.response.AiImportJobResponse;
 import com.midori.entity.*;
 import com.midori.exception.BadRequestException;
 import com.midori.repository.*;
+import com.midori.service.PdfTextExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -22,13 +22,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * AI Exam Import Service.
+ * 
+ * This service handles PDF exam import using AiCoreService for AI operations.
+ * All AI calls go through the centralized AiCoreService.
+ */
 @Service
 public class AiExamImportService {
 
     private static final Logger log = LoggerFactory.getLogger(AiExamImportService.class);
 
     private final PdfTextExtractor pdfTextExtractor;
-    private final AiProviderFactory aiProviderFactory;
+    private final AiCoreService aiCoreService;
     private final ExamRepository examRepository;
     private final ExamQuestionRepository examQuestionRepository;
     private final AiImportJobRepository aiImportJobRepository;
@@ -39,7 +45,7 @@ public class AiExamImportService {
 
     public AiExamImportService(
             PdfTextExtractor pdfTextExtractor,
-            AiProviderFactory aiProviderFactory,
+            AiCoreService aiCoreService,
             ExamRepository examRepository,
             ExamQuestionRepository examQuestionRepository,
             AiImportJobRepository aiImportJobRepository,
@@ -48,7 +54,7 @@ public class AiExamImportService {
             ObjectMapper objectMapper,
             TeacherQuestionRepository teacherQuestionRepository) {
         this.pdfTextExtractor = pdfTextExtractor;
-        this.aiProviderFactory = aiProviderFactory;
+        this.aiCoreService = aiCoreService;
         this.examRepository = examRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.aiImportJobRepository = aiImportJobRepository;
@@ -103,17 +109,17 @@ public class AiExamImportService {
             log.info("PDF extracted: {} chars from {} pages, scanned={}",
                     extraction.fullText().length(), extraction.pageCount(), extraction.likelyScanned());
 
-            AiProvider provider = aiProviderFactory.resolve();
-            job.setAiProvider(provider.getType().name());
-
-            AiExamParseResponse aiResult = provider.parseExamFromText(
+            // Use AiCoreService instead of AiProviderFactory
+            AiExamParseResponse aiResult = aiCoreService.parseExam(
                     extraction.fullText(),
                     file.getOriginalFilename() != null ? file.getOriginalFilename() : "exam.pdf"
             );
 
+            job.setAiProvider(aiCoreService.getCurrentProvider().getType().name());
+
             long aiMs = System.currentTimeMillis() - startMs;
             log.info("AI parsed exam in {}ms: {} questions from provider {}",
-                    aiMs, aiResult.getQuestions().size(), provider.getName());
+                    aiMs, aiResult.getQuestions().size(), aiCoreService.getCurrentProvider().getName());
 
             String rawJson = objectMapper.writeValueAsString(aiResult);
             job.setAiRawResponse(rawJson);
