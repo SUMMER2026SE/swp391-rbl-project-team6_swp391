@@ -34,8 +34,8 @@ interface NotificationPreviewSheetProps {
  *   <li><strong>Scrollable body</strong> — large, well-spaced prose area
  *       capped at a sensible height so long messages never break the
  *       layout.</li>
- *   <li><strong>Action footer</strong> — "Mark as read" + "Close" so the
- *       primary action sits where users expect (right-hand side of drawer).</li>
+ *   <li><strong>Action footer</strong> — "Close" so the primary action sits
+ *       where users expect (right-hand side of drawer).</li>
  * </ol>
  *
  * Closing the drawer after the user has acknowledged the message marks
@@ -67,14 +67,14 @@ export function NotificationPreviewSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
-        className="[&>button:first-of-type]:hidden flex w-full flex-col gap-0 overflow-hidden border-l border-white/10 bg-background p-0 sm:max-w-lg"
+        className="flex w-full h-full flex-col gap-0 overflow-hidden border-l border-white/10 bg-background p-0 sm:max-w-lg [&>button]:hidden"
       >
         {notification ? (
-          <>
+          <div className="flex h-full flex-col overflow-hidden">
             {/* ── Hero header ─────────────────────────────────────── */}
             <div
               className={cn(
-                "relative overflow-hidden border-b border-border px-6 pb-6 pt-6",
+                "relative overflow-hidden border-b border-border px-6 pb-6 pt-6 shrink-0",
                 "bg-gradient-to-br from-primary/20 via-primary/8 to-transparent",
               )}
             >
@@ -144,7 +144,7 @@ export function NotificationPreviewSheet({
             </div>
 
             {/* ── Meta cards grid ─────────────────────────────────── */}
-            <div className="px-6 pt-5">
+            <div className="px-6 pt-5 shrink-0">
               <div className="grid grid-cols-2 gap-3">
                 <MetaCard
                   icon={<CheckCheck className="h-3.5 w-3.5" aria-hidden />}
@@ -209,23 +209,13 @@ export function NotificationPreviewSheet({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 border-border/60"
+                className="w-full border-border/60"
                 onClick={handleClose}
               >
                 Close
               </Button>
-              {notification.unread && (
-                <Button
-                  size="sm"
-                  className="flex-1 bg-gradient-hero text-white shadow-md hover:opacity-95"
-                  onClick={handleMarkRead}
-                >
-                  <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden />
-                  Mark as read
-                </Button>
-              )}
             </div>
-          </>
+          </div>
         ) : (
           /* ── Empty state when no notification is selected ─────── */
           <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
