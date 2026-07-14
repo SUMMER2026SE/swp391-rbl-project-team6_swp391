@@ -27,7 +27,7 @@ public class UpdateNotificationRequest {
     private String content;
 
     @NotNull(message = "Type is required")
-    @Pattern(regexp = "LESSON|CONTENT_APPROVED|CONTENT_REJECTED|TEACHER_APPROVED|TEACHER_REJECTED|SYSTEM",
+    @Pattern(regexp = "ANNOUNCEMENT|LEARNING|CONTENT_REVIEW|ACCOUNT|SYSTEM",
             message = "Invalid notification type")
     private String type;
 
