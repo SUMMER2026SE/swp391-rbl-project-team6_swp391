@@ -481,8 +481,10 @@ function NotificationManagementPage() {
     const colorClasses: Record<string, string> = {
       emerald: "bg-emerald-500/10 text-emerald-600",
       green: "bg-green-500/10 text-green-600",
-      red: "bg-red-500/10 text-red-600",
       blue: "bg-blue-500/10 text-blue-600",
+      amber: "bg-amber-500/10 text-amber-600",
+      violet: "bg-violet-500/10 text-violet-600",
+      slate: "bg-slate-500/10 text-slate-600",
       gray: "bg-gray-500/10 text-gray-600",
     };
     const colorClass = colorClasses[config.color] || colorClasses.gray;
@@ -602,7 +604,23 @@ function NotificationManagementPage() {
             : n
         )
       );
-      toast.success("Notification sent successfully!");
+      // Inform the admin that they won't receive this notification in their
+      // personal inbox unless the target is "All Users". This avoids the
+      // common confusion where the admin sends a notification and then
+      // expects the bell icon to light up immediately.
+      const sentToAll =
+        notification.targetType === "ALL" ||
+        targetType === "ALL";
+      if (sentToAll) {
+        toast.success("Notification sent to all users", {
+          description: "You'll see a copy in your inbox bell too.",
+        });
+      } else {
+        toast.success("Notification sent successfully!", {
+          description:
+            "You won't see this notification in your bell unless you choose 'All Users' as the target audience.",
+        });
+      }
 
       // Authoritative refetch: the @Transactional sendNotification has
       // committed user_notifications rows by now, so the next read of
