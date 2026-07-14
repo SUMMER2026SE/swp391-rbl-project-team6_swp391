@@ -198,12 +198,21 @@ export function DashboardLayout({
   const [notifOpen, setNotifOpen] = useState(false);
 
   // Use global notification context for real data
-  const { notifications, unreadCount } = useNotifications();
+  const { notifications, unreadCount, refresh, markRead } = useNotifications();
 
   // Admin role uses DashboardLayout too but admin has its own notification page
   // No need to show dropdown badge for admin (they manage notifications)
   const showBadge = role !== "admin";
-  const dropdownNotifications = notifications.slice(0, 4);
+  // Pull unread items to the top so the most important notifications are
+  // visible inside the small dropdown. The backend already returns the list
+  // sorted by createdAt DESC, but the WebSocket push path prepends a new
+  // notification regardless of its `unread` state, so re-sorting here keeps
+  // the dropdown deterministic regardless of how the data arrived.
+  const sortedForDropdown = [...notifications].sort((a, b) => {
+    if (a.unread !== b.unread) return a.unread ? -1 : 1;
+    return 0;
+  });
+  const dropdownNotifications = sortedForDropdown.slice(0, 4);
   // Check if student is active (joined a class)
   const isStudentActiveStudent = role === "student" && isStudentActive(user);
   const isStudentGuestStudent = role === "student" && !isStudentActive(user);
@@ -832,8 +841,15 @@ export function DashboardLayout({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setNotifOpen(!notifOpen);
+                    // Refresh on open so the dropdown reflects the latest
+                    // server state, including notifications that may have
+                    // arrived while the user was on another page.
+                    const willOpen = !notifOpen;
+                    setNotifOpen(willOpen);
                     setUserMenuOpen(false);
+                    if (willOpen) {
+                      refresh();
+                    }
                   }}
                   className="relative p-2 rounded-xl nav-item"
                 >
@@ -869,41 +885,89 @@ export function DashboardLayout({
                         className="overflow-y-auto flex-1"
                         style={{ maxHeight: "calc(520px - 116px)" }}
                       >
-                        <div className="p-2 space-y-1">
-                          {dropdownNotifications.map((n) => {
-                            const Icon = n.icon;
-                            return (
-                              <div
-                                key={n.id}
-                                className={`w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150 ${n.unread
-                                    ? "bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
-                                    : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                                  }`}
-                              >
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${n.unread ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
-                                  }`}>
-                                  <Icon className="w-4 h-4" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-                                      {n.title}
-                                    </span>
-                                    {n.unread && (
-                                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />
-                                    )}
+                        {dropdownNotifications.length === 0 ? (
+                          <div className="px-4 py-10 flex flex-col items-center justify-center text-center gap-2">
+                            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] grid place-items-center">
+                              <Bell className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                            {role === "admin" ? (
+                              <>
+                                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                  No personal notifications
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  You receive a copy only when sending to All Users.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNotifOpen(false);
+                                    nav({ to: "/admin/notification" as never });
+                                  }}
+                                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                >
+                                  Manage notifications →
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                  You're all caught up
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  No new notifications right now.
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-2 space-y-1">
+                            {dropdownNotifications.map((n) => {
+                              const Icon = n.icon;
+                              return (
+                                <button
+                                  key={n.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (n.unread) {
+                                      markRead(n.id).catch(() => {});
+                                    }
+                                    setNotifOpen(false);
+                                    nav({
+                                      to: notificationsPath as "/student/notifications",
+                                      search: { open: n.id },
+                                    });
+                                  }}
+                                  className={`w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150 ${n.unread
+                                      ? "bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
+                                      : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                                    }`}
+                                >
+                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${n.unread ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
+                                    }`}>
+                                    <Icon className="w-4 h-4" />
                                   </div>
-                                  <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
-                                    {n.desc}
-                                  </p>
-                                  <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">
-                                    {n.time}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                                        {n.title}
+                                      </span>
+                                      {n.unread && (
+                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 flex-shrink-0 mt-0.5" />
+                                      )}
+                                    </div>
+                                    <p className="text-[13px] text-gray-600 dark:text-gray-400 mt-1 leading-relaxed line-clamp-2">
+                                      {n.desc}
+                                    </p>
+                                    <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 block">
+                                      {n.time}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       <div className="border-t border-gray-100 dark:border-white/10 p-2 flex-shrink-0 bg-white dark:bg-[#0f1117]">
