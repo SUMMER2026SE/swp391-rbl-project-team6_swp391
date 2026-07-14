@@ -1,10 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Megaphone,
   BookOpen,
-  CheckCircle,
-  XCircle,
-  UserCheck,
-  UserX,
+  ClipboardCheck,
+  UserCog,
   Settings,
   Bell,
   Send,
@@ -13,14 +12,15 @@ import {
 } from "lucide-react";
 
 /**
- * Notification Types - centralized constants to avoid hardcoding
+ * Notification Types - centralized constants to avoid hardcoding.
+ * Types describe notification categories, not processing status.
+ * Approval/Rejection are surfaced via the notification Title/Message.
  */
 export const NOTIFICATION_TYPES = {
-  LESSON: "LESSON",
-  CONTENT_APPROVED: "CONTENT_APPROVED",
-  CONTENT_REJECTED: "CONTENT_REJECTED",
-  TEACHER_APPROVED: "TEACHER_APPROVED",
-  TEACHER_REJECTED: "TEACHER_REJECTED",
+  ANNOUNCEMENT: "ANNOUNCEMENT",
+  LEARNING: "LEARNING",
+  CONTENT_REVIEW: "CONTENT_REVIEW",
+  ACCOUNT: "ACCOUNT",
   SYSTEM: "SYSTEM",
 } as const;
 
@@ -28,40 +28,34 @@ export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICA
 
 export const NOTIFICATION_TYPE_LIST: { value: NotificationType; label: string; icon: LucideIcon; color: string }[] = [
   {
-    value: NOTIFICATION_TYPES.LESSON,
-    label: "Lesson",
+    value: NOTIFICATION_TYPES.ANNOUNCEMENT,
+    label: "Announcement",
+    icon: Megaphone,
+    color: "blue",
+  },
+  {
+    value: NOTIFICATION_TYPES.LEARNING,
+    label: "Learning",
     icon: BookOpen,
     color: "emerald",
   },
   {
-    value: NOTIFICATION_TYPES.CONTENT_APPROVED,
-    label: "Content Approved",
-    icon: CheckCircle,
-    color: "green",
+    value: NOTIFICATION_TYPES.CONTENT_REVIEW,
+    label: "Content Review",
+    icon: ClipboardCheck,
+    color: "amber",
   },
   {
-    value: NOTIFICATION_TYPES.CONTENT_REJECTED,
-    label: "Content Rejected",
-    icon: XCircle,
-    color: "red",
-  },
-  {
-    value: NOTIFICATION_TYPES.TEACHER_APPROVED,
-    label: "Teacher Approved",
-    icon: UserCheck,
-    color: "green",
-  },
-  {
-    value: NOTIFICATION_TYPES.TEACHER_REJECTED,
-    label: "Teacher Rejected",
-    icon: UserX,
-    color: "red",
+    value: NOTIFICATION_TYPES.ACCOUNT,
+    label: "Account",
+    icon: UserCog,
+    color: "violet",
   },
   {
     value: NOTIFICATION_TYPES.SYSTEM,
     label: "System",
     icon: Settings,
-    color: "blue",
+    color: "slate",
   },
 ];
 
