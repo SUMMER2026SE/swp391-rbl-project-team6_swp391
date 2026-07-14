@@ -17,7 +17,11 @@ import {
   type NotificationListResponse,
 } from "@/lib/api/notifications";
 import { api } from "@/lib/api/client";
-import { getNotificationTypeConfig, type Notification } from "@/types/notification";
+import {
+  getNotificationTypeConfig,
+  NOTIFICATION_TYPES,
+  type Notification,
+} from "@/types/notification";
 import {
   notificationSocket,
   type NotificationPushPayload,
@@ -57,7 +61,9 @@ function relativeTime(isoString: string): string {
 }
 
 function mapToNotification(n: NotificationResponse | NotificationPushPayload) {
-  const config = getNotificationTypeConfig(((n.type as unknown) ?? "SYSTEM") as never);
+  const fallbackType = NOTIFICATION_TYPES.SYSTEM as Notification["type"];
+  const resolvedType = (n.type as Notification["type"]) ?? fallbackType;
+  const config = getNotificationTypeConfig(resolvedType);
   return {
     id: n.id,
     title: n.title,
@@ -65,7 +71,7 @@ function mapToNotification(n: NotificationResponse | NotificationPushPayload) {
     time: relativeTime(n.createdAt),
     unread: !n.isRead,
     icon: config.icon,
-    type: ((n.type as unknown) ?? "SYSTEM") as Notification["type"],
+    type: resolvedType,
   };
 }
 
@@ -188,6 +194,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // isOnInboxRoute / applyPush are read inside the listener via the ref
     // pattern so the effect runs exactly once at mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Initial fetch so the bell badge and dropdown are populated as soon as
+  // the user lands on any page. Without this, the dropdown stays empty
+  // until the user navigates into the inbox route (which is the only place
+  // that previously triggered a refresh), even though the bell badge can
+  // already show an unread dot via WebSocket push.
+  const initialFetchDoneRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (initialFetchDoneRef.current) return;
+    if (!api.getToken()) return;
+    initialFetchDoneRef.current = true;
+    refresh();
+    // eslint-disable-next-line react-hooks-exhaustive-deps
   }, []);
 
   // Refresh whenever the active route is one of the in-app notification
