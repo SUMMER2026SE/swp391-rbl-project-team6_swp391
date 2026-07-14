@@ -66,7 +66,7 @@ public class AdminUserService {
                 savedUser,
                 "Teacher Approved",
                 "Your teacher account has been approved.",
-                NotificationType.TEACHER_APPROVED
+                NotificationType.ACCOUNT
         );
 
         log.info("Approved teacher: {} ({})", savedUser.getEmail(), userId);
@@ -93,7 +93,7 @@ public class AdminUserService {
                 savedUser,
                 "Teacher Rejected",
                 content,
-                NotificationType.TEACHER_REJECTED
+                NotificationType.ACCOUNT
         );
 
         log.info("Rejected teacher application: {} ({})", savedUser.getEmail(), userId);
