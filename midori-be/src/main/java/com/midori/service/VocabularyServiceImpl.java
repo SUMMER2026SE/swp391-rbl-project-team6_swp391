@@ -190,7 +190,7 @@ public class VocabularyServiceImpl implements VocabularyService {
                 UserStatus.ACTIVE,
                 "New Lesson",
                 "A new lesson has been published.",
-                NotificationType.LESSON
+                NotificationType.LEARNING
         );
 
         return toLessonResponse(lesson, currentUserId);
