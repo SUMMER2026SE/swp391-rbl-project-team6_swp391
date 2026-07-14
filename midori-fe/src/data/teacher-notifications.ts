@@ -1,14 +1,8 @@
+import type { NotificationType } from "@/types/notification";
+
 export interface TeacherNotification {
   id: string;
-  type:
-    | "LESSON"
-    | "HOMEWORK"
-    | "EXAM"
-    | "STUDENT"
-    | "CONTENT_APPROVED"
-    | "CONTENT_REJECTED"
-    | "TEACHER_APPROVED"
-    | "SYSTEM";
+  type: NotificationType;
   title: string;
   message: string;
   time: string;
@@ -20,7 +14,7 @@ export interface TeacherNotification {
 export const TEACHER_NOTIFICATIONS: TeacherNotification[] = [
   {
     id: "notif-001",
-    type: "STUDENT",
+    type: "ACCOUNT",
     title: "New student enrolled",
     message: "Kenji Suzuki joined N5 Intensive class.",
     time: "2026-06-20T10:30:00Z",
@@ -30,7 +24,7 @@ export const TEACHER_NOTIFICATIONS: TeacherNotification[] = [
   },
   {
     id: "notif-002",
-    type: "HOMEWORK",
+    type: "LEARNING",
     title: "Homework submission received",
     message: "12 students submitted Homework #5 for N5 Intensive.",
     time: "2026-06-20T09:15:00Z",
@@ -40,7 +34,7 @@ export const TEACHER_NOTIFICATIONS: TeacherNotification[] = [
   },
   {
     id: "notif-003",
-    type: "CONTENT_APPROVED",
+    type: "CONTENT_REVIEW",
     title: "Content approved",
     message: "Your lesson 'N4 Grammar - Te-form' has been approved.",
     time: "2026-06-19T16:45:00Z",
@@ -50,7 +44,7 @@ export const TEACHER_NOTIFICATIONS: TeacherNotification[] = [
   },
   {
     id: "notif-004",
-    type: "EXAM",
+    type: "LEARNING",
     title: "Exam grading complete",
     message: "All submissions for N5 Midterm Exam have been graded.",
     time: "2026-06-19T14:00:00Z",
@@ -60,7 +54,7 @@ export const TEACHER_NOTIFICATIONS: TeacherNotification[] = [
   },
   {
     id: "notif-005",
-    type: "STUDENT",
+    type: "LEARNING",
     title: "Student progress alert",
     message: "3 students in N4 Listening class are falling behind.",
     time: "2026-06-18T11:00:00Z",
@@ -70,7 +64,7 @@ export const TEACHER_NOTIFICATIONS: TeacherNotification[] = [
   },
   {
     id: "notif-006",
-    type: "CONTENT_REJECTED",
+    type: "CONTENT_REVIEW",
     title: "Content revision needed",
     message: "Please revise the vocabulary list for N3 level - some words are above level.",
     time: "2026-06-17T15:30:00Z",
@@ -80,7 +74,7 @@ export const TEACHER_NOTIFICATIONS: TeacherNotification[] = [
   },
   {
     id: "notif-007",
-    type: "LESSON",
+    type: "LEARNING",
     title: "New lesson added to Data Bank",
     message: "Admin added 5 new grammar lessons to the Data Bank.",
     time: "2026-06-16T09:00:00Z",
