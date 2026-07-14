@@ -2,12 +2,21 @@ export type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 export type VideoStatus = "processing" | "completed" | "failed" | "uploading";
 export type DifficultyLevel = "Beginner" | "Intermediate" | "Advanced";
 
+export interface TranscriptTokenItem {
+  id?: string;
+  surface: string;
+  lemma: string;
+  reading: string;
+  position: number;
+}
+
 export interface SentenceItem {
   id: string;
   startTime: number;
   endTime: number;
   japanese: string;
   vietnamese: string;
+  tokens: TranscriptTokenItem[];
 }
 
 export interface ShadowingVideo {

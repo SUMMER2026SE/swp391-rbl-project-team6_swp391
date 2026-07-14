@@ -7,6 +7,7 @@ export interface ShadowingEvaluationResponse {
   wrongWords: string[];
   needAI: boolean;
   feedback: string[];
+  transcript?: string;
 }
 
 export const evaluateShadowingSentence = async (videoId: string, sentenceOrder: number, audioFile: File): Promise<ShadowingEvaluationResponse> => {

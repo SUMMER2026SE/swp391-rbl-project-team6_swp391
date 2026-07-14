@@ -14,6 +14,7 @@ import { useRef, useEffect, useState } from "react";
 import appCss from "../styles.css?url";
 import { AuthProvider, ThemeProvider, LanguageProvider } from "@/lib/auth";
 import { NotificationProvider } from "@/lib/context/notification-context";
+import { ForceRefresh } from "@/components/force-refresh";
 
 function NotFoundComponent() {
   return (
@@ -92,6 +93,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      // Cache busting - force reload on new deploy
+      { name: "cache-control", content: "no-cache, no-store, must-revalidate" },
+      { name: "pragma", content: "no-cache" },
+      { name: "expires", content: "0" },
     ],
     links: [
       {
@@ -162,8 +167,8 @@ function RootComponent() {
   );
 
   if (!googleClientId) {
-    return app;
+    return <ForceRefresh>{app}</ForceRefresh>;
   }
 
-  return <GoogleOAuthProvider clientId={googleClientId}>{app}</GoogleOAuthProvider>;
+  return <ForceRefresh><GoogleOAuthProvider clientId={googleClientId}>{app}</GoogleOAuthProvider></ForceRefresh>;
 }

@@ -19,6 +19,7 @@ public class ShadowingEvaluationResponse {
     private boolean needAI;
     private java.util.List<String> feedback;
     private String validationError;
+    private String transcript;
 
     public static ShadowingEvaluationResponse validationError(String reason) {
         return ShadowingEvaluationResponse.builder()

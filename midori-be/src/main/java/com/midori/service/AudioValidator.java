@@ -101,7 +101,7 @@ public class AudioValidator {
     }
 
     private long estimateDurationMs(byte[] audio) {
-        return Math.max(100, audio.length / 16);
+        return Math.max(100, audio.length / 4);
     }
 
     private AudioAnalysis analyzeLoudness(byte[] audio) {

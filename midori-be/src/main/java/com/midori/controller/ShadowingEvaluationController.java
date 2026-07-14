@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/student/shadowing/evaluation")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Shadowing Evaluation", description = "Pronunciation evaluation endpoints for student shadowing")
 public class ShadowingEvaluationController {
 
@@ -57,7 +59,15 @@ public class ShadowingEvaluationController {
             @Parameter(description = "Video ID") @RequestParam("videoId") String videoId,
             @Parameter(description = "Sentence order") @RequestParam("sentenceOrder") Integer sentenceOrder
     ) {
-        ShadowingEvaluationResponse response = shadowingEvaluationService.evaluateSentence(audioFile, videoId, sentenceOrder);
+        String traceId = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        log.info("[TRACE] id={} event=EVALUATE_REQUEST videoId={} sentenceOrder={} audioName={} audioSize={} contentType={}",
+                traceId, videoId, sentenceOrder,
+                audioFile != null ? audioFile.getOriginalFilename() : null,
+                audioFile != null ? audioFile.getSize() : null,
+                audioFile != null ? audioFile.getContentType() : null);
+        ShadowingEvaluationResponse response = shadowingEvaluationService.evaluateSentence(audioFile, videoId, sentenceOrder, traceId);
+        log.info("[TRACE] id={} event=EVALUATE_RESPONSE overall={} accuracy={} similarity={} transcript={}",
+                traceId, response.getOverall(), response.getAccuracy(), response.getSimilarity(), response.getTranscript());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

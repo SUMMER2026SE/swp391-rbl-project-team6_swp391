@@ -1,6 +1,14 @@
+logging:
+  level:
+    com.midori: DEBUG
+
 spring:
   profiles:
     active: local
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
   servlet:
     multipart:
       max-file-size: 500MB

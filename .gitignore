@@ -43,6 +43,12 @@ midori-be/.env.*
 midori-be/uploads/
 
 # =============================================
+# Dictionary resources (download manually)
+# =============================================
+midori-be/src/main/resources/dictionary/JMdict.xml
+midori-be/src/main/resources/dictionary/KANJIDIC2.xml
+
+# =============================================
 # Cloudflare / Wrangler
 # =============================================
 .wrangler/

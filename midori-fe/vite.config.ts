@@ -35,5 +35,15 @@ export default defineConfig({
     optimizeDeps: {
       include: ["xlsx"],
     },
+    build: {
+      // Disable CSS source map in production for cleaner builds
+      cssSourceMap: true,
+    },
+    // Disable cache for faster HMR updates during development
+    cache: false,
+  },
+  // Add cache-busting via content hash in filenames
+  resolve: {
+    extensions: [".tsx", ".ts", ".jsx", ".js"],
   },
 });

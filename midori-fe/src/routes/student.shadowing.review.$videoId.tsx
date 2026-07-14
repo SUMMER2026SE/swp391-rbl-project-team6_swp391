@@ -1,22 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home } from "lucide-react";
+import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home, Loader2 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi } from "@/lib/api/shadowing";
-import { Loader2 } from "lucide-react";
 import { getTopicVn } from "./student.shadowing";
-import {
-  generateMockAIFeedback,
-  type ShadowingSentence,
-} from "@/mock/shadowing-student";
+import { ClickableTranscript } from "@/components/clickable-transcript";
+import { SavedWordsButton } from "@/components/saved-words-panel";
 
 export const Route = createFileRoute("/student/shadowing/review/$videoId")({
   component: ReviewPage,
 });
 
 interface SentenceReview {
-  sentence: ShadowingSentence;
+  sentence: {
+    id: string;
+    startTime: number;
+    endTime: number;
+    text: string;
+    translation: string;
+  };
   score: number;
   feedback: {
     pronunciation: number;
@@ -55,14 +58,19 @@ function ReviewPage() {
           translation: s.vnText || ""
         }));
 
-        const review = sentences.map((sentence: any) => {
-          const feedback = generateMockAIFeedback(sentence.text);
-          return {
-            sentence,
-            score: feedback.overallScore,
-            feedback,
-          };
-        });
+        const review = sentences.map((sentence: any) => ({
+          sentence,
+          score: 0,
+          feedback: {
+            pronunciation: 0,
+            pitchAccent: 0,
+            fluency: 0,
+            speed: 0,
+            overallScore: 0,
+            feedback: "Chưa có dữ liệu chấm điểm.",
+            tips: []
+          }
+        }));
         setReviewData(review);
       } catch (err) {
         console.error("Error loading video details:", err);
@@ -164,9 +172,12 @@ function ReviewPage() {
               </div>
 
               {/* Overall Score */}
-              <div className="text-right">
-                <div className="text-2xl font-black text-pink-500">{overallScore}%</div>
-                <div className="text-xs text-muted-foreground">Điểm trung bình</div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-2xl font-black text-pink-500">{overallScore}%</div>
+                  <div className="text-xs text-muted-foreground">Điểm trung bình</div>
+                </div>
+                <SavedWordsButton />
               </div>
             </div>
           </div>
@@ -206,16 +217,15 @@ function ReviewPage() {
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p
+                        <ClickableTranscript
+                          text={review.sentence.text}
+                          contextSentence={review.sentence.text}
                           className={`text-sm font-medium truncate ${
                             selectedIndex === index
                               ? "text-white"
                               : "text-slate-800 dark:text-white"
                           }`}
-                          style={{ fontFamily: "var(--font-japanese, serif)" }}
-                        >
-                          {review.sentence.text}
-                        </p>
+                        />
                         <p
                           className={`text-xs truncate ${
                             selectedIndex === index ? "text-white/70" : "text-muted-foreground"
@@ -300,12 +310,11 @@ function ReviewPage() {
 
                     {/* Japanese */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl mb-4">
-                      <p
+                      <ClickableTranscript
+                        text={currentReview.sentence.text}
+                        contextSentence={currentReview.sentence.text}
                         className="text-xl text-slate-800 dark:text-white leading-relaxed"
-                        style={{ fontFamily: "var(--font-japanese, serif)" }}
-                      >
-                        {currentReview.sentence.text}
-                      </p>
+                      />
                     </div>
 
                     {/* Translation */}

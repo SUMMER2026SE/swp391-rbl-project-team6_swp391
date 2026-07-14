@@ -76,6 +76,7 @@ public class GroqSpeechProvider implements SpeechProvider {
                 });
                 body.add("model", model);
                 body.add("response_format", "verbose_json");
+                body.add("language", "ja");
 
                 HttpEntity<org.springframework.util.MultiValueMap<String, Object>> requestEntity =
                         new HttpEntity<>(body, headers);

@@ -20,4 +20,5 @@ public class ShadowingTranscriptResponse {
     private Integer endTime;
     private String jpText;
     private String vnText;
+    private java.util.List<TranscriptTokenResponse> tokens;
 }

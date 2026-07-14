@@ -40,19 +40,28 @@ public class ShadowingEvaluationService {
 
     public ShadowingEvaluationResponse evaluateSentence(MultipartFile audioFile,
                                                         String videoId,
-                                                        int sentenceOrder) {
+                                                        int sentenceOrder,
+                                                        String traceId) {
         long pipelineStart = System.currentTimeMillis();
         String studentId = currentUserProvider.requireStudentId();
         UUID parsedVideoId = UUID.fromString(videoId);
 
+        int zeroBasedSentenceOrder = sentenceOrder - 1;
+        if (zeroBasedSentenceOrder < 0) {
+            log.warn("[TRACE] id={} event=EVALUATE_INVALID_SENTENCE_ORDER sentenceOrder={}", traceId, sentenceOrder);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid sentenceOrder");
+        }
+
         ShadowingTranscript transcript = shadowingTranscriptRepository.findByShadowingVideoIdOrderBySentenceOrderAsc(parsedVideoId)
                 .stream()
-                .filter(item -> item.getSentenceOrder() != null && item.getSentenceOrder().equals(sentenceOrder))
+                .filter(item -> item.getSentenceOrder() != null && item.getSentenceOrder().equals(zeroBasedSentenceOrder))
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sentence not found"));
 
         String reference = transcript.getJpText();
         if (reference == null) reference = "";
+
+        log.info("[TRACE] id={} event=REFERENCE_LOADED sentenceId={} sentenceOrder={} text={}", traceId, transcript.getId(), zeroBasedSentenceOrder, reference);
 
         byte[] audioBytes;
         try {
@@ -68,18 +77,19 @@ public class ShadowingEvaluationService {
         );
 
         if (!validationResult.isValid()) {
-            log.warn("[ShadowingEvaluationService] invalid audio studentId={} sentenceId={} reason={}",
-                    studentId, transcript.getId(), validationResult.getReason());
+            log.warn("[TRACE] id={} event=AUDIO_INVALID sentenceId={} reason={} durationMs={}", traceId, transcript.getId(), validationResult.getReason(), validationResult.getDurationMs());
             return ShadowingEvaluationResponse.validationError(validationResult.getReason());
         }
 
         String audioHash = audioHashGenerator.hash(audioBytes);
+        log.info("[TRACE] id={} event=AUDIO_VALIDATED sentenceId={} durationMs={} hash={}", traceId, transcript.getId(), validationResult.getDurationMs(), audioHash);
 
         boolean cacheHit = false;
         boolean cacheMiss = false;
-        ShadowingEvaluationResponse cached = evaluationCache.get(studentId, videoId, sentenceOrder, audioHash);
+        ShadowingEvaluationResponse cached = evaluationCache.get(studentId, videoId, zeroBasedSentenceOrder, audioHash);
         if (cached != null) {
             cacheHit = true;
+            log.info("[TRACE] id={} event=CACHE_HIT sentenceId={}", traceId, transcript.getId());
             evaluationLogger.log(EvaluationLogEvent.builder()
                     .studentId(studentId)
                     .sentenceId(String.valueOf(transcript.getId()))
@@ -92,18 +102,22 @@ public class ShadowingEvaluationService {
             return cached;
         }
         cacheMiss = true;
+        log.info("[TRACE] id={} event=CACHE_MISS sentenceId={}", traceId, transcript.getId());
 
         SpeechRecognitionResult sttResult;
         try {
             sttResult = speechToTextService.transcribe(audioFile);
         } catch (IOException ex) {
+            log.warn("[TRACE] id={} event=WHISPER_FAILED sentenceId={} reason={}", traceId, transcript.getId(), ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio transcription failed: " + ex.getMessage());
         }
         long whisperLatency = System.currentTimeMillis() - pipelineStart;
+        log.info("[TRACE] id={} event=WHISPER_RESPONSE sentenceId={} transcript={} confidence={} language={}", traceId, transcript.getId(), sttResult.transcript(), sttResult.confidence(), sttResult.language());
 
         long evaluationStart = System.currentTimeMillis();
         EvaluatedSentence evaluated = pronunciationEvaluator.evaluate(reference, sttResult.transcript(), sttResult, audioHash, validationResult);
         long evaluationDuration = System.currentTimeMillis() - evaluationStart;
+        log.info("[TRACE] id={} event=EVALUATION_COMPUTED sentenceId={} overall={} accuracy={} similarity={}", traceId, transcript.getId(), evaluated.getOverallScore(), evaluated.getAccuracy(), evaluated.getSimilarity());
 
         ShadowingEvaluationResponse response;
         if (evaluated.isNeedsAI() && geminiFeedbackProvider.isConfigured()) {
@@ -126,8 +140,9 @@ public class ShadowingEvaluationService {
                         evaluated.getWrongWords(),
                         feedback
                 );
+                log.info("[TRACE] id={} event=AI_FEEDBACK_GENERATED sentenceId={}", traceId, transcript.getId());
             } catch (Exception ex) {
-                log.warn("[ShadowingEvaluationService] AI feedback failed, fallback to deterministic", ex);
+                log.warn("[TRACE] id={} event=AI_FEEDBACK_FAILED sentenceId={} reason={}", traceId, transcript.getId(), ex.getMessage());
                 response = ShadowingEvaluationResponse.immediate(
                         evaluated.getOverallScore(),
                         evaluated.getAccuracy(),
@@ -146,7 +161,10 @@ public class ShadowingEvaluationService {
                     evaluated.getExtraWords(),
                     evaluated.getWrongWords()
             );
+            log.info("[TRACE] id={} event=AI_FEEDBACK_SKIPPED sentenceId={} needsAI={}", traceId, transcript.getId(), evaluated.isNeedsAI());
         }
+
+        response.setTranscript(sttResult.transcript());
 
         evaluationLogger.log(EvaluationLogEvent.builder()
                 .studentId(studentId)
@@ -166,7 +184,7 @@ public class ShadowingEvaluationService {
                 .build());
 
         try {
-            evaluationCache.put(studentId, videoId, sentenceOrder, audioHash, response);
+            evaluationCache.put(studentId, videoId, zeroBasedSentenceOrder, audioHash, response);
         } catch (Exception ex) {
             log.warn("[ShadowingEvaluationService] cache put failed", ex);
         }

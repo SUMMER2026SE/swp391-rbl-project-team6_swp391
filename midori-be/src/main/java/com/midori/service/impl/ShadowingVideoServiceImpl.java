@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.midori.service.TranscriptAnalyzerService;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -28,6 +30,7 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
     private final ShadowingProcessingLogRepository shadowingProcessingLogRepository;
     private final VideoStorageService videoStorageService;
     private final ShadowingAiProcessingService shadowingAiProcessingService;
+    private final TranscriptAnalyzerService transcriptAnalyzerService;
 
     @Override
     @Transactional
@@ -235,6 +238,25 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
     }
 
     private ShadowingTranscriptResponse toTranscriptResponse(ShadowingTranscript transcript) {
+        List<TranscriptTokenResponse> tokenResponses = List.of();
+        try {
+            List<com.midori.entity.TranscriptToken> tokens = transcriptAnalyzerService.getTokensForSentence(transcript.getId());
+            if (tokens.isEmpty()) {
+                tokens = transcriptAnalyzerService.analyzeAndSave(transcript);
+            }
+            tokenResponses = tokens.stream()
+                    .map(t -> TranscriptTokenResponse.builder()
+                            .id(t.getId())
+                            .surface(t.getSurface())
+                            .lemma(t.getLemma())
+                            .reading(t.getReading())
+                            .position(t.getPosition())
+                            .build())
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("Failed to retrieve or analyze tokens for transcript {}: {}", transcript.getId(), e.getMessage());
+        }
+
         return ShadowingTranscriptResponse.builder()
                 .id(transcript.getId())
                 .videoId(transcript.getShadowingVideo().getId())
@@ -243,6 +265,7 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 .endTime(transcript.getEndTime())
                 .jpText(transcript.getJpText())
                 .vnText(transcript.getVnText())
+                .tokens(tokenResponses)
                 .build();
     }
 
@@ -295,6 +318,11 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 transcriptList.add(item);
             }
             shadowingTranscriptRepository.saveAll(transcriptList);
+            try {
+                transcriptAnalyzerService.analyzeVideoTranscripts(id);
+            } catch (Exception e) {
+                log.error("Failed to analyze transcripts on video update: {}", e.getMessage());
+            }
         }
 
         ShadowingVideo saved = shadowingVideoRepository.save(video);

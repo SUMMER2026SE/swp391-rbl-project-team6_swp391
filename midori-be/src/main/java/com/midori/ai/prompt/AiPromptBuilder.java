@@ -52,6 +52,7 @@ public final class AiPromptBuilder {
                     }
                   ]
                 }
+                ```
 
                 ## CRITICAL RULES
 
@@ -224,5 +225,34 @@ public final class AiPromptBuilder {
                 type != null ? type : "",
                 level != null ? level : "",
                 content != null ? content : "");
+    }
+
+    /**
+     * Build prompt for AI explanation given a Japanese sentence and target word.
+     */
+    public static String buildExplanationPrompt(String sentence, String word) {
+        return """
+                Bạn là AI Sensei của MIDORI, trợ lý học tiếng Nhật cho người Việt.
+                Nhiệm vụ: giải thích sâu từ tiếng Nhật trong câu bằng tiếng Việt, gồm đúng 4 phần theo JSON bên dưới.
+
+                DỮ LIỆU:
+                - Câu: %s
+                - Từ cần giải thích: %s
+
+                QUY TẮC:
+                1. Trả lời BẰNG TIẾNG VIỆT.
+                2. Trả CHỈ JSON hợp lệ, KHÔNG có ```json, KHÔNG có giải thích ngoài JSON.
+                3. Mỗi phần phải ngắn gọn, chính xác, dễ học.
+                4. Nếu câu có nhiều cách đọc/cách dùng, ưu tiên cách phù hợp nhất với ngữ cảnh câu.
+                5. Không bịa nghĩa nếu không chắc; nếu không chắc hãy nói rõ.
+
+                ĐỊNH DẠNG BẮT BUỘC:
+                {
+                  "grammarExplanation": "Giải thích ngắn gọn cấu trúc ngữ pháp quan trọng liên quan đến từ trong câu, kèm ví dụ nhỏ nếu cần.",
+                  "wordUsage": "Cách dùng chính, loại từ, dạng cần nhớ, cấu trúc thường gặp.",
+                  "nuance": "Sắc thái/cảm xúc hay mức trang trọng của từ trong ngữ cảnh này, nếu có.",
+                  "context": "Tại sao từ này dùng vậy trong câu, gợi ý nhớ/tách nghĩa phù hợp cho người Việt."
+                }
+                """.formatted(sentence, word);
     }
 }

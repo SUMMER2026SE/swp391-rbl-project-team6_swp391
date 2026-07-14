@@ -59,6 +59,7 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
     private final SpeechProvider speechProvider;
     private final SpeechModelSelector speechModelSelector;
     private final ShadowingSpeechConfig speechConfig;
+    private final com.midori.service.TranscriptAnalyzerService transcriptAnalyzerService;
 
     @Value("${groq.api-key:}")
     private String groqApiKey;
@@ -766,6 +767,11 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
         }
 
         shadowingTranscriptRepository.saveAll(transcriptList);
+        try {
+            transcriptAnalyzerService.analyzeVideoTranscripts(videoId);
+        } catch (Exception e) {
+            log.error("[PIPELINE] Failed to tokenize transcripts on completion: {}", e.getMessage());
+        }
 
         video.setStatus(ShadowingStatus.COMPLETED);
         if (videoDuration != null) {
