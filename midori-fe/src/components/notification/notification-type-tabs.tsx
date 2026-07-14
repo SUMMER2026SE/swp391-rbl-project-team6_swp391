@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
-import type { Notification, NotificationType } from "@/types/notification";
+import {
+  NOTIFICATION_TYPES,
+  NOTIFICATION_TYPE_LIST,
+  type Notification,
+  type NotificationType,
+} from "@/types/notification";
 
 export type NotificationTabId = "all" | "unread" | NotificationType;
 
@@ -21,12 +26,7 @@ interface NotificationTypeTabsProps {
 const DEFAULT_TABS: NotificationTabDescriptor[] = [
   { id: "all", label: "All" },
   { id: "unread", label: "Unread" },
-  { id: "LESSON", label: "Lesson" },
-  { id: "CONTENT_APPROVED", label: "Approved" },
-  { id: "CONTENT_REJECTED", label: "Rejected" },
-  { id: "TEACHER_APPROVED", label: "Teacher Approved" },
-  { id: "TEACHER_REJECTED", label: "Teacher Rejected" },
-  { id: "SYSTEM", label: "System" },
+  ...NOTIFICATION_TYPE_LIST.map((t) => ({ id: t.value, label: t.label })),
 ];
 
 /**
