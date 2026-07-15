@@ -89,4 +89,13 @@ public class TranscriptAnalyzerServiceImpl implements TranscriptAnalyzerService 
         }
         return transcriptTokenRepository.findBySentenceId(sentenceId);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TranscriptToken> getTokensForSentences(List<UUID> sentenceIds) {
+        if (sentenceIds == null || sentenceIds.isEmpty()) {
+            return List.of();
+        }
+        return transcriptTokenRepository.findBySentenceIdIn(sentenceIds);
+    }
 }

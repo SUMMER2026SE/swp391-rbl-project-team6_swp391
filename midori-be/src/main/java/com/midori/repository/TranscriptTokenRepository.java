@@ -10,5 +10,6 @@ import java.util.UUID;
 @Repository
 public interface TranscriptTokenRepository extends JpaRepository<TranscriptToken, UUID> {
     List<TranscriptToken> findBySentenceId(UUID sentenceId);
+    List<TranscriptToken> findBySentenceIdIn(List<UUID> sentenceIds);
     void deleteBySentenceId(UUID sentenceId);
 }

@@ -76,21 +76,47 @@ interface WordPopupProps {
   contextSentence?: string;
 }
 
-// Use backend dictionary hover endpoint first, then fallback to local dictionary
+// Use student dictionary API (more comprehensive) with proper Vietnamese meanings
 async function lookupWord(japanese: string): Promise<DictionaryResult | null> {
   if (!japanese || japanese.trim() === "") return null;
 
   try {
-    const result = await dictionaryApi.getHoverInfo(japanese);
+    // Call the comprehensive student dictionary lookup which has:
+    // 1. Vietnamese meanings (preferred)
+    // 2. English meanings (fallback)
+    // 3. AI enrichment
+    // 4. Better phrase segmentation
+    const result = await dictionaryApi.lookupWord({
+      word: japanese.trim(),
+      reading: undefined,
+      sentence: undefined,
+      lessonId: undefined,
+      surface: undefined,
+    });
 
     // Check if backend returned valid data with meanings
-    if (result && result.word && result.meanings && result.meanings.length > 0) {
+    if (result && result.surface && result.meanings && result.meanings.length > 0) {
       return {
-        word: result.word || japanese,
+        word: result.surface || japanese,
         reading: result.reading || japanese,
         meaning: result.meanings.join("; "),
-        pos: result.partOfSpeech,
+        pos: result.wordType,
       };
+    }
+
+    // If no meanings found, try the simpler hover endpoint as fallback
+    try {
+      const hoverResult = await dictionaryApi.getHoverInfo(japanese);
+      if (hoverResult && hoverResult.word && hoverResult.meanings && hoverResult.meanings.length > 0) {
+        return {
+          word: hoverResult.word || japanese,
+          reading: hoverResult.reading || japanese,
+          meaning: hoverResult.meanings.join("; "),
+          pos: hoverResult.partOfSpeech,
+        };
+      }
+    } catch {
+      // Ignore hover fallback errors
     }
   } catch (err) {
     console.error(`[Dictionary] Error looking up word "${japanese}":`, err);
@@ -176,7 +202,8 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
     }
   }, [position]);
 
-  const handleSave = () => {
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!result) return;
 
     if (isSaved) {
@@ -194,9 +221,11 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
     }
   };
 
-  const handleSpeak = () => {
+  const handleSpeak = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if ("speechSynthesis" in window && result) {
-      const utterance = new SpeechSynthesisUtterance(result.word);
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(result.reading || result.word);
       utterance.lang = "ja-JP";
       utterance.rate = 0.8;
       speechSynthesis.speak(utterance);
@@ -205,7 +234,7 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
 
       <motion.div
         ref={popupRef}
@@ -217,7 +246,7 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
           position: "fixed",
           left: Math.min(position.x + 10, window.innerWidth - 340),
           top: Math.min(position.y + 10, window.innerHeight - 320),
-          zIndex: 50,
+          zIndex: 9999,
         }}
         className={cn(
           "w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700",
@@ -259,9 +288,29 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
                     {result.pos}
                   </span>
                 )}
-                <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
-                  {result.meaning}
-                </p>
+                <div className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                  {result.meaning.includes("• [") ? (
+                    // Multi-part phrase segmentation results - render each part separately
+                    result.meaning.split("; ").map((part, i) => (
+                      <div key={i} className="flex items-start gap-1.5 mb-1 last:mb-0">
+                        {part.match(/^•\s*\[(.+?)\]\s*(.*)$/) ? (
+                          <>
+                            <span className="font-bold text-primary shrink-0" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                              {part.match(/^•\s*\[(.+?)\]/)?.[1]}
+                            </span>
+                            <span className="text-slate-600 dark:text-slate-300">
+                              {part.match(/^•\s*\[.+?\]\s*(.*)$/)?.[1]}
+                            </span>
+                          </>
+                        ) : (
+                          <span>{part}</span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>{result.meaning}</p>
+                  )}
+                </div>
               </div>
 
               {contextSentence && contextSentence.trim() !== "" && (

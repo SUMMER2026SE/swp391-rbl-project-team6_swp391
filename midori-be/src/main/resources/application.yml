@@ -2,6 +2,14 @@ logging:
   level:
     com.midori: DEBUG
 
+# JMdict Full Dictionary Import Configuration
+midori:
+  jmdict:
+    import:
+      enabled: false  # Set to true to enable import on startup
+      batch-size: 500
+      skip-existing: true
+
 spring:
   profiles:
     active: local
@@ -116,10 +124,10 @@ ai:
     # Multiple keys (comma-separated) - RECOMMENDED
     api-keys: ${GEMINI_API_KEYS:}
     # Primary model — change GEMINI_MODEL env var, no rebuild needed
-    model: ${GEMINI_MODEL:gemini-3.5-flash}
+    model: ${GEMINI_MODEL:gemini-1.5-flash}
     # Fallback chain — tried in order when primary model returns 404/429/500/503
     # Change GEMINI_FALLBACK_MODELS env var to adjust without rebuild
-    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-1.5-flash,gemini-2.0-flash,gemini-3.0-flash}
     base-url: https://generativelanguage.googleapis.com
     enabled: true
 

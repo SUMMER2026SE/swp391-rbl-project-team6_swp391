@@ -55,6 +55,7 @@ interface SentenceResult {
   needAI?: boolean;
   evaluation?: ShadowingEvaluationResponse;
   recordedAudioUrl?: string;
+  tokens?: any[];
 }
 
 export const Route = createFileRoute("/student/shadowing/practice/$videoId")({
@@ -654,6 +655,7 @@ function ShadowingPracticePage() {
                       <ClickableTranscript
                         text={currentSentence.text}
                         contextSentence={currentSentence.text}
+                        tokens={currentSentence.tokens}
                         className="text-xl md:text-2xl font-black text-slate-100 leading-relaxed"
                       />
                       <span className="absolute -top-5 right-0 text-[9px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
@@ -873,11 +875,23 @@ function ShadowingPracticePage() {
 
                           {/* Spoken Sentence */}
                           <div>
-                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-                              Câu của bạn:
-                            </span>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                Câu của bạn:
+                              </span>
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1">
+                                  <span className="w-3 h-3 rounded bg-emerald-200 dark:bg-emerald-800 border-2 border-emerald-400 dark:border-emerald-600" />
+                                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">Đúng</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="w-3 h-3 rounded bg-red-200 dark:bg-red-800 border-2 border-red-400 dark:border-red-600" />
+                                  <span className="text-[9px] font-bold text-red-600 dark:text-red-400">Sai</span>
+                                </div>
+                              </div>
+                            </div>
                             {spokenWords.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
+                              <div className="flex flex-wrap gap-1.5">
                                 {spokenWords.map((word, i) => {
                                   if (word === " " || /^[。、！？「」『』（）]+$/.test(word)) {
                                     return <span key={i} className="text-slate-700 dark:text-slate-300">{word}</span>;
@@ -887,7 +901,7 @@ function ShadowingPracticePage() {
                                     return (
                                       <span 
                                         key={i} 
-                                        className="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/20 text-red-500 border border-red-200 dark:border-red-900/30 text-xs font-bold"
+                                        className="px-2 py-1 rounded-lg bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-2 border-red-300 dark:border-red-700 text-xs font-bold shadow-sm"
                                         style={{ fontFamily: "var(--font-japanese, serif)" }}
                                       >
                                         {word}
@@ -897,7 +911,7 @@ function ShadowingPracticePage() {
                                   return (
                                     <span 
                                       key={i} 
-                                      className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500 border border-emerald-200 dark:border-emerald-900/30 text-xs font-bold"
+                                      className="px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-300 dark:border-emerald-700 text-xs font-bold shadow-sm"
                                       style={{ fontFamily: "var(--font-japanese, serif)" }}
                                     >
                                       {word}
@@ -946,6 +960,7 @@ function ShadowingPracticePage() {
                         needAI: eval_.needAI,
                         evaluation: eval_,
                         recordedAudioUrl: recordedAudioUrl ?? undefined,
+                        tokens: currentSentence.tokens,
                       };
                       setSentenceResults((prev) => {
                         const idx = prev.findIndex((r) => r.sentenceId === currentSentence.id);
@@ -1151,6 +1166,7 @@ function ShadowingPracticePage() {
                         <ClickableTranscript
                           text={result.text}
                           contextSentence={result.text}
+                          tokens={result.tokens}
                           className="text-sm font-bold text-slate-800 dark:text-white truncate"
                         />
                         {showTranslation && (

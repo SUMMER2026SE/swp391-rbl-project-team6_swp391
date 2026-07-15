@@ -753,15 +753,17 @@ export function CreateShadowingLessonPage({
   const [activeTab, setActiveTab] = useState<"jp" | "vn">("jp");
   const itemsPerPage = 5;
 
-  const [steps, setSteps] = useState([
-    { id: "upload", label: "Upload Video", status: "pending" as const },
-    { id: "audio", label: "Extract Audio", status: "pending" as const },
-    { id: "speech", label: "Speech Recognition", status: "pending" as const },
-    { id: "jp", label: "Generate Japanese Transcript", status: "pending" as const },
-    { id: "vn", label: "Translate to Vietnamese", status: "pending" as const },
-    { id: "split", label: "Split Sentences", status: "pending" as const },
-    { id: "db", label: "Save Database", status: "pending" as const },
-    { id: "ready", label: "Ready", status: "pending" as const }
+  type StepStatus = "pending" | "processing" | "completed" | "failed";
+
+  const [steps, setSteps] = useState<Array<{ id: string; label: string; status: StepStatus }>>([
+    { id: "upload", label: "Upload Video", status: "pending" },
+    { id: "audio", label: "Extract Audio", status: "pending" },
+    { id: "speech", label: "Speech Recognition", status: "pending" },
+    { id: "jp", label: "Generate Japanese Transcript", status: "pending" },
+    { id: "vn", label: "Translate to Vietnamese", status: "pending" },
+    { id: "split", label: "Split Sentences", status: "pending" },
+    { id: "db", label: "Save Database", status: "pending" },
+    { id: "ready", label: "Ready", status: "pending" }
   ]);
 
   // Poll status from the backend using real API client
@@ -904,14 +906,14 @@ export function CreateShadowingLessonPage({
     setPipelineStatus("processing");
     setProgressPercent(12.5);
     setSteps([
-      { id: "upload", label: "Upload Video", status: "completed" as const },
-      { id: "audio", label: "Extract Audio", status: "processing" as const },
-      { id: "speech", label: "Speech Recognition", status: "pending" as const },
-      { id: "jp", label: "Generate Japanese Transcript", status: "pending" as const },
-      { id: "vn", label: "Translate to Vietnamese", status: "pending" as const },
-      { id: "split", label: "Split Sentences", status: "pending" as const },
-      { id: "db", label: "Save Database", status: "pending" as const },
-      { id: "ready", label: "Ready", status: "pending" as const }
+      { id: "upload", label: "Upload Video", status: "completed" },
+      { id: "audio", label: "Extract Audio", status: "processing" },
+      { id: "speech", label: "Speech Recognition", status: "pending" },
+      { id: "jp", label: "Generate Japanese Transcript", status: "pending" },
+      { id: "vn", label: "Translate to Vietnamese", status: "pending" },
+      { id: "split", label: "Split Sentences", status: "pending" },
+      { id: "db", label: "Save Database", status: "pending" },
+      { id: "ready", label: "Ready", status: "pending" }
     ]);
 
     const toastId = toast.loading("Uploading video and starting AI pipeline...");

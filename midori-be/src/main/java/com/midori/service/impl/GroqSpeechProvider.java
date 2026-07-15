@@ -8,17 +8,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class GroqSpeechProvider implements SpeechProvider {
+
+    private static final long GROQ_MAX_AUDIO_SIZE_BYTES = 25 * 1024 * 1024; // 25MB limit
 
     private final ShadowingSpeechConfig speechConfig;
     private final RestTemplate restTemplate = new RestTemplate();
@@ -51,9 +54,28 @@ public class GroqSpeechProvider implements SpeechProvider {
             throw new IOException("No valid Groq API Keys found in configuration.");
         }
 
+        log.info("[GroqSpeechProvider] Audio size: {} bytes ({} MB)", audio.length, audio.length / (1024 * 1024));
+
+        if (audio.length > GROQ_MAX_AUDIO_SIZE_BYTES) {
+            throw new IOException(String.format(
+                "Audio file size (%d bytes / %.1f MB) exceeds Groq API limit of 25MB. " +
+                "Please use a shorter audio file or video.",
+                audio.length, audio.length / (1024.0 * 1024.0)));
+        }
+
+        return transcribeWithRetry(audio, metadata, model, keys, start);
+    }
+
+    /**
+     * Transcribe with automatic key rotation and retry logic.
+     */
+    private SpeechRecognitionResult transcribeWithRetry(byte[] audio, AudioMetadata metadata, String model, 
+            String[] keys, long startTime) throws IOException {
+        
         int attempt = 0;
         int maxAttempts = keys.length;
         Exception lastException = null;
+        String lastErrorMessage = null;
 
         while (attempt < maxAttempts) {
             int idx = Math.abs(keyIndex.getAndIncrement() % keys.length);
@@ -97,11 +119,12 @@ public class GroqSpeechProvider implements SpeechProvider {
                 double confidence = estimateConfidence(bodyMap);
                 double durationSeconds = estimateDurationSeconds(bodyMap);
                 String language = extractLanguage(bodyMap);
-                java.util.List<java.util.Map<String, Object>> segments = extractSegments(bodyMap);
+                List<Map<String, Object>> segments = extractSegments(bodyMap);
 
-                long processingTime = System.currentTimeMillis() - start;
-                log.info("[GroqSpeechProvider] model={} transcript={} confidence={} language={} segments={} processingTime={}ms responseSize={} requestId={}",
-                        model, transcript, confidence, language, segments.size(), processingTime, bodyMap != null ? bodyMap.hashCode() : 0, buildRequestId());
+                long processingTime = System.currentTimeMillis() - startTime;
+                log.info("[GroqSpeechProvider] model={} transcript={} confidence={} language={} segments={} processingTime={}ms",
+                        model, transcript.length() > 100 ? transcript.substring(0, 100) + "..." : transcript,
+                        confidence, language, segments.size(), processingTime);
 
                 return new SpeechRecognitionResult(
                         transcript.trim(),
@@ -113,14 +136,27 @@ public class GroqSpeechProvider implements SpeechProvider {
                         processingTime,
                         segments
                 );
-            } catch (Exception e) {
-                log.warn("[GroqSpeechProvider] Attempt {} failed with key index {}: {}", attempt + 1, idx, e.getMessage());
+            } catch (HttpClientErrorException e) {
+                // Handle 413 specifically
+                if (e.getStatusCode() == HttpStatus.REQUEST_ENTITY_TOO_LARGE || 
+                    e.getResponseBodyAsString().contains("413")) {
+                    lastErrorMessage = String.format("413 Request Entity Too Large - audio exceeds 25MB limit (current size: %d bytes)", audio.length);
+                    throw new IOException(lastErrorMessage, e);
+                }
                 lastException = e;
+                lastErrorMessage = e.getMessage();
+                log.warn("[GroqSpeechProvider] Attempt {} failed (HTTP {}): {}", attempt + 1, e.getStatusCode(), e.getMessage());
+                attempt++;
+            } catch (Exception e) {
+                lastException = e;
+                lastErrorMessage = e.getMessage();
+                log.warn("[GroqSpeechProvider] Attempt {} failed: {}", attempt + 1, e.getMessage());
                 attempt++;
             }
         }
 
-        throw new IOException("All configured Groq API keys failed. Last error: " + (lastException != null ? lastException.getMessage() : "unknown"), lastException);
+        throw new IOException("All configured Groq API keys failed. Last error: " + 
+            (lastErrorMessage != null ? lastErrorMessage : "unknown"), lastException);
     }
 
     private String buildFilename(AudioMetadata metadata) {
@@ -146,9 +182,7 @@ public class GroqSpeechProvider implements SpeechProvider {
 
     private double estimateConfidence(Map<String, Object> bodyMap) {
         try {
-            if (bodyMap == null) {
-                return 0.5;
-            }
+            if (bodyMap == null) return 0.5;
             Object segmentsObj = bodyMap.get("segments");
             if (segmentsObj instanceof Iterable<?> segments) {
                 int count = 0;
@@ -175,9 +209,7 @@ public class GroqSpeechProvider implements SpeechProvider {
 
     private double estimateDurationSeconds(Map<String, Object> bodyMap) {
         try {
-            if (bodyMap == null) {
-                return 0;
-            }
+            if (bodyMap == null) return 0;
             if (bodyMap.containsKey("duration") && bodyMap.get("duration") instanceof Number number) {
                 return number.doubleValue();
             }
@@ -189,9 +221,7 @@ public class GroqSpeechProvider implements SpeechProvider {
 
     private String extractLanguage(Map<String, Object> bodyMap) {
         try {
-            if (bodyMap == null) {
-                return "ja";
-            }
+            if (bodyMap == null) return "ja";
             Object language = bodyMap.get("language");
             if (language instanceof String string && !string.isBlank()) {
                 return string;
@@ -202,12 +232,10 @@ public class GroqSpeechProvider implements SpeechProvider {
         return "ja";
     }
 
-    private java.util.List<java.util.Map<String, Object>> extractSegments(Map<String, Object> bodyMap) {
-        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+    private List<Map<String, Object>> extractSegments(Map<String, Object> bodyMap) {
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
         try {
-            if (bodyMap == null) {
-                return result;
-            }
+            if (bodyMap == null) return result;
             Object segmentsObj = bodyMap.get("segments");
             if (segmentsObj instanceof Iterable<?> segments) {
                 int index = 0;
@@ -218,7 +246,7 @@ public class GroqSpeechProvider implements SpeechProvider {
                         Number endNum = (Number) map.get("end");
                         
                         if (text != null) {
-                            java.util.Map<String, Object> segment = new java.util.HashMap<>();
+                            Map<String, Object> segment = new java.util.HashMap<>();
                             segment.put("index", index++);
                             segment.put("text", text.trim());
                             segment.put("start", startNum != null ? startNum.doubleValue() : 0.0);

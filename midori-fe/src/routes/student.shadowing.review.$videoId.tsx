@@ -55,7 +55,8 @@ function ReviewPage() {
           startTime: s.startTime,
           endTime: s.endTime,
           text: s.jpText,
-          translation: s.vnText || ""
+          translation: s.vnText || "",
+          tokens: Array.isArray(s.tokens) ? s.tokens : []
         }));
 
         const review = sentences.map((sentence: any) => ({
@@ -220,6 +221,7 @@ function ReviewPage() {
                         <ClickableTranscript
                           text={review.sentence.text}
                           contextSentence={review.sentence.text}
+                          tokens={review.sentence.tokens}
                           className={`text-sm font-medium truncate ${
                             selectedIndex === index
                               ? "text-white"
@@ -313,6 +315,7 @@ function ReviewPage() {
                       <ClickableTranscript
                         text={currentReview.sentence.text}
                         contextSentence={currentReview.sentence.text}
+                        tokens={currentReview.sentence.tokens}
                         className="text-xl text-slate-800 dark:text-white leading-relaxed"
                       />
                     </div>

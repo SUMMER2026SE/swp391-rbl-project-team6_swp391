@@ -28,6 +28,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -69,6 +70,11 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
 
     @Value("${ffmpeg.probe-path:}")
     private String ffprobePathConfig;
+
+    // Groq API limit is 25MB for audio file upload
+    private static final long GROQ_MAX_AUDIO_SIZE_BYTES = 25 * 1024 * 1024;
+    // Maximum recommended video size (roughly 30 minutes of 16kHz mono audio = ~60MB)
+    private static final long MAX_VIDEO_SIZE_BYTES = 150 * 1024 * 1024;
 
     private volatile String cachedFfmpegPath = null;
     private volatile String cachedFfprobePath = null;
@@ -257,6 +263,13 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
             downloadMs = System.currentTimeMillis() - stepStart;
             log.info("[PIPELINE] DOWNLOAD_VIDEO COMPLETED duration={}ms size={}MB isLocal={}",
                     downloadMs, tempVideoFile.length() / (1024 * 1024), isLocal);
+
+            // Check video file size - warn if it might produce oversized audio
+            long videoSizeMB = tempVideoFile.length() / (1024 * 1024);
+            if (tempVideoFile.length() > MAX_VIDEO_SIZE_BYTES) {
+                log.warn("[PIPELINE] Video file is very large ({} MB). This may cause Groq API issues. Consider using a shorter video.", videoSizeMB);
+            }
+
             writeLog(videoId, null, ProcessingStep.DOWNLOAD_VIDEO, ProcessingStatus.COMPLETED,
                     String.format("Video loaded (isLocal=%b). Size: %d bytes. Time: %d ms",
                             isLocal, tempVideoFile.length(), downloadMs));
@@ -296,9 +309,16 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
 
             log.info("[PIPELINE] EXTRACT_AUDIO COMPLETED duration={}ms size={}MB",
                     ffmpegMs, tempAudioFile.length() / (1024 * 1024));
+
+            // Check audio size before transcription
+            long audioSizeMB = tempAudioFile.length() / (1024 * 1024);
+            if (tempAudioFile.length() > GROQ_MAX_AUDIO_SIZE_BYTES) {
+                log.warn("[PIPELINE] Audio file size {} MB exceeds Groq 25MB limit. Will use FFmpeg chunking.", audioSizeMB);
+            }
+
             writeLog(videoId, null, ProcessingStep.EXTRACT_AUDIO, ProcessingStatus.COMPLETED,
-                    String.format("Audio extracted. Size: %d bytes. Time: %d ms",
-                            tempAudioFile.length(), ffmpegMs));
+                    String.format("Audio extracted. Size: %d bytes (%.1f MB). Time: %d ms",
+                            tempAudioFile.length(), (double) tempAudioFile.length() / (1024 * 1024), ffmpegMs));
 
             stepStart = System.currentTimeMillis();
             writeLog(videoId, null, ProcessingStep.TRANSCRIBE, ProcessingStatus.STARTED,
@@ -315,7 +335,17 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
 
             String model = speechModelSelector.selectModel(metadata);
 
-            SpeechRecognitionResult recognitionResult = speechProvider.transcribe(audioBytes, metadata, model);
+            // Check if audio exceeds Groq's 25MB limit and needs chunking
+            SpeechRecognitionResult recognitionResult;
+            if (audioBytes.length > GROQ_MAX_AUDIO_SIZE_BYTES) {
+                log.warn("[PIPELINE] Audio size {} MB exceeds Groq 25MB limit. Using FFmpeg chunking.",
+                        audioBytes.length / (1024 * 1024));
+                writeLog(videoId, null, ProcessingStep.TRANSCRIBE, ProcessingStatus.STARTED,
+                        "Audio too large for single request. Chunking with FFmpeg...");
+                recognitionResult = transcribeWithFFmpegChunking(tempAudioFile, audioBytes.length, model, videoId);
+            } else {
+                recognitionResult = speechProvider.transcribe(audioBytes, metadata, model);
+            }
 
             whisperMs = System.currentTimeMillis() - stepStart;
 
@@ -851,5 +881,171 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
         if (text == null) return "N/A";
         if (text.length() <= max) return text;
         return text.substring(0, max) + "...";
+    }
+
+    /**
+     * Transcribe audio by splitting it into chunks using FFmpeg (time-based splitting)
+     * and transcribing each chunk separately. This avoids the 25MB limit from Groq.
+     */
+    private SpeechRecognitionResult transcribeWithFFmpegChunking(File audioFile, long audioSizeBytes, 
+            String model, UUID videoId) throws IOException {
+        
+        long startTime = System.currentTimeMillis();
+        
+        // 16kHz mono WAV = 32000 bytes/second
+        // To stay under 25MB, max duration per chunk = 25MB / 32000 = ~781 seconds (~13 minutes)
+        // Use 10 minutes per chunk to be safe
+        long chunkDurationSeconds = 600; // 10 minutes
+        long estimatedTotalDuration = audioSizeBytes / 32000;
+        int numChunks = (int) Math.ceil((double) estimatedTotalDuration / chunkDurationSeconds);
+        
+        if (numChunks == 0) numChunks = 1;
+        
+        log.info("[PIPELINE] FFmpeg chunking: audioSize={} bytes, estimatedDuration={}s, numChunks={}, chunkDuration={}s",
+                audioSizeBytes, estimatedTotalDuration, numChunks, chunkDurationSeconds);
+        
+        List<String> allTranscripts = new ArrayList<>();
+        List<Map<String, Object>> allSegments = new ArrayList<>();
+        double totalConfidence = 0;
+        double totalDuration = 0;
+        int successfulChunks = 0;
+        
+        File[] tempChunkFiles = new File[numChunks];
+        
+        try {
+            for (int i = 0; i < numChunks; i++) {
+                long startSeconds = i * chunkDurationSeconds;
+                
+                // Create temp file for this chunk
+                File chunkFile = File.createTempFile("shadowing_chunk_" + videoId + "_", ".wav");
+                tempChunkFiles[i] = chunkFile;
+                
+                log.info("[PIPELINE] FFmpeg chunking: extracting chunk {}/{} (start={}s, duration={}s) to {}",
+                        i + 1, numChunks, startSeconds, chunkDurationSeconds, chunkFile.getAbsolutePath());
+                
+                // Use FFmpeg to extract this chunk (lossless segment)
+                ProcessBuilder pb = new ProcessBuilder(
+                        cachedFfmpegPath, "-y",
+                        "-i", audioFile.getAbsolutePath(),
+                        "-ss", String.valueOf(startSeconds),
+                        "-t", String.valueOf(chunkDurationSeconds),
+                        "-ar", "16000", "-ac", "1",
+                        "-acodec", "pcm_s16le",
+                        chunkFile.getAbsolutePath()
+                );
+                pb.redirectErrorStream(true);
+                
+                Process process = pb.start();
+                String ffmpegOutput = readProcessOutput(process);
+                int exitCode;
+                try {
+                    exitCode = process.waitFor();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("FFmpeg chunking interrupted", e);
+                }
+                
+                if (exitCode != 0) {
+                    log.warn("[PIPELINE] FFmpeg chunk {}/{} failed with exit code {}. Output: {}",
+                            i + 1, numChunks, exitCode, ffmpegOutput);
+                    // Continue with other chunks
+                    continue;
+                }
+                
+                if (!chunkFile.exists() || chunkFile.length() == 0) {
+                    log.warn("[PIPELINE] FFmpeg chunk {}/{} produced empty file", i + 1, numChunks);
+                    continue;
+                }
+                
+                log.info("[PIPELINE] FFmpeg chunk {}/{} created: {} bytes", 
+                        i + 1, numChunks, chunkFile.length());
+                
+                // Transcribe this chunk
+                try {
+                    byte[] chunkBytes = Files.readAllBytes(chunkFile.toPath());
+                    AudioMetadata chunkMetadata = AudioMetadata.builder()
+                            .durationMs(chunkDurationSeconds * 1000)
+                            .mimeType("audio/wav")
+                            .size(chunkBytes.length)
+                            .channels(1)
+                            .build();
+                    
+                    SpeechRecognitionResult chunkResult = speechProvider.transcribe(chunkBytes, chunkMetadata, model);
+                    
+                    if (chunkResult != null && chunkResult.transcript() != null && !chunkResult.transcript().isBlank()) {
+                        // Adjust segment timestamps to be continuous
+                        for (Map<String, Object> seg : chunkResult.segments()) {
+                            Map<String, Object> adjustedSeg = new HashMap<>(seg);
+                            Object segStart = seg.get("start");
+                            Object segEnd = seg.get("end");
+                            if (segStart instanceof Number) {
+                                adjustedSeg.put("start", ((Number) segStart).doubleValue() + startSeconds);
+                            }
+                            if (segEnd instanceof Number) {
+                                adjustedSeg.put("end", ((Number) segEnd).doubleValue() + startSeconds);
+                            }
+                            adjustedSeg.put("index", allSegments.size());
+                            allSegments.add(adjustedSeg);
+                        }
+                        
+                        allTranscripts.add(chunkResult.transcript());
+                        totalConfidence += chunkResult.confidence();
+                        if (chunkResult.durationSeconds() > 0) {
+                            totalDuration += chunkResult.durationSeconds();
+                        }
+                        successfulChunks++;
+                        
+                        log.info("[PIPELINE] Chunk {}/{} transcribed: {} chars",
+                                i + 1, numChunks, chunkResult.transcript().length());
+                    } else {
+                        log.info("[PIPELINE] Chunk {}/{} returned empty transcript", i + 1, numChunks);
+                    }
+                } catch (Exception e) {
+                    log.error("[PIPELINE] Chunk {}/{} transcription failed: {}", i + 1, numChunks, e.getMessage());
+                    // Continue with other chunks
+                }
+                
+                // Small delay between chunks to respect API rate limits
+                if (i < numChunks - 1) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+            
+            if (successfulChunks == 0) {
+                throw new IOException("All audio chunks failed to transcribe");
+            }
+            
+            String mergedTranscript = String.join(" ", allTranscripts);
+            double avgConfidence = totalConfidence / successfulChunks;
+            
+            long processingTime = System.currentTimeMillis() - startTime;
+            log.info("[PIPELINE] FFmpeg chunking COMPLETED: chunks={}/{} transcriptChars={} segments={} duration={}s processingTime={}ms",
+                    successfulChunks, numChunks, mergedTranscript.length(), allSegments.size(), totalDuration, processingTime);
+            
+            return new SpeechRecognitionResult(
+                    mergedTranscript.trim(),
+                    avgConfidence,
+                    "ja",
+                    totalDuration,
+                    model,
+                    "groq-chunked",
+                    processingTime,
+                    allSegments
+            );
+            
+        } finally {
+            // Clean up chunk files
+            for (File chunkFile : tempChunkFiles) {
+                if (chunkFile != null && chunkFile.exists()) {
+                    if (chunkFile.delete()) {
+                        log.debug("[PIPELINE] Cleaned up chunk file: {}", chunkFile.getAbsolutePath());
+                    }
+                }
+            }
+        }
     }
 }

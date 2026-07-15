@@ -46,6 +46,21 @@ public class DictionaryEntry {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "jmdict_seq")
+    private Long jmdictSeq;
+
+    @Column(name = "jmdict_pri")
+    private String jmdictPri;
+
+    @Column(name = "jmdict_ke_pri")
+    private String[] jmdictKePri;
+
+    @Column(name = "jmdict_re_pri")
+    private String[] jmdictRePri;
+
+    @Column(name = "jmdict_raw_xml", columnDefinition = "TEXT")
+    private String jmdictRawXml;
+
     @OneToMany(mappedBy = "entry", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<DictionaryMeaning> meanings = new ArrayList<>();

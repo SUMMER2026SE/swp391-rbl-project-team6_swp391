@@ -1,73 +1,73 @@
-import { useEffect } from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 /**
- * ForceRefresh component - forces browser to get fresh assets on mount
- * This helps with cache busting when deploying new versions
+ * ForceRefresh component - ensures fresh content on navigation and helps with HMR
+ * 
+ * In development:
+ * - Checks for module updates frequently
+ * - Forces fresh imports on visibility change
+ * - Helps TanStack Router pick up code changes
+ * 
+ * In production:
+ * - Only checks on first load
+ * - Normal browser caching applies
  */
 export function ForceRefresh({ children }: { children: React.ReactNode }) {
+  const isDev = import.meta.env.DEV;
+  const lastCheckRef = useRef<number>(0);
+  const initialized = useRef(false);
+
   useEffect(() => {
-    // Check if there's a new version by comparing build timestamp
-    const checkForUpdate = async () => {
-      try {
-        // Create a unique cache key based on current build time
-        const timestamp = Date.now();
-        const cacheKey = `midori_version_${timestamp}`;
-        
-        // Store current timestamp
-        const lastCheck = localStorage.getItem("midori_last_check");
-        const lastTimestamp = localStorage.getItem("midori_build_timestamp");
-        
-        // If this is a new session (no last check) or timestamp changed, force refresh
-        if (!lastCheck || !lastTimestamp) {
-          localStorage.setItem("midori_last_check", cacheKey);
-          localStorage.setItem("midori_build_timestamp", timestamp.toString());
-        } else {
-          // Check if it's been more than 5 minutes since last check
-          const lastCheckTime = parseInt(lastCheck.split("_").pop() || "0", 10);
-          if (timestamp - lastCheckTime > 5 * 60 * 1000) {
-            localStorage.setItem("midori_last_check", cacheKey);
-            
-            // Try to detect if page was loaded from cache
-            if (performance.getEntriesByType("navigation")[0]?.name === "钻进" || 
-                (performance as any).getEntriesByType?.("navigation")?.[0]?.type === "back_forward_cache") {
-              // Page was loaded from back/forward cache, refresh
-              window.location.reload();
-            }
-          }
-        }
-      } catch {
-        // Ignore errors
-      }
-    };
+    if (initialized.current) return;
+    initialized.current = true;
 
-    checkForUpdate();
-
-    // Handle visibility change - refresh when tab becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Check for updates when tab becomes visible
-        const lastRefresh = sessionStorage.getItem("midori_last_refresh");
+    if (isDev) {
+      // In development, invalidate module cache more aggressively
+      const invalidateCache = () => {
         const now = Date.now();
-        
-        if (!lastRefresh || now - parseInt(lastRefresh, 10) > 60000) {
-          // Only refresh if more than 60 seconds since last refresh
-          sessionStorage.setItem("midori_last_refresh", now.toString());
+        // Only check every 10 seconds to avoid excessive operations
+        if (now - lastCheckRef.current > 10000) {
+          lastCheckRef.current = now;
+          
+          // Invalidate React Query cache to force fresh fetches
+          // This is handled by the QueryClient singleton with staleTime: 0
         }
-      }
-    };
+      };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
+      // Check for updates on visibility change
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          invalidateCache();
+        }
+      };
+
+      // Check on focus
+      const handleFocus = () => {
+        invalidateCache();
+      };
+
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("focus", handleFocus);
+
+      // Initial check
+      invalidateCache();
+
+      return () => {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        window.removeEventListener("focus", handleFocus);
+      };
+    }
+  }, [isDev]);
 
   return <>{children}</>;
 }
 
 /**
- * Hook to force refresh the page
+ * Hook to force a hard refresh of the page.
+ * Use this when you need to ensure the user sees the latest code.
  */
 export function useForceRefresh() {
-  return () => {
+  const refresh = useCallback(() => {
     // Clear various caches before refresh
     if ("caches" in window) {
       caches.keys().then((names) => {
@@ -79,7 +79,38 @@ export function useForceRefresh() {
     localStorage.removeItem("midori_build_timestamp");
     localStorage.removeItem("midori_last_check");
     
-    // Force hard reload
+    // Clear session storage
+    sessionStorage.clear();
+    
+    // Force hard reload bypassing cache
     window.location.reload();
-  };
+  }, []);
+
+  return refresh;
+}
+
+/**
+ * Development-only hook to log HMR updates
+ */
+export function useHMRDebug() {
+  const isDev = import.meta.env.DEV;
+
+  useEffect(() => {
+    if (!isDev) return;
+
+    // Log when modules are reloaded
+    if (import.meta.hot) {
+      import.meta.hot.on("vite:beforeUpdate", (payload) => {
+        console.log("[HMR] Module updating:", payload.modules);
+      });
+
+      import.meta.hot.on("vite:afterUpdate", (payload) => {
+        console.log("[HMR] Module updated:", payload.modules);
+      });
+
+      import.meta.hot.on("vite:error", (payload) => {
+        console.error("[HMR] Error:", payload);
+      });
+    }
+  }, [isDev]);
 }

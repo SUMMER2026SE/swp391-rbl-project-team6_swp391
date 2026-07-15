@@ -23,6 +23,7 @@ public class DictionaryDetailServiceImpl implements DictionaryDetailService {
 
     private final DictionaryEntryRepository dictionaryEntryRepository;
     private final DictionaryCacheService cacheService;
+    private final LocalDictionaryRegistry localDictionaryRegistry;
 
     @Override
     @Transactional(readOnly = true)
@@ -31,65 +32,101 @@ public class DictionaryDetailServiceImpl implements DictionaryDetailService {
             return createEmptyResponse(word != null ? word.trim() : "");
         }
 
-        String targetWord = word.trim();
+        // Clean punctuation
+        String targetWord = sanitizeLookupWord(word);
+        if (targetWord.isEmpty()) {
+            targetWord = word.trim();
+        }
+
         String cacheKey = "dictionary:detail:" + targetWord;
 
+        String finalTargetWord = targetWord;
         return cacheService.getOrFetch(cacheKey, DictionaryDetailResponse.class, () -> {
-            List<DictionaryEntry> entries = dictionaryEntryRepository.findBySurface(targetWord);
+            List<DictionaryEntry> entries = dictionaryEntryRepository.findBySurface(finalTargetWord);
 
             if (entries.isEmpty()) {
-                entries = dictionaryEntryRepository.findByLemma(targetWord);
+                entries = dictionaryEntryRepository.findByLemma(finalTargetWord);
             }
 
             if (entries.isEmpty()) {
-                entries = dictionaryEntryRepository.findByReading(targetWord);
+                entries = dictionaryEntryRepository.findByReading(finalTargetWord);
             }
 
-            if (entries.isEmpty()) {
-                // Return empty response instead of throwing exception
-                return createEmptyResponse(targetWord);
+            if (!entries.isEmpty()) {
+                DictionaryEntry entry = entries.get(0);
+
+                List<DictionaryMeaningResponse> meanings = entry.getMeanings() != null
+                        ? entry.getMeanings().stream()
+                                .map(DictionaryMapper::toResponse)
+                                .collect(Collectors.toList())
+                        : Collections.emptyList();
+
+                List<DictionaryExampleResponse> examples = entry.getExamples() != null
+                        ? entry.getExamples().stream()
+                                .map(DictionaryMapper::toResponse)
+                                .collect(Collectors.toList())
+                        : Collections.emptyList();
+
+                List<DictionaryEntry> relatedEntries = dictionaryEntryRepository.findRelatedWords(
+                        entry.getSurface(), PageRequest.of(0, 5)
+                );
+
+                List<DictionaryRelatedWordResponse> relatedWords = relatedEntries.stream()
+                        .map(re -> DictionaryRelatedWordResponse.builder()
+                                .id(re.getId())
+                                .word(re.getSurface())
+                                .reading(re.getReading())
+                                .romaji(re.getRomaji())
+                                .build())
+                        .collect(Collectors.toList());
+
+                return DictionaryDetailResponse.builder()
+                        .id(entry.getId())
+                        .word(entry.getSurface())
+                        .reading(entry.getReading())
+                        .romaji(entry.getRomaji())
+                        .jlpt(entry.getJlptLevel())
+                        .frequency(entry.getFrequency())
+                        .partOfSpeech(entry.getPartOfSpeech())
+                        .meanings(meanings)
+                        .examples(examples)
+                        .relatedWords(relatedWords)
+                        .build();
             }
 
-            DictionaryEntry entry = entries.get(0);
+            // Fallback to local XML dictionary registry
+            List<LocalDictionaryRegistry.LocalEntry> localEntries = localDictionaryRegistry.lookup(finalTargetWord);
+            if (!localEntries.isEmpty()) {
+                LocalDictionaryRegistry.LocalEntry localEntry = localEntries.get(0);
+                List<DictionaryMeaningResponse> meanings = localEntry.getMeanings().stream()
+                        .map(m -> DictionaryMeaningResponse.builder()
+                                .language("en")
+                                .meaning(m)
+                                .build())
+                        .collect(Collectors.toList());
 
-            List<DictionaryMeaningResponse> meanings = entry.getMeanings() != null
-                    ? entry.getMeanings().stream()
-                            .map(DictionaryMapper::toResponse)
-                            .collect(Collectors.toList())
-                    : Collections.emptyList();
+                return DictionaryDetailResponse.builder()
+                        .id(null)
+                        .word(localEntry.getSurface())
+                        .reading(localEntry.getReading())
+                        .romaji(localEntry.getReading() != null ? com.midori.util.RomajiConverter.convert(localEntry.getReading()) : com.midori.util.RomajiConverter.convert(localEntry.getSurface()))
+                        .jlpt("N3")
+                        .partOfSpeech(localEntry.getPartOfSpeech())
+                        .meanings(meanings)
+                        .examples(Collections.emptyList())
+                        .relatedWords(Collections.emptyList())
+                        .build();
+            }
 
-            List<DictionaryExampleResponse> examples = entry.getExamples() != null
-                    ? entry.getExamples().stream()
-                            .map(DictionaryMapper::toResponse)
-                            .collect(Collectors.toList())
-                    : Collections.emptyList();
-
-            List<DictionaryEntry> relatedEntries = dictionaryEntryRepository.findRelatedWords(
-                    entry.getSurface(), PageRequest.of(0, 5)
-            );
-
-            List<DictionaryRelatedWordResponse> relatedWords = relatedEntries.stream()
-                    .map(re -> DictionaryRelatedWordResponse.builder()
-                            .id(re.getId())
-                            .word(re.getSurface())
-                            .reading(re.getReading())
-                            .romaji(re.getRomaji())
-                            .build())
-                    .collect(Collectors.toList());
-
-            return DictionaryDetailResponse.builder()
-                    .id(entry.getId())
-                    .word(entry.getSurface())
-                    .reading(entry.getReading())
-                    .romaji(entry.getRomaji())
-                    .jlpt(entry.getJlptLevel())
-                    .frequency(entry.getFrequency())
-                    .partOfSpeech(entry.getPartOfSpeech())
-                    .meanings(meanings)
-                    .examples(examples)
-                    .relatedWords(relatedWords)
-                    .build();
+            return createEmptyResponse(finalTargetWord);
         }, 24, TimeUnit.HOURS);
+    }
+
+    private String sanitizeLookupWord(String word) {
+        if (word == null) return "";
+        return word.replaceAll("^[、。？！「」『』・~〜,\\.\\?!\"';:]+", "")
+                   .replaceAll("[、。？！「」『』・~〜,\\.\\?!\"';:]+$", "")
+                   .trim();
     }
 
     private DictionaryDetailResponse createEmptyResponse(String word) {

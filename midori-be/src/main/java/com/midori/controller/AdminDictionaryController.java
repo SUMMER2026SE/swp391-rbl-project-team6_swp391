@@ -66,6 +66,50 @@ public class AdminDictionaryController {
     }
 
     @Operation(
+            summary = "Bulk import JMdict (180k entries)",
+            description = "Optimized bulk import for full JMdict dictionary"
+    )
+    @PostMapping("/import/jmdict/bulk")
+    public ResponseEntity<ApiResponse<DictionaryImportResponse>> bulkImportJMdict() {
+        log.info("[AdminDictionary] Starting JMdict BULK import...");
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            InputStream inputStream;
+            try {
+                ClassPathResource resource = new ClassPathResource("dictionary/JMdict.xml");
+                inputStream = resource.getInputStream();
+                log.info("[AdminDictionary] Found JMdict.xml for bulk import");
+            } catch (Exception e) {
+                log.error("[AdminDictionary] Could not find JMdict.xml: {}", e.getMessage());
+                return ResponseEntity.badRequest().body(
+                        ApiResponse.error("Could not find JMdict.xml in resources: " + e.getMessage())
+                );
+            }
+
+            try {
+                DictionaryImporter.BulkImportResult result = dictionaryImporter.bulkImportJMdict(inputStream);
+                log.info("[AdminDictionary] Bulk import completed: {} imported, {} skipped, {} failed", 
+                        result.imported(), result.skipped(), result.failed());
+            } finally {
+                inputStream.close();
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("[AdminDictionary] JMdict bulk import completed in {} ms", duration);
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    new DictionaryImportResponse(true, "JMdict bulk import completed", duration)
+            ));
+        } catch (Exception e) {
+            log.error("[AdminDictionary] Bulk import failed: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.error("Bulk import failed: " + e.getMessage())
+            );
+        }
+    }
+
+    @Operation(
             summary = "Get dictionary status",
             description = "Returns the current status of the dictionary"
     )

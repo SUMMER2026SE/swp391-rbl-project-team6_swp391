@@ -2,6 +2,7 @@ package com.midori.service.impl;
 
 import com.midori.dto.shadowing.*;
 import com.midori.entity.*;
+import com.midori.event.VideoUploadedEvent;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.*;
@@ -10,6 +11,7 @@ import com.midori.service.ShadowingAiProcessingService;
 import com.midori.service.VideoStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +33,7 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
     private final VideoStorageService videoStorageService;
     private final ShadowingAiProcessingService shadowingAiProcessingService;
     private final TranscriptAnalyzerService transcriptAnalyzerService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -66,8 +69,8 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
         ShadowingVideo saved = shadowingVideoRepository.save(video);
         log.info("[ShadowingVideo] ShadowingVideo saved to DB with ID: {}", saved.getId());
 
-        log.info("[ShadowingVideo] Triggering async AI processing for video ID: {}", saved.getId());
-        shadowingAiProcessingService.processVideoAsync(saved.getId());
+        log.info("[ShadowingVideo] Publishing VideoUploadedEvent for video ID: {}", saved.getId());
+        eventPublisher.publishEvent(new VideoUploadedEvent(this, saved.getId()));
 
         log.info("[ShadowingVideo] Upload pipeline complete for video ID: {}, status: PROCESSING", saved.getId());
 
@@ -134,8 +137,16 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 ? video.getTranscripts()
                 : List.of();
 
+        List<UUID> sentenceIds = transcripts.stream()
+                .map(ShadowingTranscript::getId)
+                .collect(Collectors.toList());
+
+        List<com.midori.entity.TranscriptToken> allTokens = transcriptAnalyzerService.getTokensForSentences(sentenceIds);
+        java.util.Map<UUID, List<com.midori.entity.TranscriptToken>> tokensBySentence = allTokens.stream()
+                .collect(Collectors.groupingBy(t -> t.getSentence().getId()));
+
         List<ShadowingTranscriptResponse> segments = transcripts.stream()
-                .map(this::toTranscriptResponse)
+                .map(t -> toTranscriptResponse(t, tokensBySentence.getOrDefault(t.getId(), List.of())))
                 .collect(Collectors.toList());
 
         return ShadowingTimestampsResponse.builder()
@@ -155,8 +166,16 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 ? video.getTranscripts()
                 : List.of();
 
+        List<UUID> sentenceIds = transcripts.stream()
+                .map(ShadowingTranscript::getId)
+                .collect(Collectors.toList());
+
+        List<com.midori.entity.TranscriptToken> allTokens = transcriptAnalyzerService.getTokensForSentences(sentenceIds);
+        java.util.Map<UUID, List<com.midori.entity.TranscriptToken>> tokensBySentence = allTokens.stream()
+                .collect(Collectors.groupingBy(t -> t.getSentence().getId()));
+
         List<ShadowingTranscriptResponse> translations = transcripts.stream()
-                .map(this::toTranscriptResponse)
+                .map(t -> toTranscriptResponse(t, tokensBySentence.getOrDefault(t.getId(), List.of())))
                 .collect(Collectors.toList());
 
         return ShadowingTranslationResponse.builder()
@@ -237,12 +256,14 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 .build();
     }
 
-    private ShadowingTranscriptResponse toTranscriptResponse(ShadowingTranscript transcript) {
+    private ShadowingTranscriptResponse toTranscriptResponse(ShadowingTranscript transcript, List<com.midori.entity.TranscriptToken> tokens) {
         List<TranscriptTokenResponse> tokenResponses = List.of();
         try {
-            List<com.midori.entity.TranscriptToken> tokens = transcriptAnalyzerService.getTokensForSentence(transcript.getId());
-            if (tokens.isEmpty()) {
-                tokens = transcriptAnalyzerService.analyzeAndSave(transcript);
+            if (tokens == null || tokens.isEmpty()) {
+                tokens = transcriptAnalyzerService.getTokensForSentence(transcript.getId());
+                if (tokens.isEmpty()) {
+                    tokens = transcriptAnalyzerService.analyzeAndSave(transcript);
+                }
             }
             tokenResponses = tokens.stream()
                     .map(t -> TranscriptTokenResponse.builder()
@@ -267,6 +288,10 @@ public class ShadowingVideoServiceImpl implements ShadowingVideoService {
                 .vnText(transcript.getVnText())
                 .tokens(tokenResponses)
                 .build();
+    }
+
+    private ShadowingTranscriptResponse toTranscriptResponse(ShadowingTranscript transcript) {
+        return toTranscriptResponse(transcript, null);
     }
 
     private ShadowingProcessingLogResponse toProcessingLogResponse(ShadowingProcessingLog logEntity) {

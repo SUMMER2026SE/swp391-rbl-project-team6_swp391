@@ -23,6 +23,7 @@ export interface ShadowingVideoUploadResponse {
   status: string;
   message: string | null;
   sentenceCount: number | null;
+  thumbnailUrl: string | null;
   createdAt: string;
 }
 

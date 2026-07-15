@@ -8,6 +8,7 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.xml.stream.XMLInputFactory;
@@ -238,6 +239,174 @@ public class DictionaryImporter {
 
         return true;
     }
+
+    /**
+     * Bulk import optimized for large JMdict files (~180k entries)
+     * Uses direct JDBC batch insert for performance
+     */
+    public BulkImportResult bulkImportJMdict(InputStream xmlInputStream) {
+        long startTime = System.currentTimeMillis();
+        log.info("Starting JMdict bulk import (optimized for ~180k entries)...");
+        System.out.println("Starting JMdict bulk import...");
+
+        int imported = 0;
+        int skipped = 0;
+        int failed = 0;
+
+        List<DictionaryEntry> entryBatch = new ArrayList<>();
+        List<Object[]> meaningBatch = new ArrayList<>();
+        int batchSize = 500;
+
+        try {
+            System.setProperty("jdk.xml.entityExpansionLimit", "0");
+            XMLInputFactory factory = XMLInputFactory.newInstance();
+            factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+            factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+
+            XMLStreamReader reader = factory.createXMLStreamReader(xmlInputStream);
+
+            String currentTag = "";
+            List<String> kebs = new ArrayList<>();
+            List<String> rebs = new ArrayList<>();
+            List<String> posList = new ArrayList<>();
+            List<String> glosses = new ArrayList<>();
+            UUID currentEntryId = null;
+
+            while (reader.hasNext()) {
+                int event = reader.next();
+
+                switch (event) {
+                    case XMLStreamConstants.START_ELEMENT:
+                        currentTag = reader.getLocalName();
+                        if ("entry".equals(currentTag)) {
+                            kebs.clear();
+                            rebs.clear();
+                            posList.clear();
+                            glosses.clear();
+                        } else if ("gloss".equals(currentTag)) {
+                            // Keep track of glosses
+                        }
+                        break;
+
+                    case XMLStreamConstants.CHARACTERS:
+                        String text = reader.getText().trim();
+                        if (text.isEmpty()) break;
+
+                        switch (currentTag) {
+                            case "keb":
+                                kebs.add(text);
+                                break;
+                            case "reb":
+                                rebs.add(text);
+                                break;
+                            case "pos":
+                                if (!posList.contains(text)) posList.add(text);
+                                break;
+                            case "gloss":
+                                if (!glosses.contains(text) && glosses.size() < 10) {
+                                    glosses.add(text);
+                                }
+                                break;
+                        }
+                        break;
+
+                    case XMLStreamConstants.END_ELEMENT:
+                        String endTag = reader.getLocalName();
+                        if ("entry".equals(endTag)) {
+                            if (!rebs.isEmpty() && !glosses.isEmpty()) {
+                                String surface = kebs.isEmpty() ? rebs.get(0) : kebs.get(0);
+                                String reading = rebs.isEmpty() ? null : rebs.get(0);
+                                String partOfSpeech = posList.isEmpty() ? null : String.join(", ", posList);
+                                String romaji = reading != null ? RomajiConverter.convert(reading) : null;
+
+                                DictionaryEntry entry = DictionaryEntry.builder()
+                                        .surface(surface)
+                                        .lemma(surface)
+                                        .reading(reading)
+                                        .romaji(romaji)
+                                        .partOfSpeech(partOfSpeech)
+                                        .build();
+
+                                entryBatch.add(entry);
+
+                                int sortOrder = 0;
+                                for (String gloss : glosses) {
+                                    meaningBatch.add(new Object[]{null, "en", gloss, sortOrder++});
+                                }
+
+                                if (entryBatch.size() >= batchSize) {
+                                    saveBulkBatch(entryBatch, meaningBatch);
+                                    imported += entryBatch.size();
+                                    entryBatch.clear();
+                                    meaningBatch.clear();
+                                    if (imported % 10000 == 0) {
+                                        log.info("Bulk imported {} entries...", imported);
+                                        System.out.println("Bulk imported: " + imported);
+                                    }
+                                }
+                            } else {
+                                skipped++;
+                            }
+                        }
+                        currentTag = "";
+                        break;
+                }
+            }
+
+            reader.close();
+
+            if (!entryBatch.isEmpty()) {
+                saveBulkBatch(entryBatch, meaningBatch);
+                imported += entryBatch.size();
+            }
+
+            cacheService.evictAll("dictionary:*");
+
+        } catch (Exception e) {
+            log.error("JMdict bulk import error: {}", e.getMessage(), e);
+            e.printStackTrace();
+            failed++;
+        }
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("JMdict bulk import completed!");
+        log.info("Imported: {}, Skipped: {}, Failed: {}", imported, skipped, failed);
+        log.info("Duration: {} ms ({} minutes)", duration, duration / 60000);
+
+        System.out.println("JMdict bulk import completed!");
+        System.out.println("Imported: " + imported);
+        System.out.println("Skipped: " + skipped);
+        System.out.println("Failed: " + failed);
+        System.out.println("Duration: " + (duration / 60000) + " minutes");
+
+        return new BulkImportResult(imported, skipped, failed, duration);
+    }
+
+    @Transactional
+    protected void saveBulkBatch(List<DictionaryEntry> entries, List<Object[]> meanings) {
+        for (DictionaryEntry entry : entries) {
+            entityManager.persist(entry);
+            if (entries.indexOf(entry) % 50 == 0) {
+                entityManager.flush();
+                entityManager.clear();
+            }
+        }
+        entityManager.flush();
+        entityManager.clear();
+
+        for (Object[] m : meanings) {
+            DictionaryMeaning meaning = DictionaryMeaning.builder()
+                    .language((String) m[1])
+                    .meaning((String) m[2])
+                    .sortOrder((Integer) m[3])
+                    .build();
+            entityManager.persist(meaning);
+        }
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    public record BulkImportResult(int imported, int skipped, int failed, long durationMs) {}
 
     private void saveBatch(List<DictionaryEntry> batchList) {
         transactionTemplate.execute(status -> {

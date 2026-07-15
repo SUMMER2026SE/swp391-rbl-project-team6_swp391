@@ -89,7 +89,7 @@ class ShadowingVideoServiceIntegrationTest {
     @DisplayName("should get timestamps with pre-tokenized sentences")
     void testGetTimestamps_withTokens() {
         when(shadowingVideoRepository.findByIdWithTranscripts(video.getId())).thenReturn(Optional.of(video));
-        when(transcriptAnalyzerService.getTokensForSentence(transcript.getId())).thenReturn(List.of(token));
+        when(transcriptAnalyzerService.getTokensForSentences(anyList())).thenReturn(List.of(token));
 
         ShadowingTimestampsResponse result = shadowingVideoService.getTimestamps(video.getId());
 
@@ -103,7 +103,7 @@ class ShadowingVideoServiceIntegrationTest {
         assertEquals("こんにちは", seg.getTokens().get(0).getSurface());
 
         verify(shadowingVideoRepository).findByIdWithTranscripts(video.getId());
-        verify(transcriptAnalyzerService).getTokensForSentence(transcript.getId());
+        verify(transcriptAnalyzerService).getTokensForSentences(anyList());
         verify(transcriptAnalyzerService, never()).analyzeAndSave(any());
     }
 
@@ -111,6 +111,7 @@ class ShadowingVideoServiceIntegrationTest {
     @DisplayName("should analyze-on-the-fly and save when tokens list is empty")
     void testGetTimestamps_analyzeOnTheFly() {
         when(shadowingVideoRepository.findByIdWithTranscripts(video.getId())).thenReturn(Optional.of(video));
+        when(transcriptAnalyzerService.getTokensForSentences(anyList())).thenReturn(Collections.emptyList());
         when(transcriptAnalyzerService.getTokensForSentence(transcript.getId())).thenReturn(Collections.emptyList());
         when(transcriptAnalyzerService.analyzeAndSave(transcript)).thenReturn(List.of(token));
 
@@ -125,6 +126,7 @@ class ShadowingVideoServiceIntegrationTest {
         assertEquals("こんにちは", seg.getTokens().get(0).getSurface());
 
         verify(shadowingVideoRepository).findByIdWithTranscripts(video.getId());
+        verify(transcriptAnalyzerService).getTokensForSentences(anyList());
         verify(transcriptAnalyzerService).getTokensForSentence(transcript.getId());
         verify(transcriptAnalyzerService).analyzeAndSave(transcript);
     }

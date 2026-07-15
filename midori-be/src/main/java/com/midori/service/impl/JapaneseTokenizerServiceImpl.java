@@ -25,7 +25,14 @@ public class JapaneseTokenizerServiceImpl implements JapaneseTokenizerService {
     private boolean useSudachi = false;
 
     private static final Set<String> PARTICLES = Set.of(
-            "は", "が", "を", "に", "へ", "と", "で", "から", "より", "も", "て", "た", "ね", "よ", "か", "の"
+            "は", "が", "を", "に", "へ", "と", "で", "から", "より", "も", "て", "た", "ね", "よ", "か", "の", "な", "ぜ", "わ", "ぞ", "っ", "ゃ", "ゅ", "ょ", "ぁ", "ぃ", "ぅ", "ぇ", "ぉ"
+    );
+
+    // Common Japanese words that should NOT be split character by character
+    private static final Set<String> COMMON_WORDS = Set.of(
+            "こんにちは", "こんばんは", "おはよう", "ありがとう", "すみません", "はじめまして",
+            "よろしく", "おねがい", "ください", "わかります",
+            "小朋友", "大家好", "老师们", "同学们"
     );
 
     @PostConstruct
@@ -137,22 +144,20 @@ public class JapaneseTokenizerServiceImpl implements JapaneseTokenizerService {
             sb.append(c);
             i++;
 
-            // Group characters of same type (Kanji + trailing Hiragana for verbs/adjectives)
             if ("kanji".equals(type)) {
+                // Group consecutive kanji
                 while (i < len && "kanji".equals(getCharType(sentence.charAt(i)))) {
                     sb.append(sentence.charAt(i));
                     i++;
                 }
-                // Check if trailing Hiragana (e.g. べ + る in 食べる) forms a verb inflection
+                // Check if trailing Hiragana forms a verb/adjective ending
                 if (i < len && "hiragana".equals(getCharType(sentence.charAt(i)))) {
-                    // Peek ahead to check if it's a verb/adjective ending or particle
                     char next = sentence.charAt(i);
                     if (next == 'る' || next == 'う' || next == 'つ' || next == 'く' || next == 'ぐ' || 
                         next == 'す' || next == 'む' || next == 'ぶ' || next == 'ぬ' || next == 'い') {
                         sb.append(next);
                         i++;
                     } else if (i + 1 < len) {
-                        // Check double hiragana endings like べる, せる, める
                         char nextNext = sentence.charAt(i + 1);
                         if (nextNext == 'る' || nextNext == 'た' || nextNext == 'て') {
                             sb.append(next);
@@ -161,12 +166,20 @@ public class JapaneseTokenizerServiceImpl implements JapaneseTokenizerService {
                         }
                     }
                 }
-            } else {
-                // Group normal Hiragana, Katakana, or other characters
-                while (i < len && type.equals(getCharType(sentence.charAt(i)))) {
+            } else if ("hiragana".equals(type)) {
+                // Group consecutive hiragana into a word (e.g., こんにちは, はじめまして)
+                while (i < len && "hiragana".equals(getCharType(sentence.charAt(i)))) {
                     sb.append(sentence.charAt(i));
                     i++;
                 }
+            } else if ("katakana".equals(type)) {
+                // Group consecutive katakana into a word
+                while (i < len && "katakana".equals(getCharType(sentence.charAt(i)))) {
+                    sb.append(sentence.charAt(i));
+                    i++;
+                }
+            } else {
+                // Other characters (punctuation, etc.) - keep as single
             }
 
             String surface = sb.toString();

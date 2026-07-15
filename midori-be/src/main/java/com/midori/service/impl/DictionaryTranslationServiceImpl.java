@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
@@ -37,33 +38,35 @@ public class DictionaryTranslationServiceImpl implements DictionaryTranslationSe
             return 0;
         }
 
-        // 1. Fetch entries needing translation
-        List<DictionaryEntry> entries = dictionaryEntryRepository.findEntriesNeedingTranslation(PageRequest.of(0, limit));
-        if (entries.isEmpty()) {
+        // 1. Fetch entries needing translation in a short transaction block to resolve lazy associations
+        List<Map<String, Object>> inputList = transactionTemplate.execute(status -> {
+            List<DictionaryEntry> entries = dictionaryEntryRepository.findEntriesNeedingTranslation(PageRequest.of(0, limit));
+            if (entries.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (DictionaryEntry entry : entries) {
+                List<String> englishMeanings = entry.getMeanings().stream()
+                        .filter(m -> "en".equalsIgnoreCase(m.getLanguage()))
+                        .sorted(Comparator.comparingInt(DictionaryMeaning::getSortOrder))
+                        .map(DictionaryMeaning::getMeaning)
+                        .collect(Collectors.toList());
+
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", entry.getId().toString());
+                item.put("surface", entry.getSurface());
+                item.put("meanings", englishMeanings);
+                list.add(item);
+            }
+            return list;
+        });
+
+        if (inputList == null || inputList.isEmpty()) {
             return 0;
         }
 
-        log.info("Found {} dictionary entries needing translation.", entries.size());
-
-        // 2. Build the JSON input for Gemini
-        List<Map<String, Object>> inputList = new ArrayList<>();
-        Map<String, DictionaryEntry> entryMap = new HashMap<>();
-
-        for (DictionaryEntry entry : entries) {
-            entryMap.put(entry.getId().toString(), entry);
-            
-            List<String> englishMeanings = entry.getMeanings().stream()
-                    .filter(m -> "en".equalsIgnoreCase(m.getLanguage()))
-                    .sorted(Comparator.comparingInt(DictionaryMeaning::getSortOrder))
-                    .map(DictionaryMeaning::getMeaning)
-                    .collect(Collectors.toList());
-
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", entry.getId().toString());
-            item.put("surface", entry.getSurface());
-            item.put("meanings", englishMeanings);
-            inputList.add(item);
-        }
+        log.info("Found {} dictionary entries needing translation.", inputList.size());
 
         String inputJson;
         try {
@@ -73,7 +76,7 @@ public class DictionaryTranslationServiceImpl implements DictionaryTranslationSe
             return 0;
         }
 
-        // 3. Build the system prompt
+        // 2. Build the system prompt
         String systemPrompt = "You are an expert Japanese-Vietnamese dictionary translator. " +
                 "Translate the provided English meanings of Japanese words into Vietnamese meanings. " +
                 "Keep the translations natural, concise, and accurate to the original word. " +
@@ -90,7 +93,7 @@ public class DictionaryTranslationServiceImpl implements DictionaryTranslationSe
                 "}\n" +
                 "Never include any markdown formatting (like ```json ... ```) or explanation. Return raw JSON text only.";
 
-        // 4. Invoke AI core chat with retry mechanism
+        // 3. Invoke AI core chat with retry mechanism (Runs completely outside database transaction)
         String response = null;
         int maxRetries = 3;
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
@@ -120,7 +123,7 @@ public class DictionaryTranslationServiceImpl implements DictionaryTranslationSe
             return 0;
         }
 
-        // 5. Parse and save translations
+        // 4. Parse and save translations
         String cleanedJson = cleanJsonString(response);
         int successCount = 0;
 
@@ -132,57 +135,50 @@ public class DictionaryTranslationServiceImpl implements DictionaryTranslationSe
                 return 0;
             }
 
-            List<DictionaryMeaning> meaningsToSave = new ArrayList<>();
+            List<String> wordsToEvict = new ArrayList<>();
 
-            for (JsonNode item : translationsArray) {
-                String idStr = item.has("id") ? item.get("id").asText() : null;
-                JsonNode transListNode = item.get("translations");
+            successCount = transactionTemplate.execute(status -> {
+                int count = 0;
+                for (JsonNode item : translationsArray) {
+                    String idStr = item.has("id") ? item.get("id").asText() : null;
+                    JsonNode transListNode = item.get("translations");
 
-                if (idStr == null || transListNode == null || !transListNode.isArray()) {
-                    continue;
-                }
-
-                DictionaryEntry entry = entryMap.get(idStr);
-                if (entry == null) {
-                    continue;
-                }
-
-                int sortOrder = 0;
-                for (JsonNode transNode : transListNode) {
-                    String meaningText = transNode.asText().trim();
-                    if (!meaningText.isEmpty()) {
-                        DictionaryMeaning meaning = DictionaryMeaning.builder()
-                                .entry(entry)
-                                .language("vi")
-                                .meaning(meaningText)
-                                .sortOrder(sortOrder++)
-                                .build();
-                        meaningsToSave.add(meaning);
+                    if (idStr == null || transListNode == null || !transListNode.isArray()) {
+                        continue;
                     }
-                }
-                successCount++;
-            }
 
-            // Save in a transaction block
-            if (!meaningsToSave.isEmpty()) {
-                transactionTemplate.execute(status -> {
-                    for (DictionaryMeaning meaning : meaningsToSave) {
-                        dictionaryMeaningRepository.save(meaning);
+                    DictionaryEntry entry = dictionaryEntryRepository.findById(UUID.fromString(idStr)).orElse(null);
+                    if (entry == null) {
+                        continue;
                     }
-                    return null;
-                });
-                log.info("Successfully translated and saved {} entries ({} total meanings).", successCount, meaningsToSave.size());
 
-                // Evict cache for all updated entries
-                for (DictionaryMeaning meaning : meaningsToSave) {
-                    if (meaning.getEntry() != null) {
-                        String word = meaning.getEntry().getSurface();
-                        if (word != null) {
-                            cacheService.evict("dictionary:hover:" + word);
-                            cacheService.evict("dictionary:detail:" + word);
+                    int sortOrder = 0;
+                    for (JsonNode transNode : transListNode) {
+                        String meaningText = transNode.asText().trim();
+                        if (!meaningText.isEmpty()) {
+                            DictionaryMeaning meaning = DictionaryMeaning.builder()
+                                    .entry(entry)
+                                    .language("vi")
+                                    .meaning(meaningText)
+                                    .sortOrder(sortOrder++)
+                                    .build();
+                            dictionaryMeaningRepository.save(meaning);
                         }
                     }
+                    if (entry.getSurface() != null) {
+                        wordsToEvict.add(entry.getSurface());
+                    }
+                    count++;
                 }
+                return count;
+            });
+
+            log.info("Successfully translated and saved {} entries.", successCount);
+
+            // Evict cache for all updated entries
+            for (String word : wordsToEvict) {
+                cacheService.evict("dictionary:hover:" + word);
+                cacheService.evict("dictionary:detail:" + word);
             }
 
         } catch (Exception e) {

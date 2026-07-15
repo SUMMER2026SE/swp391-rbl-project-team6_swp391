@@ -132,7 +132,7 @@ function VideoLearningPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("both");
   const [activeTab, setActiveTab] = useState<"transcript" | "vocabulary">("transcript");
-  const [vocabFilter, setVocabFilter] = useState<"all" | "saved">("all");
+  const [vocabFilter, setVocabFilter] = useState<"grammar" | "saved">("grammar");
   
   // Use global saved words hook
   const { savedWords: globalSavedWords, isWordSaved: isGlobalWordSaved, saveWord: globalSaveWord, removeWord: globalRemoveWord } = useSavedWords();
@@ -147,6 +147,7 @@ function VideoLearningPage() {
 
   // Popup states
   const [showSentencePopup, setShowSentencePopup] = useState(false);
+  const [showWordPopup, setShowWordPopup] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<TranscriptSegment | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
@@ -225,6 +226,7 @@ function VideoLearningPage() {
         translation: s.vnText || "",
         romaji: getDemoRomaji(s.jpText),
         vocabulary,
+        tokens: Array.isArray(s.tokens) ? s.tokens : [],
         grammar: s.grammarPoint ? {
           grammar: s.grammarPoint.grammar,
           meaning: s.grammarPoint.meaning,
@@ -279,19 +281,24 @@ function VideoLearningPage() {
 
   const currentIndex = getCurrentSentenceIndex();
 
-  // Collect all vocabulary from all segments (deduplicated)
-  const allVocabulary = useMemo(() => {
-    if (!video) return [];
+  // Collect all grammar points from all segments (deduplicated)
+  const allGrammar = useMemo(() => {
+    if (!video || !video.script) return [];
     const seen = new Set<string>();
-    const result: VocabularyItem[] = [];
-    for (const seg of video.script) {
-      for (const v of seg.vocabulary) {
-        if (!seen.has(v.word)) {
-          seen.add(v.word);
-          result.push(v);
+    const result: { grammar: string; meaning: string; segmentIndex: number }[] = [];
+    video.script.forEach((seg, idx) => {
+      if (seg.grammar && seg.grammar.grammar) {
+        const key = seg.grammar.grammar;
+        if (!seen.has(key)) {
+          seen.add(key);
+          result.push({
+            grammar: seg.grammar.grammar,
+            meaning: seg.grammar.meaning,
+            segmentIndex: idx,
+          });
         }
       }
-    }
+    });
     return result;
   }, [video]);
 
@@ -585,16 +592,21 @@ function VideoLearningPage() {
 
                 {/* Subtitle overlay */}
                 {subtitlesEnabled && activeSubtitle && (
-                  <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[85%] text-center pointer-events-none z-10 select-none flex flex-col gap-1.5 justify-center items-center">
+                  <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[85%] text-center pointer-events-none z-10 flex flex-col gap-1.5 justify-center items-center">
                     {(transcriptMode === "japanese" || transcriptMode === "both") && (
                       <div 
-                        className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide text-white leading-normal"
+                        className="text-lg sm:text-xl md:text-2xl font-bold tracking-wide text-white leading-normal pointer-events-auto"
                         style={{ 
                           textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.9)",
                           fontFamily: "var(--font-japanese, serif)"
                         }}
                       >
-                        {activeSubtitle.text}
+                        <ClickableTranscript
+                          text={activeSubtitle.text}
+                          contextSentence={activeSubtitle.text}
+                          tokens={activeSubtitle.tokens}
+                          className="inline-block"
+                        />
                       </div>
                     )}
                     {(transcriptMode === "vietnamese" || transcriptMode === "both") && activeSubtitle.translation && (
@@ -805,7 +817,7 @@ function VideoLearningPage() {
               <div className="flex border-b border-slate-200/60 dark:border-white/10 bg-slate-50/80 dark:bg-slate-800/30 shrink-0">
                 {[
                   { key: "transcript", label: "Transcript", icon: <AlignLeft className="w-3.5 h-3.5" /> },
-                  { key: "vocabulary", label: `Từ vựng${globalSavedWords.length > 0 ? ` (${globalSavedWords.length})` : ""}`, icon: <BookOpen className="w-3.5 h-3.5" /> },
+                  { key: "vocabulary", label: "Từ vựng & Ngữ pháp", icon: <BookOpen className="w-3.5 h-3.5" /> },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -889,6 +901,7 @@ function VideoLearningPage() {
                                 <ClickableTranscript
                                   text={segment.text}
                                   contextSentence={segment.text}
+                                  tokens={segment.tokens}
                                   className="text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-relaxed"
                                 />
                               )}
@@ -938,18 +951,18 @@ function VideoLearningPage() {
               {/* ── VOCABULARY TAB ──────────────────────────────────── */}
               {activeTab === "vocabulary" && (
                 <div className="flex flex-col flex-1 min-h-0">
-                  {/* Sub-tabs for all vs saved */}
+                  {/* Sub-tabs for grammar vs saved */}
                   <div className="flex border-b border-slate-100 dark:border-white/5 p-1 gap-1 bg-slate-50/80 dark:bg-slate-800/20 shrink-0">
                     <button
-                      onClick={() => setVocabFilter("all")}
+                      onClick={() => setVocabFilter("grammar")}
                       className={cn(
                         "flex-1 py-1.5 text-[10px] font-bold rounded-lg transition cursor-pointer text-center",
-                        vocabFilter === "all"
+                        vocabFilter === "grammar"
                           ? "bg-white dark:bg-slate-900/60 text-primary shadow-sm"
                           : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                       )}
                     >
-                      Từ vựng bài học ({allVocabulary.length})
+                      Ngữ pháp ({allGrammar.length})
                     </button>
                     <button
                       onClick={() => setVocabFilter("saved")}
@@ -966,39 +979,52 @@ function VideoLearningPage() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
-                    {(() => {
-                      const displayedList: (typeof allVocabulary[0] | SavedWord)[] = vocabFilter === "all" ? allVocabulary : globalSavedWords;
-                      if (displayedList.length === 0) {
-                        return (
-                          <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
-                            {vocabFilter === "all" ? (
-                              <>
-                                <BookOpen className="w-8 h-8 opacity-30" />
-                                <p className="text-xs">Không có từ vựng nào được gắn thẻ trong video này.</p>
-                              </>
-                            ) : (
-                              <>
-                                <Bookmark className="w-8 h-8 opacity-30" />
-                                <p className="text-xs">Chưa có từ vựng nào được lưu.<br />Bấm vào các từ trong Transcript để lưu.</p>
-                              </>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      return (
+                    {vocabFilter === "grammar" ? (
+                      allGrammar.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
+                          <BookOpen className="w-8 h-8 opacity-30" />
+                          <p className="text-xs">Không có ngữ pháp nào được gắn thẻ trong video này.</p>
+                        </div>
+                      ) : (
                         <div className="space-y-2">
-                          {displayedList.map((vocab, i) => {
+                          {allGrammar.map((grammar, i) => (
+                            <div
+                              key={`${grammar.grammar}-${i}`}
+                              onClick={() => handleSentenceClick(video.script[grammar.segmentIndex])}
+                              className="p-3 rounded-xl border border-slate-100 dark:border-white/8 bg-white/60 dark:bg-slate-800/30 hover:border-primary/20 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer flex flex-col gap-1 text-left"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                                  {grammar.grammar}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono">
+                                  {formatTime(video.script[grammar.segmentIndex].startTime)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 dark:text-slate-300">
+                                {grammar.meaning}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    ) : (
+                      globalSavedWords.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
+                          <Bookmark className="w-8 h-8 opacity-30" />
+                          <p className="text-xs">Chưa có từ vựng nào được lưu.<br />Bấm vào các từ trong Transcript để lưu.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {globalSavedWords.map((vocab, i) => {
                             const vocabWord = vocab.word;
                             const vocabReading = vocab.reading;
                             const vocabMeaning = vocab.meaning;
-                            const vocabPartOfSpeech = vocab.partOfSpeech;
-                            const vocabExample = vocab.example;
                             const saved = isGlobalWordSaved(vocabWord, vocabReading);
                             return (
                               <div
                                 key={`${vocabWord}-${i}`}
-                                className="flex items-start justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/8 bg-white/60 dark:bg-slate-800/30 hover:border-primary/20 transition group cursor-default"
+                                className="flex items-start justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/8 bg-white/60 dark:bg-slate-800/30 hover:border-primary/20 transition group cursor-default text-left"
                               >
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
@@ -1013,24 +1039,10 @@ function VideoLearningPage() {
                                         [{vocabReading}]
                                       </span>
                                     )}
-                                    {vocabPartOfSpeech && (
-                                      <span className="px-1.5 py-0 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-[9px] font-bold">
-                                        {vocabPartOfSpeech}
-                                      </span>
-                                    )}
                                   </div>
                                   <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{vocabMeaning}</p>
-                                  {vocabExample && (
-                                    <p
-                                      className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 italic"
-                                      style={{ fontFamily: "var(--font-japanese, serif)" }}
-                                    >
-                                      {vocabExample}
-                                    </p>
-                                  )}
                                 </div>
 
-                                {/* Toggle Bookmark button directly in list */}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleToggleSaveFromList(vocabWord, vocabReading, vocabMeaning); }}
                                   className={cn(
@@ -1047,8 +1059,8 @@ function VideoLearningPage() {
                             );
                           })}
                         </div>
-                      );
-                    })()}
+                      )
+                    )}
                   </div>
                 </div>
               )}

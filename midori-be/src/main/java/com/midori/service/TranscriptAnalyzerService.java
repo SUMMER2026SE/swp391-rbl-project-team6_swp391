@@ -10,4 +10,5 @@ public interface TranscriptAnalyzerService {
     List<TranscriptToken> analyzeAndSave(ShadowingTranscript transcript);
     void analyzeVideoTranscripts(UUID videoId);
     List<TranscriptToken> getTokensForSentence(UUID sentenceId);
+    List<TranscriptToken> getTokensForSentences(List<UUID> sentenceIds);
 }
