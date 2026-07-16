@@ -1,174 +1,70 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import {
-  Users,
-  BookOpen,
-  GraduationCap,
-  ClipboardCheck,
-  Activity,
-  Bot,
-  Zap,
-  AlertTriangle,
-  TrendingUp,
-  Award,
-  BookUser,
-  Clock,
-  Bell,
-  Plus,
-  ChevronRight,
-} from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  Tooltip,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import { useState, useEffect } from "react";
-import { adminApi, type AdminDashboardSummaryResponse } from "@/lib/api/admin";
+import { Users, GraduationCap, ClipboardCheck, TrendingUp, Award, BookUser, Clock, ChevronRight, AlertTriangle, BookOpen, Bell } from "lucide-react";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { useState, useEffect, useMemo } from "react";
+import { adminApi, type AdminDashboardSummaryResponse, type JlptDistributionResponse, type RecentActivitiesResponse, type RecentActivity, type JlptLevelCount } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
+import { EmptyState } from "@/components/page-ui";
 
-// â”€â”€â”€ Mock Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const platformStats = {
-  totalStudents: 12847,
-  totalTeachers: 128,
-  activeClasses: 45,
-  learningCompletionRate: 72,
-  dailyActiveUsers: [
-    { day: "Mon", users: 3200 },
-    { day: "Tue", users: 3650 },
-    { day: "Wed", users: 3400 },
-    { day: "Thu", users: 3890 },
-    { day: "Fri", users: 4100 },
-    { day: "Sat", users: 2950 },
-    { day: "Sun", users: 2200 },
-  ],
-  jlptDistribution: [
-    { name: "N5", value: 35, color: "oklch(0.62 0.18 270)" },
-    { name: "N4", value: 28, color: "oklch(0.72 0.15 230)" },
-    { name: "N3", value: 20, color: "oklch(0.72 0.18 340)" },
-    { name: "N2", value: 12, color: "oklch(0.6 0.22 25)" },
-    { name: "N1", value: 5, color: "oklch(0.6 0.2 25)" },
-  ],
-  recentActivities: [
-    {
-      id: 1,
-      type: "teacher",
-      action: "Teacher created class",
-      detail: "N5 Beginner Japanese",
-      time: "2 min ago",
-      icon: GraduationCap,
-      color: "text-[var(--status-teacher)]",
-    },
-    {
-      id: 2,
-      type: "student",
-      action: "Student completed lesson",
-      detail: "Hiragana Basics",
-      time: "5 min ago",
-      icon: Award,
-      color: "text-[var(--status-active)]",
-    },
-    {
-      id: 3,
-      type: "content",
-      action: "Teacher uploaded content",
-      detail: "JLPT N5 Grammar Quiz",
-      time: "15 min ago",
-      icon: BookOpen,
-      color: "text-primary",
-    },
-    {
-      id: 4,
-      type: "student",
-      action: "New student enrolled",
-      detail: "Minato Aquo joined",
-      time: "30 min ago",
-      icon: Users,
-      color: "text-[oklch(0.72_0.15_230)]",
-    },
-    {
-      id: 5,
-      type: "exam",
-      action: "Exam completed",
-      detail: "N4 Listening Test",
-      time: "1 hour ago",
-      icon: ClipboardCheck,
-      color: "text-[var(--status-pending)]",
-    },
-  ],
-  learningProgress: [
-    { week: "W1", vocabulary: 820, grammar: 640, listening: 420, completion: 65 },
-    { week: "W2", vocabulary: 940, grammar: 720, listening: 480, completion: 72 },
-    { week: "W3", vocabulary: 880, grammar: 680, listening: 510, completion: 78 },
-    { week: "W4", vocabulary: 1020, grammar: 780, listening: 590, completion: 82 },
-  ],
-  pendingApprovals: {
-    teachers: 7,
-    content: 23,
-  },
+const JLPT_COLORS: Record<string, string> = {
+  N5: "oklch(0.62 0.18 270)",
+  N4: "oklch(0.72 0.15 230)",
+  N3: "oklch(0.72 0.18 340)",
+  N2: "oklch(0.6 0.22 25)",
+  N1: "oklch(0.6 0.2 25)",
 };
 
-// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function MetricCard({
-  label,
-  value,
-  icon,
-  trend,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  trend?: { value: number; positive: boolean };
-}) {
+function MetricCard({ label, value, icon, loading }: { label: string; value: string | number; icon: React.ElementType; loading?: boolean; }) {
   const Icon = icon;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="card-base p-4 flex flex-col min-h-[6rem]"
-    >
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base p-4 flex flex-col min-h-[6rem]">
       <div className="flex items-start justify-between mb-2">
         <div className="w-9 h-9 rounded-xl glass-surface flex items-center justify-center">
           <Icon className="w-4 h-4 text-primary" />
         </div>
-        {trend && (
-          <div
-            className={`flex items-center gap-0.5 text-[10px] font-bold ${trend.positive ? "text-[var(--status-active)]" : "text-[var(--status-rejected)]"}`}
-          >
-            {trend.positive ? (
-              <TrendingUp className="w-3 h-3" />
-            ) : (
-              <TrendingUp className="w-3 h-3 rotate-180" />
-            )}
-            {Math.abs(trend.value)}%
-          </div>
-        )}
       </div>
-      <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold leading-tight">
-        {label}
-      </span>
-      <div className="font-display font-black text-xl text-primary-col mt-auto pt-1">{value}</div>
+      <span className="text-[10px] text-muted-col uppercase tracking-wider font-bold leading-tight">{label}</span>
+      <div className="font-display font-black text-xl text-primary-col mt-auto pt-1">{loading ? "--" : value}</div>
     </motion.div>
   );
 }
 
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function formatRelativeTime(iso: string | undefined | null): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffMs = Date.now() - then;
+  if (diffMs < 0) return "just now";
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hour${hr > 1 ? "s" : ""} ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day} day${day > 1 ? "s" : ""} ago`;
+  const week = Math.floor(day / 7);
+  if (week < 5) return `${week} week${week > 1 ? "s" : ""} ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+const ACTIVITY_ICON_MAP: Record<string, { Icon: React.ElementType; color: string }> = {
+  class: { Icon: BookOpen, color: "text-primary" },
+  exam: { Icon: ClipboardCheck, color: "text-[var(--status-pending)]" },
+  notification: { Icon: Bell, color: "text-[oklch(0.72_0.15_230)]" },
+  content: { Icon: BookOpen, color: "text-primary" },
+  teacher: { Icon: GraduationCap, color: "text-[var(--status-teacher)]" },
+  student: { Icon: Users, color: "text-[oklch(0.72_0.15_230)]" },
+};
 
 export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 
 function AdminDashboard() {
   const [summary, setSummary] = useState<AdminDashboardSummaryResponse | null>(null);
+  const [jlpt, setJlpt] = useState<JlptDistributionResponse | null>(null);
+  const [activities, setActivities] = useState<RecentActivitiesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -176,36 +72,39 @@ function AdminDashboard() {
     let isMounted = true;
     setLoading(true);
     setError(null);
-
-    adminApi
-      .getDashboardSummary()
-      .then((data) => {
-        if (isMounted) {
-          setSummary(data);
-          setLoading(false);
-        }
+    Promise.all([
+      adminApi.getDashboardSummary(),
+      adminApi.getJlptDistribution(),
+      adminApi.getRecentActivities(10),
+    ])
+      .then(([summaryData, jlptData, activitiesData]) => {
+        if (!isMounted) return;
+        setSummary(summaryData);
+        setJlpt(jlptData);
+        setActivities(activitiesData);
+        setLoading(false);
       })
       .catch((err) => {
-        if (isMounted) {
-          setError(err instanceof ApiError ? err.message : "Unable to load dashboard summary");
-          setLoading(false);
-        }
+        if (!isMounted) return;
+        setError(err instanceof ApiError ? err.message : "Unable to load dashboard data");
+        setLoading(false);
       });
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
+
+  const totalActiveClasses = summary?.activeClasses ?? 0;
+  const completionRate = summary?.learningCompletionRate ?? 0;
+  const hasAnyJlptCount = useMemo(
+    () => (jlpt?.levels ?? []).some((l) => l.count > 0),
+    [jlpt],
+  );
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-black text-primary-col">Academic Dashboard</h1>
-          <p className="text-sm text-secondary-col mt-0.5">
-            Monitor platform performance and manage academic operations
-          </p>
+          <p className="text-sm text-secondary-col mt-0.5">Monitor platform performance and manage academic operations</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl glass-card text-secondary-col text-xs font-bold">
           <span className="w-2 h-2 rounded-full bg-[var(--status-active)] shadow-sm shadow-[var(--status-active)]/50" />
@@ -213,241 +112,116 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* KPI Grid */}
+      {error && (
+        <div className="card-base p-4 border border-[var(--status-rejected)]/30 text-sm text-[var(--status-rejected)]">{error}</div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
-          label="Total Students"
-          value={
-            summary?.totalStudents?.toLocaleString() ?? platformStats.totalStudents.toLocaleString()
-          }
-          icon={Users}
-          trend={{ value: 12, positive: true }}
-        />
-        <MetricCard
-          label="Total Teachers"
-          value={
-            summary?.totalTeachers?.toLocaleString() ?? platformStats.totalTeachers.toLocaleString()
-          }
-          icon={GraduationCap}
-          trend={{ value: 8, positive: true }}
-        />
-        <MetricCard
-          label="Active Classes"
-          value={platformStats.activeClasses}
-          icon={BookUser}
-          trend={{ value: 5, positive: true }}
-        />
-        <MetricCard
-          label="Completion Rate"
-          value={`${platformStats.learningCompletionRate}%`}
-          icon={TrendingUp}
-          trend={{ value: 3, positive: true }}
-        />
+        <MetricCard label="Total Students" value={(summary?.totalStudents ?? 0).toLocaleString()} icon={Users} loading={loading} />
+        <MetricCard label="Total Teachers" value={(summary?.totalTeachers ?? 0).toLocaleString()} icon={GraduationCap} loading={loading} />
+        <MetricCard label="Total Classes" value={totalActiveClasses.toLocaleString()} icon={BookUser} loading={loading} />
+        <MetricCard label="Completion Rate" value={completionRate + "%"} icon={TrendingUp} loading={loading} />
       </div>
 
-      {/* Main grid */}
-      <div className="grid lg:grid-cols-3 gap-5">
-        {/* Learning Progress Chart */}
-        <div className="lg:col-span-2 card-base p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-sm text-primary-col flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              Learning Progress
-            </h2>
-            <div className="flex gap-3 text-[10px] text-secondary-col">
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[oklch(0.62_0.18_270)]" /> Vocabulary
-              </span>
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[oklch(0.72_0.15_230)]" /> Grammar
-              </span>
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[oklch(0.72_0.18_340)]" /> Listening
-              </span>
-            </div>
-          </div>
-          <div className="h-[260px] min-h-[240px] w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={platformStats.learningProgress}>
-                <defs>
-                  <linearGradient id="vocabFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.62 0.18 270)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="oklch(0.62 0.18 270)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="grammarFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.72 0.15 230)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="oklch(0.72 0.15 230)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(1 0 0 / 0.05)" />
-                <XAxis
-                  dataKey="week"
-                  tick={{ fontSize: 11, fill: "oklch(0.55 0.02 300)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "oklch(0.55 0.02 300)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "rgba(15,20,40,0.9)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 12,
-                    color: "#F3F4F6",
-                    backdropFilter: "blur(12px)",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="vocabulary"
-                  stroke="oklch(0.62 0.18 270)"
-                  fill="url(#vocabFill)"
-                  strokeWidth={2}
-                  name="Vocabulary"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="grammar"
-                  stroke="oklch(0.72 0.15 230)"
-                  fill="url(#grammarFill)"
-                  strokeWidth={2}
-                  name="Grammar"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="listening"
-                  stroke="oklch(0.72 0.18 340)"
-                  strokeWidth={2}
-                  name="Listening"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Students by JLPT Level */}
-        <div className="card-base p-5">
-          <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
-            <Award className="w-4 h-4 text-primary" />
-            Students by JLPT Level
-          </h2>
-          <div className="h-[200px] flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={platformStats.jlptDistribution}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {platformStats.jlptDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "rgba(15,20,40,0.9)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 12,
-                    color: "#F3F4F6",
-                    backdropFilter: "blur(12px)",
-                  }}
-                  formatter={(value) => [`${value}%`, "Students"]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-2 mt-2">
-            {platformStats.jlptDistribution.map((item) => (
-              <div key={item.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-xs text-secondary-col">{item.name}</span>
-                </div>
-                <span className="text-xs font-bold text-primary-col">{item.value}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Activities */}
-        <div className="card-base p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-sm text-primary-col flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
+      <div className="grid lg:grid-cols-12 lg:grid-rows-1 gap-4">
+        <div className="lg:col-span-8 lg:row-span-1 card-base p-4 flex flex-col h-full">
+          <div className="flex items-center justify-between mb-3 shrink-0">
+            <h2 className="font-display font-bold text-xs text-primary-col flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-primary" />
               Recent Activities
             </h2>
-            <button className="text-xs text-primary hover:underline">View all</button>
           </div>
-          <div className="space-y-3">
-            {platformStats.recentActivities.map((activity, i) => {
-              const Icon = activity.icon;
-              return (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex items-start gap-3"
-                >
-                  <div
-                    className={`w-8 h-8 rounded-xl glass-surface flex items-center justify-center shrink-0`}
-                  >
-                    <Icon className={`w-4 h-4 ${activity.color}`} />
+          {loading ? (
+            <div className="text-xs text-muted-col py-3 text-center">Loading...</div>
+          ) : !activities || activities.activities.length === 0 ? (
+            <EmptyState title="No recent activities" hint="Activity from teachers, students, exams and notifications will appear here." />
+          ) : (
+            <div className="flex-1 min-h-0 divide-y divide-white/5 overflow-y-auto">
+              {activities.activities.map((activity: RecentActivity) => {
+                const meta = ACTIVITY_ICON_MAP[activity.type] ?? ACTIVITY_ICON_MAP.class;
+                const Icon = meta.Icon;
+                return (
+                  <div key={activity.id} className="flex items-center gap-2.5 py-2">
+                    <div className="w-7 h-7 rounded-lg glass-surface flex items-center justify-center shrink-0">
+                      <Icon className={"w-3.5 h-3.5 " + meta.color} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-primary-col truncate">{activity.action}</p>
+                      <p className="text-[10px] text-muted-col truncate">{activity.detail}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-col shrink-0">{formatRelativeTime(activity.timestamp)}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-primary-col">{activity.action}</p>
-                    <p className="text-[10px] text-muted-col truncate">{activity.detail}</p>
-                  </div>
-                  <span className="text-[10px] text-muted-col shrink-0">{activity.time}</span>
-                </motion.div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Pending Approvals */}
-        <div className="card-base p-5">
-          <h2 className="font-display font-bold text-sm text-primary-col mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[var(--status-pending)]" />
-            Pending Approvals
-          </h2>
-          <div className="space-y-2">
-            {[
-              {
-                key: "Teachers",
-                value: summary?.pendingTeachers ?? platformStats.pendingApprovals.teachers,
-                link: "/admin/teachers",
-                color: "text-[var(--status-teacher)]",
-              },
-              {
-                key: "Content",
-                value: summary?.pendingContent ?? platformStats.pendingApprovals.content,
-                link: "/admin/grammar",
-                color: "text-primary",
-              },
-            ].map(({ key, value, link, color }) => (
-              <Link
-                key={key}
-                to={link}
-                className="flex items-center justify-between p-3 rounded-xl glass-surface hover:bg-[var(--accent)] transition group"
-              >
-                <span className={`text-xs font-semibold ${color}`}>{key}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-[var(--status-pending)]">{value}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-col group-hover:text-primary transition" />
+        <div className="lg:col-span-4 lg:row-span-1 flex flex-col gap-4 h-full">
+          <div className="card-base p-4 flex-1 min-h-0 flex flex-col">
+            <h2 className="font-display font-bold text-xs text-primary-col mb-3 flex items-center gap-2 shrink-0">
+              <Award className="w-3.5 h-3.5 text-primary" />
+              Students by JLPT Level
+            </h2>
+            {loading ? (
+              <div className="flex-1 flex items-center justify-center text-xs text-muted-col">Loading...</div>
+            ) : !hasAnyJlptCount ? (
+              <div className="flex-1 flex items-center justify-center">
+                <EmptyState title="No class data yet" hint="Create classes with JLPT levels to see the distribution here." />
+              </div>
+            ) : (
+              <>
+                <div className="h-[180px] w-full shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={jlpt?.levels ?? []} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="count" nameKey="level">
+                        {(jlpt?.levels ?? []).map((entry) => (
+                          <Cell key={entry.level} fill={JLPT_COLORS[entry.level] ?? "oklch(0.7 0.1 200)"} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ background: "rgba(15,20,40,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#F3F4F6", backdropFilter: "blur(12px)", fontSize: "12px" }}
+                        formatter={(value, name) => [value + " classes", String(name ?? "")]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-1 mt-2 shrink-0">
+                  {(jlpt?.levels ?? []).map((item: JlptLevelCount) => (
+                    <div key={item.level} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: JLPT_COLORS[item.level] ?? "oklch(0.7 0.1 200)" }} />
+                        <span className="text-secondary-col">{item.level}</span>
+                      </div>
+                      <span className="font-bold text-primary-col">{item.count} ({item.percentage.toFixed(0)}%)</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="card-base p-4 flex-1 min-h-0 flex flex-col">
+            <h2 className="font-display font-bold text-xs text-primary-col mb-3 flex items-center gap-2 shrink-0">
+              <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-pending)]" />
+              Pending Approvals
+            </h2>
+            <div className="flex-1 min-h-0 flex flex-col justify-center space-y-1.5">
+              <Link to="/admin/teachers" className="flex items-center justify-between p-2 rounded-lg glass-surface hover:bg-[var(--accent)] transition group">
+                <span className="text-xs font-semibold text-[var(--status-teacher)]">Teachers</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[var(--status-pending)]">{loading ? "--" : (summary?.pendingTeachers ?? 0)}</span>
+                  <ChevronRight className="w-3 h-3 text-muted-col group-hover:text-primary transition" />
                 </div>
               </Link>
-            ))}
+              <Link to="/admin/content-library" className="flex items-center justify-between p-2 rounded-lg glass-surface hover:bg-[var(--accent)] transition group">
+                <span className="text-xs font-semibold text-primary">Content</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-[var(--status-pending)]">{loading ? "--" : (summary?.pendingContent ?? 0)}</span>
+                  <ChevronRight className="w-3 h-3 text-muted-col group-hover:text-primary transition" />
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
