@@ -4,6 +4,7 @@ import com.midori.common.ApiResponse;
 import com.midori.dto.request.BanUserRequest;
 import com.midori.dto.response.AdminTeacherCertificateResponse;
 import com.midori.dto.response.AdminTeacherResponse;
+import com.midori.dto.response.AdminTeacherStatsResponse;
 import com.midori.entity.Role;
 import com.midori.entity.UserStatus;
 import com.midori.exception.BadRequestException;
@@ -43,6 +44,12 @@ public class AdminController {
     public ResponseEntity<ApiResponse<List<AdminTeacherResponse>>> getActiveTeachers() {
         List<AdminTeacherResponse> teachers = adminUserService.getActiveTeachers();
         return ResponseEntity.ok(ApiResponse.success(teachers));
+    }
+
+    @GetMapping("/teachers/stats")
+    public ResponseEntity<ApiResponse<AdminTeacherStatsResponse>> getTeacherStats() {
+        AdminTeacherStatsResponse stats = adminUserService.getTeacherStats();
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
     @PutMapping("/{userId}/approve")
