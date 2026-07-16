@@ -58,7 +58,7 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     public Optional<ClassEntity> getClassById(UUID id) {
-        return classRepository.findById(id);
+        return Optional.ofNullable(classRepository.findByIdWithDetails(id));
     }
 
     @Override
@@ -470,6 +470,21 @@ public class ClassServiceImpl implements ClassService {
     @Override
     public List<ClassResponse> getSelectableClasses(UUID teacherId) {
         List<ClassEntity> classes = classRepository.findActiveByTeacherId(teacherId);
+        return classes.stream().map(this::mapToClassResponse).toList();
+    }
+
+    @Override
+    public List<ClassResponse> getMyClasses(UUID teacherId, String status) {
+        List<ClassEntity> classes;
+        if (status == null || status.trim().isEmpty() || "ALL".equalsIgnoreCase(status)) {
+            classes = classRepository.findByTeacherId(teacherId);
+        } else if ("ACTIVE".equalsIgnoreCase(status)) {
+            classes = classRepository.findByTeacherIdAndStatus(teacherId, ClassEntity.ClassStatus.ACTIVE);
+        } else if ("ARCHIVED".equalsIgnoreCase(status)) {
+            classes = classRepository.findByTeacherIdAndStatus(teacherId, ClassEntity.ClassStatus.ARCHIVED);
+        } else {
+            classes = classRepository.findByTeacherId(teacherId);
+        }
         return classes.stream().map(this::mapToClassResponse).toList();
     }
 }
