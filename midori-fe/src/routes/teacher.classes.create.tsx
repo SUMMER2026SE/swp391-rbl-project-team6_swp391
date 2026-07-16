@@ -43,6 +43,14 @@ function CreateClass() {
     capacity: 20,
   });
 
+  const handleBack = () => {
+    if (step === 0) {
+      navigate({ to: "/teacher/classes" });
+      return;
+    }
+    setStep((s) => Math.max(0, s - 1));
+  };
+
   if (created) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
@@ -68,7 +76,7 @@ function CreateClass() {
 
   const canNext = () => {
     if (step === 0) return form.name.trim().length > 2;
-    if (step === 1) return form.schedule.trim().length > 2 && form.startDate;
+    if (step === 1) return true;
     if (step === 2) return form.capacity > 0;
     return true;
   };
@@ -224,9 +232,13 @@ function CreateClass() {
           )}
 
           <div className="mt-6 flex items-center justify-between gap-2">
-            <Button variant="outline" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              aria-label={step === 0 ? "Back to My Classes" : "Previous step"}
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+              {step === 0 ? "Back to My Classes" : "Back"}
             </Button>
             {step < steps.length - 1 ? (
               <Button disabled={!canNext()} onClick={() => setStep((s) => s + 1)}>
