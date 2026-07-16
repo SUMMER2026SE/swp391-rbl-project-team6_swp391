@@ -24,4 +24,5 @@ public class UserResponse {
     private Boolean emailVerified;
     private Instant createdAt;
     private Instant updatedAt;
+    private Integer currentStreak;
 }
