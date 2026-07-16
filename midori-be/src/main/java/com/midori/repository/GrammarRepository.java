@@ -71,4 +71,6 @@ public interface GrammarRepository extends JpaRepository<Grammar, UUID> {
     // For admin to see grammars with pending updates
     @Query("SELECT g FROM Grammar g LEFT JOIN FETCH g.createdBy u LEFT JOIN FETCH u.profile WHERE g.status = 'APPROVED' AND g.hasPendingUpdate = true ORDER BY g.updatedAt DESC")
     List<Grammar> findAllApprovedWithPendingUpdate();
+
+    List<Grammar> findAllByOrderByCreatedAtDesc(org.springframework.data.domain.Pageable pageable);
 }
