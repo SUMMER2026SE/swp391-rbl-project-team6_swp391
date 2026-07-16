@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +24,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findByRoleAndStatus(Role role, UserStatus status);
 
+    long countByRole(Role role);
+
+    long countByRoleAndStatus(Role role, UserStatus status);
+
+    long countByStatus(UserStatus status);
+
+    long countByRoleAndStatusAndCreatedAtBetween(
+            Role role, UserStatus status, Instant startInclusive, Instant endExclusive);
+
+    @Query("SELECT COUNT(DISTINCT c.teacher.id) FROM TeacherCertificate c WHERE c.teacher.role = :role AND c.teacher.status = :status")
+    long countTeachersWithCertificates(@Param("role") Role role, @Param("status") UserStatus status);
+
     @Query("SELECT DISTINCT u FROM User u JOIN u.assignedClasses c WHERE c.id = :classId")
     List<User> findByAssignedClassId(@Param("classId") UUID classId);
 
@@ -34,12 +47,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN u.assignedClasses c WHERE (c.id = :classId OR u.id IN (SELECT cl.teacher.id FROM ClassEntity cl WHERE cl.id = :classId)) AND u.status = :status")
     List<User> findAllMembersByClassIdAndStatus(@Param("classId") UUID classId, @Param("status") UserStatus status);
-
-    long countByRole(Role role);
-
-    long countByRoleAndStatus(Role role, UserStatus status);
-
-    long countByStatus(UserStatus status);
 
     @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.assignedClasses c WHERE c.id = :classId AND u.status = :status")
     long countByAssignedClassIdAndStatus(@Param("classId") UUID classId, @Param("status") UserStatus status);
