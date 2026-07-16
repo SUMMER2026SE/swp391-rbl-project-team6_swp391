@@ -33,6 +33,7 @@ export function useSavedWords() {
       if (exists) return prev;
       const updated = [word, ...prev].slice(0, 500); // Keep max 500 words
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event("midori_saved_words_changed"));
       return updated;
     });
   }, []);
@@ -43,6 +44,7 @@ export function useSavedWords() {
         (w) => !(w.word === word && w.reading === reading)
       );
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event("midori_saved_words_changed"));
       return updated;
     });
   }, []);
@@ -55,6 +57,31 @@ export function useSavedWords() {
     },
     [savedWords]
   );
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        setSavedWords(stored ? JSON.parse(stored) : []);
+      } catch {
+        setSavedWords([]);
+      }
+    };
+
+    window.addEventListener("midori_saved_words_changed", handleStorageChange);
+    
+    const handleWindowStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        handleStorageChange();
+      }
+    };
+    window.addEventListener("storage", handleWindowStorage);
+
+    return () => {
+      window.removeEventListener("midori_saved_words_changed", handleStorageChange);
+      window.removeEventListener("storage", handleWindowStorage);
+    };
+  }, []);
 
   return { savedWords, saveWord, removeWord, isWordSaved };
 }

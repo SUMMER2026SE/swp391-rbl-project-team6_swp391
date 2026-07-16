@@ -57,8 +57,7 @@ function AlphabetOverviewPage() {
       tags: [
         { label: "46 basic characters", icon: "📖" },
         { label: "Voiced", icon: "✓" },
-        { label: "Combinations", icon: "✓" },
-        { label: "Loanwords", icon: "✓" }
+        { label: "Combinations", icon: "✓" }
       ],
       lessons: KATAKANA_LESSONS,
     },
@@ -177,7 +176,7 @@ function AlphabetOverviewPage() {
                           {progress.completed && <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-semibold">
-                          {totalCount} {lesson.id === "katakana-loanwords" ? "words" : "characters"}
+                          {totalCount} characters
                         </p>
                       </div>
 

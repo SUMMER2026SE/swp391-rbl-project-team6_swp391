@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { api } from "./api/client";
 import { authApi } from "./api/auth";
 import { profileApi, type ProfileResponse } from "./api/profile";
+import { classesApi } from "./api/classes";
 import type { LoginRequest, RegisterRequest, Role, UserResponse, UserStatus } from "./api/types";
 
 export type FrontendRole = "student" | "teacher" | "admin";
@@ -13,15 +14,10 @@ export type StudentStatus = "GUEST" | "ACTIVE";
 export function isStudentActive(user: Pick<User, "role" | "status" | "classId"> | null): boolean {
   if (!user || user.role !== "student") return false;
 
-  // Student must have ACTIVE status AND (optionally) a classId to be considered active
-  // If status is not ACTIVE, student is considered GUEST
+  // Student must have ACTIVE status AND a classId to be considered active
   if (user.status !== "ACTIVE") return false;
 
-  // If student has classId, definitely active
-  if ("classId" in user && user.classId) return true;
-
-  // If status is ACTIVE (backend sets this when student joins a class)
-  return user.status === "ACTIVE";
+  return !!("classId" in user && user.classId);
 }
 
 // Helper to check if user is a guest student (not joined any class)
@@ -155,18 +151,30 @@ function mergeUser(storedUser: User | null, apiUser: User): User {
 }
 
 async function hydrateWithProfile(baseUser: User): Promise<User> {
+  let user = { ...baseUser };
   try {
     const profile: ProfileResponse = await profileApi.getMyProfile();
     const profileAvatar = isAvatar(profile.avatarUrl) ? profile.avatarUrl : null;
     const profileName = isAvatar(profile.displayName) ? profile.displayName : null;
-    return {
-      ...baseUser,
-      name: profileName ?? baseUser.name,
-      avatar: profileAvatar ?? baseUser.avatar ?? null,
+    user = {
+      ...user,
+      name: profileName ?? user.name,
+      avatar: profileAvatar ?? user.avatar ?? null,
     };
-  } catch {
-    return baseUser;
+  } catch {}
+
+  if (user.role === "student") {
+    try {
+      const classes = await classesApi.getJoinedClasses();
+      if (classes && classes.length > 0) {
+        user.classId = classes[0].id;
+      } else {
+        user.classId = null;
+      }
+    } catch {}
   }
+
+  return user;
 }
 
 export function rolePath(role: FrontendRole) {

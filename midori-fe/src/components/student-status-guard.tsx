@@ -32,6 +32,7 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
 
   // Default public routes for all students
   const defaultPublicRoutes = [
+    "/student/landing",
     "/student/profile",
     "/student/settings",
     "/student/settings/theme",
@@ -63,9 +64,9 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
     );
 
     // Guest students (not joined any class) cannot access protected routes
-    // Redirect to intro page where they can learn about the program and join a class
+    // Redirect to landing page where they can see info about the platform
     if (user.role === "student" && !isStudentActive(user) && !isPublicRoute) {
-      nav({ to: "/student/intro", replace: true });
+      nav({ to: "/student/landing", replace: true });
       return;
     }
   }, [loaded, user, role, nav, routerState.location.pathname, allPublicRoutes]);
@@ -87,6 +88,7 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
 
   // Block guest students from protected routes
   if (user.role === "student" && !isStudentActive(user) && !isPublicRoute) {
+    // Don't render - redirect will happen in useEffect
     return null;
   }
 

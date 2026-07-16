@@ -77,19 +77,7 @@ export const ALPHABET_LESSONS = [
     totalCharacters: 33,
     color: "from-cyan-400 to-sky-500",
     icon: "キャ",
-  },
-  {
-    id: "katakana-loanwords",
-    title: "Katakana Loanwords",
-    subtitle: "Foreign Words in Japanese",
-    type: "katakana" as const,
-    subType: "loanwords" as const,
-    path: "/student/learning/alphabet/katakana/loanwords",
-    difficulty: 4,
-    totalCharacters: 70,
-    color: "from-amber-400 to-orange-500",
-    icon: "ツ",
-  },
+  }
 ];
 
 export const HIRAGANA_LESSONS = ALPHABET_LESSONS.filter((l) => l.type === "hiragana");

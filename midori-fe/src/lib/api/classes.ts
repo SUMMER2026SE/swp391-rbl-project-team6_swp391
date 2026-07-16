@@ -8,6 +8,7 @@ export interface ClassResponse {
   description: string;
   status: "ACTIVE" | "ARCHIVED";
   teacherId: string;
+  teacherName?: string;
   studentCount?: number;
   homeworkCount?: number;
   upcomingExamCount?: number;

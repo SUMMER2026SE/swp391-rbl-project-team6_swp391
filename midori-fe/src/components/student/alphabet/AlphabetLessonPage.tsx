@@ -87,10 +87,11 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
   // Quiz state
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [quizIdx, setQuizIdx] = useState(0);
-  const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
+  const [userAnswers, setUserAnswers] = useState<(string | null)[]>([]);
   const [quizScore, setQuizScore] = useState(0);
   const [quizFinished, setQuizFinished] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [selectedQuizDetailIdx, setSelectedQuizDetailIdx] = useState<number | null>(null);
 
   // Load progress from localStorage
   useEffect(() => {
@@ -166,38 +167,32 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
 
   // Handle answer selection
   const handleAnswer = (answer: string) => {
-    setQuizAnswer(answer);
-    const isCorrect = answer === quizQuestions[quizIdx].correctAnswer;
-    if (isCorrect) {
-      setQuizScore((s) => s + 1);
-      setCurrentStreak((s) => s + 1);
-    } else {
-      setCurrentStreak(0);
-    }
+    const updatedAnswers = [...userAnswers];
+    updatedAnswers[quizIdx] = answer;
+    setUserAnswers(updatedAnswers);
   };
 
-  // Handle next question
-  const handleNextQuestion = () => {
-    if (quizIdx < quizQuestions.length - 1) {
-      setQuizIdx((i) => i + 1);
-      setQuizAnswer(null);
-    } else {
-      // Finish quiz
-      const finalScore = Math.round(
-        ((quizScore + (quizAnswer === quizQuestions[quizIdx].correctAnswer ? 1 : 0)) /
-          quizQuestions.length) *
-          100,
-      );
-      const newProgress = {
-        ...progress,
-        completed: finalScore >= 70,
-        score: Math.max(progress.score, finalScore),
-        attempts: progress.attempts + 1,
-      };
-      saveProgress(newProgress);
-      setQuizFinished(true);
-      if (onComplete) onComplete(finalScore);
-    }
+  // Submit and grade quiz
+  const submitQuiz = () => {
+    let correctCount = 0;
+    quizQuestions.forEach((q, idx) => {
+      if (userAnswers[idx] === q.correctAnswer) {
+        correctCount++;
+      }
+    });
+    setQuizScore(correctCount);
+
+    const finalScore = Math.round((correctCount / quizQuestions.length) * 100);
+    const newProgress = {
+      ...progress,
+      completed: finalScore >= 70,
+      score: Math.max(progress.score, finalScore),
+      attempts: progress.attempts + 1,
+    };
+    saveProgress(newProgress);
+    setQuizFinished(true);
+    setSelectedQuizDetailIdx(0); // Automatically show details of the first question
+    if (onComplete) onComplete(finalScore);
   };
 
   // Reset and start quiz with selected mode
@@ -205,10 +200,11 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
     const questions = generateQuizQuestions(mode);
     setQuizQuestions(questions);
     setQuizIdx(0);
-    setQuizAnswer(null);
+    setUserAnswers(new Array(questions.length).fill(null));
     setQuizScore(0);
     setCurrentStreak(0);
     setQuizFinished(false);
+    setSelectedQuizDetailIdx(null);
     setQuizMode(mode);
     setViewMode("quiz");
   };
@@ -416,8 +412,10 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
     const question = quizQuestions[quizIdx];
     const isRomajiToChar = question?.type === "romaji-to-char";
 
+    const allAnswered = userAnswers.length === quizQuestions.length && userAnswers.every((ans) => ans !== null);
+
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Progress & Score Row */}
         <div className="flex justify-between items-center text-xs font-bold text-slate-500 pb-1">
           <span>
@@ -427,7 +425,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
             {isRomajiToChar ? "Romaji → Character" : "Character → Romaji"}
           </span>
           <span>
-            Score: <span className="text-primary font-black">{quizScore}</span>
+            Answered: <span className="text-primary font-black">{userAnswers.filter((ans) => ans !== null).length}</span>/{quizQuestions.length}
           </span>
         </div>
         
@@ -439,13 +437,15 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           />
         </div>
 
+
+
         {/* Question Card */}
         <motion.div
           key={quizIdx}
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200/60 dark:border-white/10 flex flex-col items-center justify-center p-8 gap-4 bg-white dark:bg-slate-900"
-          style={{ minHeight: "260px" }}
+          className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200/60 dark:border-white/10 flex flex-col items-center justify-center p-5 gap-2 bg-white dark:bg-slate-900"
+          style={{ minHeight: "180px" }}
         >
           {/* Background decoration */}
           <div 
@@ -472,29 +472,22 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
               </div>
             )}
           </div>
-
         </motion.div>
 
         {/* Answer Options Grid (2x2) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {question.options.map((option, idx) => {
             const prefix = ["A", "B", "C", "D"][idx];
-            const isCorrect = option === question.correctAnswer;
-            const isSelected = quizAnswer === option;
+            const isSelected = userAnswers[quizIdx] === option;
 
             return (
               <button
                 key={option}
-                onClick={() => !quizAnswer && handleAnswer(option)}
-                disabled={!!quizAnswer}
+                onClick={() => handleAnswer(option)}
                 className={cn(
-                  "p-4.5 rounded-2xl font-bold transition-all shadow-xs cursor-pointer border flex items-center gap-3.5 text-left w-full",
-                  quizAnswer
-                    ? isCorrect
-                      ? "bg-green-500 text-white border-green-600 shadow-md shadow-green-500/20"
-                      : isSelected
-                        ? "bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20"
-                        : "bg-slate-100 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 border-slate-200/40 dark:border-white/5"
+                  "p-3.5 rounded-2xl font-bold transition-all shadow-xs cursor-pointer border flex items-center gap-3.5 text-left w-full",
+                  isSelected
+                    ? "bg-primary/10 text-primary border-primary shadow-md shadow-primary/5"
                     : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5"
                 )}
               >
@@ -502,15 +495,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                 <div 
                   className={cn(
                     "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 border select-none transition-colors",
-                    quizAnswer
-                      ? isCorrect
-                        ? "bg-white text-green-600 border-white"
-                        : isSelected
-                          ? "bg-white text-red-600 border-white"
-                          : "bg-slate-200/50 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-transparent"
-                      : isSelected
-                        ? "bg-purple-500 text-white border-purple-600"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/10"
+                    isSelected
+                      ? "bg-primary text-white border-primary"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/10"
                   )}
                 >
                   {prefix}
@@ -530,32 +517,48 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           })}
         </div>
 
-        {/* Skip & Next Button */}
+        {/* Back & Next/Submit Button */}
         <div className="flex items-center justify-between gap-4 pt-2">
           <Button
-            onClick={() => {
-              if (!quizAnswer) {
-                setQuizAnswer("");
-                setCurrentStreak(0);
-              }
-            }}
-            disabled={!!quizAnswer}
+            onClick={() => quizIdx > 0 && setQuizIdx(quizIdx - 1)}
+            disabled={quizIdx === 0}
             variant="outline"
             className="px-6 py-5 rounded-2xl border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs text-xs"
           >
-            Skip
+            <ChevronLeft className="w-4 h-4" />
+            Back
           </Button>
 
-          {quizAnswer !== null && (
+          {quizIdx < quizQuestions.length - 1 ? (
             <Button
-              onClick={handleNextQuestion}
+              onClick={() => setQuizIdx(quizIdx + 1)}
               className="flex-1 py-5 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer shadow-md text-xs"
             >
-              Next Question
-              <ArrowRight className="w-4 h-4" />
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={submitQuiz}
+              disabled={!allAnswered}
+              className={cn(
+                "flex-1 py-5 text-white font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md text-xs",
+                allAnswered 
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-95" 
+                  : "bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-600 cursor-not-allowed border-slate-200 dark:border-white/10"
+              )}
+            >
+              Chấm điểm
+              <CheckCircle2 className="w-4 h-4" />
             </Button>
           )}
         </div>
+
+        {!allAnswered && quizIdx === quizQuestions.length - 1 && (
+          <p className="text-center text-[10px] text-red-500 font-bold uppercase tracking-wider mt-2">
+            * Bạn phải trả lời tất cả các câu hỏi để chấm điểm
+          </p>
+        )}
       </div>
     );
   };
@@ -570,25 +573,111 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-slate-200 dark:border-white/10 shadow-xl space-y-4"
+          className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-white/10 shadow-xl space-y-6"
         >
-          {passed ? (
-            <Trophy className="w-16 h-16 mx-auto text-yellow-500 animate-bounce" />
-          ) : (
-            <XCircle className="w-16 h-16 mx-auto text-red-500" />
-          )}
+          <div className="text-center space-y-4">
+            {passed ? (
+              <Trophy className="w-16 h-16 mx-auto text-yellow-500 animate-bounce" />
+            ) : (
+              <XCircle className="w-16 h-16 mx-auto text-red-500" />
+            )}
 
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white">
-            {passed ? "Congratulations! 🎉" : "Keep Practicing! 💪"}
-          </h2>
+            <h2 className="text-2xl font-black text-slate-800 dark:text-white">
+              {passed ? "Congratulations! 🎉" : "Keep Practicing! 💪"}
+            </h2>
 
-          <div className="text-6xl font-black text-primary leading-none">{percentage}%</div>
+            <div className="text-6xl font-black text-primary leading-none">{percentage}%</div>
 
-          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-            You answered {quizScore} out of {quizQuestions.length} questions correctly.
-          </p>
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+              Bạn đã trả lời đúng {quizScore} trên tổng số {quizQuestions.length} câu hỏi.
+            </p>
+          </div>
 
-          <div className="flex gap-3 pt-2">
+          {/* Details of right and wrong answers */}
+          {selectedQuizDetailIdx !== null && quizQuestions[selectedQuizDetailIdx] && (() => {
+            const q = quizQuestions[selectedQuizDetailIdx];
+            const userAns = userAnswers[selectedQuizDetailIdx];
+            const isCorrect = userAns === q.correctAnswer;
+            
+            return (
+              <div className="border-t border-slate-100 dark:border-white/5 pt-6 text-left">
+                <h3 className="text-xs font-black text-slate-700 dark:text-white uppercase tracking-wider mb-4 flex items-center justify-between">
+                  <span>Chi tiết Câu {selectedQuizDetailIdx + 1}</span>
+                  <span className={cn(
+                    "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase",
+                    isCorrect ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                  )}>
+                    {isCorrect ? "Đúng" : "Sai"}
+                  </span>
+                </h3>
+                
+                <div 
+                  className={cn(
+                    "p-5 rounded-2xl border flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/50",
+                    isCorrect 
+                      ? "border-green-200/50 dark:border-green-900/30"
+                      : "border-red-200/50 dark:border-red-900/30"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                        Câu hỏi
+                      </div>
+                      <div className="text-lg font-black text-slate-800 dark:text-white">
+                        {q.type === "char-to-romaji" ? (
+                          <>
+                            Chữ: <span style={{ fontFamily: "var(--font-japanese)" }} className="text-2xl ml-1 text-primary">{q.char}</span>
+                            <span className="text-xs font-medium block text-slate-500 mt-1">(Tìm Romaji tương ứng)</span>
+                          </>
+                        ) : (
+                          <>
+                            Romaji: <span className="text-2xl ml-1 text-primary">{q.romaji}</span>
+                            <span className="text-xs font-medium block text-slate-500 mt-1">(Tìm chữ viết tương ứng)</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-white/5">
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase">
+                        Đáp án đúng
+                      </div>
+                      <div className="text-sm font-bold text-green-600 dark:text-green-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        <span style={q.type !== "char-to-romaji" ? { fontFamily: "var(--font-japanese)" } : {}} className="text-base">
+                          {q.correctAnswer}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase">
+                        Bạn đã chọn
+                      </div>
+                      <div className={cn(
+                        "text-sm font-bold flex items-center gap-1.5",
+                        isCorrect ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                      )}>
+                        {isCorrect ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <span style={q.type !== "char-to-romaji" ? { fontFamily: "var(--font-japanese)" } : {}} className="text-base">
+                          {userAns || "Bỏ qua / Trống"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
             <Button
               onClick={() => {
                 setViewMode("learn");
@@ -654,9 +743,9 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                 if (mode.id === "quiz" && quizQuestions.length === 0) {
                   const questions = generateQuizQuestions(quizMode);
                   setQuizQuestions(questions);
+                  setUserAnswers(new Array(questions.length).fill(null));
                 }
                 setViewMode(mode.id);
-                setQuizAnswer(null);
               }}
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
@@ -751,101 +840,116 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           {/* Right Column: Information Sidebars */}
           <div className="lg:col-span-4 space-y-6">
             {viewMode === "quiz" && !quizFinished ? (
-              <>
-                {/* Quiz Sidebar 1: Your Progress */}
-                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 p-5 rounded-3xl shadow-sm flex flex-col gap-4">
+              /* Sidebar: Quiz Question navigation grid */
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 p-5 rounded-3xl shadow-sm flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-200">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2.5">
                   <h3 className="text-xs font-black text-slate-700 dark:text-white uppercase tracking-wider">
-                    Your Progress
+                    Danh sách câu hỏi
                   </h3>
-                  
-                  {/* Radial Progress */}
-                  <div className="flex flex-col items-center justify-center py-2 relative">
-                    <svg className="w-24 h-24 transform -rotate-90">
-                      <circle
-                        cx="48"
-                        cy="48"
-                        r="40"
-                        className="stroke-slate-100 dark:stroke-slate-800"
-                        strokeWidth="8"
-                        fill="transparent"
-                      />
-                      <circle
-                        cx="48"
-                        cy="48"
-                        r="40"
-                        className="stroke-primary transition-all duration-500"
-                        strokeWidth="8"
-                        fill="transparent"
-                        strokeDasharray="251.2"
-                        strokeDashoffset={251.2 - (251.2 * progressPercent) / 100}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-base font-black text-slate-800 dark:text-white">{progressPercent}%</span>
-                      <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Best Score</span>
-                    </div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                      {progress.charactersLearned.length} / {lesson.characters.length} correct
-                    </span>
+                  <span className="text-[10px] font-bold text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                    Đã làm {userAnswers.filter((ans) => ans !== null).length}/{quizQuestions.length}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2">
+                  {quizQuestions.map((_, idx) => {
+                    const isCurrent = idx === quizIdx;
+                    const isAnswered = userAnswers[idx] !== null;
                     
-                    {/* Horizontal Progress */}
-                    <div className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-full mt-2.5 overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${progressPercent}%` }} />
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Quiz Sidebar 2: Accuracy */}
-                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 p-4.5 rounded-3xl shadow-sm flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/20">
-                    <Target className="w-5 h-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Accuracy</span>
-                    <span className="text-lg font-black text-slate-800 dark:text-white leading-none mt-1">
-                      {quizIdx > 0 ? Math.round((quizScore / quizIdx) * 100) : 100}%
-                    </span>
-                    <span className="text-[9px] text-muted-foreground mt-0.5 font-bold">This session</span>
-                  </div>
-                </Card>
-              </>
-            ) : (
-              <>
-                {/* Sidebar 1: Character Set */}
-                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 p-5 rounded-3xl shadow-sm flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-black text-slate-700 dark:text-white uppercase tracking-wider">
-                      Character Set
-                    </h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-5 gap-2.5">
-                    {lesson.characters.map((char, idx) => (
+                    return (
                       <button
-                        key={char.id}
-                        onClick={() => {
-                          setCurrentCharIdx(idx);
-                          setViewMode("learn");
-                        }}
+                        key={idx}
+                        onClick={() => setQuizIdx(idx)}
                         className={cn(
-                          "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition-all cursor-pointer border select-none",
-                          currentCharIdx === idx
-                            ? "bg-purple-500 hover:bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/25"
-                            : progress.charactersLearned.includes(char.id)
-                              ? "bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800/30"
-                              : "bg-slate-50 dark:bg-slate-800/60 border-slate-200/50 dark:border-white/5 hover:border-slate-300 text-slate-700 dark:text-slate-300"
+                          "py-2 px-1 rounded-xl text-[10px] font-black transition-all cursor-pointer border flex flex-col items-center justify-center gap-1 select-none",
+                          isCurrent
+                            ? "bg-primary text-white border-primary shadow-md shadow-primary/25"
+                            : isAnswered
+                              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30 hover:bg-emerald-100/70"
+                              : "bg-slate-50 dark:bg-slate-800/60 border-slate-200/50 dark:border-white/5 hover:border-slate-300 text-slate-400 dark:text-slate-500"
                         )}
                       >
-                        {char.character}
+                        <span>Câu {idx + 1}</span>
                       </button>
-                    ))}
-                  </div>
-                </Card>
-              </>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : quizFinished ? (
+              /* Sidebar: Quiz Question results grid */
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 p-5 rounded-3xl shadow-sm flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-200">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2.5">
+                  <h3 className="text-xs font-black text-slate-700 dark:text-white uppercase tracking-wider">
+                    Kết quả câu hỏi
+                  </h3>
+                  <span className="text-[10px] font-bold text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                    Đúng {quizScore}/{quizQuestions.length}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2">
+                  {quizQuestions.map((q, idx) => {
+                    const userAns = userAnswers[idx];
+                    const isCorrect = userAns === q.correctAnswer;
+                    const isSelected = selectedQuizDetailIdx === idx;
+                    
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedQuizDetailIdx(idx)}
+                        className={cn(
+                          "py-2 px-1 rounded-xl text-[10px] font-black transition-all cursor-pointer border flex flex-col items-center justify-center gap-1 select-none",
+                          isCorrect
+                            ? isSelected
+                              ? "bg-green-500 text-white border-green-600 shadow-md shadow-green-500/25"
+                              : "bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800/30 hover:bg-green-100/70"
+                            : isSelected
+                              ? "bg-red-500 text-white border-red-600 shadow-md shadow-red-500/25"
+                              : "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/30 hover:bg-red-100/70"
+                        )}
+                      >
+                        <span>Câu {idx + 1}</span>
+                        {isCorrect ? (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : (
+              /* Sidebar 1: Character Set */
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 p-5 rounded-3xl shadow-sm flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-700 dark:text-white uppercase tracking-wider">
+                    Character Set
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-5 gap-2.5">
+                  {lesson.characters.map((char, idx) => (
+                    <button
+                      key={char.id}
+                      onClick={() => {
+                        setCurrentCharIdx(idx);
+                        setViewMode("learn");
+                      }}
+                      className={cn(
+                        "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition-all cursor-pointer border select-none",
+                        currentCharIdx === idx
+                          ? "bg-purple-500 hover:bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/25"
+                          : progress.charactersLearned.includes(char.id)
+                            ? "bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800/30"
+                            : "bg-slate-50 dark:bg-slate-800/60 border-slate-200/50 dark:border-white/5 hover:border-slate-300 text-slate-700 dark:text-slate-300"
+                      )}
+                    >
+                      {char.character}
+                    </button>
+                  ))}
+                </div>
+              </Card>
             )}
           </div>
         </div>

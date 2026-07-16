@@ -17,7 +17,6 @@ export interface AlphabetProgress {
   katakanaBasic: LessonProgress;
   katakanaDakuten: LessonProgress;
   katakanaCombination: LessonProgress;
-  katakanaLoanwords: LessonProgress;
 }
 
 export interface OverallProgress {
@@ -51,7 +50,7 @@ export const createDefaultOverallProgress = (): OverallProgress => ({
   totalCharactersLearned: 0,
   totalCharactersMastered: 0,
   lessonsCompleted: 0,
-  totalLessons: 7,
+  totalLessons: 6,
   quizzesTaken: 0,
   averageScore: 0,
   streak: 0,

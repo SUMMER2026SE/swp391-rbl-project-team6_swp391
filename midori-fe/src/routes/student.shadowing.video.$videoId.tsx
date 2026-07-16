@@ -131,7 +131,6 @@ function VideoLearningPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("both");
   const [activeTab, setActiveTab] = useState<"transcript" | "vocabulary" | "grammar">("transcript");
 
@@ -593,20 +592,7 @@ function VideoLearningPage() {
             </span>
           </div>
 
-          {/* Right: action buttons */}
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setIsFavorite(!isFavorite)}
-              className={cn(
-                "w-8 h-8 rounded-lg border flex items-center justify-center transition",
-                isFavorite
-                  ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-900/20 dark:border-red-700/40"
-                  : "border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-400 hover:border-red-200 dark:hover:border-red-700/40"
-              )}
-              title="Yêu thích"
-            >
-              <Heart className={cn("w-4 h-4", isFavorite && "fill-current")} />
-            </button>
             <Button
               onClick={handleStartShadowing}
               className="rounded-xl h-9 px-4 font-black bg-gradient-hero text-white hover:opacity-90 shadow-md transition flex items-center gap-1.5 text-xs cursor-pointer"

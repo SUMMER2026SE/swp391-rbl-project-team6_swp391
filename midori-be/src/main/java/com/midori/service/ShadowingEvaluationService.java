@@ -37,6 +37,7 @@ public class ShadowingEvaluationService {
     private final AIFeedbackProvider geminiFeedbackProvider;
     private final EvaluationCache evaluationCache;
     private final EvaluationLogger evaluationLogger;
+    private final PracticeSuggestionService practiceSuggestionService;
 
     public ShadowingEvaluationResponse evaluateSentence(MultipartFile audioFile,
                                                         String videoId,
@@ -120,6 +121,8 @@ public class ShadowingEvaluationService {
         log.info("[TRACE] id={} event=EVALUATION_COMPUTED sentenceId={} overall={} accuracy={} similarity={}", traceId, transcript.getId(), evaluated.getOverallScore(), evaluated.getAccuracy(), evaluated.getSimilarity());
 
         ShadowingEvaluationResponse response;
+        List<String> practiceSuggestions;
+
         if (evaluated.isNeedsAI() && geminiFeedbackProvider.isConfigured()) {
             SimilarityMetrics metrics = evaluated.getSimilarityMetrics() != null
                     ? evaluated.getSimilarityMetrics()
@@ -130,7 +133,11 @@ public class ShadowingEvaluationService {
                     .wrongWordsCount(evaluated.getWrongWords().size())
                     .build();
             try {
-                List<String> feedback = geminiFeedbackProvider.generateFeedback(reference, sttResult.transcript(), metrics, evaluated.getConfidence()).getFeedback();
+                PronunciationFeedback aiFeedback = geminiFeedbackProvider.generateFeedback(
+                        reference, sttResult.transcript(), metrics, evaluated.getConfidence());
+                List<String> aiSuggestions = aiFeedback.getFeedback();
+                // Merge AI suggestions with rule-based suggestions
+                practiceSuggestions = practiceSuggestionService.generateWithAI(evaluated, aiSuggestions);
                 response = ShadowingEvaluationResponse.withAI(
                         evaluated.getOverallScore(),
                         evaluated.getAccuracy(),
@@ -138,28 +145,35 @@ public class ShadowingEvaluationService {
                         evaluated.getMissingWords(),
                         evaluated.getExtraWords(),
                         evaluated.getWrongWords(),
-                        feedback
+                        aiSuggestions,
+                        practiceSuggestions
                 );
                 log.info("[TRACE] id={} event=AI_FEEDBACK_GENERATED sentenceId={}", traceId, transcript.getId());
             } catch (Exception ex) {
                 log.warn("[TRACE] id={} event=AI_FEEDBACK_FAILED sentenceId={} reason={}", traceId, transcript.getId(), ex.getMessage());
+                // Fallback to rule-based suggestions when AI fails
+                practiceSuggestions = practiceSuggestionService.generateSuggestions(evaluated);
                 response = ShadowingEvaluationResponse.immediate(
                         evaluated.getOverallScore(),
                         evaluated.getAccuracy(),
                         evaluated.getSimilarity(),
                         evaluated.getMissingWords(),
                         evaluated.getExtraWords(),
-                        evaluated.getWrongWords()
+                        evaluated.getWrongWords(),
+                        practiceSuggestions
                 );
             }
         } else {
+            // Generate rule-based suggestions when AI is not used
+            practiceSuggestions = practiceSuggestionService.generateSuggestions(evaluated);
             response = ShadowingEvaluationResponse.immediate(
                     evaluated.getOverallScore(),
                     evaluated.getAccuracy(),
                     evaluated.getSimilarity(),
                     evaluated.getMissingWords(),
                     evaluated.getExtraWords(),
-                    evaluated.getWrongWords()
+                    evaluated.getWrongWords(),
+                    practiceSuggestions
             );
             log.info("[TRACE] id={} event=AI_FEEDBACK_SKIPPED sentenceId={} needsAI={}", traceId, transcript.getId(), evaluated.isNeedsAI());
         }

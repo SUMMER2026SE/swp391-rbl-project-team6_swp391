@@ -22,6 +22,7 @@ public class ClassResponse {
     private String description;
     private ClassStatus status;
     private UUID teacherId;
+    private String teacherName;
     private Integer studentCount;
     private Integer homeworkCount;
     private Integer upcomingExamCount;

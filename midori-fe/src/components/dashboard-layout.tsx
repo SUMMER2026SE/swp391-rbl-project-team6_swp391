@@ -12,13 +12,24 @@ import { AdminFooter } from "@/components/layout/AdminFooter";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
+import { useQuery } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   ShieldCheck, ChevronRight, Menu, Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft,
   FileText, FileBarChart, FolderOpen, BookUser, Library, School, UserPlus, ClipboardList,
   Users, Settings, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText, Brain,
-  ChartColumn, BookText, Lock, BookOpenCheck, Map, Plus, X
+  ChartColumn, BookText, Lock, BookOpenCheck, Map, Plus, X, Info, Phone
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -31,6 +42,8 @@ type NavItemBase = {
   icon: React.ElementType;
   badge?: number;
   disabled?: boolean;
+  dividerBefore?: boolean;
+  dividerAfter?: boolean;
 };
 type NavSubItem = {
   to: string;
@@ -100,6 +113,22 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
   { to: "/student/profile", label: "Profile", icon: User },
 ];
 
+const unassignedStudentNav: NavItem[] = [
+  { to: "/student/dashboard", label: "Home", icon: LayoutDashboard },
+  { to: "landing-about", label: "About", icon: Info },
+  { to: "landing-teachers", label: "Teachers", icon: GraduationCap },
+  { to: "landing-courses", label: "Courses", icon: School, dividerAfter: true },
+  
+  { to: "locked-lessons", label: "Lessons 🔒", icon: Lock, disabled: true },
+  { to: "locked-shadowing", label: "Shadowing 🔒", icon: Lock, disabled: true },
+  { to: "locked-quiz", label: "Quiz 🔒", icon: Lock, disabled: true },
+  { to: "locked-learning", label: "Learning Module 🔒", icon: Lock, disabled: true },
+  { to: "locked-progress", label: "Progress 🔒", icon: Lock, disabled: true, dividerAfter: true },
+  
+  { to: "/student/profile", label: "Profile", icon: User },
+  { to: "/student/settings", label: "Settings", icon: Settings },
+];
+
 const teacherNav: NavItem[] = [
   // 1. Dashboard
   { to: "/teacher", label: "Dashboard", icon: LayoutDashboard },
@@ -164,9 +193,9 @@ const adminNav: NavItem[] = [
   { to: "/admin/profile", label: "Profile", icon: User },
 ];
 
-function getNav(role: FrontendRole, isActive: boolean): NavItem[] {
+function getNav(role: FrontendRole, isActive: boolean, hasAssignedLevel: boolean): NavItem[] {
   if (role === "student") {
-    return isActive ? studentNav : guestStudentNavWithLockedLearning;
+    return hasAssignedLevel ? studentNav : unassignedStudentNav;
   }
   return role === "teacher" ? teacherNav : adminNav;
 }
@@ -199,7 +228,17 @@ export function DashboardLayout({
   // Check if student is active (joined a class)
   const isStudentActiveStudent = role === "student" && isStudentActive(user);
   const isStudentGuestStudent = role === "student" && !isStudentActive(user);
-  const rawItems = getNav(role, isStudentActiveStudent);
+  const [showLockedDialog, setShowLockedDialog] = useState(false);
+
+  const { data: dbClasses = [] } = useQuery({
+    queryKey: ["studentJoinedClassesDashboard"],
+    queryFn: () => classesApi.getJoinedClasses(),
+    enabled: role === "student" && !!user,
+  });
+
+  const hasAssignedLevel = role === "student" && dbClasses && dbClasses.length > 0;
+
+  const rawItems = getNav(role, isStudentActiveStudent, hasAssignedLevel);
   const items = rawItems.map((item) => {
     if (item.to === "/student/notifications") {
       return { ...item, badge: unreadCount };
@@ -250,6 +289,9 @@ export function DashboardLayout({
     if (item.children && item.children.length > 0) {
       return item.children.some(child => isRouteActive(child.to));
     }
+    if (item.to.startsWith("landing-")) {
+      return false; // Scroll anchors shouldn't show active background
+    }
     return isRouteActive(item.to);
   }, [isRouteActive]);
 
@@ -261,12 +303,11 @@ export function DashboardLayout({
   }, [isRouteActive]);
 
   // Handle click on disabled items
-  const handleDisabledClick = (e: React.MouseEvent, item: NavItem | NavSubItem) => {
+  const handleDisabledClick = (e: React.MouseEvent | React.TouchEvent, item: NavItem | NavSubItem) => {
     if (item.disabled) {
       e.preventDefault();
       e.stopPropagation();
-      // Show toast or notification
-      alert("Join a class to access learning content");
+      setShowLockedDialog(true);
     }
   };
 
@@ -455,9 +496,26 @@ export function DashboardLayout({
     return (
       <Link
         key={item.to}
-        to={item.to}
+        to={item.to.startsWith("landing-") ? "/student/dashboard" : item.to}
         preload="intent"
         title={isCollapsed ? item.label : undefined}
+        onClick={(e) => {
+          if (item.to.startsWith("landing-")) {
+            e.preventDefault();
+            const id = item.to.replace("landing-", "");
+            if (pathname === "/student/dashboard") {
+              const el = document.getElementById(id);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            } else {
+              nav({ to: "/student/dashboard" }).then(() => {
+                setTimeout(() => {
+                  const el = document.getElementById(id);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 200);
+              });
+            }
+          }
+        }}
         className={cn(
           "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
           isActive ? "nav-active" : "nav-item",
@@ -568,36 +626,58 @@ export function DashboardLayout({
                   const Icon = item.icon;
                   const isActive = isItemOrChildActive(item);
                   return (
-                    <Link
-                      key={item.to}
-                      to={item.disabled ? "/" : item.to}
-                      title={item.label}
-                      onClick={
-                        item.disabled
-                          ? (e: React.MouseEvent<HTMLAnchorElement>) => {
-                              e.preventDefault();
-                              alert("Join a class to access learning content");
-                            }
-                          : undefined
-                      }
-                      className={cn(
-                        "flex items-center justify-center rounded-xl transition-all duration-300",
-                        isActive
-                          ? "bg-primary text-white w-10 h-10"
-                          : item.disabled
-                            ? "bg-slate-100 dark:bg-slate-800 text-muted-foreground w-10 h-10 cursor-not-allowed opacity-50"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10",
-                      )}
-                    >
-                      <Icon
-                        className={cn("w-5 h-5", isActive ? "text-white" : "text-muted-foreground")}
-                      />
-                    </Link>
+                    <div key={item.to} className="flex flex-col items-center w-full">
+                      {item.dividerBefore && <hr className="w-8 my-1.5 border-slate-200/60 dark:border-white/5" />}
+                      <Link
+                        to={item.disabled ? "/" : (item.to.startsWith("landing-") ? "/student/dashboard" : item.to)}
+                        title={item.label}
+                        onClick={
+                          item.disabled
+                            ? (e: React.MouseEvent<HTMLAnchorElement>) => handleDisabledClick(e, item)
+                            : (e: React.MouseEvent<HTMLAnchorElement>) => {
+                                if (item.to.startsWith("landing-")) {
+                                  e.preventDefault();
+                                  const id = item.to.replace("landing-", "");
+                                  if (pathname === "/student/dashboard") {
+                                    const el = document.getElementById(id);
+                                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                  } else {
+                                    nav({ to: "/student/dashboard" }).then(() => {
+                                      setTimeout(() => {
+                                        const el = document.getElementById(id);
+                                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                      }, 200);
+                                    });
+                                  }
+                                }
+                              }
+                        }
+                        className={cn(
+                          "flex items-center justify-center rounded-xl transition-all duration-300",
+                          isActive
+                            ? "bg-primary text-white w-10 h-10"
+                            : item.disabled
+                              ? "bg-slate-100 dark:bg-slate-800 text-muted-foreground w-10 h-10 cursor-not-allowed opacity-50"
+                              : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10",
+                        )}
+                      >
+                        <Icon
+                          className={cn("w-5 h-5", isActive ? "text-white" : "text-muted-foreground")}
+                        />
+                      </Link>
+                      {item.dividerAfter && <hr className="w-8 my-1.5 border-slate-200/60 dark:border-white/5" />}
+                    </div>
                   );
                 })}
               </div>
             ) : (
-              items.map((item) => renderNavItem(item))
+              items.map((item) => (
+                <div key={item.to} className="w-full">
+                  {item.dividerBefore && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
+                  {renderNavItem(item)}
+                  {item.dividerAfter && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
+                </div>
+              ))
             )
           ) : (
             // Teacher uses flat navigation
@@ -701,7 +781,6 @@ export function DashboardLayout({
             </div>
             <nav className="space-y-1">
               {role === "admin" || role === "student" ? (
-                // Admin and Student hierarchical mobile nav
                 items.map(item => {
                   const hasChildren = item.children && item.children.length > 0;
                   const isActive = isItemOrChildActive(item);
@@ -709,50 +788,81 @@ export function DashboardLayout({
 
                   if (hasChildren) {
                     return (
-                      <div key={item.to}>
-                        <button
-                          onClick={() => toggleExpanded(item.to)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${isActive ? "nav-active" : "nav-item"
-                            }`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span className="flex-1 text-left">{item.label}</span>
-                          <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
-                        </button>
-                        {isExpanded && (
-                          <div className="ml-4 space-y-1">
-                            {item.children!.map(child => (
-                              <Link
-                                key={child.to}
-                                to={child.to}
-                                preload="intent"
-                                onClick={() => setOpen(false)}
-                                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${pathname === child.to ? "nav-active" : "nav-item"
-                                  }`}
-                              >
-                                <span className="w-4 h-4" />
-                                {child.icon && <child.icon className="w-4 h-4" />}
-                                {child.label}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
+                      <div key={item.to} className="w-full">
+                        {item.dividerBefore && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
+                        <div>
+                          <button
+                            onClick={() => toggleExpanded(item.to)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${isActive ? "nav-active" : "nav-item"
+                              }`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="flex-1 text-left">{item.label}</span>
+                            <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                          </button>
+                          {isExpanded && (
+                            <div className="ml-4 space-y-1">
+                              {item.children!.map(child => (
+                                <Link
+                                  key={child.to}
+                                  to={child.to}
+                                  preload="intent"
+                                  onClick={() => setOpen(false)}
+                                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${pathname === child.to ? "nav-active" : "nav-item"
+                                    }`}
+                                >
+                                  <span className="w-4 h-4" />
+                                  {child.icon && <child.icon className="w-4 h-4" />}
+                                  {child.label}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {item.dividerAfter && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
                       </div>
                     );
                   }
 
                   return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      preload="intent"
-                      onClick={() => setOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${isActive ? "nav-active" : "nav-item"
-                        }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </Link>
+                    <div key={item.to} className="w-full">
+                      {item.dividerBefore && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
+                      <Link
+                        to={item.disabled ? "/" : (item.to.startsWith("landing-") ? "/student/dashboard" : item.to)}
+                        preload="intent"
+                        onClick={
+                          item.disabled
+                            ? (e: React.MouseEvent<HTMLAnchorElement>) => {
+                                setOpen(false);
+                                handleDisabledClick(e, item);
+                              }
+                            : (e: React.MouseEvent<HTMLAnchorElement>) => {
+                                setOpen(false);
+                                if (item.to.startsWith("landing-")) {
+                                  e.preventDefault();
+                                  const id = item.to.replace("landing-", "");
+                                  if (pathname === "/student/dashboard") {
+                                    const el = document.getElementById(id);
+                                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                  } else {
+                                    nav({ to: "/student/dashboard" }).then(() => {
+                                      setTimeout(() => {
+                                        const el = document.getElementById(id);
+                                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                      }, 200);
+                                    });
+                                  }
+                                }
+                              }
+                        }
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${isActive ? "nav-active" : "nav-item"
+                          }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                      {item.dividerAfter && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
+                    </div>
                   );
                 })
               ) : (
@@ -1001,7 +1111,28 @@ export function DashboardLayout({
               const active = pathname === targetTo || (!isBaseRoute && pathname.startsWith(targetTo));
               const Icon = it.icon;
               return (
-                <Link key={it.to} to={targetTo as any} preload="intent"
+                <Link key={it.to} to={it.disabled ? "/" : (targetTo as any)} preload="intent"
+                  onClick={
+                    it.disabled
+                      ? (e) => handleDisabledClick(e, it)
+                      : (e) => {
+                          if (it.to.startsWith("landing-")) {
+                            e.preventDefault();
+                            const id = it.to.replace("landing-", "");
+                            if (pathname === "/student/dashboard") {
+                              const el = document.getElementById(id);
+                              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                            } else {
+                              nav({ to: "/student/dashboard" }).then(() => {
+                                setTimeout(() => {
+                                  const el = document.getElementById(id);
+                                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }, 200);
+                              });
+                            }
+                          }
+                        }
+                  }
                   className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
                     }`}>
                   <Icon className={`w-5 h-5 ${active ? "text-white" : ""}`} />
@@ -1011,6 +1142,28 @@ export function DashboardLayout({
             })}
           </nav>
         )}
+
+        <Dialog open={showLockedDialog} onOpenChange={setShowLockedDialog}>
+          <DialogContent className="sm:max-w-md rounded-2xl z-[150] fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 shadow-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-500 font-extrabold text-lg">
+                <Lock className="w-5 h-5 text-rose-500" />
+                Tính năng đã khóa
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-300 font-medium pt-2 text-sm">
+                Bạn chưa được phân vào lớp học. Sau khi giáo viên thêm bạn vào lớp, bạn sẽ có thể sử dụng tính năng này.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button
+                onClick={() => setShowLockedDialog(false)}
+                className="bg-primary hover:opacity-95 text-white font-bold w-full rounded-xl cursor-pointer"
+              >
+                Đồng ý
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

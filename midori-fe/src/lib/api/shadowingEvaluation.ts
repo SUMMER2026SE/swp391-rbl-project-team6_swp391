@@ -9,6 +9,7 @@ export interface ShadowingEvaluationResponse {
   feedback: string[];
   validationError?: string;
   transcript?: string;
+  practiceSuggestions?: string[];
 }
 
 export const evaluateShadowingSentence = async (videoId: string, sentenceOrder: number, audioFile: File): Promise<ShadowingEvaluationResponse> => {

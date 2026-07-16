@@ -302,6 +302,16 @@ public class ClassServiceImpl implements ClassService {
                 .map(arr -> ((Long) arr[1]).intValue())
                 .findFirst().orElse(0);
 
+        String teacherName = "";
+        if (classEntity.getTeacher() != null) {
+            if (classEntity.getTeacher().getProfile() != null && 
+                classEntity.getTeacher().getProfile().getDisplayName() != null) {
+                teacherName = classEntity.getTeacher().getProfile().getDisplayName();
+            } else {
+                teacherName = classEntity.getTeacher().getEmail();
+            }
+        }
+
         return ClassResponse.builder()
                 .id(classEntity.getId())
                 .name(classEntity.getName())
@@ -310,6 +320,7 @@ public class ClassServiceImpl implements ClassService {
                 .description(classEntity.getDescription())
                 .status(classEntity.getStatus())
                 .teacherId(classEntity.getTeacher() != null ? classEntity.getTeacher().getId() : null)
+                .teacherName(teacherName)
                 .studentCount(studentCount)
                 .homeworkCount((int) homeworkCount)
                 .upcomingExamCount(examCount)

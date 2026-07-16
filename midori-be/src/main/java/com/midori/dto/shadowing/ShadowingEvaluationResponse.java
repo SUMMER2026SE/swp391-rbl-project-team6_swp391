@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -13,24 +16,34 @@ public class ShadowingEvaluationResponse {
     private int overall;
     private int accuracy;
     private int similarity;
-    private java.util.List<String> missingWords;
-    private java.util.List<String> extraWords;
-    private java.util.List<String> wrongWords;
+    private List<String> missingWords;
+    private List<String> extraWords;
+    private List<String> wrongWords;
     private boolean needAI;
-    private java.util.List<String> feedback;
+    private List<String> feedback;
     private String validationError;
     private String transcript;
+
+    /**
+     * Practice suggestions for the student.
+     * Contains AI-generated suggestions, rule-based suggestions, or generic defaults.
+     * Never null - always returns at least one suggestion.
+     */
+    @Builder.Default
+    private List<String> practiceSuggestions = new ArrayList<>();
 
     public static ShadowingEvaluationResponse validationError(String reason) {
         return ShadowingEvaluationResponse.builder()
                 .validationError(reason)
+                .practiceSuggestions(new ArrayList<>())
                 .build();
     }
 
     public static ShadowingEvaluationResponse immediate(int overall, int accuracy, int similarity,
-                                                        java.util.List<String> missingWords,
-                                                        java.util.List<String> extraWords,
-                                                        java.util.List<String> wrongWords) {
+                                                        List<String> missingWords,
+                                                        List<String> extraWords,
+                                                        List<String> wrongWords,
+                                                        List<String> practiceSuggestions) {
         return ShadowingEvaluationResponse.builder()
                 .overall(overall)
                 .accuracy(accuracy)
@@ -39,15 +52,17 @@ public class ShadowingEvaluationResponse {
                 .extraWords(extraWords)
                 .wrongWords(wrongWords)
                 .needAI(false)
-                .feedback(java.util.Collections.emptyList())
+                .feedback(new ArrayList<>())
+                .practiceSuggestions(practiceSuggestions != null ? practiceSuggestions : new ArrayList<>())
                 .build();
     }
 
     public static ShadowingEvaluationResponse withAI(int overall, int accuracy, int similarity,
-                                                     java.util.List<String> missingWords,
-                                                     java.util.List<String> extraWords,
-                                                     java.util.List<String> wrongWords,
-                                                     java.util.List<String> feedback) {
+                                                     List<String> missingWords,
+                                                     List<String> extraWords,
+                                                     List<String> wrongWords,
+                                                     List<String> feedback,
+                                                     List<String> practiceSuggestions) {
         return ShadowingEvaluationResponse.builder()
                 .overall(overall)
                 .accuracy(accuracy)
@@ -57,6 +72,7 @@ public class ShadowingEvaluationResponse {
                 .wrongWords(wrongWords)
                 .needAI(true)
                 .feedback(feedback)
+                .practiceSuggestions(practiceSuggestions != null ? practiceSuggestions : new ArrayList<>())
                 .build();
     }
 }
