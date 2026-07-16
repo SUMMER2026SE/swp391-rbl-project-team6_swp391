@@ -1,5 +1,7 @@
 import { api } from "./client";
 
+// Response shape of /api/admin/classes (used to compute per-teacher stats)
+
 // Align with backend UserStatus enum
 export type AdminUserStatus =
   | "PENDING"
@@ -70,6 +72,10 @@ export interface AdminTeacherResponse {
   rejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Number of classes this teacher owns. Backend-computed. */
+  totalClasses?: number | null;
+  /** Total distinct students enrolled in any of this teacher's classes. */
+  totalStudents?: number | null;
 }
 
 // Pagination wrapper returned by Spring Data Page
@@ -101,6 +107,8 @@ export interface AdminDashboardSummaryResponse {
   totalStudents: number;
   totalTeachers: number;
   totalActiveUsers: number;
+  activeClasses: number;
+  learningCompletionRate: number;
   pendingTeachers: number;
   pendingContent: number;
   totalVocabularyLessons: number;
@@ -117,10 +125,63 @@ export interface AdminDashboardSummaryResponse {
   totalProgressRecords: number;
 }
 
+export interface JlptLevelCount {
+  level: string;
+  count: number;
+  percentage: number;
+}
+
+export interface JlptDistributionResponse {
+  totalClasses: number;
+  levels: JlptLevelCount[];
+}
+
+export interface RecentActivity {
+  id: string;
+  type: string;
+  action: string;
+  detail: string;
+  actor: string;
+  timestamp: string;
+}
+
+export interface RecentActivitiesResponse {
+  activities: RecentActivity[];
+}
+
+/**
+ * Aggregated KPI counters returned by the admin Teacher Management page.
+ * Every field is computed server-side from the database.
+ */
+export interface AdminTeacherStatsResponse {
+  pendingTeachers: number;
+  pendingTeachersToday: number;
+  pendingTeachersThisWeek: number;
+  pendingTeachersCertified: number;
+  totalTeachers: number;
+  activeTeachers: number;
+  totalClasses: number;
+  totalStudents: number;
+}
+
 export const adminApi = {
   getPendingTeachers: () => api.get<AdminTeacherResponse[]>("/admin/users/teachers/pending"),
 
   getDashboardSummary: () => api.get<AdminDashboardSummaryResponse>("/admin/dashboard/summary"),
+
+  getJlptDistribution: () =>
+    api.get<JlptDistributionResponse>("/admin/dashboard/jlpt-distribution"),
+
+  getRecentActivities: (limit: number = 10) =>
+    api.get<RecentActivitiesResponse>(
+      `/admin/dashboard/recent-activities?limit=${limit}`,
+    ),
+
+  /**
+   * Aggregated statistics for the Teacher Management KPI cards. All counters
+   * are computed server-side; the frontend must not recompute them.
+   */
+  getTeacherStats: () => api.get<AdminTeacherStatsResponse>("/admin/users/teachers/stats"),
 
   approveTeacher: (userId: string) =>
     api.put<AdminTeacherResponse>(`/admin/users/${userId}/approve`),
@@ -161,6 +222,7 @@ export const adminApi = {
     if (params.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
     const path = "/admin/users" + (query ? `?${query}` : "");
+    console.log("[DEBUG] adminApi.getAllUsers -> GET", path);
     return api.get<Page<AdminTeacherResponse>>(path);
   },
 
@@ -174,4 +236,93 @@ export const adminApi = {
    * Restore a banned or suspended user.
    */
   restoreUser: (userId: string) => api.put<AdminTeacherResponse>(`/admin/users/${userId}/restore`),
+};
+
+/**
+ * Lightweight client for the admin classes endpoint, which is needed to compute
+ * per-teacher class/student counts on the Teacher Management page.
+ */
+export interface AdminClassResponse {
+  id: string;
+  name: string;
+  teacher: string;
+  teacherId: string;
+  level: string;
+  students: number;
+  maxStudents: number;
+  status: "ACTIVE" | "ARCHIVED" | string;
+  createdAt: string;
+  description?: string;
+}
+
+export interface CreateClassRequest {
+  name: string;
+  level: string;
+  maxStudents: number;
+  teacherId: string;
+  description?: string;
+}
+
+export interface UpdateClassRequest {
+  name: string;
+  level: string;
+  maxStudents: number;
+  teacherId: string;
+  description?: string;
+}
+
+export const adminClassesApi = {
+  /**
+   * Fetch all classes (GET /api/admin/classes).
+   */
+  getAdminClasses: (params: { teacherId?: string } = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.teacherId) searchParams.set("teacherId", params.teacherId);
+    const query = searchParams.toString();
+    const path = "/admin/classes" + (query ? `?${query}` : "");
+    return api.get<AdminClassResponse[]>(path);
+  },
+
+  /**
+   * Create a new class (POST /api/admin/classes).
+   */
+  createAdminClass: (data: CreateClassRequest) => {
+    return api.post<AdminClassResponse>("/admin/classes", data);
+  },
+
+  /**
+   * Update an existing class (PUT /api/admin/classes/{id}).
+   */
+  updateAdminClass: (id: string, data: UpdateClassRequest) => {
+    return api.put<AdminClassResponse>(`/admin/classes/${id}`, data);
+  },
+
+  /**
+   * Archive a class (PUT /api/admin/classes/{id}/archive).
+   */
+  archiveAdminClass: (id: string) => {
+    return api.put<AdminClassResponse>(`/admin/classes/${id}/archive`);
+  },
+
+  /**
+   * Restore an archived class (PUT /api/admin/classes/{id}/restore).
+   */
+  restoreAdminClass: (id: string) => {
+    return api.put<AdminClassResponse>(`/admin/classes/${id}/restore`);
+  },
+
+  /**
+   * Get students in a class (GET /api/admin/classes/{id}/students).
+   */
+  getClassStudents: (classId: string) => {
+    return api.get<AdminStudentResponse[]>(`/admin/classes/${classId}/students`);
+  },
+};
+
+export interface AdminStudentResponse {
+  studentId: string;
+  fullName: string | null;
+  email: string;
+  avatar: string | null;
+  status: string;
 };
