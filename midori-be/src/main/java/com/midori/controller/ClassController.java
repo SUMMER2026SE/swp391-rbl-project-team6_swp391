@@ -86,10 +86,29 @@ public class ClassController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ClassResponse>> getClassById(@PathVariable UUID id) {
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
+    public ResponseEntity<ApiResponse<ClassResponse>> getClassById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         ClassEntity classEntity = classService.getClassById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
-        
+
+        String role = userDetails.getRole();
+        if ("TEACHER".equals(role)) {
+            if (classEntity.getTeacher() == null ||
+                    !classEntity.getTeacher().getId().equals(userDetails.getId())) {
+                throw new com.midori.exception.AccessDeniedException("You do not own this class");
+            }
+        } else if ("STUDENT".equals(role)) {
+            boolean enrolled = classEntity.getStudents() != null &&
+                    classEntity.getStudents().stream()
+                            .anyMatch(s -> s.getId().equals(userDetails.getId()));
+            if (!enrolled) {
+                throw new com.midori.exception.AccessDeniedException("You are not enrolled in this class");
+            }
+        }
+        // ADMIN bypasses all checks
+
         // Single detail fetch fallback maps
         Map<UUID, Long> studentCounts = userRepository.countStudentsPerClass().stream()
                 .filter(arr -> arr[0] != null)
