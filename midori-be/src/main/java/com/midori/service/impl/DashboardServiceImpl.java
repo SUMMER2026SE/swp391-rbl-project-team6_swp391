@@ -144,16 +144,13 @@ public class DashboardServiceImpl implements DashboardService {
 
         // 1. Recently created classes — "Teacher tạo lớp"
         for (ClassEntity c : classRepository.findRecent(PageRequest.of(0, RECENT_PER_SOURCE))) {
-            String teacherName = Optional.ofNullable(c.getTeacher())
-                    .map(User::getProfile)
-                    .map(p -> p.getDisplayName())
-                    .orElse(c.getTeacher() != null ? c.getTeacher().getEmail() : "Teacher");
+            String teacherEmail = c.getTeacher() != null ? c.getTeacher().getEmail() : "Teacher";
             activities.add(RecentActivitiesResponse.RecentActivity.builder()
                     .id("class:" + c.getId())
                     .type("class")
-                    .action("Teacher created class")
-                    .detail(c.getName())
-                    .actor(teacherName)
+                    .action("Teacher created class by " + teacherEmail)
+                    .detail("Created class \"" + c.getName() + "\"")
+                    .actor(teacherEmail)
                     .timestamp(c.getCreatedAt())
                     .build());
         }

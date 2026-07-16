@@ -186,14 +186,11 @@ function AdminDashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="space-y-1 mt-2 shrink-0">
+                <div className="flex flex-nowrap justify-center gap-x-5 mt-2 shrink-0 overflow-x-auto">
                   {(jlpt?.levels ?? []).map((item: JlptLevelCount) => (
-                    <div key={item.level} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: JLPT_COLORS[item.level] ?? "oklch(0.7 0.1 200)" }} />
-                        <span className="text-secondary-col">{item.level}</span>
-                      </div>
-                      <span className="font-bold text-primary-col">{item.count} ({item.percentage.toFixed(0)}%)</span>
+                    <div key={item.level} className="flex items-center gap-1.5 shrink-0">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: JLPT_COLORS[item.level] ?? "oklch(0.7 0.1 200)" }} />
+                      <span className="text-secondary-col text-xs whitespace-nowrap">{item.level}</span>
                     </div>
                   ))}
                 </div>
