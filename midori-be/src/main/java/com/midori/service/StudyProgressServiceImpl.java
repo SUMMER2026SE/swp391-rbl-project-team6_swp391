@@ -251,9 +251,11 @@ public class StudyProgressServiceImpl implements StudyProgressService {
             overallPercent = Math.min(100, overallPercent);
         }
 
-        List<UserLearningProgress> allProgress = progressRepository.findAllByUserIdOrdered(userId);
-        int learningStreak = calculateStreak(allProgress);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        int learningStreak = user.getCurrentStreak() == null ? 0 : user.getCurrentStreak();
 
+        List<UserLearningProgress> allProgress = progressRepository.findAllByUserIdOrdered(userId);
         List<WeeklyStudyData> weeklyStudyData = buildWeeklyStudyData(allProgress);
 
         return ProgressStatsResponse.builder()
