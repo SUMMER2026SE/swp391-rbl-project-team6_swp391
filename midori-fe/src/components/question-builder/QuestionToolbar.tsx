@@ -51,18 +51,14 @@ export const QuestionToolbar: React.FC<QuestionToolbarProps> = React.memo(
         {onReAnalyze && (
           <>
             <button
-              onClick={onReAnalyze}
-              disabled={isReAnalyzing}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded hover:bg-primary/10 text-primary transition font-semibold text-xs disabled:opacity-50"
-              title="Re-analyze Question text using AI"
+              onClick={undefined}
+              disabled={true}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded text-muted-foreground transition font-semibold text-xs opacity-50 cursor-not-allowed"
+              title="Re-analyze Question text using AI (Coming Soon)"
               type="button"
             >
-              {isReAnalyzing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
-              )}
-              <span>{isReAnalyzing ? "Analyzing..." : "Re-analyze"}</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Re-analyze (Coming Soon)</span>
             </button>
             <div className="w-[1px] h-4 bg-[var(--border)] mx-1" />
           </>

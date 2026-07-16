@@ -1,6 +1,5 @@
-import React, { useState, useRef, useCallback } from "react";
-import { Upload, Loader2, AlertCircle, Plus, CheckCircle, Sparkles } from "lucide-react";
-import { examsApi } from "../../lib/api/exams";
+import React, { useState, useCallback } from "react";
+import { Upload, Loader2, AlertCircle, Plus, CheckCircle } from "lucide-react";
 import { QuestionEditor, ImportedQuestion } from "./pdf-import/QuestionEditor";
 
 interface AiPdfImportWorkflowProps {
@@ -22,73 +21,8 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   const [loadingMessage, setLoadingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ImportedQuestion[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [reAnalyzingIndexes, setReAnalyzingIndexes] = useState<Record<number, boolean>>({});
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleParsePdf = async (file: File) => {
-    setError(null);
-    setStep("loading");
-    setLoadingMessage("Uploading PDF...");
-
-    try {
-      setLoadingMessage("Extracting text and analyzing questions with AI...");
-      const response = await examsApi.parsePdf(file);
-      
-      if (!response || !response.questions || response.questions.length === 0) {
-        throw new Error("AI did not extract any questions from the PDF. Please try a different document.");
-      }
-
-      const mapped: ImportedQuestion[] = response.questions.map((q, idx) => {
-        // Map types carefully
-        let type = q.type || "MULTIPLE_CHOICE";
-        if (type === "MULTIPLE_CHOICE" && q.answers && q.answers.length === 2 && 
-            q.answers.some(a => a.content.toLowerCase() === "true") && 
-            q.answers.some(a => a.content.toLowerCase() === "false")) {
-          type = "TRUE_FALSE";
-        }
-
-        const hasCorrect = q.answers && q.answers.some(a => a.isCorrect);
-        
-        return {
-          id: `extracted-${Date.now()}-${idx}`,
-          type,
-          content: q.content || "",
-          difficulty: q.difficulty || "MEDIUM",
-          explanation: q.explanation || "",
-          answers: q.answers || [],
-          category: q.type || "Vocabulary", // Map section appropriately
-          needsReview: !q.content || !q.answers || q.answers.length < 2 || !hasCorrect,
-        };
-      });
-
-      setQuestions(mapped);
-      setStep("preview");
-    } catch (err: any) {
-      setError(err.message || "Failed to process PDF file. Please try again.");
-      setStep("upload");
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleParsePdf(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.name.toLowerCase().endsWith(".pdf")) {
-      handleParsePdf(file);
-    } else {
-      setError("Only PDF files are supported");
-    }
-  };
+  const [reAnalyzingIndexes] = useState<Record<number, boolean>>({});
 
   const handleUpdateQuestion = useCallback((idx: number, updatedFields: Partial<ImportedQuestion>) => {
     setQuestions((prev) => {
@@ -129,29 +63,9 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     });
   }, []);
 
-  const handleReAnalyze = useCallback(async (idx: number) => {
-    const question = questions[idx];
-    if (!question.content.trim()) return;
-
-    setReAnalyzingIndexes(prev => ({ ...prev, [idx]: true }));
-    try {
-      const response = await examsApi.reAnalyzeQuestion(question.content);
-      if (response) {
-        handleUpdateQuestion(idx, {
-          type: response.type || "MULTIPLE_CHOICE",
-          content: response.content || question.content,
-          difficulty: response.difficulty || "MEDIUM",
-          explanation: response.explanation || "",
-          answers: response.answers || [],
-          needsReview: false,
-        });
-      }
-    } catch (err: any) {
-      alert(`Re-analyze failed: ${err.message || "Unknown error"}`);
-    } finally {
-      setReAnalyzingIndexes(prev => ({ ...prev, [idx]: false }));
-    }
-  }, [questions, handleUpdateQuestion]);
+  const handleReAnalyze = useCallback((_idx: number) => {
+    // Disabled (Coming Soon)
+  }, []);
 
   const handleAddQuestion = () => {
     const newQuestion: ImportedQuestion = {
@@ -200,40 +114,23 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       {step === "upload" && (
         <div className="space-y-6">
           <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`card-base p-12 border-2 border-dashed cursor-pointer text-center transition ${
-              isDragging
-                ? "border-primary bg-primary/5"
-                : "border-[var(--border)] hover:border-primary/40"
-            }`}
+            className="card-base p-12 border-2 border-dashed text-center transition border-[var(--border)] opacity-60 cursor-not-allowed"
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-              <Upload className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-5">
+              <Upload className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="font-display font-bold text-lg text-primary-col mb-1">
-              Upload Exam PDF
+              AI PDF Import (Coming Soon)
             </h3>
             <p className="text-sm text-secondary-col mb-4">
-              Select or drag and drop any exam PDF file. AI will parse the structure.
+              AI PDF import is temporarily disabled and will be available in a future update.
             </p>
             <button
               type="button"
-              className="px-5 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition"
+              disabled
+              className="px-5 py-2.5 rounded-xl bg-muted text-muted-foreground text-sm font-bold border border-[var(--border)] cursor-not-allowed"
             >
-              Select PDF File
+              Select PDF File (Coming Soon)
             </button>
           </div>
 

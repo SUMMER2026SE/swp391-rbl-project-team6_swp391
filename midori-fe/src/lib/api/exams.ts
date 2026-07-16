@@ -157,15 +157,6 @@ export const examsApi = {
   getImportStatus: (jobId: string) =>
     api.get<{ jobId: string; status: string; message: string; examId?: string }>(`/ai/exams/import/${jobId}`),
 
-  parsePdf: (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    return api.post<{ title?: string; description?: string; questions: Array<{ type: string; content: string; difficulty: string; explanation?: string; answers: Array<{ content: string; isCorrect: boolean }> }> }>("/ai/exams/parse-pdf", formData);
-  },
-
-  reAnalyzeQuestion: (questionText: string) => {
-    return api.post<{ type: string; content: string; difficulty: string; explanation?: string; answers: Array<{ content: string; isCorrect: boolean }> }>("/ai/exams/reanalyze-question", { questionText });
-  },
 };
 
 export interface StudentExamResponse {
