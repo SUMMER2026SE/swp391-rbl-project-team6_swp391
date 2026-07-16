@@ -144,13 +144,22 @@ function VideoLearningPage() {
   const [grammarDetailLoading, setGrammarDetailLoading] = useState(false);
   const [showGrammarModal, setShowGrammarModal] = useState(false);
 
+  const [grammarError, setGrammarError] = useState<string | null>(null);
+
   const loadGrammarPatterns = useCallback(async () => {
     if (grammarFetched || grammarLoading) return;
     setGrammarLoading(true);
+    setGrammarError(null);
     try {
       const patterns = await studentGrammarPatternApi.getForVideo(videoId);
       setGrammarPatterns(patterns);
-    } catch {
+    } catch (err: any) {
+      const isAuthError = err?.status === 403 || err?.status === 401;
+      setGrammarError(
+        isAuthError
+          ? "Vui lòng đăng nhập để xem ngữ pháp."
+          : "Không thể tải ngữ pháp. Vui lòng thử lại."
+      );
       setGrammarPatterns([]);
     } finally {
       setGrammarLoading(false);
@@ -1190,6 +1199,11 @@ function VideoLearningPage() {
                             <div className="h-3 w-full bg-slate-100 dark:bg-slate-700/60 rounded" />
                           </div>
                         ))}
+                      </div>
+                    ) : grammarError ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
+                        <Sparkles className="w-8 h-8 opacity-30" />
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{grammarError}</p>
                       </div>
                     ) : grammarPatterns.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">

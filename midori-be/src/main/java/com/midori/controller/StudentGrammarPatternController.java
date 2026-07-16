@@ -21,7 +21,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/student/grammar")
+@RequestMapping("/api/student/grammar-patterns")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('STUDENT')")
 public class StudentGrammarPatternController {

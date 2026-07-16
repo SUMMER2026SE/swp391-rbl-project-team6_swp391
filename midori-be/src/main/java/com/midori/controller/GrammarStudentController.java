@@ -25,10 +25,4 @@ public class GrammarStudentController {
         return ResponseEntity.ok(ApiResponse.success(grammars));
     }
 
-    @GetMapping("/{grammarId}")
-    public ResponseEntity<ApiResponse<GrammarResponse>> getGrammar(
-            @PathVariable UUID grammarId) {
-        GrammarResponse grammar = grammarService.getApprovedGrammar(grammarId);
-        return ResponseEntity.ok(ApiResponse.success(grammar));
-    }
 }
