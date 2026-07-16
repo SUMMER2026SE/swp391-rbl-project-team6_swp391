@@ -1,0 +1,1 @@
+ALTER TABLE teacher_questions ADD COLUMN IF NOT EXISTS skill VARCHAR(50);

@@ -41,7 +41,16 @@ public class HomeworkServiceImpl implements HomeworkService {
         }
         if (questionIds != null && !questionIds.isEmpty()) {
             List<TeacherQuestion> questions = teacherQuestionRepository.findAllById(questionIds);
-            homework.setQuestions(questions);
+            java.util.Map<UUID, TeacherQuestion> questionMap = questions.stream()
+                    .collect(java.util.stream.Collectors.toMap(TeacherQuestion::getId, q -> q));
+            List<TeacherQuestion> orderedQuestions = new java.util.ArrayList<>();
+            for (UUID qId : questionIds) {
+                TeacherQuestion q = questionMap.get(qId);
+                if (q != null) {
+                    orderedQuestions.add(q);
+                }
+            }
+            homework.setQuestions(orderedQuestions);
         }
         return homeworkRepository.save(homework);
     }
@@ -61,7 +70,16 @@ public class HomeworkServiceImpl implements HomeworkService {
         
         if (questionIds != null) {
             List<TeacherQuestion> questions = teacherQuestionRepository.findAllById(questionIds);
-            homework.setQuestions(questions);
+            java.util.Map<UUID, TeacherQuestion> questionMap = questions.stream()
+                    .collect(java.util.stream.Collectors.toMap(TeacherQuestion::getId, q -> q));
+            List<TeacherQuestion> orderedQuestions = new java.util.ArrayList<>();
+            for (UUID qId : questionIds) {
+                TeacherQuestion q = questionMap.get(qId);
+                if (q != null) {
+                    orderedQuestions.add(q);
+                }
+            }
+            homework.setQuestions(orderedQuestions);
         }
         
         return homeworkRepository.save(homework);

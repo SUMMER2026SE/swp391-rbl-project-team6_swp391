@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Plus, X, Eye, Loader2, ArrowLeft, Trash2 } from "lucide-react";
+import { BookOpen, Plus, X, Eye, Loader2, ArrowLeft, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { questionBankService } from "../services/questionBankService";
+import { questionBankService, useQuestionBank } from "../services/questionBankService";
 import type { Lesson, Question } from "../services/questionBankService";
 import type { JLPTLevel } from "../services/questionBank.types";
 
@@ -51,37 +51,13 @@ function QuestionBankLessonListPage() {
   const navigate = useNavigate();
   const level = (params.level?.toUpperCase() || "N5") as JLPTLevel;
 
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Load data from in-memory service (no localStorage)
-  const loadData = useCallback(() => {
-    console.log(`[QB] LOAD: Fetching lessons and questions for ${level}`);
-    const loadedLessons = questionBankService.getLessons(level);
-    const loadedQuestions = questionBankService.getAllQuestions(level);
-    console.log(
-      `[QB] LOAD: Got ${loadedLessons.length} lessons, ${loadedQuestions.length} questions`,
-    );
-    setLessons(loadedLessons);
-    setQuestions(loadedQuestions);
-    setIsLoading(false);
-  }, [level]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Debug log when state changes
-  useEffect(() => {
-    if (!isLoading) {
-      console.log(`[QB] RENDER: lessons=${lessons.length}, questions=${questions.length}`);
-      console.log(
-        `[QB] RENDER: Lesson IDs:`,
-        lessons.map((l) => l.id),
-      );
-    }
-  }, [lessons, questions, isLoading]);
+  const {
+    lessons,
+    questions,
+    isLoading,
+    createLesson,
+    deleteLesson,
+  } = useQuestionBank(level);
 
   // Calculate question count per lesson
   const getLessonStats = (lessonId: number) => {
@@ -90,13 +66,31 @@ function QuestionBankLessonListPage() {
 
   const totalQuestionsForLevel = questions;
 
-  // ─── Create Lesson ──────────────────────────────────────────────────────────
+  // ─── Create/Edit Lesson ──────────────────────────────────────────────────────
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLessonNumber, setNewLessonNumber] = useState("");
   const [newLessonName, setNewLessonName] = useState("");
+  const [newLessonStatus, setNewLessonStatus] = useState<"Active" | "Draft" | "">("");
   const [isCreating, setIsCreating] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
 
-  const handleCreateLesson = async () => {
+  const handleStartEdit = (lesson: Lesson) => {
+    setEditingLesson(lesson);
+    setNewLessonNumber(lesson.lessonNumber.toString());
+    setNewLessonName(lesson.lessonName);
+    setNewLessonStatus(lesson.status);
+    setShowCreateModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setEditingLesson(null);
+    setNewLessonNumber("");
+    setNewLessonName("");
+    setNewLessonStatus("");
+  };
+
+  const handleSaveLesson = async () => {
     if (!newLessonNumber.trim() || !newLessonName.trim()) {
       alert("Please fill in both Lesson Number and Lesson Name");
       return;
@@ -108,31 +102,37 @@ function QuestionBankLessonListPage() {
       return;
     }
 
-    console.log(`[QB] CREATE: Creating lesson ${lessonNum} - ${newLessonName}`);
     setIsCreating(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    questionBankService.createLesson(level, newLessonName.trim(), lessonNum);
-
-    console.log(`[QB] CREATE: Reloading data...`);
-    loadData();
-
-    setNewLessonNumber("");
-    setShowCreateModal(false);
-    setIsCreating(false);
+    try {
+      if (editingLesson) {
+        console.log(`[QB] EDIT: Updating lesson ${editingLesson.id} to ${lessonNum} - ${newLessonName} (${newLessonStatus})`);
+        await updateLesson(editingLesson.id, newLessonName.trim(), lessonNum, newLessonStatus || "Draft");
+      } else {
+        console.log(`[QB] CREATE: Creating lesson ${lessonNum} - ${newLessonName}`);
+        await createLesson(newLessonName.trim(), lessonNum);
+      }
+      handleCloseModal();
+    } catch (err: any) {
+      alert(err?.message || "Failed to save lesson");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   // ─── Delete Lesson ───────────────────────────────────────────────────────────
   const [deleteLessonId, setDeleteLessonId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleDeleteLesson = () => {
+  const handleDeleteLesson = async () => {
     if (deleteLessonId === null) return;
 
     console.log(`[QB] DELETE: Deleting lesson ${deleteLessonId}`);
-    questionBankService.deleteLesson(level, deleteLessonId);
-    loadData();
+    try {
+      await deleteLesson(deleteLessonId);
+    } catch (err: any) {
+      alert(err?.message || "Failed to delete lesson");
+    }
 
     setDeleteLessonId(null);
     setShowDeleteConfirm(false);
@@ -279,7 +279,7 @@ function QuestionBankLessonListPage() {
                     <span className="text-sm font-medium text-muted-col">{stats}</span>
                   </div>
                   <div className="col-span-2 flex justify-center">
-                    <StatusBadge status={stats > 0 ? "Active" : "Draft"} />
+                    <StatusBadge status={lesson.status} />
                   </div>
                   <div className="col-span-3 flex justify-end gap-2">
                     <button
@@ -292,6 +292,13 @@ function QuestionBankLessonListPage() {
                     >
                       <Eye className="w-3.5 h-3.5" />
                       View
+                    </button>
+                    <button
+                      onClick={() => handleStartEdit(lesson)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit
                     </button>
                     <button
                       onClick={() => {
@@ -319,7 +326,7 @@ function QuestionBankLessonListPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => !isCreating && setShowCreateModal(false)}
+            onClick={() => !isCreating && handleCloseModal()}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -331,10 +338,10 @@ function QuestionBankLessonListPage() {
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b separator">
                 <h2 className="font-display font-bold text-primary-col text-base">
-                  Create New Lesson
+                  {editingLesson ? "Edit Lesson" : "Create New Lesson"}
                 </h2>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCloseModal}
                   disabled={isCreating}
                   className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition disabled:opacity-50"
                 >
@@ -371,31 +378,56 @@ function QuestionBankLessonListPage() {
                     disabled={isCreating}
                   />
                 </div>
+                {editingLesson && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                      Status
+                    </label>
+                    <select
+                      value={newLessonStatus}
+                      onChange={(e) => setNewLessonStatus(e.target.value as "Active" | "Draft")}
+                      className="w-full px-4 py-3 rounded-xl input-glass text-sm bg-card border border-[var(--border)] text-primary-col"
+                      disabled={isCreating}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Draft">Draft</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
               <div className="flex gap-3 px-6 py-4 border-t separator">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={handleCloseModal}
                   disabled={isCreating}
                   className="flex-1 py-2.5 rounded-xl glass-surface text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleCreateLesson}
+                  onClick={handleSaveLesson}
                   disabled={isCreating}
                   className="flex-1 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isCreating ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating...
+                      Saving...
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4" />
-                      Create Lesson
+                      {editingLesson ? (
+                        <>
+                          <Pencil className="w-4 h-4" />
+                          Save Changes
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          Create Lesson
+                        </>
+                      )}
                     </>
                   )}
                 </button>

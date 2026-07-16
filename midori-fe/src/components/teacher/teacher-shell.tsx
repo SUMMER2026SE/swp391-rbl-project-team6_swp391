@@ -189,7 +189,12 @@ export function TeacherShell({ children }: { children: ReactNode }) {
 
   const isActive = (to: string, exact?: boolean) => {
     if (to === "/teacher/classes") {
-      return pathname === "/teacher/classes" || (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create");
+      return (
+        pathname === "/teacher/classes" ||
+        (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create") ||
+        pathname.startsWith("/teacher/homework") ||
+        pathname.startsWith("/teacher/exams")
+      );
     }
     if (to === "/teacher/classes/create") {
       return pathname === "/teacher/classes/create";

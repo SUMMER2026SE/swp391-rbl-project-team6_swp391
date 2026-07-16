@@ -279,93 +279,7 @@ export const QUESTIONS: Question[] = [
   },
 ];
 
-export const JLPT_EXAM_SETS: JlptExamSet[] = [
-  {
-    id: "jlpt-n5-2024-jul",
-    name: "JLPT N5 — July 2024 Mock",
-    level: "N5",
-    description: "Full mock test mirroring the official July 2024 N5 paper.",
-    duration: 105,
-    totalQuestions: 95,
-    sections: [
-      { name: "Vocabulary", questions: 35 },
-      { name: "Grammar/Reading", questions: 35 },
-      { name: "Listening", questions: 25 },
-    ],
-    difficulty: "Easy",
-    questionsAvailable: 95,
-    year: 2024,
-    mix: { easy: 60, medium: 30, hard: 10 },
-  },
-  {
-    id: "jlpt-n4-2024-dec",
-    name: "JLPT N4 — December 2024 Mock",
-    level: "N4",
-    description: "Comprehensive N4 mock exam with full audio.",
-    duration: 125,
-    totalQuestions: 110,
-    sections: [
-      { name: "Vocabulary", questions: 30 },
-      { name: "Grammar/Reading", questions: 50 },
-      { name: "Listening", questions: 30 },
-    ],
-    difficulty: "Medium",
-    questionsAvailable: 110,
-    year: 2024,
-    mix: { easy: 45, medium: 40, hard: 15 },
-  },
-  {
-    id: "jlpt-n3-2025-jul",
-    name: "JLPT N3 — July 2025 Mock",
-    level: "N3",
-    description: "Latest N3 mock with intermediate-level passages.",
-    duration: 140,
-    totalQuestions: 105,
-    sections: [
-      { name: "Vocabulary/Kanji", questions: 35 },
-      { name: "Grammar/Reading", questions: 40 },
-      { name: "Listening", questions: 30 },
-    ],
-    difficulty: "Medium",
-    questionsAvailable: 105,
-    year: 2025,
-    mix: { easy: 30, medium: 45, hard: 25 },
-  },
-  {
-    id: "jlpt-n2-2025-dec",
-    name: "JLPT N2 — December 2025 Mock",
-    level: "N2",
-    description: "Business and academic Japanese, N2 difficulty.",
-    duration: 155,
-    totalQuestions: 110,
-    sections: [
-      { name: "Vocabulary/Kanji", questions: 30 },
-      { name: "Grammar/Reading", questions: 50 },
-      { name: "Listening", questions: 30 },
-    ],
-    difficulty: "Hard",
-    questionsAvailable: 110,
-    year: 2025,
-    mix: { easy: 20, medium: 45, hard: 35 },
-  },
-  {
-    id: "jlpt-n1-2025-jul",
-    name: "JLPT N1 — July 2025 Mock",
-    level: "N1",
-    description: "Highest-level JLPT mock — abstract and academic content.",
-    duration: 170,
-    totalQuestions: 120,
-    sections: [
-      { name: "Vocabulary/Kanji", questions: 35 },
-      { name: "Grammar/Reading", questions: 50 },
-      { name: "Listening", questions: 35 },
-    ],
-    difficulty: "Hard",
-    questionsAvailable: 120,
-    year: 2025,
-    mix: { easy: 15, medium: 40, hard: 45 },
-  },
-];
+export const JLPT_EXAM_SETS: JlptExamSet[] = [];
 
 // Helper functions
 export function getTopicsByLevel(level: JLPTLevel): QuestionTopic[] {
@@ -388,7 +302,7 @@ export function getAvailableForTopics(topicIds: string[]): number {
 }
 
 export function getJlptByLevel(level: JLPTLevel): JlptExamSet[] {
-  return JLPT_EXAM_SETS.filter((s) => s.level === level);
+  return [];
 }
 
 // ─── Data Bank Resources (mirrors Lovable mock-data.ts) ────────────────────────

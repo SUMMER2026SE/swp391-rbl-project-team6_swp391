@@ -723,83 +723,7 @@ function buildQuestions(): Question[] {
 }
 const allQuestions = buildQuestions();
 
-export const jlptSets: JLPTSet[] = [
-  {
-    id: "jlpt-n5-2024-jul",
-    title: "JLPT N5 — July 2024 Mock",
-    level: "N5",
-    duration: 105,
-    totalQuestions: 95,
-    sections: [
-      { name: "Vocabulary", questions: 35 },
-      { name: "Grammar/Reading", questions: 35 },
-      { name: "Listening", questions: 25 },
-    ],
-    mix: { easy: 60, medium: 30, hard: 10 },
-    year: 2024,
-    description: "Full mock test mirroring the official July 2024 N5 paper.",
-  },
-  {
-    id: "jlpt-n4-2024-dec",
-    title: "JLPT N4 — December 2024 Mock",
-    level: "N4",
-    duration: 125,
-    totalQuestions: 110,
-    sections: [
-      { name: "Vocabulary", questions: 30 },
-      { name: "Grammar/Reading", questions: 50 },
-      { name: "Listening", questions: 30 },
-    ],
-    mix: { easy: 45, medium: 40, hard: 15 },
-    year: 2024,
-    description: "Comprehensive N4 mock exam with full audio.",
-  },
-  {
-    id: "jlpt-n3-2025-jul",
-    title: "JLPT N3 — July 2025 Mock",
-    level: "N3",
-    duration: 140,
-    totalQuestions: 105,
-    sections: [
-      { name: "Vocabulary/Kanji", questions: 35 },
-      { name: "Grammar/Reading", questions: 40 },
-      { name: "Listening", questions: 30 },
-    ],
-    mix: { easy: 30, medium: 45, hard: 25 },
-    year: 2025,
-    description: "Latest N3 mock with intermediate-level passages.",
-  },
-  {
-    id: "jlpt-n2-2025-dec",
-    title: "JLPT N2 — December 2025 Mock",
-    level: "N2",
-    duration: 155,
-    totalQuestions: 110,
-    sections: [
-      { name: "Vocabulary/Kanji", questions: 30 },
-      { name: "Grammar/Reading", questions: 50 },
-      { name: "Listening", questions: 30 },
-    ],
-    mix: { easy: 20, medium: 45, hard: 35 },
-    year: 2025,
-    description: "Business and academic Japanese, N2 difficulty.",
-  },
-  {
-    id: "jlpt-n1-2025-jul",
-    title: "JLPT N1 — July 2025 Mock",
-    level: "N1",
-    duration: 170,
-    totalQuestions: 120,
-    sections: [
-      { name: "Vocabulary/Kanji", questions: 35 },
-      { name: "Grammar/Reading", questions: 50 },
-      { name: "Listening", questions: 35 },
-    ],
-    mix: { easy: 15, medium: 40, hard: 45 },
-    year: 2025,
-    description: "Highest-level JLPT mock — abstract and academic content.",
-  },
-];
+export const jlptSets: any[] = [];
 
 export const reports: Report[] = [
   {
@@ -968,8 +892,8 @@ export function getAggregatedTopicCounts(topicIds: string[]) {
   };
 }
 
-export const getJlptExamSets = () => jlptSets;
-export const getJlptSetById = (id: string) => jlptSets.find((s) => s.id === id);
+export const getJlptExamSets = () => [];
+export const getJlptSetById = (id: string) => undefined;
 
 export const getReports = () => reports;
 export const getNotifications = () => notifications;
