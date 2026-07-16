@@ -104,8 +104,11 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
         loading: "Updating homework...",
         success: () => {
           setEditHwId(null);
-          void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
+          void queryClient.invalidateQueries({ queryKey: ["classHomework"] });
+          void queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass"] });
           void queryClient.invalidateQueries({ queryKey: ["teacherAllHomeworks"] });
+          void queryClient.invalidateQueries({ queryKey: ["homeworkDetails"] });
+          void queryClient.invalidateQueries({ queryKey: ["classDetail"] });
           return "Homework updated successfully.";
         },
         error: (err: any) => `Failed to update homework: ${err.message || "Unknown error"}`,

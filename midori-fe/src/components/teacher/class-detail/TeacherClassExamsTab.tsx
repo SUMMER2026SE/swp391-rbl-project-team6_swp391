@@ -354,7 +354,7 @@ function ExamPreviewContent({ examId, classId, onAssign, onGrade }: ExamPreviewC
         {exam.questions && exam.questions.length > 0 ? (
           <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
             {exam.questions.map((q, idx) => (
-              <div key={q.id || idx} className="p-4 rounded-xl border bg-card space-y-2.5">
+              <div key={`${q.id || ''}-${idx}`} className="p-4 rounded-xl border bg-card space-y-2.5">
                 <div className="flex justify-between items-start gap-2">
                   <span className="text-xs font-bold text-primary">Question {idx + 1}</span>
                   {q.points !== undefined && (
