@@ -1,309 +1,38 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import * as XLSX from "xlsx";
-import {
-  ChevronRight,
-  CheckCircle,
-  Loader2,
-  AlertTriangle,
-  BookOpen,
-  GraduationCap,
-  FileText,
-  Headphones,
-  Upload,
-  FileSpreadsheet,
-  Trash2,
-  Download,
-  HelpCircle,
-  ArrowLeft,
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  type JLPTLevel,
-  type ExamStatus,
-  type ExamQuestion,
-  DEFAULT_EXAM_CONFIG,
-  addExam,
-} from "@/mocks/jlptExamMock";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, ArrowLeft, CheckCircle } from "lucide-react";
+import { examsApi } from "@/lib/api/exams";
+import { AiPdfImportWorkflow } from "@/components/admin/AiPdfImportWorkflow";
+import { ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
+
+type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
+type ExamStatus = "Active" | "Draft" | "Archived";
+
+const DEFAULT_EXAM_CONFIG: Record<
+  JLPTLevel,
+  {
+    vocabulary: number;
+    grammar: number;
+    reading: number;
+    listening: number;
+    total: number;
+    duration: number;
+  }
+> = {
+  N5: { vocabulary: 20, grammar: 25, reading: 25, listening: 30, total: 100, duration: 105 },
+  N4: { vocabulary: 25, grammar: 25, reading: 25, listening: 25, total: 100, duration: 100 },
+  N3: { vocabulary: 25, grammar: 25, reading: 25, listening: 25, total: 100, duration: 100 },
+  N2: { vocabulary: 30, grammar: 25, reading: 25, listening: 25, total: 105, duration: 105 },
+  N1: { vocabulary: 30, grammar: 30, reading: 25, listening: 25, total: 110, duration: 110 },
+};
 
 export const Route = createFileRoute("/admin/jlpt-exam/$level/create")({
   component: CreateExamPage,
 });
 
 type JLPTLevelUpper = "N5" | "N4" | "N3" | "N2" | "N1";
-
 const VALID_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
-
-interface ParsedQuestion {
-  id: string;
-  type: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation?: string;
-  audioFileName?: string;
-}
-
-interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-  missingColumns: string[];
-}
-
-const SECTION_COLORS: Record<string, { bg: string; text: string }> = {
-  Vocabulary: { bg: "bg-[oklch(0.62_0.18_270)]/10", text: "text-[oklch(0.62_0.18_270)]" },
-  Grammar: { bg: "bg-[oklch(0.72_0.15_230)]/10", text: "text-[oklch(0.72_0.15_230)]" },
-  Reading: { bg: "bg-[var(--status-pending)]/10", text: "text-[var(--status-pending)]" },
-  Listening: { bg: "bg-[oklch(0.6_0.22_25)]/10", text: "text-[oklch(0.6_0.22_25)]" },
-};
-
-const REQUIRED_COLUMNS = [
-  "TYPE",
-  "QUESTION",
-  "ANSWERA",
-  "ANSWERB",
-  "ANSWERC",
-  "ANSWERD",
-  "CORRECTANSWER",
-];
-
-function JLPTBadge({ level }: { level: JLPTLevel }) {
-  const colors: Record<string, string> = {
-    N5: "bg-[oklch(0.62_0.18_270)]/12 text-[oklch(0.62_0.18_270)] border-[oklch(0.62_0.18_270)]/20",
-    N4: "bg-[oklch(0.72_0.15_230)]/12 text-[oklch(0.72_0.15_230)] border-[oklch(0.72_0.15_230)]/20",
-    N3: "bg-[var(--status-pending)]/12 text-[var(--status-pending)] border-[var(--status-pending)]/20",
-    N2: "bg-[oklch(0.6_0.22_25)]/12 text-[oklch(0.6_0.22_25)] border-[oklch(0.6_0.22_25)]/20",
-    N1: "bg-[var(--status-rejected)]/12 text-[var(--status-rejected)] border-[var(--status-rejected)]/20",
-  };
-  return (
-    <span
-      className={`px-2.5 py-1 rounded-full text-xs font-bold border ${colors[level] || colors["N5"]}`}
-    >
-      {level}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: ExamStatus }) {
-  const configs: Record<ExamStatus, { label: string; color: string; bg: string }> = {
-    Active: {
-      label: "Active",
-      color: "text-[var(--status-active)]",
-      bg: "bg-[var(--status-active)]",
-    },
-    Draft: {
-      label: "Draft",
-      color: "text-[var(--status-pending)]",
-      bg: "bg-[var(--status-pending)]",
-    },
-    Archived: {
-      label: "Archived",
-      color: "text-[var(--status-suspended)]",
-      bg: "bg-[var(--status-suspended)]",
-    },
-  };
-  const cfg = configs[status];
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${cfg.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.bg}`} />
-      {cfg.label}
-    </span>
-  );
-}
-
-function QuestionPreviewRow({
-  question,
-  index,
-  onDelete,
-}: {
-  question: ParsedQuestion;
-  index: number;
-  onDelete: () => void;
-}) {
-  const colors = SECTION_COLORS[question.type] || SECTION_COLORS.Vocabulary;
-  const optionLabels = ["A", "B", "C", "D"];
-
-  return (
-    <tr className="border-b border-[var(--border)] hover:bg-[var(--accent)]/50 transition">
-      <td className="py-3 px-3 text-sm text-muted-col w-12">{index + 1}</td>
-      <td className="py-3 px-3">
-        <span className={`px-2 py-0.5 rounded text-xs font-bold ${colors.bg} ${colors.text}`}>
-          {question.type}
-        </span>
-      </td>
-      <td className="py-3 px-3 text-sm text-primary-col max-w-md truncate">{question.question}</td>
-      <td className="py-3 px-3 text-sm">
-        <span className="font-medium text-[var(--status-active)]">
-          {optionLabels[question.correctAnswer] || "-"}
-        </span>
-      </td>
-      <td className="py-3 px-3 w-16">
-        {question.audioFileName ? (
-          <span className="text-xs text-[var(--status-active)] flex items-center gap-1">
-            <Headphones className="w-3 h-3" />
-          </span>
-        ) : question.type === "Listening" ? (
-          <span className="text-xs text-[var(--status-pending)]">-</span>
-        ) : null}
-      </td>
-      <td className="py-3 px-3 w-16">
-        <button
-          onClick={onDelete}
-          className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500 transition"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </td>
-    </tr>
-  );
-}
-
-function ExcelTemplateDownload() {
-  const handleDownload = () => {
-    const template = [
-      {
-        TYPE: "Vocabulary",
-        QUESTION: "「山」の読み方正确的是？",
-        ANSWERA: "やま",
-        ANSWERB: "さめ",
-        ANSWERC: "たけ",
-        ANSWERD: "たかさ",
-        CORRECTANSWER: "A",
-        EXPLANATION: "「山」は「やま」と読みます",
-        AUDIOFILENAME: "",
-      },
-      {
-        TYPE: "Grammar",
-        QUESTION: "「これ」は何读みますか？",
-        ANSWERA: "これ",
-        ANSWERB: "それ",
-        ANSWERC: "あれ",
-        ANSWERD: "どれ",
-        CORRECTANSWER: "A",
-        EXPLANATION: "「これ」は「これ」と読みます",
-        AUDIOFILENAME: "",
-      },
-      {
-        TYPE: "Listening",
-        QUESTION: "Listen and select the correct response",
-        ANSWERA: "Good morning",
-        ANSWERB: "Good afternoon",
-        ANSWERC: "Good evening",
-        ANSWERD: "Goodbye",
-        CORRECTANSWER: "B",
-        EXPLANATION: "The audio contains こんにちは (konnichiwa)",
-        AUDIOFILENAME: "greeting_dialogue.mp3",
-      },
-      {
-        TYPE: "Reading",
-        QUESTION: "本文の内容と一致するのはどれですか？",
-        ANSWERA: "記述1",
-        ANSWERB: "記述2",
-        ANSWERC: "記述3",
-        ANSWERD: "記述4",
-        CORRECTANSWER: "B",
-        EXPLANATION: "本文の内容と一致するのは記述2です",
-        AUDIOFILENAME: "",
-      },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(template);
-
-    ws["!cols"] = [
-      { wch: 12 }, // TYPE
-      { wch: 40 }, // QUESTION
-      { wch: 15 }, // ANSWERA
-      { wch: 15 }, // ANSWERB
-      { wch: 15 }, // ANSWERC
-      { wch: 15 }, // ANSWERD
-      { wch: 15 }, // CORRECTANSWER
-      { wch: 30 }, // EXPLANATION
-      { wch: 20 }, // AUDIOFILENAME
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Questions");
-    XLSX.writeFile(wb, "JLPT_Exam_Questions_Template.xlsx");
-  };
-
-  return (
-    <button
-      onClick={handleDownload}
-      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--accent)] text-sm text-secondary-col hover:bg-[var(--border)] transition"
-    >
-      <Download className="w-4 h-4" />
-      Download Template
-    </button>
-  );
-}
-
-function ExcelFormatGuide() {
-  return (
-    <div className="mt-4 p-4 rounded-lg bg-[var(--accent)] border border-[var(--border)]">
-      <div className="flex items-start gap-2 mb-3">
-        <HelpCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-        <div>
-          <h4 className="text-sm font-bold text-primary-col">Excel Format Guide</h4>
-          <p className="text-xs text-muted-col">Required columns for import</p>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-[var(--border)]">
-              <th className="py-2 px-2 text-left font-bold text-secondary-col">Column</th>
-              <th className="py-2 px-2 text-left font-bold text-secondary-col">Description</th>
-              <th className="py-2 px-2 text-left font-bold text-secondary-col">Example</th>
-            </tr>
-          </thead>
-          <tbody className="text-muted-col">
-            <tr className="border-b border-[var(--border)]">
-              <td className="py-2 px-2 font-mono">TYPE</td>
-              <td className="py-2 px-2">Vocabulary, Grammar, Reading, Listening</td>
-              <td className="py-2 px-2 font-mono">Vocabulary</td>
-            </tr>
-            <tr className="border-b border-[var(--border)]">
-              <td className="py-2 px-2 font-mono">QUESTION</td>
-              <td className="py-2 px-2">Question text</td>
-              <td className="py-2 px-2 font-mono">「山」の読み方は？</td>
-            </tr>
-            <tr className="border-b border-[var(--border)]">
-              <td className="py-2 px-2 font-mono">ANSWERA-D</td>
-              <td className="py-2 px-2">Answer options</td>
-              <td className="py-2 px-2 font-mono">やま, さめ, たけ, たかさ</td>
-            </tr>
-            <tr className="border-b border-[var(--border)]">
-              <td className="py-2 px-2 font-mono">CORRECTANSWER</td>
-              <td className="py-2 px-2">A, B, C, or D</td>
-              <td className="py-2 px-2 font-mono">A</td>
-            </tr>
-            <tr className="border-b border-[var(--border)]">
-              <td className="py-2 px-2 font-mono">EXPLANATION</td>
-              <td className="py-2 px-2">Answer explanation (optional)</td>
-              <td className="py-2 px-2 font-mono">正答えは...</td>
-            </tr>
-            <tr>
-              <td className="py-2 px-2 font-mono">AUDIOFILENAME</td>
-              <td className="py-2 px-2">Audio file for Listening (optional)</td>
-              <td className="py-2 px-2 font-mono">audio.mp3</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
 
 function CreateExamPage() {
   const { level } = Route.useParams();
@@ -316,217 +45,50 @@ function CreateExamPage() {
   const [examName, setExamName] = useState(`JLPT ${upperLevel} Mock Test`);
   const [status, setStatus] = useState<ExamStatus>("Draft");
   const [duration, setDuration] = useState(defaultConfig.duration);
-
-  const [importedQuestions, setImportedQuestions] = useState<ParsedQuestion[]>([]);
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [missingColumns, setMissingColumns] = useState<string[]>([]);
-  const [importStats, setImportStats] = useState<{
-    total: number;
-    vocabulary: number;
-    grammar: number;
-    reading: number;
-    listening: number;
-  } | null>(null);
-
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const validateColumns = useCallback((headers: string[]): string[] => {
-    const missing: string[] = [];
-    REQUIRED_COLUMNS.forEach((col) => {
-      if (!headers.some((h) => h.toUpperCase() === col)) {
-        missing.push(col);
-      }
-    });
-    return missing;
-  }, []);
+  const queryClient = useQueryClient();
 
-  const parseExcelFile = useCallback(
-    (file: File): Promise<{ questions: ParsedQuestion[]; missingColumns: string[] }> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: "array" });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
-
-            if (jsonData.length === 0) {
-              reject(new Error("Excel file is empty"));
-              return;
-            }
-
-            const headers = Object.keys(jsonData[0]);
-            const missing = validateColumns(headers);
-
-            const questions: ParsedQuestion[] = jsonData.map((row, index) => {
-              const type = (row["TYPE"] || row["type"] || "Vocabulary") as string;
-              const correctAnswerStr = row["CORRECTANSWER"] || row["correctAnswer"] || "A";
-              const correctAnswerIndex = ["A", "B", "C", "D"].indexOf(
-                correctAnswerStr.toString().toUpperCase().trim(),
-              );
-
-              return {
-                id: `imported-${Date.now()}-${index}`,
-                type,
-                question: row["QUESTION"] || row["question"] || "",
-                options: [
-                  row["ANSWERA"] || row["answera"] || "",
-                  row["ANSWERB"] || row["answerb"] || "",
-                  row["ANSWERC"] || row["answerc"] || "",
-                  row["ANSWERD"] || row["answerd"] || "",
-                ].filter((o) => o.trim()),
-                correctAnswer: correctAnswerIndex >= 0 ? correctAnswerIndex : 0,
-                explanation: row["EXPLANATION"] || row["explanation"] || undefined,
-                audioFileName:
-                  row["AUDIOFILENAME"] || row["audioFileName"] || row["audiofilename"] || undefined,
-              };
-            });
-
-            resolve({ questions, missingColumns: missing });
-          } catch (err) {
-            reject(new Error("Failed to parse Excel file"));
-          }
-        };
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsArrayBuffer(file);
-      });
-    },
-    [validateColumns],
-  );
-
-  const validateQuestions = useCallback((questions: ParsedQuestion[]): string[] => {
-    const errors: string[] = [];
-    const validTypes = ["Vocabulary", "Grammar", "Reading", "Listening"];
-
-    questions.forEach((q, i) => {
-      if (!q.question.trim()) {
-        errors.push(`Row ${i + 2}: Missing question text`);
-      }
-      if (!validTypes.includes(q.type)) {
-        errors.push(`Row ${i + 2}: Invalid TYPE "${q.type}"`);
-      }
-      if (q.options.length < 2) {
-        errors.push(`Row ${i + 2}: Need at least 2 options`);
-      }
-    });
-
-    return errors;
-  }, []);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setImporting(true);
-    setImportError(null);
-    setMissingColumns([]);
-
-    try {
-      const { questions, missingColumns: missing } = await parseExcelFile(file);
-
-      if (missing.length > 0) {
-        setMissingColumns(missing);
-        setImportError(`Invalid Excel format. Missing columns: ${missing.join(", ")}`);
-        return;
-      }
-
-      const errors = validateQuestions(questions);
-
-      if (errors.length > 0) {
-        setImportError(errors[0]);
-        return;
-      }
-
-      setImportedQuestions(questions);
-
-      const stats = {
-        total: questions.length,
-        vocabulary: questions.filter((q) => q.type.toLowerCase() === "vocabulary").length,
-        grammar: questions.filter((q) => q.type.toLowerCase() === "grammar").length,
-        reading: questions.filter((q) => q.type.toLowerCase() === "reading").length,
-        listening: questions.filter((q) => q.type.toLowerCase() === "listening").length,
-      };
-      setImportStats(stats);
-    } catch (err: any) {
-      setImportError(err.message || "Failed to import questions");
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleDeleteQuestion = (id: string) => {
-    const updated = importedQuestions.filter((q) => q.id !== id);
-    setImportedQuestions(updated);
-    if (updated.length > 0) {
-      setImportStats({
-        total: updated.length,
-        vocabulary: updated.filter((q) => q.type.toLowerCase() === "vocabulary").length,
-        grammar: updated.filter((q) => q.type.toLowerCase() === "grammar").length,
-        reading: updated.filter((q) => q.type.toLowerCase() === "reading").length,
-        listening: updated.filter((q) => q.type.toLowerCase() === "listening").length,
-      });
-    } else {
-      setImportStats(null);
-    }
-  };
-
-  const handleClearImport = () => {
-    setImportedQuestions([]);
-    setImportStats(null);
-    setImportError(null);
-    setMissingColumns([]);
-  };
-
-  const handleSubmit = async () => {
+  const handleCreateExam = async (importedQuestions: ImportedQuestion[]) => {
     if (!examName.trim()) {
-      setError("Exam name is required");
-      return;
+      throw new Error("Exam name is required");
     }
     if (importedQuestions.length === 0) {
-      setError("Please import at least one question");
-      return;
+      throw new Error("Please import at least one question");
     }
 
-    setCreating(true);
-    setError(null);
+    const backendStatus = status === "Active" ? "PUBLISHED" : "DRAFT";
+    const examRes = await examsApi.createExam({
+      title: examName,
+      level: upperLevel,
+      totalQuestions: importedQuestions.length,
+      timeLimit: duration,
+      category: "JLPT",
+      status: backendStatus,
+    });
 
-    try {
-      // Assign unique IDs to each question
-      const examId = `${upperLevel.toLowerCase()}-exam-${Date.now()}`;
-      const questionsWithIds: ExamQuestion[] = importedQuestions.map((q, index) => ({
-        id: `${examId}-q-${index + 1}`,
-        section: q.type as "Vocabulary" | "Grammar" | "Reading" | "Listening",
-        questionNumber: index + 1,
-        type: "Multiple Choice",
-        question: q.question,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-      }));
-
-      addExam({
-        level: upperLevel as JLPTLevel,
-        name: examName,
-        status,
-        duration,
-        questions: questionsWithIds,
-      });
-
-      setSuccessMessage("Exam created successfully!");
-
-      setTimeout(() => {
-        navigate({ to: "/admin/jlpt-exam/$level", params: { level } });
-      }, 1500);
-    } catch (err: any) {
-      setError(err.message || "Failed to create exam");
-    } finally {
-      setCreating(false);
+    if (!examRes?.id) {
+      throw new Error("Failed to create exam shell");
     }
+
+    await examsApi.updateExamQuestions(examRes.id, {
+      questions: importedQuestions.map((q, index) => ({
+        prompt: `[${q.category || q.type}] ${q.content}`,
+        options: q.answers.map((ans) => ans.content),
+        correctAnswerIndex: q.answers.findIndex((ans) => ans.isCorrect),
+        points: 1,
+        displayOrder: index + 1,
+      })),
+    });
+
+    queryClient.invalidateQueries({ queryKey: ["exam-bank", upperLevel] });
+    queryClient.invalidateQueries({ queryKey: ["exam-bank"] });
+
+    setSuccessMessage("Exam created successfully!");
+
+    setTimeout(() => {
+      navigate({ to: "/admin/jlpt-exam/$level", params: { level } });
+    }, 1500);
   };
 
   if (!isValidLevel) {
@@ -560,38 +122,15 @@ function CreateExamPage() {
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-display font-black text-primary-col">Create Exam</h1>
-            <p className="text-sm text-secondary-col mt-0.5">Import questions from Excel file</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/admin/jlpt-exam/$level"
-              params={{ level: level.toLowerCase() }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-secondary-col text-sm font-bold hover:bg-[var(--accent)] transition"
-            >
-              Cancel
-            </Link>
-            <button
-              onClick={handleSubmit}
-              disabled={creating || importedQuestions.length === 0}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition disabled:opacity-50"
-            >
-              {creating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4" />
-              )}
-              Create Exam
-            </button>
-          </div>
-        </div>
+      <div>
+        <h1 className="text-2xl font-display font-black text-primary-col">Create Exam</h1>
+        <p className="text-sm text-secondary-col mt-0.5">
+          Configure test metadata and upload PDF to import questions
+        </p>
       </div>
 
       {/* Exam Information Card */}
-      <div className="card-base p-5">
+      <div className="card-base p-5 border border-[var(--border)]">
         <h2 className="font-display font-bold text-primary-col mb-4">Exam Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-1.5 md:col-span-2">
@@ -635,171 +174,23 @@ function CreateExamPage() {
         </div>
       </div>
 
-      {/* Excel Import Card */}
-      <div className="card-base p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-primary" />
-            <h2 className="font-display font-bold text-primary-col">Import Questions from Excel</h2>
-          </div>
-          <ExcelTemplateDownload />
-        </div>
-
-        <div
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition ${
-            importing
-              ? "border-[oklch(0.62_0.18_270)] bg-[oklch(0.62_0.18_270)]/5"
-              : "border-[var(--border)] hover:border-[oklch(0.62_0.18_270)]/40"
-          }`}
-        >
-          {importedQuestions.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-center gap-2 text-[var(--status-active)]">
-                <CheckCircle className="w-6 h-6" />
-                <span className="font-bold text-lg">
-                  {importedQuestions.length} questions imported
-                </span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-md mx-auto">
-                <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[oklch(0.62_0.18_270)]">
-                    {importStats?.vocabulary || 0}
-                  </p>
-                  <p className="text-[10px] text-muted-col">Vocabulary</p>
-                </div>
-                <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[oklch(0.72_0.15_230)]">
-                    {importStats?.grammar || 0}
-                  </p>
-                  <p className="text-[10px] text-muted-col">Grammar</p>
-                </div>
-                <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[var(--status-pending)]">
-                    {importStats?.reading || 0}
-                  </p>
-                  <p className="text-[10px] text-muted-col">Reading</p>
-                </div>
-                <div className="p-2 rounded-lg bg-[var(--accent)]">
-                  <p className="text-lg font-black text-[oklch(0.6_0.22_25)]">
-                    {importStats?.listening || 0}
-                  </p>
-                  <p className="text-[10px] text-muted-col">Listening</p>
-                </div>
-              </div>
-              <button
-                onClick={handleClearImport}
-                className="px-4 py-2 rounded-xl bg-red-500/10 text-red-500 text-sm font-bold hover:bg-red-500/20 transition"
-              >
-                Clear All
-              </button>
-            </div>
-          ) : (
-            <>
-              <Upload className="w-10 h-10 text-muted-col mx-auto mb-3" />
-              <p className="text-sm text-secondary-col mb-2">
-                Drop your Excel file here or click to browse
-              </p>
-              <p className="text-xs text-muted-col mb-4">Accepts .xlsx, .xls files</p>
-              <input
-                type="file"
-                accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="excel-upload"
-              />
-              <label
-                htmlFor="excel-upload"
-                className="inline-block px-4 py-2.5 rounded-xl bg-[oklch(0.62_0.18_270)] text-white text-sm font-bold shadow-md hover:opacity-90 transition cursor-pointer"
-              >
-                {importing ? "Importing..." : "Select File"}
-              </label>
-            </>
-          )}
-        </div>
-
-        {/* Format Guide */}
-        <ExcelFormatGuide />
-
-        {/* Error Messages */}
-        {importError && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 px-4 py-3 rounded-lg bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-start gap-2"
-          >
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold">Import Error</p>
-              <p className="text-xs opacity-80">{importError}</p>
-            </div>
-          </motion.div>
-        )}
+      {/* PDF Import Coordinator */}
+      <div className="card-base p-5 border border-[var(--border)]">
+        <AiPdfImportWorkflow
+          onCreate={handleCreateExam}
+          title="Import Exam Questions"
+          subtitle="Select PDF file to extract exam questions automatically"
+          backHref={`/admin/jlpt-exam/${level.toLowerCase()}`}
+          backLabel={`Back to ${upperLevel} Exams`}
+        />
       </div>
 
-      {/* Question Preview Table */}
-      {importedQuestions.length > 0 && (
-        <div className="card-base overflow-hidden">
-          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-            <h2 className="font-display font-bold text-primary-col">Question Preview</h2>
-            <span className="text-xs text-muted-col">
-              {importedQuestions.length} total questions
-            </span>
-          </div>
-          <div className="overflow-x-auto max-h-96">
-            <table className="w-full">
-              <thead className="bg-[var(--accent)] sticky top-0">
-                <tr className="text-left text-xs font-bold text-secondary-col uppercase tracking-wider">
-                  <th className="py-3 px-3 w-12">#</th>
-                  <th className="py-3 px-3">Type</th>
-                  <th className="py-3 px-3">Question</th>
-                  <th className="py-3 px-3">Answer</th>
-                  <th className="py-3 px-3">Audio</th>
-                  <th className="py-3 px-3 w-16"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {importedQuestions.map((q, i) => (
-                  <QuestionPreviewRow
-                    key={q.id}
-                    question={q}
-                    index={i}
-                    onDelete={() => handleDeleteQuestion(q.id)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {successMessage && (
+        <div className="fixed bottom-4 right-4 z-50 px-5 py-3 rounded-xl bg-[var(--status-active)] text-white shadow-lg flex items-center gap-2 font-medium">
+          <CheckCircle className="w-5 h-5" />
+          {successMessage}
         </div>
       )}
-
-      {/* Error/Success Messages */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="px-4 py-3 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-center gap-2"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            {error}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {successMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 right-4 z-50 px-5 py-3 rounded-xl bg-[var(--status-active)] text-white shadow-lg flex items-center gap-2 font-medium"
-          >
-            <CheckCircle className="w-5 h-5" />
-            {successMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

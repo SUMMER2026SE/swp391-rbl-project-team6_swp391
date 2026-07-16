@@ -24,14 +24,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  type JLPTLevel,
-  type JLPTExam,
-  type ExamStatus,
-  getExamsByLevel,
-} from "@/mocks/jlptExamMock";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { examsApi, type ExamResponse } from "@/lib/api/exams";
 
 type LevelUpper = "N5" | "N4" | "N3" | "N2" | "N1";
+type ExamStatus = "Active" | "Draft" | "Archived";
+
+function mapStatusToUi(status: string): ExamStatus {
+  if (status === "PUBLISHED") return "Active";
+  if (status === "ARCHIVED") return "Archived";
+  return "Draft";
+}
 
 function StatusBadge({ status }: { status: ExamStatus }) {
   const configs: Record<ExamStatus, { label: string; color: string; bg: string }> = {
@@ -67,29 +70,52 @@ export const Route = createFileRoute("/admin/jlpt-exam/$level/_index")({
 function ExamListPage() {
   const { level } = Route.useParams();
   const upperLevel = level.toUpperCase() as LevelUpper;
+  const queryClient = useQueryClient();
 
-  const [exams, setExams] = useState<JLPTExam[]>(() => getExamsByLevel(upperLevel as JLPTLevel));
   const [search, setSearch] = useState("");
-  const [archiveExam, setArchiveExam] = useState<JLPTExam | null>(null);
-  const [restoreExam, setRestoreExam] = useState<JLPTExam | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [archiveExam, setArchiveExam] = useState<ExamResponse | null>(null);
+  const [restoreExam, setRestoreExam] = useState<ExamResponse | null>(null);
 
-  const filteredExams = exams.filter(
-    (exam) => !search || exam.name.toLowerCase().includes(search.toLowerCase()),
+  const { data: rawExams = [], isLoading, error: queryError } = useQuery({
+    queryKey: ["exam-bank", upperLevel],
+    queryFn: async () => {
+      const res = await examsApi.getAllExams();
+      return res;
+    },
+  });
+
+  const exams = rawExams.filter(
+    (e) => e.level === upperLevel && e.category === "JLPT"
   );
 
-  const handleArchive = (exam: JLPTExam) => {
-    setExams((prev) =>
-      prev.map((e) => (e.id === exam.id ? { ...e, status: "Archived" as ExamStatus } : e)),
-    );
-    setArchiveExam(null);
+  const archiveMutation = useMutation({
+    mutationFn: (examId: string) =>
+      examsApi.updateExam(examId, { status: "ARCHIVED" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exam-bank", upperLevel] });
+      setArchiveExam(null);
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: (examId: string) =>
+      examsApi.updateExam(examId, { status: "PUBLISHED" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exam-bank", upperLevel] });
+      setRestoreExam(null);
+    },
+  });
+
+  const filteredExams = exams.filter(
+    (exam) => !search || exam.title.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const handleArchive = (exam: ExamResponse) => {
+    archiveMutation.mutate(exam.id);
   };
 
-  const handleRestore = (exam: JLPTExam) => {
-    setExams((prev) =>
-      prev.map((e) => (e.id === exam.id ? { ...e, status: "Active" as ExamStatus } : e)),
-    );
-    setRestoreExam(null);
+  const handleRestore = (exam: ExamResponse) => {
+    restoreMutation.mutate(exam.id);
   };
 
   return (
@@ -143,7 +169,7 @@ function ExamListPage() {
           <div>
             <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Active</p>
             <p className="font-display font-black text-lg text-primary-col">
-              {exams.filter((e) => e.status === "Active").length}
+              {exams.filter((e) => mapStatusToUi(e.status) === "Active").length}
             </p>
           </div>
         </div>
@@ -154,7 +180,7 @@ function ExamListPage() {
           <div>
             <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Draft</p>
             <p className="font-display font-black text-lg text-primary-col">
-              {exams.filter((e) => e.status === "Draft").length}
+              {exams.filter((e) => mapStatusToUi(e.status) === "Draft").length}
             </p>
           </div>
         </div>
@@ -167,7 +193,7 @@ function ExamListPage() {
               Archived
             </p>
             <p className="font-display font-black text-lg text-primary-col">
-              {exams.filter((e) => e.status === "Archived").length}
+              {exams.filter((e) => mapStatusToUi(e.status) === "Archived").length}
             </p>
           </div>
         </div>
@@ -222,6 +248,7 @@ function ExamListPage() {
               Actions
             </div>
           </div>
+
           {/* Table Rows */}
           <div className="divide-y divide-[var(--border)]">
             {filteredExams.map((exam) => (
@@ -235,17 +262,17 @@ function ExamListPage() {
                       <FileText className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-primary-col">{exam.name}</p>
-                      <p className="text-xs text-muted-col mt-0.5">{exam.duration} min</p>
+                      <p className="text-sm font-medium text-primary-col">{exam.title}</p>
+                      <p className="text-xs text-muted-col mt-0.5">{exam.timeLimit} min</p>
                     </div>
                   </div>
                 </div>
                 <div className="col-span-2 flex justify-center">
-                  <StatusBadge status={exam.status} />
+                  <StatusBadge status={mapStatusToUi(exam.status)} />
                 </div>
                 <div className="col-span-2 text-center">
                   <span className="text-sm font-medium text-muted-col">
-                    {exam.questions?.length ?? 0}
+                    {exam.questions?.length ?? exam.totalQuestions ?? 0}
                   </span>
                 </div>
                 <div className="col-span-3 flex justify-end gap-2">
@@ -257,7 +284,7 @@ function ExamListPage() {
                     <Pencil className="w-3.5 h-3.5" />
                     Edit
                   </Link>
-                  {exam.status === "Archived" ? (
+                  {mapStatusToUi(exam.status) === "Archived" ? (
                     <button
                       onClick={() => handleRestore(exam)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--status-active)]/10 text-[var(--status-active)] hover:bg-[var(--status-active)]/20 transition text-xs font-medium"
@@ -290,7 +317,7 @@ function ExamListPage() {
             </div>
             <AlertDialogTitle className="text-center">Archive Exam</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Are you sure you want to archive "{archiveExam?.name}"? This exam will be hidden but
+              Are you sure you want to archive "{archiveExam?.title}"? This exam will be hidden but
               can be restored later.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -315,7 +342,7 @@ function ExamListPage() {
             </div>
             <AlertDialogTitle className="text-center">Restore Exam</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Are you sure you want to restore "{restoreExam?.name}"? This exam will be available
+              Are you sure you want to restore "{restoreExam?.title}"? This exam will be available
               for students again.
             </AlertDialogDescription>
           </AlertDialogHeader>

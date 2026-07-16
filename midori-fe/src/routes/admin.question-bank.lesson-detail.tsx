@@ -23,7 +23,7 @@ import {
   Pause,
   XCircle,
 } from "lucide-react";
-import { questionBankService, type Question } from "../services/questionBankService";
+import { questionBankService, useQuestionBank, type Question } from "../services/questionBankService";
 import { isListeningQuestion, formatDuration } from "../services/questionBank.types";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 
@@ -98,12 +98,13 @@ function QuestionBankLessonDetailPage() {
   const level = (search.level?.toUpperCase() || "N5") as JLPTLevel;
   const lessonId = parseInt(search.lessonId || "1");
 
+  const { lessons, questions: allQuestions, isLoading, deleteQuestion } = useQuestionBank(level);
+
   // Get lesson data from service
-  const lesson = questionBankService.getLesson(level, lessonId);
+  const lesson = lessons.find((l) => l.id === lessonId);
   const lessonName = lesson?.lessonName || `Lesson ${lessonId}`;
 
   // State
-  const [questions, setQuestions] = useState<Question[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<QuestionType | "">("");
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | "">("");
@@ -112,11 +113,7 @@ function QuestionBankLessonDetailPage() {
     questionId: null,
   });
 
-  // Load questions from service
-  useEffect(() => {
-    const loadedQuestions = questionBankService.getQuestions(level, lessonId);
-    setQuestions(loadedQuestions);
-  }, [level, lessonId]);
+  const questions = allQuestions.filter((q) => q.lesson === lessonId);
 
   const filteredQuestions = questions.filter((q) => {
     const matchSearch = q.questionText.toLowerCase().includes(searchTerm.toLowerCase());
@@ -136,11 +133,14 @@ function QuestionBankLessonDetailPage() {
     setDeleteConfirm({ open: true, questionId: id });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteConfirm.questionId) {
-      questionBankService.deleteQuestion(deleteConfirm.questionId);
-      setQuestions(questionBankService.getQuestions(level, lessonId));
-      toast.success("Question deleted successfully");
+      try {
+        await deleteQuestion(deleteConfirm.questionId);
+        toast.success("Question deleted successfully");
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to delete question");
+      }
     }
     setDeleteConfirm({ open: false, questionId: null });
   };
@@ -178,7 +178,7 @@ function QuestionBankLessonDetailPage() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-semibold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition"
             >
               <Upload className="w-4 h-4" />
-              Import Excel
+              Import PDF with AI
             </button>
             <button
               onClick={() =>
