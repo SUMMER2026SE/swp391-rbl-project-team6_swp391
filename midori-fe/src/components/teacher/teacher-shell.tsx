@@ -3,7 +3,7 @@ import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-ro
 import {
   Bell, ChevronLeft, ChevronRight, Menu, Moon, Sun, Search, X,
   LayoutDashboard, School, BookOpen,
-  TrendingUp, HelpCircle, FileBadge, MessageSquare,
+  TrendingUp, HelpCircle, FileBadge,
   LogOut, User, ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,6 @@ const teacherGroups: NavGroup[] = [
   {
     label: "Support",
     items: [
-      { to: "/teacher/reports", label: "Reports", icon: MessageSquare },
       { to: "/teacher/notifications", label: "Notifications", icon: Bell },
     ],
   },
@@ -616,7 +615,6 @@ function TeacherSearchBar() {
       "/teacher/progress",
       "/teacher/question-bank",
       "/teacher/jlpt-bank",
-      "/teacher/reports",
       "/teacher/notifications",
     ];
     const classDetailRoutes = [
