@@ -13,7 +13,7 @@ public class AdminBootstrapProperties {
 
     private boolean bootstrapEnabled = true;
 
-    private String email = "admin@midori.local";
+    private String email;
 
-    private String password = "ChangeMe123!";
+    private String password;
 }
