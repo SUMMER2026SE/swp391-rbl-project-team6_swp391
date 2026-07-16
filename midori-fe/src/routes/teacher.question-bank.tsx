@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getQuestionTopics, getQuestionsByTopic, QuestionTopic } from "@/data/teacher-data";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet } from "@/components/teacher/dialogs";
 import { Sparkles } from "lucide-react";
@@ -13,19 +12,33 @@ import { QuestionBankToolbar } from "@/components/teacher/question-bank/Question
 import { LevelAccordion } from "@/components/teacher/question-bank/LevelAccordion";
 import { LessonAccordion } from "@/components/teacher/question-bank/LessonAccordion";
 import { SkillGrid } from "@/components/teacher/question-bank/SkillGrid";
-import { QuestionTopicCard } from "@/components/teacher/question-bank/QuestionTopicCard";
+import { useQuery } from "@tanstack/react-query";
+import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
+import { mapBackendQuestionToFrontend } from "@/services/questionBankService";
+import type { JLPTLevel, QuestionType, Difficulty } from "@/services/questionBank.types";
 
 export const Route = createFileRoute("/teacher/question-bank")({
   head: () => ({ meta: [{ title: "Question Bank — MIDORI Teacher" }] }),
   component: QuestionBank,
 });
 
-interface TopicWithLesson extends QuestionTopic {
+interface TopicWithLesson {
+  id: string;
+  level: JLPTLevel;
+  lessonId: number;
   lesson: string;
+  skill: QuestionType;
+  name: string;
+  jpName: string;
+  totalQuestions: number;
+  easy: number;
+  medium: number;
+  hard: number;
+  updatedAt: string;
 }
 
 function QuestionBank() {
-  const [viewMode, setViewMode] = useState<"level" | "lesson" | "skill">("level");
+  const [viewMode, setViewMode] = useState<"level" | "lesson" | "skill" | any>("level");
   
   // Toolbar Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,26 +62,88 @@ function QuestionBank() {
   // Preview Dialog State
   const [openPreviewTopicId, setOpenPreviewTopicId] = useState<string | null>(null);
 
-  // Map mock lessons to raw topics
+  // React Query data fetching from centralized backend
+  const { data: rawQuestions = [] } = useQuery({
+    queryKey: ["questionBankQuestions"],
+    queryFn: async () => {
+      const res = await teacherQuestionsApi.getQuestions();
+      return res;
+    },
+  });
+
+  const questions = useMemo(() => {
+    const mapped = rawQuestions.map(mapBackendQuestionToFrontend);
+    console.log("Teacher QB: mapped questions =", mapped);
+    return mapped;
+  }, [rawQuestions]);
+
+  const { data: n5Lessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "N5"],
+    queryFn: () => teacherQuestionsApi.getLessons("N5").then((res) => res),
+  });
+  const { data: n4Lessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "N4"],
+    queryFn: () => teacherQuestionsApi.getLessons("N4").then((res) => res),
+  });
+  const { data: n3Lessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "N3"],
+    queryFn: () => teacherQuestionsApi.getLessons("N3").then((res) => res),
+  });
+  const { data: n2Lessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "N2"],
+    queryFn: () => teacherQuestionsApi.getLessons("N2").then((res) => res),
+  });
+  const { data: n1Lessons = [] } = useQuery({
+    queryKey: ["questionBankLessons", "N1"],
+    queryFn: () => teacherQuestionsApi.getLessons("N1").then((res) => res),
+  });
+
+  const lessonsMap = useMemo(() => {
+    const map = new Map<number, string>();
+    const all = [...n5Lessons, ...n4Lessons, ...n3Lessons, ...n2Lessons, ...n1Lessons];
+    all.forEach((l) => map.set(l.id, l.lessonName));
+    return map;
+  }, [n5Lessons, n4Lessons, n3Lessons, n2Lessons, n1Lessons]);
+
+  // Dynamically group questions into virtual Topics to match the existing UI hierarchy
   const topicsWithLessons = useMemo(() => {
-    const raw = getQuestionTopics();
-    return raw.map((t) => {
-      let lesson = "Lesson 1";
-      if (t.skill === "Vocabulary" || t.skill === "Kanji") {
-        lesson = "Lesson 1";
-      } else if (t.skill === "Grammar") {
-        lesson = "Lesson 2";
-      } else if (t.skill === "Reading") {
-        lesson = "Lesson 3";
-      } else if (t.skill === "Listening") {
-        lesson = "Lesson 4";
-      }
-      return {
-        ...t,
-        lesson,
-      } as TopicWithLesson;
+    const groups: Record<string, Question[]> = {};
+    questions.forEach((q) => {
+      const key = `${q.level}_${q.lesson}_${q.type}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(q);
     });
-  }, []);
+
+    const topics: TopicWithLesson[] = [];
+    Object.entries(groups).forEach(([key, list]) => {
+      if (list.length === 0) return;
+      const [level, lessonIdStr, type] = key.split("_");
+      const lessonId = parseInt(lessonIdStr);
+      const lessonName = lessonsMap.get(lessonId) || `Lesson ${lessonId}`;
+      
+      const easy = list.filter((q) => q.difficulty === "Easy").length;
+      const medium = list.filter((q) => q.difficulty === "Medium").length;
+      const hard = list.filter((q) => q.difficulty === "Hard").length;
+
+      topics.push({
+        id: key,
+        level: level as JLPTLevel,
+        lessonId,
+        lesson: lessonName,
+        skill: type as QuestionType,
+        name: `${lessonName} — ${type}`,
+        jpName: lessonName,
+        totalQuestions: list.length,
+        easy,
+        medium,
+        hard,
+        updatedAt: list[0]?.createdAt || new Date().toISOString(),
+      });
+    });
+
+    console.log("Teacher QB: topicsWithLessons =", topics);
+    return topics;
+  }, [questions, lessonsMap]);
 
   // Update available lessons for selector dropdown based on Level filter selection
   const availableLessons = useMemo(() => {
@@ -170,7 +245,6 @@ function QuestionBank() {
         } else if (sortBy === "Oldest") {
           return a.updatedAt.localeCompare(b.updatedAt);
         } else {
-          // Newest
           return b.updatedAt.localeCompare(a.updatedAt);
         }
       });
@@ -253,7 +327,15 @@ function QuestionBank() {
 
   // Preview Sheets Details Fetching
   const selTopic = openPreviewTopicId ? topicsWithLessons.find((t) => t.id === openPreviewTopicId) : null;
-  const selQs = selTopic ? getQuestionsByTopic(selTopic.id).slice(0, 6) : [];
+  const selQs = useMemo(() => {
+    if (!selTopic) return [];
+    return questions.filter(
+      (q) =>
+        q.level === selTopic.level &&
+        q.lesson === selTopic.lessonId &&
+        q.type === selTopic.skill
+    ).slice(0, 6);
+  }, [selTopic, questions]);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -368,11 +450,33 @@ function QuestionBank() {
             <ul className="space-y-2">
               {selQs.map((q) => (
                 <li key={q.id} className="rounded-lg border p-3 text-sm">
-                  <div className="mb-1 flex items-center gap-2">
+                  <div className="mb-1.5 flex items-center gap-2">
                     <DifficultyBadge d={q.difficulty} />
                     <span className="text-xs text-muted-foreground">{q.points} pts</span>
                   </div>
-                  <div className="font-medium">{q.prompt}</div>
+                  <div className="font-medium mb-2">{q.questionText}</div>
+                  {q.options && q.options.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {q.options.map((opt, optIdx) => {
+                        const isCorrect = q.correctIndex === optIdx;
+                        return (
+                          <div
+                            key={optIdx}
+                            className={`rounded p-2 text-xs border ${
+                              isCorrect
+                                ? "bg-green-500/10 border-green-500/30 text-green-700 font-medium"
+                                : "bg-muted/40 border-border/40 text-muted-foreground"
+                            }`}
+                          >
+                            <span className="font-bold mr-1">
+                              {String.fromCharCode(65 + optIdx)}.
+                            </span>{" "}
+                            {opt}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

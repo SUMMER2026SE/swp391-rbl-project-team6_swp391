@@ -1,9 +1,5 @@
-// Question Bank Service Layer
-// This service manages all Question Bank data operations
-// Currently uses React state (mock data mode)
-// Can be easily replaced with real API calls in the future
-
-import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import type {
   JLPTLevel,
   QuestionType,
@@ -13,240 +9,49 @@ import type {
   ListeningQuestion,
   StandardQuestion,
 } from "./questionBank.types";
-import { baseMockData, sampleQuestions } from "../mocks/questionBankMock";
-import { formatDuration } from "./questionBank.types";
+import { teacherQuestionsApi, TeacherQuestionResponse } from "../lib/api/teacherQuestions";
 
-// In-memory data store (simulates database)
-let lessonsData: Record<JLPTLevel, Lesson[]> = {} as Record<JLPTLevel, Lesson[]>;
-let questionsData: Question[] = [];
-
-// Initialize with mock data
-function initializeData() {
-  const allLevels: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
-  allLevels.forEach((level) => {
-    lessonsData[level] = baseMockData[level].map((l) => ({
-      id: l.id,
-      lessonNumber: l.lessonNumber,
-      lessonName: l.lessonName,
-      questionCount: 0,
-      createdAt: l.createdAt,
-    }));
-  });
-
-  questionsData = sampleQuestions.map((q) => {
-    // Handle listening questions with audio
-    if (q.type === "Listening") {
-      return {
-        ...q,
-        audio: {
-          audioUrl: (q as { audioUrl: string }).audioUrl,
-          audioFileName: (q as { audioFileName: string }).audioFileName,
-          audioDuration: (q as { audioDuration: number }).audioDuration,
-        },
-      } as ListeningQuestion;
-    }
-    // Standard questions
-    return q as StandardQuestion;
-  });
-
-  updateQuestionCounts();
+// Helper mapper for Difficulty
+function mapDifficultyToFrontend(difficulty: string): Difficulty {
+  if (!difficulty) return "Medium";
+  const lower = difficulty.toLowerCase();
+  if (lower === "easy") return "Easy";
+  if (lower === "hard") return "Hard";
+  return "Medium";
 }
 
-function updateQuestionCounts() {
-  const allLevels: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
-  allLevels.forEach((level) => {
-    lessonsData[level] = lessonsData[level].map((lesson) => ({
-      ...lesson,
-      questionCount: questionsData.filter((q) => q.level === level && q.lesson === lesson.id)
-        .length,
-    }));
-  });
+// Mapper from Backend Question to Frontend Question
+export function mapBackendQuestionToFrontend(q: TeacherQuestionResponse): Question {
+  const base = {
+    id: q.id,
+    level: (q.level || "N5") as JLPTLevel,
+    lesson: q.lessonId || 0,
+    type: (q.questionType || "Vocabulary") as QuestionType,
+    difficulty: mapDifficultyToFrontend(q.difficulty),
+    questionText: q.prompt,
+    options: q.options || [],
+    correctIndex: q.correctAnswerIndex,
+    explanation: q.explanation || "",
+    points: q.points || 0,
+    createdAt: q.createdAt,
+  };
+
+  if (q.questionType === "Listening") {
+    return {
+      ...base,
+      type: "Listening",
+      audio: {
+        audioUrl: q.audioUrl || "",
+        audioFileName: q.audioFileName || "",
+        audioDuration: q.audioDuration || 0,
+      },
+    } as ListeningQuestion;
+  }
+
+  return base as StandardQuestion;
 }
-
-function generateId(): string {
-  return `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
-
-// Initialize on module load
-initializeData();
-
-// Service API functions
-export type { Lesson, Question, ListeningQuestion, StandardQuestion };
 
 export const questionBankService = {
-  getLessons(level: JLPTLevel): Lesson[] {
-    return lessonsData[level] || [];
-  },
-
-  getLesson(level: JLPTLevel, lessonId: number): Lesson | undefined {
-    return lessonsData[level]?.find((l) => l.id === lessonId);
-  },
-
-  getQuestions(level: JLPTLevel, lessonId: number): Question[] {
-    return questionsData.filter((q) => q.level === level && q.lesson === lessonId);
-  },
-
-  getAllQuestions(level: JLPTLevel): Question[] {
-    return questionsData.filter((q) => q.level === level);
-  },
-
-  getLevelStats(level: JLPTLevel) {
-    const lessons = lessonsData[level] || [];
-    const questions = questionsData.filter((q) => q.level === level);
-    return {
-      totalLessons: lessons.length,
-      totalQuestions: questions.length,
-      activeLessons: lessons.filter((l) => l.questionCount > 0).length,
-    };
-  },
-
-  createLesson(level: JLPTLevel, lessonName: string, lessonNumber?: number): Lesson {
-    const lessons = lessonsData[level] || [];
-    const maxId = lessons.length > 0 ? Math.max(...lessons.map((l) => l.id)) : 0;
-    const newLesson: Lesson = {
-      id: maxId + 1,
-      lessonNumber: lessonNumber || maxId + 1,
-      lessonName,
-      questionCount: 0,
-      createdAt: new Date().toISOString(),
-    };
-    lessonsData[level] = [...lessons, newLesson];
-    return newLesson;
-  },
-
-  updateLesson(level: JLPTLevel, lessonId: number, lessonName: string): Lesson | undefined {
-    const lessons = lessonsData[level] || [];
-    const index = lessons.findIndex((l) => l.id === lessonId);
-    if (index === -1) return undefined;
-
-    lessons[index] = { ...lessons[index], lessonName };
-    lessonsData[level] = [...lessons];
-    return lessons[index];
-  },
-
-  deleteLesson(level: JLPTLevel, lessonId: number): boolean {
-    const lessons = lessonsData[level] || [];
-    lessonsData[level] = lessons.filter((l) => l.id !== lessonId);
-    questionsData = questionsData.filter((q) => !(q.level === level && q.lesson === lessonId));
-    return true;
-  },
-
-  createQuestion(
-    level: JLPTLevel,
-    lessonId: number,
-    questionData: {
-      type: QuestionType;
-      difficulty: Difficulty;
-      questionText: string;
-      options: string[];
-      correctIndex: number;
-      explanation: string;
-      audio?: {
-        audioUrl: string;
-        audioFileName: string;
-        audioDuration: number;
-      };
-    },
-  ): Question {
-    const baseQuestion = {
-      id: generateId(),
-      level,
-      lesson: lessonId,
-      type: questionData.type,
-      difficulty: questionData.difficulty,
-      questionText: questionData.questionText,
-      options: questionData.options,
-      correctIndex: questionData.correctIndex,
-      explanation: questionData.explanation,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Create the appropriate question type
-    if (questionData.type === "Listening" && questionData.audio) {
-      const newListeningQuestion: ListeningQuestion = {
-        ...baseQuestion,
-        type: "Listening",
-        audio: questionData.audio,
-      };
-      questionsData = [...questionsData, newListeningQuestion];
-      return newListeningQuestion;
-    } else {
-      const newStandardQuestion: StandardQuestion = {
-        ...baseQuestion,
-        type: questionData.type as "Vocabulary" | "Grammar" | "Reading",
-      };
-      questionsData = [...questionsData, newStandardQuestion];
-      return newStandardQuestion;
-    }
-  },
-
-  updateQuestion(
-    questionId: string,
-    updates: {
-      type?: QuestionType;
-      difficulty?: Difficulty;
-      questionText?: string;
-      options?: string[];
-      correctIndex?: number;
-      explanation?: string;
-      audio?: {
-        audioUrl: string;
-        audioFileName: string;
-        audioDuration: number;
-      };
-    },
-  ): Question | undefined {
-    const index = questionsData.findIndex((q) => q.id === questionId);
-    if (index === -1) return undefined;
-
-    const existingQuestion = questionsData[index];
-
-    // Handle type-specific updates
-    if (existingQuestion.type === "Listening") {
-      const updatedListening: ListeningQuestion = {
-        ...existingQuestion,
-        type: (updates.type as "Listening") || "Listening",
-        difficulty: updates.difficulty || existingQuestion.difficulty,
-        questionText: updates.questionText || existingQuestion.questionText,
-        options: updates.options || existingQuestion.options,
-        correctIndex: updates.correctIndex ?? existingQuestion.correctIndex,
-        explanation: updates.explanation || existingQuestion.explanation,
-        audio: updates.audio || (existingQuestion as ListeningQuestion).audio,
-      };
-      questionsData[index] = updatedListening;
-      return updatedListening;
-    } else {
-      const updatedStandard: StandardQuestion = {
-        ...existingQuestion,
-        type: (updates.type as "Vocabulary" | "Grammar" | "Reading") || existingQuestion.type,
-        difficulty: updates.difficulty || existingQuestion.difficulty,
-        questionText: updates.questionText || existingQuestion.questionText,
-        options: updates.options || existingQuestion.options,
-        correctIndex: updates.correctIndex ?? existingQuestion.correctIndex,
-        explanation: updates.explanation || existingQuestion.explanation,
-      };
-      questionsData[index] = updatedStandard;
-      return updatedStandard;
-    }
-  },
-
-  deleteQuestion(questionId: string): boolean {
-    const index = questionsData.findIndex((q) => q.id === questionId);
-    if (index === -1) return false;
-
-    questionsData = questionsData.filter((q) => q.id !== questionId);
-    updateQuestionCounts();
-    return true;
-  },
-
-  getQuestion(questionId: string): Question | undefined {
-    return questionsData.find((q) => q.id === questionId);
-  },
-
-  reset() {
-    initializeData();
-  },
-
   // Check if question has audio (for Listening type)
   hasAudio(question: Question): boolean {
     if (question.type !== "Listening") return false;
@@ -266,17 +71,151 @@ export const questionBankService = {
   },
 };
 
-// React hook for using the service with state
 export function useQuestionBank(level: JLPTLevel) {
-  const [lessons, setLessons] = useState<Lesson[]>(questionBankService.getLessons(level));
-  const [questions, setQuestions] = useState<Question[]>(
-    questionBankService.getAllQuestions(level),
-  );
+  const queryClient = useQueryClient();
 
-  const refresh = useCallback(() => {
-    setLessons(questionBankService.getLessons(level));
-    setQuestions(questionBankService.getAllQuestions(level));
-  }, [level]);
+  // Queries
+  const { data: rawLessons = [], refetch: refetchLessons, isLoading: isLoadingLessons, isError: isErrorLessons, error: errorLessons } = useQuery({
+    queryKey: ["questionBankLessons", level],
+    queryFn: async () => {
+      const response = await teacherQuestionsApi.getLessons(level);
+      return response;
+    },
+  });
+
+  const { data: rawQuestions = [], refetch: refetchQuestions, isLoading: isLoadingQuestions, isError: isErrorQuestions, error: errorQuestions } = useQuery({
+    queryKey: ["questionBankQuestions"],
+    queryFn: async () => {
+      const response = await teacherQuestionsApi.getQuestions();
+      return response;
+    },
+  });
+
+  const questions = rawQuestions
+    .map(mapBackendQuestionToFrontend)
+    .filter((q) => q.level === level);
+
+  const lessons: Lesson[] = rawLessons.map((l) => ({
+    id: l.id,
+    lessonNumber: l.lessonNumber,
+    lessonName: l.lessonName,
+    status: l.status && l.status.toUpperCase() === "ACTIVE" ? "Active" : "Draft",
+    questionCount: questions.filter((q) => q.lesson === l.id).length,
+    createdAt: l.createdAt,
+  }));
+
+  const isLoading = isLoadingLessons || isLoadingQuestions;
+  const isError = isErrorLessons || isErrorQuestions;
+  const error = errorLessons || errorQuestions;
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refetchLessons(), refetchQuestions()]);
+  }, [refetchLessons, refetchQuestions]);
+
+  // Mutations
+  const createLessonMutation = useMutation({
+    mutationFn: async (vars: { lessonName: string; lessonNumber?: number }) => {
+      const existingNumbers = rawLessons.map((l) => l.lessonNumber);
+      const nextNum = vars.lessonNumber || (existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1);
+      const response = await teacherQuestionsApi.createLesson({
+        level,
+        lessonNumber: nextNum,
+        lessonName: vars.lessonName,
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons", level] });
+    },
+  });
+
+  const updateLessonMutation = useMutation({
+    mutationFn: async (vars: { lessonId: number; lessonName: string; lessonNumber?: number; status?: string }) => {
+      const response = await teacherQuestionsApi.updateLesson(vars.lessonId, vars.lessonName, vars.lessonNumber, vars.status);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons", level] });
+    },
+  });
+
+  const deleteLessonMutation = useMutation({
+    mutationFn: async (lessonId: number) => {
+      const lessonQuestions = questions.filter((q) => q.lesson === lessonId);
+      await Promise.all(lessonQuestions.map((q) => teacherQuestionsApi.deleteQuestion(q.id)));
+      await teacherQuestionsApi.deleteLesson(lessonId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons", level] });
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"] });
+    },
+  });
+
+  const createQuestionMutation = useMutation({
+    mutationFn: async (vars: {
+      lessonId: number;
+      questionData: any;
+    }) => {
+      const req = {
+        topicId: `lesson_${vars.lessonId}`,
+        level,
+        lessonId: vars.lessonId,
+        prompt: vars.questionData.questionText,
+        questionType: vars.questionData.type,
+        difficulty: vars.questionData.difficulty.toUpperCase(),
+        correctAnswerIndex: vars.questionData.correctIndex,
+        explanation: vars.questionData.explanation,
+        options: vars.questionData.options,
+        audioUrl: vars.questionData.audio?.audioUrl,
+        audioFileName: vars.questionData.audio?.audioFileName,
+        audioDuration: vars.questionData.audio?.audioDuration,
+      };
+      const response = await teacherQuestionsApi.createQuestion(req);
+      return mapBackendQuestionToFrontend(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"] });
+    },
+  });
+
+  const updateQuestionMutation = useMutation({
+    mutationFn: async (vars: {
+      questionId: string;
+      updates: any;
+    }) => {
+      const current = rawQuestions.find((q) => q.id === vars.questionId);
+      if (!current) throw new Error("Question not found");
+
+      const req = {
+        topicId: current.topicId,
+        level: current.level,
+        lessonId: current.lessonId,
+        prompt: vars.updates.questionText ?? current.prompt,
+        questionType: vars.updates.type ?? current.questionType,
+        difficulty: vars.updates.difficulty?.toUpperCase() ?? current.difficulty,
+        correctAnswerIndex: vars.updates.correctIndex ?? current.correctAnswerIndex,
+        explanation: vars.updates.explanation ?? current.explanation,
+        options: vars.updates.options ?? current.options,
+        audioUrl: vars.updates.audio?.audioUrl ?? current.audioUrl,
+        audioFileName: vars.updates.audio?.audioFileName ?? current.audioFileName,
+        audioDuration: vars.updates.audio?.audioDuration ?? current.audioDuration,
+      };
+      const response = await teacherQuestionsApi.updateQuestion(vars.questionId, req);
+      return mapBackendQuestionToFrontend(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"] });
+    },
+  });
+
+  const deleteQuestionMutation = useMutation({
+    mutationFn: async (questionId: string) => {
+      await teacherQuestionsApi.deleteQuestion(questionId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"] });
+    },
+  });
 
   const getLessonStats = useCallback(
     (lessonId: number) => {
@@ -292,77 +231,28 @@ export function useQuestionBank(level: JLPTLevel) {
     [questions],
   );
 
-  const createLessonAction = useCallback(
-    (lessonName: string, lessonNumber?: number) => {
-      const newLesson = questionBankService.createLesson(level, lessonName, lessonNumber);
-      setLessons(questionBankService.getLessons(level));
-      return newLesson;
-    },
-    [level],
-  );
-
-  const updateLessonAction = useCallback(
-    (lessonId: number, lessonName: string) => {
-      const updated = questionBankService.updateLesson(level, lessonId, lessonName);
-      setLessons(questionBankService.getLessons(level));
-      return updated;
-    },
-    [level],
-  );
-
-  const deleteLessonAction = useCallback(
-    (lessonId: number) => {
-      questionBankService.deleteLesson(level, lessonId);
-      setLessons(questionBankService.getLessons(level));
-      setQuestions(questionBankService.getAllQuestions(level));
-    },
-    [level],
-  );
-
-  const createQuestionAction = useCallback(
-    (lessonId: number, questionData: Parameters<typeof questionBankService.createQuestion>[2]) => {
-      const newQuestion = questionBankService.createQuestion(level, lessonId, questionData);
-      setQuestions(questionBankService.getAllQuestions(level));
-      setLessons(questionBankService.getLessons(level));
-      return newQuestion;
-    },
-    [level],
-  );
-
-  const updateQuestionAction = useCallback(
-    (questionId: string, updates: Parameters<typeof questionBankService.updateQuestion>[1]) => {
-      const updated = questionBankService.updateQuestion(questionId, updates);
-      setQuestions(questionBankService.getAllQuestions(level));
-      setLessons(questionBankService.getLessons(level));
-      return updated;
-    },
-    [level],
-  );
-
-  const deleteQuestionAction = useCallback(
-    (questionId: string) => {
-      questionBankService.deleteQuestion(questionId);
-      setQuestions(questionBankService.getAllQuestions(level));
-      setLessons(questionBankService.getLessons(level));
-    },
-    [level],
-  );
-
   const getStats = useCallback(() => {
-    return questionBankService.getLevelStats(level);
-  }, [level]);
+    return {
+      totalLessons: lessons.length,
+      totalQuestions: questions.length,
+      activeLessons: lessons.filter((l) => l.questionCount > 0).length,
+    };
+  }, [lessons, questions]);
 
   return {
     lessons,
     questions,
+    isLoading,
+    isError,
+    error,
     refresh,
     getLessonStats,
-    createLesson: createLessonAction,
-    updateLesson: updateLessonAction,
-    deleteLesson: deleteLessonAction,
-    createQuestion: createQuestionAction,
-    updateQuestion: updateQuestionAction,
-    deleteQuestion: deleteQuestionAction,
+    createLesson: (name: string, num?: number) => createLessonMutation.mutateAsync({ lessonName: name, lessonNumber: num }),
+    updateLesson: (id: number, name: string, num?: number, status?: string) => updateLessonMutation.mutateAsync({ lessonId: id, lessonName: name, lessonNumber: num, status }),
+    deleteLesson: (id: number) => deleteLessonMutation.mutateAsync(id),
+    createQuestion: (lessonId: number, data: any) => createQuestionMutation.mutateAsync({ lessonId, questionData: data }),
+    updateQuestion: (id: string, updates: any) => updateQuestionMutation.mutateAsync({ questionId: id, updates }),
+    deleteQuestion: (id: string) => deleteQuestionMutation.mutateAsync(id),
     getStats,
   };
 }
