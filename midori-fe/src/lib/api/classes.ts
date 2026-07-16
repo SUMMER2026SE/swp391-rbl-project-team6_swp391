@@ -48,6 +48,12 @@ export const classesApi = {
     return api.get<ClassResponse>(`/classes/${id}`);
   },
 
+  // Teacher My Classes APIs
+  getMyClasses(status?: string): Promise<ClassResponse[]> {
+    const url = status ? `/teacher/classes?status=${status}` : "/teacher/classes";
+    return api.get<ClassResponse[]>(url);
+  },
+
   // Student Class APIs
   getJoinedClasses(status?: string): Promise<ClassResponse[]> {
     const url = status ? `/student/classes?status=${status}` : "/student/classes";
