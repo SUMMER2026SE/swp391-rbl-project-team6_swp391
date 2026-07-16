@@ -35,6 +35,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
+    private final StreakService streakService;
     private final Random otpRandom = new SecureRandom();
 
     @Value("${app.token.email-verification-expiration:60}")
@@ -109,6 +110,8 @@ public class AuthService {
             throw new UnauthorizedException("Account has been suspended");
         }
         // Teacher accounts with PENDING_APPROVAL can log in but are redirected to /teacher-pending
+
+        streakService.updateOnLogin(user);
 
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
         String token = jwtTokenProvider.generateTokenFromUserDetails(userDetails);
@@ -261,6 +264,7 @@ public class AuthService {
                 .emailVerified(user.getEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .currentStreak(user.getCurrentStreak())
                 .build();
     }
 
