@@ -2,6 +2,7 @@ package com.midori.ai.core;
 
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderFactory;
+import com.midori.ai.AiProviderType;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.exception.AiProcessingException;
@@ -45,7 +46,7 @@ public class AiCoreService {
      * @return the AI response text
      */
     public String chat(String systemPrompt, String userMessage, List<String[]> history) {
-        AiProvider provider = providerFactory.resolve();
+        AiProvider provider = resolveProvider();
         return provider.chat(systemPrompt, userMessage, history, com.midori.ai.AiTaskType.COMPLEX_REASONING);
     }
 
@@ -69,7 +70,7 @@ public class AiCoreService {
      */
     public String generateQuestions(String topic, String materialContent,
                                    int count, String type, String difficulty) {
-        AiProvider provider = providerFactory.resolve();
+        AiProvider provider = resolveProvider();
         return provider.generateQuestions(topic, materialContent, count, type, difficulty, com.midori.ai.AiTaskType.COMPLEX_REASONING);
     }
 
@@ -89,6 +90,23 @@ public class AiCoreService {
     // ============================================================
     // Provider Information
     // ============================================================
+
+    /**
+     * Resolve the configured provider, with null-safety for invalid enum values.
+     * If the config provider is invalid or null, falls back to the first configured provider.
+     */
+    private AiProvider resolveProvider() {
+        try {
+            String cfg = config.getProvider();
+            if (cfg != null && !cfg.isBlank()) {
+                AiProviderType type = AiProviderType.valueOf(cfg.toUpperCase().trim());
+                return providerFactory.resolveOrDefault(type);
+            }
+        } catch (IllegalArgumentException e) {
+            log.warn("[AiCoreService] Unknown AI provider '{}', falling back to first configured", config.getProvider());
+        }
+        return providerFactory.resolveOrDefault(AiProviderType.OPENROUTER);
+    }
 
     /**
      * Get the currently configured provider.

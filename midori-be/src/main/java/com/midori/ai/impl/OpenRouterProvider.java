@@ -50,7 +50,7 @@ public class OpenRouterProvider implements AiProvider {
     private static final int DEFAULT_QUIZ_MAX_TOKENS = 4096;
 
     private static final double DEFAULT_STUDY_TEMPERATURE = 0.25;
-    private static final double DEFAULT_QUIZ_TEMPERATURE = 0.2;
+    private static final double DEFAULT_QUIZ_TEMPERATURE = 0.25;
 
     /**
      * Models that have been observed to be consistently broken.
@@ -367,6 +367,8 @@ public class OpenRouterProvider implements AiProvider {
         requestBody.put("messages", messages);
         requestBody.put("max_tokens", maxTokens);
         requestBody.put("temperature", temperature);
+        requestBody.put("top_p", 0.8);
+        requestBody.put("frequency_penalty", 0.3);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

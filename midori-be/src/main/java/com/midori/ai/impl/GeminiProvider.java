@@ -75,19 +75,10 @@ public class GeminiProvider implements AiProvider {
         log.info("  Model: {}", config.getGemini().getModel());
         log.info("  Base URL: {}", config.getGemini().getBaseUrl());
         log.info("  API Keys configured: {}", keyManager.getKeyCount());
-        log.info("  API Key 1 loaded: {}", config.getGemini().getPrimaryApiKey() != null ? "YES" : "NO");
         log.info("  Timeout: {}s", config.getTimeoutSeconds());
         log.info("  Temperature: {}", config.getTemperature());
         log.info("  Max Tokens: {}", config.getMaxTokens());
         log.info("==============================================");
-
-        if (config.getGemini().getApiKeysStr() != null && !config.getGemini().getApiKeysStr().isBlank()) {
-            String[] keys = config.getGemini().getApiKeysStr().split(",");
-            for (int i = 0; i < keys.length; i++) {
-                String maskedKey = keys[i].trim().substring(0, 4) + "..." + keys[i].trim().substring(keys[i].trim().length() - 4);
-                log.info("  Key {}: {} (last 6: {})", i + 1, maskedKey, keys[i].trim().substring(keys[i].trim().length() - 6));
-            }
-        }
     }
 
     // ============================================================
@@ -295,7 +286,13 @@ public class GeminiProvider implements AiProvider {
 
         if (conversationHistory != null) {
             for (String[] msg : conversationHistory) {
-                contents.add(createContentPart(msg[0], msg[1]));
+                String role = msg[0];
+                if ("USER".equalsIgnoreCase(role)) {
+                    role = "user";
+                } else if ("ASSISTANT".equalsIgnoreCase(role)) {
+                    role = "model";
+                }
+                contents.add(createContentPart(role, msg[1]));
             }
         }
 
@@ -305,8 +302,9 @@ public class GeminiProvider implements AiProvider {
         systemInstruction.put("parts", List.of(Map.of("text", systemPrompt)));
 
         Map<String, Object> generationConfig = new HashMap<>();
-        generationConfig.put("temperature", 0.7);
-        generationConfig.put("maxOutputTokens", 2048);
+        generationConfig.put("temperature", 0.25);
+        generationConfig.put("maxOutputTokens", 1024);
+        generationConfig.put("topP", 0.8);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("contents", contents);
@@ -366,8 +364,9 @@ public class GeminiProvider implements AiProvider {
         requestBody.put("contents", List.of(createContentPart("user", prompt)));
 
         Map<String, Object> generationConfig = new HashMap<>();
-        generationConfig.put("temperature", 0.7);
-        generationConfig.put("maxOutputTokens", 8192);
+        generationConfig.put("temperature", 0.25);
+        generationConfig.put("maxOutputTokens", 4096);
+        generationConfig.put("topP", 0.8);
         requestBody.put("generationConfig", generationConfig);
 
         String rawText = executeWithFallback("question generation", (model, apiKey) -> {
