@@ -32,7 +32,7 @@ export const Route = createFileRoute("/student/learning/kanji")({
   component: KanjiLearningPage,
 });
 
-const STUDENT_LEVEL = "N5 - Cơ bản"; // Mock current student level
+const STUDENT_LEVEL = ""; // Mock current student level
 
 interface ExtendedKanjiCharacter extends KanjiCharacter {
   id?: string; // UUID from PostgreSQL
@@ -695,12 +695,14 @@ function KanjiLearningPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
-              <span className="text-[#111827] dark:text-slate-200">
-                Trình độ hiện tại: {STUDENT_LEVEL}
-              </span>
-            </div>
+            {STUDENT_LEVEL && (
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
+                <span className="text-[#111827] dark:text-slate-200">
+                  Trình độ hiện tại: {STUDENT_LEVEL}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

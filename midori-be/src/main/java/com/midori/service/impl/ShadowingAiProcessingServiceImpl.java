@@ -66,6 +66,18 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
     @Value("${groq.api-key:}")
     private String groqApiKey;
 
+    @Value("${groq.api-keys:}")
+    private String groqApiKeys;
+
+    @Value("${supabase.url:}")
+    private String supabaseUrl;
+
+    @Value("${supabase.service-role-key:}")
+    private String supabaseServiceRoleKey;
+
+    @Value("${supabase.storage.videos-bucket:shadowing-videos}")
+    private String supabaseVideosBucket;
+
     @Value("${ffmpeg.path:}")
     private String ffmpegPathConfig;
 
@@ -200,7 +212,8 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
 
         verifyFFmpegEnvironment();
 
-        if (groqApiKey == null || groqApiKey.isBlank()) {
+        String effectiveKey = (groqApiKey != null && !groqApiKey.isBlank()) ? groqApiKey : groqApiKeys;
+        if (effectiveKey == null || effectiveKey.isBlank()) {
             log.error("[PIPELINE] GROQ_API_KEY is not configured.");
             writeLog(videoId, null, ProcessingStep.DOWNLOAD_VIDEO, ProcessingStatus.FAILED,
                     "GROQ_API_KEY is not configured. Cannot proceed with transcription.");
@@ -274,6 +287,9 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
             writeLog(videoId, null, ProcessingStep.DOWNLOAD_VIDEO, ProcessingStatus.COMPLETED,
                     String.format("Video loaded (isLocal=%b). Size: %d bytes. Time: %d ms",
                             isLocal, tempVideoFile.length(), downloadMs));
+
+            // Extract and upload thumbnail from the loaded video
+            extractAndUploadThumbnail(videoId, tempVideoFile, video);
 
             stepStart = System.currentTimeMillis();
             writeLog(videoId, null, ProcessingStep.EXTRACT_AUDIO, ProcessingStatus.STARTED,
@@ -1051,6 +1067,87 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
                     if (chunkFile.delete()) {
                         log.debug("[PIPELINE] Cleaned up chunk file: {}", chunkFile.getAbsolutePath());
                     }
+                }
+            }
+        }
+    }
+
+    private void extractAndUploadThumbnail(UUID videoId, File tempVideoFile, ShadowingVideo video) {
+        log.info("[THUMBNAIL] Starting thumbnail extraction for videoId={}", videoId);
+        File tempThumbFile = null;
+        try {
+            tempThumbFile = File.createTempFile("shadowing_thumb_" + videoId + "_", ".jpg");
+            
+            // Extract frame at 1 second
+            ProcessBuilder pb = new ProcessBuilder(
+                    cachedFfmpegPath, "-y", "-i", tempVideoFile.getAbsolutePath(),
+                    "-ss", "1", "-vframes", "1", tempThumbFile.getAbsolutePath()
+            );
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            
+            // Read output to avoid hang
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.debug("[THUMBNAIL-FFMPEG] {}", line);
+                }
+            }
+            
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                log.warn("[THUMBNAIL] FFmpeg frame extraction failed with exit code: {}", exitCode);
+                return;
+            }
+            
+            log.info("[THUMBNAIL] Frame extracted to temp file: {}, size: {} bytes", 
+                    tempThumbFile.getAbsolutePath(), tempThumbFile.length());
+            
+            // Upload to Supabase Storage
+            String storagePath = "shadowing/thumbnails/" + videoId + ".jpg";
+            String uploadUrl = supabaseUrl + "/storage/v1/object/" + supabaseVideosBucket + "/" + storagePath;
+            String publicUrl = supabaseUrl + "/storage/v1/object/public/" + supabaseVideosBucket + "/" + storagePath;
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.IMAGE_JPEG);
+            headers.set("apikey", supabaseServiceRoleKey);
+            if (supabaseServiceRoleKey != null && !supabaseServiceRoleKey.startsWith("sb_secret_")) {
+                headers.set("Authorization", "Bearer " + supabaseServiceRoleKey);
+            }
+            headers.set("x-upsert", "true");
+            
+            byte[] fileBytes = Files.readAllBytes(tempThumbFile.toPath());
+            HttpEntity<byte[]> request = new HttpEntity<>(fileBytes, headers);
+            
+            log.info("[THUMBNAIL] Uploading thumbnail to Supabase: {}", uploadUrl);
+            ResponseEntity<String> response = restTemplate.exchange(
+                    uploadUrl, HttpMethod.POST, request, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("[THUMBNAIL] Upload successful! Public URL: {}", publicUrl);
+                
+                // Save to video entity
+                transactionTemplate.executeWithoutResult(status -> {
+                    ShadowingVideo currentVideo = shadowingVideoRepository.findById(videoId).orElseThrow();
+                    currentVideo.setThumbnailUrl(publicUrl);
+                    shadowingVideoRepository.save(currentVideo);
+                });
+                
+                // Update in memory video object just in case it is used later
+                video.setThumbnailUrl(publicUrl);
+            } else {
+                log.error("[THUMBNAIL] Upload failed with status: {}", response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            log.error("[THUMBNAIL] Failed to extract or upload thumbnail for videoId={}", videoId, e);
+        } finally {
+            if (tempThumbFile != null && tempThumbFile.exists()) {
+                try {
+                    Files.delete(tempThumbFile.toPath());
+                    log.debug("[THUMBNAIL] Deleted temp thumbnail file");
+                } catch (IOException e) {
+                    log.warn("[THUMBNAIL] Failed to delete temp thumbnail: {}", e.getMessage());
                 }
             }
         }

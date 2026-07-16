@@ -29,6 +29,9 @@ public class GroqSpeechProvider implements SpeechProvider {
     @org.springframework.beans.factory.annotation.Value("${groq.api-key:}")
     private String apiKey;
 
+    @org.springframework.beans.factory.annotation.Value("${groq.api-keys:}")
+    private String fallbackApiKeys;
+
     @Override
     public String providerName() {
         return "groq";
@@ -41,6 +44,9 @@ public class GroqSpeechProvider implements SpeechProvider {
         long start = System.currentTimeMillis();
 
         String rawKeys = (apiKey != null && !apiKey.isBlank()) ? apiKey : System.getenv("GROQ_API_KEY");
+        if (rawKeys == null || rawKeys.isBlank()) {
+            rawKeys = fallbackApiKeys;
+        }
         if (rawKeys == null || rawKeys.isBlank()) {
             throw new IOException("Groq API Key is not configured. Please set 'groq.api-key' in configuration or 'GROQ_API_KEY' in environment variables.");
         }

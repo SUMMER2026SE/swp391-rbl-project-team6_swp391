@@ -3,6 +3,7 @@ package com.midori.controller;
 import com.midori.common.ApiResponse;
 import com.midori.dto.grammar.GrammarPatternDetailResponse;
 import com.midori.dto.grammar.GrammarPatternSummaryResponse;
+import com.midori.service.GrammarDetectorService;
 import com.midori.service.GrammarPatternService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -23,10 +25,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/student/grammar-patterns")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('STUDENT')")
 public class StudentGrammarPatternController {
 
     private final GrammarPatternService grammarPatternService;
+    private final GrammarDetectorService grammarDetectorService;
 
     /**
      * GET /api/student/grammar/video/{videoId}
@@ -55,5 +57,21 @@ public class StudentGrammarPatternController {
         GrammarPatternDetailResponse detail =
                 grammarPatternService.getDetailWithTranslation(grammarId, videoId);
         return ResponseEntity.ok(ApiResponse.success(detail));
+    }
+
+    /**
+     * POST /api/student/grammar-patterns/video/{videoId}/detect
+     * Triggers grammar detection for a video (requires ADMIN or TEACHER role).
+     */
+    @PostMapping("/video/{videoId}/detect")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> detectForVideo(
+            @PathVariable UUID videoId) {
+
+        log.info("[StudentGrammar] Triggering grammar detection for videoId={}", videoId);
+        grammarDetectorService.detectForVideo(videoId);
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
+                "message", "Grammar detection triggered for video " + videoId
+        )));
     }
 }

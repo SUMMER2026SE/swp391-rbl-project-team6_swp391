@@ -20,4 +20,11 @@ public interface GrammarDetectorService {
      * @param transcripts list of transcripts for this video
      */
     void detectGrammar(UUID videoId, List<ShadowingTranscript> transcripts);
+
+    /**
+     * Re-run grammar detection for an existing video using its stored transcripts.
+     *
+     * @param videoId the shadowing video UUID
+     */
+    void detectForVideo(UUID videoId);
 }

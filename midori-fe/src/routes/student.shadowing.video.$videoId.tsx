@@ -134,7 +134,6 @@ function VideoLearningPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("both");
   const [activeTab, setActiveTab] = useState<"transcript" | "vocabulary" | "grammar">("transcript");
-  const [vocabFilter, setVocabFilter] = useState<"grammar" | "saved">("grammar");
 
   // Grammar tab state
   const [grammarPatterns, setGrammarPatterns] = useState<GrammarPatternSummary[]>([]);
@@ -371,26 +370,7 @@ function VideoLearningPage() {
 
   const currentIndex = getCurrentSentenceIndex();
 
-  // Collect all grammar points from all segments (deduplicated)
-  const allGrammar = useMemo(() => {
-    if (!video || !video.script) return [];
-    const seen = new Set<string>();
-    const result: { grammar: string; meaning: string; segmentIndex: number }[] = [];
-    video.script.forEach((seg, idx) => {
-      if (seg.grammar && seg.grammar.grammar) {
-        const key = seg.grammar.grammar;
-        if (!seen.has(key)) {
-          seen.add(key);
-          result.push({
-            grammar: seg.grammar.grammar,
-            meaning: seg.grammar.meaning,
-            segmentIndex: idx,
-          });
-        }
-      }
-    });
-    return result;
-  }, [video]);
+
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     setCurrentTime(e.currentTarget.currentTime);
@@ -1062,115 +1042,64 @@ function VideoLearningPage() {
               {/* ── VOCABULARY TAB ──────────────────────────────────── */}
               {activeTab === "vocabulary" && (
                 <div className="flex flex-col flex-1 min-h-0">
-                  {/* Sub-tabs for grammar vs saved */}
-                  <div className="flex border-b border-slate-100 dark:border-white/5 p-1 gap-1 bg-slate-50/80 dark:bg-slate-800/20 shrink-0">
-                    <button
-                      onClick={() => setVocabFilter("grammar")}
-                      className={cn(
-                        "flex-1 py-1.5 text-[10px] font-bold rounded-lg transition cursor-pointer text-center",
-                        vocabFilter === "grammar"
-                          ? "bg-white dark:bg-slate-900/60 text-primary shadow-sm"
-                          : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      )}
-                    >
-                      Ngữ pháp ({allGrammar.length})
-                    </button>
-                    <button
-                      onClick={() => setVocabFilter("saved")}
-                      className={cn(
-                        "flex-1 py-1.5 text-[10px] font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 text-center",
-                        vocabFilter === "saved"
-                          ? "bg-white dark:bg-slate-900/60 text-primary shadow-sm"
-                          : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                      )}
-                    >
-                      <Bookmark className={cn("w-3 h-3", vocabFilter === "saved" && "fill-current")} />
-                      Đã lưu ({globalSavedWords.length})
-                    </button>
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-white/8 shrink-0">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
+                      <Bookmark className="w-3.5 h-3.5 text-primary" />
+                      Từ vựng đã lưu ({globalSavedWords.length})
+                    </span>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
-                    {vocabFilter === "grammar" ? (
-                      allGrammar.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
-                          <BookOpen className="w-8 h-8 opacity-30" />
-                          <p className="text-xs">Không có ngữ pháp nào được gắn thẻ trong video này.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {allGrammar.map((grammar, i) => (
-                            <div
-                              key={`${grammar.grammar}-${i}`}
-                              onClick={() => handleSentenceClick(video.script[grammar.segmentIndex])}
-                              className="p-3 rounded-xl border border-slate-100 dark:border-white/8 bg-white/60 dark:bg-slate-800/30 hover:border-primary/20 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer flex flex-col gap-1 text-left"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
-                                  {grammar.grammar}
-                                </span>
-                                <span className="text-[9px] text-slate-400 font-mono">
-                                  {formatTime(video.script[grammar.segmentIndex].startTime)}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-600 dark:text-slate-300">
-                                {grammar.meaning}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )
+                    {globalSavedWords.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
+                        <Bookmark className="w-8 h-8 opacity-30" />
+                        <p className="text-xs">Chưa có từ vựng nào được lưu.<br />Bấm vào các từ trong Transcript để lưu.</p>
+                      </div>
                     ) : (
-                      globalSavedWords.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
-                          <Bookmark className="w-8 h-8 opacity-30" />
-                          <p className="text-xs">Chưa có từ vựng nào được lưu.<br />Bấm vào các từ trong Transcript để lưu.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {globalSavedWords.map((vocab, i) => {
-                            const vocabWord = vocab.word;
-                            const vocabReading = vocab.reading;
-                            const vocabMeaning = vocab.meaning;
-                            const saved = isGlobalWordSaved(vocabWord, vocabReading);
-                            return (
-                              <div
-                                key={`${vocabWord}-${i}`}
-                                className="flex items-start justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/8 bg-white/60 dark:bg-slate-800/30 hover:border-primary/20 transition group cursor-default text-left"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span
-                                      className="text-sm font-bold text-slate-800 dark:text-white"
-                                      style={{ fontFamily: "var(--font-japanese, serif)" }}
-                                    >
-                                      {vocabWord}
+                      <div className="space-y-2">
+                        {globalSavedWords.map((vocab, i) => {
+                          const vocabWord = vocab.word;
+                          const vocabReading = vocab.reading;
+                          const vocabMeaning = vocab.meaning;
+                          const saved = isGlobalWordSaved(vocabWord, vocabReading);
+                          return (
+                            <div
+                              key={`${vocabWord}-${i}`}
+                              className="flex items-start justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/8 bg-white/60 dark:bg-slate-800/30 hover:border-primary/20 transition group cursor-default text-left"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span
+                                    className="text-sm font-bold text-slate-800 dark:text-white"
+                                    style={{ fontFamily: "var(--font-japanese, serif)" }}
+                                  >
+                                    {vocabWord}
+                                  </span>
+                                  {vocabReading && (
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                      [{vocabReading}]
                                     </span>
-                                    {vocabReading && (
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                                        [{vocabReading}]
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{vocabMeaning}</p>
-                                </div>
-
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleToggleSaveFromList(vocabWord, vocabReading, vocabMeaning); }}
-                                  className={cn(
-                                    "p-1.5 rounded-lg border transition-all cursor-pointer",
-                                    saved
-                                      ? "bg-amber-50 border-amber-200 text-amber-500 dark:bg-amber-950/20 dark:border-amber-900/30"
-                                      : "border-slate-100 hover:border-slate-300 text-slate-400 hover:text-slate-600 dark:border-transparent dark:hover:border-white/10 dark:hover:text-white"
                                   )}
-                                  title={saved ? "Bỏ lưu từ" : "Lưu từ"}
-                                >
-                                  <Bookmark className={cn("w-3.5 h-3.5", saved && "fill-current")} />
-                                </button>
+                                </div>
+                                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{vocabMeaning}</p>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )
+
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleSaveFromList(vocabWord, vocabReading, vocabMeaning); }}
+                                className={cn(
+                                  "p-1.5 rounded-lg border transition-all cursor-pointer",
+                                  saved
+                                    ? "bg-amber-50 border-amber-200 text-amber-500 dark:bg-amber-950/20 dark:border-amber-900/30"
+                                    : "border-slate-100 hover:border-slate-300 text-slate-400 hover:text-slate-600 dark:border-transparent dark:hover:border-white/10 dark:hover:text-white"
+                                )}
+                                title={saved ? "Bỏ lưu từ" : "Lưu từ"}
+                              >
+                                <Bookmark className={cn("w-3.5 h-3.5", saved && "fill-current")} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>

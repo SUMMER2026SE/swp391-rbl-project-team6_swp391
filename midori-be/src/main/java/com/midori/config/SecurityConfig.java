@@ -90,7 +90,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/teacher/**").authenticated()
                         .requestMatchers("/api/ai/**").authenticated()
                         .requestMatchers("/api/vocabulary/**").authenticated()
-                        .requestMatchers("/api/kanji/**").authenticated()
+                        .requestMatchers("/api/kanji/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

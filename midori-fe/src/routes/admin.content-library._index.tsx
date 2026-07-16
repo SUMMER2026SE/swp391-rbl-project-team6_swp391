@@ -76,57 +76,60 @@ function ContentLibraryIndexPage() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: index * 0.08, duration: 0.4, ease: "easeOut" }}
+            className="h-full"
           >
             <Link
               to="/admin/content-library/$level"
               params={{ level: level.id.toLowerCase() }}
-              className="group block"
+              className="group block h-full"
             >
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--card)] to-[var(--card)] border border-[var(--border)] p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--card)] to-[var(--card)] border border-[var(--border)] p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30 h-full flex flex-col justify-between">
                 {/* Gradient Accent */}
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${level.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
                 />
 
                 {/* Content */}
-                <div className="relative z-10">
-                  {/* Level Badge */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div
-                      className={`w-12 h-12 rounded-xl ${level.iconBg} flex items-center justify-center group-hover:bg-white/30 transition-colors`}
-                    >
-                      <BookOpen
-                        className={`w-6 h-6 ${level.iconText} group-hover:text-white transition-colors`}
-                      />
-                    </div>
-                    <div
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${level.badgeBg} ${level.badgeText} group-hover:bg-white/30 group-hover:text-white transition-all`}
-                    >
-                      JLPT
-                    </div>
-                  </div>
-
-                  {/* Level Number */}
-                  <div className="mb-2">
-                    <span
-                      className={`text-4xl font-black ${level.iconText} group-hover:text-white transition-colors`}
-                    >
-                      {level.id}
-                    </span>
-                  </div>
-
-                  {/* Level Name */}
-                  <div className="mb-1">
-                    <span className="text-sm font-bold text-primary-col group-hover:text-white transition-colors">
-                      {level.name}
-                    </span>
-                  </div>
-
-                  {/* Description */}
+                <div className="relative z-10 flex flex-col justify-between h-full">
                   <div>
-                    <span className="text-xs text-muted-col group-hover:text-white/80 transition-colors">
-                      {level.desc}
-                    </span>
+                    {/* Level Badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div
+                        className={`w-12 h-12 rounded-xl ${level.iconBg} flex items-center justify-center group-hover:bg-white/30 transition-colors`}
+                      >
+                        <BookOpen
+                          className={`w-6 h-6 ${level.iconText} group-hover:text-white transition-colors`}
+                        />
+                      </div>
+                      <div
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${level.badgeBg} ${level.badgeText} group-hover:bg-white/30 group-hover:text-white transition-all`}
+                      >
+                        JLPT
+                      </div>
+                    </div>
+
+                    {/* Level Number */}
+                    <div className="mb-2">
+                      <span
+                        className={`text-4xl font-black ${level.iconText} group-hover:text-white transition-colors`}
+                      >
+                        {level.id}
+                      </span>
+                    </div>
+
+                    {/* Level Name */}
+                    <div className="mb-1">
+                      <span className="text-sm font-bold text-primary-col group-hover:text-white transition-colors">
+                        {level.name}
+                      </span>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <span className="text-xs text-muted-col group-hover:text-white/80 transition-colors">
+                        {level.desc}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Arrow Indicator */}

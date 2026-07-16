@@ -2,6 +2,7 @@ package com.midori.service.impl;
 
 import com.midori.entity.*;
 import com.midori.repository.GrammarPatternRepository;
+import com.midori.repository.ShadowingTranscriptRepository;
 import com.midori.repository.VideoGrammarPatternRepository;
 import com.midori.service.GrammarDetectorService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class GrammarDetectorServiceImpl implements GrammarDetectorService {
 
     private final GrammarPatternRepository grammarPatternRepository;
     private final VideoGrammarPatternRepository videoGrammarPatternRepository;
+    private final ShadowingTranscriptRepository shadowingTranscriptRepository;
 
     /**
      * In-memory lookup: normalised search key → GrammarPattern entity.
@@ -112,6 +114,14 @@ public class GrammarDetectorServiceImpl implements GrammarDetectorService {
         }
 
         log.info("[GrammarDetector] videoId={} → {} grammar patterns detected.", videoId, matchCount);
+    }
+
+    @Override
+    @Transactional
+    public void detectForVideo(UUID videoId) {
+        log.info("[GrammarDetector] Manual detect triggered for videoId={}", videoId);
+        List<ShadowingTranscript> transcripts = shadowingTranscriptRepository.findByShadowingVideoIdOrderBySentenceOrderAsc(videoId);
+        detectGrammar(videoId, transcripts);
     }
 
     /**
