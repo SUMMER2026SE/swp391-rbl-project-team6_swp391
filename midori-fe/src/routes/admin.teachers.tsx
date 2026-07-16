@@ -39,9 +39,13 @@ import {
   FileText,
   FileImage,
 } from "lucide-react";
-import { adminApi } from "@/lib/api/admin";
+import { adminApi, adminClassesApi } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
-import type { AdminTeacherResponse, AdminTeacherCertificateResponse } from "@/lib/api/admin";
+import type {
+  AdminTeacherResponse,
+  AdminTeacherCertificateResponse,
+  AdminClassResponse,
+} from "@/lib/api/admin";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -68,11 +72,37 @@ type TeacherApplication = {
   specialization: string;
   jlptLevel: string;
   appliedDate: string;
-  status: "pending" | "approved" | "rejected" | "active" | "inactive";
-  accountStatus: "ACTIVE" | "LOCKED";
+  status: "pending" | "approved" | "rejected" | "active" | "inactive" | "banned";
+  // Mirrors the backend UserStatus. SUSPENDED is surfaced as "LOCKED" in UI.
+  accountStatus: "ACTIVE" | "LOCKED" | "SUSPENDED" | "BANNED";
   certificates: Certificate[];
   rejectionReason?: string | null;
+  // Aggregated from /api/admin/classes at fetch time. UI uses these for
+  // the Teacher List "Classes" and "Students" columns/KPI cards.
+  totalClasses?: number;
+  totalStudents?: number;
 };
+
+// Map a backend status value to the lowercase UI status used throughout the page.
+function mapBackendStatusToUi(
+  backendStatus: AdminTeacherResponse["status"],
+): TeacherApplication["status"] {
+  switch (backendStatus) {
+    case "PENDING_APPROVAL":
+    case "PENDING":
+      return "pending";
+    case "ACTIVE":
+      return "active";
+    case "REJECTED":
+      return "rejected";
+    case "SUSPENDED":
+      return "inactive";
+    case "BANNED":
+      return "banned";
+    default:
+      return "pending";
+  }
+}
 
 // Map backend AdminTeacherResponse to display-friendly TeacherApplication
 function mapToTeacherApplication(teacher: AdminTeacherResponse): TeacherApplication {
@@ -89,22 +119,28 @@ function mapToTeacherApplication(teacher: AdminTeacherResponse): TeacherApplicat
     name: nameParts.join(" ") || emailName || "Teacher",
     email: teacher.email,
     avatarUrl: teacher.avatarUrl,
-    location: teacher.location || "â€”",
-    bio: teacher.bio || "â€”",
-    experience: "â€”",
-    specialization: "â€”",
-    jlptLevel: "â€”",
+    location: teacher.location || "—",
+    bio: teacher.bio || "—",
+    experience: "—",
+    specialization: "—",
+    jlptLevel: "—",
     appliedDate: teacher.createdAt
       ? new Intl.DateTimeFormat("en-US", {
           month: "short",
           day: "numeric",
           year: "numeric",
         }).format(new Date(teacher.createdAt))
-      : "â€”",
-    status: "pending",
-    accountStatus: (teacher as any).accountStatus || "ACTIVE",
+      : "—",
+    status: mapBackendStatusToUi(teacher.status),
+    // SUSPENDED renders as "Locked" in UI; everything else is treated as ACTIVE
+    // to keep the existing lock/unlock UX consistent.
+    accountStatus: teacher.status === "SUSPENDED" ? "LOCKED" : "ACTIVE",
     certificates: [],
     rejectionReason: teacher.rejectionReason ?? null,
+    // Class/student counts come from the backend in the AdminTeacherResponse;
+    // the frontend never recomputes them.
+    totalClasses: teacher.totalClasses ?? 0,
+    totalStudents: teacher.totalStudents ?? 0,
   };
 }
 
@@ -780,7 +816,7 @@ function ProfileModal({
                   </div>
                 ))}
               </div>
-              {teacher.specialization && teacher.specialization !== "â€”" && (
+              {teacher.specialization && teacher.specialization !== "—" && (
                 <div className="mt-3 p-3 rounded-xl glass-surface">
                   <div className="flex items-center gap-1.5 mb-1">
                     <BookOpen className="w-3 h-3 text-primary" />
@@ -794,7 +830,7 @@ function ProfileModal({
             </div>
 
             {/* Bio */}
-            {teacher.bio && teacher.bio !== "â€”" && (
+            {teacher.bio && teacher.bio !== "—" && (
               <div>
                 <h4 className="text-xs font-bold text-muted-col uppercase tracking-wider mb-3 flex items-center gap-2">
                   <FileText className="w-4 h-4" /> Bio / Introduction
@@ -1386,7 +1422,56 @@ function Toast({
 
 export const Route = createFileRoute("/admin/teachers")({ component: TeachersPage });
 
+/**
+ * Server-driven pagination control shared by both tabs. Renders Prev / page
+ * indicator / Next plus a small "showing X–Y of Z" label so users see the
+ * slice of data they're looking at.
+ */
+function PaginationControls({
+  page,
+  totalPages,
+  totalElements,
+  size,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  onPageChange: (next: number) => void;
+}) {
+  const start = totalElements === 0 ? 0 : page * size + 1;
+  const end = Math.min(totalElements, (page + 1) * size);
+  return (
+    <div className="flex items-center justify-between gap-2 px-1 py-2 text-xs text-muted-col">
+      <span>
+        Showing {start}–{end} of {totalElements}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => onPageChange(Math.max(0, page - 1))}
+          disabled={page <= 0}
+          className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col hover:bg-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Prev
+        </button>
+        <span className="px-2 font-semibold text-primary-col">
+          {page + 1} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))}
+          disabled={page >= totalPages - 1}
+          className="px-3 py-1.5 rounded-lg glass-surface text-secondary-col hover:bg-accent transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TeachersPage() {
+  console.log("[DEBUG] TeachersPage render start");
   const [tab, setTab] = useState<"pending" | "list">("pending");
   const [pendingTeachers, setPendingTeachers] = useState<TeacherApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1403,410 +1488,191 @@ function TeachersPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [classesDrawerOpen, setClassesDrawerOpen] = useState(false);
   const [classesDrawerTeacher, setClassesDrawerTeacher] = useState<TeacherApplication | null>(null);
+  const [classesDrawerItems, setClassesDrawerItems] = useState<AdminClassResponse[]>([]);
+  const [classesDrawerLoading, setClassesDrawerLoading] = useState(false);
 
   // Lock/Unlock state
   const [lockTarget, setLockTarget] = useState<TeacherApplication | null>(null);
   const [unlockTarget, setUnlockTarget] = useState<TeacherApplication | null>(null);
 
-  // Teacher List state
+  // Teacher List state — pagination + search/filter are server-driven.
   const [listTeachers, setListTeachers] = useState<TeacherApplication[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
+  const [listTotalElements, setListTotalElements] = useState(0);
+  const [listTotalPages, setListTotalPages] = useState(0);
+  const [pendingTotalElements, setPendingTotalElements] = useState(0);
+  const [pendingTotalPages, setPendingTotalPages] = useState(0);
+  // Pending tab uses application-level statuses (pending/approved/rejected),
+  // while the Teacher List uses account-level statuses (active/inactive).
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "approved" | "rejected" | "active" | "inactive"
+  >("all");
+  const [listPage, setListPage] = useState(0);
+  const [pendingPage, setPendingPage] = useState(0);
+  const PAGE_SIZE = 10;
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
   }, []);
 
-  // Mock data for Teacher Approval
-  const mockPendingTeachers: TeacherApplication[] = [
-    {
-      id: "00000000-0000-0000-0000-000000000001",
-      name: "Sakura Yamamoto",
-      email: "sakura.yamamoto@example.com",
-      avatarUrl: null,
-      location: "Tokyo, Japan",
-      bio: "Passionate Japanese language teacher with 5 years of experience teaching students from beginner to advanced levels.",
-      experience: "5 years",
-      specialization: "JLPT Preparation, Conversational Japanese",
-      jlptLevel: "N1",
-      appliedDate: "Jun 15, 2026",
-      status: "pending",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000002",
-      name: "Kenji Tanaka",
-      email: "kenji.tanaka@example.com",
-      avatarUrl: null,
-      location: "Osaka, Japan",
-      bio: "Experienced educator specializing in teaching Japanese to foreign students. Patient and dedicated to student success.",
-      experience: "7 years",
-      specialization: "Business Japanese, Grammar",
-      jlptLevel: "N1",
-      appliedDate: "Jun 14, 2026",
-      status: "pending",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000003",
-      name: "Yuki Sato",
-      email: "yuki.sato@example.com",
-      avatarUrl: null,
-      location: "Kyoto, Japan",
-      bio: "Native Japanese speaker with a passion for teaching. I focus on practical conversation skills and cultural understanding.",
-      experience: "3 years",
-      specialization: "Conversational Japanese, Culture",
-      jlptLevel: "N2",
-      appliedDate: "Jun 13, 2026",
-      status: "pending",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000004",
-      name: "Hana Watanabe",
-      email: "hana.watanabe@example.com",
-      avatarUrl: null,
-      location: "Nagoya, Japan",
-      bio: "Dedicated Japanese teacher with experience teaching all levels. I use interactive methods to make learning enjoyable.",
-      experience: "4 years",
-      specialization: "JLPT N3/N4 Preparation, Listening",
-      jlptLevel: "N1",
-      appliedDate: "Jun 12, 2026",
-      status: "pending",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000005",
-      name: "Takeshi Ito",
-      email: "takeshi.ito@example.com",
-      avatarUrl: null,
-      location: "Hiroshima, Japan",
-      bio: "Language instructor with background in linguistics. I help students build strong foundations in Japanese.",
-      experience: "6 years",
-      specialization: "Pronunciation, Grammar",
-      jlptLevel: "N1",
-      appliedDate: "Jun 10, 2026",
-      status: "pending",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-  ];
+  // Aggregate teacher KPIs returned by /api/admin/users/teachers/stats.
+  // The frontend never recomputes these counters — they come straight from
+  // the backend so this module has zero hardcoded statistics.
+  const [teacherStats, setTeacherStats] = useState<Awaited<
+    ReturnType<typeof adminApi.getTeacherStats>
+  > | null>(null);
 
-  // Mock classes data for Teacher List
-  type TeacherClassInfo = {
-    id: string;
-    name: string;
-    level: string;
-    students: number;
-    completionRate: number;
-    avgScore: number;
-    status: "active" | "inactive" | "completed";
-    startDate: string;
-    endDate?: string;
-  };
-
-  const mockTeacherClasses: Record<string, TeacherClassInfo[]> = {
-    "00000000-0000-0000-0000-000000000011": [
-      {
-        id: "cls-001",
-        name: "JLPT N5 Intensive",
-        level: "N5",
-        students: 28,
-        completionRate: 92,
-        avgScore: 85,
-        status: "active",
-        startDate: "Jan 15, 2026",
-      },
-      {
-        id: "cls-002",
-        name: "JLPT N4 Prep Course",
-        level: "N4",
-        students: 22,
-        completionRate: 85,
-        avgScore: 78,
-        status: "active",
-        startDate: "Feb 1, 2026",
-      },
-      {
-        id: "cls-003",
-        name: "Business Japanese",
-        level: "N2",
-        students: 18,
-        completionRate: 78,
-        avgScore: 82,
-        status: "active",
-        startDate: "Mar 10, 2026",
-      },
-      {
-        id: "cls-004",
-        name: "Advanced Grammar",
-        level: "N1",
-        students: 28,
-        completionRate: 88,
-        avgScore: 80,
-        status: "active",
-        startDate: "Apr 5, 2026",
-      },
-    ],
-    "00000000-0000-0000-0000-000000000012": [
-      {
-        id: "cls-005",
-        name: "Conversational Japanese",
-        level: "Mixed",
-        students: 24,
-        completionRate: 95,
-        avgScore: 88,
-        status: "active",
-        startDate: "Jan 20, 2026",
-      },
-      {
-        id: "cls-006",
-        name: "Japanese Culture & Customs",
-        level: "Mixed",
-        students: 20,
-        completionRate: 88,
-        avgScore: 85,
-        status: "active",
-        startDate: "Feb 15, 2026",
-      },
-      {
-        id: "cls-007",
-        name: "Beginner Japanese",
-        level: "N5",
-        students: 28,
-        completionRate: 90,
-        avgScore: 82,
-        status: "active",
-        startDate: "Mar 1, 2026",
-      },
-    ],
-    "00000000-0000-0000-0000-000000000013": [
-      {
-        id: "cls-008",
-        name: "Beginner Japanese A1",
-        level: "N5",
-        students: 24,
-        completionRate: 85,
-        avgScore: 80,
-        status: "active",
-        startDate: "Feb 1, 2026",
-      },
-      {
-        id: "cls-009",
-        name: "Listening Practice",
-        level: "N4",
-        students: 24,
-        completionRate: 80,
-        avgScore: 78,
-        status: "active",
-        startDate: "Mar 15, 2026",
-      },
-    ],
-    "00000000-0000-0000-0000-000000000014": [
-      {
-        id: "cls-010",
-        name: "Grammar Masterclass",
-        level: "N3",
-        students: 18,
-        completionRate: 72,
-        avgScore: 75,
-        status: "completed",
-        startDate: "Oct 1, 2025",
-        endDate: "Dec 31, 2025",
-      },
-      {
-        id: "cls-011",
-        name: "JLPT Reading Prep",
-        level: "N2",
-        students: 18,
-        completionRate: 78,
-        avgScore: 72,
-        status: "completed",
-        startDate: "Oct 1, 2025",
-        endDate: "Dec 31, 2025",
-      },
-    ],
-  };
-
-  const getTeacherClasses = (teacherId: string): TeacherClassInfo[] => {
-    return mockTeacherClasses[teacherId] || [];
-  };
-
-  const fetchPendingTeachers = useCallback(async () => {
+  const fetchTeacherStats = useCallback(async () => {
     try {
+      const stats = await adminApi.getTeacherStats();
+      setTeacherStats(stats);
+    } catch (err) {
+      // Non-fatal: cards fall back to "—" via the `??` rendering below.
+      console.warn("Failed to load teacher stats:", err);
+      setTeacherStats(null);
+    }
+  }, []);
+
+  const fetchPendingTeachers = useCallback(
+    async (page: number, keyword: string, _status: typeof statusFilter) => {
+      console.log("[DEBUG] fetchPendingTeachers START page=", page, "keyword=", keyword);
+      setLoading(true);
       setError(null);
-      // TODO: Replace with actual API call when backend is ready
-      // const users = await adminApi.getPendingTeachers();
-      // const mapped = users.map(mapToTeacherApplication);
-      // setPendingTeachers(mapped);
-
-      // Using mock data for demonstration
-      setTimeout(() => {
-        setPendingTeachers(mockPendingTeachers);
+      try {
+        // Teacher Approval is, by business rule, exclusively the queue of
+        // teachers awaiting review — always pin status to PENDING_APPROVAL.
+        // The UI filter dropdown is hidden so the value is never user-driven.
+        const backendStatus = "PENDING_APPROVAL";
+        const params = {
+          role: "TEACHER" as const,
+          status: backendStatus,
+          keyword: keyword.trim() || undefined,
+          page,
+          size: PAGE_SIZE,
+        };
+        console.log("[DEBUG] fetchPendingTeachers -> adminApi.getAllUsers", params);
+        const pageResult = await adminApi.getAllUsers(params);
+        console.log("[DEBUG] fetchPendingTeachers -> response items:", pageResult?.content?.length);
+        const mapped = pageResult.content.map(mapToTeacherApplication);
+        setPendingTeachers(mapped);
+        setPendingTotalElements(pageResult.totalElements);
+        setPendingTotalPages(pageResult.totalPages);
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to load pending teachers. Please try again.";
+        setError(message);
+        setPendingTeachers([]);
+        setPendingTotalElements(0);
+        setPendingTotalPages(0);
+      } finally {
         setLoading(false);
-      }, 500);
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
+      }
+    },
+    [],
+  );
+
+  const fetchListTeachers = useCallback(
+    async (page: number, keyword: string, status: typeof statusFilter) => {
+      console.log("[DEBUG] fetchListTeachers START page=", page, "keyword=", keyword, "status=", status);
+      setListLoading(true);
+      setListError(null);
+      try {
+        // Teacher List is, by business rule, the catalog of approved teachers —
+        // it must never include PENDING_APPROVAL. The three statuses shown here
+        // are ACTIVE (default), SUSPENDED (locked), and "all" which is the
+        // union of ACTIVE + SUSPENDED. PENDING/REJECTED/BANNED are explicitly
+        // excluded because they belong to the approval workflow, not to the
+        // teacher directory.
+        const statuses: Array<"ACTIVE" | "SUSPENDED"> =
+          status === "active"
+            ? ["ACTIVE"]
+            : status === "inactive"
+              ? ["SUSPENDED"]
+              : ["ACTIVE", "SUSPENDED"];
+
+        const keywordParam = keyword.trim() || undefined;
+        const pages = await Promise.all(
+          statuses.map((s) =>
+            adminApi.getAllUsers({
+              role: "TEACHER",
+              status: s,
+              keyword: keywordParam,
+              page,
+              size: PAGE_SIZE,
+            }),
+          ),
+        );
+        const totalElements = pages.reduce((acc, p) => acc + p.totalElements, 0);
+        const totalPages = Math.max(0, ...pages.map((p) => p.totalPages));
+        const merged = pages.flatMap((p) => p.content.map(mapToTeacherApplication));
+        console.log("[DEBUG] fetchListTeachers -> response items:", merged.length);
+        setListTeachers(merged);
+        setListTotalElements(totalElements);
+        setListTotalPages(totalPages);
+      } catch (err) {
+        const message =
+          err instanceof ApiError
             ? err.message
-            : "Failed to load pending teachers. Please try again.";
-      setError(message);
-      setPendingTeachers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Mock data for Teacher List
-  const mockListTeachers: TeacherApplication[] = [
-    {
-      id: "00000000-0000-0000-0000-000000000011",
-      name: "Minato Watanabe",
-      email: "minato.watanabe@example.com",
-      avatarUrl: null,
-      location: "Tokyo, Japan",
-      bio: "Professional Japanese teacher with 8 years of teaching experience.",
-      experience: "8 years",
-      specialization: "JLPT Preparation, Business Japanese",
-      jlptLevel: "N1",
-      appliedDate: "Mar 10, 2026",
-      status: "active",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000012",
-      name: "Rin Nakamura",
-      email: "rin.nakamura@example.com",
-      avatarUrl: null,
-      location: "Kyoto, Japan",
-      bio: "Experienced Japanese instructor specializing in conversational skills.",
-      experience: "6 years",
-      specialization: "Conversational Japanese, Culture",
-      jlptLevel: "N1",
-      appliedDate: "Feb 15, 2026",
-      status: "active",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000013",
-      name: "Haruki Suzuki",
-      email: "haruki.suzuki@example.com",
-      avatarUrl: null,
-      location: "Osaka, Japan",
-      bio: "Native speaker with a passion for teaching Japanese to international students.",
-      experience: "4 years",
-      specialization: "Beginner Japanese, Listening",
-      jlptLevel: "N2",
-      appliedDate: "Jan 20, 2026",
-      status: "active",
-      accountStatus: "ACTIVE",
-      certificates: [],
-      rejectionReason: null,
-    },
-    {
-      id: "00000000-0000-0000-0000-000000000014",
-      name: "Aoi Kobayashi",
-      email: "aoi.kobayashi@example.com",
-      avatarUrl: null,
-      location: "Nagoya, Japan",
-      bio: "Dedicated educator focused on grammar and reading comprehension.",
-      experience: "5 years",
-      specialization: "Grammar, Reading",
-      jlptLevel: "N1",
-      appliedDate: "Dec 5, 2025",
-      status: "inactive",
-      accountStatus: "LOCKED",
-      certificates: [],
-      rejectionReason: null,
-    },
-  ];
-
-  const fetchListTeachers = useCallback(async () => {
-    setListLoading(true);
-    setListError(null);
-    try {
-      // TODO: Replace with actual API call when backend is ready
-      // const users = await adminApi.getActiveTeachers();
-      // const mapped = users.map(mapToTeacherApplication);
-      // setListTeachers(mapped);
-
-      // Using mock data for demonstration
-      setTimeout(() => {
-        setListTeachers(mockListTeachers);
+            : err instanceof Error
+              ? err.message
+              : "Failed to load teacher list. Please try again.";
+        setListError(message);
+        setListTeachers([]);
+        setListTotalElements(0);
+        setListTotalPages(0);
+      } finally {
         setListLoading(false);
-      }, 500);
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load teacher list. Please try again.";
-      setListError(message);
-      setListTeachers([]);
-    } finally {
-      setListLoading(false);
-    }
-  }, []);
+      }
+    },
+    [],
+  );
 
-  // Load pending on mount
+  // Initial mount: load KPIs + the first page of the pending tab.
+  console.log("[DEBUG] TeachersPage mount - useEffect initial fired");
   useEffect(() => {
-    fetchPendingTeachers();
-  }, [fetchPendingTeachers]);
+    console.log("[DEBUG] useEffect initial -> calling fetchTeacherStats + fetchPendingTeachers");
+    fetchTeacherStats().then(() => console.log("[DEBUG] fetchTeacherStats resolved"));
+    fetchPendingTeachers(0, "", "all").then(() => console.log("[DEBUG] fetchPendingTeachers resolved"));
+  }, [fetchTeacherStats, fetchPendingTeachers]);
 
-  // Load pending when switching to pending tab
+  // Debounce search input so we don't hammer the backend on every keystroke.
   useEffect(() => {
-    if (tab === "pending" && pendingTeachers.length === 0 && !loading && !error) {
-      fetchPendingTeachers();
-    }
-  }, [tab, pendingTeachers.length, loading, error, fetchPendingTeachers]);
+    const handle = window.setTimeout(() => setDebouncedSearch(searchQuery), 350);
+    return () => window.clearTimeout(handle);
+  }, [searchQuery]);
 
-  // Load list when switching to list tab
+  // Re-fetch the current tab's data whenever search / status / page changes.
   useEffect(() => {
-    if (tab === "list" && listTeachers.length === 0 && !listLoading && !listError) {
-      fetchListTeachers();
+    if (tab === "pending") {
+      fetchPendingTeachers(pendingPage, debouncedSearch, statusFilter);
     }
-  }, [tab, listTeachers.length, listLoading, listError, fetchListTeachers]);
+  }, [tab, pendingPage, debouncedSearch, statusFilter, fetchPendingTeachers]);
+
+  useEffect(() => {
+    if (tab === "list") {
+      fetchListTeachers(listPage, debouncedSearch, statusFilter);
+    }
+  }, [tab, listPage, debouncedSearch, statusFilter, fetchListTeachers]);
 
   const handleApprove = useCallback(
     async (id: string) => {
       setActionLoadingId(id);
       try {
-        // Skip API call for mock data
-        if (id.startsWith("00000000-")) {
-          // Update local state for mock data
-          setPendingTeachers((prev) => prev.filter((t) => t.id !== id));
-          setListTeachers((prev) => {
-            const teacher = pendingTeachers.find((t) => t.id === id);
-            if (teacher) {
-              return [...prev, { ...teacher, status: "active" as const }];
-            }
-            return prev;
-          });
-          showToast("Teacher approved successfully!", "success");
-        } else {
-          await adminApi.approveTeacher(id);
-          showToast("Teacher approved successfully!", "success");
-          await Promise.all([fetchPendingTeachers(), fetchListTeachers()]);
-        }
+        await adminApi.approveTeacher(id);
+        showToast("Teacher approved successfully!", "success");
+        await Promise.all([
+          fetchPendingTeachers(pendingPage, debouncedSearch, statusFilter),
+          fetchListTeachers(listPage, debouncedSearch, statusFilter),
+        ]);
+        await fetchTeacherStats();
       } catch (err) {
         const message =
           err instanceof ApiError
@@ -1819,23 +1685,26 @@ function TeachersPage() {
         setActionLoadingId(null);
       }
     },
-    [pendingTeachers, showToast],
+    [
+      fetchPendingTeachers,
+      fetchListTeachers,
+      fetchTeacherStats,
+      pendingPage,
+      debouncedSearch,
+      statusFilter,
+      listPage,
+      showToast,
+    ],
   );
 
   const handleReject = useCallback(
     async (id: string, reason: string) => {
       setActionLoadingId(id);
       try {
-        // Skip API call for mock data
-        if (id.startsWith("00000000-")) {
-          // Update local state for mock data - just remove from pending
-          setPendingTeachers((prev) => prev.filter((t) => t.id !== id));
-          showToast("Teacher application rejected.", "error");
-        } else {
-          await adminApi.rejectTeacher(id, { reason });
-          showToast("Teacher application rejected.", "error");
-          await fetchPendingTeachers();
-        }
+        await adminApi.rejectTeacher(id, { reason });
+        showToast("Teacher application rejected.", "error");
+        await fetchPendingTeachers(pendingPage, debouncedSearch, statusFilter);
+        await fetchTeacherStats();
       } catch (err) {
         const message =
           err instanceof ApiError
@@ -1848,7 +1717,14 @@ function TeachersPage() {
         setActionLoadingId(null);
       }
     },
-    [showToast],
+    [
+      fetchPendingTeachers,
+      fetchTeacherStats,
+      pendingPage,
+      debouncedSearch,
+      statusFilter,
+      showToast,
+    ],
   );
 
   const handleRejectConfirm = useCallback(
@@ -1863,13 +1739,11 @@ function TeachersPage() {
     async (id: string) => {
       setActionLoadingId(id);
       try {
-        // Skip API call for mock data
-        if (!id.startsWith("00000000-")) {
-          await adminApi.suspendTeacher(id);
-        }
+        await adminApi.suspendTeacher(id);
         showToast("Teacher deactivated.", "success");
         setViewingApproved(null);
-        await fetchListTeachers();
+        await fetchListTeachers(listPage, debouncedSearch, statusFilter);
+        await fetchTeacherStats();
       } catch (err) {
         const message =
           err instanceof ApiError
@@ -1882,23 +1756,20 @@ function TeachersPage() {
         setActionLoadingId(null);
       }
     },
-    [showToast, fetchListTeachers],
+    [showToast, fetchListTeachers, fetchTeacherStats, listPage, debouncedSearch, statusFilter],
   );
 
   const handleLock = useCallback(
     async (id: string) => {
       setActionLoadingId(id);
       try {
-        // Skip API call for mock data
-        if (!id.startsWith("00000000-")) {
-          // TODO: Call adminApi.lockTeacher(id) when available
-        }
-        // Update local state
+        await adminApi.suspendTeacher(id);
         setListTeachers((prev) =>
           prev.map((t) => (t.id === id ? { ...t, accountStatus: "LOCKED" as const } : t)),
         );
         showToast("Teacher account has been locked.", "success");
         setLockTarget(null);
+        await fetchTeacherStats();
       } catch (err) {
         const message =
           err instanceof ApiError
@@ -1911,23 +1782,20 @@ function TeachersPage() {
         setActionLoadingId(null);
       }
     },
-    [showToast],
+    [showToast, fetchTeacherStats],
   );
 
   const handleUnlock = useCallback(
     async (id: string) => {
       setActionLoadingId(id);
       try {
-        // Skip API call for mock data
-        if (!id.startsWith("00000000-")) {
-          // TODO: Call adminApi.unlockTeacher(id) when available
-        }
-        // Update local state
+        await adminApi.activateTeacher(id);
         setListTeachers((prev) =>
           prev.map((t) => (t.id === id ? { ...t, accountStatus: "ACTIVE" as const } : t)),
         );
         showToast("Teacher account has been unlocked.", "success");
         setUnlockTarget(null);
+        await fetchTeacherStats();
       } catch (err) {
         const message =
           err instanceof ApiError
@@ -1940,45 +1808,77 @@ function TeachersPage() {
         setActionLoadingId(null);
       }
     },
-    [showToast],
+    [showToast, fetchTeacherStats],
   );
 
   const fetchTeacherCertificates = useCallback(
     async (teacherId: string): Promise<Certificate[]> => {
-      // Skip API call for mock data
-      if (teacherId.startsWith("00000000-")) {
+      try {
+        const certs = await adminApi.getTeacherCertificates(teacherId);
+        return certs.map(mapApiCertificate);
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to load certificates for this teacher.";
+        showToast(message, "error");
         return [];
       }
-      const certs = await adminApi.getTeacherCertificates(teacherId);
-      return certs.map(mapApiCertificate);
     },
-    [],
+    [showToast],
   );
 
-  const pendingCount = pendingTeachers.length;
+  // All filtering, searching, and pagination is server-side now. The arrays
+  // below are the raw page payloads from the backend; we render them directly.
+  const filteredPendingTeachers = pendingTeachers;
+  const filteredListTeachers = listTeachers;
 
-  // Filtered teachers for pending tab
-  const filteredPendingTeachers = pendingTeachers.filter((teacher) => {
-    const matchesSearch =
-      teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      teacher.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || teacher.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // KPI counters come exclusively from /api/admin/users/teachers/stats.
+  // The `??` fallbacks only kick in before the first response arrives or if
+  // the endpoint fails — we deliberately do NOT recompute these numbers from
+  // the current page of teachers.
+  const pendingCount = teacherStats?.pendingTeachers ?? null;
+  const pendingTodayCount = teacherStats?.pendingTeachersToday ?? null;
+  const pendingThisWeekCount = teacherStats?.pendingTeachersThisWeek ?? null;
+  const pendingCertifiedCount = teacherStats?.pendingTeachersCertified ?? null;
+  const totalTeachers = teacherStats?.totalTeachers ?? null;
+  const activeTeachers = teacherStats?.activeTeachers ?? null;
+  const totalClasses = teacherStats?.totalClasses ?? null;
+  const totalStudents = teacherStats?.totalStudents ?? null;
 
-  // Filtered teachers for list view
-  const filteredListTeachers = listTeachers.filter((teacher) => {
-    const matchesSearch =
-      teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      teacher.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || teacher.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const openClassesDrawer = useCallback(
+    async (teacher: TeacherApplication) => {
+      setClassesDrawerTeacher(teacher);
+      setClassesDrawerOpen(true);
+      setClassesDrawerLoading(true);
+      setClassesDrawerItems([]);
+      try {
+        const items = await adminClassesApi.getAdminClasses({ teacherId: teacher.id });
+        setClassesDrawerItems(items);
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Failed to load classes for this teacher.";
+        showToast(message, "error");
+        setClassesDrawerItems([]);
+      } finally {
+        setClassesDrawerLoading(false);
+      }
+    },
+    [showToast],
+  );
 
-  const totalTeachers = listTeachers.length;
-  const activeTeachers = listTeachers.filter((t) => t.status === "active").length;
-  const totalClasses = listTeachers.reduce((sum, t) => sum + (t as any).totalClasses || 0, 0);
-  const totalStudents = listTeachers.reduce((sum, t) => sum + (t as any).totalStudents || 0, 0);
+  const closeClassesDrawer = useCallback(() => {
+    setClassesDrawerOpen(false);
+    setClassesDrawerTeacher(null);
+    setClassesDrawerItems([]);
+    setClassesDrawerLoading(false);
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -1997,7 +1897,16 @@ function TeachersPage() {
         {(["pending", "list"] as const).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setTab(t);
+              // Reset the status filter to "all" when switching tabs so the
+              // previous tab's filter doesn't hide data on the new tab (e.g.
+              // "Approved" on Pending, which doesn't exist there).
+              setStatusFilter("all");
+              setSearchQuery("");
+              setPendingPage(0);
+              setListPage(0);
+            }}
             className={`px-4 py-2 rounded-lg text-xs font-bold capitalize transition-all duration-200 ${
               tab === t ? "bg-gradient-hero text-white shadow-md" : "text-secondary-col nav-item"
             }`}
@@ -2020,7 +1929,9 @@ function TeachersPage() {
                 <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
                   Pending
                 </p>
-                <p className="font-display font-black text-lg text-primary-col">{pendingCount}</p>
+                <p className="font-display font-black text-lg text-primary-col">
+                  {pendingCount ?? "—"}
+                </p>
               </div>
             </div>
             <div className="card-base p-4 flex items-center gap-3">
@@ -2032,12 +1943,7 @@ function TeachersPage() {
                   Today
                 </p>
                 <p className="font-display font-black text-lg text-primary-col">
-                  {
-                    pendingTeachers.filter((t) => {
-                      const today = new Date().toDateString();
-                      return new Date(t.appliedDate).toDateString() === today;
-                    }).length
-                  }
+                  {pendingTodayCount ?? "—"}
                 </p>
               </div>
             </div>
@@ -2050,14 +1956,7 @@ function TeachersPage() {
                   This Week
                 </p>
                 <p className="font-display font-black text-lg text-primary-col">
-                  {
-                    pendingTeachers.filter((t) => {
-                      const d = new Date(t.appliedDate);
-                      const now = new Date();
-                      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                      return d >= weekAgo;
-                    }).length
-                  }
+                  {pendingThisWeekCount ?? "—"}
                 </p>
               </div>
             </div>
@@ -2070,13 +1969,15 @@ function TeachersPage() {
                   Certified
                 </p>
                 <p className="font-display font-black text-lg text-primary-col">
-                  {pendingTeachers.filter((t) => t.jlptLevel && t.jlptLevel !== "â€”").length}
+                  {pendingCertifiedCount ?? "—"}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Search and Filters */}
+          {/* Search and Filters — Teacher Approval only ever shows PENDING_APPROVAL,
+              so a status filter dropdown would be misleading. Keep the visual
+              slot for layout consistency but render a static label instead. */}
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-col" />
@@ -2084,22 +1985,18 @@ function TeachersPage() {
                 type="text"
                 placeholder="Search by name or email..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPendingPage(0);
+                }}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col placeholder:text-muted-col focus:outline-none focus:border-primary/40 transition"
               />
             </div>
             <div className="relative">
               <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-col" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="pl-9 pr-8 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col focus:outline-none focus:border-primary/40 transition appearance-none"
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
+              <div className="pl-9 pr-8 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col bg-(--status-pending)/8 font-bold tracking-wide cursor-default select-none">
+                Awaiting Review
+              </div>
             </div>
           </div>
 
@@ -2121,7 +2018,7 @@ function TeachersPage() {
               <p className="text-primary-col font-bold text-sm">Something went wrong.</p>
               <p className="text-secondary-col font-semibold text-sm">{error}</p>
               <button
-                onClick={fetchPendingTeachers}
+                onClick={() => fetchPendingTeachers(pendingPage, debouncedSearch, statusFilter)}
                 className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition"
               >
                 Try Again
@@ -2133,7 +2030,7 @@ function TeachersPage() {
             <div className="flex flex-col items-center justify-center py-16 rounded-2xl empty-state">
               <InboxIcon className="w-12 h-12 text-(--status-pending)/40 mb-3" />
               <p className="text-secondary-col font-semibold text-sm">
-                All caught up â€” no pending applications!
+                All caught up — no pending applications!
               </p>
               <p className="text-muted-col text-xs mt-1">
                 There are currently no records to review.
@@ -2160,8 +2057,7 @@ function TeachersPage() {
               <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold">
                 <div className="col-span-3">Teacher</div>
                 <div className="col-span-3 text-center">Email</div>
-                <div className="col-span-2 text-center">Applied Date</div>
-                <div className="col-span-1 text-center">JLPT</div>
+                <div className="col-span-3 text-center">Applied Date</div>
                 <div className="col-span-1 text-center">Status</div>
                 <div className="col-span-2 text-right">Actions</div>
               </div>
@@ -2202,7 +2098,7 @@ function TeachersPage() {
                           {teacher.name}
                         </p>
                         <p className="text-muted-col text-[10px] truncate">
-                          {teacher.jlptLevel !== "â€”" ? teacher.jlptLevel : "â€”"}
+                          ID {teacher.id.slice(0, 8)}
                         </p>
                       </div>
                     </div>
@@ -2213,15 +2109,8 @@ function TeachersPage() {
                     </div>
 
                     {/* Applied Date */}
-                    <div className="col-span-2 text-center text-xs text-muted-col">
+                    <div className="col-span-3 text-center text-xs text-muted-col">
                       {teacher.appliedDate}
-                    </div>
-
-                    {/* JLPT */}
-                    <div className="col-span-1 text-center">
-                      <span className="px-2 py-0.5 rounded-full bg-primary/12 text-primary text-[10px] font-bold">
-                        {teacher.jlptLevel !== "â€”" ? teacher.jlptLevel : "â€”"}
-                      </span>
                     </div>
 
                     {/* Status */}
@@ -2276,6 +2165,17 @@ function TeachersPage() {
               })}
             </div>
           )}
+
+          {/* Server-driven pagination for the Pending tab */}
+          {!loading && !error && pendingTotalPages > 1 && (
+            <PaginationControls
+              page={pendingPage}
+              totalPages={pendingTotalPages}
+              totalElements={pendingTotalElements}
+              size={PAGE_SIZE}
+              onPageChange={setPendingPage}
+            />
+          )}
         </>
       )}
 
@@ -2292,7 +2192,9 @@ function TeachersPage() {
                 <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
                   Total Teachers
                 </p>
-                <p className="font-display font-black text-lg text-primary-col">{totalTeachers}</p>
+                <p className="font-display font-black text-lg text-primary-col">
+                  {totalTeachers ?? "—"}
+                </p>
               </div>
             </div>
             <div className="card-base p-4 flex items-center gap-3">
@@ -2303,7 +2205,9 @@ function TeachersPage() {
                 <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
                   Active Teachers
                 </p>
-                <p className="font-display font-black text-lg text-primary-col">{activeTeachers}</p>
+                <p className="font-display font-black text-lg text-primary-col">
+                  {activeTeachers ?? "—"}
+                </p>
               </div>
             </div>
             <div className="card-base p-4 flex items-center gap-3">
@@ -2314,7 +2218,9 @@ function TeachersPage() {
                 <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
                   Total Classes
                 </p>
-                <p className="font-display font-black text-lg text-primary-col">{totalClasses}</p>
+                <p className="font-display font-black text-lg text-primary-col">
+                  {totalClasses ?? "—"}
+                </p>
               </div>
             </div>
             <div className="card-base p-4 flex items-center gap-3">
@@ -2325,7 +2231,9 @@ function TeachersPage() {
                 <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
                   Total Students
                 </p>
-                <p className="font-display font-black text-lg text-primary-col">{totalStudents}</p>
+                <p className="font-display font-black text-lg text-primary-col">
+                  {totalStudents ?? "—"}
+                </p>
               </div>
             </div>
           </div>
@@ -2338,7 +2246,10 @@ function TeachersPage() {
                 type="text"
                 placeholder="Search by teacher name or email..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setListPage(0);
+                }}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col placeholder:text-muted-col focus:outline-none focus:border-primary/40 transition"
               />
             </div>
@@ -2346,7 +2257,10 @@ function TeachersPage() {
               <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-col" />
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as typeof statusFilter);
+                  setListPage(0);
+                }}
                 className="pl-9 pr-8 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col focus:outline-none focus:border-primary/40 transition appearance-none"
               >
                 <option value="all">All Status</option>
@@ -2371,7 +2285,7 @@ function TeachersPage() {
               <p className="text-primary-col font-bold text-sm">Something went wrong.</p>
               <p className="text-secondary-col font-semibold text-sm">{listError}</p>
               <button
-                onClick={fetchListTeachers}
+                onClick={() => fetchListTeachers(listPage, debouncedSearch, statusFilter)}
                 className="px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition"
               >
                 Try Again
@@ -2401,8 +2315,8 @@ function TeachersPage() {
                   .join("")
                   .slice(0, 2);
                 const avatarColor = getAvatarColor(teacher.id);
-                const teacherClasses = (teacher as any).totalClasses || 0;
-                const teacherStudents = (teacher as any).totalStudents || 0;
+                const teacherClasses = teacher.totalClasses ?? 0;
+                const teacherStudents = teacher.totalStudents ?? 0;
                 const accountStatus = teacher.accountStatus;
                 const accountStatusColor =
                   accountStatus === "ACTIVE"
@@ -2463,10 +2377,7 @@ function TeachersPage() {
                         </button>
                         {/* View Classes */}
                         <button
-                          onClick={() => {
-                            setClassesDrawerTeacher(teacher);
-                            setClassesDrawerOpen(true);
-                          }}
+                          onClick={() => openClassesDrawer(teacher)}
                           disabled={listLoading}
                           className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 transition disabled:opacity-40"
                           title="View Classes"
@@ -2499,6 +2410,17 @@ function TeachersPage() {
                 );
               })}
             </div>
+          )}
+
+          {/* Server-driven pagination for the Teacher List tab */}
+          {!listLoading && !listError && listTotalPages > 1 && (
+            <PaginationControls
+              page={listPage}
+              totalPages={listTotalPages}
+              totalElements={listTotalElements}
+              size={PAGE_SIZE}
+              onPageChange={setListPage}
+            />
           )}
         </>
       )}
@@ -2635,7 +2557,7 @@ function TeachersPage() {
           >
             <div
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-              onClick={() => setClassesDrawerOpen(false)}
+              onClick={closeClassesDrawer}
             />
             <motion.div
               className="relative z-10 ml-auto h-full w-full max-w-2xl glass-modal shadow-2xl flex flex-col overflow-hidden"
@@ -2653,7 +2575,7 @@ function TeachersPage() {
                   <p className="text-muted-col text-sm mt-0.5">{classesDrawerTeacher.name}</p>
                 </div>
                 <button
-                  onClick={() => setClassesDrawerOpen(false)}
+                  onClick={closeClassesDrawer}
                   className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary transition"
                 >
                   <X className="w-5 h-5" />
@@ -2662,61 +2584,75 @@ function TeachersPage() {
 
               {/* Classes List */}
               <div className="flex-1 overflow-auto p-6">
-                {(() => {
-                  const classes = getTeacherClasses(classesDrawerTeacher.id);
-                  if (classes.length === 0) {
-                    return (
-                      <div className="flex flex-col items-center justify-center h-64 text-muted-col">
-                        <BookOpenIcon className="w-12 h-12 mb-3 opacity-40" />
-                        <p className="text-sm">No classes found</p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="space-y-4">
-                      {classes.map((cls) => (
+                {classesDrawerLoading ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-col gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm">Loading classes...</p>
+                  </div>
+                ) : classesDrawerItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-col">
+                    <BookOpenIcon className="w-12 h-12 mb-3 opacity-40" />
+                    <p className="text-sm">No classes found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {classesDrawerItems.map((cls) => {
+                      const statusLabel = (cls.status || "ACTIVE").toString();
+                      const normalizedStatus = statusLabel.toLowerCase();
+                      const statusClass =
+                        normalizedStatus === "active"
+                          ? "bg-(--status-active)/12 text-(--status-active)"
+                          : normalizedStatus === "archived" ||
+                              normalizedStatus === "completed" ||
+                              normalizedStatus === "inactive"
+                            ? "bg-blue-500/12 text-blue-500"
+                            : "bg-muted-col/12 text-muted-col";
+                      const createdLabel = cls.createdAt
+                        ? new Date(cls.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "—";
+                      return (
                         <div key={cls.id} className="card-base p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div>
                               <h4 className="font-semibold text-primary-col">{cls.name}</h4>
-                              <p className="text-xs text-muted-col mt-0.5">{cls.level} Level</p>
+                              <p className="text-xs text-muted-col mt-0.5">
+                                {cls.level || "—"} Level
+                              </p>
                             </div>
                             <span
-                              className={`px-2 py-1 rounded-full text-[10px] font-bold ${
-                                cls.status === "active"
-                                  ? "bg-(--status-active)/12 text-(--status-active)"
-                                  : cls.status === "completed"
-                                    ? "bg-blue-500/12 text-blue-500"
-                                    : "bg-muted-col/12 text-muted-col"
-                              }`}
+                              className={`px-2 py-1 rounded-full text-[10px] font-bold ${statusClass}`}
                             >
-                              {cls.status.charAt(0).toUpperCase() + cls.status.slice(1)}
+                              {statusLabel.charAt(0).toUpperCase() +
+                                statusLabel.slice(1).toLowerCase()}
                             </span>
                           </div>
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="text-center">
                               <p className="text-lg font-bold text-primary-col">{cls.students}</p>
                               <p className="text-[10px] text-muted-col">Students</p>
                             </div>
                             <div className="text-center">
                               <p className="text-lg font-bold text-primary-col">
-                                {cls.completionRate}%
+                                {cls.maxStudents ?? "—"}
                               </p>
-                              <p className="text-[10px] text-muted-col">Completion</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-lg font-bold text-primary-col">{cls.avgScore}</p>
-                              <p className="text-[10px] text-muted-col">Avg Score</p>
+                              <p className="text-[10px] text-muted-col">Max Capacity</p>
                             </div>
                           </div>
-                          <p className="text-[10px] text-muted-col mt-3">
-                            Started: {cls.startDate}
-                          </p>
+                          {cls.description && (
+                            <p className="text-xs text-secondary-col mt-3 leading-relaxed">
+                              {cls.description}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-muted-col mt-3">Created: {createdLabel}</p>
                         </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>
