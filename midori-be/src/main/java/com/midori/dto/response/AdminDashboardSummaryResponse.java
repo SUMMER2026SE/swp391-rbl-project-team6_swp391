@@ -15,6 +15,8 @@ public class AdminDashboardSummaryResponse {
     private long totalStudents;
     private long totalTeachers;
     private long totalActiveUsers;
+    private long activeClasses;
+    private long learningCompletionRate;
     private long pendingTeachers;
     private long pendingContent;
     private long totalVocabularyLessons;
