@@ -90,4 +90,12 @@ public class TeacherClassController {
         List<ClassResponse> response = classService.getSelectableClasses(userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<ClassResponse>>> getMyClasses(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String status) {
+        List<ClassResponse> response = classService.getMyClasses(userDetails.getId(), status);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
