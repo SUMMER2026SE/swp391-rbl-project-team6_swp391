@@ -12,7 +12,6 @@ import {
   getQuestionsByTopic,
   getJlptByLevel,
 } from "@/data/teacher-banks";
-import { MOCK_REPORTS, type TeacherReport } from "@/data/teacher-reports";
 import { TEACHER_NOTIFICATIONS, type TeacherNotification } from "@/data/teacher-notifications";
 
 // Classes
@@ -155,11 +154,6 @@ export function getProgressData(classId?: string): ClassProgressRecord[] {
     atRiskCount: Math.floor(Math.random() * 3),
     totalStudents: c.studentList.length,
   }));
-}
-
-// Reports
-export function getReports() {
-  return MOCK_REPORTS;
 }
 
 // Notifications
