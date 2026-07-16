@@ -65,4 +65,7 @@ public interface UserLearningProgressRepository extends JpaRepository<UserLearni
 
     @Query("SELECT COALESCE(SUM(p.viewCount), 0) FROM UserLearningProgress p WHERE p.contentId = :contentId AND p.contentType = :contentType")
     long sumViewCountByContentIdAndContentType(@Param("contentId") String contentId, @Param("contentType") ContentType contentType);
+
+    @Query("SELECT COUNT(p) FROM UserLearningProgress p WHERE p.completed = true")
+    long countByCompletedTrueJpql();
 }
