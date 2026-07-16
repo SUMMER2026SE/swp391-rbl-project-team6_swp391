@@ -36,7 +36,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { adminApi } from "@/lib/api/admin";
+import { adminApi, type AdminTeacherResponse } from "@/lib/api/admin";
+import { adminClassesApi, type AdminClassResponse } from "@/lib/api/admin";
 
 type ClassStatus = "ACTIVE" | "ARCHIVED";
 
@@ -79,126 +80,35 @@ function JLPTBadge({ level }: { level: string }) {
   );
 }
 
-// Mock data for demonstration
-const mockClasses = [
-  {
-    id: "cls-001",
-    name: "N5 Beginner Japanese",
-    teacher: "Sakura Tanaka",
-    teacherId: "t001",
-    level: "N5",
-    students: 28,
-    maxStudents: 30,
-    status: "ACTIVE" as const,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "cls-002",
-    name: "N4 Grammar Intensive",
-    teacher: "Kenji Yamamoto",
-    teacherId: "t002",
-    level: "N4",
-    students: 22,
-    maxStudents: 25,
-    status: "ACTIVE" as const,
-    createdAt: "2024-02-01",
-  },
-  {
-    id: "cls-003",
-    name: "N3 Conversation Class",
-    teacher: "Yuki Sato",
-    teacherId: "t003",
-    level: "N3",
-    students: 18,
-    maxStudents: 20,
-    status: "ACTIVE" as const,
-    createdAt: "2024-02-10",
-  },
-  {
-    id: "cls-004",
-    name: "N2 Business Japanese",
-    teacher: "Akiko Suzuki",
-    teacherId: "t004",
-    level: "N2",
-    students: 15,
-    maxStudents: 20,
-    status: "ACTIVE" as const,
-    createdAt: "2024-03-01",
-  },
-  {
-    id: "cls-005",
-    name: "N1 Advanced Mastery",
-    teacher: "Takeshi Kimura",
-    teacherId: "t005",
-    level: "N1",
-    students: 10,
-    maxStudents: 15,
-    status: "ACTIVE" as const,
-    createdAt: "2024-03-15",
-  },
-  {
-    id: "cls-006",
-    name: "N5 Kanji Basics",
-    teacher: "Sakura Tanaka",
-    teacherId: "t001",
-    level: "N5",
-    students: 30,
-    maxStudents: 30,
-    status: "ARCHIVED" as const,
-    createdAt: "2023-09-01",
-  },
-  {
-    id: "cls-007",
-    name: "N4 Listening Practice",
-    teacher: "Kenji Yamamoto",
-    teacherId: "t002",
-    level: "N4",
-    students: 20,
-    maxStudents: 25,
-    status: "ACTIVE" as const,
-    createdAt: "2024-04-01",
-  },
-  {
-    id: "cls-008",
-    name: "N3 Reading Comprehension",
-    teacher: "Yuki Sato",
-    teacherId: "t003",
-    level: "N3",
-    students: 16,
-    maxStudents: 20,
-    status: "ACTIVE" as const,
-    createdAt: "2024-04-10",
-  },
-];
-
-// Mock approved teachers
-const mockTeachers = [
-  { id: "t001", name: "Sakura Tanaka", email: "sakura.tanaka@midori.edu" },
-  { id: "t002", name: "Kenji Yamamoto", email: "kenji.yamamoto@midori.edu" },
-  { id: "t003", name: "Yuki Sato", email: "yuki.sato@midori.edu" },
-  { id: "t004", name: "Akiko Suzuki", email: "akiko.suzuki@midori.edu" },
-  { id: "t005", name: "Takeshi Kimura", email: "takeshi.kimura@midori.edu" },
-];
-
 export const Route = createFileRoute("/admin/class-management/_index")({
   component: ClassManagementPage,
 });
 
 function ClassManagementPage() {
-  const [classes, setClasses] = useState<typeof mockClasses>([]);
-  const [loading, setLoading] = useState(true);
+  // Data state
+  const [classes, setClasses] = useState<AdminClassResponse[]>([]);
+  const [teachers, setTeachers] = useState<AdminTeacherResponse[]>([]);
+
+  // Loading states
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingTeachers, setLoadingTeachers] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter state
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+
+  // Pagination
+  const PAGE_SIZE = 10;
   const [page, setPage] = useState(0);
 
   // Archive Modal state
-  const [archiveClass, setArchiveClass] = useState<(typeof mockClasses)[0] | null>(null);
+  const [archiveClass, setArchiveClass] = useState<AdminClassResponse | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
 
   // Restore Modal state
-  const [restoreClass, setRestoreClass] = useState<(typeof mockClasses)[0] | null>(null);
+  const [restoreClass, setRestoreClass] = useState<AdminClassResponse | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
 
   // Create Class Modal state
@@ -215,24 +125,39 @@ function ClassManagementPage() {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Load classes from real API
   const fetchClasses = useCallback(async () => {
-    setLoading(true);
+    setLoadingClasses(true);
     setError(null);
     try {
-      // Use mock data for now - in production, this would call adminApi
-      await new Promise((r) => setTimeout(r, 500));
-      setClasses(mockClasses);
+      const data = await adminClassesApi.getAdminClasses();
+      setClasses(data);
     } catch (err: any) {
       setError(err.message || "Failed to load classes");
     } finally {
-      setLoading(false);
+      setLoadingClasses(false);
+    }
+  }, []);
+
+  // Load teachers from real API
+  const fetchTeachers = useCallback(async () => {
+    setLoadingTeachers(true);
+    try {
+      const data = await adminApi.getActiveTeachers();
+      setTeachers(data);
+    } catch {
+      // Silently fail for teachers - create modal won't work but list is fine
+    } finally {
+      setLoadingTeachers(false);
     }
   }, []);
 
   useEffect(() => {
     fetchClasses();
-  }, [fetchClasses]);
+    fetchTeachers();
+  }, [fetchClasses, fetchTeachers]);
 
+  // Filtered classes (search + level + status) — done client-side since BE returns all
   const filteredClasses = classes.filter((cls) => {
     const matchesSearch =
       !search ||
@@ -243,75 +168,72 @@ function ClassManagementPage() {
     return matchesSearch && matchesLevel && matchesStatus;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredClasses.length / PAGE_SIZE);
+  const paginatedClasses = filteredClasses.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   const activeCount = classes.filter((c) => c.status === "ACTIVE").length;
   const archivedCount = classes.filter((c) => c.status === "ARCHIVED").length;
-  const totalStudents = classes.reduce((sum, c) => sum + c.students, 0);
+  const totalStudents = classes.reduce((sum, c) => sum + (c.students || 0), 0);
 
   const clearFilters = () => {
     setSearch("");
     setLevelFilter("");
     setStatusFilter("");
+    setPage(0);
   };
 
   const hasFilters = search || levelFilter || statusFilter;
 
-  // Handlers
-  const handleArchiveClick = (cls: (typeof mockClasses)[0]) => {
-    setArchiveClass(cls);
+  const showToast = (msg: string) => {
+    setSuccessMessage(msg);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 3000);
   };
+
+  // Archive handler
+  const handleArchiveClick = (cls: AdminClassResponse) => setArchiveClass(cls);
 
   const handleArchiveConfirm = async () => {
     if (!archiveClass) return;
-
     setArchiveLoading(true);
     try {
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 500));
-
+      await adminClassesApi.archiveAdminClass(archiveClass.id);
       // Update local state
       setClasses((prev) =>
         prev.map((c) => (c.id === archiveClass.id ? { ...c, status: "ARCHIVED" as const } : c)),
       );
-
       setArchiveClass(null);
-      setSuccessMessage("Class archived successfully.");
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (err) {
-      // Handle error silently
+      showToast("Class archived successfully.");
+    } catch (err: any) {
+      alert(err.message || "Failed to archive class");
     } finally {
       setArchiveLoading(false);
     }
   };
 
-  const handleRestoreClick = (cls: (typeof mockClasses)[0]) => {
-    setRestoreClass(cls);
-  };
+  // Restore handler
+  const handleRestoreClick = (cls: AdminClassResponse) => setRestoreClass(cls);
 
   const handleRestoreConfirm = async () => {
     if (!restoreClass) return;
-
     setRestoreLoading(true);
     try {
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 500));
-
+      await adminClassesApi.restoreAdminClass(restoreClass.id);
       // Update local state
       setClasses((prev) =>
         prev.map((c) => (c.id === restoreClass.id ? { ...c, status: "ACTIVE" as const } : c)),
       );
-
       setRestoreClass(null);
-      setSuccessMessage("Class restored successfully.");
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (err) {
-      // Handle error silently
+      showToast("Class restored successfully.");
+    } catch (err: any) {
+      alert(err.message || "Failed to restore class");
     } finally {
       setRestoreLoading(false);
     }
   };
 
+  // Create handler
   const handleCreateClick = () => {
     setCreateName("");
     setCreateLevel("N5");
@@ -323,7 +245,6 @@ function ClassManagementPage() {
   };
 
   const handleCreateSubmit = async () => {
-    // Validation
     if (!createName.trim()) {
       setCreateError("Class name is required");
       return;
@@ -337,38 +258,42 @@ function ClassManagementPage() {
       return;
     }
 
-    const selectedTeacher = mockTeachers.find((t) => t.id === createTeacherId);
-    if (!selectedTeacher) return;
-
     setCreateLoading(true);
     try {
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 500));
-
-      // Create new class
-      const newClass = {
-        id: `cls-${Date.now()}`,
-        name: createName,
-        teacher: selectedTeacher.name,
-        teacherId: selectedTeacher.id,
+      const created = await adminClassesApi.createAdminClass({
+        name: createName.trim(),
         level: createLevel,
-        students: 0,
         maxStudents: createCapacity,
-        status: "ACTIVE" as const,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-
-      setClasses((prev) => [newClass, ...prev]);
+        teacherId: createTeacherId,
+        description: createDescription.trim(),
+      });
+      // Prepend new class to list (backend returns ClassResponse, which maps from ClassResponse)
+      setClasses((prev) => [
+        {
+          id: (created as any).id,
+          name: (created as any).name,
+          teacher: (created as any).teacher || "",
+          teacherId: createTeacherId,
+          level: (created as any).level || createLevel,
+          students: 0,
+          maxStudents: createCapacity,
+          status: (created as any).status || "ACTIVE",
+          createdAt: (created as any).createdAt || new Date().toISOString(),
+          description: createDescription.trim(),
+        },
+        ...prev,
+      ]);
       setShowCreateModal(false);
-      setSuccessMessage("Class created successfully.");
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
+      showToast("Class created successfully.");
     } catch (err: any) {
       setCreateError(err.message || "Failed to create class");
     } finally {
       setCreateLoading(false);
     }
   };
+
+  // Reset page when filters change
+  useEffect(() => { setPage(0); }, [search, levelFilter, statusFilter]);
 
   return (
     <div className="space-y-5">
@@ -501,14 +426,14 @@ function ClassManagementPage() {
             <div className="col-span-2">Created</div>
           </div>
 
-          {loading && (
+          {loadingClasses && (
             <div className="py-16 flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
               <p className="text-xs text-muted-col">Loading classes...</p>
             </div>
           )}
 
-          {!loading && error && (
+          {!loadingClasses && error && (
             <div className="py-16 flex flex-col items-center gap-3">
               <AlertTriangle className="w-10 h-10 text-[var(--status-rejected)]/50" />
               <p className="text-sm font-bold text-[var(--status-rejected)]">{error}</p>
@@ -521,7 +446,7 @@ function ClassManagementPage() {
             </div>
           )}
 
-          {!loading && !error && filteredClasses.length === 0 && (
+          {!loadingClasses && !error && filteredClasses.length === 0 && (
             <div className="py-16 flex flex-col items-center gap-3">
               <BookUser className="w-10 h-10 text-muted-col/40" />
               <p className="text-sm font-bold text-secondary-col">No classes found</p>
@@ -533,9 +458,17 @@ function ClassManagementPage() {
             </div>
           )}
 
-          {!loading &&
+          {!loadingClasses && !error && filteredClasses.length > 0 && paginatedClasses.length === 0 && (
+            <div className="py-16 flex flex-col items-center gap-3">
+              <p className="text-sm font-bold text-secondary-col">
+                No classes on this page
+              </p>
+            </div>
+          )}
+
+          {!loadingClasses &&
             !error &&
-            filteredClasses.map((cls, i) => (
+            paginatedClasses.map((cls, i) => (
               <motion.div
                 key={cls.id}
                 initial={{ opacity: 0, y: 4 }}
@@ -543,6 +476,7 @@ function ClassManagementPage() {
                 transition={{ delay: i * 0.025 }}
                 className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
               >
+                {/* Class name */}
                 <div className="col-span-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center shrink-0">
                     <BookUser className="w-5 h-5 text-primary" />
@@ -551,40 +485,47 @@ function ClassManagementPage() {
                     <div className="text-sm font-semibold text-primary-col truncate">
                       {cls.name}
                     </div>
+                    {cls.description && (
+                      <div className="text-[10px] text-muted-col truncate">{cls.description}</div>
+                    )}
                   </div>
                 </div>
 
+                {/* Teacher */}
                 <div className="col-span-2 flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shrink-0">
-                    {cls.teacher
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {(cls.teacher || "?").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                   </div>
-                  <span className="text-sm text-secondary-col truncate">{cls.teacher}</span>
+                  <span className="text-sm text-secondary-col truncate">{cls.teacher || "N/A"}</span>
                 </div>
 
+                {/* Level */}
                 <div className="col-span-1">
-                  <JLPTBadge level={cls.level} />
+                  <JLPTBadge level={cls.level || "N5"} />
                 </div>
 
+                {/* Students */}
                 <div className="col-span-2 flex items-center gap-2">
                   <span className="text-sm font-medium">
-                    <span className="text-secondary-col">{cls.students}</span>
+                    <span className="text-secondary-col">{cls.students ?? 0}</span>
                     <span className="text-muted-col">/{cls.maxStudents}</span>
                   </span>
                 </div>
 
+                {/* Status */}
                 <div className="col-span-1">
                   <StatusBadge status={cls.status} />
                 </div>
 
+                {/* Created + Actions */}
                 <div className="col-span-2 flex items-center justify-between">
                   <span className="text-xs text-muted-col">
-                    {new Date(cls.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {cls.createdAt
+                      ? new Date(cls.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "N/A"}
                   </span>
                   <div className="flex items-center gap-1">
                     <Link
@@ -616,8 +557,34 @@ function ClassManagementPage() {
                 </div>
               </motion.div>
             ))}
+
+          {/* Pagination */}
+          {!loadingClasses && !error && totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3">
+              <span className="text-xs text-muted-col">
+                Page {page + 1} of {totalPages} ({filteredClasses.length} total)
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-secondary-col hover:bg-accent transition disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-secondary-col hover:bg-accent transition disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
       {/* Success Toast */}
       {showSuccessToast && (
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-2">
@@ -726,18 +693,24 @@ function ClassManagementPage() {
               <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
                 Teacher <span className="text-[var(--status-rejected)]">*</span>
               </label>
-              <select
-                value={createTeacherId}
-                onChange={(e) => setCreateTeacherId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col focus:outline-none focus:border-primary/40 transition appearance-none"
-              >
-                <option value="">Select a teacher</option>
-                {mockTeachers.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>
-                    {teacher.name} - {teacher.email}
-                  </option>
-                ))}
-              </select>
+              {loadingTeachers ? (
+                <div className="w-full px-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-muted-col">
+                  Loading teachers...
+                </div>
+              ) : (
+                <select
+                  value={createTeacherId}
+                  onChange={(e) => setCreateTeacherId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl glass-surface border border-glass-border text-sm text-primary-col focus:outline-none focus:border-primary/40 transition appearance-none"
+                >
+                  <option value="">Select a teacher</option>
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.displayName || teacher.email}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Capacity */}
