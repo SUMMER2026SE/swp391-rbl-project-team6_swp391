@@ -3,6 +3,7 @@ package com.midori.repository;
 import com.midori.entity.Exam;
 import com.midori.entity.ExamStatus;
 import com.midori.entity.GrammarLevel;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -42,4 +43,6 @@ public interface ExamRepository extends JpaRepository<Exam, UUID> {
 
     @Query("SELECT e.assignedClass.id, COUNT(e) FROM Exam e WHERE e.status = com.midori.entity.ExamStatus.PUBLISHED AND e.assignedClass.id IS NOT NULL GROUP BY e.assignedClass.id")
     List<Object[]> countUpcomingExamsPerClass();
+
+    List<Exam> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }
