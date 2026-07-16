@@ -19,6 +19,8 @@ public interface FlashcardSetRepository extends JpaRepository<FlashcardSet, UUID
 
     long countByStatus(FlashcardSetStatus status);
 
+    List<FlashcardSet> findAllByOrderByCreatedAtDesc(org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT DISTINCT fs FROM FlashcardSet fs LEFT JOIN FETCH fs.teacher t LEFT JOIN FETCH t.profile LEFT JOIN FETCH fs.cards WHERE fs.id = :id")
     Optional<FlashcardSet> findByIdWithTeacher(@Param("id") UUID id);
 
