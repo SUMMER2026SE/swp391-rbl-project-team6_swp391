@@ -30,4 +30,17 @@ public class AdminTeacherResponse {
     private String rejectionReason;
     private Instant createdAt;
     private Instant updatedAt;
+
+    /**
+     * Number of classes this teacher owns. Populated by the admin service when
+     * the response is rendered for the Teacher Management list. Null when the
+     * caller doesn't request per-teacher aggregates (e.g. {@code /pending}).
+     */
+    private Long totalClasses;
+
+    /**
+     * Total distinct students enrolled in any class owned by this teacher.
+     * Populated alongside {@link #totalClasses}.
+     */
+    private Long totalStudents;
 }
