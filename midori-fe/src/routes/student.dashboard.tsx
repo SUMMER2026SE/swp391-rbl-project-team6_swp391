@@ -38,9 +38,9 @@ function StudentHome() {
     isLoading: isLoadingStats,
     error: statsError,
   } = useQuery({
-    queryKey: ["progress-stats"],
+    queryKey: ["progress-stats", user?.id ?? "anon"],
     queryFn: () => studentProgressApi.getProgressStats(),
-    staleTime: 60 * 1000,
+    staleTime: 0,
   });
 
   const {
