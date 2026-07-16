@@ -23,23 +23,34 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/teacher/questions")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('TEACHER')")
+@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
 public class TeacherQuestionController {
 
     private final TeacherQuestionService teacherQuestionService;
     private final UserRepository userRepository;
     private final com.midori.repository.TeacherQuestionRepository teacherQuestionRepository;
+    private final com.midori.repository.QuestionBankLessonRepository questionBankLessonRepository;
+    private final com.midori.service.QuestionBankLessonService questionBankLessonService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TeacherQuestionResponse>> createQuestion(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateTeacherQuestionRequest request) {
         User teacher = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userDetails.getId()));
 
+        com.midori.entity.QuestionBankLesson lesson = null;
+        if (request.getLessonId() != null) {
+            lesson = questionBankLessonRepository.findById(request.getLessonId()).orElse(null);
+        }
+
         TeacherQuestion question = TeacherQuestion.builder()
                 .teacher(teacher)
                 .topicId(request.getTopicId())
+                .level(request.getLevel())
+                .skill(request.getSkill())
+                .lesson(lesson)
                 .prompt(request.getPrompt())
                 .jpPrompt(request.getJpPrompt())
                 .questionType(request.getQuestionType())
@@ -49,7 +60,10 @@ public class TeacherQuestionController {
                 .tags(request.getTags())
                 .points(request.getPoints() != null ? request.getPoints() : 1)
                 .options(request.getOptions())
-                .status("ACTIVE")
+                .status(com.midori.entity.UserStatus.ACTIVE.name())
+                .audioUrl(request.getAudioUrl())
+                .audioFileName(request.getAudioFileName())
+                .audioDuration(request.getAudioDuration())
                 .build();
 
         TeacherQuestion saved = teacherQuestionService.createQuestion(question);
@@ -57,12 +71,22 @@ public class TeacherQuestionController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TeacherQuestionResponse>> updateQuestion(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID id,
             @Valid @RequestBody UpdateTeacherQuestionRequest request) {
+        
+        com.midori.entity.QuestionBankLesson lesson = null;
+        if (request.getLessonId() != null) {
+            lesson = questionBankLessonRepository.findById(request.getLessonId()).orElse(null);
+        }
+
         TeacherQuestion details = TeacherQuestion.builder()
                 .topicId(request.getTopicId())
+                .level(request.getLevel())
+                .skill(request.getSkill())
+                .lesson(lesson)
                 .prompt(request.getPrompt())
                 .jpPrompt(request.getJpPrompt())
                 .questionType(request.getQuestionType())
@@ -72,7 +96,10 @@ public class TeacherQuestionController {
                 .tags(request.getTags())
                 .points(request.getPoints() != null ? request.getPoints() : 1)
                 .options(request.getOptions())
-                .status(request.getStatus() != null ? request.getStatus().toUpperCase() : "ACTIVE")
+                .status(request.getStatus() != null ? request.getStatus().toUpperCase() : com.midori.entity.UserStatus.ACTIVE.name())
+                .audioUrl(request.getAudioUrl())
+                .audioFileName(request.getAudioFileName())
+                .audioDuration(request.getAudioDuration())
                 .build();
 
         TeacherQuestion updated = teacherQuestionService.updateQuestion(id, details, userDetails.getId());
@@ -80,6 +107,7 @@ public class TeacherQuestionController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteQuestion(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID id) {
@@ -90,7 +118,8 @@ public class TeacherQuestionController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<TeacherQuestionResponse>>> getQuestions(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<TeacherQuestion> questions = teacherQuestionService.findQuestionsByTeacher(userDetails.getId());
+        // Return identical centralized list of ACTIVE questions to both Admin and Teacher
+        List<TeacherQuestion> questions = teacherQuestionService.findCentralizedQuestions();
         
         java.util.Map<String, TeacherQuestion> uniqueMap = new java.util.LinkedHashMap<>();
         java.util.List<TeacherQuestion> duplicatesToDelete = new java.util.ArrayList<>();
@@ -124,12 +153,51 @@ public class TeacherQuestionController {
         return ResponseEntity.ok(ApiResponse.success(mapToResponse(question)));
     }
 
+    // ─── Lesson Centralized CRUD Routes (Admin only for writes) ─────────────────
+
+    @GetMapping("/lessons")
+    public ResponseEntity<ApiResponse<List<com.midori.entity.QuestionBankLesson>>> getLessons(
+            @RequestParam String level) {
+        List<com.midori.entity.QuestionBankLesson> lessons = questionBankLessonService.findLessonsByLevel(level);
+        return ResponseEntity.ok(ApiResponse.success(lessons));
+    }
+
+    @PostMapping("/lessons")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<com.midori.entity.QuestionBankLesson>> createLesson(
+            @Valid @RequestBody com.midori.entity.QuestionBankLesson lesson) {
+        com.midori.entity.QuestionBankLesson saved = questionBankLessonService.createLesson(lesson);
+        return ResponseEntity.ok(ApiResponse.success("Lesson created successfully", saved));
+    }
+
+    @PutMapping("/lessons/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<com.midori.entity.QuestionBankLesson>> updateLesson(
+            @PathVariable Integer id,
+            @RequestBody java.util.Map<String, Object> body) {
+        String name = (String) body.get("lessonName");
+        Integer number = body.get("lessonNumber") != null ? ((Number) body.get("lessonNumber")).intValue() : null;
+        String status = (String) body.get("status");
+        com.midori.entity.QuestionBankLesson updated = questionBankLessonService.updateLesson(id, name, number, status);
+        return ResponseEntity.ok(ApiResponse.success("Lesson updated successfully", updated));
+    }
+
+    @DeleteMapping("/lessons/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteLesson(@PathVariable Integer id) {
+        questionBankLessonService.deleteLesson(id);
+        return ResponseEntity.ok(ApiResponse.success("Lesson deleted successfully", null));
+    }
+
     private TeacherQuestionResponse mapToResponse(TeacherQuestion question) {
         if (question == null) return null;
         return TeacherQuestionResponse.builder()
                 .id(question.getId())
                 .teacherId(question.getTeacher().getId())
                 .topicId(question.getTopicId())
+                .level(question.getLevel())
+                .skill(question.getSkill())
+                .lessonId(question.getLesson() != null ? question.getLesson().getId() : null)
                 .prompt(question.getPrompt())
                 .jpPrompt(question.getJpPrompt())
                 .questionType(question.getQuestionType())
@@ -140,6 +208,9 @@ public class TeacherQuestionController {
                 .status(question.getStatus())
                 .points(question.getPoints())
                 .options(question.getOptions())
+                .audioUrl(question.getAudioUrl())
+                .audioFileName(question.getAudioFileName())
+                .audioDuration(question.getAudioDuration())
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .build();

@@ -32,6 +32,9 @@ public class ExamQuestion {
     @Column(name = "source_vocabulary_id")
     private UUID sourceVocabularyId;
 
+    @Column(name = "source_teacher_question_id")
+    private UUID sourceTeacherQuestionId;
+
     @Column(name = "question_text", columnDefinition = "TEXT", nullable = false)
     private String questionText;
 
