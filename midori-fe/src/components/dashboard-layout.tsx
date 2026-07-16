@@ -16,7 +16,7 @@ import {
   LayoutDashboard, BookOpen, GraduationCap, Headphones, Mic,
   ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
   ShieldCheck, ChevronRight, Menu, Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft,
-  FileText, FileBarChart, FolderOpen, BookUser, Library, School, UserPlus, ClipboardList,
+  FileText, FolderOpen, BookUser, Library, School, UserPlus, ClipboardList,
   Users, Settings, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText, Brain,
   ChartColumn, BookText, Lock, BookOpenCheck, Map, Plus, X
 } from "lucide-react";
@@ -134,9 +134,6 @@ const teacherNav: NavItem[] = [
 
   // 6. Progress (global)
   { to: "/teacher/progress", label: "Progress", icon: LineChart },
-
-  // 7. Reports
-  { to: "/teacher/reports", label: "Reports", icon: FileBarChart },
 
   // 8. Notifications
   { to: "/teacher/notifications", label: "Notifications", icon: BellRing },
