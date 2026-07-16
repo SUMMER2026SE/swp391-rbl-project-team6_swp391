@@ -160,18 +160,6 @@ export interface JLPTSet {
   description: string;
 }
 
-export interface Report {
-  id: string;
-  title: string;
-  classId?: string;
-  studentId?: string;
-  category: "Attendance" | "Behavior" | "Progress" | "Other";
-  status: "Open" | "In review" | "Resolved";
-  createdAt: string;
-  summary: string;
-  thread: { author: string; time: string; message: string }[];
-}
-
 export interface Notification {
   id: string;
   type: "homework" | "exam" | "student" | "system";
@@ -801,54 +789,6 @@ export const jlptSets: JLPTSet[] = [
   },
 ];
 
-export const reports: Report[] = [
-  {
-    id: "r-1",
-    title: "Recurring absences — Hiroshi Sato",
-    classId: "n5-beginner-a",
-    studentId: "n5-beginner-a-s1",
-    category: "Attendance",
-    status: "Open",
-    createdAt: "2026-06-15",
-    summary: "Student missed 3 consecutive sessions. Need to follow up with family.",
-    thread: [
-      { author: "Aiko Tanaka", time: "2026-06-15 09:12", message: "Filed report for review." },
-    ],
-  },
-  {
-    id: "r-2",
-    title: "Significant progress — N4 Group B",
-    classId: "n4-elementary-b",
-    category: "Progress",
-    status: "Resolved",
-    createdAt: "2026-06-10",
-    summary: "Class average improved by 12% after intensive grammar week.",
-    thread: [
-      { author: "Aiko Tanaka", time: "2026-06-10 14:30", message: "Submitted progress highlight." },
-      {
-        author: "Center Admin",
-        time: "2026-06-11 10:00",
-        message: "Great work — adding to monthly newsletter.",
-      },
-    ],
-  },
-  {
-    id: "r-3",
-    title: "Material request: N3 reading passages",
-    category: "Other",
-    status: "In review",
-    createdAt: "2026-06-18",
-    summary: "Requesting additional graded readers for N3 intermediate students.",
-    thread: [
-      {
-        author: "Aiko Tanaka",
-        time: "2026-06-18 16:00",
-        message: "Current materials feel too easy for top half of class.",
-      },
-    ],
-  },
-];
-
 export const notifications: Notification[] = [
   {
     id: "n-1",
@@ -971,7 +911,6 @@ export function getAggregatedTopicCounts(topicIds: string[]) {
 export const getJlptExamSets = () => jlptSets;
 export const getJlptSetById = (id: string) => jlptSets.find((s) => s.id === id);
 
-export const getReports = () => reports;
 export const getNotifications = () => notifications;
 
 export const getProgressOverview = () => ({
