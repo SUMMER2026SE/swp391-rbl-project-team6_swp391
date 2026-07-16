@@ -7,11 +7,20 @@ import com.midori.dto.request.UpdateExamQuestionsRequest;
 import com.midori.dto.request.UpdateExamRequest;
 import com.midori.dto.response.ExamResponse;
 import com.midori.dto.response.StudentExamResponse;
+import com.midori.entity.ClassEntity;
+import com.midori.entity.Exam;
+import com.midori.entity.User;
+import com.midori.exception.AccessDeniedException;
+import com.midori.exception.ResourceNotFoundException;
+import com.midori.repository.ClassRepository;
+import com.midori.repository.ExamRepository;
+import com.midori.repository.UserRepository;
 import com.midori.service.ExamGenerationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -25,8 +34,12 @@ import java.util.UUID;
 public class ExamController {
 
     private final ExamGenerationService examGenerationService;
+    private final ExamRepository examRepository;
+    private final ClassRepository classRepository;
+    private final UserRepository userRepository;
 
     @PostMapping
+    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<ApiResponse<ExamResponse>> createExam(
             @Valid @RequestBody CreateExamRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -35,6 +48,7 @@ public class ExamController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<ExamResponse>>> getAllExams() {
         List<ExamResponse> exams = examGenerationService.getAllExams();
         return ResponseEntity.ok(ApiResponse.success(exams));
@@ -47,29 +61,55 @@ public class ExamController {
     }
 
     @GetMapping("/teacher/{teacherId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<ExamResponse>>> getExamsByTeacher(@PathVariable UUID teacherId) {
         List<ExamResponse> exams = examGenerationService.getExamsByTeacher(teacherId);
         return ResponseEntity.ok(ApiResponse.success(exams));
     }
 
     @PostMapping("/{id}/publish")
-    public ResponseEntity<ApiResponse<ExamResponse>> publishExam(@PathVariable UUID id) {
-        ExamResponse exam = examGenerationService.publishExam(id);
-        return ResponseEntity.ok(ApiResponse.success("Exam published successfully", exam));
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<ApiResponse<ExamResponse>> publishExam(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        checkExamOwnership(exam, userDetails);
+        ExamResponse response = examGenerationService.publishExam(id);
+        return ResponseEntity.ok(ApiResponse.success("Exam published successfully", response));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteExam(@PathVariable UUID id) {
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<ApiResponse<Void>> deleteExam(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        checkExamOwnership(exam, userDetails);
         examGenerationService.deleteExam(id);
         return ResponseEntity.ok(ApiResponse.success("Exam deleted successfully", null));
     }
 
     @PostMapping("/{id}/assign/{classId}")
+    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<ApiResponse<ExamResponse>> assignExamToClass(
             @PathVariable UUID id,
-            @PathVariable UUID classId) {
-        ExamResponse exam = examGenerationService.assignExamToClass(id, classId);
-        return ResponseEntity.ok(ApiResponse.success("Exam assigned successfully", exam));
+            @PathVariable UUID classId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        checkExamOwnership(exam, userDetails);
+        ClassEntity classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+        UUID teacherId = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"))
+                .getId();
+        if (!classEntity.getTeacher().getId().equals(teacherId)) {
+            throw new AccessDeniedException("You do not own this class");
+        }
+        ExamResponse response = examGenerationService.assignExamToClass(id, classId);
+        return ResponseEntity.ok(ApiResponse.success("Exam assigned successfully", response));
     }
 
     @PostMapping("/{id}/start")
@@ -101,30 +141,66 @@ public class ExamController {
     }
 
     @GetMapping("/class/{classId}")
-    public ResponseEntity<ApiResponse<List<ExamResponse>>> getExamsByClass(@PathVariable UUID classId) {
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<ExamResponse>>> getExamsByClass(
+            @PathVariable UUID classId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        checkClassOwnership(classId, userDetails);
         List<ExamResponse> exams = examGenerationService.getExamsByClass(classId);
         return ResponseEntity.ok(ApiResponse.success(exams));
     }
 
     @GetMapping("/class/{classId}/results")
-    public ResponseEntity<ApiResponse<List<StudentExamResponse>>> getStudentExamResultsByClass(@PathVariable UUID classId) {
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<StudentExamResponse>>> getStudentExamResultsByClass(
+            @PathVariable UUID classId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        checkClassOwnership(classId, userDetails);
         List<StudentExamResponse> results = examGenerationService.getStudentExamResultsByClass(classId);
         return ResponseEntity.ok(ApiResponse.success(results));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<ApiResponse<ExamResponse>> updateExam(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateExamRequest request) {
-        ExamResponse exam = examGenerationService.updateExam(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Exam updated successfully", exam));
+            @Valid @RequestBody UpdateExamRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        checkExamOwnership(exam, userDetails);
+        ExamResponse response = examGenerationService.updateExam(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Exam updated successfully", response));
     }
 
     @PutMapping("/{id}/questions")
+    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<ApiResponse<ExamResponse>> updateExamQuestions(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateExamQuestionsRequest request) {
-        ExamResponse exam = examGenerationService.updateExamQuestions(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Exam questions synced successfully", exam));
+            @Valid @RequestBody UpdateExamQuestionsRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        checkExamOwnership(exam, userDetails);
+        ExamResponse response = examGenerationService.updateExamQuestions(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Exam questions synced successfully", response));
+    }
+
+    private void checkExamOwnership(Exam exam, UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (exam.getCreatedBy() == null || !exam.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new AccessDeniedException("You do not own this exam");
+        }
+    }
+
+    private void checkClassOwnership(UUID classId, UserDetails userDetails) {
+        ClassEntity classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+        User teacher = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (classEntity.getTeacher() == null || !classEntity.getTeacher().getId().equals(teacher.getId())) {
+            throw new AccessDeniedException("You do not own this class");
+        }
     }
 }
