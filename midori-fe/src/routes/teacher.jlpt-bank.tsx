@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet } from "@/components/teacher/dialogs";
-import { Search, Eye, FileBadge, Sparkles, Loader2 } from "lucide-react";
+import { Search, Eye, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { examsApi, type ExamResponse } from "@/lib/api/exams";
 
@@ -110,14 +110,7 @@ function JlptBank() {
         eyebrow="Center library"
         title="JLPT Exam Bank"
         subtitle="Complete JLPT-style exam sets prepared by the Center. Use them as-is for mock exams."
-        actions={
-          <Button asChild>
-            <Link to="/teacher/exams/create?source=jlpt-bank">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Create from JLPT bank
-            </Link>
-          </Button>
-        }
+
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -189,16 +182,10 @@ function JlptBank() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-4 flex gap-2">
-                    <Button variant="outline" onClick={() => setOpenId(s.id)} className="flex-1">
+                  <div className="mt-4">
+                    <Button variant="outline" onClick={() => setOpenId(s.id)} className="w-full">
                       <Eye className="mr-2 h-4 w-4" />
                       Preview
-                    </Button>
-                    <Button asChild className="flex-1">
-                      <Link to={`/teacher/exams/create?source=jlpt-bank&jlptSetId=${s.id}`}>
-                        <FileBadge className="mr-2 h-4 w-4" />
-                        Use set
-                      </Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -252,11 +239,7 @@ function JlptBank() {
                   </div>
                 </div>
               )}
-              <Button asChild className="w-full">
-                <Link to={`/teacher/exams/create?source=jlpt-bank&jlptSetId=${sel.id}`}>
-                  Use this set
-                </Link>
-              </Button>
+
             </div>
           );
         })()}

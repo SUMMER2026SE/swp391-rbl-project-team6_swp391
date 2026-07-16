@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet } from "@/components/teacher/dialogs";
-import { Sparkles } from "lucide-react";
 
 import { BreadcrumbNavigation } from "@/components/teacher/question-bank/BreadcrumbNavigation";
 import { QuestionBankToolbar } from "@/components/teacher/question-bank/QuestionBankToolbar";
@@ -343,14 +342,6 @@ function QuestionBank() {
         eyebrow="Center library"
         title="Question Bank"
         subtitle="Center-managed individual questions, organized by level, lesson and topic."
-        actions={
-          <Button asChild>
-            <a href="/teacher/exams/create?source=question-bank">
-              <Sparkles className="mr-2 h-4 w-4" />
-              Create random exam
-            </a>
-          </Button>
-        }
       />
 
       {/* Breadcrumb Navigation */}
@@ -480,13 +471,8 @@ function QuestionBank() {
                 </li>
               ))}
             </ul>
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <Button asChild>
-                <a href={`/teacher/exams/create?source=question-bank&topicId=${selTopic.id}&mode=random`}>
-                  Random exam from this
-                </a>
-              </Button>
-              <Button asChild variant="outline">
+            <div className="pt-2">
+              <Button asChild className="w-full">
                 <a href={`/teacher/homework/create?source=question-bank&topicId=${selTopic.id}`}>
                   Add to homework
                 </a>
