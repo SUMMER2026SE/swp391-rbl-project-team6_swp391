@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -63,4 +64,11 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "current_streak", nullable = false, columnDefinition = "INTEGER NOT NULL DEFAULT 0")
+    @Builder.Default
+    private Integer currentStreak = 0;
+
+    @Column(name = "last_login_date")
+    private LocalDate lastLoginDate;
 }
