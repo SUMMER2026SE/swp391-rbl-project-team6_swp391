@@ -92,8 +92,11 @@ public class DeepSeekProvider implements AiProvider {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", config.getDeepseek().getModel());
         requestBody.put("messages", messages);
-        requestBody.put("temperature", 0.7);
-        requestBody.put("max_tokens", 2048);
+        requestBody.put("temperature", 0.25);
+        requestBody.put("max_tokens", 1024);
+        requestBody.put("top_p", 0.8);
+        requestBody.put("frequency_penalty", 0.3);
+        requestBody.put("presence_penalty", 0.0);
 
         return callDeepSeekApi(requestBody);
     }
