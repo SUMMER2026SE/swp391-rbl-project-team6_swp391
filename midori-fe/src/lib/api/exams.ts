@@ -76,6 +76,9 @@ export interface UpdateExamQuestionsPayload {
 }
 
 export const examsApi = {
+  getAllExams: () =>
+    api.get<ExamResponse[]>("/exams"),
+
   createExam: (req: CreateExamRequest) =>
     api.post<ExamResponse>("/exams", req),
 
@@ -109,6 +112,33 @@ export const examsApi = {
   updateExam: (id: string, req: Partial<CreateExamRequest>) =>
     api.put<ExamResponse>(`/exams/${id}`, req),
 
+  generateExamFromQuestionBank: (req: {
+    examTitle: string;
+    description: string;
+    jlptLevel: string;
+    skills: string[];
+    easyCount: number;
+    mediumCount: number;
+    hardCount: number;
+  }) =>
+    api.post<ExamResponse>("/teacher/exams/generate-from-question-bank", req),
+
+  previewGeneration: (req: {
+    jlptLevel: string;
+    skills: string[];
+    easyCount: number;
+    mediumCount: number;
+    hardCount: number;
+    questionSource: string;
+  }) =>
+    api.post<any[]>("/teacher/exams/preview-generation", req),
+
+  getQuestionStats: (level: string, source: string) =>
+    api.get<Record<string, Record<string, number>>>(`/teacher/exams/questions-stats?level=${level}&source=${source}`),
+
+  getSkills: () =>
+    api.get<string[]>("/teacher/exams/skills"),
+
   updateExamQuestions: (id: string, req: UpdateExamQuestionsPayload) =>
     api.put<ExamResponse>(`/exams/${id}/questions`, req),
 
@@ -126,6 +156,16 @@ export const examsApi = {
 
   getImportStatus: (jobId: string) =>
     api.get<{ jobId: string; status: string; message: string; examId?: string }>(`/ai/exams/import/${jobId}`),
+
+  parsePdf: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post<{ title?: string; description?: string; questions: Array<{ type: string; content: string; difficulty: string; explanation?: string; answers: Array<{ content: string; isCorrect: boolean }> }> }>("/ai/exams/parse-pdf", formData);
+  },
+
+  reAnalyzeQuestion: (questionText: string) => {
+    return api.post<{ type: string; content: string; difficulty: string; explanation?: string; answers: Array<{ content: string; isCorrect: boolean }> }>("/ai/exams/reanalyze-question", { questionText });
+  },
 };
 
 export interface StudentExamResponse {
