@@ -11,73 +11,109 @@ const managementLinks: FooterLink[] = [
   { label: "Dashboard", href: "/admin" },
   { label: "Teachers", href: "/admin/teachers" },
   { label: "Classes", href: "/admin/class-management" },
-  { label: "Question Bank", href: "/admin/question-bank" },
 ];
 
-const systemLinks: FooterLink[] = [
+const contentLinks: FooterLink[] = [
+  { label: "Question Bank", href: "/admin/question-bank" },
   { label: "JLPT Exam", href: "/admin/jlpt-exam" },
   { label: "Content Library", href: "/admin/content-library" },
+];
+
+const accountLinks: FooterLink[] = [
   { label: "Notifications", href: "/admin/notification" },
   { label: "Profile", href: "/admin/profile" },
 ];
 
-function FooterLinkList({ title, links }: { title: string; links: FooterLink[] }) {
-  return (
-    <div className="min-w-0">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-white/50">
-        {title}
-      </h3>
-      <ul className="mt-3 space-y-2 text-sm">
-        {links.map((link) => (
-          <li key={`${title}-${link.label}`}>
-            <Link
-              to={link.href}
-              className="text-slate-600 dark:text-slate-400 transition-colors duration-200 hover:text-indigo-600 dark:hover:text-indigo-300"
-            >
-              {link.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function AdminFooter() {
   return (
-    <footer className="border-t border-slate-200/70 bg-white/60 dark:border-white/10 dark:bg-[#080c1a]">
-      <div className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
-        <div className="grid grid-cols-3 gap-8 lg:grid-cols-[1.4fr_0.75fr_0.75fr] lg:gap-10">
-          <div className="min-w-0 pl-2 lg:pl-0">
+    <footer className="border-t border-slate-200/60 bg-white/80 dark:border-white/10 dark:bg-[#080c1a]/90 backdrop-blur-sm">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* Top section with grid layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
+          {/* Brand section */}
+          <div className="sm:col-span-2 lg:col-span-1">
             <Link to="/admin" className="inline-flex items-center gap-2.5">
-              <Logo size={32} />
+              <Logo size={28} />
               <div className="space-y-0.5">
-                <div className="font-display text-base font-extrabold tracking-[0.14em] text-slate-800 dark:text-white">
+                <div className="font-display text-sm font-extrabold tracking-[0.14em] text-slate-800 dark:text-white">
                   MIDORI
                 </div>
-                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400 dark:text-white/40">
+                <div className="text-[9px] uppercase tracking-[0.18em] text-slate-400 dark:text-white/40">
                   Admin System
                 </div>
               </div>
             </Link>
-            <p className="mt-3 max-w-[230px] text-sm leading-[1.65] text-slate-600 dark:text-slate-400">
-              Administrative console for managing teachers, classes, content, and the Midori
-              Japanese learning platform.
+            <p className="mt-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Manage teachers, classes, content, and learners on the MIDORI platform.
             </p>
           </div>
 
-          <FooterLinkList title="Management" links={managementLinks} />
-          <FooterLinkList title="System" links={systemLinks} />
+          {/* Management */}
+          <div className="lg:col-span-1">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 dark:text-white/50 mb-2">
+              Management
+            </h3>
+            <ul className="space-y-1.5">
+              {managementLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    to={link.href}
+                    className="text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200 hover:text-primary dark:hover:text-primary-col"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Content */}
+          <div className="lg:col-span-1">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 dark:text-white/50 mb-2">
+              Content
+            </h3>
+            <ul className="space-y-1.5">
+              {contentLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    to={link.href}
+                    className="text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200 hover:text-primary dark:hover:text-primary-col"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Account */}
+          <div className="lg:col-span-1">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 dark:text-white/50 mb-2">
+              Account
+            </h3>
+            <ul className="space-y-1.5">
+              {accountLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    to={link.href}
+                    className="text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200 hover:text-primary dark:hover:text-primary-col"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
-      <div className="border-t border-slate-100 dark:border-white/5">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 lg:px-8">
-          <p className="text-xs text-slate-400 dark:text-white/30">
-            © 2026 MIDORI Admin. All rights reserved. v1.0
+      <div className="border-t border-slate-100/60 dark:border-white/5">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-center justify-between gap-1.5">
+          <p className="text-[11px] text-slate-400 dark:text-white/30">
+            © 2026 MIDORI Admin. All rights reserved.
           </p>
-          <p className="text-xs text-slate-400 dark:text-white/30">
-            Midori Japanese Learning Platform.
+          <p className="text-[11px] text-slate-400 dark:text-white/30">
+            Japanese Learning Platform.
           </p>
         </div>
       </div>
