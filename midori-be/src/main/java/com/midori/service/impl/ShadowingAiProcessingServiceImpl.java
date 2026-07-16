@@ -61,6 +61,7 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
     private final SpeechModelSelector speechModelSelector;
     private final ShadowingSpeechConfig speechConfig;
     private final com.midori.service.TranscriptAnalyzerService transcriptAnalyzerService;
+    private final com.midori.service.GrammarDetectorService grammarDetectorService;
 
     @Value("${groq.api-key:}")
     private String groqApiKey;
@@ -801,6 +802,12 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
             transcriptAnalyzerService.analyzeVideoTranscripts(videoId);
         } catch (Exception e) {
             log.error("[PIPELINE] Failed to tokenize transcripts on completion: {}", e.getMessage());
+        }
+        // Async grammar detection — fires after transcripts saved, never blocks pipeline
+        try {
+            grammarDetectorService.detectGrammar(videoId, transcriptList);
+        } catch (Exception e) {
+            log.warn("[PIPELINE] Grammar detection failed for videoId={}: {}", videoId, e.getMessage());
         }
 
         video.setStatus(ShadowingStatus.COMPLETED);

@@ -27,6 +27,7 @@ public class KanjiServiceImpl implements KanjiService {
                 .orElseThrow(() -> new ResourceNotFoundException("KanjiEntry", "character", target));
 
         return KanjiResponse.builder()
+                .id(entry.getId())
                 .character(entry.getCharacter())
                 .onyomi(entry.getOnyomi())
                 .kunyomi(entry.getKunyomi())
@@ -34,6 +35,8 @@ public class KanjiServiceImpl implements KanjiService {
                 .radical(entry.getRadical())
                 .jlpt(entry.getJlpt())
                 .meaning(entry.getMeaning())
+                .svgFile(entry.getSvgFile())
+                .svgAvailable(entry.getSvgFile() != null && !entry.getSvgFile().isBlank())
                 .build();
     }
 }

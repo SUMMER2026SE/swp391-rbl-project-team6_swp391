@@ -14,6 +14,7 @@ import com.midori.service.StudentDictionaryService;
 import com.midori.util.CurrentUserProvider;
 import com.midori.util.JapaneseFormConverter;
 import com.midori.util.RomajiConverter;
+import com.midori.util.VietnamesePosConverter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -102,7 +103,7 @@ public class StudentDictionaryServiceImpl implements StudentDictionaryService {
                         .reading(localEntry.getReading())
                         .romaji(localEntry.getReading() != null ? RomajiConverter.convert(localEntry.getReading()) : RomajiConverter.convert(localEntry.getSurface()))
                         .jlpt("N3")
-                        .wordType(localEntry.getPartOfSpeech())
+                        .wordType(VietnamesePosConverter.convertWithModifier(localEntry.getPartOfSpeech()))
                         .meanings(localEntry.getMeanings())
                         .primaryMeaning(localEntry.getMeanings().isEmpty() ? "" : localEntry.getMeanings().get(0))
                         .contextMeaning("")
@@ -115,9 +116,9 @@ public class StudentDictionaryServiceImpl implements StudentDictionaryService {
                 return localResult;
             }
 
-            // 4. DB had no meanings at all — return graceful empty response without AI
-            log.debug("Word '{}' not in database or local XML dictionary, returning empty response", targetWord);
-            return createEmptyLookupResponse(targetWord);
+            // 4. DB had no meanings — try AI fallback
+            log.debug("Word '{}' not in database or local XML dictionary, calling AI fallback", targetWord);
+            return enrichWithAi(targetWord, surface, sentence, null);
         }, CACHE_TTL_HOURS, TimeUnit.HOURS);
     }
 
@@ -174,27 +175,27 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
                         .build())
                 .collect(Collectors.toList());
 
-        return DictionaryLookupResponse.builder()
-                .surface(entry.getSurface())
-                .dictionaryForm(entry.getLemma() != null ? entry.getLemma() : entry.getSurface())
-                .reading(entry.getReading() != null ? entry.getReading() : entry.getSurface())
-                .romaji(entry.getRomaji() != null ? entry.getRomaji() : RomajiConverter.convert(entry.getSurface()))
-                .jlpt(entry.getJlptLevel())
-                .wordType(entry.getPartOfSpeech())
-                .pitchAccent(null) // Not in DB yet
-                .meanings(sortedViMeanings)
-                .primaryMeaning(sortedViMeanings.isEmpty() ? "" : sortedViMeanings.get(0))
-                .contextMeaning("")
-                .contextExplanation("")
-                .forms(forms)
-                .examples(examples)
-                .audioUrl(null)
-                .hasAudio(false)
-                .saved(false)
-                .saveId(null)
-                .fromCache(true)
-                .fromAi(false)
-                .build();
+            return DictionaryLookupResponse.builder()
+                    .surface(entry.getSurface())
+                    .dictionaryForm(entry.getLemma() != null ? entry.getLemma() : entry.getSurface())
+                    .reading(entry.getReading() != null ? entry.getReading() : entry.getSurface())
+                    .romaji(entry.getRomaji() != null ? entry.getRomaji() : RomajiConverter.convert(entry.getSurface()))
+                    .jlpt(entry.getJlptLevel())
+                    .wordType(VietnamesePosConverter.convertWithModifier(entry.getPartOfSpeech()))
+                    .pitchAccent(null) // Not in DB yet
+                    .meanings(sortedViMeanings)
+                    .primaryMeaning(sortedViMeanings.isEmpty() ? "" : sortedViMeanings.get(0))
+                    .contextMeaning("")
+                    .contextExplanation("")
+                    .forms(forms)
+                    .examples(examples)
+                    .audioUrl(null)
+                    .hasAudio(false)
+                    .saved(false)
+                    .saveId(null)
+                    .fromCache(true)
+                    .fromAi(false)
+                    .build();
     }
 
     /**
@@ -243,7 +244,7 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
                             .reading(entry.getReading())
                             .romaji(entry.getReading() != null ? RomajiConverter.convert(entry.getReading()) : RomajiConverter.convert(entry.getSurface()))
                             .jlpt("N3")
-                            .wordType(entry.getPartOfSpeech())
+                            .wordType(VietnamesePosConverter.convertWithModifier(entry.getPartOfSpeech()))
                             .meanings(entry.getMeanings())
                             .primaryMeaning(entry.getMeanings().isEmpty() ? "" : entry.getMeanings().get(0))
                             .contextMeaning("")
@@ -836,7 +837,7 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
     private String buildWordLookupSystemPrompt() {
         return """
                 Bạn là một từ điển Nhật-Việt chuyên nghiệp.
-                Khi nhận được một từ tiếng Nhật, hãy trả về thông tin chi tiết về từ đó.
+                Khi nhận được một từ tiếng Nhật, hãy trả về thông tin chi tiết về từ đó bằng TIẾNG VIỆT.
                 
                 Trả về JSON với format:
                 {
@@ -845,12 +846,12 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
                   "reading": "cách đọc (furigana)",
                   "romaji": "cách đọc romaji",
                   "jlpt": "cấp độ JLPT (N5, N4, N3, N2, N1)",
-                  "wordType": "loại từ (Godan Verb, Ichidan Verb, i-adjective, na-adjective, noun)",
+                  "wordType": "LOẠI TỪ BẰNG TIẾNG VIỆT (Danh từ, Động từ, Động từ Nhất đoạn, Động từ Ngũ đoạn, Tính từ đuôi い, Tính từ đuôi な, Phó từ, Trợ từ, Liên từ, Đại từ, Hậu tố, Tiền tố, Biểu thức, Thán từ)",
                   "pitchAccent": "âm điệu (0, 1, 2, 3, 4)",
-                  "meanings": ["nghĩa 1", "nghĩa 2", "nghĩa 3"],
-                  "primaryMeaning": "nghĩa chính",
-                  "contextMeaning": "nghĩa trong ngữ cảnh cụ thể",
-                  "contextExplanation": "giải thích tại sao nghĩa này phù hợp với ngữ cảnh",
+                  "meanings": ["nghĩa 1 bằng tiếng Việt", "nghĩa 2 bằng tiếng Việt", "nghĩa 3 bằng tiếng Việt"],
+                  "primaryMeaning": "nghĩa chính bằng tiếng Việt",
+                  "contextMeaning": "nghĩa trong ngữ cảnh cụ thể bằng tiếng Việt",
+                  "contextExplanation": "giải thích tại sao nghĩa này phù hợp với ngữ cảnh bằng tiếng Việt",
                   "forms": {
                     "masu": "thể masu (ます)",
                     "te": "thể te (て)",
@@ -869,11 +870,15 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
                       "japanese": "ví dụ tiếng Nhật",
                       "reading": "cách đọc",
                       "vietnamese": "bản dịch tiếng Việt",
-                      "english": "english translation"
+                      "english": ""
                     }
                   ],
-                  "audioUrl": "url audio nếu có"
+                  "audioUrl": ""
                 }
+                
+                QUAN TRỌNG:
+                - Tất cả nghĩa, giải thích phải bằng TIẾNG VIỆT
+                - wordType phải là Tiếng Việt: Danh từ, Động từ, Động từ Nhất đoạn, Động từ Ngũ đoạn, Tính từ đuôi い, Tính từ đuôi な, Phó từ, Trợ từ
                 
                 Chỉ trả về JSON, không giải thích thêm.
                 """;

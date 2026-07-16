@@ -4,6 +4,7 @@ import com.midori.entity.KanjiEntry;
 import com.midori.repository.KanjiEntryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -29,6 +30,8 @@ public class KanjiImporter {
         int imported = 0;
         int skipped = 0;
         int failed = 0;
+        int svgFound = 0;
+        int svgMissing = 0;
 
         List<KanjiEntry> batch = new ArrayList<>();
         int batchSize = 1000;
@@ -110,6 +113,17 @@ public class KanjiImporter {
                         String endTag = reader.getLocalName();
                         if ("character".equals(endTag)) {
                             if (character != null && !character.isEmpty()) {
+                                // Compute SVG filename from Unicode code point
+                                String svgFile = computeSvgFilename(character);
+                                boolean svgExists = verifySvgExists(svgFile);
+
+                                if (svgExists) {
+                                    svgFound++;
+                                } else {
+                                    svgMissing++;
+                                    svgFile = null; // Don't store if file doesn't exist
+                                }
+
                                 KanjiEntry entry = KanjiEntry.builder()
                                         .character(character)
                                         .onyomi(String.join(", ", onyomiList))
@@ -118,6 +132,7 @@ public class KanjiImporter {
                                         .radical(radical)
                                         .jlpt(jlpt)
                                         .meaning(String.join(", ", meanings))
+                                        .svgFile(svgFile)
                                         .build();
 
                                 batch.add(entry);
@@ -157,12 +172,37 @@ public class KanjiImporter {
         log.info("Imported: {}", imported);
         log.info("Skipped: {}", skipped);
         log.info("Failed: {}", failed);
+        log.info("SVG found: {}", svgFound);
+        log.info("SVG missing: {}", svgMissing);
         log.info("Duration: {} ms", duration);
 
         System.out.println("Imported: " + imported);
         System.out.println("Skipped: " + skipped);
         System.out.println("Failed: " + failed);
+        System.out.println("SVG found: " + svgFound);
+        System.out.println("SVG missing: " + svgMissing);
         System.out.println("Duration: " + duration + " ms");
+    }
+
+    /**
+     * Convert a kanji character to its KanjiVG SVG filename.
+     * Example: 食 → codePoint 0x98DF → "098df.svg"
+     */
+    private String computeSvgFilename(String character) {
+        int codePoint = character.codePointAt(0);
+        return String.format("%05x.svg", codePoint);
+    }
+
+    /**
+     * Verify that the SVG file exists in the classpath resources.
+     */
+    private boolean verifySvgExists(String svgFilename) {
+        try {
+            ClassPathResource resource = new ClassPathResource("dictionary/kanjivg/" + svgFilename);
+            return resource.exists();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void saveBatch(List<KanjiEntry> batch) {

@@ -169,6 +169,7 @@ function ShadowingPracticePage() {
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const playbackRef = useRef<HTMLAudioElement | null>(null);
+  const isProcessingRecordingRef = useRef(false);
 
   const loadVideoAndTranscript = useCallback(async () => {
     setIsLoading(true);
@@ -341,54 +342,106 @@ function ShadowingPracticePage() {
 
   const startAudioCapture = async () => {
     if (!currentSentence) return null;
+    
+    // Stop any existing recording first
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stream?.getTracks().forEach((track) => track.stop());
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.error("Error stopping recorder:", e);
+      }
+      mediaRecorderRef.current = null;
+    }
+    
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mimeType = getSupportedMimeType();
     const options = mimeType ? { mimeType } : undefined;
     const recorder = new MediaRecorder(stream, options);
     const chunks: Blob[] = [];
+
     recorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
         chunks.push(event.data);
       }
     };
-    recorder.onstop = () => {
-      const activeMime = mimeType || recorder.mimeType || "audio/webm";
-      const blob = new Blob(chunks, { type: activeMime });
-      let extension = "webm";
-      if (activeMime.includes("mp4") || activeMime.includes("aac") || activeMime.includes("m4a")) {
-        extension = "m4a";
-      } else if (activeMime.includes("ogg")) {
-        extension = "ogg";
-      }
-      const file = new File([blob], `shadowing-${Date.now()}.${extension}`, { type: activeMime });
-      const url = URL.createObjectURL(blob);
-      setRecordedBlob(blob);
-      setRecordedFile(file);
-      setRecordedAudioUrl(url);
-      stream.getTracks().forEach((track) => track.stop());
-      setRecordingCompleted(true);
-    };
-    mediaRecorderRef.current = recorder;
-    recorder.start();
-    return recorder;
+    
+    return new Promise<MediaRecorder>((resolve, reject) => {
+      recorder.onstop = () => {
+        const activeMime = mimeType || recorder.mimeType || "audio/webm";
+        const blob = new Blob(chunks, { type: activeMime });
+        let extension = "webm";
+        if (activeMime.includes("mp4") || activeMime.includes("aac") || activeMime.includes("m4a")) {
+          extension = "m4a";
+        } else if (activeMime.includes("ogg")) {
+          extension = "ogg";
+        }
+        const file = new File([blob], `shadowing-${Date.now()}.${extension}`, { type: activeMime });
+        const url = URL.createObjectURL(blob);
+        setRecordedBlob(blob);
+        setRecordedFile(file);
+        setRecordedAudioUrl(url);
+        stream.getTracks().forEach((track) => track.stop());
+        // recordingCompleted is set in stopRecording, not here
+      };
+      
+      recorder.onerror = (e) => {
+        console.error("MediaRecorder error:", e);
+        stream.getTracks().forEach((track) => track.stop());
+        reject(new Error("Recording error"));
+      };
+      
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      resolve(recorder);
+    });
   };
 
   const stopRecording = async () => {
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-    setIsRecording(false);
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-    }
+    return new Promise<void>((resolve) => {
+      const recorder = mediaRecorderRef.current;
+      if (!recorder || recorder.state === "inactive") {
+        setIsRecording(false);
+        setRecordingCompleted(false);
+        resolve();
+        return;
+      }
+
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+      setIsRecording(false);
+
+      const originalOnStop = recorder.onstop;
+      recorder.onstop = (e) => {
+        // Set recordingCompleted BEFORE calling original onstop
+        // to ensure state is updated before Promise resolves
+        setRecordingCompleted(true);
+        if (originalOnStop) {
+          originalOnStop.call(recorder, e);
+        }
+        resolve();
+      };
+
+      try {
+        recorder.stop();
+      } catch (err) {
+        console.error("Failed to stop MediaRecorder:", err);
+        setRecordingCompleted(false);
+        resolve();
+      }
+    });
   };
 
   const handleRecordClick = useCallback(async () => {
+    if (isProcessingRecordingRef.current) return;
     if (isRecording) {
+      isProcessingRecordingRef.current = true;
       await stopRecording();
+      isProcessingRecordingRef.current = false;
     } else {
+      isProcessingRecordingRef.current = true;
       setEvaluationError(null);
       setRecordingCompleted(false);
       setShowFeedback(false);
@@ -409,6 +462,7 @@ function ShadowingPracticePage() {
           "Không thể ghi âm. Vui lòng cấp quyền truy cập microphone cho trang web này và kiểm tra kết nối micro của bạn."
         );
       }
+      isProcessingRecordingRef.current = false;
     }
   }, [isRecording]);
 
@@ -749,8 +803,9 @@ function ShadowingPracticePage() {
                   </span>
                   <button
                     onClick={handleRecordClick}
-                    disabled={isPlaying}
+                    disabled={isPlaying || isProcessingRecordingRef.current}
                     className="group relative"
+                    title={isProcessingRecordingRef.current ? "Đang xử lý..." : "Nhấn để ghi âm"}
                   >
                     {isRecording && (
                       <div className="absolute inset-0 rounded-full bg-red-400/20 animate-ping scale-110" />
@@ -812,12 +867,35 @@ function ShadowingPracticePage() {
                       AI đang chấm điểm của bạn...<br />Vui lòng đợi trong giây lát.
                     </span>
                   </div>
+                ) : evaluationError ? (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-2 py-4 text-center px-4">
+                    <XCircle className="w-8 h-8 text-red-500 animate-pulse shrink-0" />
+                    <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                      Lỗi chấm điểm
+                    </span>
+                    <span className="text-[10px] text-muted-foreground leading-relaxed max-w-xs">
+                      {evaluationError}
+                    </span>
+                  </div>
                 ) : !showFeedback || !lastResult ? (
                   <div className="flex-1 flex flex-col items-center justify-center gap-2 py-2">
-                    <Lock className="w-6 h-6 text-slate-300 dark:text-slate-600" />
-                    <span className="text-[9px] font-bold text-muted-foreground text-center leading-relaxed px-2">
-                      Hoàn thành ghi âm<br />để AI chấm điểm
-                    </span>
+                    {recordingCompleted ? (
+                      <>
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-200 dark:border-emerald-900/30">
+                          <CheckCircle className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 text-center leading-relaxed px-2">
+                          Bản ghi âm đã sẵn sàng!<br />Nhấn "Chấm điểm AI" dưới đây để xem kết quả.
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                        <span className="text-[9px] font-bold text-muted-foreground text-center leading-relaxed px-2">
+                          Hoàn thành ghi âm<br />để AI chấm điểm
+                        </span>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="flex-1 flex flex-col gap-2.5 py-1">
@@ -950,6 +1028,11 @@ function ShadowingPracticePage() {
                         return;
                       }
                       const eval_ = await evaluateShadowingSentence(videoId, currentSentenceIndex + 1, recordedFile);
+                      if (eval_.validationError) {
+                        setEvaluationError(eval_.validationError);
+                        setIsEvaluating(false);
+                        return;
+                      }
                       const feedback = buildLocalFeedback(eval_, currentSentence.text);
                       const result: SentenceResult = {
                         sentenceId: currentSentence.id,

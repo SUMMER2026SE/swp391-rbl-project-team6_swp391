@@ -47,6 +47,12 @@ midori-be/uploads/
 # =============================================
 midori-be/src/main/resources/dictionary/JMdict.xml
 midori-be/src/main/resources/dictionary/KANJIDIC2.xml
+midori-be/src/main/resources/dictionary/kanjivg/
+
+# =============================================
+# FFmpeg
+# =============================================
+midori-be/ffmpeg/
 
 # =============================================
 # Cloudflare / Wrangler

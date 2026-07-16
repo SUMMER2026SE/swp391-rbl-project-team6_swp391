@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi } from "@/lib/api/shadowing";
+import { dictionaryApi } from "@/lib/api/dictionary";
+import { studentGrammarPatternApi, type GrammarPatternSummary, type GrammarPatternDetail } from "@/lib/api/studentGrammarPattern";
 import { getTopicVn } from "./student.shadowing";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -131,8 +133,44 @@ function VideoLearningPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("both");
-  const [activeTab, setActiveTab] = useState<"transcript" | "vocabulary">("transcript");
+  const [activeTab, setActiveTab] = useState<"transcript" | "vocabulary" | "grammar">("transcript");
   const [vocabFilter, setVocabFilter] = useState<"grammar" | "saved">("grammar");
+
+  // Grammar tab state
+  const [grammarPatterns, setGrammarPatterns] = useState<GrammarPatternSummary[]>([]);
+  const [grammarLoading, setGrammarLoading] = useState(false);
+  const [grammarFetched, setGrammarFetched] = useState(false);
+  const [selectedGrammar, setSelectedGrammar] = useState<GrammarPatternDetail | null>(null);
+  const [grammarDetailLoading, setGrammarDetailLoading] = useState(false);
+  const [showGrammarModal, setShowGrammarModal] = useState(false);
+
+  const loadGrammarPatterns = useCallback(async () => {
+    if (grammarFetched || grammarLoading) return;
+    setGrammarLoading(true);
+    try {
+      const patterns = await studentGrammarPatternApi.getForVideo(videoId);
+      setGrammarPatterns(patterns);
+    } catch {
+      setGrammarPatterns([]);
+    } finally {
+      setGrammarLoading(false);
+      setGrammarFetched(true);
+    }
+  }, [videoId, grammarFetched, grammarLoading]);
+
+  const openGrammarDetail = useCallback(async (pattern: GrammarPatternSummary) => {
+    setShowGrammarModal(true);
+    setSelectedGrammar(null);
+    setGrammarDetailLoading(true);
+    try {
+      const detail = await studentGrammarPatternApi.getDetail(pattern.id, videoId);
+      setSelectedGrammar(detail);
+    } catch {
+      setSelectedGrammar(null);
+    } finally {
+      setGrammarDetailLoading(false);
+    }
+  }, [videoId]);
   
   // Use global saved words hook
   const { savedWords: globalSavedWords, isWordSaved: isGlobalWordSaved, saveWord: globalSaveWord, removeWord: globalRemoveWord } = useSavedWords();
@@ -149,6 +187,7 @@ function VideoLearningPage() {
   const [showSentencePopup, setShowSentencePopup] = useState(false);
   const [showWordPopup, setShowWordPopup] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<TranscriptSegment | null>(null);
+  const [resolvedMeanings, setResolvedMeanings] = useState<Record<string, string>>({});
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
@@ -190,6 +229,42 @@ function VideoLearningPage() {
     loadVideoAndTranscript();
   }, [loadVideoAndTranscript]);
 
+  useEffect(() => {
+    if (!selectedSegment) return;
+    
+    selectedSegment.vocabulary.forEach(async (vocab) => {
+      const wordKey = vocab.word;
+      try {
+        const result = await dictionaryApi.lookupWord({
+          word: wordKey
+        });
+        
+        if (result) {
+          let meaning = "";
+          if (result.contextMeaning && result.contextMeaning.trim()) {
+            meaning = result.contextMeaning;
+          } else if (result.primaryMeaning && result.primaryMeaning.trim()) {
+            meaning = result.primaryMeaning;
+          } else if (result.meanings && result.meanings.length > 0) {
+            meaning = result.meanings.join("; ");
+          }
+          
+          if (meaning.trim()) {
+            setResolvedMeanings(prev => {
+              if (prev[wordKey] === meaning) return prev;
+              return {
+                ...prev,
+                [wordKey]: meaning
+              };
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to lookup word in shadowing popup:", wordKey, err);
+      }
+    });
+  }, [selectedSegment]);
+
   const video = useMemo(() => {
     if (!rawVideo) return null;
     const segments: TranscriptSegment[] = (transcript?.segments ?? []).map((s: any, idx: number) => {
@@ -201,14 +276,20 @@ function VideoLearningPage() {
         example: v.example || "",
         exampleMeaning: v.exampleMeaning || "",
       }));
-      const tokenVocab = (s.tokens ?? []).map((t: any) => ({
-        word: t.surface || t.lemma || "",
-        reading: t.reading || t.lemma || "",
-        meaning: t.lemma || t.surface || "",
-        partOfSpeech: t.partOfSpeech || "",
-        example: "",
-        exampleMeaning: "",
-      }));
+      const tokenVocab = (s.tokens ?? [])
+        .filter((t: any) => {
+          const surface = t.surface || "";
+          const isPunctuation = /^[\s\p{P}\p{S}、。！？「」『』（）]+$/u.test(surface);
+          return !isPunctuation;
+        })
+        .map((t: any) => ({
+          word: t.surface || t.lemma || "",
+          reading: t.reading || t.lemma || "",
+          meaning: "",
+          partOfSpeech: t.partOfSpeech || "",
+          example: "",
+          exampleMeaning: "",
+        }));
       const seen = new Set<string>();
       const vocabulary: VocabularyItem[] = [];
       for (const v of [...listVocab, ...tokenVocab]) {
@@ -319,12 +400,25 @@ function VideoLearningPage() {
   }, []);
 
   const handleDetailPopupOpen = useCallback((segment: TranscriptSegment, event: React.MouseEvent) => {
-    event.stopPropagation(); // Stop from jumping the video
+    event.stopPropagation();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    setPopupPosition({
-      x: Math.min(rect.left + rect.width / 2, window.innerWidth - 200),
-      y: Math.max(rect.top - 10, 100),
-    });
+    const popupWidth = 384; // Approximate popup width
+    const popupHeight = 450;
+
+    // Position below the button, centered
+    let x = rect.left + rect.width / 2;
+    let y = rect.bottom + 10;
+
+    // Clamp x to keep popup within viewport (popup is centered on x due to translate)
+    const halfWidth = popupWidth / 2;
+    x = Math.max(halfWidth + 16, Math.min(x, window.innerWidth - halfWidth - 16));
+
+    // If popup would go off bottom of screen, show above the button instead
+    if (y + popupHeight > window.innerHeight - 20) {
+      y = rect.top - popupHeight - 10;
+    }
+
+    setPopupPosition({ x, y });
     setSelectedSegment(segment);
     setShowSentencePopup(true);
     setShowWordPopup(false);
@@ -815,24 +909,32 @@ function VideoLearningPage() {
             >
               {/* Panel Tab Bar */}
               <div className="flex border-b border-slate-200/60 dark:border-white/10 bg-slate-50/80 dark:bg-slate-800/30 shrink-0">
-                {[
-                  { key: "transcript", label: "Transcript", icon: <AlignLeft className="w-3.5 h-3.5" /> },
-                  { key: "vocabulary", label: "Từ vựng & Ngữ pháp", icon: <BookOpen className="w-3.5 h-3.5" /> },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key as any)}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-bold transition cursor-pointer border-b-2",
-                      activeTab === tab.key
-                        ? "border-primary text-primary bg-white/50 dark:bg-slate-900/50"
-                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    )}
-                  >
-                    {tab.icon}
-                    <span className="hidden sm:inline xl:inline">{tab.label}</span>
-                  </button>
-                ))}
+                {
+                  [
+                    { key: "transcript", label: "Transcript", icon: <AlignLeft className="w-3.5 h-3.5" /> },
+                    { key: "vocabulary", label: "Từ vựng", icon: <BookOpen className="w-3.5 h-3.5" /> },
+                    { key: "grammar", label: "Ngữ pháp", icon: <Sparkles className="w-3.5 h-3.5" /> },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => {
+                        setActiveTab(tab.key as any);
+                        if (tab.key === "grammar") loadGrammarPatterns();
+                      }}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-bold transition cursor-pointer border-b-2",
+                        activeTab === tab.key
+                          ? "border-primary text-primary bg-white/50 dark:bg-slate-900/50"
+                          : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                      )}
+                    >
+                      {tab.icon}
+                      <span className="hidden sm:inline xl:inline">{tab.label}</span>
+                      {tab.key === "grammar" && grammarPatterns.length > 0 && (
+                        <span className="ml-0.5 bg-primary/15 text-primary rounded-full text-[9px] font-bold px-1.5 py-0.5">{grammarPatterns.length}</span>
+                      )}
+                    </button>
+                  ))}
               </div>
 
               {/* ── TRANSCRIPT TAB ──────────────────────────────────── */}
@@ -1064,6 +1166,71 @@ function VideoLearningPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── GRAMMAR TAB ─────────────────────────────────────── */}
+              {activeTab === "grammar" && (
+                <div className="flex flex-col flex-1 min-h-0">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-white/8 shrink-0">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-primary" />
+                      {grammarLoading ? "Đang tải..." : `${grammarPatterns.length} mẫu ngữ pháp`}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+                    {grammarLoading ? (
+                      // Skeleton loading
+                      <div className="space-y-2">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="p-4 rounded-2xl border border-slate-100 dark:border-white/8 bg-white/60 dark:bg-slate-800/30 animate-pulse">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                              <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+                            </div>
+                            <div className="h-3 w-full bg-slate-100 dark:bg-slate-700/60 rounded" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : grammarPatterns.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3 text-slate-400">
+                        <Sparkles className="w-8 h-8 opacity-30" />
+                        <p className="text-xs">Không phát hiện mẫu ngữ pháp trong video này.</p>
+                      </div>
+                    ) : (
+                      grammarPatterns.map((gp) => (
+                        <motion.button
+                          key={gp.id}
+                          onClick={() => openGrammarDetail(gp)}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                          className="w-full text-left p-3.5 rounded-2xl border border-slate-100 dark:border-white/8 bg-white/70 dark:bg-slate-800/40 hover:border-primary/30 hover:bg-primary/5 dark:hover:bg-primary/10 transition-all shadow-sm cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2 mb-1.5">
+                            {gp.jlptLevel && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                                {gp.jlptLevel}
+                              </span>
+                            )}
+                            <span className="text-sm font-bold text-slate-800 dark:text-white" style={{ fontFamily: "var(--font-japanese, serif)" }}>
+                              {gp.pattern}
+                            </span>
+                            {gp.meaningViAvailable && (
+                              <span className="ml-auto text-[9px] text-emerald-500 dark:text-emerald-400 font-bold">🇻🇳</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-1">
+                            {gp.meaningVi || gp.meaningEn || ""}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-primary opacity-0 group-hover:opacity-100 transition">
+                            <BookOpen className="w-3 h-3" />
+                            Xem chi tiết
+                          </div>
+                        </motion.button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1072,20 +1239,24 @@ function VideoLearningPage() {
       {/* ── SENTENCE DETAIL POPUP ──────────────────────────────────────── */}
       <AnimatePresence>
         {showSentencePopup && selectedSegment && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 4 }}
-            className="fixed z-50"
-            style={{
-              left: popupPosition.x,
-              top: popupPosition.y,
-              transform: "translate(-50%, -100%)",
-              maxWidth: "400px",
-            }}
-            ref={popupRef}
-          >
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/20 p-4 w-96 max-h-[450px] overflow-y-auto scrollbar-thin">
+          <div className="fixed inset-0 z-[9998]" onClick={() => setShowSentencePopup(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 4 }}
+              className="fixed z-[9999]"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                left: popupPosition.x,
+                top: popupPosition.y,
+                transform: "translate(-50%, 0)",
+                maxWidth: "min(400px, calc(100vw - 32px))",
+              }}
+              ref={popupRef}
+            >
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/20 p-4 w-96 max-h-[450px] overflow-y-auto scrollbar-thin"
+                style={{ maxWidth: "min(384px, calc(100vw - 32px))" }}
+              >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
@@ -1144,7 +1315,7 @@ function VideoLearningPage() {
                             <span className="text-[10px] text-slate-400 ml-1.5 font-medium">[{vocab.reading}]</span>
                           </div>
                         </div>
-                        <span className="text-xs text-slate-500 dark:text-slate-300 text-right shrink-0">{vocab.meaning}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-300 text-right shrink-0">{resolvedMeanings[vocab.word] || vocab.meaning}</span>
                       </div>
                     ))}
                   </div>
@@ -1155,7 +1326,189 @@ function VideoLearningPage() {
                 </div>
               )}
             </div>
-            <div className="absolute left-1/2 -bottom-2 transform -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-r border-b border-slate-200 dark:border-white/20 rotate-45" />
+            {/* Arrow pointing up toward the button */}
+            <div className="absolute left-1/2 -top-2 transform -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-l border-t border-slate-200 dark:border-white/20 rotate-45" />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── GRAMMAR DETAIL MODAL ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showGrammarModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+            style={{ backdropFilter: "blur(12px)", background: "rgba(0,0,0,0.55)" }}
+            onClick={() => setShowGrammarModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.93, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.93, y: 16 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 scrollbar-thin"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,245,255,0.97) 100%)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Dark mode overlay */}
+              <div className="absolute inset-0 rounded-3xl dark:bg-slate-900/90 pointer-events-none" />
+
+              {/* Close button */}
+              <button
+                onClick={() => setShowGrammarModal(false)}
+                className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+
+              <div className="relative z-10 p-6">
+                {grammarDetailLoading ? (
+                  /* Loading skeleton */
+                  <div className="space-y-4 animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="h-6 w-14 rounded-full bg-violet-200 dark:bg-violet-900/50" />
+                      <div className="h-7 w-40 rounded bg-slate-200 dark:bg-slate-700" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded" />
+                      <div className="h-4 w-5/6 bg-slate-100 dark:bg-slate-800 rounded" />
+                    </div>
+                    <div className="h-20 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+                    <div className="h-16 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+                    <p className="text-center text-xs text-violet-500 animate-pulse">
+                      ✨ Gemini đang dịch sang tiếng Việt...
+                    </p>
+                  </div>
+                ) : selectedGrammar ? (
+                  <div className="space-y-5">
+                    {/* Header: pattern + JLPT */}
+                    <div className="flex items-start gap-3">
+                      {selectedGrammar.jlptLevel && (
+                        <span className="mt-1 shrink-0 text-[11px] font-black px-2.5 py-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md">
+                          {selectedGrammar.jlptLevel}
+                        </span>
+                      )}
+                      <div>
+                        <h2
+                          className="text-2xl font-black text-slate-800 dark:text-white leading-tight"
+                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                        >
+                          {selectedGrammar.pattern}
+                        </h2>
+                        {selectedGrammar.translationPending && (
+                          <p className="text-[10px] text-amber-500 mt-1 flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Dịch tiếng Việt đang được tạo lần đầu — sẽ sẵn sàng ngay sau đây.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Vietnamese Meaning (primary) */}
+                    {selectedGrammar.meaningVi && (
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 border border-emerald-200/60 dark:border-emerald-800/30">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">🇻🇳 Ý nghĩa</span>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
+                          {selectedGrammar.meaningVi}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* English meaning fallback or supplement */}
+                    {selectedGrammar.meaningEn && (
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/8">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">📘 Meaning (EN)</span>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{selectedGrammar.meaningEn}</p>
+                      </div>
+                    )}
+
+                    {/* Vietnamese Description */}
+                    {selectedGrammar.descriptionVi && (
+                      <div className="p-3.5 rounded-2xl bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30">
+                        <span className="text-[10px] font-black text-violet-500 uppercase tracking-wider mb-1.5 block">💡 Giải thích</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{selectedGrammar.descriptionVi}</p>
+                      </div>
+                    )}
+
+                    {/* Structure */}
+                    {selectedGrammar.structure && (
+                      <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30">
+                        <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1.5 block">🏗 Cấu trúc</span>
+                        <p
+                          className="text-sm font-semibold text-slate-800 dark:text-white"
+                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                        >
+                          {selectedGrammar.structure}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Video example sentence */}
+                    {selectedGrammar.videoExampleSentence && (
+                      <div className="p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
+                        <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1.5 block">🎬 Trong video này</span>
+                        <p
+                          className="text-sm text-slate-800 dark:text-white leading-relaxed"
+                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                          dangerouslySetInnerHTML={{
+                            __html: selectedGrammar.videoExampleSentence.replace(
+                              new RegExp(
+                                selectedGrammar.pattern.replace(/[～〜~＋]/g, "").trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                                "g"
+                              ),
+                              (m) => `<mark style="background:rgba(139,92,246,0.2);color:inherit;border-radius:3px;padding:0 2px;">${m}</mark>`
+                            ),
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Example */}
+                    {selectedGrammar.exampleJapanese && (
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/8">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 block">📝 Ví dụ</span>
+                        <p
+                          className="text-sm font-semibold text-slate-800 dark:text-white mb-1 leading-relaxed"
+                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                        >
+                          {selectedGrammar.exampleJapanese}
+                        </p>
+                        {selectedGrammar.exampleVietnamese && (
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 leading-relaxed">
+                            → {selectedGrammar.exampleVietnamese}
+                          </p>
+                        )}
+                        {!selectedGrammar.exampleVietnamese && selectedGrammar.exampleEnglish && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                            → {selectedGrammar.exampleEnglish}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Note */}
+                    {selectedGrammar.note && (
+                      <div className="p-3.5 rounded-2xl bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30">
+                        <span className="text-[10px] font-black text-orange-500 uppercase tracking-wider mb-1 block">⚠️ Ghi chú</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{selectedGrammar.note}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
+                    <Sparkles className="w-10 h-10 opacity-30" />
+                    <p className="text-sm">Không thể tải chi tiết ngữ pháp.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

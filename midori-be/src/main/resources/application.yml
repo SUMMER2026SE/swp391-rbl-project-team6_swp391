@@ -120,7 +120,7 @@ ai:
   # Supports MULTIPLE API KEYS for automatic fallback!
   gemini:
     # Single key (legacy)
-    api-key: ${GEMINI_API_KEY}
+    api-key: ${GEMINI_API_KEY:}
     # Multiple keys (comma-separated) - RECOMMENDED
     api-keys: ${GEMINI_API_KEYS:}
     # Primary model — change GEMINI_MODEL env var, no rebuild needed

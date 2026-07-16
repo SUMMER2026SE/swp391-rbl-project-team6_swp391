@@ -7,6 +7,7 @@ export interface ShadowingEvaluationResponse {
   wrongWords: string[];
   needAI: boolean;
   feedback: string[];
+  validationError?: string;
   transcript?: string;
 }
 

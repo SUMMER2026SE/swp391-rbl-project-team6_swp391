@@ -61,7 +61,6 @@ const studentNav: NavItem[] = [
     children: [
       { to: "/student/learning/alphabet", label: "Alphabet" },
       { to: "/student/learning/kanji", label: "Kanji" },
-      { to: "/student/listening", label: "Listening" },
       { to: "/student/shadowing", label: "Shadowing" },
     ],
   },
@@ -87,7 +86,6 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
     children: [
       { to: "/", label: "Alphabet", disabled: true },
       { to: "/", label: "Kanji", disabled: true },
-      { to: "/", label: "Listening", disabled: true },
       { to: "/", label: "Shadowing", disabled: true },
     ],
   },

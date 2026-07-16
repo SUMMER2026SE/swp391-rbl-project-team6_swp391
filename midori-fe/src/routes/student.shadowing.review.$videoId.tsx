@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home, Loader2 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi } from "@/lib/api/shadowing";
+import { dictionaryApi } from "@/lib/api/dictionary";
 import { getTopicVn } from "./student.shadowing";
 import { ClickableTranscript } from "@/components/clickable-transcript";
 import { SavedWordsButton } from "@/components/saved-words-panel";
@@ -40,6 +41,7 @@ function ReviewPage() {
   const [transcript, setTranscript] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [reviewData, setReviewData] = useState<SentenceReview[]>([]);
+  const [resolvedMeanings, setResolvedMeanings] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadVideoAndTranscript = async () => {
@@ -50,14 +52,48 @@ function ReviewPage() {
         setRawVideo(v);
         setTranscript(t);
 
-        const sentences = (t?.segments ?? []).map((s: any, idx: number) => ({
-          id: s.id || idx.toString(),
-          startTime: s.startTime,
-          endTime: s.endTime,
-          text: s.jpText,
-          translation: s.vnText || "",
-          tokens: Array.isArray(s.tokens) ? s.tokens : []
-        }));
+        const sentences = (t?.segments ?? []).map((s: any, idx: number) => {
+          const listVocab = (s.vocabList ?? []).map((v: any) => ({
+            word: v.word,
+            reading: v.reading || v.furigana || "",
+            meaning: v.meaning,
+            partOfSpeech: v.partOfSpeech || "",
+            example: v.example || "",
+            exampleMeaning: v.exampleMeaning || "",
+          }));
+          const tokenVocab = (s.tokens ?? [])
+            .filter((t: any) => {
+              const surface = t.surface || "";
+              const isPunctuation = /^[\s\p{P}\p{S}、。！？「」『』（）]+$/u.test(surface);
+              return !isPunctuation;
+            })
+            .map((t: any) => ({
+              word: t.surface || t.lemma || "",
+              reading: t.reading || t.lemma || "",
+              meaning: "",
+              partOfSpeech: t.partOfSpeech || "",
+              example: "",
+              exampleMeaning: "",
+            }));
+          const seen = new Set<string>();
+          const vocabulary: any[] = [];
+          for (const v of [...listVocab, ...tokenVocab]) {
+            if (!seen.has(v.word)) {
+              seen.add(v.word);
+              vocabulary.push(v);
+            }
+          }
+
+          return {
+            id: s.id || idx.toString(),
+            startTime: s.startTime,
+            endTime: s.endTime,
+            text: s.jpText,
+            translation: s.vnText || "",
+            tokens: Array.isArray(s.tokens) ? s.tokens : [],
+            vocabulary
+          };
+        });
 
         const review = sentences.map((sentence: any) => ({
           sentence,
@@ -108,6 +144,42 @@ function ReviewPage() {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const currentReview = reviewData[selectedIndex];
+
+  useEffect(() => {
+    if (!currentReview || !currentReview.sentence) return;
+    
+    currentReview.sentence.vocabulary.forEach(async (vocab) => {
+      const wordKey = vocab.word;
+      try {
+        const result = await dictionaryApi.lookupWord({
+          word: wordKey
+        });
+        
+        if (result) {
+          let meaning = "";
+          if (result.contextMeaning && result.contextMeaning.trim()) {
+            meaning = result.contextMeaning;
+          } else if (result.primaryMeaning && result.primaryMeaning.trim()) {
+            meaning = result.primaryMeaning;
+          } else if (result.meanings && result.meanings.length > 0) {
+            meaning = result.meanings.join("; ");
+          }
+          
+          if (meaning.trim()) {
+            setResolvedMeanings(prev => {
+              if (prev[wordKey] === meaning) return prev;
+              return {
+                ...prev,
+                [wordKey]: meaning
+              };
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to lookup word in shadowing review popup:", wordKey, err);
+      }
+    });
+  }, [currentReview]);
 
   // Close loader early if loading is done
   if (isLoading) {
@@ -417,7 +489,7 @@ function ReviewPage() {
                               </span>
                             </div>
                             <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {vocab.meaning}
+                              {resolvedMeanings[vocab.word] || vocab.meaning}
                             </span>
                           </div>
                         ))}

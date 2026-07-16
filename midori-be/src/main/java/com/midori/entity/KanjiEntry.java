@@ -40,6 +40,9 @@ public class KanjiEntry {
     @Column(name = "meaning", columnDefinition = "TEXT")
     private String meaning;
 
+    @Column(name = "svg_file", length = 50)
+    private String svgFile;
+
     @Builder.Default
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();

@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { KANJI_DATA, type KanjiCharacter } from "@/data/kanji-data";
 import { speakJapanese } from "@/data/japanese-learning-data";
 import { WorksheetPreviewComponent } from "@/components/WorksheetPreviewComponent";
+import { KanjiStrokePlayer } from "@/components/student/kanji/KanjiStrokePlayer";
 
 export const Route = createFileRoute("/student/learning/kanji")({
   component: KanjiLearningPage,
@@ -34,6 +35,8 @@ export const Route = createFileRoute("/student/learning/kanji")({
 const STUDENT_LEVEL = "N5 - Cơ bản"; // Mock current student level
 
 interface ExtendedKanjiCharacter extends KanjiCharacter {
+  id?: string; // UUID from PostgreSQL
+  svgAvailable?: boolean; // Whether SVG stroke data exists in DB
   examples?: { word: string; meaning: string }[];
 }
 
@@ -388,25 +391,114 @@ function KanjiLearningPage() {
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [inputKanjiText, setInputKanjiText] = useState<string>("今 玉 交 合");
   const [searchReplayKey, setSearchReplayKey] = useState<number>(0);
+  
+  const [searchResult, setSearchResult] = useState<ExtendedKanjiCharacter | null>(null);
+  const [loadingSearch, setLoadingSearch] = useState<boolean>(false);
+
+  // Cache resolved kanji characters (from real database) for the writing worksheet
+  const [resolvedKanjiCache, setResolvedKanjiCache] = useState<Record<string, ExtendedKanjiCharacter>>({});
+  const loadingCharsRef = useRef<Set<string>>(new Set());
+
+  // Dynamically load details for characters in worksheet input that aren't in local static lists
+  useEffect(() => {
+    const chars = Array.from(inputKanjiText.replace(/\s+/g, ""));
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
+
+    chars.forEach((char) => {
+      // If already in local mock database or static N5 data, skip
+      if (MOCK_KANJI_DATABASE[char] || findKanjiCharacter(char)) return;
+      // If already resolved in cache, skip
+      if (resolvedKanjiCache[char]) return;
+      // If currently fetching, skip
+      if (loadingCharsRef.current.has(char)) return;
+
+      loadingCharsRef.current.add(char);
+
+      fetch(`${BASE_URL}/kanji/${encodeURIComponent(char)}`, {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("midori_access_token")}`,
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Not found");
+          return res.json();
+        })
+        .then(async (json) => {
+          if (json.success && json.data) {
+            const d = json.data;
+            let svgPaths: string[] = [];
+
+            if (d.svgAvailable && d.id) {
+              try {
+                const svgRes = await fetch(`${BASE_URL}/kanji/${d.id}/svg`, {
+                  headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("midori_access_token")}`,
+                  },
+                });
+                if (svgRes.ok) {
+                  const svgText = await svgRes.text();
+                  const parser = new DOMParser();
+                  const doc = parser.parseFromString(svgText, "image/svg+xml");
+                  const strokePathsGroup = doc.querySelector('[id^="kvg:StrokePaths"]');
+                  const paths = strokePathsGroup 
+                    ? strokePathsGroup.querySelectorAll("path") 
+                    : doc.querySelectorAll("path");
+                  svgPaths = Array.from(paths).map((p) => p.getAttribute("d") || "");
+                }
+              } catch (e) {
+                console.error("Failed to fetch SVG for", char, e);
+              }
+            }
+
+            setResolvedKanjiCache((prev) => ({
+              ...prev,
+              [char]: {
+                char: d.character,
+                sinoVietnamese: d.radical ? `Bộ ${d.radical}` : "HÁN TỰ",
+                meaning: d.meaning || "Chưa cập nhật",
+                strokes: d.strokeCount || svgPaths.length || 0,
+                onyomi: d.onyomi || "-",
+                kunyomi: d.kunyomi || "-",
+                radical: d.radical || "-",
+                mnemonic: `Dữ liệu từ hệ thống (Trình độ: ${d.jlpt || "N/A"}).`,
+                svgPaths: svgPaths,
+              },
+            }));
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to resolve kanji in worksheet:", char, err);
+        })
+        .finally(() => {
+          loadingCharsRef.current.delete(char);
+        });
+    });
+  }, [inputKanjiText, resolvedKanjiCache]);
 
   const parseTextToKanji = (text: string) => {
     const chars = Array.from(text.replace(/\s+/g, ""));
     const list: KanjiCharacter[] = [];
     chars.forEach((char) => {
+      const cached = resolvedKanjiCache[char];
+      if (cached) {
+        list.push(cached);
+        return;
+      }
       const found = findKanjiCharacter(char);
       if (found) {
         list.push(found);
       } else {
         list.push({
           char: char,
-          sinoVietnamese: "MẪU",
+          sinoVietnamese: "HÁN TỰ",
           meaning: "Nghĩa của chữ " + char,
-          strokes: 4,
-          onyomi: "ON",
-          kunyomi: "kun",
+          strokes: 0,
+          onyomi: "-",
+          kunyomi: "-",
           radical: "Bộ " + char,
-          mnemonic: "Mẹo nhớ cho chữ " + char,
-          svgPaths: ["M 20,20 L 80,80", "M 80,20 L 20,80", "M 20,50 L 80,50", "M 50,20 L 50,80"],
+          mnemonic: "Đang tải hoặc tự tạo.",
+          svgPaths: [],
         });
       }
     });
@@ -415,12 +507,16 @@ function KanjiLearningPage() {
 
   const previewKanjiList = parseTextToKanji(inputKanjiText);
 
-  // Search logic (mock data fallback when not found in database)
-  const getSearchResult = (): ExtendedKanjiCharacter | null => {
-    if (!searchQuery.trim()) return null;
+  // Search logic (loads real database entries from backend API)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResult(null);
+      return;
+    }
     const query = searchQuery.trim().toLowerCase();
 
-    // 1. Search in KANJI_DATA database (Sino-Vietnamese matches, meaning matches, etc.)
+    // 1. Search in local KANJI_DATA database (Sino-Vietnamese matches, meaning matches, etc.)
+    let foundLocal: any = null;
     for (const level in KANJI_DATA) {
       const found = KANJI_DATA[level].find(
         (k) =>
@@ -431,40 +527,74 @@ function KanjiLearningPage() {
           k.onyomi.toLowerCase().includes(query) ||
           k.kunyomi.toLowerCase().includes(query),
       );
-      if (found) return found;
+      if (found) {
+        foundLocal = found;
+        break;
+      }
     }
 
     // 2. Search in local MOCK_KANJI_DATABASE
-    const charToMock = Array.from(searchQuery.trim())[0];
-    if (charToMock && MOCK_KANJI_DATABASE[charToMock]) {
-      return { char: charToMock, ...MOCK_KANJI_DATABASE[charToMock] };
+    if (!foundLocal) {
+      const charToMock = Array.from(searchQuery.trim())[0];
+      if (charToMock && MOCK_KANJI_DATABASE[charToMock]) {
+        foundLocal = { char: charToMock, ...MOCK_KANJI_DATABASE[charToMock] };
+      }
     }
 
-    // 3. Fallback mock ONLY if the query starts with a Kanji character (CJK Unified Ideographs range)
+    if (foundLocal) {
+      setSearchResult(foundLocal);
+      return;
+    }
+
+    // 3. Fallback to real backend dictionary API GET /api/kanji/{kanji}
+    const charToSearch = Array.from(searchQuery.trim())[0];
     const isKanji = (str: string) => /[\u4e00-\u9faf\u3400-\u4dbf]/.test(str);
-    if (charToMock && isKanji(charToMock)) {
-      return {
-        char: charToMock,
-        sinoVietnamese: searchQuery.trim().toUpperCase(),
-        meaning: `Ý nghĩa mẫu cho "${searchQuery.trim()}"`,
-        strokes: 5,
-        onyomi: "MOCK-ON",
-        kunyomi: "mock-kun",
-        mnemonic: `Cách nhớ mẫu: Hãy tưởng tượng nét vẽ này tương tự như một biểu tượng của "${searchQuery.trim()}".`,
-        radical: "Bộ thủ mẫu",
-        svgPaths: [
-          "M 20,20 C 35,20 65,20 80,20",
-          "M 50,20 L 50,80",
-          "M 20,50 C 35,50 65,50 80,50",
-          "M 20,80 C 35,80 65,80 80,80",
-        ],
-      };
+    if (charToSearch && isKanji(charToSearch)) {
+      setLoadingSearch(true);
+      setSearchResult(null);
+
+      const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
+      fetch(`${BASE_URL}/kanji/${encodeURIComponent(charToSearch)}`, {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("midori_access_token")}`,
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Not found");
+          return res.json();
+        })
+        .then((json) => {
+          if (json.success && json.data) {
+            const d = json.data;
+            setSearchResult({
+              id: d.id,
+              char: d.character,
+              sinoVietnamese: d.radical ? `Bộ ${d.radical}` : "HÁN TỰ",
+              meaning: d.meaning || "Chưa cập nhật",
+              strokes: d.strokeCount || 0,
+              onyomi: d.onyomi || "-",
+              kunyomi: d.kunyomi || "-",
+              radical: d.radical || "-",
+              mnemonic: `Dữ liệu gốc từ thư viện KANJIDIC2 hệ thống (Trình độ: ${d.jlpt || "N/A"}).`,
+              svgPaths: [],
+              svgAvailable: d.svgAvailable === true,
+            });
+          } else {
+            setSearchResult(null);
+          }
+        })
+        .catch((err) => {
+          console.error("Backend Kanji fetch failed:", err);
+          setSearchResult(null);
+        })
+        .finally(() => {
+          setLoadingSearch(false);
+        });
+    } else {
+      setSearchResult(null);
     }
-
-    return null;
-  };
-
-  const searchResult = getSearchResult();
+  }, [searchQuery]);
 
   // Load favorites from local storage on mount
   useEffect(() => {
@@ -658,7 +788,11 @@ function KanjiLearningPage() {
 
                 {/* Search Result card */}
                 <AnimatePresence mode="wait">
-                  {searchQuery.trim() && !searchResult && (
+                  {loadingSearch ? (
+                    <div className="flex justify-center items-center py-16">
+                      <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+                    </div>
+                  ) : searchQuery.trim() && !searchResult ? (
                     <motion.div
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -679,7 +813,7 @@ function KanjiLearningPage() {
                         ". Hãy thử tìm bằng chữ Kanji (ví dụ: 今) hoặc âm đọc khác.
                       </p>
                     </motion.div>
-                  )}
+                  ) : null}
 
                   {searchResult && (
                     <motion.div
@@ -700,211 +834,122 @@ function KanjiLearningPage() {
                         </span>
                       </div>
 
-                      <div className="flex flex-col md:flex-row gap-6">
-                        {/* Animated Kanji visualizer */}
-                        <div className="flex flex-col items-center">
-                          <div
-                            onClick={() => setSearchReplayKey((prev) => prev + 1)}
-                            className="relative w-40 h-40 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-[24px] flex items-center justify-center overflow-hidden shadow-sm cursor-pointer hover:border-pink-300 transition-colors group"
-                          >
-                            <div className="absolute inset-0 border-t border-dashed border-slate-200 dark:border-white/10 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            <div className="absolute inset-0 border-l border-dashed border-slate-200 dark:border-white/10 left-1/2 -translate-x-1/2 pointer-events-none" />
-
-                            <div className="absolute bottom-2 right-2 text-[9px] text-pink-500 font-extrabold bg-pink-50 dark:bg-pink-950/20 border border-pink-100 px-1.5 py-0.5 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="w-2.5 h-2.5 fill-pink-500" />
-                              Xem lại
-                            </div>
-
-                            <svg
-                              key={searchReplayKey}
-                              viewBox="0 0 100 100"
-                              className="w-32 h-32 fill-none relative z-10"
-                            >
-                              {/* Static light gray watermark representing the final shape */}
-                              {searchResult.svgPaths.map((path, idx) => (
-                                <path
-                                  key={`watermark-${idx}`}
-                                  d={path}
-                                  stroke="currentColor"
-                                  className="text-slate-200 dark:text-slate-800"
-                                  strokeWidth="5.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  opacity="0.8"
-                                />
-                              ))}
-
-                              {/* Animated active paths drawing the strokes in perfect sequence */}
-                              {searchResult.svgPaths.map((path, idx) => {
-                                const animProps = getStrokeAnimationProps(
-                                  idx,
-                                  searchResult.svgPaths.length,
-                                );
-                                return (
-                                  <motion.path
-                                    key={`${searchResult.char}-${idx}`}
-                                    d={path}
-                                    stroke="currentColor"
-                                    className="text-[#111827] dark:text-white"
-                                    strokeWidth="6.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    initial={{ pathLength: 0 }}
-                                    animate={animProps.animate}
-                                    transition={animProps.transition}
-                                  />
-                                );
-                              })}
-
-                              {/* Clean, large red circles with white numbers placed at starting points */}
-                              {activeLabels.map((lbl) => (
-                                <g key={`label-${lbl.idx}`} className="no-print">
-                                  <circle
-                                    cx={lbl.x}
-                                    cy={lbl.y}
-                                    r="6.5"
-                                    fill="#ef4444"
-                                    stroke="#ffffff"
-                                    strokeWidth="1"
-                                  />
-                                  <text
-                                    x={lbl.x}
-                                    y={lbl.y + 3}
-                                    fill="#ffffff"
-                                    fontSize="8.5"
-                                    fontWeight="black"
-                                    textAnchor="middle"
-                                    className="select-none pointer-events-none font-sans"
-                                  >
-                                    {lbl.idx + 1}
-                                  </text>
-                                </g>
-                              ))}
-                            </svg>
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Left Side: Detailed Info */}
+                        <div className="lg:col-span-7 space-y-4 text-xs">
+                          {/* Sino-Vietnamese & Meaning */}
+                          <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-[22px] border border-slate-200/40 dark:border-white/5">
+                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-1">
+                              Ý nghĩa Hán Việt
+                            </span>
+                            <span className="font-extrabold text-xl text-slate-900 dark:text-white uppercase tracking-wide">
+                              {searchResult.sinoVietnamese}
+                            </span>
+                            <p className="text-slate-800 dark:text-slate-200 mt-1 font-semibold text-sm">
+                              {searchResult.meaning}
+                            </p>
                           </div>
 
-                          <button
-                            onClick={() => setSearchReplayKey((prev) => prev + 1)}
-                            className="mt-2.5 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800/40 text-[#111827] dark:text-slate-200 text-[10px] font-bold rounded-lg transition active:scale-95 cursor-pointer"
-                          >
-                            <Play className="w-3 h-3 fill-[#111827] dark:fill-slate-200 text-[#111827] dark:text-slate-200" />
-                            Xem lại cách viết
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Step-by-step stroke buildup strip */}
-                      <div className="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-white/5 rounded-2xl p-4 mt-2">
-                        <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-3 text-center tracking-wider">
-                          Thứ tự từng nét viết (Step-by-step strokes)
-                        </span>
-                        <div className="flex gap-3 overflow-x-auto justify-start sm:justify-center pb-1">
-                          {searchResult.svgPaths.map((path, idx) => (
-                            <div
-                              key={idx}
-                              className="flex-shrink-0 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 relative flex items-center justify-center shadow-sm"
-                            >
-                              <svg viewBox="0 0 100 100" className="w-12 h-12 fill-none">
-                                {/* Watermark for previous strokes */}
-                                {searchResult.svgPaths.slice(0, idx).map((p, pIdx) => (
-                                  <path
-                                    key={pIdx}
-                                    d={p}
-                                    stroke="currentColor"
-                                    className="text-slate-100 dark:text-slate-800/50"
-                                    strokeWidth={4.5}
-                                    strokeLinecap="round"
-                                  />
-                                ))}
-                                {/* Active stroke */}
-                                <path
-                                  d={path}
-                                  stroke="currentColor"
-                                  className="text-[#111827] dark:text-white"
-                                  strokeWidth={6}
-                                  strokeLinecap="round"
-                                />
-                              </svg>
-                              <span className="absolute bottom-1 right-2 text-[9px] text-slate-400 font-extrabold bg-white/80 dark:bg-slate-900/80 px-1 rounded">
-                                Nét {idx + 1}
+                          {/* Onyomi & Kunyomi */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-[22px] border border-slate-200/40 dark:border-white/5">
+                              <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-1">
+                                Âm Onyomi (ON)
+                              </span>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold text-sm tracking-wide">
+                                {searchResult.onyomi}
                               </span>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 text-xs border-t border-slate-100 dark:border-white/5 pt-4">
-                        <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                          <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
-                            Ý nghĩa Hán Việt
-                          </span>
-                          <span className="font-extrabold text-base text-[#111827] dark:text-white uppercase tracking-wide">
-                            {searchResult.sinoVietnamese}
-                          </span>
-                          <p className="text-[#111827] dark:text-slate-350 mt-1 font-semibold text-sm">
-                            {searchResult.meaning}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
-                              Âm Onyomi (ON)
-                            </span>
-                            <span className="text-[#111827] dark:text-slate-200 font-semibold">
-                              {searchResult.onyomi}
-                            </span>
+                            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-[22px] border border-slate-200/40 dark:border-white/5">
+                              <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-1">
+                                Âm Kunyomi (KUN)
+                              </span>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold text-sm tracking-wide">
+                                {searchResult.kunyomi}
+                              </span>
+                            </div>
                           </div>
-                          <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
-                              Âm Kunyomi (KUN)
+
+                          {/* radical & JLPT Info */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-[22px] border border-slate-200/40 dark:border-white/5">
+                              <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-1">
+                                Trình độ JLPT
+                              </span>
+                              <span className="inline-block text-[10px] font-extrabold bg-pink-500/10 text-pink-500 px-3 py-1 rounded-full border border-pink-500/20">
+                                {searchResult.radical && searchResult.radical.startsWith("N") ? searchResult.radical : `N5`}
+                              </span>
+                            </div>
+                            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-[22px] border border-slate-200/40 dark:border-white/5">
+                              <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-1">
+                                Bộ thủ chính
+                              </span>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold text-xs uppercase">
+                                {searchResult.radical || "-"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-[22px] border border-slate-200/40 dark:border-white/5">
+                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-1">
+                              Mẹo nhớ
                             </span>
-                            <span className="text-[#111827] dark:text-slate-200 font-semibold">
-                              {searchResult.kunyomi}
+                            <p className="text-slate-755 dark:text-slate-300 italic text-xs leading-relaxed font-semibold">
+                              {searchResult.mnemonic}
+                            </p>
+                          </div>
+
+                          {/* Vocabulary Examples */}
+                          <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-[22px] border border-slate-200/40 dark:border-white/5 space-y-3">
+                            <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase">
+                              Ví dụ từ vựng (Examples)
                             </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                              {(
+                                searchResult.examples || [
+                                  {
+                                    word: `${searchResult.char}人 (${searchResult.sinoVietnamese} nhân)`,
+                                    meaning: `Người liên quan đến ${searchResult.sinoVietnamese}`,
+                                  },
+                                  {
+                                    word: `日本${searchResult.char} (Nhật Bản ${searchResult.sinoVietnamese})`,
+                                    meaning: `Khái niệm ${searchResult.sinoVietnamese} Nhật Bản`,
+                                  },
+                                ]
+                              ).map((ex, exIdx) => (
+                                <div
+                                  key={exIdx}
+                                  className="flex justify-between items-center text-xs bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-150/40 dark:border-white/5 shadow-xs"
+                                >
+                                  <span className="font-bold text-slate-900 dark:text-slate-100 font-japanese">
+                                    {ex.word}
+                                  </span>
+                                  <span className="text-slate-500 dark:text-slate-400 font-medium">
+                                    {ex.meaning}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5">
-                          <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] block uppercase mb-0.5">
-                            Cách nhớ
+                        {/* Right Side: Animated Kanji Stroke Player */}
+                        <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50/30 dark:bg-slate-950/20 p-6 rounded-[28px] border border-slate-200/40 dark:border-white/5">
+                          <span className="font-bold text-slate-400 dark:text-slate-500 text-[10px] uppercase mb-4 tracking-wider">
+                            Quy trình vẽ nét (Stroke Animation)
                           </span>
-                          <p className="text-[#111827] dark:text-slate-350 italic leading-relaxed font-semibold">
-                            {searchResult.mnemonic}
-                          </p>
-                        </div>
-
-                        {/* Vocabulary Examples Section */}
-                        <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-100 dark:border-white/5 space-y-2">
-                          <span className="font-bold text-slate-400 dark:text-slate-550 text-[10px] block uppercase">
-                            Ví dụ từ vựng (Examples)
-                          </span>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {(
-                              searchResult.examples || [
-                                {
-                                  word: `${searchResult.char}人 (${searchResult.sinoVietnamese} nhân)`,
-                                  meaning: `Người liên quan đến ${searchResult.sinoVietnamese}`,
-                                },
-                                {
-                                  word: `日本${searchResult.char} (Nhật Bản ${searchResult.sinoVietnamese})`,
-                                  meaning: `Khái niệm ${searchResult.sinoVietnamese} Nhật Bản`,
-                                },
-                              ]
-                            ).map((ex, exIdx) => (
-                              <div
-                                key={exIdx}
-                                className="flex justify-between items-center text-xs bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-150/40 dark:border-white/5"
-                              >
-                                <span className="font-medium text-[#111827] dark:text-slate-200 font-japanese">
-                                  {ex.word}
-                                </span>
-                                <span className="text-[#475569] dark:text-slate-450 font-medium">
-                                  {ex.meaning}
-                                </span>
+                          {searchResult.id && searchResult.svgAvailable ? (
+                            <KanjiStrokePlayer kanjiId={searchResult.id} />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center w-52 h-52 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 rounded-[28px] text-center p-4 space-y-2">
+                              <div className="text-6xl font-bold text-slate-800 dark:text-white select-none font-japanese">
+                                {searchResult.char}
                               </div>
-                            ))}
-                          </div>
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                Hình nét vẽ chưa khả dụng cho chữ này.
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

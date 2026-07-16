@@ -82,7 +82,7 @@ async function lookupWord(japanese: string): Promise<DictionaryResult | null> {
 
   try {
     // Call the comprehensive student dictionary lookup which has:
-    // 1. Vietnamese meanings (preferred)
+    // 1. Vietnamese meanings (preferred) - primaryMeaning, contextMeaning
     // 2. English meanings (fallback)
     // 3. AI enrichment
     // 4. Better phrase segmentation
@@ -95,13 +95,33 @@ async function lookupWord(japanese: string): Promise<DictionaryResult | null> {
     });
 
     // Check if backend returned valid data with meanings
-    if (result && result.surface && result.meanings && result.meanings.length > 0) {
-      return {
-        word: result.surface || japanese,
-        reading: result.reading || japanese,
-        meaning: result.meanings.join("; "),
-        pos: result.wordType,
-      };
+    if (result && result.surface) {
+      // Prefer Vietnamese meanings (primaryMeaning, contextMeaning)
+      // Fallback to English meanings if Vietnamese not available
+      let meaning = "";
+      
+      if (result.contextMeaning && result.contextMeaning.trim()) {
+        // Use Vietnamese context meaning with explanation
+        meaning = result.contextMeaning;
+        if (result.contextExplanation && result.contextExplanation.trim()) {
+          meaning += ` • ${result.contextExplanation}`;
+        }
+      } else if (result.primaryMeaning && result.primaryMeaning.trim()) {
+        // Use Vietnamese primary meaning
+        meaning = result.primaryMeaning;
+      } else if (result.meanings && result.meanings.length > 0) {
+        // Fallback to meanings array (might be English)
+        meaning = result.meanings.join("; ");
+      }
+      
+      if (meaning.trim()) {
+        return {
+          word: result.surface || japanese,
+          reading: result.reading || japanese,
+          meaning: meaning,
+          pos: result.wordType,
+        };
+      }
     }
 
     // If no meanings found, try the simpler hover endpoint as fallback
@@ -202,6 +222,17 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
     }
   }, [position]);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!result) return;
@@ -234,7 +265,7 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
 
   return (
     <>
-      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
+      <div className="fixed inset-0 z-[9998] pointer-events-none" />
 
       <motion.div
         ref={popupRef}
@@ -242,6 +273,7 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -5 }}
         transition={{ duration: 0.15 }}
+        onClick={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
           left: Math.min(position.x + 10, window.innerWidth - 340),
@@ -253,8 +285,11 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
           "overflow-hidden"
         )}
       >
-        <div className="flex items-center justify-between px-4 py-3 bg-linear-to-r from-pink-500/10 to-purple-500/10 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border-b border-slate-200 dark:border-slate-700">
           <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-pink-600 dark:text-pink-400 uppercase tracking-wider mb-0.5">
+              📖 Từ điển
+            </span>
             <span
               className="text-lg font-black text-slate-800 dark:text-white"
               style={{ fontFamily: "var(--font-japanese, serif)" }}
@@ -282,6 +317,7 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
             </div>
           ) : result && result.meaning && result.meaning.trim() !== "" ? (
             <div className="space-y-3">
+              {/* Vietnamese Meaning */}
               <div className="flex items-start gap-2">
                 {result.pos && (
                   <span className="mt-1 inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary shrink-0">
@@ -308,18 +344,19 @@ export function WordPopup({ word, reading, position, onClose, contextSentence }:
                       </div>
                     ))
                   ) : (
-                    <p>{result.meaning}</p>
+                    <p className="text-slate-800 dark:text-white font-medium">{result.meaning}</p>
                   )}
                 </div>
               </div>
 
+              {/* Context Sentence */}
               {contextSentence && contextSentence.trim() !== "" && (
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-3">
-                  <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                    Ngữ cảnh
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-3">
+                  <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1.5">
+                    📝 Ngữ cảnh
                   </p>
                   <p
-                    className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed"
+                    className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed font-medium"
                     style={{ fontFamily: "var(--font-japanese, serif)" }}
                   >
                     {contextSentence}
