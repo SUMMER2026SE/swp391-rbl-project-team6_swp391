@@ -24,6 +24,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Page<Notification> findByTypeAndTitleContainingIgnoreCase(String type, String title, Pageable pageable);
 
+    List<Notification> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
     @Query("SELECT COUNT(un) FROM UserNotification un WHERE un.notification.id = :notificationId")
     long countUserNotificationsByNotificationId(@Param("notificationId") Long notificationId);
 
