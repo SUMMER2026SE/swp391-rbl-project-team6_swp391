@@ -11,6 +11,7 @@ import com.midori.entity.UserStatus;
 import com.midori.exception.AccessDeniedException;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
+import com.midori.repository.ClassRepository;
 import com.midori.repository.TeacherCertificateRepository;
 import com.midori.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class AdminUserService {
 
     private final UserRepository userRepository;
     private final TeacherCertificateRepository teacherCertificateRepository;
+    private final ClassRepository classRepository;
     private final NotificationHelperService notificationHelper;
 
     @Transactional(readOnly = true)
@@ -47,6 +49,40 @@ public class AdminUserService {
         return activeTeachers.stream()
                 .map(this::toAdminTeacherResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public com.midori.dto.response.AdminTeacherStatsResponse getTeacherStats() {
+        long pending = userRepository.countByRoleAndStatus(Role.TEACHER, UserStatus.PENDING_APPROVAL);
+        long total = userRepository.countByRole(Role.TEACHER);
+        long active = userRepository.countByRoleAndStatus(Role.TEACHER, UserStatus.ACTIVE);
+
+        java.time.Instant now = java.time.Instant.now();
+        java.time.ZoneId zone = java.time.ZoneId.systemDefault();
+        java.time.Instant startOfToday = now.atZone(zone).toLocalDate().atStartOfDay(zone).toInstant();
+        long pendingToday = userRepository.countByRoleAndStatusAndCreatedAtBetween(
+                Role.TEACHER, UserStatus.PENDING_APPROVAL, startOfToday, now);
+
+        java.time.Instant sevenDaysAgo = startOfToday.minus(7, java.time.temporal.ChronoUnit.DAYS);
+        long pendingThisWeek = userRepository.countByRoleAndStatusAndCreatedAtBetween(
+                Role.TEACHER, UserStatus.PENDING_APPROVAL, sevenDaysAgo, now);
+
+        long pendingCertified = userRepository.countTeachersWithCertificates(
+                Role.TEACHER, UserStatus.PENDING_APPROVAL);
+
+        long totalClasses = classRepository.count();
+        long totalStudents = classRepository.countDistinctStudentsAcrossAllClasses();
+
+        return com.midori.dto.response.AdminTeacherStatsResponse.builder()
+                .pendingTeachers(pending)
+                .pendingTeachersToday(pendingToday)
+                .pendingTeachersThisWeek(pendingThisWeek)
+                .pendingTeachersCertified(pendingCertified)
+                .totalTeachers(total)
+                .activeTeachers(active)
+                .totalClasses(totalClasses)
+                .totalStudents(totalStudents)
+                .build();
     }
 
     @Transactional
@@ -134,7 +170,29 @@ public class AdminUserService {
     @Transactional(readOnly = true)
     public Page<AdminTeacherResponse> getAllUsers(Role role, UserStatus status, String keyword, Pageable pageable) {
         Page<User> userPage = userRepository.findAllWithFilters(role, status, keyword, pageable);
-        return userPage.map(this::toAdminTeacherResponse);
+        java.util.List<User> users = userPage.getContent();
+        // Pre-compute per-teacher class/student aggregates in a single grouped
+        // query each so we don't N+1 the class repository for every row.
+        java.util.Map<java.util.UUID, Long> classCounts = new java.util.HashMap<>();
+        java.util.Map<java.util.UUID, Long> studentCounts = new java.util.HashMap<>();
+        boolean anyTeacher = users.stream().anyMatch(u -> u.getRole() == Role.TEACHER);
+        if (anyTeacher) {
+            for (Object[] row : classRepository.countClassesPerTeacher()) {
+                classCounts.put((java.util.UUID) row[0], ((Number) row[1]).longValue());
+            }
+            for (Object[] row : classRepository.countStudentsPerTeacher()) {
+                studentCounts.put((java.util.UUID) row[0], ((Number) row[1]).longValue());
+            }
+        }
+        java.util.List<AdminTeacherResponse> enriched = new java.util.ArrayList<>(users.size());
+        for (User u : users) {
+            Long tc = (u.getRole() == Role.TEACHER) ? classCounts.getOrDefault(u.getId(), 0L) : null;
+            Long ts = (u.getRole() == Role.TEACHER) ? studentCounts.getOrDefault(u.getId(), 0L) : null;
+            enriched.add(toAdminTeacherResponse(u, tc, ts));
+        }
+        // Preserve the original Page metadata (totals, sort, etc.) but replace
+        // the content with the enriched DTOs.
+        return userPage.map(u -> enriched.get(users.indexOf(u)));
     }
 
     @Transactional
@@ -201,6 +259,13 @@ public class AdminUserService {
     }
 
     private AdminTeacherResponse toAdminTeacherResponse(User user) {
+        // Single-teacher callers (approve/reject/suspend/activate/ban/restore)
+        // don't need class aggregates in the response, so leave them null and
+        // delegate to the canonical mapper.
+        return toAdminTeacherResponse(user, null, null);
+    }
+
+    private AdminTeacherResponse toAdminTeacherResponse(User user, Long totalClasses, Long totalStudents) {
         if (user.getProfile() != null) {
             return AdminTeacherResponse.builder()
                     .id(user.getId())
@@ -216,6 +281,8 @@ public class AdminUserService {
                     .rejectionReason(user.getRejectionReason())
                     .createdAt(user.getCreatedAt())
                     .updatedAt(user.getUpdatedAt())
+                    .totalClasses(totalClasses)
+                    .totalStudents(totalStudents)
                     .build();
         }
         return AdminTeacherResponse.builder()
@@ -226,6 +293,8 @@ public class AdminUserService {
                 .rejectionReason(user.getRejectionReason())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .totalClasses(totalClasses)
+                .totalStudents(totalStudents)
                 .build();
     }
 
