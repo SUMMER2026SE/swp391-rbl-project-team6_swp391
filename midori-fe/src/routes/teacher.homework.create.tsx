@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,23 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  getQuestionTopics,
-  getQuestionTopicById,
-  getQuestionsForRandomGeneration,
-  getAggregatedTopicCounts,
-  type Question,
-} from "@/data/teacher-data";
+import { teacherQuestionsApi, type TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
 import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
 import {
-  ArrowLeft, ClipboardList, HelpCircle, Save, Send, Eye, Sparkles, Shuffle,
+  ArrowLeft, ClipboardList, HelpCircle, Save, Send, Eye, Sparkles, Shuffle, Plus, AlertCircle, CheckCircle, Loader2, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Method = "manual" | "question-bank";
+type Method = "ai-pdf" | "question-bank";
 
 export const Route = createFileRoute("/teacher/homework/create")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -112,7 +106,7 @@ function CreateHomework() {
           onBack={handleBack}
         />
         <div className="grid gap-3 md:grid-cols-2">
-          <MethodCard icon={ClipboardList} title="Manual" desc="Write the homework yourself." badge="Editor" onClick={() => setMethod("manual")} />
+          <MethodCard icon={Sparkles} title="AI PDF Homework" desc="Upload a PDF and let AI generate homework questions automatically." badge="AI Generator" onClick={() => setMethod("ai-pdf")} />
           <MethodCard icon={HelpCircle} title="From Question Bank" desc="Generate practice questions by difficulty." badge="Generator" onClick={() => setMethod("question-bank")} />
         </div>
         {lockedClass && (
@@ -130,7 +124,7 @@ function CreateHomework() {
         <ArrowLeft className="mr-1 h-4 w-4" />
         Change method
       </Button>
-      {method === "manual" && <ManualHW lockedClass={lockedClass} onDone={handleDone} />}
+      {method === "ai-pdf" && <HomeworkAiPdfPlaceholder />}
       {method === "question-bank" && <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />}
     </div>
   );
@@ -245,156 +239,10 @@ function CommonFields({
   );
 }
 
-function ManualHW({
-  lockedClass,
-  onDone,
-}: {
-  lockedClass: any | null;
-  onDone: (t: string, classId: string) => void;
-}) {
-  const queryClient = useQueryClient();
-  const { data: classes = [] } = useQuery({
-    queryKey: ["teacherAllClasses"],
-    queryFn: () => classesApi.getSelectableClasses(),
-  });
-  const [form, setForm] = useState({
-    classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: "",
-    instructions: "",
-    dueDate: "",
-    maxScore: 100,
-    attempts: 2,
-    duration: 60,
-  });
-  const [preview, setPreview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const valid = !!(form.title && form.instructions && form.dueDate && form.classId);
 
-  const handleAssign = async () => {
-    if (!valid) return;
-    setIsSaving(true);
-    try {
-      await homeworkApi.createHomework({
-        classId: form.classId,
-        title: form.title,
-        instructions: form.instructions,
-        dueDate: new Date(form.dueDate).toISOString(),
-        maxScore: form.maxScore,
-        attempts: form.attempts,
-      });
-      // Invalidate all related queries so class homework tab refreshes immediately
-      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", form.classId] });
-      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", form.classId] });
-      await queryClient.invalidateQueries({ queryKey: ["teacherClasses"] });
-      toast.success("Homework assigned successfully!");
-      onDone(form.title, form.classId);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to assign homework. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveDraft = async () => {
-    if (!valid) return;
-    setIsSaving(true);
-    try {
-      await homeworkApi.createHomework({
-        classId: form.classId,
-        title: form.title,
-        instructions: form.instructions,
-        dueDate: new Date(form.dueDate).toISOString(),
-        maxScore: form.maxScore,
-        attempts: form.attempts,
-      });
-      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", form.classId] });
-      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", form.classId] });
-      toast.success("Draft saved!");
-      onDone(form.title, form.classId);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to save draft. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div>
-      <PageHeader eyebrow="Manual homework" title="Write your homework" />
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <Card>
-          <CardContent className="space-y-4 p-5">
-            <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="e.g. Te-form Practice"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Instructions *</Label>
-              <Textarea
-                rows={8}
-                value={form.instructions}
-                onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                placeholder="Complete exercises 1–10. Submit your audio recording…"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <CommonFields form={form} set={setForm} classes={classes} lockedClass={lockedClass} />
-            </CardContent>
-          </Card>
-          <div className="space-y-2">
-            <Button className="w-full" variant="outline" onClick={() => setPreview(true)}>
-              <Eye className="mr-2 h-4 w-4" />
-              Preview
-            </Button>
-            <Button
-              className="w-full"
-              variant="outline"
-              disabled={!valid || isSaving}
-              onClick={handleSaveDraft}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {isSaving ? "Saving..." : "Save draft"}
-            </Button>
-            <Button
-              className="w-full"
-              disabled={!valid || isSaving}
-              onClick={handleAssign}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              {isSaving ? "Assigning..." : "Assign homework"}
-            </Button>
-          </div>
-        </div>
-      </div>
-      <PreviewSheet
-        open={preview}
-        onOpenChange={setPreview}
-        title={form.title || "Homework preview"}
-      >
-        <p className="whitespace-pre-wrap text-sm">
-          {form.instructions || (
-            <em className="text-muted-foreground">Add instructions to preview.</em>
-          )}
-        </p>
-      </PreviewSheet>
-    </div>
-  );
-}
 
 function QuestionBankHW({
   lockedClass,
-  topicId,
   onDone,
 }: {
   lockedClass: any | null;
@@ -402,232 +250,748 @@ function QuestionBankHW({
   onDone: (t: string, classId: string) => void;
 }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   const { data: classes = [] } = useQuery({
     queryKey: ["teacherAllClasses"],
     queryFn: () => classesApi.getSelectableClasses(),
   });
-  const topics = getQuestionTopics();
-  const init = topicId ? getQuestionTopicById(topicId) : null;
-  if (topicId && !init) toast.warning("Topic not found in Question Bank");
 
-  const [selectedTopics, setSelectedTopics] = useState<string[]>(init ? [init.id] : []);
-  const [form, setForm] = useState({
+  // Flow State
+  const [level, setLevel] = useState<string>(lockedClass?.level ?? "N5");
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState<number>(20);
+  const [dist, setDist] = useState({ easy: 40, medium: 40, hard: 20 });
+
+  // Metadata Form State
+  const [metadata, setMetadata] = useState({
     classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: init ? `${init.name} — Practice` : "Question Bank Homework",
-    level: init?.level ?? lockedClass?.level ?? "N5",
-    total: 20,
-    dist: { easy: 50, medium: 30, hard: 20 },
+    title: "Question Bank Homework",
     dueDate: "",
-    maxScore: 100,
-    attempts: 2,
     duration: 45,
+    attempts: 2,
+    maxScore: 100,
   });
-  const [preview, setPreview] = useState<Question[] | null>(null);
+
+  const [preview, setPreview] = useState<TeacherQuestionResponse[] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
 
-  const available = useMemo(() => getAggregatedTopicCounts(selectedTopics), [selectedTopics]);
-  const distOk = isDistValid(form.dist, form.total, available);
-  const canGenerate = selectedTopics.length > 0 && distOk;
-  const canAssign = canGenerate && !!form.dueDate && !!form.classId;
+  // 1. Fetch skills from backend
+  const { data: availableSkills = [] } = useQuery({
+    queryKey: ["questionBankSkills"],
+    queryFn: async () => {
+      const res = await teacherQuestionsApi.getQuestionBankSkills();
+      return res;
+    },
+  });
 
-  const toggleTopic = (id: string) =>
-    setSelectedTopics((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  // 2. Fetch lessons by JLPT Level and Skills
+  const { data: lessons = [], isLoading: isLoadingLessons } = useQuery({
+    queryKey: ["questionBankLessonsGenerator", level, selectedSkills],
+    queryFn: async () => {
+      if (!level || selectedSkills.length === 0) return [];
+      const res = await teacherQuestionsApi.getQuestionBankLessons(level, selectedSkills);
+      return res;
+    },
+    enabled: !!level && selectedSkills.length > 0,
+    placeholderData: (prev) => prev,
+  });
 
-  const generate = () => {
-    const qs = getQuestionsForRandomGeneration({
-      topicIds: selectedTopics,
-      total: form.total,
-      easyPct: form.dist.easy,
-      mediumPct: form.dist.medium,
-      hardPct: form.dist.hard,
+  // Selection Reset: Keep only lessons that still exist in the new response
+  useEffect(() => {
+    if (lessons.length > 0 && selectedLessons.length > 0) {
+      const validIds = new Set(lessons.map((les) => les.id));
+      setSelectedLessons((prev) => prev.filter((id) => validIds.has(id)));
+    } else if (lessons.length === 0 || selectedSkills.length === 0) {
+      setSelectedLessons([]);
+    }
+  }, [lessons, selectedSkills]);
+
+  // Reset lessons selection when level changes
+  const handleLevelChange = (newLevel: string) => {
+    setLevel(newLevel);
+    setSelectedLessons([]);
+    setPreview(null);
+    setBackendError(null);
+  };
+
+  const handleSkillToggle = (skill: string) => {
+    setSelectedSkills((prev) => {
+      const updated = prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill];
+      setPreview(null);
+      setBackendError(null);
+      return updated;
     });
-    setPreview(qs);
-    toast.success(`Generated ${qs.length} questions`);
+  };
+
+  const handleLessonToggle = (lessonId: number) => {
+    setSelectedLessons((prev) => {
+      const updated = prev.includes(lessonId) ? prev.filter((id) => id !== lessonId) : [...prev, lessonId];
+      setPreview(null);
+      setBackendError(null);
+      return updated;
+    });
+  };
+
+  // Calculate live availability & needed counts
+  const { needed, available, isAvailable } = useMemo(() => {
+    // 1. Calculate needed counts exactly as backend does
+    let easyNeeded = Math.round((dist.easy * totalQuestions) / 100.0);
+    let mediumNeeded = Math.round((dist.medium * totalQuestions) / 100.0);
+    let hardNeeded = Math.round((dist.hard * totalQuestions) / 100.0);
+
+    const diff = totalQuestions - (easyNeeded + mediumNeeded + hardNeeded);
+    if (diff !== 0) {
+      const maxRatio = Math.max(dist.easy, Math.max(dist.medium, dist.hard));
+      if (maxRatio === dist.easy) {
+        easyNeeded += diff;
+      } else if (maxRatio === dist.medium) {
+        mediumNeeded += diff;
+      } else {
+        hardNeeded += diff;
+      }
+    }
+
+    // 2. Sum up available counts from selected lessons
+    let easyAvail = 0;
+    let mediumAvail = 0;
+    let hardAvail = 0;
+
+    selectedLessons.forEach((lId) => {
+      const l = lessons.find((les) => les.id === lId);
+      if (l) {
+        easyAvail += l.easy;
+        mediumAvail += l.medium;
+        hardAvail += l.hard;
+      }
+    });
+
+    const meetsEasy = easyAvail >= easyNeeded;
+    const meetsMedium = mediumAvail >= mediumNeeded;
+    const meetsHard = hardAvail >= hardNeeded;
+
+    return {
+      needed: { easy: easyNeeded, medium: mediumNeeded, hard: hardNeeded },
+      available: { easy: easyAvail, medium: mediumAvail, hard: hardAvail },
+      isAvailable: meetsEasy && meetsMedium && meetsHard && (dist.easy + dist.medium + dist.hard === 100),
+    };
+  }, [selectedLessons, lessons, dist, totalQuestions]);
+
+  const handleGeneratePreview = async () => {
+    if (selectedLessons.length === 0) {
+      toast.error("Please select at least one lesson.");
+      return;
+    }
+    if (selectedSkills.length === 0) {
+      toast.error("Please select at least one skill.");
+      return;
+    }
+    if (dist.easy + dist.medium + dist.hard !== 100) {
+      toast.error("Difficulty distribution must equal 100%.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setBackendError(null);
+    try {
+      const res = await teacherQuestionsApi.randomizeQuestions({
+        level,
+        skills: selectedSkills,
+        lessonIds: selectedLessons,
+        difficulty: dist,
+        questionCount: totalQuestions,
+      });
+      setPreview(res);
+      toast.success(`Generated preview of ${res.length} questions successfully!`);
+    } catch (err: any) {
+      const errMsg = err?.message || "Failed to generate randomized questions.";
+      setBackendError(errMsg);
+      toast.error(errMsg);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleAssign = async () => {
-    if (!canAssign) return;
+    if (!preview || preview.length === 0) return;
+    if (!metadata.classId || !metadata.dueDate || !metadata.title) {
+      toast.error("Please fill in target class, title, and due date.");
+      return;
+    }
+
     setIsSaving(true);
     try {
+      const questionIds = preview.map((q) => q.id);
       await homeworkApi.createHomework({
-        classId: form.classId,
-        title: form.title as string,
-        instructions: `Question Bank homework: ${selectedTopics.join(", ")}. ${form.total} questions.`,
-        dueDate: new Date(form.dueDate).toISOString(),
-        maxScore: form.maxScore,
-        attempts: form.attempts,
+        classId: metadata.classId,
+        title: metadata.title,
+        instructions: `Generated from Question Bank (${level}). Skills: ${selectedSkills.join(", ")}.`,
+        dueDate: new Date(metadata.dueDate).toISOString(),
+        maxScore: metadata.maxScore,
+        attempts: metadata.attempts,
+        timeLimit: metadata.duration,
+        questionIds: questionIds,
       });
-      // Invalidate all related queries so class homework tab refreshes immediately
-      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", form.classId] });
-      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", form.classId] });
+
+      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", metadata.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", metadata.classId] });
       await queryClient.invalidateQueries({ queryKey: ["teacherClasses"] });
+
       toast.success("Homework assigned successfully!");
-      onDone(form.title as string, form.classId);
+      onDone(metadata.title, metadata.classId);
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to assign homework. Please try again.");
+      toast.error(err?.message || "Failed to assign homework.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="From Question Bank · Generator"
         title="Generate practice homework"
-        subtitle="Choose topics and the difficulty mix — we'll randomize from the Question Bank."
+        subtitle="Step-by-step selection to generate custom homework from Admin Question Bank."
       />
+
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Topics from the Question Bank</CardTitle>
+        {/* Left column: Step Selection */}
+        <div className="space-y-6">
+          {/* Step 1: Select JLPT Level */}
+          <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+                Select JLPT Level
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2 sm:grid-cols-2">
-              {topics
-                .filter((t) => t.level === form.level)
-                .map((t) => (
+            <CardContent className="pt-4">
+              <div className="flex flex-wrap gap-2">
+                {["N5", "N4", "N3", "N2", "N1"].map((lvl) => (
                   <button
-                    key={t.id}
-                    onClick={() => toggleTopic(t.id)}
+                    key={lvl}
+                    onClick={() => handleLevelChange(lvl)}
                     className={cn(
-                      "rounded-lg border p-3 text-left transition-all",
-                      selectedTopics.includes(t.id)
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-primary/40",
+                      "px-4 py-2.5 rounded-xl border text-sm font-bold transition-all duration-200",
+                      level === lvl
+                        ? "border-primary bg-primary/10 text-primary shadow-sm"
+                        : "border-[var(--border)] hover:border-primary/50 text-secondary-col"
                     )}
                   >
-                    <div className="mb-1 flex items-center gap-2">
-                      <LevelBadge level={t.level} />
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                        {t.skill}
-                      </span>
-                    </div>
-                    <div className="text-sm font-semibold">{t.name}</div>
-                    <div className="font-jp text-xs text-muted-foreground">{t.jpName}</div>
-                    <div className="mt-2 flex gap-2 text-[10px]">
-                      <DifficultyBadge d="Easy" />
-                      <span>{t.easy}</span>
-                      <DifficultyBadge d="Medium" />
-                      <span>{t.medium}</span>
-                      <DifficultyBadge d="Hard" />
-                      <span>{t.hard}</span>
-                    </div>
+                    {lvl}
                   </button>
                 ))}
-              {topics.filter((t) => t.level === form.level).length === 0 && (
-                <div className="col-span-2 rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-                  No topics for this level. Pick another level.
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 2: Select Skills */}
+          <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+                Select Skills
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="flex flex-wrap gap-3">
+                {availableSkills.map((skill) => (
+                  <label
+                    key={skill}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer select-none transition-all duration-200",
+                      selectedSkills.includes(skill)
+                        ? "border-primary bg-primary/5 text-primary-col"
+                        : "border-[var(--border)] hover:border-primary/40 text-secondary-col"
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      className="rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4"
+                      checked={selectedSkills.includes(skill)}
+                      onChange={() => handleSkillToggle(skill)}
+                    />
+                    <span className="text-sm font-semibold capitalize">{skill.toLowerCase()}</span>
+                  </label>
+                ))}
+                {availableSkills.length === 0 && (
+                  <div className="text-xs text-muted-col py-2">Loading skills...</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 3: Choose Lessons */}
+          <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+                Select Lessons
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {selectedSkills.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-muted-col">
+                  Please select at least one skill in Step 2 to load lessons.
+                </div>
+              ) : isLoadingLessons ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div key={n} className="rounded-xl border border-[var(--border)] p-3.5 bg-card animate-pulse space-y-3">
+                      <div className="h-4 bg-muted rounded w-3/4"></div>
+                      <div className="flex gap-2">
+                        <div className="h-3 bg-muted rounded w-12"></div>
+                        <div className="h-3 bg-muted rounded w-12"></div>
+                        <div className="h-3 bg-muted rounded w-12"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : lessons.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--status-rejected)] bg-[var(--status-rejected)]/5 font-semibold">
+                  No lessons containing active questions were found for the selected skills.
+                </div>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {lessons.map((les) => (
+                    <button
+                      key={les.id}
+                      onClick={() => handleLessonToggle(les.id)}
+                      type="button"
+                      className={cn(
+                        "rounded-xl border p-3.5 text-left transition-all duration-200",
+                        selectedLessons.includes(les.id)
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-[var(--border)] hover:border-primary/40 bg-card"
+                      )}
+                    >
+                      <div className="flex items-start justify-between">
+                        <span className="text-sm font-bold text-primary-col line-clamp-1">{les.name}</span>
+                        <input
+                          type="checkbox"
+                          checked={selectedLessons.includes(les.id)}
+                          readOnly
+                          className="rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4 mt-0.5"
+                        />
+                      </div>
+                      <div className="mt-2.5 flex flex-wrap gap-2 text-[10px] text-muted-col font-medium">
+                        <span className="px-1.5 py-0.5 rounded bg-[var(--accent)] border border-[var(--border)] text-[var(--status-draft)] font-semibold">Easy: {les.easy}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-[var(--accent)] border border-[var(--border)] text-[var(--status-review)] font-semibold">Medium: {les.medium}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-[var(--accent)] border border-[var(--border)] text-[var(--status-rejected)] font-semibold">Hard: {les.hard}</span>
+                        <span className="ml-auto font-bold text-primary-col">Total: {les.questionCount}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right column: Form configurations & live count & Preview actions */}
+        <div className="space-y-4">
+          {/* Step 4: Assignment Configurations */}
+          <Card className="border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
+                Homework Info
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Target class</Label>
+                {lockedClass ? (
+                  <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
+                    <LevelBadge level={lockedClass.level} />
+                    <span className="text-sm font-semibold">{lockedClass.name}</span>
+                    <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">Locked</span>
+                  </div>
+                ) : (
+                  <Select
+                    value={metadata.classId}
+                    onValueChange={(v: string) => setMetadata({ ...metadata, classId: v })}
+                  >
+                    <SelectTrigger className="w-full rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm">
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} ({c.level})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Title</Label>
+                <Input
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                  value={metadata.title}
+                  onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
+                  placeholder="E.g., Kanji N5 Lesson 1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Due date</Label>
+                  <Input
+                    type="datetime-local"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.dueDate}
+                    onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Duration (min)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.duration}
+                    onChange={(e) => setMetadata({ ...metadata, duration: Math.max(0, Number(e.target.value) || 0) })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Max score</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.maxScore}
+                    onChange={(e) => setMetadata({ ...metadata, maxScore: Math.max(1, Number(e.target.value) || 0) })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Attempts</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.attempts}
+                    onChange={(e) => setMetadata({ ...metadata, attempts: Math.max(1, Number(e.target.value) || 1) })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Total Questions</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                  value={totalQuestions}
+                  onChange={(e) => setTotalQuestions(Math.max(1, Number(e.target.value) || 1))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Step 5: Difficulty Distribution */}
+          <Card className="border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">5</span>
+                Difficulty Mix (%)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold text-muted-col uppercase">Easy %</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="px-2.5 py-1.5 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center"
+                    value={dist.easy}
+                    onChange={(e) => setDist({ ...dist, easy: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold text-muted-col uppercase">Medium %</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="px-2.5 py-1.5 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center"
+                    value={dist.medium}
+                    onChange={(e) => setDist({ ...dist, medium: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold text-muted-col uppercase">Hard %</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    className="px-2.5 py-1.5 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center"
+                    value={dist.hard}
+                    onChange={(e) => setDist({ ...dist, hard: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                  />
+                </div>
+              </div>
+
+              {dist.easy + dist.medium + dist.hard !== 100 && (
+                <div className="text-[10px] text-[var(--status-rejected)] font-bold bg-[var(--status-rejected)]/10 p-2 rounded-lg flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Sum of percentages must equal 100% (currently {dist.easy + dist.medium + dist.hard}%).</span>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <DifficultyDistribution
-            value={form.dist}
-            onChange={(v) => setForm({ ...form, dist: v })}
-            total={form.total}
-            available={available}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Configuration</CardTitle>
+          {/* Live Question Availability status */}
+          <Card className="border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="pb-2 border-b border-[var(--border)]">
+              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-secondary-col">
+                Live Question Availability
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <CommonFields
-                form={form}
-                set={setForm as (v: Record<string, unknown>) => void}
-                classes={classes}
-                lockedClass={lockedClass}
-              />
+            <CardContent className="pt-3">
               <div className="space-y-2">
-                <Label>Title</Label>
-                <Input
-                  value={form.title as string}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Level</Label>
-                  <Select
-                    value={form.level as string}
-                    onValueChange={(v) => {
-                      setForm({ ...form, level: v });
-                      setSelectedTopics([]);
-                      setPreview(null);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["N5", "N4", "N3", "N2", "N1"].map((l) => (
-                        <SelectItem key={l} value={l}>
-                          {l}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pb-1 border-b">
+                  <span className="text-left text-muted-col">Difficulty</span>
+                  <span className="text-primary-col">Need</span>
+                  <span className="text-secondary-col">Available</span>
                 </div>
-                <div className="space-y-2">
-                  <Label>Total questions</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={form.total}
-                    onChange={(e) =>
-                      setForm({ ...form, total: Math.max(1, Number(e.target.value) || 1) })
-                    }
-                  />
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <span className="text-left font-bold text-[var(--status-draft)]">Easy</span>
+                  <span className="font-bold">{needed.easy}</span>
+                  <span className={cn("font-bold", available.easy >= needed.easy ? "text-green-600" : "text-[var(--status-rejected)]")}>
+                    {available.easy}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <span className="text-left font-bold text-[var(--status-review)]">Medium</span>
+                  <span className="font-bold">{needed.medium}</span>
+                  <span className={cn("font-bold", available.medium >= needed.medium ? "text-green-600" : "text-[var(--status-rejected)]")}>
+                    {available.medium}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs border-b pb-2">
+                  <span className="text-left font-bold text-[var(--status-rejected)]">Hard</span>
+                  <span className="font-bold">{needed.hard}</span>
+                  <span className={cn("font-bold", available.hard >= needed.hard ? "text-green-600" : "text-[var(--status-rejected)]")}>
+                    {available.hard}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold pt-1">
+                  <span className="text-left text-primary-col">Total</span>
+                  <span>{totalQuestions}</span>
+                  <span>{available.easy + available.medium + available.hard}</span>
                 </div>
               </div>
+
+              {!isAvailable && selectedLessons.length > 0 && (
+                <div className="mt-3 text-[10px] text-[var(--status-rejected)] font-bold bg-[var(--status-rejected)]/10 p-2 rounded-lg flex items-start gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>Not enough questions available. Please reduce total questions, adjust difficulty mix, or select more lessons.</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          <div className="space-y-2">
-            <Button className="w-full" variant="outline" disabled={!canGenerate} onClick={generate}>
-              <Shuffle className="mr-2 h-4 w-4" />
-              Generate preview
-            </Button>
-            <Button className="w-full" variant="outline" disabled={!preview} onClick={generate}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Randomize again
+          {/* Generator buttons */}
+          <div className="space-y-2 pt-2">
+            <Button
+              className="w-full flex items-center justify-center gap-1.5"
+              variant="outline"
+              disabled={selectedLessons.length === 0 || selectedSkills.length === 0 || !isAvailable || isGenerating}
+              onClick={handleGeneratePreview}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Shuffle className="w-4 h-4" />
+                  Generate Preview
+                </>
+              )}
             </Button>
             <Button
-              className="w-full"
-              disabled={!canAssign || isSaving}
+              className="w-full flex items-center justify-center gap-1.5"
+              disabled={!preview || isSaving}
               onClick={handleAssign}
             >
-              <Send className="mr-2 h-4 w-4" />
-              {isSaving ? "Assigning..." : "Assign homework"}
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Assign Homework
+                </>
+              )}
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Backend API Error Display */}
+      {backendError && (
+        <div className="mt-4 p-4 rounded-xl bg-[var(--status-rejected)]/10 border border-[var(--status-rejected)]/20 text-[var(--status-rejected)] text-sm flex flex-col gap-2 shadow-sm">
+          <div className="flex items-center gap-2 font-bold">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>Randomization Failed</span>
+          </div>
+          <p className="whitespace-pre-line text-xs font-semibold leading-relaxed pl-7">{backendError}</p>
+        </div>
+      )}
+
+      {/* Generated Preview questions */}
       {preview && (
-        <Card className="mt-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Generated questions ({preview.length})</CardTitle>
+        <Card className="border-[var(--border)] bg-card shadow-sm mt-6">
+          <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)] flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              Generated questions preview ({preview.length})
+            </CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs flex items-center gap-1"
+              disabled={isGenerating}
+              onClick={handleGeneratePreview}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Generate Again
+            </Button>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="p-0 divide-y divide-[var(--border)]">
             {preview.map((q, i) => (
-              <div key={q.id + i} className="rounded-lg border p-3 text-sm">
-                <div className="mb-1 flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Q{i + 1}</span>
-                  <DifficultyBadge d={q.difficulty} />
-                  <span className="ml-auto text-xs text-muted-foreground">{q.points} pts</span>
+              <div key={q.id} className="p-4 flex items-start gap-4 transition-all hover:bg-[var(--accent)]/10">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
+                  {i + 1}
+                </span>
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                      {q.skill}
+                    </span>
+                    <DifficultyBadge d={q.difficulty === "EASY" ? "Easy" : q.difficulty === "HARD" ? "Hard" : "Medium"} />
+                    <span className="ml-auto text-xs text-muted-col font-bold">
+                      {q.points || 1} pt(s)
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-primary-col leading-relaxed">
+                    {q.prompt}
+                  </p>
+                  {q.jpPrompt && (
+                    <p className="font-jp text-xs text-secondary-col">
+                      {q.jpPrompt}
+                    </p>
+                  )}
+                  {q.options && q.options.length > 0 && (
+                    <div className="grid gap-1.5 sm:grid-cols-2 mt-2 pl-2 border-l-2 border-[var(--border)]">
+                      {q.options.map((opt, optIdx) => (
+                        <div
+                          key={optIdx}
+                          className={cn(
+                            "text-xs px-2.5 py-1.5 rounded-md border",
+                            optIdx === q.correctAnswerIndex
+                              ? "bg-green-500/10 border-green-500/30 text-green-700 font-bold"
+                              : "bg-[var(--accent)] border-[var(--border)] text-secondary-col"
+                          )}
+                        >
+                          <span className="font-bold mr-1.5">{String.fromCharCode(65 + optIdx)}.</span>
+                          {opt}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="font-medium">{q.prompt}</div>
               </div>
             ))}
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function HomeworkAiPdfPlaceholder() {
+  return (
+    <div className="mx-auto max-w-4xl space-y-8">
+      <div className="card-base p-6 border border-[var(--border)] bg-card rounded-2xl shadow-sm text-center">
+        <h2 className="font-display font-black text-2xl text-primary-col mb-2">
+          AI PDF Homework Generator
+        </h2>
+        <p className="text-sm text-secondary-col">
+          Generate homework automatically by uploading a course syllabus, exam paper, or study material PDF.
+        </p>
+      </div>
+
+      {/* Stepper UI */}
+      <div className="flex items-center justify-between max-w-xl mx-auto px-4">
+        {[
+          { step: 1, label: "Upload PDF" },
+          { step: 2, label: "AI Parsing" },
+          { step: 3, label: "Preview & Edit" },
+          { step: 4, label: "Assign" },
+        ].map((s, idx, arr) => (
+          <div key={s.step} className="flex items-center flex-1 last:flex-initial">
+            <div className="flex flex-col items-center gap-1.5 z-10">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
+                s.step === 1 
+                  ? "bg-primary border-primary text-primary-foreground" 
+                  : "bg-background border-[var(--border)] text-muted-foreground"
+              )}>
+                {s.step}
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {s.label}
+              </span>
+            </div>
+            {idx < arr.length - 1 && (
+              <div className="h-[2px] bg-[var(--border)] flex-1 -mx-2 -mt-4" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Upload area UI */}
+      <div className="card-base p-12 border-2 border-dashed border-[var(--border)] text-center bg-card/50 rounded-2xl">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+          <Upload className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="font-display font-bold text-lg text-primary-col mb-1">
+          Upload PDF File
+        </h3>
+        <p className="text-sm text-secondary-col mb-6">
+          Drag and drop your PDF here, or click to browse.
+        </p>
+        <Button disabled variant="outline" className="px-6 py-2.5 rounded-xl font-bold">
+          Choose PDF File
+        </Button>
+      </div>
+
+      {/* Empty Preview area UI */}
+      <div className="card-base p-8 border border-[var(--border)] bg-card/30 rounded-2xl text-center">
+        <p className="text-sm text-muted-col italic">
+          No questions generated yet. Upload a PDF above to preview questions.
+        </p>
+      </div>
+
+      {/* Action footer */}
+      <div className="flex justify-end pt-4 border-t border-[var(--border)]">
+        <Button disabled size="lg" className="px-8 py-3 font-bold rounded-xl bg-muted text-muted-foreground border border-[var(--border)]">
+          AI PDF Homework Coming Soon
+        </Button>
+      </div>
     </div>
   );
 }

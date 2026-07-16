@@ -289,17 +289,58 @@ function ExamsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Manual Create state ───────────────────────────────────────────────────
-  const [showManualCreate, setShowManualCreate] = useState(false);
-  const [manualDraft, setManualDraft] = useState<Partial<ManualExam>>({
-    title: "",
-    level: "N3",
-    examType: "Grammar",
-    time: 45,
-    status: "draft",
-    questions: [],
-  });
-  const [editingManualQuestion, setEditingManualQuestion] = useState<ManualQuestion | null>(null);
+  // ── Question Bank Wizard states ───────────────────────────────────────────
+  const [showQBWizard, setShowQBWizard] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [qbLevel, setQbLevel] = useState<JLPTLevel>("N3");
+  const [qbSource, setQbSource] = useState<"MY_QUESTIONS" | "ORGANIZATION" | "BOTH">("BOTH");
+  
+  // Stats
+  const [stats, setStats] = useState<Record<string, Record<string, number>>>({});
+  const [loadingStats, setLoadingStats] = useState(false);
+  
+  // Config
+  const [qbTitle, setQbTitle] = useState("");
+  const [qbDescription, setQbDescription] = useState("");
+  const [easyCount, setEasyCount] = useState(0);
+  const [mediumCount, setMediumCount] = useState(0);
+  const [hardCount, setHardCount] = useState(0);
+  
+  // Skills
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [loadingSkills, setLoadingSkills] = useState(false);
+  
+  // Preview
+  const [previewQuestions, setPreviewQuestions] = useState<any[]>([]);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
+
+  const fetchStats = async (level: string, source: string) => {
+    try {
+      setLoadingStats(true);
+      const res = await examsApi.getQuestionStats(level, source);
+      setStats(res || {});
+    } catch (err) {
+      toast.error("Failed to load question bank statistics.");
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const fetchSkills = async () => {
+    try {
+      setLoadingSkills(true);
+      const res = await examsApi.getSkills();
+      setAvailableSkills(res || []);
+      setSelectedSkills(res || []);
+    } catch (err) {
+      toast.error("Failed to load skills list.");
+      setAvailableSkills(["Vocabulary", "Grammar", "Listening", "Reading", "Kanji"]);
+      setSelectedSkills(["Vocabulary", "Grammar", "Listening", "Reading", "Kanji"]);
+    } finally {
+      setLoadingSkills(false);
+    }
+  };
 
   // ── View / Edit / Delete state ─────────────────────────────────────────────
   const [showViewExam, setShowViewExam] = useState<ManualExam | null>(null);
@@ -525,105 +566,178 @@ function ExamsPage() {
     setGeneratedExamId(null);
   }, []);
 
-  // ── Manual Create handlers ────────────────────────────────────────────────
-  const resetManualDraft = () => {
-    setManualDraft({
-      title: "",
-      level: "N3",
-      examType: "Grammar",
-      time: 45,
-      status: "draft",
-      questions: [],
-    });
-    setEditingManualQuestion(null);
+  // ── Question Bank Wizard handlers ──────────────────────────────────────────
+  const handleOpenQBWizard = () => {
+    setWizardStep(1);
+    setQbLevel("N3");
+    setQbSource("BOTH");
+    setQbTitle("");
+    setQbDescription("");
+    setEasyCount(0);
+    setMediumCount(0);
+    setHardCount(0);
+    setSelectedSkills([]);
+    setPreviewQuestions([]);
+    setShowQBWizard(true);
+    fetchSkills();
+    fetchStats("N3", "BOTH");
   };
 
-  const handleOpenManualCreate = () => {
-    resetManualDraft();
-    setShowManualCreate(true);
-  };
-
-  const handleAddQuestionToManual = () => {
-    const newQ = createEmptyQuestion(manualDraft.level);
-    setManualDraft((prev) => ({ ...prev, questions: [...(prev.questions || []), newQ] }));
-    setEditingManualQuestion(newQ);
-  };
-
-  const handleUpdateManualQuestion = (updated: ManualQuestion) => {
-    setManualDraft((prev) => ({
-      ...prev,
-      questions: prev.questions?.map((q) => (q.id === updated.id ? updated : q)) || [],
-    }));
-    setEditingManualQuestion(updated);
-  };
-
-  const handleDeleteManualQuestion = (id: string) => {
-    setManualDraft((prev) => ({
-      ...prev,
-      questions: prev.questions?.filter((q) => q.id !== id) || [],
-    }));
-    if (editingManualQuestion?.id === id) setEditingManualQuestion(null);
-  };
-
-  const handleSaveManualExam = async (status: ExamStatus = "draft") => {
-    if (!manualDraft.title?.trim()) {
-      toast.error("Please enter an exam title.");
-      return;
-    }
-    const draftQuestions = manualDraft.questions || [];
-    if (draftQuestions.length === 0) {
-      toast.error("Please add at least one question.");
-      return;
-    }
-    for (let i = 0; i < draftQuestions.length; i++) {
-      const q = draftQuestions[i];
-      if (!q.question?.trim()) {
-        toast.error(`Question ${i + 1} has an empty question prompt.`);
+  const handleNextStep = async () => {
+    if (wizardStep === 1) {
+      setWizardStep(2);
+    } else if (wizardStep === 2) {
+      if (!qbTitle.trim()) {
+        toast.error("Please enter an exam title.");
         return;
       }
-      if (!q.options || q.options.length < 2) {
-        toast.error(`Question ${i + 1} must have at least 2 options.`);
+      if (easyCount + mediumCount + hardCount <= 0) {
+        toast.error("Total question count must be greater than 0.");
         return;
       }
-      if (q.options.some((opt) => !opt?.trim())) {
-        toast.error(`Please fill out all options for Question ${i + 1}.`);
+      setWizardStep(3);
+    } else if (wizardStep === 3) {
+      if (selectedSkills.length === 0) {
+        toast.error("Please select at least one skill.");
         return;
       }
-    }
-    try {
-      const savedQuestionIds: string[] = [];
-      const draftQuestions = manualDraft.questions || [];
-      for (const q of draftQuestions) {
-        const res = await teacherQuestionsApi.createQuestion({
-          prompt: q.question,
-          options: q.options,
-          correctAnswerIndex: q.correctAnswer,
-          points: q.score,
-          questionType: "MULTIPLE_CHOICE",
-          difficulty: "MEDIUM",
-          explanation: q.explanation || "Exam manual question",
+      // Generate Preview questions
+      try {
+        setGeneratingPreview(true);
+        const res = await examsApi.previewGeneration({
+          jlptLevel: qbLevel,
+          skills: selectedSkills,
+          easyCount,
+          mediumCount,
+          hardCount,
+          questionSource: qbSource,
         });
-        savedQuestionIds.push(res.id);
+        setPreviewQuestions(res || []);
+        setWizardStep(4);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to generate question selection preview.");
+      } finally {
+        setGeneratingPreview(false);
       }
+    }
+  };
 
-      await examsApi.createExam({
-        title: manualDraft.title,
-        level: manualDraft.level || "N3",
-        totalQuestions: draftQuestions.length,
-        timeLimit: manualDraft.time || 45,
-        classIds: classId ? [classId] : [],
-        questionIds: savedQuestionIds,
-        status: status === "published" ? "PUBLISHED" : "DRAFT",
+  const handleRegeneratePreview = async () => {
+    try {
+      setGeneratingPreview(true);
+      const res = await examsApi.previewGeneration({
+        jlptLevel: qbLevel,
+        skills: selectedSkills,
+        easyCount,
+        mediumCount,
+        hardCount,
+        questionSource: qbSource,
+      });
+      setPreviewQuestions(res || []);
+      toast.success("Random selection regenerated!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to regenerate question selection preview.");
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
+  const handleReplaceQuestion = async (indexToReplace: number) => {
+    const qToReplace = previewQuestions[indexToReplace];
+    if (!qToReplace) return;
+
+    try {
+      const allQuestions = await teacherQuestionsApi.getQuestions();
+      const candidates = allQuestions.filter((q) => {
+        if (q.level !== qbLevel) return false;
+        
+        const qSkill = q.skill || "Grammar";
+        const replaceSkill = qToReplace.skill || "Grammar";
+        if (qSkill.toUpperCase() !== replaceSkill.toUpperCase()) return false;
+        
+        const qDiff = q.difficulty ? q.difficulty.toUpperCase() : "MEDIUM";
+        const replaceDiff = qToReplace.difficulty ? qToReplace.difficulty.toUpperCase() : "MEDIUM";
+        if (qDiff !== replaceDiff) return false;
+        
+        if (qbSource === "MY_QUESTIONS" && q.teacherId !== user?.id) return false;
+        if (qbSource === "ORGANIZATION" && q.teacherId === user?.id) return false;
+        
+        const isAlreadySelected = previewQuestions.some((selectedQ) => selectedQ.id === q.id);
+        return !isAlreadySelected;
       });
 
-      toast.success(status === "published" ? "Exam published & assigned!" : "Draft saved!");
-      refetch();
-      setShowManualCreate(false);
-      resetManualDraft();
-      setCurrentPage(1);
+      if (candidates.length === 0) {
+        toast.warning("No alternative questions found in the Question Bank matching the criteria.");
+        return;
+      }
+
+      const randomAlternative = candidates[Math.floor(Math.random() * candidates.length)];
+      setPreviewQuestions((prev) => {
+        const copy = [...prev];
+        copy[indexToReplace] = randomAlternative;
+        return copy;
+      });
+      toast.success("Question replaced successfully!");
+    } catch (err) {
+      toast.error("Failed to find alternative questions.");
+    }
+  };
+
+  const handleRemoveQuestion = (indexToRemove: number) => {
+    const qToRemove = previewQuestions[indexToRemove];
+    if (!qToRemove) return;
+
+    const diff = qToRemove.difficulty ? qToRemove.difficulty.toUpperCase() : "MEDIUM";
+    if (diff === "EASY") {
+      setEasyCount(prev => Math.max(0, prev - 1));
+    } else if (diff === "HARD") {
+      setHardCount(prev => Math.max(0, prev - 1));
+    } else {
+      setMediumCount(prev => Math.max(0, prev - 1));
+    }
+
+    setPreviewQuestions(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    toast.success("Question removed.");
+  };
+
+  const handleShufflePreview = () => {
+    setPreviewQuestions(prev => {
+      const copy = [...prev];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    });
+    toast.success("Question display order shuffled!");
+  };
+
+  const handleCreateExamFromSelection = async () => {
+    if (previewQuestions.length === 0) {
+      toast.error("No questions in preview to create exam.");
+      return;
+    }
+
+    try {
+      const exam = await examsApi.createExam({
+        title: qbTitle,
+        level: qbLevel,
+        totalQuestions: previewQuestions.length,
+        timeLimit: previewQuestions.length * 2,
+        classIds: classId ? [classId] : [],
+        questionIds: previewQuestions.map(q => q.id),
+        status: "DRAFT",
+        category: qbDescription,
+      });
+
+      toast.success("Exam generated successfully!");
+      await queryClient.invalidateQueries({ queryKey: ["exams"] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherExams"] });
+      
+      setShowQBWizard(false);
+      navigate({ to: "/teacher/exams/create", search: { examId: exam.id } });
     } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Failed to save exam.");
+      toast.error(err?.message || "Failed to create exam.");
     }
   };
 
@@ -723,11 +837,11 @@ function ExamsPage() {
             AI PDF Generator
           </button>
           <button
-            onClick={handleOpenManualCreate}
+            onClick={handleOpenQBWizard}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:shadow-md transition"
           >
             <Plus className="w-4 h-4" />
-            Manual Create
+            Create from Question Bank
           </button>
         </div>
       </div>
@@ -1473,15 +1587,15 @@ function ExamsPage() {
         )}
       </AnimatePresence>
 
-      {/* MANUAL CREATE MODAL */}
+      {/* QUESTION BANK WIZARD MODAL */}
       <AnimatePresence>
-        {showManualCreate && (
+        {showQBWizard && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setShowManualCreate(false)}
+            onClick={() => setShowQBWizard(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1490,226 +1604,337 @@ function ExamsPage() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]"
             >
+              {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-hero flex items-center justify-center">
                     <Plus className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="font-display font-bold text-lg">Manual Create Exam</h2>
+                    <h2 className="font-display font-bold text-lg">Create Exam from Question Bank</h2>
                     <p className="text-xs text-muted-foreground">
-                      Create exam with custom questions
+                      Step {wizardStep} of 4: {
+                        wizardStep === 1 ? "Select Level & Source" :
+                        wizardStep === 2 ? "Configure Details & Difficulty" :
+                        wizardStep === 3 ? "Select Skills" :
+                        "Preview & Adjust"
+                      }
                     </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setShowManualCreate(false)}
+                  onClick={() => setShowQBWizard(false)}
                   className="p-2 rounded-xl hover:bg-muted transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
+              {/* Steps Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                    Exam Information
-                  </h3>
-                  <div>
-                    <label className="text-xs font-bold text-muted-foreground block mb-1.5">
-                      Exam Title
-                    </label>
-                    <input
-                      value={manualDraft.title || ""}
-                      onChange={(e) =>
-                        setManualDraft((prev) => ({ ...prev, title: e.target.value }))
-                      }
-                      placeholder="e.g. JLPT N3 Grammar Final"
-                      className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {wizardStep === 1 && (
+                  <div className="space-y-4">
                     <div>
                       <label className="text-xs font-bold text-muted-foreground block mb-1.5">
                         JLPT Level
                       </label>
                       <select
-                        value={manualDraft.level || "N3"}
-                        onChange={(e) =>
-                          setManualDraft((prev) => ({
-                            ...prev,
-                            level: e.target.value as JLPTLevel,
-                          }))
-                        }
+                        value={qbLevel}
+                        onChange={(e) => {
+                          const lvl = e.target.value as JLPTLevel;
+                          setQbLevel(lvl);
+                          fetchStats(lvl, qbSource);
+                        }}
                         className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
                       >
                         {JLPT_LEVELS.map((l) => (
-                          <option key={l} value={l}>
-                            {l}
-                          </option>
+                          <option key={l} value={l}>{l}</option>
                         ))}
                       </select>
                     </div>
+
                     <div>
                       <label className="text-xs font-bold text-muted-foreground block mb-1.5">
-                        Exam Type
+                        Question Source
                       </label>
                       <select
-                        value={manualDraft.examType || "Grammar"}
-                        onChange={(e) =>
-                          setManualDraft((prev) => ({
-                            ...prev,
-                            examType: e.target.value as ExamType,
-                          }))
-                        }
+                        value={qbSource}
+                        onChange={(e) => {
+                          const src = e.target.value as any;
+                          setQbSource(src);
+                          fetchStats(qbLevel, src);
+                        }}
                         className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
                       >
-                        {EXAM_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
+                        <option value="MY_QUESTIONS">My Questions Only</option>
+                        <option value="ORGANIZATION">Organization Bank Only</option>
+                        <option value="BOTH">Both (All Questions)</option>
                       </select>
                     </div>
+
+                    {/* Question statistics block */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl space-y-3">
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Available Questions in bank ({qbLevel} Level)
+                      </h4>
+                      {loadingStats ? (
+                        <div className="text-sm text-muted-foreground py-2 flex items-center gap-2">
+                          <span className="animate-spin">🔄</span> Loading bank availability...
+                        </div>
+                      ) : Object.keys(stats).length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {Object.entries(stats).map(([skill, counts]) => (
+                            <div key={skill} className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                              <div className="font-bold text-slate-700 dark:text-slate-300">{skill}</div>
+                              <div className="flex justify-between text-[10px] mt-1 text-muted-foreground">
+                                <span>Easy: {counts.EASY || 0}</span>
+                                <span>Med: {counts.MEDIUM || 0}</span>
+                                <span>Hard: {counts.HARD || 0}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground">No questions found matching criteria.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {wizardStep === 2 && (
+                  <div className="space-y-4">
                     <div>
                       <label className="text-xs font-bold text-muted-foreground block mb-1.5">
-                        Time (min)
+                        Exam Title
                       </label>
                       <input
-                        type="number"
-                        value={manualDraft.time || 45}
-                        onChange={(e) =>
-                          setManualDraft((prev) => ({
-                            ...prev,
-                            time: parseInt(e.target.value) || 45,
-                          }))
-                        }
-                        min={5}
-                        max={300}
-                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
+                        value={qbTitle}
+                        onChange={(e) => setQbTitle(e.target.value)}
+                        placeholder="e.g. N3 Final Practice Exam"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
                       />
                     </div>
+
                     <div>
                       <label className="text-xs font-bold text-muted-foreground block mb-1.5">
-                        Status
+                        Description / Category (Optional)
                       </label>
-                      <select
-                        value={manualDraft.status || "draft"}
-                        onChange={(e) =>
-                          setManualDraft((prev) => ({
-                            ...prev,
-                            status: e.target.value as ExamStatus,
-                          }))
-                        }
-                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                      </select>
+                      <input
+                        value={qbDescription}
+                        onChange={(e) => setQbDescription(e.target.value)}
+                        placeholder="e.g. Vocabulary & Grammar focus"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
+                      />
                     </div>
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                      Questions ({manualDraft.questions?.length || 0})
-                    </h3>
-                    <button
-                      onClick={handleAddQuestionToManual}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-hero text-white text-xs font-bold hover:opacity-90 transition"
-                    >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      Add Question
-                    </button>
-                  </div>
-
-                  {manualDraft.questions && manualDraft.questions.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                      {manualDraft.questions.map((q, idx) => (
-                        <ManualQuestionItem
-                          key={q.id}
-                          q={q}
-                          index={idx}
-                          isEditing={editingManualQuestion?.id === q.id}
-                          onEdit={() => setEditingManualQuestion(q)}
-                          onDelete={() => handleDeleteManualQuestion(q.id)}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1.5">
+                          Easy Question Count
+                        </label>
+                        <input
+                          type="number"
+                          value={easyCount}
+                          onChange={(e) => setEasyCount(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
                         />
-                      ))}
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1.5">
+                          Medium Question Count
+                        </label>
+                        <input
+                          type="number"
+                          value={mediumCount}
+                          onChange={(e) => setMediumCount(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground block mb-1.5">
+                          Hard Question Count
+                        </label>
+                        <input
+                          type="number"
+                          value={hardCount}
+                          onChange={(e) => setHardCount(Math.max(0, parseInt(e.target.value) || 0))}
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none"
+                        />
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-                      <PlusCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-                      <p className="text-sm text-muted-foreground">No questions yet</p>
-                      <p className="text-xs text-muted-foreground">
-                        Click "Add Question" to get started
-                      </p>
+
+                    <div className="text-right text-sm font-bold text-muted-foreground">
+                      Total Questions: {easyCount + mediumCount + hardCount}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {wizardStep === 3 && (
+                  <div className="space-y-4">
+                    <label className="text-xs font-bold text-muted-foreground block mb-1.5">
+                      Select Skills to Include (Minimum 1)
+                    </label>
+                    {loadingSkills ? (
+                      <div className="text-sm text-muted-foreground">Loading available skills metadata...</div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        {availableSkills.map((sk) => {
+                          const normSk = sk.charAt(0) + sk.substring(1).toLowerCase();
+                          const isSelected = selectedSkills.includes(sk);
+                          const skillStats = stats[normSk] || { EASY: 0, MEDIUM: 0, HARD: 0 };
+                          const totalAvail = (skillStats.EASY || 0) + (skillStats.MEDIUM || 0) + (skillStats.HARD || 0);
+
+                          return (
+                            <label
+                              key={sk}
+                              className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition ${
+                                isSelected
+                                  ? "border-primary bg-primary/5 dark:bg-primary/10"
+                                  : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedSkills(prev => [...prev, sk]);
+                                    } else {
+                                      setSelectedSkills(prev => prev.filter(item => item !== sk));
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded text-primary focus:ring-primary border-slate-300 dark:border-slate-700"
+                                />
+                                <span className="text-sm font-semibold">{normSk}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {totalAvail} questions avail
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {wizardStep === 4 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                        Selected Questions Preview ({previewQuestions.length})
+                      </h3>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleShufflePreview}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                        >
+                          🔄 Shuffle Order
+                        </button>
+                        <button
+                          onClick={handleRegeneratePreview}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                        >
+                          ⚡ Regenerate All
+                        </button>
+                      </div>
+                    </div>
+
+                    {generatingPreview ? (
+                      <div className="text-center py-20">
+                        <span className="animate-spin text-2xl inline-block mb-3">⏳</span>
+                        <p className="text-sm text-muted-foreground">Generating random selection from Question Bank...</p>
+                      </div>
+                    ) : previewQuestions.length > 0 ? (
+                      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                        {previewQuestions.map((q, idx) => (
+                          <div
+                            key={`${q.id || ''}-${idx}`}
+                            className="bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 p-4 relative"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-hero flex items-center justify-center flex-shrink-0 text-white font-bold text-xs">
+                                  Q{idx + 1}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium mb-1.5">{q.prompt}</p>
+                                  <div className="flex flex-wrap gap-2 items-center text-[10px]">
+                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold uppercase">
+                                      {q.difficulty || "MEDIUM"}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                                      {q.skill || "Grammar"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-1.5">
+                                <button
+                                  onClick={() => handleReplaceQuestion(idx)}
+                                  title="Replace with another random question"
+                                  className="p-1.5 rounded-lg hover:bg-muted text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition text-xs font-bold border border-slate-200 dark:border-slate-700"
+                                >
+                                  Replace
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveQuestion(idx)}
+                                  title="Remove question"
+                                  className="p-1.5 rounded-lg hover:bg-muted text-red-500 transition text-xs font-bold border border-red-200 dark:border-red-900"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                        <p className="text-sm text-muted-foreground">No questions generated. Try adjusting your counts.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
+              {/* Footer */}
               <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-muted/20">
-                <button
-                  onClick={() => setShowManualCreate(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold hover:bg-muted transition"
-                >
-                  Cancel
-                </button>
-                <div className="flex gap-2">
+                {wizardStep > 1 ? (
                   <button
-                    onClick={() => handleSaveManualExam("draft")}
-                    disabled={!manualDraft.title?.trim()}
-                    className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:bg-muted transition disabled:opacity-50"
+                    onClick={() => setWizardStep(prev => prev - 1)}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold hover:bg-muted transition"
                   >
-                    Save Draft
+                    Back
                   </button>
+                ) : (
                   <button
-                    onClick={() => handleSaveManualExam("published")}
-                    disabled={!manualDraft.title?.trim()}
+                    onClick={() => setShowQBWizard(false)}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold hover:bg-muted transition"
+                  >
+                    Cancel
+                  </button>
+                )}
+
+                {wizardStep < 4 ? (
+                  <button
+                    onClick={handleNextStep}
+                    className="px-5 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 transition"
+                  >
+                    Next Step
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCreateExamFromSelection}
+                    disabled={previewQuestions.length === 0}
                     className="px-5 py-2 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
                   >
                     <CheckCircle className="w-4 h-4" />
-                    Publish Exam
+                    Create Exam
                   </button>
-                </div>
+                )}
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Manual Question Editor Modal */}
-      <AnimatePresence>
-        {editingManualQuestion && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4"
-            onClick={() => setEditingManualQuestion(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-display font-bold">Edit Question</h3>
-                <button
-                  onClick={() => setEditingManualQuestion(null)}
-                  className="p-2 rounded-xl hover:bg-muted"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <ManualQuestionForm
-                question={editingManualQuestion}
-                onUpdate={handleUpdateManualQuestion}
-                onCancel={() => setEditingManualQuestion(null)}
-              />
             </motion.div>
           </motion.div>
         )}
@@ -2000,7 +2225,6 @@ function ExamsPage() {
                         setShowEditExam((prev) =>
                           prev ? { ...prev, questions: [...prev.questions, newQ] } : null,
                         );
-                        setEditingManualQuestion(newQ);
                       }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-hero text-white text-xs font-bold hover:opacity-90 transition"
                     >
@@ -2085,51 +2309,7 @@ function ExamsPage() {
         )}
       </AnimatePresence>
 
-      {/* Edit Question Form Modal (for Edit Exam) */}
-      <AnimatePresence>
-        {editingManualQuestion && showEditExam && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4"
-            onClick={() => setEditingManualQuestion(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-display font-bold">Edit Question</h3>
-                <button
-                  onClick={() => setEditingManualQuestion(null)}
-                  className="p-2 rounded-xl hover:bg-muted"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <ManualQuestionForm
-                question={editingManualQuestion}
-                onUpdate={(updated) => {
-                  setShowEditExam((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          questions: prev.questions.map((q) => (q.id === updated.id ? updated : q)),
-                        }
-                      : null,
-                  );
-                  setEditingManualQuestion(null);
-                }}
-                onCancel={() => setEditingManualQuestion(null)}
-              />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>

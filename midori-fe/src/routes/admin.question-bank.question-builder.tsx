@@ -27,7 +27,7 @@ import {
   Library,
   RotateCcw,
 } from "lucide-react";
-import { questionBankService, type Question } from "../services/questionBankService";
+import { questionBankService, useQuestionBank, type Question } from "../services/questionBankService";
 import { audioService } from "../services/questionBank.audioService";
 import type {
   JLPTLevel,
@@ -437,13 +437,16 @@ function QuestionBuilderPage() {
   const lessonId = parseInt(search.lessonId || "1");
   const editId = search.editId as string | undefined;
 
+  const { lessons, questions: dbQuestions, createQuestion: createQuestionMutation, updateQuestion: updateQuestionMutation } = useQuestionBank(level);
+
   // Get lesson data from service
-  const lesson = questionBankService.getLesson(level, lessonId);
+  const lesson = lessons.find((l) => l.id === lessonId);
   const lessonName = lesson?.lessonName || `Lesson ${lessonId}`;
 
   // State
   const [questions, setQuestions] = useState<QuestionForm[]>([]);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  console.log("QuestionBuilder Render:", { questions, selectedQuestionId });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
@@ -455,11 +458,27 @@ function QuestionBuilderPage() {
     explanation: false,
   });
 
+  const hasInitializedRef = useRef(false);
+
+  // Reset initialization flag when params change
+  useEffect(() => {
+    console.log("Effect 1: Resetting hasInitializedRef because params changed", { level, lessonId, editId });
+    hasInitializedRef.current = false;
+  }, [level, lessonId, editId]);
+
   // Load existing questions if editing
   useEffect(() => {
+    console.log("Effect 2: Initialization check", {
+      hasInitialized: hasInitializedRef.current,
+      editId,
+      dbQuestionsLength: dbQuestions.length
+    });
+    if (hasInitializedRef.current) return;
+
     if (editId) {
-      const existing = questionBankService.getQuestion(editId);
+      const existing = dbQuestions.find((q) => q.id === editId);
       if (existing) {
+        console.log("Effect 2: Found existing question, initializing", existing);
         const editable: QuestionForm = {
           id: existing.id,
           type: existing.type,
@@ -474,14 +493,16 @@ function QuestionBuilderPage() {
         };
         setQuestions([editable]);
         setSelectedQuestionId(existing.id);
-        return;
+        hasInitializedRef.current = true;
       }
+    } else {
+      console.log("Effect 2: No editId, creating empty question");
+      const newQ = createEmptyQuestion();
+      setQuestions([newQ]);
+      setSelectedQuestionId(newQ.id);
+      hasInitializedRef.current = true;
     }
-
-    const newQ = createEmptyQuestion();
-    setQuestions([newQ]);
-    setSelectedQuestionId(newQ.id);
-  }, [level, lessonId, editId]);
+  }, [level, lessonId, editId, dbQuestions]);
 
   // Get current selected question
   const selectedQuestion = questions.find((q) => q.id === selectedQuestionId) || questions[0];
@@ -563,71 +584,60 @@ function QuestionBuilderPage() {
     }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    completeQuestions.forEach((q) => {
-      if (q.type === "Listening") {
-        if (q.id.startsWith("temp_")) {
-          questionBankService.createQuestion(level, lessonId, {
-            type: q.type,
-            difficulty: q.difficulty,
-            questionText: q.questionText,
-            options: q.options,
-            correctIndex: q.correctIndex,
-            explanation: q.explanation,
-            audio: {
-              audioUrl: q.audioUrl,
-              audioFileName: q.audioFileName,
-              audioDuration: q.audioDuration,
-            },
-          });
-        } else {
-          questionBankService.updateQuestion(q.id, {
-            type: q.type,
-            difficulty: q.difficulty,
-            questionText: q.questionText,
-            options: q.options,
-            correctIndex: q.correctIndex,
-            explanation: q.explanation,
-            audio: {
-              audioUrl: q.audioUrl,
-              audioFileName: q.audioFileName,
-              audioDuration: q.audioDuration,
-            },
-          });
-        }
-      } else {
-        if (q.id.startsWith("temp_")) {
-          questionBankService.createQuestion(level, lessonId, {
-            type: q.type,
-            difficulty: q.difficulty,
-            questionText: q.questionText,
-            options: q.options,
-            correctIndex: q.correctIndex,
-            explanation: q.explanation,
-          });
-        } else {
-          questionBankService.updateQuestion(q.id, {
-            type: q.type,
-            difficulty: q.difficulty,
-            questionText: q.questionText,
-            options: q.options,
-            correctIndex: q.correctIndex,
-            explanation: q.explanation,
-          });
-        }
-      }
-    });
+    try {
+      await Promise.all(
+        completeQuestions.map((q) => {
+          if (q.type === "Listening") {
+            const data = {
+              type: q.type,
+              difficulty: q.difficulty,
+              questionText: q.questionText,
+              options: q.options,
+              correctIndex: q.correctIndex,
+              explanation: q.explanation,
+              audio: {
+                audioUrl: q.audioUrl,
+                audioFileName: q.audioFileName,
+                audioDuration: q.audioDuration,
+              },
+            };
+            if (q.id.startsWith("temp_")) {
+              return createQuestionMutation(lessonId, data);
+            } else {
+              return updateQuestionMutation(q.id, data);
+            }
+          } else {
+            const data = {
+              type: q.type,
+              difficulty: q.difficulty,
+              questionText: q.questionText,
+              options: q.options,
+              correctIndex: q.correctIndex,
+              explanation: q.explanation,
+            };
+            if (q.id.startsWith("temp_")) {
+              return createQuestionMutation(lessonId, data);
+            } else {
+              return updateQuestionMutation(q.id, data);
+            }
+          }
+        })
+      );
 
-    setSavedCount(completeQuestions.length);
-    setShowSuccess(true);
-    setIsSubmitting(false);
+      setSavedCount(completeQuestions.length);
+      setShowSuccess(true);
 
-    setTimeout(() => {
-      navigate({
-        to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
-      });
-    }, 1500);
+      setTimeout(() => {
+        navigate({
+          to: `/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`,
+        });
+      }, 1500);
+    } catch (err: any) {
+      alert(err?.message || "Failed to save questions");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const completeCount = questions.filter(isQuestionComplete).length;
