@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderType;
 import com.midori.ai.config.AiConfigProperties;
-import com.midori.ai.dto.AiExamParseResponse;
-import com.midori.ai.AiParsingException;
 import com.midori.ai.prompt.AiPromptBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -129,35 +127,6 @@ public class DeepSeekProvider implements AiProvider {
     // Exam Parsing Implementation
     // ============================================================
 
-    @Override
-    public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
-        if (!isConfigured()) {
-            throw new AiParsingException("DeepSeek API key is not configured.");
-        }
-
-        String prompt = AiPromptBuilder.buildExamParsingPrompt(extractedText, filename);
-        long startMs = System.currentTimeMillis();
-
-        List<Map<String, Object>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "user", "content", prompt));
-
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", config.getDeepseek().getModel());
-        requestBody.put("messages", messages);
-        requestBody.put("temperature", config.getTemperature());
-        requestBody.put("max_tokens", config.getMaxTokens());
-
-        try {
-            Map<String, Object> response = callDeepSeekApiRaw(requestBody);
-            long latencyMs = System.currentTimeMillis() - startMs;
-            log.info("DeepSeek API responded in {}ms for model {}", latencyMs, config.getDeepseek().getModel());
-            lastModelUsed = config.getDeepseek().getModel();
-            return parseResponse(response, latencyMs);
-        } catch (WebClientResponseException e) {
-            log.error("DeepSeek API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AiParsingException("DeepSeek API error: " + e.getStatusCode() + " — " + e.getMessage(), e);
-        }
-    }
 
     // ============================================================
     // Helper Methods
@@ -210,49 +179,6 @@ public class DeepSeekProvider implements AiProvider {
         return content;
     }
 
-    @SuppressWarnings("unchecked")
-    private AiExamParseResponse parseResponse(Map<String, Object> response, long latencyMs) throws AiParsingException {
-        List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
-        if (choices == null || choices.isEmpty()) {
-            throw new AiParsingException("DeepSeek returned empty choices");
-        }
-
-        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-        if (message == null) {
-            throw new AiParsingException("DeepSeek returned null message");
-        }
-
-        String content = (String) message.get("content");
-        if (content == null || content.isBlank()) {
-            throw new AiParsingException("DeepSeek returned empty content");
-        }
-
-        log.info("DeepSeek response content length: {} chars ({}ms)", content.length(), latencyMs);
-        return parseJsonContent(content);
-    }
-
-    public AiExamParseResponse parseJsonContent(String rawContent) throws AiParsingException {
-        String json = extractJson(rawContent);
-        try {
-            AiExamParseResponse result = objectMapper.readValue(json, AiExamParseResponse.class);
-            validateResult(result);
-            return result;
-        } catch (Exception e) {
-            log.error("Failed to parse DeepSeek JSON response: {}\nContent: {}", e.getMessage(), json);
-            throw new AiParsingException("AI returned malformed JSON: " + e.getMessage(), e);
-        }
-    }
-
-    public String extractJson(String raw) {
-        String trimmed = raw.trim();
-        int start = trimmed.indexOf('{');
-        int end = trimmed.lastIndexOf('}');
-        if (start == -1 || end == -1 || end <= start) {
-            throw new AiParsingException("No JSON object found in response: " + trimmed.substring(0, Math.min(100, trimmed.length())));
-        }
-        return trimmed.substring(start, end + 1);
-    }
-
     public String cleanJsonResponse(String raw) {
         if (raw == null || raw.isBlank()) {
             return raw;
@@ -273,24 +199,5 @@ public class DeepSeekProvider implements AiProvider {
             cleaned = cleaned.substring(firstBrace, lastBrace + 1);
         }
         return cleaned.trim();
-    }
-
-    private void validateResult(AiExamParseResponse result) throws AiParsingException {
-        if (result.getQuestions() == null || result.getQuestions().isEmpty()) {
-            throw new AiParsingException("AI returned no questions in the exam");
-        }
-        for (int i = 0; i < result.getQuestions().size(); i++) {
-            var q = result.getQuestions().get(i);
-            if (q.getContent() == null || q.getContent().isBlank()) {
-                throw new AiParsingException("Question " + (i + 1) + " has empty content");
-            }
-            if (q.getAnswers() == null || q.getAnswers().isEmpty()) {
-                throw new AiParsingException("Question " + (i + 1) + " has no answers");
-            }
-            long correctCount = q.getAnswers().stream().filter(a -> Boolean.TRUE.equals(a.getIsCorrect())).count();
-            if (correctCount != 1) {
-                throw new AiParsingException("Question " + (i + 1) + " must have exactly one correct answer, found " + correctCount);
-            }
-        }
     }
 }

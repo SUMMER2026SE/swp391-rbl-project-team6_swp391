@@ -5,8 +5,6 @@ import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderType;
 import com.midori.ai.AiTaskType;
 import com.midori.ai.config.AiConfigProperties;
-import com.midori.ai.dto.AiExamParseResponse;
-import com.midori.ai.AiParsingException;
 import com.midori.ai.key.GeminiKeyManager;
 import com.midori.ai.model.GeminiModelResolver;
 import com.midori.ai.model.ModelResolutionResult;
@@ -394,34 +392,6 @@ public class GeminiProvider implements AiProvider {
     // Exam Parsing Implementation
     // ============================================================
 
-    @Override
-    public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
-        return parseExamFromText(extractedText, filename, AiTaskType.DEFAULT);
-    }
-
-    @Override
-    public AiExamParseResponse parseExamFromText(String extractedText, String filename, AiTaskType taskType) throws AiParsingException {
-        try {
-            validateConfig();
-        } catch (IllegalStateException e) {
-            throw new AiParsingException(e.getMessage(), e);
-        }
-
-        String prompt = AiPromptBuilder.buildExamParsingPrompt(extractedText, filename);
-        long startMs = System.currentTimeMillis();
-
-        try {
-            Map<String, Object> response = executeWithFallback("exam parsing", (model, apiKey) -> {
-                return callGeminiApi(model, apiKey, prompt);
-            }, taskType);
-            long latencyMs = System.currentTimeMillis() - startMs;
-            log.info("Gemini API responded in {}ms for model {}", latencyMs, lastModelUsed);
-            return parseResponse(response, latencyMs);
-        } catch (Exception e) {
-            log.error("Gemini exam parsing failed: {}", e.getMessage());
-            throw new AiParsingException("Gemini request failed: " + e.getMessage(), e);
-        }
-    }
 
     // ============================================================
     // Helper Methods
@@ -502,54 +472,6 @@ public class GeminiProvider implements AiProvider {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private AiExamParseResponse parseResponse(Map<String, Object> response, long latencyMs) throws AiParsingException {
-        List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
-        if (candidates == null || candidates.isEmpty()) {
-            throw new AiParsingException("Gemini returned no candidates");
-        }
-
-        Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
-        if (content == null) {
-            throw new AiParsingException("Gemini returned null content");
-        }
-
-        List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
-        if (parts == null || parts.isEmpty()) {
-            throw new AiParsingException("Gemini returned empty parts");
-        }
-
-        String text = (String) parts.get(0).get("text");
-        if (text == null || text.isBlank()) {
-            throw new AiParsingException("Gemini returned empty text part");
-        }
-
-        log.info("Gemini response content length: {} chars ({}ms)", text.length(), latencyMs);
-        return parseJsonContent(text);
-    }
-
-    public AiExamParseResponse parseJsonContent(String rawContent) throws AiParsingException {
-        String json = extractJson(rawContent);
-        try {
-            AiExamParseResponse result = objectMapper.readValue(json, AiExamParseResponse.class);
-            validateResult(result);
-            return result;
-        } catch (Exception e) {
-            log.error("Failed to parse Gemini JSON response: {}\nContent: {}", e.getMessage(), json);
-            throw new AiParsingException("AI returned malformed JSON: " + e.getMessage(), e);
-        }
-    }
-
-    public String extractJson(String raw) {
-        String trimmed = raw.trim();
-        int start = trimmed.indexOf('{');
-        int end = trimmed.lastIndexOf('}');
-        if (start == -1 || end == -1 || end <= start) {
-            throw new AiParsingException("No JSON object found in response: " + trimmed.substring(0, Math.min(100, trimmed.length())));
-        }
-        return trimmed.substring(start, end + 1);
-    }
-
     public String cleanJsonResponse(String raw) {
         if (raw == null || raw.isBlank()) {
             return raw;
@@ -570,24 +492,5 @@ public class GeminiProvider implements AiProvider {
             cleaned = cleaned.substring(firstBrace, lastBrace + 1);
         }
         return cleaned.trim();
-    }
-
-    private void validateResult(AiExamParseResponse result) throws AiParsingException {
-        if (result.getQuestions() == null || result.getQuestions().isEmpty()) {
-            throw new AiParsingException("AI returned no questions in the exam");
-        }
-        for (int i = 0; i < result.getQuestions().size(); i++) {
-            var q = result.getQuestions().get(i);
-            if (q.getContent() == null || q.getContent().isBlank()) {
-                throw new AiParsingException("Question " + (i + 1) + " has empty content");
-            }
-            if (q.getAnswers() == null || q.getAnswers().isEmpty()) {
-                throw new AiParsingException("Question " + (i + 1) + " has no answers");
-            }
-            long correctCount = q.getAnswers().stream().filter(a -> Boolean.TRUE.equals(a.getIsCorrect())).count();
-            if (correctCount != 1) {
-                throw new AiParsingException("Question " + (i + 1) + " must have exactly one correct answer, found " + correctCount);
-            }
-        }
     }
 }

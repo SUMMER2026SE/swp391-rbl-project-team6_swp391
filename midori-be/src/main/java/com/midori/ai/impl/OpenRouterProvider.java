@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderType;
 import com.midori.ai.config.AiConfigProperties;
-import com.midori.ai.dto.AiExamParseResponse;
-import com.midori.ai.AiParsingException;
 import com.midori.ai.prompt.AiPromptBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -254,39 +252,6 @@ public class OpenRouterProvider implements AiProvider {
         throw new RuntimeException("AI không phản hồi được. Vui lòng thử lại sau.");
     }
 
-    // ============================================================
-    // Exam Parsing Implementation (OpenRouter can do this)
-    // ============================================================
-
-    @Override
-    public AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException {
-        if (!isConfigured()) {
-            throw new AiParsingException("OpenRouter API key is not configured.");
-        }
-
-        String prompt = AiPromptBuilder.buildExamParsingPrompt(extractedText, filename);
-        
-        // Use chat models for exam parsing
-        for (int attempt = 0; attempt < chatModels.size(); attempt++) {
-            String model = chatModels.get(attempt);
-            long startMs = System.currentTimeMillis();
-            try {
-                String response = callChat(model, null, prompt, null, chatMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
-                        createFactory(quizTimeoutMs));
-                
-                long latencyMs = System.currentTimeMillis() - startMs;
-                log.info("OpenRouter exam parse responded in {}ms for model {}", latencyMs, model);
-                lastModelUsed = model;
-                
-                String cleaned = cleanJsonResponse(response);
-                return parseExamJson(cleaned);
-            } catch (Exception e) {
-                log.warn("OpenRouter model {} failed for exam parsing: {}", model, e.getMessage());
-            }
-        }
-
-        throw new AiParsingException("OpenRouter failed to parse exam. All models exhausted.");
-    }
 
     // ============================================================
     // Helper Methods
@@ -503,13 +468,6 @@ public class OpenRouterProvider implements AiProvider {
         return cleaned.trim();
     }
 
-    private AiExamParseResponse parseExamJson(String json) throws AiParsingException {
-        try {
-            return objectMapper.readValue(json, AiExamParseResponse.class);
-        } catch (Exception e) {
-            throw new AiParsingException("Failed to parse exam JSON: " + e.getMessage());
-        }
-    }
 
     // Custom exceptions
     private static class AuthException extends RuntimeException {
