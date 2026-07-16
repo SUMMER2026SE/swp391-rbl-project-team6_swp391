@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, GraduationCap, TrendingUp,
-  HelpCircle, FileBadge, MessageSquare, Bell
+  HelpCircle, FileBadge, Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -31,7 +31,6 @@ const groups = [
   {
     label: "Support",
     items: [
-      { to: "/teacher/reports", label: "Reports", icon: MessageSquare },
       { to: "/teacher/notifications", label: "Notifications", icon: Bell },
     ],
   },
