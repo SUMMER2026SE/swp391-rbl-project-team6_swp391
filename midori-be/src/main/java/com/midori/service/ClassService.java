@@ -27,6 +27,7 @@ public interface ClassService {
     List<HomeworkResponse> getClassHomework(UUID studentId, UUID classId);
     List<ExamResponse> getClassExams(UUID studentId, UUID classId);
     List<ClassResponse> getSelectableClasses(UUID teacherId);
+    List<ClassResponse> getMyClasses(UUID teacherId, String status);
 }
 
 
