@@ -1,5 +1,6 @@
 package com.midori.ai;
 
+import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.exception.AiProcessingException;
 
 import java.util.List;
@@ -85,6 +86,28 @@ public interface AiProvider {
     default String generateQuestions(String materialTitle, String materialContent,
                                      int questionCount, String questionType, String difficulty, AiTaskType taskType) {
         return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty);
+    }
+
+    // ============================================================
+    // Exam Parsing (PDF to structured questions)
+    // ============================================================
+
+    /**
+     * Parse exam questions from extracted PDF text.
+     *
+     * @param extractedText the extracted text from PDF
+     * @param filename the original filename
+     * @return structured exam data
+     */
+    AiExamParseResponse parseExamFromText(String extractedText, String filename) throws AiParsingException;
+
+    /**
+     * Parse exam questions from extracted PDF text with an explicit task type hint.
+     *
+     * <p>The default implementation delegates to {@link #parseExamFromText(String, String)}.
+     */
+    default AiExamParseResponse parseExamFromText(String extractedText, String filename, AiTaskType taskType) throws AiParsingException {
+        return parseExamFromText(extractedText, filename);
     }
 
     // ============================================================

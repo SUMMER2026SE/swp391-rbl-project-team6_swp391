@@ -4,6 +4,7 @@ import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderFactory;
 import com.midori.ai.AiProviderType;
 import com.midori.ai.config.AiConfigProperties;
+import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.exception.AiProcessingException;
 import com.midori.ai.prompt.AiPromptBuilder;
 import lombok.RequiredArgsConstructor;
@@ -73,6 +74,18 @@ public class AiCoreService {
         return provider.generateQuestions(topic, materialContent, count, type, difficulty, com.midori.ai.AiTaskType.COMPLEX_REASONING);
     }
 
+    // ============================================================
+    // Exam Parsing (PDF)
+    // ============================================================
+
+    /**
+     * Parse exam from PDF text using AI.
+     */
+    public AiExamParseResponse parseExam(String extractedText, String filename)
+            throws AiProcessingException {
+        AiProvider provider = providerFactory.resolve();
+        return provider.parseExamFromText(extractedText, filename, com.midori.ai.AiTaskType.LONG_DOCUMENT_ANALYSIS);
+    }
 
     // ============================================================
     // Provider Information
