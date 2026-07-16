@@ -30,6 +30,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -44,7 +51,7 @@ import { InviteStudentsDialog } from "@/components/teacher/dialogs";
 import { cn } from "@/lib/utils";
 
 const LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
-const STATUSES = ["All", "Draft", "Active", "Archived"] as const;
+const STATUSES = ["All", "Active", "Archived"] as const;
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; dot: string; text: string }> = {
@@ -52,11 +59,6 @@ function StatusBadge({ status }: { status: string }) {
       label: "Active",
       dot: "bg-[var(--status-active)]",
       text: "text-[var(--status-active)]",
-    },
-    Draft: {
-      label: "Draft",
-      dot: "bg-[var(--status-pending)]",
-      text: "text-[var(--status-pending)]",
     },
     Archived: { label: "Archived", dot: "bg-gray-400", text: "text-gray-400" },
     Upcoming: {
@@ -112,7 +114,7 @@ function ClassesLayout() {
 
   const { data: dbClasses = [], isLoading } = useQuery({
     queryKey: ["teacherAllClasses", mappedStatus],
-    queryFn: () => classesApi.getAllClasses(mappedStatus),
+    queryFn: () => classesApi.getMyClasses(mappedStatus),
   });
 
   const confirmArchive = () => {
@@ -146,7 +148,7 @@ function ClassesLayout() {
       name: c.name,
       jpName: "",
       level: c.level || "N5",
-      status: c.status === "ACTIVE" ? "Active" : c.status === "ARCHIVED" ? "Archived" : "Draft",
+      status: c.status === "ACTIVE" ? "Active" : "Archived",
       studentCount: c.studentCount || 0,
       capacity: c.maxStudents || 30,
       openHomework: c.homeworkCount || 0,
@@ -195,30 +197,36 @@ function ClassesLayout() {
             className="pl-9"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {LEVELS.map((lv) => (
-            <Button
-              key={lv}
-              size="sm"
-              variant={levelFilter === lv ? "default" : "outline"}
-              onClick={() => setLevelFilter(lv)}
-            >
-              {lv}
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {STATUSES.map((s) => (
-            <Button
-              key={s}
-              size="sm"
-              variant={statusFilter === s ? "default" : "outline"}
-              onClick={() => setStatusFilter(s)}
-            >
-              {s}
-            </Button>
-          ))}
-        </div>
+        <Select
+          value={levelFilter}
+          onValueChange={(v) => setLevelFilter(v)}
+        >
+          <SelectTrigger className="h-9 w-[140px]">
+            <SelectValue placeholder="Level" />
+          </SelectTrigger>
+          <SelectContent>
+            {LEVELS.map((lv) => (
+              <SelectItem key={lv} value={lv}>
+                {lv === "All" ? "All levels" : lv}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v)}
+        >
+          <SelectTrigger className="h-9 w-[150px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
