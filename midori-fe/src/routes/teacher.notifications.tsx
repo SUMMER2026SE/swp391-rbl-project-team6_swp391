@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect } from "react";
 
-import { NotificationListView } from "@/components/notification";
+import { NotificationTableView } from "@/components/notification";
 
 export const Route = createFileRoute("/teacher/notifications")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -25,11 +25,9 @@ export const Route = createFileRoute("/teacher/notifications")({
 });
 
 /**
- * Teacher notification inbox. The visual rendering, interactions and state
- * machinery are now shared with the Student route via the canonical
- * {@link NotificationListView} component; this file only keeps the URL
- * search-param bookkeeping the teacher-shell expects (the `?q=` query is
- * used by the global search bar across every teacher page).
+ * Teacher notification inbox. Renders the role-scoped table layout via
+ * {@link NotificationTableView}, which is shared with Student but never
+ * touches the Admin notification UI.
  */
 function TeacherNotificationsPage() {
   const { q: urlQ, open: urlOpen } = Route.useSearch();
@@ -64,5 +62,5 @@ function TeacherNotificationsPage() {
     }
   }, []);
 
-  return <NotificationListView autoOpenId={urlOpen} onDrawerOpened={handleDrawerOpened} />;
+  return <NotificationTableView autoOpenId={urlOpen} onDrawerOpened={handleDrawerOpened} />;
 }
