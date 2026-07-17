@@ -5,6 +5,8 @@ export { NotificationListView } from "./notification-list-view";
 export { NotificationLoadingState } from "./notification-loading-state";
 export { NotificationPageHeader } from "./notification-page-header";
 export { NotificationPreviewSheet } from "./notification-preview-sheet";
+export { NotificationTableRow } from "./notification-table-row";
+export { NotificationTableView } from "./notification-table-view";
 export { NotificationTypeTabs } from "./notification-type-tabs";
 export { NOTIFICATION_TYPE_VISUALS, getNotificationTypeVisual } from "./notification-type-visuals";
 export type { NotificationTypeVisual } from "./notification-type-visuals";
