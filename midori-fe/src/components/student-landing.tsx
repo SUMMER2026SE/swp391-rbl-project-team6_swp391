@@ -144,7 +144,7 @@ function TeacherSkeleton() {
 }
 
 // Teacher List component
-function TeacherList({ onSelectTeacher }: { onSelectTeacher: (teacher: AdminTeacherResponse) => void }) {
+export function TeacherList({ onSelectTeacher }: { onSelectTeacher: (teacher: AdminTeacherResponse) => void }) {
   const { data: teachers = [], isLoading, error } = useQuery({
     queryKey: ["active-teachers"],
     queryFn: () => adminApi.getActiveTeachers(),
@@ -179,7 +179,7 @@ function TeacherList({ onSelectTeacher }: { onSelectTeacher: (teacher: AdminTeac
 }
 
 // Teacher Profile Modal
-function TeacherProfileModal({
+export function TeacherProfileModal({
   teacher,
   onClose,
 }: {

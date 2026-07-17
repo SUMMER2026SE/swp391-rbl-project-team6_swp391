@@ -44,6 +44,18 @@ public class UserProfile {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
+    @Column(name = "professional_title")
+    private String professionalTitle;
+
+    @Column(name = "teaching_levels")
+    private String teachingLevels;
+
+    @Column(name = "specializations")
+    private String specializations;
+
+    @Column(name = "years_of_experience")
+    private Integer yearsOfExperience;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

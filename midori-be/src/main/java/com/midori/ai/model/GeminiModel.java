@@ -62,11 +62,11 @@ public enum GeminiModel {
     ),
 
     /**
-     * Gemini 2.0 Flash - Modern fast and cost-effective model.
+     * Gemini 2.5 Flash - Modern fast and cost-effective model.
      */
-    GEMINI_20_FLASH(
-            "gemini-2.0-flash",
-            "Gemini 2.0 Flash",
+    GEMINI_25_FLASH(
+            "gemini-2.5-flash",
+            "Gemini 2.5 Flash",
             "Fast and cost-effective model, recommended for general tasks",
             3,  // capability
             1,  // cost
@@ -93,21 +93,6 @@ public enum GeminiModel {
             AiTaskType.LONG_DOCUMENT_ANALYSIS
     ),
 
-    /**
-     * Gemini 2.5 Flash - Fast, cost-effective for simple tasks.
-     * Best for: Translation, short responses, high-volume requests.
-     */
-    GEMINI_25_FLASH(
-            "gemini-2.5-flash",
-            "Gemini 2.5 Flash",
-            "Fast and cost-effective for simple tasks like translation, summarization, and short responses",
-            2,  // capability
-            1,  // cost
-            128000,  // context window
-            AiTaskType.DEFAULT,
-            AiTaskType.LONG_DOCUMENT_ANALYSIS
-    ),
-    
     /**
      * Gemini 2.5 Pro - Balanced for complex reasoning.
      * Best for: Complex reasoning, analysis, question generation.
@@ -137,6 +122,42 @@ public enum GeminiModel {
             AiTaskType.DEFAULT,
             AiTaskType.LONG_DOCUMENT_ANALYSIS,
             AiTaskType.COMPLEX_REASONING
+    ),
+
+    /**
+     * Gemini Flash Latest - Auto-updating latest stable flash model.
+     */
+    GEMINI_FLASH_LATEST(
+            "gemini-flash-latest",
+            "Gemini Flash (Latest)",
+            "Auto-updating latest stable flash model",
+            3,  // capability
+            1,  // cost
+            128000,  // context window
+            AiTaskType.DEFAULT,
+            AiTaskType.SIMPLE_TRANSLATION,
+            AiTaskType.SHORT_ANSWER,
+            AiTaskType.LONG_DOCUMENT_ANALYSIS,
+            AiTaskType.COMPLEX_REASONING,
+            AiTaskType.SHADOWING_EVALUATION
+    ),
+
+    /**
+     * Gemini 2.0 Flash - Newer fast model.
+     */
+    GEMINI_20_FLASH(
+            "gemini-2.0-flash",
+            "Gemini 2.0 Flash",
+            "Fast and capable model for general tasks",
+            3,  // capability
+            1,  // cost
+            128000,  // context window
+            AiTaskType.DEFAULT,
+            AiTaskType.SIMPLE_TRANSLATION,
+            AiTaskType.SHORT_ANSWER,
+            AiTaskType.LONG_DOCUMENT_ANALYSIS,
+            AiTaskType.COMPLEX_REASONING,
+            AiTaskType.SHADOWING_EVALUATION
     );
 
     private final String apiModelName;

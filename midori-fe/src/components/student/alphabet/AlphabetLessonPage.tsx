@@ -58,7 +58,7 @@ interface LessonPageProps {
   onComplete?: (score: number) => void;
 }
 
-type ViewMode = "learn" | "quiz";
+type ViewMode = "learn" | "quiz" | "typing";
 
 interface QuizQuestion {
   char: string;
@@ -68,7 +68,7 @@ interface QuizQuestion {
   type: "recognize" | "listen" | "type" | "romaji-to-char" | "char-to-romaji";
 }
 
-type QuizMode = "romaji-to-char" | "char-to-romaji";
+type QuizMode = "romaji-to-char" | "char-to-romaji" | "typing";
 
 export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("learn");
@@ -140,7 +140,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           correctAnswer: char.character,
           type: "romaji-to-char",
         });
-      } else {
+      } else if (mode === "char-to-romaji") {
         // Mode 2: Show character, select romaji
         const wrongOptions = lesson.characters
           .filter((c) => c.romaji !== char.romaji)
@@ -154,6 +154,14 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           options: [char.romaji, ...wrongOptions].sort(() => Math.random() - 0.5),
           correctAnswer: char.romaji,
           type: "char-to-romaji",
+        });
+      } else if (mode === "typing") {
+        questions.push({
+          char: char.character,
+          romaji: char.romaji,
+          options: [],
+          correctAnswer: char.romaji,
+          type: "type",
         });
       }
     });
@@ -206,7 +214,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
     setQuizFinished(false);
     setSelectedQuizDetailIdx(null);
     setQuizMode(mode);
-    setViewMode("quiz");
+    setViewMode(mode === "typing" ? "typing" : "quiz");
   };
 
   // Mark character as learned
@@ -397,7 +405,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
         <Card className="p-8 text-center bg-white/80 dark:bg-slate-900/40 border-slate-200 dark:border-white/10 rounded-2xl">
           <BrainCircuit className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <p className="text-slate-500 text-sm mb-4">No questions loaded. Choose a quiz mode to start!</p>
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             <Button onClick={() => startQuiz("char-to-romaji")} className="bg-primary hover:bg-primary/90 text-xs font-bold rounded-xl cursor-pointer">
               Character → Romaji
             </Button>
@@ -422,7 +430,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
             Question <span className="text-slate-800 dark:text-white font-black">{quizIdx + 1}</span> of {quizQuestions.length}
           </span>
           <span className="text-slate-400 font-bold uppercase tracking-wider">
-            {isRomajiToChar ? "Romaji → Character" : "Character → Romaji"}
+            {question.type === "type" ? "Typing" : isRomajiToChar ? "Romaji → Character" : "Character → Romaji"}
           </span>
           <span>
             Answered: <span className="text-primary font-black">{userAnswers.filter((ans) => ans !== null).length}</span>/{quizQuestions.length}
@@ -455,7 +463,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           <div className="absolute inset-0 bg-linear-to-b from-white/95 to-white/80 dark:from-slate-900/95 dark:to-slate-900/80 z-0" />
           
           <div className="relative z-10 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">
-            {isRomajiToChar ? "SELECT THE CHARACTER FOR:" : "WHAT IS THE ROMAJI FOR?"}
+            {question.type === "type" ? "TYPE THE ROMAJI FOR:" : isRomajiToChar ? "SELECT THE CHARACTER FOR:" : "WHAT IS THE ROMAJI FOR?"}
           </div>
 
           <div className="relative z-10 flex flex-col items-center">
@@ -474,48 +482,67 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           </div>
         </motion.div>
 
-        {/* Answer Options Grid (2x2) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {question.options.map((option, idx) => {
-            const prefix = ["A", "B", "C", "D"][idx];
-            const isSelected = userAnswers[quizIdx] === option;
-
-            return (
-              <button
-                key={option}
-                onClick={() => handleAnswer(option)}
-                className={cn(
-                  "p-3.5 rounded-2xl font-bold transition-all shadow-xs cursor-pointer border flex items-center gap-3.5 text-left w-full",
-                  isSelected
-                    ? "bg-primary/10 text-primary border-primary shadow-md shadow-primary/5"
-                    : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5"
-                )}
-              >
-                {/* Circle badge for A, B, C, D */}
-                <div 
+        {/* Answer Section */}
+        {question.type === "type" ? (
+          <div className="w-full">
+            <input
+              type="text"
+              autoFocus
+              placeholder="Nhập romaji..."
+              value={userAnswers[quizIdx] || ""}
+              onChange={(e) => handleAnswer(e.target.value.toLowerCase().trim())}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && userAnswers[quizIdx]) {
+                   if (quizIdx < quizQuestions.length - 1) setQuizIdx(quizIdx + 1);
+                   else submitQuiz();
+                }
+              }}
+              className="w-full p-4 rounded-2xl border-2 border-slate-200 dark:border-white/10 text-center text-xl font-bold bg-white dark:bg-slate-900 focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {question.options.map((option, idx) => {
+              const prefix = ["A", "B", "C", "D"][idx];
+              const isSelected = userAnswers[quizIdx] === option;
+  
+              return (
+                <button
+                  key={option}
+                  onClick={() => handleAnswer(option)}
                   className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 border select-none transition-colors",
+                    "p-3.5 rounded-2xl font-bold transition-all shadow-xs cursor-pointer border flex items-center gap-3.5 text-left w-full",
                     isSelected
-                      ? "bg-primary text-white border-primary"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/10"
+                      ? "bg-primary/10 text-primary border-primary shadow-md shadow-primary/5"
+                      : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-white/5 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5"
                   )}
                 >
-                  {prefix}
-                </div>
-                
-                <span 
-                  className={cn(
-                    "font-black text-sm",
-                    isRomajiToChar ? "text-2xl" : "text-sm"
-                  )}
-                  style={isRomajiToChar ? { fontFamily: "var(--font-japanese)" } : {}}
-                >
-                  {option}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                  {/* Circle badge for A, B, C, D */}
+                  <div 
+                    className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 border select-none transition-colors",
+                      isSelected
+                        ? "bg-primary text-white border-primary"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200/60 dark:border-white/10"
+                    )}
+                  >
+                    {prefix}
+                  </div>
+                  
+                  <span 
+                    className={cn(
+                      "font-black text-sm",
+                      isRomajiToChar ? "text-2xl" : "text-sm"
+                    )}
+                    style={isRomajiToChar ? { fontFamily: "var(--font-japanese)" } : {}}
+                  >
+                    {option}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Back & Next/Submit Button */}
         <div className="flex items-center justify-between gap-4 pt-2">
@@ -625,7 +652,12 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                         Câu hỏi
                       </div>
                       <div className="text-lg font-black text-slate-800 dark:text-white">
-                        {q.type === "char-to-romaji" ? (
+                        {q.type === "type" ? (
+                          <>
+                            Chữ: <span style={{ fontFamily: "var(--font-japanese)" }} className="text-2xl ml-1 text-primary">{q.char}</span>
+                            <span className="text-xs font-medium block text-slate-500 mt-1">(Gõ Romaji tương ứng)</span>
+                          </>
+                        ) : q.type === "char-to-romaji" ? (
                           <>
                             Chữ: <span style={{ fontFamily: "var(--font-japanese)" }} className="text-2xl ml-1 text-primary">{q.char}</span>
                             <span className="text-xs font-medium block text-slate-500 mt-1">(Tìm Romaji tương ứng)</span>
@@ -736,14 +768,26 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           {[
             { id: "learn" as ViewMode, icon: GraduationCap, label: "Learn" },
             { id: "quiz" as ViewMode, icon: BrainCircuit, label: "Quiz" },
+            { id: "typing" as ViewMode, icon: Target, label: "Typing" },
           ].map((mode) => (
             <button
               key={mode.id}
               onClick={() => {
-                if (mode.id === "quiz" && quizQuestions.length === 0) {
-                  const questions = generateQuizQuestions(quizMode);
+                if (mode.id === "quiz" && viewMode !== "quiz") {
+                  if (quizMode === "typing") setQuizMode("char-to-romaji");
+                  const currentQuizMode = quizMode === "typing" ? "char-to-romaji" : quizMode;
+                  const questions = generateQuizQuestions(currentQuizMode);
                   setQuizQuestions(questions);
                   setUserAnswers(new Array(questions.length).fill(null));
+                  setQuizFinished(false);
+                } else if (mode.id === "typing" && viewMode !== "typing") {
+                  setQuizMode("typing");
+                  const questions = generateQuizQuestions("typing");
+                  setQuizQuestions(questions);
+                  setUserAnswers(new Array(questions.length).fill(null));
+                  setQuizFinished(false);
+                } else if (mode.id === "learn") {
+                  setViewMode("learn");
                 }
                 setViewMode(mode.id);
               }}
@@ -794,7 +838,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
           <div className="lg:col-span-8 space-y-6">
             
             {/* Stats Row - Only show when NOT in quiz mode */}
-            {viewMode !== "quiz" && (
+            {viewMode === "learn" && (
               <div className="grid grid-cols-2 gap-4">
                 {/* Progress Card */}
                 <div className="bg-white/60 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/10 rounded-2xl p-4 flex flex-col gap-1 shadow-sm">
@@ -831,7 +875,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
                 transition={{ duration: 0.2 }}
               >
                 {viewMode === "learn" && renderLearnMode()}
-                {viewMode === "quiz" && renderQuizMode()}
+                {(viewMode === "quiz" || viewMode === "typing") && renderQuizMode()}
               </motion.div>
             </AnimatePresence>
 
@@ -839,7 +883,7 @@ export function AlphabetLessonPage({ lesson, progressKey, onComplete }: LessonPa
 
           {/* Right Column: Information Sidebars */}
           <div className="lg:col-span-4 space-y-6">
-            {viewMode === "quiz" && !quizFinished ? (
+            {(viewMode === "quiz" || viewMode === "typing") && !quizFinished ? (
               /* Sidebar: Quiz Question navigation grid */
               <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 p-5 rounded-3xl shadow-sm flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-200">
                 <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2.5">

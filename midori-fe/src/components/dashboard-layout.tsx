@@ -113,21 +113,8 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
   { to: "/student/profile", label: "Profile", icon: User },
 ];
 
-const unassignedStudentNav: NavItem[] = [
-  { to: "/student/dashboard", label: "Home", icon: LayoutDashboard },
-  { to: "landing-about", label: "About", icon: Info },
-  { to: "landing-teachers", label: "Teachers", icon: GraduationCap },
-  { to: "landing-courses", label: "Courses", icon: School, dividerAfter: true },
-  
-  { to: "locked-lessons", label: "Lessons 🔒", icon: Lock, disabled: true },
-  { to: "locked-shadowing", label: "Shadowing 🔒", icon: Lock, disabled: true },
-  { to: "locked-quiz", label: "Quiz 🔒", icon: Lock, disabled: true },
-  { to: "locked-learning", label: "Learning Module 🔒", icon: Lock, disabled: true },
-  { to: "locked-progress", label: "Progress 🔒", icon: Lock, disabled: true, dividerAfter: true },
-  
-  { to: "/student/profile", label: "Profile", icon: User },
-  { to: "/student/settings", label: "Settings", icon: Settings },
-];
+// All students (both active and guests) see the same navigation structure.
+// Guests will be blocked by StudentStatusGuard when they click on protected features.
 
 const teacherNav: NavItem[] = [
   // 1. Dashboard
@@ -195,7 +182,7 @@ const adminNav: NavItem[] = [
 
 function getNav(role: FrontendRole, isActive: boolean, hasAssignedLevel: boolean): NavItem[] {
   if (role === "student") {
-    return hasAssignedLevel ? studentNav : unassignedStudentNav;
+    return studentNav;
   }
   return role === "teacher" ? teacherNav : adminNav;
 }
@@ -430,6 +417,7 @@ export function DashboardLayout({
 
     // Render parent item with expandable children
     if (hasChildren) {
+      const isParentRouteActive = isRouteActive(item.to);
       return (
         <div key={item.to} className="relative">
           <button
@@ -437,20 +425,20 @@ export function DashboardLayout({
             title={isCollapsed ? item.label : undefined}
             className={cn(
               "w-full group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
-              isActive ? "nav-active" : "nav-item",
+              isParentRouteActive ? "nav-active" : "nav-item",
               isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
             )}
           >
             <Icon
               className={cn(
                 "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                isActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
+                isParentRouteActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
               )}
             />
             <span
               className={cn(
                 "transition-all duration-300 whitespace-nowrap overflow-hidden flex-1 text-left",
-                isActive ? "text-white font-semibold" : "text-secondary-col",
+                isParentRouteActive ? "text-white font-semibold" : "text-secondary-col",
                 isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
               )}
             >

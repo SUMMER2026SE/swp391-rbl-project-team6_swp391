@@ -181,7 +181,7 @@ export function rolePath(role: FrontendRole) {
   return role === "student" ? "/student" : role === "teacher" ? "/teacher" : "/admin";
 }
 
-export function getDashboardPath(user: Pick<User, "role" | "status">) {
+export function getDashboardPath(user: Pick<User, "role" | "status" | "classId">) {
   if (
     user.role === "teacher" &&
     (user.status === "PENDING_APPROVAL" || user.status === "REJECTED")
@@ -193,7 +193,7 @@ export function getDashboardPath(user: Pick<User, "role" | "status">) {
 }
 
 export function getRouteGuardRedirect(
-  user: Pick<User, "role" | "status"> | null,
+  user: Pick<User, "role" | "status" | "classId"> | null,
   routeRole: FrontendRole,
 ) {
   if (!user) {
@@ -219,7 +219,7 @@ export function getRouteGuardRedirect(
   return null;
 }
 
-export function getTeacherPendingRedirect(user: Pick<User, "role" | "status"> | null) {
+export function getTeacherPendingRedirect(user: Pick<User, "role" | "status" | "classId"> | null) {
   if (!user) {
     return "/login";
   }
@@ -227,7 +227,7 @@ export function getTeacherPendingRedirect(user: Pick<User, "role" | "status"> | 
   return getDashboardPath(user) === "/teacher-pending" ? null : getDashboardPath(user);
 }
 
-export function canAccessRoleRoute(user: Pick<User, "role" | "status">, routeRole: FrontendRole) {
+export function canAccessRoleRoute(user: Pick<User, "role" | "status" | "classId">, routeRole: FrontendRole) {
   return getRouteGuardRedirect(user, routeRole) === null;
 }
 

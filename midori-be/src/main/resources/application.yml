@@ -106,8 +106,8 @@ ai:
   gemini:
     api-key: ${GEMINI_API_KEY:}
     api-keys: "AQ.Ab8RN6J_uqI-pBJ-Q6KcJT6u2tW_4K5QRmS7t3DLTfSIBb8fnQ,AQ.Ab8RN6IUflU19XeySpgvsKNEND7ECfhIlewFz24CgPNVF6nGqg,AQ.Ab8RN6IMf9quTzsgDPP70RAYUdjJvvtW2FGrBkj8RXbqdXBksg,AIzaSyC4uGSSu8Ueo4n0g3ur0hNPpHxcuqJhJlw"
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
-    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-2.5-flash,gemini-3.5-flash,gemini-2.5-pro}
+    model: ${GEMINI_MODEL:gemini-flash-latest}
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-flash-latest,gemini-2.0-flash,gemini-2.0-flash-lite,gemini-1.5-flash,gemini-1.5-flash-8b}
     base-url: https://generativelanguage.googleapis.com
     enabled: true
   openai:

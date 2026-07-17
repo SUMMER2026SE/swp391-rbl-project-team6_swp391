@@ -35,6 +35,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { ClickableTranscript } from "@/components/clickable-transcript";
 import { SavedWordsButton } from "@/components/saved-words-panel";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 type PracticeState = "practicing" | "recording" | "feedback" | "result";
 
@@ -241,6 +242,7 @@ function ShadowingPracticePage() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedFile, setRecordedFile] = useState<File | null>(null);
   const [unsavedRecordings, setUnsavedRecordings] = useState<Record<string, { blob: Blob; file: File; url: string; seconds: number }>>({});
+  const [showResultDialog, setShowResultDialog] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -1112,44 +1114,46 @@ function ShadowingPracticePage() {
                     )}
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col gap-4 py-1">
-                    {/* Modern Score Dashboard Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                      {/* Left side: Premium Circular Score Badge */}
-                      <div className={cn(
-                        "sm:col-span-5 rounded-3xl p-5 border flex flex-col items-center justify-center relative overflow-hidden backdrop-blur-md shadow-lg transition-all duration-300",
-                        getScoreBgClass(lastResult.score)
-                      )}>
-                        {/* Soft glowing ambient light behind */}
-                        <div className={cn(
-                          "absolute -bottom-10 -right-10 w-24 h-24 rounded-full blur-3xl opacity-20 dark:opacity-30 bg-linear-to-r",
-                          getScoreGradient(lastResult.score)
-                        )} />
-                        
-                        <div className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 z-10">
-                          Điểm Tổng
-                        </div>
-                        
-                        {/* Circular Progress Gauge */}
-                        <div className="relative w-24 h-24 flex items-center justify-center mb-3 z-10">
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3 py-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center border border-emerald-200 dark:border-emerald-900/30">
+                      <CheckCircle className="w-5 h-5 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      Phân tích hoàn tất!
+                    </span>
+                    <Button
+                      onClick={() => setShowResultDialog(true)}
+                      className="mt-1 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all hover:scale-102 shadow-sm"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Xem kết quả & lịch sử luyện
+                    </Button>
+                    <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+                      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 border-slate-200/60 dark:border-white/10 shadow-2xl scrollbar-thin">
+                        <div className="flex flex-col gap-4">
+                          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-1">
+                            <Sparkles className="w-5 h-5 text-primary" />
+                            Chi tiết kết quả & Lịch sử
+                          </h2>
+
+                    {/* Compact Score Card */}
+                    <div className={cn(
+                      "rounded-2xl p-4 border flex items-center justify-between gap-4 shadow-sm",
+                      getScoreBgClass(lastResult.score)
+                    )}>
+                      <div className="flex items-center gap-4">
+                        {/* Mini Circular Score */}
+                        <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                           <svg className="w-full h-full transform -rotate-90">
-                            {/* Background circle */}
+                            <circle cx="32" cy="32" r="26" className="stroke-slate-200/60 dark:stroke-slate-800/40 fill-none" strokeWidth="6" />
                             <circle
-                              cx="48"
-                              cy="48"
-                              r="40"
-                              className="stroke-slate-200/50 dark:stroke-slate-800/40 fill-none"
-                              strokeWidth="8"
-                            />
-                            {/* Foreground circle with score gradient */}
-                            <circle
-                              cx="48"
-                              cy="48"
-                              r="40"
+                              cx="32"
+                              cy="32"
+                              r="26"
                               className="fill-none transition-all duration-500 ease-out"
-                              strokeWidth="8"
-                              strokeDasharray={2 * Math.PI * 40}
-                              strokeDashoffset={2 * Math.PI * 40 * (1 - lastResult.score / 100)}
+                              strokeWidth="6"
+                              strokeDasharray={2 * Math.PI * 26}
+                              strokeDashoffset={2 * Math.PI * 26 * (1 - lastResult.score / 100)}
                               stroke="currentColor"
                               style={{
                                 color: lastResult.score >= 85 ? '#10b981' : lastResult.score >= 70 ? '#f59e0b' : '#ef4444'
@@ -1158,238 +1162,243 @@ function ShadowingPracticePage() {
                             />
                           </svg>
                           <div className="absolute flex flex-col items-center justify-center">
-                            <span className="text-3xl font-black tracking-tighter text-slate-800 dark:text-white leading-none">
+                            <span className={cn("text-lg font-black leading-none", getScoreColorClass(lastResult.score))}>
                               {lastResult.score}
                             </span>
-                            <span className="text-[9px] font-bold text-muted-foreground mt-0.5">/100</span>
+                            <span className="text-[8px] font-bold text-muted-foreground">/100</span>
                           </div>
                         </div>
 
-                        {/* Star rating */}
-                        <div className="flex items-center gap-0.5 mb-3 z-10">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={cn(
-                                "w-3.5 h-3.5",
-                                i < getRatingStars(lastResult.score)
-                                  ? "text-amber-400 fill-amber-400 filter drop-shadow-[0_1px_2px_rgba(245,158,11,0.3)]"
-                                  : "text-slate-300 dark:text-slate-755"
-                              )}
-                            />
-                          ))}
-                        </div>
-
-                        {/* Rating Pill Badge */}
-                        <div className={cn(
-                          "px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-xs border z-10",
-                          lastResult.score >= 85
-                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                            : lastResult.score >= 70
-                              ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-                              : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
-                        )}>
-                          {getRatingLabel(lastResult.score)}
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={cn(
+                                  "w-3 h-3",
+                                  i < getRatingStars(lastResult.score)
+                                    ? "text-amber-400 fill-amber-400"
+                                    : "text-slate-300 dark:text-slate-700"
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <div className={cn(
+                            "inline-flex w-fit px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                            lastResult.score >= 85
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : lastResult.score >= 70
+                                ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                                : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
+                          )}>
+                            {getRatingLabel(lastResult.score)}
+                          </div>
+                          <span className="text-[9px] font-bold text-muted-foreground">
+                            {lastResult.evaluation
+                              ? `Độ chính xác: ${Math.round(lastResult.evaluation.accuracy ?? lastResult.score)}% · Độ trùng khớp: ${Math.round(lastResult.evaluation.similarity ?? lastResult.score)}%`
+                              : "Đã chấm"}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Right side: Detailed Metrics cards */}
-                      <div className="sm:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* Accuracy metric card */}
-                        <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl p-4 border border-slate-200/50 dark:border-white/5 flex flex-col justify-between gap-3 flex-1 shadow-xs">
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                Độ chính xác
-                              </span>
-                              <span className={cn("text-xs font-black font-mono", getScoreColorClass(lastResult.evaluation?.accuracy ?? lastResult.score))}>
-                                {Math.round(lastResult.evaluation?.accuracy ?? lastResult.score)}%
-                              </span>
-                            </div>
-                            <p className="text-[9px] text-muted-foreground font-medium mb-2">
-                              Tỉ lệ phát âm chính xác các từ vựng trong câu mẫu.
-                            </p>
-                          </div>
-                          <Progress
-                            value={lastResult.evaluation?.accuracy ?? lastResult.score}
-                            className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full"
-                            indicatorClassName={getProgressColor(lastResult.evaluation?.accuracy ?? lastResult.score)}
-                          />
-                        </div>
-
-                        {/* Similarity metric card */}
-                        <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl p-4 border border-slate-200/50 dark:border-white/5 flex flex-col justify-between gap-3 flex-1 shadow-xs">
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                Độ trùng khớp
-                              </span>
-                              <span className={cn("text-xs font-black font-mono", getScoreColorClass(lastResult.evaluation?.similarity ?? lastResult.score))}>
-                                {Math.round(lastResult.evaluation?.similarity ?? lastResult.score)}%
-                              </span>
-                            </div>
-                            <p className="text-[9px] text-muted-foreground font-medium mb-2">
-                              Mức độ tương đồng về ngữ điệu và nhịp điệu so với câu mẫu.
-                            </p>
-                          </div>
-                          <Progress
-                            value={lastResult.evaluation?.similarity ?? lastResult.score}
-                            className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full"
-                            indicatorClassName={getProgressColor(lastResult.evaluation?.similarity ?? lastResult.score)}
-                          />
-                        </div>
-                      </div>
                     </div>
 
-                    {/* Transcript Comparison */}
-                    {(() => {
-                      const ref = lastResult.text;
-                      const eval_ = lastResult.evaluation;
-                      if (!eval_) return null;
+                    {/* Detailed section: metrics + pronunciation comparison + suggestions + history */}
+                    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
+                      {/* Detailed Metrics Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl p-4 border border-slate-200/50 dark:border-white/5 flex flex-col justify-between gap-3 shadow-xs">
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                  Độ chính xác
+                                </span>
+                                <span className={cn("text-xs font-black font-mono", getScoreColorClass(lastResult.evaluation?.accuracy ?? lastResult.score))}>
+                                  {Math.round(lastResult.evaluation?.accuracy ?? lastResult.score)}%
+                                </span>
+                              </div>
+                              <p className="text-[9px] text-muted-foreground font-medium mb-2">
+                                Tỉ lệ phát âm chính xác các từ vựng trong câu mẫu.
+                              </p>
+                            </div>
+                            <Progress
+                              value={lastResult.evaluation?.accuracy ?? lastResult.score}
+                              className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full"
+                              indicatorClassName={getProgressColor(lastResult.evaluation?.accuracy ?? lastResult.score)}
+                            />
+                          </div>
 
-                      const spokenText = eval_.transcript || lastResult.feedback.spokenText || "";
+                          <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl p-4 border border-slate-200/50 dark:border-white/5 flex flex-col justify-between gap-3 shadow-xs">
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                  Độ trùng khớp
+                                </span>
+                                <span className={cn("text-xs font-black font-mono", getScoreColorClass(lastResult.evaluation?.similarity ?? lastResult.score))}>
+                                  {Math.round(lastResult.evaluation?.similarity ?? lastResult.score)}%
+                                </span>
+                              </div>
+                              <p className="text-[9px] text-muted-foreground font-medium mb-2">
+                                Mức độ tương đồng về ngữ điệu và nhịp điệu so với câu mẫu.
+                              </p>
+                            </div>
+                            <Progress
+                              value={lastResult.evaluation?.similarity ?? lastResult.score}
+                              className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full"
+                              indicatorClassName={getProgressColor(lastResult.evaluation?.similarity ?? lastResult.score)}
+                            />
+                          </div>
+                        </div>
 
-                      return (
-                        <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl p-4 border border-slate-200/50 dark:border-white/5 flex flex-col gap-3 shadow-xs">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <Target className="w-3.5 h-3.5 text-primary" />
-                            <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                              So sánh phát âm chi tiết
+                        {/* Transcript Comparison */}
+                        {(() => {
+                          const ref = lastResult.text;
+                          const eval_ = lastResult.evaluation;
+                          if (!eval_) return null;
+
+                          const spokenText = eval_.transcript || lastResult.feedback.spokenText || "";
+
+                          return (
+                            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl p-4 border border-slate-200/50 dark:border-white/5 flex flex-col gap-3 shadow-xs">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <Target className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                                  So sánh phát âm chi tiết
+                                </span>
+                              </div>
+
+                              {/* Reference Sentence */}
+                              <div>
+                                <div className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1.5">
+                                  Câu mẫu chuẩn
+                                </div>
+                                <p
+                                  className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-relaxed bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-white/5"
+                                  style={{ fontFamily: "var(--font-japanese, serif)" }}
+                                >
+                                  {ref}
+                                </p>
+                              </div>
+
+                              {/* Your Pronunciation */}
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <div className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    Phát âm của bạn
+                                  </div>
+                                  {(recordedAudioUrl || lastResult?.recordedAudioUrl) && (
+                                    <button
+                                      onClick={playRecordedAudio}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/20 text-[9px] font-bold transition-all cursor-pointer hover:scale-102"
+                                      title="Nghe lại câu nói của bạn"
+                                    >
+                                      <Volume2 className="w-3 h-3" />
+                                      Nghe lại
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Word/Character Comparison */}
+                                <div className="flex flex-wrap gap-1.5 bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 min-h-[46px] items-center">
+                                  {spokenText.trim() ? (
+                                    getGroupedLcsAlignment(ref, spokenText).map((group, i) => {
+                                      if (group.text === " " || /^[。、！？「」『』（）]+$/.test(group.text)) {
+                                        return <span key={i} className="text-slate-700 dark:text-slate-300 text-sm font-bold">{group.text}</span>;
+                                      }
+                                      return (
+                                        <span
+                                          key={i}
+                                          className={cn(
+                                            "px-2.5 py-1.5 rounded-xl text-xs font-black shadow-xs border transition-all duration-200 hover:scale-105 select-none",
+                                            group.isCorrect
+                                              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30"
+                                              : "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/30"
+                                          )}
+                                          style={{ fontFamily: "var(--font-japanese, serif)" }}
+                                          title={group.isCorrect ? "Đúng" : "Sai / Thừa"}
+                                        >
+                                          {group.text}
+                                        </span>
+                                      );
+                                    })
+                                  ) : (
+                                    <p className="text-xs italic text-slate-455">Không nhận diện được giọng nói</p>
+                                  )}
+                                </div>
+
+                                {/* Legend */}
+                                <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-slate-200/40 dark:border-white/5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/20" />
+                                    <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Đúng</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/20" />
+                                    <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sai / Thừa</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Practice Suggestions */}
+                        <div className="bg-linear-to-br from-purple-50/60 to-pink-50/60 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl p-3 border border-purple-200/40 dark:border-purple-800/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Lightbulb className="w-3.5 h-3.5 text-purple-500" />
+                            <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
+                              Gợi ý luyện tập
                             </span>
                           </div>
-
-                          {/* Reference Sentence */}
-                          <div>
-                            <div className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1.5">
-                              Câu mẫu chuẩn
-                            </div>
-                            <p
-                              className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-relaxed bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-white/5"
-                              style={{ fontFamily: "var(--font-japanese, serif)" }}
-                            >
-                              {ref}
-                            </p>
-                          </div>
-
-                          {/* Your Pronunciation */}
-                          <div>
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <div className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                                Phát âm của bạn
-                              </div>
-                              {(recordedAudioUrl || lastResult?.recordedAudioUrl) && (
-                                <button
-                                  onClick={playRecordedAudio}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/20 text-[9px] font-bold transition-all cursor-pointer hover:scale-102"
-                                  title="Nghe lại câu nói của bạn"
-                                >
-                                  <Volume2 className="w-3 h-3" />
-                                  Nghe lại
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Word/Character Comparison */}
-                            <div className="flex flex-wrap gap-1.5 bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 min-h-[46px] items-center">
-                              {spokenText.trim() ? (
-                                getGroupedLcsAlignment(ref, spokenText).map((group, i) => {
-                                  if (group.text === " " || /^[。、！？「」『』（）]+$/.test(group.text)) {
-                                    return <span key={i} className="text-slate-700 dark:text-slate-300 text-sm font-bold">{group.text}</span>;
-                                  }
-                                  return (
-                                    <span
-                                      key={i}
-                                      className={cn(
-                                        "px-2.5 py-1.5 rounded-xl text-xs font-black shadow-xs border transition-all duration-200 hover:scale-105 select-none",
-                                        group.isCorrect
-                                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/30"
-                                          : "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/30"
-                                      )}
-                                      style={{ fontFamily: "var(--font-japanese, serif)" }}
-                                      title={group.isCorrect ? "Đúng" : "Sai / Thừa"}
-                                    >
-                                      {group.text}
-                                    </span>
-                                  );
-                                })
-                              ) : (
-                                <p className="text-xs italic text-slate-455">Không nhận diện được giọng nói</p>
-                              )}
-                            </div>
-
-                            {/* Legend */}
-                            <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-slate-200/40 dark:border-white/5">
-                              <div className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/20" />
-                                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Đúng</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/20" />
-                                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sai / Thừa</span>
-                              </div>
-                            </div>
-                          </div>
+                          <ul className="space-y-1.5">
+                            {lastResult.evaluation?.practiceSuggestions && lastResult.evaluation.practiceSuggestions.length > 0 ? (
+                              lastResult.evaluation.practiceSuggestions.slice(0, 5).map((suggestion, index) => (
+                                <li key={index} className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                                  <span>{suggestion}</span>
+                                </li>
+                              ))
+                            ) : (
+                              <>
+                                <li className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                                  <span>Nghe mẫu phát âm chậm rãi và nhắm mắt theo dõi.</span>
+                                </li>
+                                <li className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                                  <span>Chú ý đến âm dài (long vowels) và thanh điệu.</span>
+                                </li>
+                                <li className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                                  <span>Lặp lại câu này 3-5 lần để ghi nhớ.</span>
+                                </li>
+                              </>
+                            )}
+                          </ul>
                         </div>
-                      );
-                    })()}
 
-                    {/* Practice Suggestions */}
-                    <div className="bg-linear-to-br from-purple-50/60 to-pink-50/60 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl p-3 border border-purple-200/40 dark:border-purple-800/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Lightbulb className="w-3.5 h-3.5 text-purple-500" />
-                        <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
-                          Gợi ý luyện tập
-                        </span>
-                      </div>
-                      <ul className="space-y-1.5">
-                        {lastResult.evaluation?.practiceSuggestions && lastResult.evaluation.practiceSuggestions.length > 0 ? (
-                          lastResult.evaluation.practiceSuggestions.slice(0, 5).map((suggestion, index) => (
-                            <li key={index} className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>{suggestion}</span>
-                            </li>
-                          ))
-                        ) : (
-                          <>
-                            <li className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Nghe mẫu phát âm chậm rãi và nhắm mắt theo dõi.</span>
-                            </li>
-                            <li className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Chú ý đến âm dài (long vowels) và thanh điệu.</span>
-                            </li>
-                            <li className="flex items-start gap-2 text-[10px] text-slate-600 dark:text-slate-300">
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                              <span>Lặp lại câu này 3-5 lần để ghi nhớ.</span>
-                            </li>
-                          </>
-                        )}
-                      </ul>
-                    </div>
+                        {/* Sentence Practice History */}
+                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200/40 dark:border-white/5 space-y-2">
+                          <div className="flex items-center justify-between border-b border-slate-200/40 dark:border-slate-700/50 pb-1.5">
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-primary" />
+                              Lịch sử luyện tập ({currentSentenceHistory.length} lần)
+                            </span>
+                          </div>
+                          {currentSentenceHistory.length === 0 ? (
+                            <p className="text-[10px] text-muted-foreground italic">Chưa có lịch sử luyện tập trước đó.</p>
+                          ) : (
+                            <div className="max-h-[120px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+                              {currentSentenceHistory.map((attempt: any, idx: number) => {
+                                const date = new Date(attempt.timestamp);
+                                const formattedTime = date.toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' });
+                                const formattedDate = date.toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-                    {/* Sentence Practice History */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-200/40 dark:border-white/5 space-y-2">
-                      <div className="flex items-center justify-between border-b border-slate-200/40 dark:border-slate-700/50 pb-1.5">
-                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-primary" />
-                          Lịch sử luyện tập ({currentSentenceHistory.length} lần)
-                        </span>
-                      </div>
-                      {currentSentenceHistory.length === 0 ? (
-                        <p className="text-[10px] text-muted-foreground italic">Chưa có lịch sử luyện tập trước đó.</p>
-                      ) : (
-                        <div className="max-h-[120px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
-                          {currentSentenceHistory.map((attempt: any, idx: number) => {
-                            const date = new Date(attempt.timestamp);
-                            const formattedTime = date.toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' });
-                            const formattedDate = date.toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' });
-                            
-                            return (
-                              <div key={idx} className="flex items-center justify-between gap-4 p-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-100 dark:border-white/5 text-[10px]">
-                                <div className="text-slate-500 dark:text-slate-400 font-medium">
-                                  {formattedTime} - {formattedDate}
-                                </div>
+                                return (
+                                  <div key={idx} className="flex items-center justify-between gap-4 p-2 rounded-lg bg-white/60 dark:bg-slate-800/60 border border-slate-100 dark:border-white/5 text-[10px]">
+                                    <div className="text-slate-500 dark:text-slate-400 font-medium">
+                                      {formattedTime} - {formattedDate}
+                                    </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-slate-400">Điểm:</span>
                                   <span className={cn("font-bold font-mono", getScoreColorClass(attempt.score))}>
@@ -1406,7 +1415,11 @@ function ShadowingPracticePage() {
                           })}
                         </div>
                       )}
-                    </div>
+                        </div>
+                      </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 )}
 
