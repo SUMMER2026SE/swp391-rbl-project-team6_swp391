@@ -18,7 +18,7 @@ import {
   ShieldCheck, ChevronRight, Menu, Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft,
   FileText, FileBarChart, FolderOpen, BookUser, Library, School, UserPlus, ClipboardList,
   Users, Settings, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText, Brain,
-  ChartColumn, BookText, Lock, BookOpenCheck, Map, Plus, X
+  BookText, Lock, BookOpenCheck, Map, Plus, X
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -69,11 +69,6 @@ const studentNav: NavItem[] = [
     ],
   },
   { to: "/student/journey", label: "Learning Journey", icon: Map },
-  {
-    to: "/student/progress",
-    label: "Progress",
-    icon: ChartColumn,
-  },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
 ];
@@ -98,12 +93,6 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
     ],
   },
   { to: "/", label: "Learning Journey", icon: Map, disabled: true },
-  {
-    to: "/",
-    label: "Progress",
-    icon: ChartColumn,
-    disabled: true,
-  },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
 ];

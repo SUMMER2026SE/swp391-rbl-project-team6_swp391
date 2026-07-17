@@ -23,37 +23,45 @@ public class VocabularyLesson {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "jlpt_level", nullable = false, length = 10)
+    private String jlptLevel;
+
+    @Column(name = "lesson_number", nullable = false)
+    private Integer lessonNumber;
+
     @Column(nullable = false, length = 255)
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(length = 10)
-    private String level;
-
-    @Column(length = 100)
-    private String topic;
-
     @Column(name = "estimated_minutes")
     private Integer estimatedMinutes;
 
-    @Column(name = "word_count", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Difficulty difficulty;
+
+    @Column(name = "is_active", nullable = false)
     @Builder.Default
-    private Integer wordCount = 0;
+    private Boolean isActive = true;
 
     @Column(name = "is_published", nullable = false)
     @Builder.Default
     private Boolean isPublished = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
-    private User createdBy;
-
-    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("displayOrder ASC")
+    @Column(name = "word_count")
     @Builder.Default
-    private List<VocabularyWord> words = new ArrayList<>();
+    private Integer wordCount = 0;
+
+    @OneToMany(mappedBy = "vocabularyLesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("itemOrder ASC")
+    @Builder.Default
+    private List<VocabularyItem> items = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

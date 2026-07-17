@@ -15,11 +15,11 @@ import java.util.UUID;
 public class ListeningLessonResponse {
 
     private UUID id;
+    private UUID lessonId;
     private String jlptLevel;
     private Integer lessonNumber;
     private String title;
     private String description;
-    private String audioUrl;
     private String transcript;
     private Integer estimatedMinutes;
     private String difficulty;

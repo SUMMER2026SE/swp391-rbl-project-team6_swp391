@@ -15,6 +15,7 @@ import java.util.UUID;
 public class ReadingLessonResponse {
 
     private UUID id;
+    private UUID lessonId;
     private String jlptLevel;
     private Integer lessonNumber;
     private String title;

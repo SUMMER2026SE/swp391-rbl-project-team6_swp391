@@ -16,6 +16,7 @@ import java.util.UUID;
 public class ReadingDetailResponse {
 
     private UUID id;
+    private UUID lessonId;
     private String jlptLevel;
     private Integer lessonNumber;
     private String title;
@@ -28,5 +29,6 @@ public class ReadingDetailResponse {
     private Instant createdAt;
     private Instant updatedAt;
 
+    private List<ReadingPassageResponse> passages;
     private List<ReadingQuestionResponse> questions;
 }

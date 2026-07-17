@@ -7,31 +7,27 @@ import java.util.UUID;
 
 public interface VocabularyService {
 
-    // ===== Teacher / Admin =====
+    VocabularyLessonResponseV2 createLesson(VocabularyLessonCreateRequestV2 request, UUID createdBy);
 
-    VocabularyLessonResponse createLesson(VocabularyLessonCreateRequest request, UUID createdBy);
-
-    VocabularyLessonResponse updateLesson(UUID lessonId, VocabularyLessonUpdateRequest request, UUID currentUserId);
+    VocabularyLessonResponseV2 updateLesson(UUID lessonId, VocabularyLessonUpdateRequestV2 request, UUID currentUserId);
 
     void deleteLesson(UUID lessonId, UUID currentUserId);
 
-    VocabularyLessonDetailResponse getLessonDetailForManagement(UUID lessonId, UUID currentUserId);
+    VocabularyLessonDetailResponseV2 getLessonDetailForManagement(UUID lessonId, UUID currentUserId);
 
-    List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search, UUID currentUserId);
+    List<VocabularyLessonResponseV2> listLessonsForManagement(String level, String topic, String search, UUID currentUserId);
 
-    VocabularyWordResponse addWord(UUID lessonId, VocabularyWordCreateRequest request, UUID currentUserId);
+    VocabularyWordResponseV2 addWord(UUID lessonId, VocabularyWordCreateRequestV2 request, UUID currentUserId);
 
-    VocabularyWordResponse updateWord(UUID wordId, VocabularyWordUpdateRequest request, UUID currentUserId);
+    VocabularyWordResponseV2 updateWord(UUID wordId, VocabularyWordUpdateRequestV2 request, UUID currentUserId);
 
     void deleteWord(UUID wordId, UUID currentUserId);
 
-    VocabularyLessonResponse publishLesson(UUID lessonId, UUID currentUserId);
+    VocabularyLessonResponseV2 publishLesson(UUID lessonId, UUID currentUserId);
 
-    VocabularyLessonResponse unpublishLesson(UUID lessonId, UUID currentUserId);
+    VocabularyLessonResponseV2 unpublishLesson(UUID lessonId, UUID currentUserId);
 
-    // ===== Student =====
+    List<VocabularyLessonResponseV2> listPublishedLessons(String level, String topic, String search);
 
-    List<VocabularyLessonResponse> listPublishedLessons(String level, String topic, String search);
-
-    VocabularyLessonDetailResponse getPublishedLessonDetail(UUID lessonId);
+    VocabularyLessonDetailResponseV2 getPublishedLessonDetail(UUID lessonId);
 }

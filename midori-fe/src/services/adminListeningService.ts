@@ -2,16 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   adminListeningApi,
   type ListeningDetailResponse,
+  type ListeningItemResponse,
   type ListeningLessonResponse,
 } from "@/lib/api/listening";
 import type {
-  ListeningLessonWithQuestionsRequest,
+  ListeningLessonWithItemsRequest,
 } from "@/types/content-library";
 
 export const adminListeningKeys = {
   all: ["adminListening"] as const,
   lessons: (level?: string) => ["adminListening", "lessons", { level }] as const,
   detail: (id: string) => ["adminListeningDetail", id] as const,
+  items: (lessonId: string) => ["adminListeningItems", lessonId] as const,
 };
 
 /**
@@ -26,7 +28,7 @@ export function useFetchListeningLessons(level: string) {
 }
 
 /**
- * Fetch a single listening lesson with its questions.
+ * Fetch a single listening lesson with its items.
  */
 export function useFetchListeningDetail(id: string) {
   return useQuery({
@@ -38,12 +40,24 @@ export function useFetchListeningDetail(id: string) {
 }
 
 /**
- * Create a new listening lesson with questions.
+ * Fetch all items for a lesson.
+ */
+export function useFetchListeningItems(lessonId: string) {
+  return useQuery({
+    queryKey: adminListeningKeys.items(lessonId),
+    queryFn: () => adminListeningApi.getAdminListeningLesson(lessonId).then((d) => d.listeningItems ?? []),
+    select: (data: ListeningItemResponse[]) => data,
+    enabled: !!lessonId,
+  });
+}
+
+/**
+ * Create a new listening lesson with items.
  */
 export function useCreateListeningLesson(level: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: ListeningLessonWithQuestionsRequest) =>
+    mutationFn: (data: ListeningLessonWithItemsRequest) =>
       adminListeningApi.createListeningLesson(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListeningKeys.lessons(level) });
@@ -52,16 +66,17 @@ export function useCreateListeningLesson(level: string) {
 }
 
 /**
- * Update an existing listening lesson with questions.
+ * Update an existing listening lesson with items.
  */
 export function useUpdateListeningLesson(level: string, lessonId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: ListeningLessonWithQuestionsRequest) =>
+    mutationFn: (data: ListeningLessonWithItemsRequest) =>
       adminListeningApi.updateListeningLesson(lessonId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListeningKeys.lessons(level) });
       queryClient.invalidateQueries({ queryKey: adminListeningKeys.detail(lessonId) });
+      queryClient.invalidateQueries({ queryKey: adminListeningKeys.items(lessonId) });
     },
   });
 }
@@ -88,7 +103,6 @@ export function usePublishListeningLesson(level: string) {
     mutationFn: (id: string) => adminListeningApi.publishListeningLesson(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListeningKeys.lessons(level) });
-      queryClient.invalidateQueries({ queryKey: adminListeningKeys.detail(level) });
     },
   });
 }
@@ -102,7 +116,49 @@ export function useUnpublishListeningLesson(level: string) {
     mutationFn: (id: string) => adminListeningApi.unpublishListeningLesson(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListeningKeys.lessons(level) });
-      queryClient.invalidateQueries({ queryKey: adminListeningKeys.detail(level) });
+    },
+  });
+}
+
+/**
+ * Add a single listening item to an existing lesson.
+ */
+export function useCreateListeningItem(lessonId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => adminListeningApi.createListeningItem(lessonId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListeningKeys.detail(lessonId) });
+      queryClient.invalidateQueries({ queryKey: adminListeningKeys.items(lessonId) });
+    },
+  });
+}
+
+/**
+ * Update an existing listening item.
+ */
+export function useUpdateListeningItem(lessonId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, data }: { itemId: string; data: unknown }) =>
+      adminListeningApi.updateListeningItem(lessonId, itemId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListeningKeys.detail(lessonId) });
+      queryClient.invalidateQueries({ queryKey: adminListeningKeys.items(lessonId) });
+    },
+  });
+}
+
+/**
+ * Delete a listening item.
+ */
+export function useDeleteListeningItem(lessonId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) => adminListeningApi.deleteListeningItem(lessonId, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListeningKeys.detail(lessonId) });
+      queryClient.invalidateQueries({ queryKey: adminListeningKeys.items(lessonId) });
     },
   });
 }

@@ -1,18 +1,20 @@
 package com.midori.service.impl;
 
 import com.midori.dto.listening.ListeningDetailResponse;
+import com.midori.dto.listening.ListeningItemRequest;
+import com.midori.dto.listening.ListeningItemResponse;
 import com.midori.dto.listening.ListeningLessonRequest;
 import com.midori.dto.listening.ListeningLessonResponse;
-import com.midori.dto.listening.ListeningLessonWithQuestionsRequest;
-import com.midori.dto.listening.ListeningQuestionRequest;
-import com.midori.dto.listening.ListeningQuestionResponse;
+import com.midori.dto.listening.ListeningLessonWithItemsRequest;
 import com.midori.entity.Difficulty;
+import com.midori.entity.ListeningItem;
 import com.midori.entity.ListeningLesson;
-import com.midori.entity.ListeningQuestion;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
+import com.midori.repository.ListeningItemRepository;
 import com.midori.repository.ListeningLessonRepository;
-import com.midori.repository.ListeningQuestionRepository;
+import com.midori.service.LearningJourneyLessonService;
+import com.midori.service.LessonService;
 import com.midori.service.ListeningLessonService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -31,7 +34,9 @@ import java.util.stream.Collectors;
 public class ListeningLessonServiceImpl implements ListeningLessonService {
 
     private final ListeningLessonRepository listeningLessonRepository;
-    private final ListeningQuestionRepository listeningQuestionRepository;
+    private final ListeningItemRepository listeningItemRepository;
+    private final LessonService lessonService;
+    private final LearningJourneyLessonService learningJourneyLessonService;
 
     @Override
     public ListeningLessonResponse createListeningLesson(ListeningLessonRequest request) {
@@ -44,18 +49,25 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
                             request.getLessonNumber(), request.getJlptLevel()));
         }
 
+        var lessonResponse = lessonService.getOrCreateLesson(
+                request.getJlptLevel(),
+                request.getLessonNumber(),
+                request.getTitle(),
+                request.getDescription()
+        );
+
         ListeningLesson lesson = ListeningLesson.builder()
                 .jlptLevel(trimToNull(request.getJlptLevel()))
                 .lessonNumber(request.getLessonNumber())
                 .title(trimToNull(request.getTitle()))
                 .description(trimToNull(request.getDescription()))
-                .audioUrl(trimToNull(request.getAudioUrl()))
                 .transcript(trimToNull(request.getTranscript()))
                 .estimatedMinutes(request.getEstimatedMinutes())
                 .difficulty(parseDifficulty(request.getDifficulty()))
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
 
+        lesson.setLesson(com.midori.entity.Lesson.builder().id(lessonResponse.getId()).build());
         lesson = listeningLessonRepository.save(lesson);
         log.info("Created listening lesson with id: {}", lesson.getId());
 
@@ -63,8 +75,8 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
     }
 
     @Override
-    public ListeningDetailResponse createListeningLessonWithQuestions(ListeningLessonWithQuestionsRequest request) {
-        log.info("Creating listening lesson with questions: {}", request.getLesson().getTitle());
+    public ListeningDetailResponse createListeningLessonWithItems(ListeningLessonWithItemsRequest request) {
+        log.info("Creating listening lesson with items: {}", request.getLesson().getTitle());
 
         ListeningLessonRequest lessonRequest = request.getLesson();
 
@@ -75,57 +87,64 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
                             lessonRequest.getLessonNumber(), lessonRequest.getJlptLevel()));
         }
 
+        var lessonResponse = lessonService.getOrCreateLesson(
+                lessonRequest.getJlptLevel(),
+                lessonRequest.getLessonNumber(),
+                lessonRequest.getTitle(),
+                lessonRequest.getDescription()
+        );
+
         ListeningLesson lesson = ListeningLesson.builder()
                 .jlptLevel(trimToNull(lessonRequest.getJlptLevel()))
                 .lessonNumber(lessonRequest.getLessonNumber())
                 .title(trimToNull(lessonRequest.getTitle()))
                 .description(trimToNull(lessonRequest.getDescription()))
-                .audioUrl(trimToNull(lessonRequest.getAudioUrl()))
                 .transcript(trimToNull(lessonRequest.getTranscript()))
                 .estimatedMinutes(lessonRequest.getEstimatedMinutes())
                 .difficulty(parseDifficulty(lessonRequest.getDifficulty()))
                 .isActive(lessonRequest.getIsActive() != null ? lessonRequest.getIsActive() : true)
                 .build();
 
+        lesson.setLesson(com.midori.entity.Lesson.builder().id(lessonResponse.getId()).build());
         lesson = listeningLessonRepository.save(lesson);
         log.info("Created listening lesson with id: {}", lesson.getId());
 
-        List<ListeningQuestionResponse> questionResponses = new ArrayList<>();
+        List<ListeningItemResponse> itemResponses = new ArrayList<>();
 
-        if (request.getQuestions() != null && !request.getQuestions().isEmpty()) {
-            for (ListeningQuestionRequest qReq : request.getQuestions()) {
-                if (listeningQuestionRepository.existsByListeningLessonIdAndQuestionOrder(lesson.getId(), qReq.getQuestionOrder())) {
+        if (request.getItems() != null && !request.getItems().isEmpty()) {
+            for (ListeningItemRequest iReq : request.getItems()) {
+                if (listeningItemRepository.existsByListeningLessonIdAndQuestionOrder(
+                        lesson.getId(), iReq.getQuestionOrder())) {
                     throw new BadRequestException(
-                            String.format("Question with order %d already exists for this listening lesson",
-                                    qReq.getQuestionOrder()));
+                            String.format("Item with order %d already exists for this listening lesson",
+                                    iReq.getQuestionOrder()));
                 }
 
-                ListeningQuestion question = ListeningQuestion.builder()
+                ListeningItem item = ListeningItem.builder()
                         .listeningLesson(lesson)
-                        .questionOrder(qReq.getQuestionOrder())
-                        .questionType(qReq.getQuestionType())
-                        .question(trimToNull(qReq.getQuestion()))
-                        .optionA(trimToNull(qReq.getOptionA()))
-                        .optionB(trimToNull(qReq.getOptionB()))
-                        .optionC(trimToNull(qReq.getOptionC()))
-                        .optionD(trimToNull(qReq.getOptionD()))
-                        .correctAnswer(qReq.getCorrectAnswer().toUpperCase().trim())
-                        .explanation(trimToNull(qReq.getExplanation()))
-                        .audioUrl(trimToNull(qReq.getAudioUrl()))
+                        .questionOrder(iReq.getQuestionOrder())
+                        .audioUrl(trimToNull(iReq.getAudioUrl()))
+                        .question(trimToNull(iReq.getQuestion()))
+                        .optionA(trimToNull(iReq.getOptionA()))
+                        .optionB(trimToNull(iReq.getOptionB()))
+                        .optionC(trimToNull(iReq.getOptionC()))
+                        .optionD(trimToNull(iReq.getOptionD()))
+                        .correctAnswer(iReq.getCorrectAnswer().toUpperCase().trim())
+                        .explanation(trimToNull(iReq.getExplanation()))
                         .build();
 
-                question = listeningQuestionRepository.save(question);
-                questionResponses.add(toQuestionResponse(question));
+                item = listeningItemRepository.save(item);
+                itemResponses.add(toItemResponse(item));
             }
-            log.info("Created {} questions for listening lesson: {}", questionResponses.size(), lesson.getId());
+            log.info("Created {} items for listening lesson: {}", itemResponses.size(), lesson.getId());
         }
 
-        return toDetailResponse(lesson, questionResponses);
+        return toDetailResponse(lesson, itemResponses);
     }
 
     @Override
-    public ListeningDetailResponse updateListeningLessonWithQuestions(UUID lessonId, ListeningLessonWithQuestionsRequest request) {
-        log.info("Updating listening lesson with questions: {}", lessonId);
+    public ListeningDetailResponse updateListeningLessonWithItems(UUID lessonId, ListeningLessonWithItemsRequest request) {
+        log.info("Updating listening lesson with items: {}", lessonId);
 
         ListeningLesson lesson = listeningLessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("ListeningLesson", "id", lessonId));
@@ -146,7 +165,6 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
         lesson.setLessonNumber(lessonRequest.getLessonNumber());
         lesson.setTitle(trimToNull(lessonRequest.getTitle()));
         lesson.setDescription(trimToNull(lessonRequest.getDescription()));
-        lesson.setAudioUrl(trimToNull(lessonRequest.getAudioUrl()));
         lesson.setTranscript(trimToNull(lessonRequest.getTranscript()));
         lesson.setEstimatedMinutes(lessonRequest.getEstimatedMinutes());
         lesson.setDifficulty(parseDifficulty(lessonRequest.getDifficulty()));
@@ -154,34 +172,107 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
 
         lesson = listeningLessonRepository.save(lesson);
 
-        listeningQuestionRepository.deleteByListeningLessonId(lessonId);
+        // Reconcile items: preserve ids that match existing items, drop
+        // anything that has been removed from the request, and add new
+        // ones.
+        List<UUID> requestItemIds = request.getItems() != null
+                ? request.getItems().stream()
+                    .map(i -> {
+                        String raw = i.getId();
+                        if (raw == null || raw.isBlank()) return null;
+                        if (raw.startsWith("item-") || raw.startsWith("temp-")) return null;
+                        try {
+                            return UUID.fromString(raw);
+                        } catch (IllegalArgumentException ex) {
+                            return null;
+                        }
+                    })
+                    .filter(id -> id != null)
+                    .collect(Collectors.toList())
+                : new ArrayList<>();
 
-        List<ListeningQuestionResponse> questionResponses = new ArrayList<>();
+        List<ListeningItem> existingItems = listeningItemRepository
+                .findByListeningLessonIdOrderByQuestionOrderAsc(lessonId);
 
-        if (request.getQuestions() != null && !request.getQuestions().isEmpty()) {
-            for (ListeningQuestionRequest qReq : request.getQuestions()) {
-                ListeningQuestion question = ListeningQuestion.builder()
+        for (ListeningItem existing : existingItems) {
+            boolean stillExists = requestItemIds.stream()
+                    .anyMatch(id -> id.equals(existing.getId()));
+            if (!stillExists) {
+                listeningItemRepository.delete(existing);
+                log.info("Deleted listening item: {}", existing.getId());
+            }
+        }
+
+        List<ListeningItemResponse> itemResponses = new ArrayList<>();
+
+        if (request.getItems() != null) {
+            for (ListeningItemRequest iReq : request.getItems()) {
+                String raw = iReq.getId();
+                boolean isExisting = raw != null && !raw.isBlank()
+                        && !raw.startsWith("item-") && !raw.startsWith("temp-");
+
+                if (isExisting) {
+                    try {
+                        UUID itemUuid = UUID.fromString(raw);
+                        Optional<ListeningItem> existingOpt = listeningItemRepository.findById(itemUuid);
+                        if (existingOpt.isPresent()) {
+                            ListeningItem existing = existingOpt.get();
+                            if (!existing.getQuestionOrder().equals(iReq.getQuestionOrder())) {
+                                if (listeningItemRepository.existsByListeningLessonIdAndQuestionOrder(
+                                        lessonId, iReq.getQuestionOrder())) {
+                                    throw new BadRequestException(
+                                            String.format("Item with order %d already exists for this listening lesson",
+                                                    iReq.getQuestionOrder()));
+                                }
+                            }
+                            existing.setQuestionOrder(iReq.getQuestionOrder());
+                            if (iReq.getAudioUrl() != null && !iReq.getAudioUrl().isBlank()) {
+                                existing.setAudioUrl(trimToNull(iReq.getAudioUrl()));
+                            }
+                            existing.setQuestion(trimToNull(iReq.getQuestion()));
+                            existing.setOptionA(trimToNull(iReq.getOptionA()));
+                            existing.setOptionB(trimToNull(iReq.getOptionB()));
+                            existing.setOptionC(trimToNull(iReq.getOptionC()));
+                            existing.setOptionD(trimToNull(iReq.getOptionD()));
+                            existing.setCorrectAnswer(iReq.getCorrectAnswer().toUpperCase().trim());
+                            existing.setExplanation(trimToNull(iReq.getExplanation()));
+                            existing = listeningItemRepository.save(existing);
+                            itemResponses.add(toItemResponse(existing));
+                            continue;
+                        }
+                    } catch (IllegalArgumentException ignored) {
+                        // fall through to create-new branch
+                    }
+                }
+
+                // New item
+                if (listeningItemRepository.existsByListeningLessonIdAndQuestionOrder(
+                        lessonId, iReq.getQuestionOrder())) {
+                    throw new BadRequestException(
+                            String.format("Item with order %d already exists for this listening lesson",
+                                    iReq.getQuestionOrder()));
+                }
+
+                ListeningItem item = ListeningItem.builder()
                         .listeningLesson(lesson)
-                        .questionOrder(qReq.getQuestionOrder())
-                        .questionType(qReq.getQuestionType())
-                        .question(trimToNull(qReq.getQuestion()))
-                        .optionA(trimToNull(qReq.getOptionA()))
-                        .optionB(trimToNull(qReq.getOptionB()))
-                        .optionC(trimToNull(qReq.getOptionC()))
-                        .optionD(trimToNull(qReq.getOptionD()))
-                        .correctAnswer(qReq.getCorrectAnswer().toUpperCase().trim())
-                        .explanation(trimToNull(qReq.getExplanation()))
-                        .audioUrl(trimToNull(qReq.getAudioUrl()))
+                        .questionOrder(iReq.getQuestionOrder())
+                        .audioUrl(trimToNull(iReq.getAudioUrl()))
+                        .question(trimToNull(iReq.getQuestion()))
+                        .optionA(trimToNull(iReq.getOptionA()))
+                        .optionB(trimToNull(iReq.getOptionB()))
+                        .optionC(trimToNull(iReq.getOptionC()))
+                        .optionD(trimToNull(iReq.getOptionD()))
+                        .correctAnswer(iReq.getCorrectAnswer().toUpperCase().trim())
+                        .explanation(trimToNull(iReq.getExplanation()))
                         .build();
 
-                question = listeningQuestionRepository.save(question);
-                questionResponses.add(toQuestionResponse(question));
+                item = listeningItemRepository.save(item);
+                itemResponses.add(toItemResponse(item));
             }
-            log.info("Updated {} questions for listening lesson: {}", questionResponses.size(), lessonId);
         }
 
         log.info("Updated listening lesson: {}", lessonId);
-        return toDetailResponse(lesson, questionResponses);
+        return toDetailResponse(lesson, itemResponses);
     }
 
     @Override
@@ -213,9 +304,6 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
         if (request.getDescription() != null) {
             lesson.setDescription(trimToNull(request.getDescription()));
         }
-        if (request.getAudioUrl() != null) {
-            lesson.setAudioUrl(trimToNull(request.getAudioUrl()));
-        }
         if (request.getTranscript() != null) {
             lesson.setTranscript(trimToNull(request.getTranscript()));
         }
@@ -232,25 +320,28 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
         lesson = listeningLessonRepository.save(lesson);
         log.info("Updated listening lesson: {}", lessonId);
 
-        List<ListeningQuestionResponse> questions = listeningQuestionRepository
+        List<ListeningItemResponse> items = listeningItemRepository
                 .findByListeningLessonIdOrderByQuestionOrderAsc(lessonId)
                 .stream()
-                .map(this::toQuestionResponse)
+                .map(this::toItemResponse)
                 .collect(Collectors.toList());
 
-        return toDetailResponse(lesson, questions);
+        return toDetailResponse(lesson, items);
     }
 
     @Override
     public void deleteListeningLesson(UUID lessonId) {
         log.info("Deleting listening lesson: {}", lessonId);
 
-        if (!listeningLessonRepository.existsById(lessonId)) {
-            throw new ResourceNotFoundException("ListeningLesson", "id", lessonId);
-        }
+        ListeningLesson lesson = listeningLessonRepository.findById(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("ListeningLesson", "id", lessonId));
 
-        listeningLessonRepository.deleteById(lessonId);
+        UUID sharedLessonId = lesson.getLesson() != null ? lesson.getLesson().getId() : null;
+
+        listeningLessonRepository.delete(lesson);
         log.info("Deleted listening lesson: {}", lessonId);
+
+        learningJourneyLessonService.checkAndDeleteEmptyLesson(sharedLessonId);
     }
 
     @Override
@@ -272,20 +363,18 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
         ListeningLesson lesson = listeningLessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("ListeningLesson", "id", lessonId));
 
-        List<ListeningQuestionResponse> questions = listeningQuestionRepository
+        List<ListeningItemResponse> items = listeningItemRepository
                 .findByListeningLessonIdOrderByQuestionOrderAsc(lessonId)
                 .stream()
-                .map(this::toQuestionResponse)
+                .map(this::toItemResponse)
                 .collect(Collectors.toList());
 
-        return toDetailResponse(lesson, questions);
+        return toDetailResponse(lesson, items);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ListeningLessonResponse> getAllListeningLessons() {
-        log.debug("Fetching all listening lessons");
-
         return listeningLessonRepository.findAllByOrderByLessonNumberAsc()
                 .stream()
                 .map(this::toResponse)
@@ -295,10 +384,7 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
     @Override
     @Transactional(readOnly = true)
     public List<ListeningLessonResponse> getListeningLessonsByLevel(String jlptLevel) {
-        log.debug("Fetching listening lessons for level: {}", jlptLevel);
-
         validateLevel(jlptLevel);
-
         return listeningLessonRepository.findAllByJlptLevelOrdered(jlptLevel)
                 .stream()
                 .map(this::toResponse)
@@ -308,8 +394,6 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
     @Override
     @Transactional(readOnly = true)
     public List<ListeningLessonResponse> getActiveListeningLessons() {
-        log.debug("Fetching active listening lessons");
-
         return listeningLessonRepository.findByIsActiveTrue()
                 .stream()
                 .map(this::toResponse)
@@ -319,10 +403,7 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
     @Override
     @Transactional(readOnly = true)
     public List<ListeningLessonResponse> getActiveListeningLessonsByLevel(String jlptLevel) {
-        log.debug("Fetching active listening lessons for level: {}", jlptLevel);
-
         validateLevel(jlptLevel);
-
         return listeningLessonRepository.findByJlptLevelAndIsActiveTrue(jlptLevel)
                 .stream()
                 .map(this::toResponse)
@@ -331,40 +412,30 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
 
     @Override
     public ListeningLessonResponse publishLesson(UUID lessonId) {
-        log.info("Publishing listening lesson: {}", lessonId);
-
         ListeningLesson lesson = listeningLessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("ListeningLesson", "id", lessonId));
-
         lesson.setIsActive(true);
         lesson = listeningLessonRepository.save(lesson);
-        log.info("Published listening lesson: {}", lessonId);
-
         return toResponse(lesson);
     }
 
     @Override
     public ListeningLessonResponse unpublishLesson(UUID lessonId) {
-        log.info("Unpublishing listening lesson: {}", lessonId);
-
         ListeningLesson lesson = listeningLessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("ListeningLesson", "id", lessonId));
-
         lesson.setIsActive(false);
         lesson = listeningLessonRepository.save(lesson);
-        log.info("Unpublished listening lesson: {}", lessonId);
-
         return toResponse(lesson);
     }
 
     private ListeningLessonResponse toResponse(ListeningLesson lesson) {
         return ListeningLessonResponse.builder()
                 .id(lesson.getId())
+                .lessonId(lesson.getLesson() != null ? lesson.getLesson().getId() : null)
                 .jlptLevel(lesson.getJlptLevel())
                 .lessonNumber(lesson.getLessonNumber())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
-                .audioUrl(lesson.getAudioUrl())
                 .transcript(lesson.getTranscript())
                 .estimatedMinutes(lesson.getEstimatedMinutes())
                 .difficulty(lesson.getDifficulty() != null ? lesson.getDifficulty().name() : null)
@@ -374,47 +445,44 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
                 .build();
     }
 
-    private ListeningDetailResponse toDetailResponse(ListeningLesson lesson, List<ListeningQuestionResponse> questions) {
+    private ListeningDetailResponse toDetailResponse(ListeningLesson lesson, List<ListeningItemResponse> items) {
         return ListeningDetailResponse.builder()
                 .id(lesson.getId())
+                .lessonId(lesson.getLesson() != null ? lesson.getLesson().getId() : null)
                 .jlptLevel(lesson.getJlptLevel())
                 .lessonNumber(lesson.getLessonNumber())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
-                .audioUrl(lesson.getAudioUrl())
                 .transcript(lesson.getTranscript())
                 .estimatedMinutes(lesson.getEstimatedMinutes())
                 .difficulty(lesson.getDifficulty() != null ? lesson.getDifficulty().name() : null)
                 .isActive(lesson.getIsActive())
                 .createdAt(lesson.getCreatedAt())
                 .updatedAt(lesson.getUpdatedAt())
-                .questions(questions)
+                .listeningItems(items)
                 .build();
     }
 
-    private ListeningQuestionResponse toQuestionResponse(ListeningQuestion question) {
-        return ListeningQuestionResponse.builder()
-                .id(question.getId())
-                .listeningLessonId(question.getListeningLesson().getId())
-                .questionOrder(question.getQuestionOrder())
-                .questionType(question.getQuestionType() != null ? question.getQuestionType().name() : null)
-                .question(question.getQuestion())
-                .optionA(question.getOptionA())
-                .optionB(question.getOptionB())
-                .optionC(question.getOptionC())
-                .optionD(question.getOptionD())
-                .correctAnswer(question.getCorrectAnswer())
-                .explanation(question.getExplanation())
-                .audioUrl(question.getAudioUrl())
-                .createdAt(question.getCreatedAt())
-                .updatedAt(question.getUpdatedAt())
+    private ListeningItemResponse toItemResponse(ListeningItem item) {
+        return ListeningItemResponse.builder()
+                .id(item.getId().toString())
+                .listeningLessonId(item.getListeningLesson().getId().toString())
+                .questionOrder(item.getQuestionOrder())
+                .audioUrl(item.getAudioUrl())
+                .question(item.getQuestion())
+                .optionA(item.getOptionA())
+                .optionB(item.getOptionB())
+                .optionC(item.getOptionC())
+                .optionD(item.getOptionD())
+                .correctAnswer(item.getCorrectAnswer())
+                .explanation(item.getExplanation())
+                .createdAt(item.getCreatedAt())
+                .updatedAt(item.getUpdatedAt())
                 .build();
     }
 
     private Difficulty parseDifficulty(String difficulty) {
-        if (difficulty == null || difficulty.isBlank()) {
-            return null;
-        }
+        if (difficulty == null || difficulty.isBlank()) return null;
         try {
             return Difficulty.valueOf(difficulty.toUpperCase().trim());
         } catch (IllegalArgumentException e) {
@@ -423,23 +491,15 @@ public class ListeningLessonServiceImpl implements ListeningLessonService {
     }
 
     private void validateLevel(String level) {
-        if (level == null || level.isBlank()) {
-            return;
-        }
-        try {
-            String normalized = level.toUpperCase().trim();
-            if (!normalized.matches("^N[1-5]$")) {
-                throw new BadRequestException("Level must be N5, N4, N3, N2, or N1");
-            }
-        } catch (IllegalArgumentException e) {
+        if (level == null || level.isBlank()) return;
+        String normalized = level.toUpperCase().trim();
+        if (!normalized.matches("^N[1-5]$")) {
             throw new BadRequestException("Level must be N5, N4, N3, N2, or N1");
         }
     }
 
     private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
+        if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }

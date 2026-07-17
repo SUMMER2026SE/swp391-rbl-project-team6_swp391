@@ -43,4 +43,7 @@ public class GrammarCreateRequest {
     @NotBlank(message = "Level is required")
     @Pattern(regexp = "^(N[1-5])$", message = "Level must be N5, N4, N3, N2, or N1")
     private String level;
+
+    @JsonProperty("lessonNumber")
+    private Integer lessonNumber;
 }
