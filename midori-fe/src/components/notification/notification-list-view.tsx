@@ -10,7 +10,7 @@ import { NotificationEmptyState } from "./notification-empty-state";
 import { NotificationErrorState } from "./notification-error-state";
 import { NotificationLoadingState } from "./notification-loading-state";
 import { NotificationPageHeader } from "./notification-page-header";
-import { NotificationPreviewSheet } from "./notification-preview-sheet";
+import { NotificationPreviewModal } from "./notification-preview-modal";
 
 interface NotificationListViewProps {
   /**
@@ -209,7 +209,7 @@ export function NotificationListView({
         )}
       </div>
 
-      <NotificationPreviewSheet
+      <NotificationPreviewModal
         notification={previewNotification}
         open={previewOpen}
         onOpenChange={setPreviewOpen}
