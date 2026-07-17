@@ -62,7 +62,7 @@ public class NotificationPushService {
                 .content(un.getNotification().getContent())
                 .type(un.getNotification().getType())
                 .isRead(Boolean.TRUE.equals(un.getIsRead()))
-                .createdAt(un.getNotification().getCreatedAt())
+                .receivedAt(un.getCreatedAt())
                 .build();
 
         String json;
