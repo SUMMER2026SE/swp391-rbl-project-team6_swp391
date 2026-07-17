@@ -498,7 +498,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .content(notification.getContent())
                 .type(notification.getType())
                 .isRead(userNotification.getIsRead())
-                .createdAt(notification.getCreatedAt())
+                .receivedAt(userNotification.getCreatedAt())
                 .build();
     }
 
