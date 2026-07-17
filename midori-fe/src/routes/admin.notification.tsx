@@ -36,6 +36,7 @@ import {
   type NotificationType,
   type TargetAudience,
 } from "@/lib/api/notification";
+import { normalizeTimestamp } from "@/lib/time-ago";
 import { toast } from "sonner";
 
 type LocalNotificationStatus = "DRAFT" | "PUBLISHED" | "SCHEDULED";
@@ -53,7 +54,7 @@ export const Route = createFileRoute("/admin/notification")({
 // datetime-local input is timezone-naive: it picks up the browser's local
 // timezone, which matches what the user picked in the Create modal.
 function toDatetimeLocalValue(raw: string): string {
-  const d = new Date(raw);
+  const d = new Date(normalizeTimestamp(raw));
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -66,8 +67,12 @@ function toDatetimeLocalValue(raw: string): string {
 // the bottom of the list whenever the backend ordering regresses.
 function sortByCreatedAtDesc<T extends { createdAt: string; id: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => {
-    const aTime = new Date(a.createdAt).getTime();
-    const bTime = new Date(b.createdAt).getTime();
+    const aNorm = normalizeTimestamp(a.createdAt);
+    const bNorm = normalizeTimestamp(b.createdAt);
+    // If either is unparseable, fall back to id desc to keep sort deterministic
+    if (!aNorm || !bNorm) return b.id - a.id;
+    const aTime = new Date(aNorm).getTime();
+    const bTime = new Date(bNorm).getTime();
     if (bTime !== aTime) return bTime - aTime;
     return b.id - a.id;
   });
@@ -523,12 +528,16 @@ function NotificationManagementPage() {
 
   const renderDetailField = (label: string, value?: string | null) => {
     if (!value) return null;
+    const normalized = normalizeTimestamp(value);
+    if (!normalized) return null;
+    const date = new Date(normalized);
+    if (Number.isNaN(date.getTime())) return null;
     return (
       <div className="p-3 rounded-xl glass-surface">
         <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">{label}</div>
         <div className="flex items-center gap-2 text-sm text-primary-col">
           <Calendar className="w-4 h-4 text-muted-col" />
-          {value}
+          {date.toLocaleString()}
         </div>
       </div>
     );
@@ -651,6 +660,15 @@ function NotificationManagementPage() {
     }
   };
 
+  const formatCreatedDate = (isoString: string | null) => {
+    if (!isoString) return "-";
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return "-";
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return `${day}/${month}/${date.getFullYear()}`;
+  };
+
   return (
     <div className="space-y-5">
       {/* Breadcrumb */}
@@ -771,7 +789,7 @@ function NotificationManagementPage() {
         </div>
       )}
 
-      {/* Notification List */}
+      {/* Notification List - Table Layout */}
       {!loading && !listError && notifications.length === 0 && (
         <div className="card-base p-12 flex flex-col items-center justify-center empty-state">
           <Bell className="w-12 h-12 text-[var(--status-pending)]/40 mb-3" />
@@ -786,96 +804,103 @@ function NotificationManagementPage() {
 
       {!loading && !listError && notifications.length > 0 && (
         <div className="card-base overflow-hidden">
-          <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator">
-            <div className="col-span-3 text-[10px] uppercase tracking-wider text-muted-col font-bold">Title</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">Type</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">Target</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">
-              Status
-            </div>
-            <div className="col-span-1 text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">
-              Date
-            </div>
-            <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Actions
-            </div>
+          {/* Table Header */}
+          <div className="grid grid-cols-[40%_20%_20%_20%] gap-0 px-5 py-3 border-b separator bg-[var(--accent)]/30">
+            <div className="text-[10px] uppercase tracking-wider text-muted-col font-bold text-left">Title</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">Type</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">Created At</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">Actions</div>
           </div>
-          <div>
-            {notifications.map((notification, index) => (
-              <motion.div
-                key={notification.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.03 }}
-                className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)]/50 transition items-center"
-              >
-                <div className="col-span-3">
-                  <div className="font-semibold text-primary-col text-sm">{notification.title}</div>
-                  <div className="text-xs text-muted-col line-clamp-1">{notification.content}</div>
-                </div>
-                <div className="col-span-2">{getTypeBadge(notification.type)}</div>
-                <div className="col-span-2">{getTargetBadge(notification.targetType)}</div>
-                <div className="col-span-2 text-center">{getStatusBadge(notification.status)}</div>
-                <div className="col-span-1 text-center">
-                  <span className="text-xs text-muted-col">
-                    {new Date(notification.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="col-span-2 flex items-center justify-end gap-1">
-                  <button
-                    onClick={() => handleView(notification)}
-                    className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition"
-                    title="View"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  {/* Edit + Send: shown only while the notification is still
-                      a Draft AND no Send request is in flight for it. The
-                      Draft status comes straight from the backend's
-                      displayStatus, which is the single source of truth for
-                      whether a notification has been published. */}
-                  {notification.status === "DRAFT" &&
-                    !sendingIds.has(notification.id) && (
+
+          {/* Table Body */}
+          <div className="divide-y divide-[var(--border)]">
+            {notifications.map((notification, index) => {
+              const createdDate = notification.createdAt;
+              const isUnread = notification.status === "DRAFT";
+              return (
+                <motion.div
+                  key={notification.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="grid grid-cols-[40%_20%_20%_20%] gap-0 px-5 py-3 hover:bg-[var(--accent)]/50 transition items-center min-h-[56px] group"
+                >
+                  {/* Title Column (40%) */}
+                  <div className="min-w-0 pr-4">
+                    <div className={`text-sm font-semibold text-primary-col truncate ${isUnread ? "font-bold" : ""}`}>
+                      {notification.title}
+                    </div>
+                    <div className={`text-xs text-muted-col line-clamp-1 mt-0.5 ${isUnread ? "text-secondary-col" : ""}`}>
+                      {notification.content}
+                    </div>
+                  </div>
+
+                  {/* Type Column (20%) */}
+                  <div className="flex items-center justify-center h-full">
+                    {getTypeBadge(notification.type)}
+                  </div>
+
+                  {/* Created Date Column (20%) */}
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-xs text-secondary-col whitespace-nowrap">
+                      {formatCreatedDate(createdDate)}
+                    </span>
+                  </div>
+
+                  {/* Actions Column (20%) */}
+                  <div className="flex items-center justify-center gap-1.5 h-full opacity-80 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => handleOpenEdit(notification)}
-                      className="p-2 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition"
-                      title="Edit"
+                      onClick={() => handleView(notification)}
+                      className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition"
+                      title="View"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Eye className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                  {notification.status === "DRAFT" &&
-                    !sendingIds.has(notification.id) && (
+                    {notification.status === "DRAFT" &&
+                      !sendingIds.has(notification.id) && (
+                      <button
+                        onClick={() => handleOpenEdit(notification)}
+                        className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition"
+                        title="Edit"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {notification.status === "DRAFT" &&
+                      !sendingIds.has(notification.id) && (
+                      <button
+                        onClick={() => handleSend(notification)}
+                        className="p-1.5 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition"
+                        title="Send"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {sendingIds.has(notification.id) && (
+                      <button
+                        disabled
+                        className="p-1.5 rounded-lg bg-green-500/10 text-green-500 opacity-70 cursor-not-allowed transition"
+                        title="Sending"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleSend(notification)}
-                      className="p-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition"
-                      title="Send"
+                      onClick={() => handleDelete(notification)}
+                      className="p-1.5 rounded-lg bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] hover:bg-[var(--status-rejected)]/20 transition"
+                      title="Delete"
                     >
-                      <Send className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
+                  </div>
+
+                  {/* Send Error */}
+                  {sendErrors[notification.id] && (
+                    <div className="col-span-5 text-xs text-red-500 mt-1">{sendErrors[notification.id]}</div>
                   )}
-                  {sendingIds.has(notification.id) && (
-                    <button
-                      disabled
-                      className="p-2 rounded-lg bg-green-500/10 text-green-500 opacity-70 cursor-not-allowed transition"
-                      title="Sending"
-                    >
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(notification)}
-                    className="p-2 rounded-lg bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] hover:bg-[var(--status-rejected)]/20 transition"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                {sendErrors[notification.id] && (
-                  <div className="col-span-12 text-xs text-red-500">{sendErrors[notification.id]}</div>
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1338,15 +1363,31 @@ function NotificationManagementPage() {
                       </div>
                     </div>
                     <div className="p-3 rounded-xl glass-surface">
-                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Recipients</div>
-                      <div className="font-semibold text-sm">{selectedNotification.recipientCount}</div>
+                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Target Audience</div>
+                      <div className="font-semibold text-sm">{getTargetBadge(selectedNotification.targetType)}</div>
                     </div>
                     <div className="p-3 rounded-xl glass-surface">
                       <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Created</div>
                       <div className="font-semibold text-sm">
-                        {new Date(selectedNotification.createdAt).toLocaleString()}
+                        {(() => {
+                          const normalized = normalizeTimestamp(selectedNotification.createdAt);
+                          if (!normalized) return "-";
+                          return new Date(normalized).toLocaleString();
+                        })()}
                       </div>
                     </div>
+                    {(() => {
+                      const normalizedSent = normalizeTimestamp(selectedNotification.sentAt);
+                      if (!normalizedSent) return null;
+                      return (
+                        <div className="p-3 rounded-xl glass-surface">
+                          <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Sent</div>
+                          <div className="font-semibold text-sm">
+                            {new Date(normalizedSent).toLocaleString()}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="space-y-2">
@@ -1356,7 +1397,11 @@ function NotificationManagementPage() {
                     </div>
                   </div>
 
-                  {selectedNotification.sentAt && renderDetailField("Sent At", selectedNotification.sentAt)}
+                  {(() => {
+                    const normalizedSent = normalizeTimestamp(selectedNotification.sentAt);
+                    if (!normalizedSent) return null;
+                    return renderDetailField("Sent At", normalizedSent);
+                  })()}
                 </>
               )}
             </div>
