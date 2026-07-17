@@ -23,5 +23,12 @@ public class NotificationResponse {
     private String content;
     private String type;
     private Boolean isRead;
-    private Instant createdAt;
+    /**
+     * The instant this notification was delivered to the current user
+     * (i.e. user_notification.created_at), NOT the instant the admin
+     * created the draft.  This drives the relative-time display ("Just now",
+     * "5m ago", …) so that a notification sent today is never shown as
+     * "1 day ago" just because its Draft was created yesterday.
+     */
+    private Instant receivedAt;
 }
