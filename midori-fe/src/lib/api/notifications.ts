@@ -12,7 +12,21 @@ export interface NotificationResponse {
   content: string | null;
   type: string;
   isRead: boolean;
-  createdAt: string;
+  /**
+   * The instant this notification was delivered to the current user
+   * (i.e. user_notification.created_at), NOT the instant the admin
+   * created the draft.  This drives the relative-time display ("Just now",
+   * "5m ago", …) so that a notification sent today is never shown as
+   * "1 day ago" just because its Draft was created yesterday.
+   *
+   * Backend may serialize this as:
+   * - ISO string: "2026-07-17T07:40:54.141Z" (with JavaTimeModule)
+   * - ISO string with microseconds: "2026-07-17T07:40:54.141517Z"
+   * - Epoch milliseconds as number: 1752733254141
+   *
+   * The normalizeTimestamp() / relativeTime() functions handle all formats.
+   */
+  receivedAt: string | number;
 }
 
 export interface NotificationListResponse {
