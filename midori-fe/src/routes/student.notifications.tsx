@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback } from "react";
 
-import { NotificationListView } from "@/components/notification";
+import { NotificationTableView } from "@/components/notification";
 
 export const Route = createFileRoute("/student/notifications")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -24,11 +24,8 @@ export const Route = createFileRoute("/student/notifications")({
 });
 
 /**
- * Student notification inbox. After the UI/UX consolidation the page is a
- * thin shell around the shared {@link NotificationListView} so that
- * Teacher and Student render the exact same inbox. We deliberately do not
- * keep role-specific layouts (custom card, expand-on-click, etc.) here so
- * future divergence cannot creep back in.
+ * Student notification inbox. Uses the table-layout {@link NotificationTableView}
+ * which is role-scoped to Student/Teacher and never touches the Admin UI.
  */
 function StudentNotificationsPage() {
   const { open: urlOpen } = Route.useSearch();
@@ -47,5 +44,5 @@ function StudentNotificationsPage() {
     }
   }, []);
 
-  return <NotificationListView autoOpenId={urlOpen} onDrawerOpened={handleDrawerOpened} />;
+  return <NotificationTableView autoOpenId={urlOpen} onDrawerOpened={handleDrawerOpened} />;
 }
