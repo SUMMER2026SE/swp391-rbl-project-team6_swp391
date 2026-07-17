@@ -22,7 +22,12 @@ export type NotificationPushPayload = {
   content: string | null;
   type: string;
   isRead: boolean;
-  createdAt: string;
+  /**
+   * The instant this notification was delivered to the current user
+   * (i.e. user_notification.created_at). Drives the relative-time display.
+   * May be ISO string, ISO with microseconds, or epoch milliseconds.
+   */
+  receivedAt: string | number;
 };
 
 export type NotificationPushFrame =
