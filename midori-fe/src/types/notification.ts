@@ -145,4 +145,11 @@ export type Notification = {
   unread: boolean;
   icon: LucideIcon;
   type: NotificationType;
+  /**
+   * Optional raw timestamp (ISO string or epoch ms) used by the Student /
+   * Teacher table layout to render absolute Sent Date / Sent Time columns.
+   * Optional so legacy mock data (e.g. teacher-data fixtures) keeps type-
+   * checking without breaking. The inbox mapper fills this in for live data.
+   */
+  receivedAt?: string | number;
 };
