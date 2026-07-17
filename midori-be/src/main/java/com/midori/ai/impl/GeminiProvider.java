@@ -349,16 +349,23 @@ public class GeminiProvider implements AiProvider {
     @Override
     public String generateQuestions(String materialTitle, String materialContent,
                                    int questionCount, String questionType, String difficulty) {
-        return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty, AiTaskType.DEFAULT);
+        return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty, null, AiTaskType.DEFAULT);
     }
 
     @Override
     public String generateQuestions(String materialTitle, String materialContent,
                                    int questionCount, String questionType, String difficulty, AiTaskType taskType) {
+        return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty, null, taskType);
+    }
+
+    @Override
+    public String generateQuestions(String materialTitle, String materialContent,
+                                   int questionCount, String questionType, String difficulty,
+                                   java.util.List<String> selectedSkills, AiTaskType taskType) {
         validateConfig();
 
         String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
-                materialTitle, materialContent, questionCount, questionType, difficulty);
+                materialTitle, materialContent, questionCount, questionType, difficulty, selectedSkills);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("contents", List.of(createContentPart("user", prompt)));

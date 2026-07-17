@@ -28,11 +28,18 @@ public class QuestionBankLesson {
     @Column(name = "lesson_name", nullable = false, length = 255)
     private String lessonName;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'DRAFT'")
     @Builder.Default
     private String status = "DRAFT";
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (status == null || status.isBlank()) {
+            status = "DRAFT";
+        }
+    }
 }

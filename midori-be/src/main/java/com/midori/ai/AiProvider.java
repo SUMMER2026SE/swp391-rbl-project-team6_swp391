@@ -88,6 +88,20 @@ public interface AiProvider {
         return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty);
     }
 
+    /**
+     * Generate questions with explicit user-selected skills (Generate from
+     * Learning Content flow). {@code selectedSkills} may be null/empty for
+     * legacy callers.
+     *
+     * <p>The default implementation delegates to the legacy
+     * 6-arg overload so existing providers keep working without changes.
+     */
+    default String generateQuestions(String materialTitle, String materialContent,
+                                     int questionCount, String questionType, String difficulty,
+                                     java.util.List<String> selectedSkills, AiTaskType taskType) {
+        return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty);
+    }
+
     // ============================================================
     // Exam Parsing (PDF to structured questions)
     // ============================================================
