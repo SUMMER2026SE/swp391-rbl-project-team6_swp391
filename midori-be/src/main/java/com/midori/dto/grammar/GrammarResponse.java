@@ -24,6 +24,8 @@ public class GrammarResponse {
     private List<String> examples;
     private List<String> exampleMeanings;
     private String level;
+    private Integer lessonNumber;
+    private UUID lessonId;
     private String status;
     private String rejectReason;
     private UUID createdBy;

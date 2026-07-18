@@ -156,6 +156,9 @@ public class ReadingQuestionServiceImpl implements ReadingQuestionService {
         return ReadingQuestionResponse.builder()
                 .id(question.getId())
                 .readingLessonId(question.getReadingLesson().getId())
+                .readingPassageId(question.getReadingPassage() != null
+                        ? question.getReadingPassage().getId()
+                        : null)
                 .questionOrder(question.getQuestionOrder())
                 .question(question.getQuestion())
                 .optionA(question.getOptionA())

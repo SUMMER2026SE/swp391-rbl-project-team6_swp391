@@ -12,7 +12,8 @@ import {
   Activity,
   ArchiveRestore,
 } from "lucide-react";
-import type { MockQuestion } from "@/data/mockQuestions";
+import type { TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
+import type { JLPTLevel, Difficulty } from "@/data/teacher-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,13 +26,13 @@ import {
 import { LevelBadge, DifficultyBadge, StatusBadge } from "../badges";
 
 interface MyQuestionCardProps {
-  question: MockQuestion;
+  question: TeacherQuestionResponse;
   viewMode: "grid" | "list";
-  onView: (q: MockQuestion) => void;
-  onEdit: (q: MockQuestion) => void;
-  onDuplicate: (q: MockQuestion) => void;
-  onArchiveToggle: (q: MockQuestion) => void;
-  onDelete: (q: MockQuestion) => void;
+  onView: (q: TeacherQuestionResponse) => void;
+  onEdit: (q: TeacherQuestionResponse) => void;
+  onDuplicate: (q: TeacherQuestionResponse) => void;
+  onArchiveToggle: (q: TeacherQuestionResponse) => void;
+  onDelete: (q: TeacherQuestionResponse) => void;
 }
 
 export function MyQuestionCard({
@@ -50,7 +51,24 @@ export function MyQuestionCard({
     ? format(new Date(question.updatedAt), "MMM d, yyyy HH:mm")
     : "N/A";
 
-  const isArchived = question.status === "Archived";
+  const isArchived = question.status?.toUpperCase() === "ARCHIVED";
+  const statusLabel = isArchived ? "Archived" : "Active";
+
+  const tagsList = question.tags
+    ? question.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    : [];
+
+  const title = question.prompt && question.prompt.length > 40
+    ? question.prompt.slice(0, 40) + "..."
+    : question.prompt;
+
+  const difficultyLabel = question.difficulty
+    ? (question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1).toLowerCase()) as Difficulty
+    : "Medium";
+
+  const levelLabel = (question.level || "N5") as JLPTLevel;
+  const skillLabel = question.skill || "Grammar";
+  const typeLabel = question.questionType || "Multiple Choice";
 
   const actionMenuItems = (
     <>
@@ -96,23 +114,23 @@ export function MyQuestionCard({
         <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <LevelBadge level={question.level} />
-              <DifficultyBadge d={question.difficulty} />
+              <LevelBadge level={levelLabel} />
+              <DifficultyBadge d={difficultyLabel} />
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted/60 px-2 py-0.5 rounded">
-                {question.skill}
+                {skillLabel}
               </span>
               <span className="text-xs text-muted-foreground bg-accent/30 px-2 py-0.5 rounded">
-                {question.type}
+                {typeLabel}
               </span>
-              <StatusBadge status={question.status} />
+              <StatusBadge status={statusLabel} />
             </div>
 
             <h3 className="font-semibold text-base text-foreground truncate hover:text-primary cursor-pointer mb-1" onClick={() => onView(question)}>
-              {question.title}
+              {title}
             </h3>
 
             <p className="text-sm text-muted-foreground line-clamp-1 mb-2 font-jp">
-              {question.content}
+              {question.prompt}
             </p>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -126,13 +144,13 @@ export function MyQuestionCard({
               </span>
               <span className="flex items-center gap-1">
                 <Activity className="h-3.5 w-3.5" />
-                Used: {question.usageCount} times
+                Used: 0 times
               </span>
             </div>
 
-            {question.tags.length > 0 && (
+            {tagsList.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
-                {question.tags.map((tag) => (
+                {tagsList.map((tag) => (
                   <span
                     key={tag}
                     className="text-[10px] bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full"
@@ -173,8 +191,8 @@ export function MyQuestionCard({
       <CardContent className="p-5 flex flex-col flex-1">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex flex-wrap gap-1.5">
-            <LevelBadge level={question.level} />
-            <DifficultyBadge d={question.difficulty} />
+            <LevelBadge level={levelLabel} />
+            <DifficultyBadge d={difficultyLabel} />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -190,10 +208,10 @@ export function MyQuestionCard({
 
         <div className="mb-2">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-2">
-            {question.skill}
+            {skillLabel}
           </span>
           <span className="text-[10px] text-muted-foreground bg-accent/30 px-1.5 py-0.5 rounded">
-            {question.type}
+            {typeLabel}
           </span>
         </div>
 
@@ -201,16 +219,16 @@ export function MyQuestionCard({
           onClick={() => onView(question)}
           className="font-display font-semibold text-base leading-snug mb-2 hover:text-primary cursor-pointer line-clamp-1"
         >
-          {question.title}
+          {title}
         </h3>
 
         <p className="text-sm text-muted-foreground line-clamp-2 mb-4 font-jp flex-1">
-          {question.content}
+          {question.prompt}
         </p>
 
-        {question.tags.length > 0 && (
+        {tagsList.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-4">
-            {question.tags.map((tag) => (
+            {tagsList.map((tag) => (
               <span
                 key={tag}
                 className="text-[10px] bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full"
@@ -241,14 +259,14 @@ export function MyQuestionCard({
               <Layers className="h-3 w-3" />
               Status
             </span>
-            <StatusBadge status={question.status} />
+            <StatusBadge status={statusLabel} />
           </div>
           <div className="flex justify-between items-center">
             <span className="flex items-center gap-1">
               <Activity className="h-3 w-3" />
               Usage Count
             </span>
-            <span className="font-semibold">{question.usageCount} times</span>
+            <span className="font-semibold">0 times</span>
           </div>
         </div>
       </CardContent>

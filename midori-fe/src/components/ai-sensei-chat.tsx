@@ -235,13 +235,16 @@ function buildChatRequest(messageText: string, material: MaterialContent | null 
   };
 }
 
-function highlightJapanese(text: string): React.ReactNode {
-  // Return span with key for proper React reconciliation
+function highlightJapanese(text: string, tone: "user" | "ai" = "ai"): React.ReactNode {
+  const className =
+    tone === "user"
+      ? "font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]"
+      : "font-bold text-slate-900 dark:text-white";
   return (
     <span key={`jp-${text.substring(0, 10)}`}>
       {text.split(/([\u3040-\u309F\u30A0-\u30FF]+)/g).map((part, i) =>
         /[\u3040-\u309F\u30A0-\u30FF]/.test(part) ? (
-          <span key={`jpe-${i}`} className="text-primary font-bold">
+          <span key={`jpe-${i}`} className={className}>
             {part}
           </span>
         ) : (
@@ -274,16 +277,34 @@ function materialToText(material: MaterialContent): string {
 
 // Safe markdown lite renderer for assistant messages.
 // No raw HTML, no new dependencies, supports tables requested by user prompts.
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+
+// Decode common HTML entities. React text nodes do NOT auto-decode entities
+// like &quot; — they would render as the literal "&quot;". We also escape the
+// minimum set of characters that could break JSX/text rendering (<, >) so
+// the content stays safe to inject as React text without dangerouslySetInnerHTML.
+const HTML_ENTITY_DECODE_MAP: Record<string, string> = {
+  "&quot;": "\"",
+  "&apos;": "'",
+  "&#39;": "'",
+  "&#x27;": "'",
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&#039;": "'",
+};
+
+function decodeHtmlEntities(value: string): string {
+  if (!value || value.indexOf("&") < 0) return value;
+  return value.replace(/&(?:quot|apos|amp|lt|gt|#39|#x27|#039);/g, (m) => HTML_ENTITY_DECODE_MAP[m] ?? m);
 }
 
-function renderInline(inline: string): React.ReactNode[] {
+function escapeHtml(value: string): string {
+  // Escape < and > for safety; do NOT touch " or ' because React renders them
+  // as literal characters and any escape would leak "&quot;" into the UI.
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderInline(inline: string, tone: "user" | "ai" = "ai"): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
   const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g;
   let lastIndex = 0;
@@ -291,25 +312,37 @@ function renderInline(inline: string): React.ReactNode[] {
   let match: RegExpExecArray | null;
   while ((match = regex.exec(inline)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex, match.index)))}</span>);
+      parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex, match.index)), tone)}</span>);
     }
     const token = match[0];
     if (token.startsWith("**") && token.endsWith("**")) {
-      parts.push(<strong key={`inline-${key++}`}>{highlightJapanese(escapeHtml(token.slice(2, -2)))}</strong>);
+      const strongClass =
+        tone === "user"
+          ? "font-bold text-white"
+          : "font-bold text-slate-900 dark:text-slate-50";
+      parts.push(
+        <strong key={`inline-${key++}`} className={strongClass}>
+          {highlightJapanese(escapeHtml(token.slice(2, -2)), tone)}
+        </strong>,
+      );
     } else if (token.startsWith("`") && token.endsWith("`")) {
+      const codeClass =
+        tone === "user"
+          ? "rounded bg-white/20 text-white px-1 py-0.5 text-xs font-mono border border-white/25"
+          : "rounded bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-50 px-1 py-0.5 text-xs font-mono";
       parts.push(
         <code
           key={`inline-${key++}`}
-          className="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 text-xs font-mono"
+          className={codeClass}
         >
           {escapeHtml(token.slice(1, -1))}
-        </code>
+        </code>,
       );
     }
     lastIndex = match.index + token.length;
   }
   if (lastIndex < inline.length || parts.length === 0) {
-    parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex)))}</span>);
+    parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex)), tone)}</span>);
   }
   return parts;
 }
@@ -345,37 +378,61 @@ function splitTableRow(line: string): string[] {
   return body.split("|").map((cell) => cell.trim());
 }
 
-function renderTable(rows: string[][], tableIndex: number): React.ReactNode {
+function renderTable(rows: string[][], tableIndex: number, tone: "user" | "ai" = "ai"): React.ReactNode {
   if (rows.length === 0) return null;
   const header = rows[0];
   const body = rows.slice(1);
+  const baseText =
+    tone === "user"
+      ? "text-white"
+      : "text-slate-900 dark:text-slate-100";
+  const thBg =
+    tone === "user"
+      ? "bg-white/15"
+      : "bg-slate-100 dark:bg-slate-800";
+  const thClass =
+    tone === "user"
+      ? "px-3 py-2 text-left text-xs font-semibold border-b border-white/25 text-white whitespace-nowrap"
+      : "px-3 py-2 text-left text-xs font-semibold border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 whitespace-nowrap";
+  const rowClass =
+    tone === "user"
+      ? "bg-white/10 even:bg-white/5 border-b border-white/15"
+      : "odd:bg-white even:bg-slate-50 dark:odd:bg-slate-900 dark:even:bg-slate-800/60 border-b border-slate-100 dark:border-slate-700";
+  const tdClass =
+    tone === "user"
+      ? `px-3 py-2 text-sm border-b border-white/15 align-top text-white`
+      : "px-3 py-2 text-sm border-b border-slate-100 dark:border-slate-700 align-top text-slate-900 dark:text-slate-100";
+  const tableClass =
+    tone === "user"
+      ? "min-w-full border-collapse rounded-lg overflow-hidden border border-white/25"
+      : "min-w-full border-collapse rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700";
   return (
     <div className="my-3 overflow-x-auto last:mb-0" key={`table-wrapper-${tableIndex}`}>
-      <table className="min-w-full border-collapse rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-        <thead className="bg-slate-100 dark:bg-slate-800">
+      <table className={tableClass}>
+        <thead className={thBg}>
           <tr>
             {header.map((cell, idx) => (
               <th
                 key={`${tableIndex}-h-${idx}`}
-                className="px-3 py-2 text-left text-xs font-semibold border-b border-slate-200 dark:border-slate-700 whitespace-nowrap"
+                className={thClass}
               >
-                {renderInline(cell)}
+                {renderInline(cell, tone)}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className={baseText}>
           {body.map((row, rowIdx) => (
             <tr
               key={`${tableIndex}-r-${rowIdx}`}
-              className="odd:bg-white even:bg-slate-50 dark:odd:bg-slate-900 dark:even:bg-slate-800/60"
+              className={rowClass}
             >
               {row.map((cell, cellIdx) => (
                 <td
                   key={`${tableIndex}-${rowIdx}-${cellIdx}`}
-                  className="px-3 py-2 text-sm border-b border-slate-100 dark:border-slate-700 align-top"
+                  className={tdClass}
                 >
-                  {renderInline(cell)}
+                  {renderInline(cell, tone)}
                 </td>
               ))}
             </tr>
@@ -386,8 +443,12 @@ function renderTable(rows: string[][], tableIndex: number): React.ReactNode {
   );
 }
 
-function renderMarkdown(markdown: string): React.ReactNode[] {
-  const lines = markdown.split("\n");
+function renderMarkdown(markdown: string, tone: "user" | "ai" = "ai"): React.ReactNode[] {
+  // Some LLM providers HTML-escape parts of their output (e.g. "聞く").
+  // React text nodes do NOT auto-decode entities, so we normalize them here
+  // before parsing/escaping the markdown.
+  const normalized = decodeHtmlEntities(markdown);
+  const lines = normalized.split("\n");
   const elements: React.ReactNode[] = [];
   let i = 0;
   // Use block-index-based keys so they are stable across re-renders
@@ -399,7 +460,7 @@ function renderMarkdown(markdown: string): React.ReactNode[] {
     const k = `p-${blockIdx++}`;
     elements.push(
       <p key={k} className="mb-2 last:mb-0">
-        {renderInline(text)}
+        {renderInline(text, tone)}
       </p>,
     );
   };
@@ -413,7 +474,7 @@ function renderMarkdown(markdown: string): React.ReactNode[] {
           const itemKey = `li-${blockIdx}-${idx}`;
           return (
             <li key={itemKey} className={ordered ? "list-decimal" : "list-disc"}>
-              {renderInline(item)}
+              {renderInline(item, tone)}
             </li>
           );
         })}
@@ -576,9 +637,10 @@ function renderMarkdown(markdown: string): React.ReactNode[] {
       const level = line.match(/^(#{1,6})\s/)?.[1]?.length ?? 1;
       const text = line.replace(/^#{1,6}\s+/, "");
       const size = level <= 2 ? "text-base font-bold" : "text-sm font-semibold";
+      const headingColor = tone === "user" ? "text-white" : "text-slate-900 dark:text-slate-50";
       elements.push(
-        <p key={`h-${blockIdx++}`} className={`${size} mb-2 last:mb-0`}>
-          {renderInline(text)}
+        <p key={`h-${blockIdx++}`} className={`${size} mb-2 last:mb-0 ${headingColor}`}>
+          {renderInline(text, tone)}
         </p>,
       );
       i++;
@@ -608,7 +670,7 @@ function renderMarkdown(markdown: string): React.ReactNode[] {
     // Table detection
     const tableResult = tryParseTable(i);
     if (tableResult) {
-      const tableEl = renderTable(tableResult.rows, blockIdx);
+      const tableEl = renderTable(tableResult.rows, blockIdx, tone);
       if (tableEl) {
         elements.push(tableEl);
         blockIdx++;
@@ -620,7 +682,7 @@ function renderMarkdown(markdown: string): React.ReactNode[] {
     // Space-aligned table fallback (no pipe characters).
     const spaceTableResult = tryParseSpaceAlignedTable(i);
     if (spaceTableResult) {
-      const tableEl = renderTable(spaceTableResult.rows, blockIdx);
+      const tableEl = renderTable(spaceTableResult.rows, blockIdx, tone);
       if (tableEl) {
         elements.push(tableEl);
         blockIdx++;
@@ -636,7 +698,7 @@ function renderMarkdown(markdown: string): React.ReactNode[] {
   if (elements.length === 0 && markdown.trim()) {
     elements.push(
       <p key={`fb-${blockIdx++}`} className="mb-2 last:mb-0">
-        {renderInline(escapeHtml(markdown))}
+        {renderInline(escapeHtml(decodeHtmlEntities(markdown)), tone)}
       </p>,
     );
   }
@@ -752,8 +814,8 @@ function MaterialSelector({
                       }}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                         selected?.id === material.id
-                          ? "bg-primary/10 text-primary"
-                          : "hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                          ? "bg-primary/15 text-primary font-semibold"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-800 dark:text-slate-200"
                       }`}
                     >
                       <div
@@ -814,9 +876,9 @@ function MaterialPreview({ material }: { material: MaterialContent | null }) {
             <div className="space-y-1">
               {(material.content as VocabItem[]).slice(0, 3).map((item, i) => (
                 <p key={i} className="text-sm">
-                  <span className="font-bold text-primary">{item.jp}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{item.jp}</span>
                   <span className="text-muted-foreground">（{item.reading}）</span>
-                  <span className="ml-1">= {item.vi}</span>
+                  <span className="ml-1 text-slate-700 dark:text-slate-300">= {item.vi}</span>
                 </p>
               ))}
               <p className="text-xs text-muted-foreground">
@@ -832,8 +894,8 @@ function MaterialPreview({ material }: { material: MaterialContent | null }) {
             <div className="space-y-1">
               {(material.content as GrammarItem[]).slice(0, 3).map((item, i) => (
                 <p key={i} className="text-sm">
-                  <span className="font-bold text-primary">{item.pattern}</span>
-                  <span className="ml-1">= {item.meaning}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{item.pattern}</span>
+                  <span className="ml-1 text-slate-700 dark:text-slate-300">= {item.meaning}</span>
                 </p>
               ))}
             </div>
@@ -903,14 +965,16 @@ function MessageBubble({
         <div
           className={`rounded-2xl px-4 py-3 ${
             isAI
-              ? "bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700"
-              : "bg-gradient-hero text-white"
+              ? "bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+              : "bg-gradient-hero text-white border border-white/20 shadow-sm [&_*]:!text-white [&_strong]:!font-bold"
           }`}
         >
           {isAI ? (
-            <div className="text-sm leading-relaxed break-words min-w-0">{renderMarkdown(msg.content)}</div>
+            <div className="text-sm leading-relaxed break-words min-w-0 text-slate-900 dark:text-slate-100">
+              {renderMarkdown(msg.content, "ai")}
+            </div>
           ) : (
-            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words min-w-0">
+            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words min-w-0 text-white">
               {msg.content.split("\n").map((line, lineIdx) => {
                 // Use a hash-free stable key: the line index is stable because
                 // msg.content (the full DB text) does not reorder mid-render.
@@ -919,7 +983,7 @@ function MessageBubble({
                 const stableKey = `u-${lineIdx}-${line.length}`;
                 return (
                   <p key={stableKey} className="mb-1 last:mb-0">
-                    {highlightJapanese(line)}
+                    {highlightJapanese(line, "user")}
                   </p>
                 );
               })}
@@ -2020,7 +2084,9 @@ export function AISenseiPage() {
                 <div
                   key={conversation.id}
                   className={`flex items-center gap-1 p-2 rounded-xl text-xs transition-all group min-w-0 overflow-x-hidden ${
-                    isActive ? "bg-primary/10 text-primary" : "hover:bg-slate-100 dark:hover:bg-slate-700"
+                    isActive
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                   }`}
                 >
                   <button
@@ -2169,7 +2235,7 @@ export function AISenseiPage() {
                       <span className="text-xs text-muted-foreground">AI Sensei</span>
                     </div>
                     <div className="rounded-2xl px-4 py-3 bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700">
-                      <div className="text-sm leading-relaxed text-muted-foreground flex items-center gap-2">
+                      <div className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 flex items-center gap-2">
                         <span className="flex gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
                           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -2272,7 +2338,7 @@ export function AISenseiPage() {
                       : "Hỏi AI Sensei về tiếng Nhật..."
                   }
                   rows={1}
-                  className="flex-1 resize-none rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600 px-4 py-3 text-sm outline-none focus:border-primary/50 placeholder:text-slate-500 dark:placeholder:text-slate-400 min-w-0 break-words overflow-wrap-anywhere"
+                  className="flex-1 resize-none rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600 px-4 py-3 text-sm outline-none focus:border-primary/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 min-w-0 break-words overflow-wrap-anywhere"
                 />
                 <button
                   onClick={() => handleSend()}

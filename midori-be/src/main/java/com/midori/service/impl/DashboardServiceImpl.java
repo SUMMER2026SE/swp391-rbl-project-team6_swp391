@@ -8,7 +8,7 @@ import com.midori.repository.GrammarRepository;
 import com.midori.repository.ListeningLessonRepository;
 import com.midori.repository.UserLearningProgressRepository;
 import com.midori.repository.UserRepository;
-import com.midori.repository.VocabularyLessonRepository;
+import com.midori.repository.VocabularyLessonV2Repository;
 import com.midori.service.DashboardService;
 import com.midori.dto.response.AdminDashboardSummaryResponse;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final GrammarRepository grammarRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final ListeningLessonRepository listeningLessonRepository;
-    private final VocabularyLessonRepository vocabularyLessonRepository;
+    private final VocabularyLessonV2Repository vocabularyLessonRepository;
     private final UserLearningProgressRepository userLearningProgressRepository;
 
     @Override

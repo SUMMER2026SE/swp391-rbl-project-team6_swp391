@@ -9,6 +9,9 @@ import lombok.Data;
 @Data
 public class CreateTeacherQuestionRequest {
     private String topicId;
+    private String level;
+    private String skill;
+    private Integer lessonId;
     @NotBlank
     private String prompt;
     private String jpPrompt;
@@ -22,4 +25,7 @@ public class CreateTeacherQuestionRequest {
     private Integer points;
     @NotEmpty
     private List<String> options;
+    private String audioUrl;
+    private String audioFileName;
+    private Integer audioDuration;
 }

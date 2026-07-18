@@ -16,6 +16,7 @@ public class ReadingQuestionResponse {
 
     private UUID id;
     private UUID readingLessonId;
+    private UUID readingPassageId;
     private Integer questionOrder;
     private String question;
     private String optionA;

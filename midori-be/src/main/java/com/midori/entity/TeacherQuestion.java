@@ -30,6 +30,16 @@ public class TeacherQuestion {
     @Column(name = "topic_id", length = 100)
     private String topicId;
 
+    @Column(length = 10)
+    private String level;
+
+    @Column(length = 50)
+    private String skill;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private QuestionBankLesson lesson;
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String prompt;
 
@@ -57,6 +67,15 @@ public class TeacherQuestion {
 
     @Builder.Default
     private Integer points = 1;
+
+    @Column(name = "audio_url", columnDefinition = "TEXT")
+    private String audioUrl;
+
+    @Column(name = "audio_file_name", length = 255)
+    private String audioFileName;
+
+    @Column(name = "audio_duration")
+    private Integer audioDuration;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "teacher_question_options", joinColumns = @JoinColumn(name = "question_id"))

@@ -1,9 +1,7 @@
-export { JourneyHero } from "./JourneyHero";
 export { JourneyMap } from "./JourneyMap";
-export { LessonSquareCard, LessonStatusBadge } from "./LessonSquareCard";
-export { ProgressCircle } from "./ProgressCircle";
+export { LessonAccordion } from "./LessonAccordion";
+export type { LessonSkillSummary } from "./LessonAccordion";
 export { SkillCard } from "./SkillCard";
-export { XPCard, LessonCompleteCard } from "./XPCard";
 export { VocabularyModule } from "./VocabularyModule";
 export { GrammarModule } from "./GrammarModule";
 export { ReadingModule } from "./ReadingModule";

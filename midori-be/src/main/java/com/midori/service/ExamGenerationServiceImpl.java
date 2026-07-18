@@ -779,4 +779,248 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 .createdAt(se.getCreatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public ExamResponse generateExamFromQuestionBank(com.midori.dto.request.GenerateExamFromQuestionBankRequest request, UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<TeacherQuestion> matchingQuestions = teacherQuestionRepository.findByLevelAndSkillInAndStatusActive(
+                request.getJlptLevel(), request.getSkills());
+
+        List<TeacherQuestion> easyQuestions = new ArrayList<>();
+        List<TeacherQuestion> mediumQuestions = new ArrayList<>();
+        List<TeacherQuestion> hardQuestions = new ArrayList<>();
+
+        for (TeacherQuestion q : matchingQuestions) {
+            String diff = q.getDifficulty() != null ? q.getDifficulty().toUpperCase() : "MEDIUM";
+            if (diff.equals("EASY")) {
+                easyQuestions.add(q);
+            } else if (diff.equals("HARD")) {
+                hardQuestions.add(q);
+            } else {
+                mediumQuestions.add(q);
+            }
+        }
+
+        if (easyQuestions.size() < request.getEasyCount() ||
+                mediumQuestions.size() < request.getMediumCount() ||
+                hardQuestions.size() < request.getHardCount()) {
+            throw new com.midori.exception.BadRequestException(
+                    "Not enough questions in the Question Bank for the selected criteria.");
+        }
+
+        Collections.shuffle(easyQuestions, RANDOM);
+        Collections.shuffle(mediumQuestions, RANDOM);
+        Collections.shuffle(hardQuestions, RANDOM);
+
+        List<TeacherQuestion> selectedTqs = new ArrayList<>();
+        for (int i = 0; i < request.getEasyCount(); i++) {
+            selectedTqs.add(easyQuestions.get(i));
+        }
+        for (int i = 0; i < request.getMediumCount(); i++) {
+            selectedTqs.add(mediumQuestions.get(i));
+        }
+        for (int i = 0; i < request.getHardCount(); i++) {
+            selectedTqs.add(hardQuestions.get(i));
+        }
+
+        int totalQuestions = request.getEasyCount() + request.getMediumCount() + request.getHardCount();
+        Exam exam = Exam.builder()
+                .title(request.getExamTitle())
+                .level(GrammarLevel.valueOf(request.getJlptLevel()))
+                .totalQuestions(totalQuestions)
+                .timeLimit(totalQuestions > 0 ? totalQuestions * 2 : 45)
+                .examMode(ExamMode.SAME_FOR_ALL)
+                .questionReuse(QuestionReuse.ALLOW_REUSE)
+                .randomizeAnswers(false)
+                .lessonIds(new ArrayList<>())
+                .category(request.getDescription())
+                .difficultyEasy(request.getEasyCount())
+                .difficultyMedium(request.getMediumCount())
+                .difficultyHard(request.getHardCount())
+                .createdBy(teacher)
+                .status(ExamStatus.DRAFT)
+                .build();
+
+        exam = examRepository.save(exam);
+
+        List<ExamQuestion> examQuestions = new ArrayList<>();
+        for (int i = 0; i < selectedTqs.size(); i++) {
+            TeacherQuestion tq = selectedTqs.get(i);
+            Difficulty diff;
+            try {
+                diff = Difficulty.valueOf(tq.getDifficulty().toUpperCase());
+            } catch (Exception e) {
+                diff = Difficulty.MEDIUM;
+            }
+
+            ExamQuestion eq = ExamQuestion.builder()
+                    .exam(exam)
+                    .questionText(tq.getPrompt())
+                    .options(new ArrayList<>(tq.getOptions()))
+                    .correctAnswerIndex(tq.getCorrectAnswerIndex())
+                    .explanation(tq.getExplanation())
+                    .difficulty(diff)
+                    .displayOrder(i + 1)
+                    .points(tq.getPoints() != null ? tq.getPoints() : 1)
+                    .sourceTeacherQuestionId(tq.getId())
+                    .build();
+            examQuestions.add(eq);
+        }
+
+        examQuestionRepository.saveAll(examQuestions);
+        exam.setQuestions(examQuestions);
+        exam = examRepository.save(exam);
+
+        return mapToExamResponse(exam);
+    }
+
+    private List<TeacherQuestion> getFilteredQuestions(String level, String source, UUID teacherId) {
+        List<TeacherQuestion> allActive = teacherQuestionRepository.findByStatusOrderByCreatedAtDesc("ACTIVE");
+        
+        List<TeacherQuestion> filtered = new ArrayList<>();
+        for (TeacherQuestion q : allActive) {
+            if (q.getLevel() == null || !q.getLevel().equalsIgnoreCase(level)) {
+                continue;
+            }
+            
+            boolean matchesSource = false;
+            if (source.equalsIgnoreCase("MY_QUESTIONS")) {
+                matchesSource = q.getTeacher().getId().equals(teacherId);
+            } else if (source.equalsIgnoreCase("ORGANIZATION")) {
+                matchesSource = !q.getTeacher().getId().equals(teacherId);
+            } else {
+                matchesSource = true;
+            }
+            
+            if (matchesSource) {
+                filtered.add(q);
+            }
+        }
+        return filtered;
+    }
+
+    @Override
+    public java.util.Map<String, java.util.Map<String, Integer>> getQuestionStats(String level, String source, UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<TeacherQuestion> filtered = getFilteredQuestions(level, source, teacher.getId());
+
+        java.util.Map<String, java.util.Map<String, Integer>> stats = new java.util.LinkedHashMap<>();
+        
+        for (SkillType sk : SkillType.values()) {
+            String skillName = sk.name().charAt(0) + sk.name().substring(1).toLowerCase();
+            java.util.Map<String, Integer> diffMap = new java.util.LinkedHashMap<>();
+            diffMap.put("EASY", 0);
+            diffMap.put("MEDIUM", 0);
+            diffMap.put("HARD", 0);
+            stats.put(skillName, diffMap);
+        }
+
+        for (TeacherQuestion q : filtered) {
+            String skill = q.getSkill();
+            if (skill == null) continue;
+            String normSkill = skill.substring(0, 1).toUpperCase() + skill.substring(1).toLowerCase();
+            
+            if (!stats.containsKey(normSkill)) {
+                java.util.Map<String, Integer> diffMap = new java.util.LinkedHashMap<>();
+                diffMap.put("EASY", 0);
+                diffMap.put("MEDIUM", 0);
+                diffMap.put("HARD", 0);
+                stats.put(normSkill, diffMap);
+            }
+            
+            String diff = q.getDifficulty() != null ? q.getDifficulty().toUpperCase() : "MEDIUM";
+            java.util.Map<String, Integer> diffMap = stats.get(normSkill);
+            diffMap.put(diff, diffMap.getOrDefault(diff, 0) + 1);
+        }
+
+        return stats;
+    }
+
+    @Override
+    public java.util.List<com.midori.dto.questiondto.TeacherQuestionResponse> previewGeneration(
+            com.midori.dto.request.PreviewGenerationRequest request, UserDetails userDetails) {
+        User teacher = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<TeacherQuestion> filtered = getFilteredQuestions(request.getJlptLevel(), request.getQuestionSource(), teacher.getId());
+
+        List<TeacherQuestion> skillMatched = new ArrayList<>();
+        List<String> upperSkills = request.getSkills().stream().map(String::toUpperCase).collect(Collectors.toList());
+        for (TeacherQuestion q : filtered) {
+            if (q.getSkill() != null && upperSkills.contains(q.getSkill().toUpperCase())) {
+                skillMatched.add(q);
+            }
+        }
+
+        List<TeacherQuestion> easyQuestions = new ArrayList<>();
+        List<TeacherQuestion> mediumQuestions = new ArrayList<>();
+        List<TeacherQuestion> hardQuestions = new ArrayList<>();
+
+        for (TeacherQuestion q : skillMatched) {
+            String diff = q.getDifficulty() != null ? q.getDifficulty().toUpperCase() : "MEDIUM";
+            if (diff.equals("EASY")) {
+                easyQuestions.add(q);
+            } else if (diff.equals("HARD")) {
+                hardQuestions.add(q);
+            } else {
+                mediumQuestions.add(q);
+            }
+        }
+
+        if (easyQuestions.size() < request.getEasyCount() ||
+                mediumQuestions.size() < request.getMediumCount() ||
+                hardQuestions.size() < request.getHardCount()) {
+            throw new com.midori.exception.BadRequestException(
+                    "Not enough questions in the Question Bank for the selected criteria.");
+        }
+
+        Collections.shuffle(easyQuestions, RANDOM);
+        Collections.shuffle(mediumQuestions, RANDOM);
+        Collections.shuffle(hardQuestions, RANDOM);
+
+        List<TeacherQuestion> selected = new ArrayList<>();
+        for (int i = 0; i < request.getEasyCount(); i++) {
+            selected.add(easyQuestions.get(i));
+        }
+        for (int i = 0; i < request.getMediumCount(); i++) {
+            selected.add(mediumQuestions.get(i));
+        }
+        for (int i = 0; i < request.getHardCount(); i++) {
+            selected.add(hardQuestions.get(i));
+        }
+
+        List<com.midori.dto.questiondto.TeacherQuestionResponse> response = new ArrayList<>();
+        for (TeacherQuestion q : selected) {
+            response.add(com.midori.dto.questiondto.TeacherQuestionResponse.builder()
+                    .id(q.getId())
+                    .teacherId(q.getTeacher().getId())
+                    .topicId(q.getTopicId())
+                    .level(q.getLevel())
+                    .skill(q.getSkill())
+                    .lessonId(q.getLesson() != null ? q.getLesson().getId() : null)
+                    .prompt(q.getPrompt())
+                    .jpPrompt(q.getJpPrompt())
+                    .questionType(q.getQuestionType())
+                    .difficulty(q.getDifficulty())
+                    .correctAnswerIndex(q.getCorrectAnswerIndex())
+                    .explanation(q.getExplanation())
+                    .tags(q.getTags())
+                    .status(q.getStatus())
+                    .points(q.getPoints())
+                    .options(q.getOptions())
+                    .audioUrl(q.getAudioUrl())
+                    .audioFileName(q.getAudioFileName())
+                    .audioDuration(q.getAudioDuration())
+                    .createdAt(q.getCreatedAt())
+                    .updatedAt(q.getUpdatedAt())
+                    .build());
+        }
+
+        return response;
+    }
 }

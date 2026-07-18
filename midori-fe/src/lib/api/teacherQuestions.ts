@@ -4,6 +4,9 @@ export interface TeacherQuestionResponse {
   id: string;
   teacherId: string;
   topicId?: string;
+  level?: string;
+  skill?: string;
+  lessonId?: number;
   prompt: string;
   jpPrompt?: string;
   questionType: string;
@@ -14,12 +17,18 @@ export interface TeacherQuestionResponse {
   status: string;
   points: number;
   options: string[];
+  audioUrl?: string;
+  audioFileName?: string;
+  audioDuration?: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateTeacherQuestionRequest {
   topicId?: string;
+  level?: string;
+  skill?: string;
+  lessonId?: number;
   prompt: string;
   jpPrompt?: string;
   questionType: string;
@@ -29,10 +38,16 @@ export interface CreateTeacherQuestionRequest {
   tags?: string;
   points?: number;
   options: string[];
+  audioUrl?: string;
+  audioFileName?: string;
+  audioDuration?: number;
 }
 
 export interface UpdateTeacherQuestionRequest {
   topicId?: string;
+  level?: string;
+  skill?: string;
+  lessonId?: number;
   prompt: string;
   jpPrompt?: string;
   questionType: string;
@@ -43,6 +58,28 @@ export interface UpdateTeacherQuestionRequest {
   points?: number;
   status?: string;
   options: string[];
+  audioUrl?: string;
+  audioFileName?: string;
+  audioDuration?: number;
+}
+
+export interface QuestionBankLessonResponse {
+  id: number;
+  level: string;
+  lessonNumber: number;
+  lessonName: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface QuestionBankGeneratorLessonResponse {
+  id: number;
+  name: string;
+  level: string;
+  easy: number;
+  medium: number;
+  hard: number;
+  questionCount: number;
 }
 
 export const teacherQuestionsApi = {
@@ -56,4 +93,30 @@ export const teacherQuestionsApi = {
     api.get<TeacherQuestionResponse[]>("/teacher/questions"),
   getQuestionById: (id: string) =>
     api.get<TeacherQuestionResponse>(`/teacher/questions/${id}`),
+  
+  // Lessons
+  getLessons: (level: string) =>
+    api.get<QuestionBankLessonResponse[]>(`/teacher/questions/lessons?level=${level}`),
+  createLesson: (lesson: Omit<QuestionBankLessonResponse, "id" | "createdAt">) =>
+    api.post<QuestionBankLessonResponse>("/teacher/questions/lessons", lesson),
+  updateLesson: (id: number, lessonName: string, lessonNumber?: number, status?: string) =>
+    api.put<QuestionBankLessonResponse>(`/teacher/questions/lessons/${id}`, { lessonName, lessonNumber, status }),
+  deleteLesson: (id: number) =>
+    api.delete<void>(`/teacher/questions/lessons/${id}`),
+
+  // Question Bank Integration
+  getQuestionBankLevels: () =>
+    api.get<string[]>("/question-bank/levels"),
+  getQuestionBankSkills: () =>
+    api.get<string[]>("/question-bank/skills"),
+  getQuestionBankLessons: (level: string, skills: string[]) =>
+    api.get<QuestionBankGeneratorLessonResponse[]>(`/question-bank/lessons?level=${level}&skills=${skills.join(",")}`),
+  randomizeQuestions: (req: {
+    level: string;
+    skills: string[];
+    lessonIds: number[];
+    difficulty: { easy: number; medium: number; hard: number };
+    questionCount: number;
+  }) =>
+    api.post<TeacherQuestionResponse[]>("/question-bank/randomize", req),
 };

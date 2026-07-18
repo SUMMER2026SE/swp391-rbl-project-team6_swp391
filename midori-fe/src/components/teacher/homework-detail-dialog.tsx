@@ -100,7 +100,7 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
                   <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Questions list</h4>
                   <div className="space-y-3">
                     {homework.questions.map((q: any, idx: number) => (
-                      <div key={q.id || idx} className="p-4 rounded-xl border border-border bg-card space-y-3">
+                      <div key={`${q.id || ''}-${idx}`} className="p-4 rounded-xl border border-border bg-card space-y-3">
                         <div className="flex justify-between items-start gap-2">
                           <span className="text-xs font-bold text-primary">Question {idx + 1}</span>
                           {q.points !== undefined && (

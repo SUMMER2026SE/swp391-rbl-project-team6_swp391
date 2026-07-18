@@ -16,6 +16,7 @@ import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.GrammarRepository;
 import com.midori.repository.UserLearningProgressRepository;
 import com.midori.repository.UserRepository;
+import com.midori.service.LessonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ public class GrammarServiceImpl implements GrammarService {
     private final UserRepository userRepository;
     private final UserLearningProgressRepository progressRepository;
     private final NotificationHelperService notificationHelper;
+    private final LessonService lessonService;
 
     // ============================================================
     // Ownership Check Helper
@@ -61,6 +63,13 @@ public class GrammarServiceImpl implements GrammarService {
         User creator = userRepository.findById(createdBy)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", createdBy));
 
+        var lessonResponse = lessonService.getOrCreateLesson(
+                request.getLevel(),
+                request.getLessonNumber(),
+                request.getTitle(),
+                null
+        );
+
         Grammar grammar = Grammar.builder()
                 .title(trimToNull(request.getTitle()))
                 .pattern(trimToNull(request.getPattern()))
@@ -70,10 +79,12 @@ public class GrammarServiceImpl implements GrammarService {
                 .examples(request.getExamples())
                 .exampleMeanings(request.getExampleMeanings())
                 .level(parseLevel(request.getLevel()))
+                .lessonNumber(request.getLessonNumber())
                 .status(GrammarStatus.DRAFT)
                 .createdBy(creator)
                 .build();
 
+        grammar.setLesson(com.midori.entity.Lesson.builder().id(lessonResponse.getId()).build());
         grammar = grammarRepository.save(grammar);
         return toGrammarResponse(grammar, createdBy);
     }
@@ -273,6 +284,8 @@ public class GrammarServiceImpl implements GrammarService {
                 .examples(grammar.getExamples())
                 .exampleMeanings(grammar.getExampleMeanings())
                 .level(grammar.getLevel() != null ? grammar.getLevel().name() : null)
+                .lessonNumber(grammar.getLessonNumber())
+                .lessonId(grammar.getLesson() != null ? grammar.getLesson().getId() : null)
                 .status(grammar.getStatus().name())
                 .rejectReason(grammar.getRejectReason())
                 .createdBy(grammar.getCreatedBy() != null ? grammar.getCreatedBy().getId() : null)
