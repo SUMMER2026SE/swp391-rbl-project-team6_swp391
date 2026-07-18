@@ -75,9 +75,9 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
   const [viewState, setViewState] = useState<ViewState>("detail");
   const [selectedAnswers, setSelectedAnswers] = useState<Map<string, string>>(new Map());
   const [xpAwarded, setXpAwarded] = useState(false);
-  const [shuffledQuestions, setShuffledQuestions] = useState<Map<string, { options: AnswerOption[] }>>(
-    new Map()
-  );
+  const [shuffledQuestions, setShuffledQuestions] = useState<
+    Map<string, { options: AnswerOption[] }>
+  >(new Map());
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -105,7 +105,7 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
       questions.forEach((q) => {
         const shuffled = createShuffledOptions(
           q.correctAnswer,
-          q.options?.filter((o) => o !== q.correctAnswer) ?? []
+          q.options?.filter((o) => o !== q.correctAnswer) ?? [],
         );
         newShuffled.set(q.id, { options: shuffled });
       });
@@ -146,7 +146,7 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
     questions.forEach((q) => {
       const shuffled = createShuffledOptions(
         q.correctAnswer,
-        q.options?.filter((o) => o !== q.correctAnswer) ?? []
+        q.options?.filter((o) => o !== q.correctAnswer) ?? [],
       );
       newShuffled.set(q.id, { options: shuffled });
     });
@@ -205,7 +205,7 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
             onClick={handlePlayAudio}
             className={cn(
               "w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md transition-all",
-              isPlaying ? "bg-gradient-hero animate-pulse" : "bg-gradient-hero hover:scale-105"
+              isPlaying ? "bg-gradient-hero animate-pulse" : "bg-gradient-hero hover:scale-105",
             )}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
@@ -220,7 +220,9 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
         {listeningDetail?.transcript && (
           <div className="mt-4 p-3 rounded-lg bg-muted/50">
             <p className="text-xs text-muted-foreground mb-1 font-medium">Transcript:</p>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{listeningDetail.transcript}</p>
+            <p className="text-sm text-foreground whitespace-pre-wrap">
+              {listeningDetail.transcript}
+            </p>
           </div>
         )}
       </div>
@@ -266,8 +268,11 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
                           "w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all",
                           !isSubmitted && "border-border/50 hover:border-blue-500/30 bg-card",
                           isSubmitted && isCorrectOption && "border-sky-blue bg-sky-blue/15",
-                          isSelected && !isCorrectOption && isSubmitted && "border-red-500 bg-red-50 dark:bg-red-950/30",
-                          isSelected && !isSubmitted && "border-sky-blue bg-sky-blue/15"
+                          isSelected &&
+                            !isCorrectOption &&
+                            isSubmitted &&
+                            "border-red-500 bg-red-50 dark:bg-red-950/30",
+                          isSelected && !isSubmitted && "border-sky-blue bg-sky-blue/15",
                         )}
                       >
                         <div className="flex items-center justify-between">
@@ -277,15 +282,21 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
                                 "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0",
                                 isSelected
                                   ? "border-sky-blue bg-sky-blue text-white"
-                                  : "border-border"
+                                  : "border-border",
                               )}
                             >
-                              {String.fromCharCode(65 + questionOptions.findIndex((o) => o.id === option.id))}
+                              {String.fromCharCode(
+                                65 + questionOptions.findIndex((o) => o.id === option.id),
+                              )}
                             </span>
                             <span>{option.text}</span>
                           </span>
-                          {isSubmitted && isCorrectOption && <CheckCircle2 className="w-4 h-4 text-sky-blue" />}
-                          {isSelected && !isCorrectOption && isSubmitted && <X className="w-4 h-4 text-red-500" />}
+                          {isSubmitted && isCorrectOption && (
+                            <CheckCircle2 className="w-4 h-4 text-sky-blue" />
+                          )}
+                          {isSelected && !isCorrectOption && isSubmitted && (
+                            <X className="w-4 h-4 text-red-500" />
+                          )}
                         </div>
                       </button>
                     );
@@ -314,7 +325,7 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
             "w-full py-3 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2",
             allAnswered
               ? "bg-gradient-hero text-white hover:opacity-90"
-              : "bg-muted text-muted-foreground cursor-not-allowed"
+              : "bg-muted text-muted-foreground cursor-not-allowed",
           )}
         >
           Submit ({answeredCount}/{questions.length})
@@ -345,7 +356,7 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
             "rounded-xl p-5 text-center shadow-lg",
             isPassing
               ? "bg-gradient-to-r from-sky-blue to-pink-400 text-white"
-              : "bg-gradient-to-r from-red-500 to-orange-500 text-white"
+              : "bg-gradient-to-r from-red-500 to-orange-500 text-white",
           )}
         >
           <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
@@ -387,7 +398,7 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
                   "rounded-xl p-3 border",
                   isCorrect
                     ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
                 )}
               >
                 <div className="flex items-start gap-2">
@@ -449,7 +460,9 @@ export function ListeningModule({ lessonId, onComplete }: ListeningModuleProps) 
             <Headphones className="w-5 h-5 text-sky-blue" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-foreground">{listeningDetail?.title || "Listening Lesson"}</h3>
+            <h3 className="font-bold text-foreground">
+              {listeningDetail?.title || "Listening Lesson"}
+            </h3>
             <p className="text-xs text-muted-foreground">
               {questions.length} question{questions.length !== 1 ? "s" : ""} •{" "}
               {listeningDetail?.estimatedMinutes

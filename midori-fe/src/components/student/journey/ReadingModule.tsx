@@ -18,10 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createShuffledOptions, type AnswerOption } from "@/lib/quiz-utils";
-import {
-  studentReadingApi,
-  type ReadingDetailResponse,
-} from "@/lib/api/reading";
+import { studentReadingApi, type ReadingDetailResponse } from "@/lib/api/reading";
 import { useQuery } from "@tanstack/react-query";
 
 interface ReadingQuestion {
