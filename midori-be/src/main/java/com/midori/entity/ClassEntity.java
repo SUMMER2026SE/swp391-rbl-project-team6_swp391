@@ -49,6 +49,9 @@ public class ClassEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "class_code", nullable = false, unique = true, length = 20)
+    private String classCode;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

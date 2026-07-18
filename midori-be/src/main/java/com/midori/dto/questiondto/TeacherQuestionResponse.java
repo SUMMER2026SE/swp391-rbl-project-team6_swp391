@@ -20,6 +20,8 @@ public class TeacherQuestionResponse {
     private String skill;
     private Integer lessonId;
     private String prompt;
+    @Builder.Default
+    private String source = "HOMEWORK";
     private String jpPrompt;
     private String questionType;
     private String difficulty;
