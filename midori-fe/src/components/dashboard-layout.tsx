@@ -13,12 +13,53 @@ import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
 import {
-  LayoutDashboard, BookOpen, GraduationCap, Headphones, Mic,
-  ClipboardCheck, Trophy, LineChart, User, LogOut, Bell, Search, Flame, Sparkles,
-  ShieldCheck, ChevronRight, Menu, Bot, ChevronDown, Sun, Moon, BellRing, ChevronLeft,
-  FileText, FileBarChart, FolderOpen, BookUser, Library, School, UserPlus, ClipboardList,
-  Users, Settings, Megaphone, Eye, BookMarked, Mic2, BarChart3, ScrollText, Brain,
-  ChartColumn, BookText, Lock, BookOpenCheck, Map, Plus, X
+  LayoutDashboard,
+  BookOpen,
+  GraduationCap,
+  Headphones,
+  Mic,
+  ClipboardCheck,
+  Trophy,
+  LineChart,
+  User,
+  LogOut,
+  Bell,
+  Search,
+  Flame,
+  Sparkles,
+  ShieldCheck,
+  ChevronRight,
+  Menu,
+  Bot,
+  ChevronDown,
+  Sun,
+  Moon,
+  BellRing,
+  ChevronLeft,
+  FileText,
+  FileBarChart,
+  FolderOpen,
+  BookUser,
+  Library,
+  School,
+  UserPlus,
+  ClipboardList,
+  Users,
+  Settings,
+  Megaphone,
+  Eye,
+  BookMarked,
+  Mic2,
+  BarChart3,
+  ScrollText,
+  Brain,
+  ChartColumn,
+  BookText,
+  Lock,
+  BookOpenCheck,
+  Map,
+  Plus,
+  X,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -119,11 +160,13 @@ const teacherNav: NavItem[] = [
 
   // 2. My Classes (class-based flow)
   {
-    to: "/teacher/classes", label: "My Classes", icon: School,
+    to: "/teacher/classes",
+    label: "My Classes",
+    icon: School,
     children: [
       { to: "/teacher/classes", label: "My Classes", icon: School },
       { to: "/teacher/classes/create", label: "Create Class", icon: Plus },
-    ]
+    ],
   },
 
   // 3. Homework (global)
@@ -131,9 +174,6 @@ const teacherNav: NavItem[] = [
 
   // 5. Exams (global)
   { to: "/teacher/exams", label: "Exams", icon: ClipboardCheck },
-
-  // 6. Progress (global)
-  { to: "/teacher/progress", label: "Progress", icon: LineChart },
 
   // 7. Reports
   { to: "/teacher/reports", label: "Reports", icon: FileBarChart },
@@ -241,32 +281,48 @@ export function DashboardLayout({
     setExpandedMenus((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  const isRouteActive = useCallback((to: string, exact?: boolean) => {
-    if (to === "/teacher/classes") {
-      return pathname === "/teacher/classes" || (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create");
-    }
-    if (to === "/teacher/classes/create") {
-      return pathname === "/teacher/classes/create";
-    }
-    if (exact) return pathname === to;
-    const isBaseRoute = to === `/${role}`;
-    return pathname === to || (!isBaseRoute && pathname.startsWith(to + '/')) || (!isBaseRoute && pathname.startsWith(to + '?'));
-  }, [pathname, role]);
+  const isRouteActive = useCallback(
+    (to: string, exact?: boolean) => {
+      if (to === "/teacher/classes") {
+        return (
+          pathname === "/teacher/classes" ||
+          (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create")
+        );
+      }
+      if (to === "/teacher/classes/create") {
+        return pathname === "/teacher/classes/create";
+      }
+      if (exact) return pathname === to;
+      const isBaseRoute = to === `/${role}`;
+      return (
+        pathname === to ||
+        (!isBaseRoute && pathname.startsWith(to + "/")) ||
+        (!isBaseRoute && pathname.startsWith(to + "?"))
+      );
+    },
+    [pathname, role],
+  );
 
   // Check if item or any child is active
-  const isItemOrChildActive = useCallback((item: NavItem): boolean => {
-    if (item.children && item.children.length > 0) {
-      return item.children.some(child => isRouteActive(child.to));
-    }
-    return isRouteActive(item.to);
-  }, [isRouteActive]);
+  const isItemOrChildActive = useCallback(
+    (item: NavItem): boolean => {
+      if (item.children && item.children.length > 0) {
+        return item.children.some((child) => isRouteActive(child.to));
+      }
+      return isRouteActive(item.to);
+    },
+    [isRouteActive],
+  );
 
   // Get active child for a parent item
-  const getActiveChild = useCallback((item: NavItem): string | null => {
-    if (!item.children || item.children.length === 0) return null;
-    const activeChild = item.children.find(child => isRouteActive(child.to));
-    return activeChild?.to || null;
-  }, [isRouteActive]);
+  const getActiveChild = useCallback(
+    (item: NavItem): string | null => {
+      if (!item.children || item.children.length === 0) return null;
+      const activeChild = item.children.find((child) => isRouteActive(child.to));
+      return activeChild?.to || null;
+    },
+    [isRouteActive],
+  );
 
   // Handle click on disabled items
   const handleDisabledClick = (e: React.MouseEvent, item: NavItem | NavSubItem) => {
@@ -330,14 +386,16 @@ export function DashboardLayout({
           className={cn(
             "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
             isRouteActive(item.to) ? "nav-active" : "nav-item child-nav-item",
-            isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6"
+            isCollapsed ? "justify-center px-0 py-2" : "gap-2 px-3 py-2 ml-6",
           )}
         >
           {item.icon && (
             <item.icon
               className={cn(
                 "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                isRouteActive(item.to) ? "text-white" : "text-muted-foreground group-hover:text-primary"
+                isRouteActive(item.to)
+                  ? "text-white"
+                  : "text-muted-foreground group-hover:text-primary",
               )}
             />
           )}
@@ -345,7 +403,7 @@ export function DashboardLayout({
             className={cn(
               "transition-all duration-300 whitespace-nowrap overflow-hidden",
               isRouteActive(item.to) ? "text-white font-semibold" : "text-secondary-col",
-              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100"
+              isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
             )}
           >
             {item.label}
@@ -518,7 +576,12 @@ export function DashboardLayout({
           isCollapsed ? "w-24 px-3" : "w-72",
         )}
       >
-        <div className={cn("mb-2 flex items-start justify-between gap-3", isCollapsed ? "flex-col items-center gap-1.5" : "")}>
+        <div
+          className={cn(
+            "mb-2 flex items-start justify-between gap-3",
+            isCollapsed ? "flex-col items-center gap-1.5" : "",
+          )}
+        >
           <Link
             to="/"
             className={cn(
@@ -561,12 +624,12 @@ export function DashboardLayout({
           </button>
         </div>
 
-        <nav className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
-          isCollapsed
-            ? "flex flex-row flex-wrap content-start gap-2 mt-1"
-            : "flex-col mt-2"
-        )}>
+        <nav
+          className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300",
+            isCollapsed ? "flex flex-row flex-wrap content-start gap-2 mt-1" : "flex-col mt-2",
+          )}
+        >
           {role === "admin" || role === "student" ? (
             // Admin and Student use hierarchical navigation
             isCollapsed ? (
@@ -607,32 +670,33 @@ export function DashboardLayout({
             ) : (
               items.map((item) => renderNavItem(item))
             )
+          ) : // Teacher uses flat navigation
+          isCollapsed ? (
+            <div className="flex flex-row flex-wrap gap-2 w-full justify-center">
+              {items.map((it) => {
+                const isBaseRoute = it.to === `/${role}`;
+                const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+                const Icon = it.icon;
+                return (
+                  <Link
+                    key={it.to}
+                    to={it.to}
+                    title={it.label}
+                    className={cn(
+                      "flex items-center justify-center rounded-xl transition-all duration-300",
+                      active
+                        ? "bg-primary text-white w-10 h-10"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10",
+                    )}
+                  >
+                    <Icon
+                      className={cn("w-5 h-5", active ? "text-white" : "text-muted-foreground")}
+                    />
+                  </Link>
+                );
+              })}
+            </div>
           ) : (
-            // Teacher uses flat navigation
-            isCollapsed ? (
-              <div className="flex flex-row flex-wrap gap-2 w-full justify-center">
-                {items.map(it => {
-                  const isBaseRoute = it.to === `/${role}`;
-                  const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-                  const Icon = it.icon;
-                  return (
-                    <Link
-                      key={it.to}
-                      to={it.to}
-                      title={it.label}
-                      className={cn(
-                        "flex items-center justify-center rounded-xl transition-all duration-300",
-                        active
-                          ? "bg-primary text-white w-10 h-10"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10"
-                      )}
-                    >
-                      <Icon className={cn("w-5 h-5", active ? "text-white" : "text-muted-foreground")} />
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
             items.map((it) => {
               const isBaseRoute = it.to === `/${role}`;
               const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
@@ -670,7 +734,7 @@ export function DashboardLayout({
                   )}
                 </Link>
               );
-            }))
+            })
           )}
         </nav>
 
@@ -708,75 +772,84 @@ export function DashboardLayout({
               MIDORI
             </div>
             <nav className="space-y-1">
-              {role === "admin" || role === "student" ? (
-                // Admin and Student hierarchical mobile nav
-                items.map(item => {
-                  const hasChildren = item.children && item.children.length > 0;
-                  const isActive = isItemOrChildActive(item);
-                  const isExpanded = expandedMenus[item.to] || false;
+              {role === "admin" || role === "student"
+                ? // Admin and Student hierarchical mobile nav
+                  items.map((item) => {
+                    const hasChildren = item.children && item.children.length > 0;
+                    const isActive = isItemOrChildActive(item);
+                    const isExpanded = expandedMenus[item.to] || false;
 
-                  if (hasChildren) {
-                    return (
-                      <div key={item.to}>
-                        <button
-                          onClick={() => toggleExpanded(item.to)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${isActive ? "nav-active" : "nav-item"
+                    if (hasChildren) {
+                      return (
+                        <div key={item.to}>
+                          <button
+                            onClick={() => toggleExpanded(item.to)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
+                              isActive ? "nav-active" : "nav-item"
                             }`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span className="flex-1 text-left">{item.label}</span>
-                          <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
-                        </button>
-                        {isExpanded && (
-                          <div className="ml-4 space-y-1">
-                            {item.children!.map(child => (
-                              <Link
-                                key={child.to}
-                                to={child.to}
-                                preload="intent"
-                                onClick={() => setOpen(false)}
-                                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${pathname === child.to ? "nav-active" : "nav-item"
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span className="flex-1 text-left">{item.label}</span>
+                            <ChevronRight
+                              className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                            />
+                          </button>
+                          {isExpanded && (
+                            <div className="ml-4 space-y-1">
+                              {item.children!.map((child) => (
+                                <Link
+                                  key={child.to}
+                                  to={child.to}
+                                  preload="intent"
+                                  onClick={() => setOpen(false)}
+                                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${
+                                    pathname === child.to ? "nav-active" : "nav-item"
                                   }`}
-                              >
-                                <span className="w-4 h-4" />
-                                {child.icon && <child.icon className="w-4 h-4" />}
-                                {child.label}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
+                                >
+                                  <span className="w-4 h-4" />
+                                  {child.icon && <child.icon className="w-4 h-4" />}
+                                  {child.label}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
 
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      preload="intent"
-                      onClick={() => setOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${isActive ? "nav-active" : "nav-item"
+                    return (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        preload="intent"
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${
+                          isActive ? "nav-active" : "nav-item"
                         }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })
-              ) : (
-                // Teacher flat mobile nav
-                items.map((it) => {
-                  const isBaseRoute = it.to === `/${role}`;
-                  const active = pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
-                  const Icon = it.icon;
-                  return (
-                    <Link key={it.to} to={it.to} preload="intent" onClick={() => setOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}>
-                      <Icon className="w-4 h-4" /> {it.label}
-                    </Link>
-                  );
-                })
-              )}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                    );
+                  })
+                : // Teacher flat mobile nav
+                  items.map((it) => {
+                    const isBaseRoute = it.to === `/${role}`;
+                    const active =
+                      pathname === it.to || (!isBaseRoute && pathname.startsWith(it.to));
+                    const Icon = it.icon;
+                    return (
+                      <Link
+                        key={it.to}
+                        to={it.to}
+                        preload="intent"
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ${active ? "nav-active" : "nav-item"}`}
+                      >
+                        <Icon className="w-4 h-4" /> {it.label}
+                      </Link>
+                    );
+                  })}
             </nav>
           </aside>
         </div>
@@ -875,13 +948,19 @@ export function DashboardLayout({
                             return (
                               <div
                                 key={n.id}
-                                className={`w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150 ${n.unread
+                                className={`w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150 ${
+                                  n.unread
                                     ? "bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
                                     : "hover:bg-gray-50 dark:hover:bg-white/[0.04]"
-                                  }`}
+                                }`}
                               >
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${n.unread ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400" : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
-                                  }`}>
+                                <div
+                                  className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                    n.unread
+                                      ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400"
+                                      : "bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
+                                  }`}
+                                >
                                   <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -1002,16 +1081,25 @@ export function DashboardLayout({
         {role === "student" && !hideFooter && (
           <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-nav rounded-2xl px-2 py-2 flex justify-around">
             {items.slice(0, 5).map((it) => {
-              const targetTo = it.children && it.children.length > 0 && (it.to.endsWith("-modules") || it.to.includes("practice"))
-                ? it.children[0].to
-                : it.to;
+              const targetTo =
+                it.children &&
+                it.children.length > 0 &&
+                (it.to.endsWith("-modules") || it.to.includes("practice"))
+                  ? it.children[0].to
+                  : it.to;
               const isBaseRoute = targetTo === `/${role}`;
-              const active = pathname === targetTo || (!isBaseRoute && pathname.startsWith(targetTo));
+              const active =
+                pathname === targetTo || (!isBaseRoute && pathname.startsWith(targetTo));
               const Icon = it.icon;
               return (
-                <Link key={it.to} to={targetTo as any} preload="intent"
-                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
-                    }`}>
+                <Link
+                  key={it.to}
+                  to={targetTo as any}
+                  preload="intent"
+                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 ${
+                    active ? "bg-gradient-hero text-white shadow" : "text-muted-col"
+                  }`}
+                >
                   <Icon className={`w-5 h-5 ${active ? "text-white" : ""}`} />
                   <span>{it.label.split(" ")[0]}</span>
                 </Link>
