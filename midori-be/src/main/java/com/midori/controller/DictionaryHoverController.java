@@ -23,6 +23,9 @@ public class DictionaryHoverController {
     @GetMapping("/hover")
     public ResponseEntity<ApiResponse<DictionaryHoverResponse>> getHoverInfo(
             @RequestParam(value = "word", defaultValue = "") String word) {
+        if (word == null || word.trim().isEmpty()) {
+            throw new IllegalArgumentException("Parameter 'word' must not be blank");
+        }
         DictionaryHoverResponse response = hoverService.getHoverInfo(word);
         return ResponseEntity.ok(ApiResponse.success(response));
     }

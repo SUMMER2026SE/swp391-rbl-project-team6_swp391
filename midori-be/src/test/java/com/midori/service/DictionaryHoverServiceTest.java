@@ -6,11 +6,11 @@ import com.midori.entity.DictionaryMeaning;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.DictionaryEntryRepository;
 import com.midori.service.impl.DictionaryHoverServiceImpl;
+import com.midori.service.impl.LocalDictionaryRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,18 +30,30 @@ class DictionaryHoverServiceTest {
     @Mock
     private DictionaryCacheService cacheService;
 
-    @InjectMocks
+    @Mock
+    private LocalDictionaryRegistry localDictionaryRegistry;
+
     private DictionaryHoverServiceImpl hoverService;
 
     private DictionaryEntry entry;
 
     @BeforeEach
     void setUp() {
+        // Manually instantiate to ensure all 3 dependencies are wired correctly
+        hoverService = new DictionaryHoverServiceImpl(
+                dictionaryEntryRepository,
+                cacheService,
+                localDictionaryRegistry
+        );
+
         lenient().when(cacheService.getOrFetch(anyString(), any(), any(), anyLong(), any()))
                 .thenAnswer(invocation -> {
                     java.util.function.Supplier<?> supplier = invocation.getArgument(2);
                     return supplier.get();
                 });
+
+        lenient().when(localDictionaryRegistry.lookup(anyString()))
+                .thenReturn(Collections.emptyList());
 
         entry = DictionaryEntry.builder()
                 .surface("食べる")
@@ -52,10 +64,10 @@ class DictionaryHoverServiceTest {
                 .meanings(new ArrayList<>())
                 .build();
 
-        // 3 sample meanings
-        entry.getMeanings().add(DictionaryMeaning.builder().meaning("to eat").sortOrder(1).entry(entry).build());
-        entry.getMeanings().add(DictionaryMeaning.builder().meaning("to consume").sortOrder(2).entry(entry).build());
-        entry.getMeanings().add(DictionaryMeaning.builder().meaning("to live on").sortOrder(0).entry(entry).build());
+        // 3 sample meanings with "vi" language (non-English so they pass the filter)
+        entry.getMeanings().add(DictionaryMeaning.builder().meaning("to eat").sortOrder(1).language("vi").entry(entry).build());
+        entry.getMeanings().add(DictionaryMeaning.builder().meaning("to consume").sortOrder(2).language("vi").entry(entry).build());
+        entry.getMeanings().add(DictionaryMeaning.builder().meaning("to live on").sortOrder(0).language("vi").entry(entry).build());
     }
 
     @Test
@@ -123,7 +135,7 @@ class DictionaryHoverServiceTest {
     void testGetHoverInfo_limitMeanings() {
         // Add 4 more meanings so total is 7
         for (int i = 3; i < 7; i++) {
-            entry.getMeanings().add(DictionaryMeaning.builder().meaning("meaning " + i).sortOrder(i).entry(entry).build());
+            entry.getMeanings().add(DictionaryMeaning.builder().meaning("meaning " + i).sortOrder(i).language("vi").entry(entry).build());
         }
 
         when(dictionaryEntryRepository.findBySurfaceWithMeanings("食べる"))

@@ -7,11 +7,11 @@ import com.midori.entity.DictionaryExample;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.DictionaryEntryRepository;
 import com.midori.service.impl.DictionaryDetailServiceImpl;
+import com.midori.service.impl.LocalDictionaryRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
@@ -32,7 +32,9 @@ class DictionaryDetailServiceTest {
     @Mock
     private DictionaryCacheService cacheService;
 
-    @InjectMocks
+    @Mock
+    private LocalDictionaryRegistry localDictionaryRegistry;
+
     private DictionaryDetailServiceImpl detailService;
 
     private DictionaryEntry entry;
@@ -40,11 +42,20 @@ class DictionaryDetailServiceTest {
 
     @BeforeEach
     void setUp() {
+        detailService = new DictionaryDetailServiceImpl(
+                dictionaryEntryRepository,
+                cacheService,
+                localDictionaryRegistry
+        );
+
         lenient().when(cacheService.getOrFetch(anyString(), any(), any(), anyLong(), any()))
                 .thenAnswer(invocation -> {
                     java.util.function.Supplier<?> supplier = invocation.getArgument(2);
                     return supplier.get();
                 });
+
+        lenient().when(localDictionaryRegistry.lookup(anyString()))
+                .thenReturn(Collections.emptyList());
 
         entry = DictionaryEntry.builder()
                 .surface("食べる")

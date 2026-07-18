@@ -2,6 +2,7 @@ package com.midori.service.impl;
 
 import com.midori.dto.dictionary.*;
 import com.midori.entity.DictionaryEntry;
+import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.DictionaryEntryRepository;
 import com.midori.service.DictionaryDetailService;
 import lombok.RequiredArgsConstructor;
@@ -118,22 +119,25 @@ public class DictionaryDetailServiceImpl implements DictionaryDetailService {
                         .build();
             }
 
-            return createEmptyResponse(finalTargetWord);
+            throw new ResourceNotFoundException("DictionaryEntry", "word", finalTargetWord);
         }, 24, TimeUnit.HOURS);
     }
 
     private String sanitizeLookupWord(String word) {
         if (word == null) return "";
-        return word.replaceAll("^[、。？！「」『』・~〜,\\.\\?!\"';:]+", "")
-                   .replaceAll("[、。？！「」『』・~〜,\\.\\?!\"';:]+$", "")
+        return word.replaceAll("^[、。，．？！」『』（）〔〕【】〜…‥・~,\\.\\?!\"';:]+", "")
+                   .replaceAll("[、。，．？！」『』（）〔〕【】〜…‥・~,\\.\\?!\"';:]+$", "")
                    .trim();
     }
 
     private DictionaryDetailResponse createEmptyResponse(String word) {
         return DictionaryDetailResponse.builder()
+                .id(null)
                 .word(word)
                 .reading("")
                 .romaji("")
+                .jlpt("")
+                .frequency(0)
                 .partOfSpeech("")
                 .meanings(Collections.emptyList())
                 .examples(Collections.emptyList())

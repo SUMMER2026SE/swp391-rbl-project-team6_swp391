@@ -36,6 +36,9 @@ class KanjiControllerTest {
     @MockBean
     private KanjiService kanjiService;
 
+    @MockBean
+    private com.midori.service.KanjiSvgService kanjiSvgService;
+
     @Nested
     @DisplayName("GET /api/kanji/{kanji}")
     class GetKanji {

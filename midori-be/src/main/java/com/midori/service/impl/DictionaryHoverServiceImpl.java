@@ -62,8 +62,11 @@ public class DictionaryHoverServiceImpl implements DictionaryHoverService {
 
                 // Get Vietnamese meanings first, fall back to English
                 List<String> meanings = entry.getMeanings().stream()
-                        .filter(m -> "vi".equalsIgnoreCase(m.getLanguage()))
-                        .sorted(Comparator.comparingInt(DictionaryMeaning::getSortOrder))
+                        .filter(m -> m.getLanguage() != null && !"en".equalsIgnoreCase(m.getLanguage()))
+                        .sorted(Comparator.comparingInt(m -> {
+                            Integer order = m.getSortOrder();
+                            return order != null ? order : Integer.MAX_VALUE;
+                        }))
                         .limit(5)
                         .map(DictionaryMeaning::getMeaning)
                         .collect(Collectors.toList());
@@ -72,7 +75,10 @@ public class DictionaryHoverServiceImpl implements DictionaryHoverService {
                 if (meanings.isEmpty()) {
                     meanings = entry.getMeanings().stream()
                             .filter(m -> "en".equalsIgnoreCase(m.getLanguage()))
-                            .sorted(Comparator.comparingInt(DictionaryMeaning::getSortOrder))
+                            .sorted(Comparator.comparingInt(m -> {
+                                Integer order = m.getSortOrder();
+                                return order != null ? order : Integer.MAX_VALUE;
+                            }))
                             .limit(5)
                             .map(DictionaryMeaning::getMeaning)
                             .collect(Collectors.toList());
@@ -106,7 +112,7 @@ public class DictionaryHoverServiceImpl implements DictionaryHoverService {
                 return phraseRes;
             }
 
-            return createEmptyResponse(finalTargetWord);
+            throw new ResourceNotFoundException("DictionaryEntry", "word", finalTargetWord);
         }, 24, TimeUnit.HOURS);
     }
 
@@ -151,15 +157,21 @@ public class DictionaryHoverServiceImpl implements DictionaryHoverService {
                     DictionaryEntry entry = entries.get(0);
                     // Get Vietnamese meanings first, fall back to English
                     List<String> meanings = entry.getMeanings().stream()
-                            .filter(m -> "vi".equalsIgnoreCase(m.getLanguage()))
-                            .sorted(Comparator.comparingInt(DictionaryMeaning::getSortOrder))
+                            .filter(m -> m.getLanguage() != null && !"en".equalsIgnoreCase(m.getLanguage()))
+                            .sorted(Comparator.comparingInt(m -> {
+                                Integer order = m.getSortOrder();
+                                return order != null ? order : Integer.MAX_VALUE;
+                            }))
                             .limit(5)
                             .map(DictionaryMeaning::getMeaning)
                             .collect(Collectors.toList());
                     if (meanings.isEmpty()) {
                         meanings = entry.getMeanings().stream()
                                 .filter(m -> "en".equalsIgnoreCase(m.getLanguage()))
-                                .sorted(Comparator.comparingInt(DictionaryMeaning::getSortOrder))
+                                .sorted(Comparator.comparingInt(m -> {
+                                    Integer order = m.getSortOrder();
+                                    return order != null ? order : Integer.MAX_VALUE;
+                                }))
                                 .limit(5)
                                 .map(DictionaryMeaning::getMeaning)
                                 .collect(Collectors.toList());

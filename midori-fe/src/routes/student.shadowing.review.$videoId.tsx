@@ -5,6 +5,7 @@ import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home, Loade
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi } from "@/lib/api/shadowing";
 import { dictionaryApi } from "@/lib/api/dictionary";
+import { type ShadowingEvaluationResponse } from "@/lib/api/shadowingEvaluation";
 import { getTopicVn } from "./student.shadowing";
 import { ClickableTranscript } from "@/components/clickable-transcript";
 import { SavedWordsButton } from "@/components/saved-words-panel";
@@ -109,10 +110,47 @@ function ReviewPage() {
           }
         }));
         setReviewData(review);
+        loadReviewScores(review);
       } catch (err) {
         console.error("Error loading video details:", err);
       } finally {
         setIsLoading(false);
+      }
+    };
+
+    const loadReviewScores = async (initialReview: typeof reviewData) => {
+      // Try to load real evaluation scores from localStorage (saved by practice page)
+      const stored = localStorage.getItem(`shadowing-practice-${videoId}`);
+      if (!stored) return;
+      try {
+        const { savedResults } = JSON.parse(stored) as { savedIndex: number; savedResults: any[] };
+        if (!Array.isArray(savedResults)) return;
+
+        setReviewData((prev) =>
+          prev.map((review) => {
+            const found = savedResults.find((r) => r.sentenceId === review.sentence.id);
+            if (!found) return review;
+            const ev = found.evaluation as ShadowingEvaluationResponse | undefined;
+            if (!ev) return review;
+            return {
+              ...review,
+              score: ev.overall ?? 0,
+              feedback: {
+                pronunciation: ev.accuracy ?? 0,
+                pitchAccent: ev.similarity ? Math.round(ev.similarity * 0.8) : 0,
+                fluency: ev.accuracy ? Math.round(ev.accuracy * 0.85) : 0,
+                speed: ev.overall ? Math.round(ev.overall * 0.9) : 0,
+                overallScore: ev.overall ?? 0,
+                feedback: Array.isArray(ev.feedback) && ev.feedback.length > 0
+                  ? ev.feedback.join(" ")
+                  : "Chưa có dữ liệu chấm điểm.",
+                tips: Array.isArray(ev.practiceSuggestions) ? ev.practiceSuggestions : [],
+              },
+            };
+          })
+        );
+      } catch (e) {
+        console.error("Failed to load shadowing review scores:", e);
       }
     };
     loadVideoAndTranscript();
