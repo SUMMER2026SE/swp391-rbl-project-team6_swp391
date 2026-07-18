@@ -18,6 +18,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ReadingQuestionRequest {
 
+    @JsonProperty("id")
+    private String id;
+
     @JsonProperty("questionOrder")
     @NotNull(message = "Question order is required")
     @Min(value = 1, message = "Question order must be at least 1")

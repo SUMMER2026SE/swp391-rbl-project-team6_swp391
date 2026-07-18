@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "vocabulary_words")
+@Table(name = "vocabulary_words_v2")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,7 +23,7 @@ public class VocabularyWord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id", nullable = false)
-    private VocabularyLesson lesson;
+    private VocabularyLessonV2 lesson;
 
     @Column(nullable = false, length = 255)
     private String word;

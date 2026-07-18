@@ -15,16 +15,14 @@ import java.util.UUID;
 public class VocabularyLessonResponse {
 
     private UUID id;
+    private UUID lessonId;
+    private String jlptLevel;
+    private Integer lessonNumber;
     private String title;
     private String description;
-    private String level;
-    private String topic;
     private Integer estimatedMinutes;
-    private Integer wordCount;
-    private Boolean isPublished;
-    private UUID createdBy;
-    private String teacherName;
-    private Boolean ownedByMe;
+    private String difficulty;
+    private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
 }

@@ -3,7 +3,10 @@ package com.midori.controller;
 import com.midori.common.ApiResponse;
 import com.midori.dto.reading.ReadingDetailResponse;
 import com.midori.dto.reading.ReadingLessonResponse;
+import com.midori.dto.reading.ReadingSubmitRequest;
+import com.midori.dto.reading.ReadingSubmitResponse;
 import com.midori.service.ReadingLessonService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +45,21 @@ public class ReadingStudentController {
             @PathVariable String jlptLevel) {
         List<ReadingLessonResponse> readings = readingLessonService.getActiveReadingLessonsByLevel(jlptLevel);
         return ResponseEntity.ok(ApiResponse.success(readings));
+    }
+
+    /**
+     * Grade a Reading attempt on the server and return a detailed result.
+     *
+     * <p>This endpoint is the source of truth for the new Student Learning
+     * Journey → Reading flow. The response intentionally extends the legacy
+     * {@code score} field with the per-question breakdown that the Review
+     * screen needs, without breaking any callers that only read {@code score}.
+     */
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<ApiResponse<ReadingSubmitResponse>> submitAnswers(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReadingSubmitRequest request) {
+        ReadingSubmitResponse response = readingLessonService.submitAnswers(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Reading submission graded successfully", response));
     }
 }

@@ -1,7 +1,6 @@
 package com.midori.dto.approval;
 
 import com.midori.dto.flashcard.FlashcardCardResponse;
-import com.midori.dto.grammar.GrammarResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
