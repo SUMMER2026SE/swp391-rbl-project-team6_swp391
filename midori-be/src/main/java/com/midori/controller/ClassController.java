@@ -115,14 +115,27 @@ public class ClassController {
         int homeworkCount = homeworkCounts.getOrDefault(classEntity.getId(), 0L).intValue();
         int examCount = examCounts.getOrDefault(classEntity.getId(), 0L).intValue();
 
+        // Get teacher name from profile or use email as fallback
+        String teacherName = null;
+        if (classEntity.getTeacher() != null) {
+            if (classEntity.getTeacher().getProfile() != null
+                    && classEntity.getTeacher().getProfile().getDisplayName() != null) {
+                teacherName = classEntity.getTeacher().getProfile().getDisplayName();
+            } else {
+                teacherName = classEntity.getTeacher().getEmail();
+            }
+        }
+
         return ClassResponse.builder()
                 .id(classEntity.getId())
                 .name(classEntity.getName())
                 .level(classEntity.getLevel())
                 .maxStudents(classEntity.getMaxStudents())
                 .description(classEntity.getDescription())
+                .classCode(classEntity.getClassCode())
                 .status(classEntity.getStatus())
                 .teacherId(classEntity.getTeacher() != null ? classEntity.getTeacher().getId() : null)
+                .teacherName(teacherName)
                 .studentCount(studentCount)
                 .homeworkCount(homeworkCount)
                 .upcomingExamCount(examCount)
