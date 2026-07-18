@@ -11,7 +11,14 @@ export const mapDifficulty = (d: string): Difficulty => {
 
 export const mapSkill = (s: string): Skill => {
   const norm = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-  const validSkills: Skill[] = ["Vocabulary", "Grammar", "Listening", "Reading", "Shadowing", "Writing"];
+  const validSkills: Skill[] = [
+    "Vocabulary",
+    "Grammar",
+    "Listening",
+    "Reading",
+    "Shadowing",
+    "Writing",
+  ];
   if (validSkills.includes(norm as Skill)) {
     return norm as Skill;
   }
@@ -34,6 +41,6 @@ export function mapTeacherQuestionToViewModel(q: TeacherQuestionResponse): MockQ
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,
     usageCount: 0,
-    status: q.status.toUpperCase() === "ARCHIVED" ? "Archived" : "Active"
+    status: q.status.toUpperCase() === "ARCHIVED" ? "Archived" : "Active",
   };
 }

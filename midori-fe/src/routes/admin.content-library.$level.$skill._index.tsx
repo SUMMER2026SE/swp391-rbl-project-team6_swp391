@@ -833,9 +833,7 @@ function ListeningEditForm({
 
   const updateQuestion = (index: number, field: string, value: string | number | null) => {
     setForm((f) => {
-      const questions = f.questions.map((q, i) =>
-        i === index ? { ...q, [field]: value } : q
-      );
+      const questions = f.questions.map((q, i) => (i === index ? { ...q, [field]: value } : q));
       return { ...f, questions };
     });
   };
@@ -1058,7 +1056,9 @@ function ListeningEditForm({
 
                         {/* Explanation */}
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Explanation (optional)</label>
+                          <label className="block text-xs text-muted-col mb-1">
+                            Explanation (optional)
+                          </label>
                           <textarea
                             value={q.explanation || ""}
                             onChange={(e) => updateQuestion(i, "explanation", e.target.value)}
@@ -1294,7 +1294,9 @@ function ReadingEditForm({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
+                          <label className="block text-xs text-muted-col mb-1">
+                            Japanese Passage
+                          </label>
                           <textarea
                             value={item.passage}
                             onChange={(e) => updateItem(i, "passage", e.target.value)}
@@ -1303,7 +1305,9 @@ function ReadingEditForm({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
+                          <label className="block text-xs text-muted-col mb-1">
+                            Vietnamese Translation
+                          </label>
                           <textarea
                             value={item.translationVietnamese}
                             onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
@@ -1315,7 +1319,9 @@ function ReadingEditForm({
                         {/* Vocabulary Hints */}
                         <div className="border-t border-[var(--border)] pt-3">
                           <div className="flex items-center justify-between mb-2">
-                            <label className="text-xs text-muted-col font-medium">Vocabulary Hints</label>
+                            <label className="text-xs text-muted-col font-medium">
+                              Vocabulary Hints
+                            </label>
                             <button
                               type="button"
                               onClick={() => {
@@ -1365,7 +1371,9 @@ function ReadingEditForm({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const hints = (item.vocabularyHints || []).filter((_, idx) => idx !== vi);
+                                  const hints = (item.vocabularyHints || []).filter(
+                                    (_, idx) => idx !== vi,
+                                  );
                                   updateItem(i, "vocabularyHints", hints);
                                 }}
                                 className="text-red-400 hover:text-red-600 shrink-0"
@@ -1403,7 +1411,10 @@ function ReadingEditForm({
                             </button>
                           </div>
                           {(item.questions || []).map((q, qi) => (
-                            <div key={q.id} className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]">
+                            <div
+                              key={q.id}
+                              className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]"
+                            >
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-semibold text-primary-col">
                                   Q{qi + 1}
@@ -1411,7 +1422,9 @@ function ReadingEditForm({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const questions = (item.questions || []).filter((_, idx) => idx !== qi);
+                                    const questions = (item.questions || []).filter(
+                                      (_, idx) => idx !== qi,
+                                    );
                                     updateItem(i, "questions", questions);
                                   }}
                                   className="text-red-400 hover:text-red-600"
@@ -1432,7 +1445,9 @@ function ReadingEditForm({
                               <div className="space-y-1">
                                 {q.options.map((opt, oi) => (
                                   <div key={oi} className="flex items-center gap-2">
-                                    <span className="text-xs text-muted-col w-4 shrink-0">{String.fromCharCode(65 + oi)}.</span>
+                                    <span className="text-xs text-muted-col w-4 shrink-0">
+                                      {String.fromCharCode(65 + oi)}.
+                                    </span>
                                     <input
                                       value={opt}
                                       onChange={(e) => {
@@ -2484,9 +2499,7 @@ function ListeningLessonForm({
 
   const updateQuestion = (index: number, field: string, value: string | number | null) => {
     setForm((f) => {
-      const questions = f.questions.map((q, i) =>
-        i === index ? { ...q, [field]: value } : q
-      );
+      const questions = f.questions.map((q, i) => (i === index ? { ...q, [field]: value } : q));
       return { ...f, questions };
     });
   };
@@ -2693,7 +2706,9 @@ function ListeningLessonForm({
 
                         {/* Explanation */}
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Explanation (optional)</label>
+                          <label className="block text-xs text-muted-col mb-1">
+                            Explanation (optional)
+                          </label>
                           <textarea
                             value={q.explanation || ""}
                             onChange={(e) => updateQuestion(i, "explanation", e.target.value)}
@@ -2731,15 +2746,17 @@ function ListeningLessonForm({
           Cancel
         </button>
         <button
-          onClick={() => onSave({
-            ...form,
-            isActive: form.status === "active",
-            estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
-            description: form.description || null,
-            transcript: form.transcript || null,
-            audioUrl: form.audioUrl || null,
-            difficulty: form.difficulty || null,
-          })}
+          onClick={() =>
+            onSave({
+              ...form,
+              isActive: form.status === "active",
+              estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
+              description: form.description || null,
+              transcript: form.transcript || null,
+              audioUrl: form.audioUrl || null,
+              difficulty: form.difficulty || null,
+            })
+          }
           disabled={!form.title.trim()}
           className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
         >
@@ -2926,7 +2943,9 @@ function ReadingLessonForm({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
+                        <label className="block text-xs text-muted-col mb-1">
+                          Japanese Passage
+                        </label>
                         <textarea
                           value={item.passage}
                           onChange={(e) => updateItem(i, "passage", e.target.value)}
@@ -2935,7 +2954,9 @@ function ReadingLessonForm({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
+                        <label className="block text-xs text-muted-col mb-1">
+                          Vietnamese Translation
+                        </label>
                         <textarea
                           value={item.translationVietnamese}
                           onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
@@ -2947,7 +2968,9 @@ function ReadingLessonForm({
                       {/* Vocabulary Hints */}
                       <div className="border-t border-[var(--border)] pt-3">
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-xs text-muted-col font-medium">Vocabulary Hints</label>
+                          <label className="text-xs text-muted-col font-medium">
+                            Vocabulary Hints
+                          </label>
                           <button
                             type="button"
                             onClick={() => {
@@ -2997,7 +3020,9 @@ function ReadingLessonForm({
                             <button
                               type="button"
                               onClick={() => {
-                                const hints = (item.vocabularyHints || []).filter((_, idx) => idx !== vi);
+                                const hints = (item.vocabularyHints || []).filter(
+                                  (_, idx) => idx !== vi,
+                                );
                                 updateItem(i, "vocabularyHints", hints);
                               }}
                               className="text-red-400 hover:text-red-600 shrink-0"
@@ -3035,13 +3060,20 @@ function ReadingLessonForm({
                           </button>
                         </div>
                         {(item.questions || []).map((q, qi) => (
-                          <div key={q.id} className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]">
+                          <div
+                            key={q.id}
+                            className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]"
+                          >
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-semibold text-primary-col">Q{qi + 1}</span>
+                              <span className="text-xs font-semibold text-primary-col">
+                                Q{qi + 1}
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const questions = (item.questions || []).filter((_, idx) => idx !== qi);
+                                  const questions = (item.questions || []).filter(
+                                    (_, idx) => idx !== qi,
+                                  );
                                   updateItem(i, "questions", questions);
                                 }}
                                 className="text-red-400 hover:text-red-600"
@@ -3426,7 +3458,9 @@ function ExcelImportModal({
   level: JLPTLevel;
   onClose: () => void;
   onImport: (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
+    data: Partial<
+      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
+    >,
   ) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -3642,9 +3676,7 @@ function ExcelImportModal({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-primary-col truncate">{file.name}</p>
-              <p className="text-xs text-muted-col">
-                {(file.size / 1024).toFixed(1)} KB
-              </p>
+              <p className="text-xs text-muted-col">{(file.size / 1024).toFixed(1)} KB</p>
             </div>
             <button
               onClick={(e) => {
@@ -3707,8 +3739,9 @@ function SkillDetailPage() {
 
   const [readingDetailId, setReadingDetailId] = useState<string | null>(null);
   const readingDetailQuery = useFetchReadingDetail(readingDetailId ?? "");
-  const readingDetail: AdminReadingLesson | null =
-    (readingDetailQuery.data != null ? readingDetailQuery.data : null) as AdminReadingLesson | null;
+  const readingDetail: AdminReadingLesson | null = (
+    readingDetailQuery.data != null ? readingDetailQuery.data : null
+  ) as AdminReadingLesson | null;
 
   const createReadingMutation = useCreateReadingLesson(upperLevel);
   const updateReadingMutation = useUpdateReadingLesson(upperLevel, readingDetailId ?? "");
@@ -3737,13 +3770,22 @@ function SkillDetailPage() {
   // ── Reading-specific modals & state ──
   const [showReadingDetailModal, setShowReadingDetailModal] = useState(false);
   const [showReadingEditModal, setShowReadingEditModal] = useState(false);
-  const [readingSelectedLesson, setReadingSelectedLesson] = useState<AdminReadingLesson | null>(null);
+  const [readingSelectedLesson, setReadingSelectedLesson] = useState<AdminReadingLesson | null>(
+    null,
+  );
   const [readingEditMode, setReadingEditMode] = useState<"create" | "edit">("create");
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
 
   const filtered = lessons.filter(
-    (item): item is VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson => {
+    (
+      item,
+    ): item is
+      | VocabularyLesson
+      | GrammarLesson
+      | ListeningLesson
+      | ShadowingItem
+      | ReadingLesson => {
       if (!search.trim()) return true;
       const s = search.toLowerCase();
       return (
@@ -3766,30 +3808,40 @@ function SkillDetailPage() {
   });
 
   const handleCreate = (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
+    data: Partial<
+      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
+    >,
   ) => {
     createLesson(data);
     toast.success("Lesson created successfully");
     setShowCreateModal(false);
   };
 
-  const handleEdit = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
+  const handleEdit = (
+    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson,
+  ) => {
     setSelectedItem(item);
     setShowEditModal(true);
   };
 
-  const handleView = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
+  const handleView = (
+    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson,
+  ) => {
     setSelectedItem(item);
     setShowViewModal(true);
   };
 
-  const handleDeleteClick = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
+  const handleDeleteClick = (
+    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson,
+  ) => {
     setSelectedItem(item);
     setShowDeleteConfirm(true);
   };
 
   const handleUpdate = (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
+    data: Partial<
+      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
+    >,
   ) => {
     if (!selectedItem) return;
     updateLesson(selectedItem.id, data);
@@ -3799,7 +3851,9 @@ function SkillDetailPage() {
   };
 
   const handleImport = (
-    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
+    data: Partial<
+      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
+    >,
   ) => {
     createLesson(data);
     toast.success("Lesson imported successfully");
@@ -3912,7 +3966,10 @@ function SkillDetailPage() {
 
     const payload = {
       lesson: {
-        jlptLevel: readingEditMode === "create" ? upperLevel : readingSelectedLesson?.jlptLevel || upperLevel,
+        jlptLevel:
+          readingEditMode === "create"
+            ? upperLevel
+            : readingSelectedLesson?.jlptLevel || upperLevel,
         lessonNumber: data.lessonNumber,
         title: data.title,
         description: data.description ?? undefined,
@@ -3962,14 +4019,16 @@ function SkillDetailPage() {
 
   // ── Backend listening hooks (used only when skill === "listening") ──
   const listeningQuery = useFetchListeningLessons(upperLevel);
-  const listeningLessons: AdminListeningLesson[] = (listeningQuery.data ?? []) as AdminListeningLesson[];
+  const listeningLessons: AdminListeningLesson[] = (listeningQuery.data ??
+    []) as AdminListeningLesson[];
 
   const [listeningDetailId, setListeningDetailId] = useState<string | null>(null);
   // Use ref to always get the latest lessonId (fixes closure bug in mutation)
   const listeningDetailIdRef = useRef<string | null>(null);
   const listeningDetailQuery = useFetchListeningDetail(listeningDetailId ?? "");
-  const listeningDetail: AdminListeningLesson | null =
-    (listeningDetailQuery.data != null ? listeningDetailQuery.data : null) as AdminListeningLesson | null;
+  const listeningDetail: AdminListeningLesson | null = (
+    listeningDetailQuery.data != null ? listeningDetailQuery.data : null
+  ) as AdminListeningLesson | null;
 
   // Update ref when detailId changes
   useEffect(() => {
@@ -3985,8 +4044,11 @@ function SkillDetailPage() {
   // ── Listening-specific modals & state ──
   const [showListeningDetailModal, setShowListeningDetailModal] = useState(false);
   const [showListeningEditModal, setShowListeningEditModal] = useState(false);
-  const [listeningSelectedLesson, setListeningSelectedLesson] = useState<AdminListeningLesson | null>(null);
-  const [listeningEditMode, setListeningEditMode] = useState<"create" | "edit" | "view" | undefined>("create");
+  const [listeningSelectedLesson, setListeningSelectedLesson] =
+    useState<AdminListeningLesson | null>(null);
+  const [listeningEditMode, setListeningEditMode] = useState<
+    "create" | "edit" | "view" | undefined
+  >("create");
 
   // Backend-driven listening lessons
   const listeningBackendFiltered = listeningLessons.filter((item) => {
@@ -4096,7 +4158,10 @@ function SkillDetailPage() {
 
     const payload = {
       lesson: {
-        jlptLevel: listeningEditMode === "create" ? upperLevel : listeningSelectedLesson?.jlptLevel || upperLevel,
+        jlptLevel:
+          listeningEditMode === "create"
+            ? upperLevel
+            : listeningSelectedLesson?.jlptLevel || upperLevel,
         lessonNumber: data.lessonNumber ?? listeningSelectedLesson?.lessonNumber ?? 1,
         title: data.title ?? listeningSelectedLesson?.title ?? "",
         description: data.description ?? listeningSelectedLesson?.description ?? undefined,
@@ -4143,7 +4208,8 @@ function SkillDetailPage() {
         toast.error("No lesson selected for update");
         return;
       }
-      adminListeningApi.updateListeningLesson(lessonId, payload)
+      adminListeningApi
+        .updateListeningLesson(lessonId, payload)
         .then(() => {
           toast.success("Listening lesson updated successfully");
           setShowListeningEditModal(false);
@@ -4153,16 +4219,20 @@ function SkillDetailPage() {
         .catch((error: unknown) => {
           console.error("[LISTENING SAVE ERROR]", error);
           const message =
-            error instanceof Error
-              ? error.message
-              : "Failed to update listening lesson";
+            error instanceof Error ? error.message : "Failed to update listening lesson";
           toast.error(message);
         });
     }
   };
 
   const getItemCount = (
-    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson | AdminReadingLesson,
+    item:
+      | VocabularyLesson
+      | GrammarLesson
+      | ListeningLesson
+      | ShadowingItem
+      | ReadingLesson
+      | AdminReadingLesson,
   ): number => {
     if ("items" in item && Array.isArray(item.items)) return item.items.length;
     if ("segments" in item && Array.isArray(item.segments)) return item.segments.length;
@@ -4202,7 +4272,13 @@ function SkillDetailPage() {
             <Upload className="w-4 h-4" /> Import Excel
           </button>
           <button
-            onClick={() => (skill === "reading" ? handleReadCreate() : skill === "listening" ? handleListeningCreate() : setShowCreateModal(true))}
+            onClick={() =>
+              skill === "reading"
+                ? handleReadCreate()
+                : skill === "listening"
+                  ? handleListeningCreate()
+                  : setShowCreateModal(true)
+            }
             className="px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Create Lesson
@@ -4279,7 +4355,9 @@ function SkillDetailPage() {
                     <div className="col-span-4">
                       <div className="font-medium text-sm text-primary-col">{item.title}</div>
                       {item.description && (
-                        <div className="text-xs text-muted-col truncate mt-0.5">{item.description}</div>
+                        <div className="text-xs text-muted-col truncate mt-0.5">
+                          {item.description}
+                        </div>
                       )}
                     </div>
                     <div className="col-span-1 text-center">
@@ -4288,7 +4366,9 @@ function SkillDetailPage() {
                       </span>
                     </div>
                     <div className="col-span-1 text-center">
-                      <span className="text-sm font-medium text-muted-col">{item.questions?.length ?? 0}</span>
+                      <span className="text-sm font-medium text-muted-col">
+                        {item.questions?.length ?? 0}
+                      </span>
                     </div>
                     <div className="col-span-1 flex justify-center">
                       <StatusBadge status={item.isActive ? "active" : "inactive"} />
@@ -4335,93 +4415,95 @@ function SkillDetailPage() {
                   </motion.div>
                 ))
               )
+            ) : listeningQuery.isLoading ? (
+              <div className="px-5 py-12 text-center">
+                <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-muted-col mt-2">Loading listening lessons...</p>
+              </div>
+            ) : listeningQuery.isError ? (
+              <div className="px-5 py-12 text-center">
+                <p className="text-sm text-red-500">Failed to load listening lessons.</p>
+              </div>
+            ) : listeningBackendFiltered.length === 0 ? (
+              <div className="px-5 py-12 text-center">
+                <p className="text-sm text-muted-col">
+                  No listening content found{search ? " matching your search" : ""}
+                </p>
+              </div>
             ) : (
-              listeningQuery.isLoading ? (
-                <div className="px-5 py-12 text-center">
-                  <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm text-muted-col mt-2">Loading listening lessons...</p>
-                </div>
-              ) : listeningQuery.isError ? (
-                <div className="px-5 py-12 text-center">
-                  <p className="text-sm text-red-500">Failed to load listening lessons.</p>
-                </div>
-              ) : listeningBackendFiltered.length === 0 ? (
-                <div className="px-5 py-12 text-center">
-                  <p className="text-sm text-muted-col">
-                    No listening content found{search ? " matching your search" : ""}
-                  </p>
-                </div>
-              ) : (
-                listeningBackendFiltered.map((item, i) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="grid grid-cols-10 gap-3 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
-                  >
-                    <div className="col-span-1 text-sm font-medium text-muted-col whitespace-nowrap">
-                      #{item.lessonNumber}
-                    </div>
-                    <div className="col-span-4">
-                      <div className="font-medium text-sm text-primary-col">{item.title}</div>
-                      {item.description && (
-                        <div className="text-xs text-muted-col truncate mt-0.5">{item.description}</div>
-                      )}
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">
-                        {item.jlptLevel}
-                      </span>
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <span className="text-sm font-medium text-muted-col">{item.questions?.length ?? 0}</span>
-                    </div>
-                    <div className="col-span-1 flex justify-center">
-                      <StatusBadge status={item.isActive ? "active" : "inactive"} />
-                    </div>
-                    <div className="col-span-2 flex justify-end items-center gap-1.5">
+              listeningBackendFiltered.map((item, i) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="grid grid-cols-10 gap-3 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
+                >
+                  <div className="col-span-1 text-sm font-medium text-muted-col whitespace-nowrap">
+                    #{item.lessonNumber}
+                  </div>
+                  <div className="col-span-4">
+                    <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                    {item.description && (
+                      <div className="text-xs text-muted-col truncate mt-0.5">
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-span-1 text-center">
+                    <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">
+                      {item.jlptLevel}
+                    </span>
+                  </div>
+                  <div className="col-span-1 text-center">
+                    <span className="text-sm font-medium text-muted-col">
+                      {item.questions?.length ?? 0}
+                    </span>
+                  </div>
+                  <div className="col-span-1 flex justify-center">
+                    <StatusBadge status={item.isActive ? "active" : "inactive"} />
+                  </div>
+                  <div className="col-span-2 flex justify-end items-center gap-1.5">
+                    <button
+                      onClick={() => handleListeningView(item)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleListeningEdit(item)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleListeningDelete(item)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    {item.isActive ? (
                       <button
-                        onClick={() => handleListeningView(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+                        onClick={() => handleListeningUnpublish(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
+                        title="Unpublish"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        View
+                        <CloudOff className="w-3.5 h-3.5" />
                       </button>
+                    ) : (
                       <button
-                        onClick={() => handleListeningEdit(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
+                        onClick={() => handleListeningPublish(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition text-xs font-medium"
+                        title="Publish"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        Edit
+                        <Cloud className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        onClick={() => handleListeningDelete(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      {item.isActive ? (
-                        <button
-                          onClick={() => handleListeningUnpublish(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
-                          title="Unpublish"
-                        >
-                          <CloudOff className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleListeningPublish(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition text-xs font-medium"
-                          title="Publish"
-                        >
-                          <Cloud className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))
-              )
+                    )}
+                  </div>
+                </motion.div>
+              ))
             )}
           </div>
         </div>
@@ -4463,7 +4545,18 @@ function SkillDetailPage() {
                 >
                   <div className="col-span-2">
                     <p className="text-sm font-semibold text-primary-col">{item.title}</p>
-                    <p className="text-xs text-muted-col mt-0.5">#{"lessonNumber" in item ? (item as VocabularyLesson | GrammarLesson | ListeningLesson | ReadingLesson).lessonNumber : "—"}</p>
+                    <p className="text-xs text-muted-col mt-0.5">
+                      #
+                      {"lessonNumber" in item
+                        ? (
+                            item as
+                              | VocabularyLesson
+                              | GrammarLesson
+                              | ListeningLesson
+                              | ReadingLesson
+                          ).lessonNumber
+                        : "—"}
+                    </p>
                   </div>
                   <div className="col-span-2">
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent)] text-xs font-medium text-primary-col">
@@ -4478,7 +4571,9 @@ function SkillDetailPage() {
                   </div>
                   <div className="col-span-3">
                     <p className="text-xs text-secondary-col line-clamp-2">
-                      {"description" in item ? (item as { description?: string | null }).description || "—" : "—"}
+                      {"description" in item
+                        ? (item as { description?: string | null }).description || "—"
+                        : "—"}
                     </p>
                   </div>
                   <div className="col-span-3 flex items-center justify-end gap-2">
@@ -4717,7 +4812,7 @@ function SkillDetailPage() {
           setListeningDetailId(null);
           setListeningEditMode(undefined);
         }}
-        lesson={(listeningDetail ?? listeningSelectedLesson)}
+        lesson={listeningDetail ?? listeningSelectedLesson}
         isLoading={listeningDetailQuery.isLoading}
         isError={listeningDetailQuery.isError}
       />
@@ -4757,28 +4852,31 @@ function ReadingDetailModal({
   if (!open) return null;
 
   // Transform API response to component format
-  const transformedLesson = lesson ? {
-    ...lesson,
-    questions: (lesson.questions ?? []).map((q) => {
-      // Check if options is already an array (form format) or needs conversion (API format)
-      if (Array.isArray(q.options)) {
-        return q;
+  const transformedLesson = lesson
+    ? {
+        ...lesson,
+        questions: (lesson.questions ?? []).map((q) => {
+          // Check if options is already an array (form format) or needs conversion (API format)
+          if (Array.isArray(q.options)) {
+            return q;
+          }
+          // Convert API format (optionA, optionB, optionC, optionD) to array format
+          return {
+            ...q,
+            options: [
+              (q as any).optionA ?? "",
+              (q as any).optionB ?? "",
+              (q as any).optionC ?? "",
+              (q as any).optionD ?? "",
+            ],
+            correctAnswer:
+              typeof q.correctAnswer === "string"
+                ? ["A", "B", "C", "D"].indexOf((q.correctAnswer as string).toUpperCase())
+                : (q.correctAnswer ?? 0),
+          };
+        }),
       }
-      // Convert API format (optionA, optionB, optionC, optionD) to array format
-      return {
-        ...q,
-        options: [
-          (q as any).optionA ?? "",
-          (q as any).optionB ?? "",
-          (q as any).optionC ?? "",
-          (q as any).optionD ?? "",
-        ],
-        correctAnswer: typeof q.correctAnswer === 'string'
-          ? ['A', 'B', 'C', 'D'].indexOf((q.correctAnswer as string).toUpperCase())
-          : (q.correctAnswer ?? 0),
-      };
-    }),
-  } : null;
+    : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -4858,7 +4956,9 @@ function ReadingDetailModal({
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
                     Vietnamese Translation
                   </h3>
-                  <p className="text-sm text-secondary-col leading-relaxed">{transformedLesson.vietnameseTranslation}</p>
+                  <p className="text-sm text-secondary-col leading-relaxed">
+                    {transformedLesson.vietnameseTranslation}
+                  </p>
                 </div>
               )}
 
@@ -4893,7 +4993,9 @@ function ReadingDetailModal({
                             </span>
                             <span>{opt}</span>
                             {oi === q.correctAnswer && (
-                              <span className="ml-auto text-emerald-600 font-semibold">Correct</span>
+                              <span className="ml-auto text-emerald-600 font-semibold">
+                                Correct
+                              </span>
                             )}
                           </div>
                         ))}
@@ -5027,14 +5129,17 @@ function ReadingBackendEditForm({
     });
   }, [lesson]);
 
-  const updateField = <K extends keyof AdminReadingLesson>(key: K, value: AdminReadingLesson[K]) => {
+  const updateField = <K extends keyof AdminReadingLesson>(
+    key: K,
+    value: AdminReadingLesson[K],
+  ) => {
     setForm((f) => ({ ...f, [key]: value }));
   };
 
   const addPassage = () => {
     setForm((f) => ({
       ...f,
-      passages: [...f.passages ?? [], createEmptyPassage()],
+      passages: [...(f.passages ?? []), createEmptyPassage()],
     }));
   };
 
@@ -5147,9 +5252,7 @@ function ReadingBackendEditForm({
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                  Title
-                </label>
+                <label className="block text-xs font-medium text-secondary-col mb-1.5">Title</label>
                 <input
                   value={form.title}
                   onChange={(e) => updateField("title", e.target.value)}
@@ -5193,7 +5296,9 @@ function ReadingBackendEditForm({
                   className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition cursor-pointer"
                 >
                   {["N5", "N4", "N3", "N2", "N1"].map((l) => (
-                    <option key={l} value={l}>{l}</option>
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -5219,7 +5324,8 @@ function ReadingBackendEditForm({
               <div>
                 <h3 className="text-sm font-semibold text-primary-col">Reading Passages</h3>
                 <p className="text-xs text-muted-col mt-0.5">
-                  {(form.passages ?? []).length} passage{(form.passages ?? []).length !== 1 ? "s" : ""}
+                  {(form.passages ?? []).length} passage
+                  {(form.passages ?? []).length !== 1 ? "s" : ""}
                 </p>
               </div>
               <button
@@ -5240,7 +5346,8 @@ function ReadingBackendEditForm({
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-col">
-                        {(passage.questions?.length ?? 0)} question{(passage.questions?.length ?? 0) === 1 ? "" : "s"}
+                        {passage.questions?.length ?? 0} question
+                        {(passage.questions?.length ?? 0) === 1 ? "" : "s"}
                       </span>
                       {(form.passages ?? []).length > 1 && (
                         <button
@@ -5283,7 +5390,9 @@ function ReadingBackendEditForm({
                       </label>
                       <textarea
                         value={passage.translationVietnamese}
-                        onChange={(e) => updatePassage(passage.id, { translationVietnamese: e.target.value })}
+                        onChange={(e) =>
+                          updatePassage(passage.id, { translationVietnamese: e.target.value })
+                        }
                         className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition resize-y min-h-[80px]"
                         placeholder="Vietnamese translation"
                       />
@@ -5349,8 +5458,11 @@ function ReadingBackendEditForm({
                                     value={option}
                                     onChange={(e) =>
                                       updateQuestionInPassage(passage.id, question.id, {
-                                        options: question.options.map((currentOption, currentIndex) =>
-                                          currentIndex === optionIndex ? e.target.value : currentOption,
+                                        options: question.options.map(
+                                          (currentOption, currentIndex) =>
+                                            currentIndex === optionIndex
+                                              ? e.target.value
+                                              : currentOption,
                                         ),
                                       })
                                     }
@@ -5507,11 +5619,7 @@ function ListeningDetailModal({
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-3">
                     Audio
                   </h3>
-                  <audio
-                    controls
-                    src={lesson.audioUrl}
-                    className="w-full h-10 rounded-lg"
-                  />
+                  <audio controls src={lesson.audioUrl} className="w-full h-10 rounded-lg" />
                 </div>
               )}
 
@@ -5540,7 +5648,9 @@ function ListeningDetailModal({
                         <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                           {qi + 1}
                         </span>
-                        <p className="text-sm font-medium text-primary-col">{q.question || "No question text"}</p>
+                        <p className="text-sm font-medium text-primary-col">
+                          {q.question || "No question text"}
+                        </p>
                       </div>
                       <div className="space-y-1.5 ml-9">
                         {(["A", "B", "C", "D"] as const).map((opt) => {
@@ -5558,7 +5668,9 @@ function ListeningDetailModal({
                               <span className="font-bold shrink-0">{opt}.</span>
                               <span>{optValue || "No option"}</span>
                               {isCorrect && (
-                                <span className="ml-auto text-emerald-600 font-semibold">Correct</span>
+                                <span className="ml-auto text-emerald-600 font-semibold">
+                                  Correct
+                                </span>
                               )}
                             </div>
                           );
@@ -5646,9 +5758,7 @@ function ListeningBackendEditForm({
 
   const updateQuestion = (index: number, field: string, value: string | number | null) => {
     setForm((f) => {
-      const questions = f.questions.map((q, i) =>
-        i === index ? { ...q, [field]: value } : q
-      );
+      const questions = f.questions.map((q, i) => (i === index ? { ...q, [field]: value } : q));
       return { ...f, questions };
     });
   };
@@ -5689,9 +5799,7 @@ function ListeningBackendEditForm({
             <h2 className="font-display font-bold text-primary-col text-base">
               {mode === "create" ? "Create" : "Edit"} Listening Lesson
             </h2>
-            {lesson?.title && (
-              <p className="text-xs text-muted-col mt-0.5">{lesson.title}</p>
-            )}
+            {lesson?.title && <p className="text-xs text-muted-col mt-0.5">{lesson.title}</p>}
           </div>
           <button
             onClick={onCancel}
@@ -5755,7 +5863,9 @@ function ListeningBackendEditForm({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
+                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                    Status
+                  </label>
                   <select
                     value={form.status}
                     onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
@@ -5802,9 +5912,7 @@ function ListeningBackendEditForm({
 
               {form.questions.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-muted-col">
-                    No questions yet.
-                  </p>
+                  <p className="text-sm text-muted-col">No questions yet.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -5846,7 +5954,9 @@ function ListeningBackendEditForm({
                               />
                               <button
                                 type="button"
-                                onClick={() => !isViewMode && updateQuestion(i, "correctAnswer", opt)}
+                                onClick={() =>
+                                  !isViewMode && updateQuestion(i, "correctAnswer", opt)
+                                }
                                 className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
                                   q.correctAnswer === opt
                                     ? "border-emerald-500 bg-emerald-500 text-white"
