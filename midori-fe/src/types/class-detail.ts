@@ -100,9 +100,8 @@ export interface DetailedClassInfo {
   members: number;
   assignmentCount: number;
   unfinishedCount: number;
-  nextDeadline: string;
-  createdDate: string;
   joinDate: string;
+  createdDate: string;
   isNew?: boolean;
   // Lifecycle management
   status: ClassStatus;

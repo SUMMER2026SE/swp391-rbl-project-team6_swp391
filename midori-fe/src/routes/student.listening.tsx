@@ -86,7 +86,7 @@ function Listening() {
     setError(null);
     try {
       const list = await studentListeningApi.getListeningLessons(
-        levelFilter === "All" ? undefined : { level: levelFilter }
+        levelFilter === "All" ? undefined : { level: levelFilter },
       );
       const mapped: ListeningExercise[] = list.map((item) => ({
         id: item.id,
@@ -134,7 +134,7 @@ function Listening() {
       mapped.questions.forEach((q) => {
         const options = createShuffledOptions(
           q.correctAnswer,
-          [q.optionA, q.optionB, q.optionC, q.optionD].filter((o) => o !== q.correctAnswer)
+          [q.optionA, q.optionB, q.optionC, q.optionD].filter((o) => o !== q.correctAnswer),
         );
         shuffled.set(q.id, options);
       });
@@ -160,9 +160,7 @@ function Listening() {
     if (appliedSearch) {
       const search = appliedSearch.toLowerCase();
       result = result.filter(
-        (ex) =>
-          ex.title.toLowerCase().includes(search) ||
-          ex.level.toLowerCase().includes(search)
+        (ex) => ex.title.toLowerCase().includes(search) || ex.level.toLowerCase().includes(search),
       );
     }
     return result;
@@ -172,7 +170,7 @@ function Listening() {
   const safePage = Math.min(page, totalPages);
   const paginatedExercises = filteredExercises.slice(
     (safePage - 1) * ITEMS_PER_PAGE,
-    safePage * ITEMS_PER_PAGE
+    safePage * ITEMS_PER_PAGE,
   );
 
   const handleSelectLevel = (level: JLPTLevel) => {
@@ -202,7 +200,7 @@ function Listening() {
       selectedEx.questions.forEach((q) => {
         const options = createShuffledOptions(
           q.correctAnswer,
-          [q.optionA, q.optionB, q.optionC, q.optionD].filter((o) => o !== q.correctAnswer)
+          [q.optionA, q.optionB, q.optionC, q.optionD].filter((o) => o !== q.correctAnswer),
         );
         shuffled.set(q.id, options);
       });
@@ -320,7 +318,7 @@ function Listening() {
                       "px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap",
                       levelFilter === level
                         ? getLevelBoxStyle(level, true)
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700",
                     )}
                   >
                     {level}
@@ -357,7 +355,7 @@ function Listening() {
                           "relative flex flex-col gap-3 p-5 rounded-2xl border-2 transition-all duration-300 text-left",
                           completedExercises.has(ex.id)
                             ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                            : "bg-white/80 dark:bg-indigo-950/30 backdrop-blur-sm border-white/60 dark:border-indigo-400/20 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                            : "bg-white/80 dark:bg-indigo-950/30 backdrop-blur-sm border-white/60 dark:border-indigo-400/20 shadow-sm hover:shadow-md hover:-translate-y-0.5",
                         )}
                       >
                         {completedExercises.has(ex.id) && (
@@ -373,7 +371,7 @@ function Listening() {
                             <span
                               className={cn(
                                 "text-xs font-bold px-2 py-0.5 rounded-full",
-                                getLevelBoxStyle(ex.level, false).split(" ").slice(0, 2).join(" ")
+                                getLevelBoxStyle(ex.level, false).split(" ").slice(0, 2).join(" "),
                               )}
                             >
                               {ex.level}
@@ -381,7 +379,9 @@ function Listening() {
                           </div>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-sm text-foreground line-clamp-2">{ex.title}</h3>
+                          <h3 className="font-semibold text-sm text-foreground line-clamp-2">
+                            {ex.title}
+                          </h3>
                         </div>
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
@@ -390,8 +390,7 @@ function Listening() {
                           </span>
                           {ex.estimatedMinutes && (
                             <span className="flex items-center gap-1">
-                              <Volume2 className="w-3.5 h-3.5" />
-                              ~{ex.estimatedMinutes}m
+                              <Volume2 className="w-3.5 h-3.5" />~{ex.estimatedMinutes}m
                             </span>
                           )}
                         </div>
@@ -461,7 +460,7 @@ function Listening() {
                   <span
                     className={cn(
                       "text-xs font-bold px-2 py-1 rounded-full",
-                      getLevelBoxStyle(selectedEx.level, false).split(" ").slice(0, 2).join(" ")
+                      getLevelBoxStyle(selectedEx.level, false).split(" ").slice(0, 2).join(" "),
                     )}
                   >
                     {selectedEx.level}
@@ -477,10 +476,16 @@ function Listening() {
                       onClick={handlePlayAudio}
                       className={cn(
                         "w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md transition-all",
-                        isPlaying ? "bg-gradient-hero animate-pulse" : "bg-gradient-hero hover:scale-105"
+                        isPlaying
+                          ? "bg-gradient-hero animate-pulse"
+                          : "bg-gradient-hero hover:scale-105",
                       )}
                     >
-                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                      {isPlaying ? (
+                        <Pause className="w-5 h-5" />
+                      ) : (
+                        <Play className="w-5 h-5 ml-0.5" />
+                      )}
                     </button>
                   </div>
                   <div className="text-center mt-3">
@@ -496,7 +501,9 @@ function Listening() {
               {selectedEx.transcript && (
                 <div className="bg-card rounded-xl p-4 border border-border/50">
                   <p className="text-xs text-muted-foreground mb-2 font-medium">Transcript:</p>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{selectedEx.transcript}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {selectedEx.transcript}
+                  </p>
                 </div>
               )}
 
@@ -541,10 +548,16 @@ function Listening() {
                                 disabled={isSubmitted}
                                 className={cn(
                                   "w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all",
-                                  !isSubmitted && "border-border/50 hover:border-blue-500/30 bg-card",
-                                  isSubmitted && isCorrectOption && "border-sky-blue bg-sky-blue/15",
-                                  isSelected && !isCorrectOption && isSubmitted && "border-red-500 bg-red-50 dark:bg-red-950/30",
-                                  isSelected && !isSubmitted && "border-sky-blue bg-sky-blue/15"
+                                  !isSubmitted &&
+                                    "border-border/50 hover:border-blue-500/30 bg-card",
+                                  isSubmitted &&
+                                    isCorrectOption &&
+                                    "border-sky-blue bg-sky-blue/15",
+                                  isSelected &&
+                                    !isCorrectOption &&
+                                    isSubmitted &&
+                                    "border-red-500 bg-red-50 dark:bg-red-950/30",
+                                  isSelected && !isSubmitted && "border-sky-blue bg-sky-blue/15",
                                 )}
                               >
                                 <div className="flex items-center justify-between">
@@ -554,7 +567,7 @@ function Listening() {
                                         "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0",
                                         isSelected
                                           ? "border-sky-blue bg-sky-blue text-white"
-                                          : "border-border"
+                                          : "border-border",
                                       )}
                                     >
                                       {String.fromCharCode(65 + optIndex)}
@@ -595,7 +608,7 @@ function Listening() {
                     "w-full py-3 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2",
                     allAnswered
                       ? "bg-gradient-hero text-white hover:opacity-90"
-                      : "bg-muted text-muted-foreground cursor-not-allowed"
+                      : "bg-muted text-muted-foreground cursor-not-allowed",
                   )}
                 >
                   Submit ({selectedAnswers.size}/{selectedEx.questions.length})
@@ -608,7 +621,7 @@ function Listening() {
                       "rounded-xl p-5 text-center shadow-lg",
                       isPassing
                         ? "bg-gradient-to-r from-sky-blue to-pink-400 text-white"
-                        : "bg-gradient-to-r from-red-500 to-orange-500 text-white"
+                        : "bg-gradient-to-r from-red-500 to-orange-500 text-white",
                     )}
                   >
                     <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">

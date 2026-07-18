@@ -11,6 +11,16 @@ import type {
 } from "./questionBank.types";
 import { teacherQuestionsApi, TeacherQuestionResponse } from "../lib/api/teacherQuestions";
 
+export type {
+  JLPTLevel,
+  QuestionType,
+  Difficulty,
+  Lesson,
+  Question,
+  ListeningQuestion,
+  StandardQuestion,
+};
+
 // Helper mapper for Difficulty
 function mapDifficultyToFrontend(difficulty: string): Difficulty {
   if (!difficulty) return "Medium";
@@ -75,7 +85,13 @@ export function useQuestionBank(level: JLPTLevel) {
   const queryClient = useQueryClient();
 
   // Queries
-  const { data: rawLessons = [], refetch: refetchLessons, isLoading: isLoadingLessons, isError: isErrorLessons, error: errorLessons } = useQuery({
+  const {
+    data: rawLessons = [],
+    refetch: refetchLessons,
+    isLoading: isLoadingLessons,
+    isError: isErrorLessons,
+    error: errorLessons,
+  } = useQuery({
     queryKey: ["questionBankLessons", level],
     queryFn: async () => {
       const response = await teacherQuestionsApi.getLessons(level);
@@ -83,7 +99,13 @@ export function useQuestionBank(level: JLPTLevel) {
     },
   });
 
-  const { data: rawQuestions = [], refetch: refetchQuestions, isLoading: isLoadingQuestions, isError: isErrorQuestions, error: errorQuestions } = useQuery({
+  const {
+    data: rawQuestions = [],
+    refetch: refetchQuestions,
+    isLoading: isLoadingQuestions,
+    isError: isErrorQuestions,
+    error: errorQuestions,
+  } = useQuery({
     queryKey: ["questionBankQuestions"],
     queryFn: async () => {
       const response = await teacherQuestionsApi.getQuestions();
@@ -91,9 +113,7 @@ export function useQuestionBank(level: JLPTLevel) {
     },
   });
 
-  const questions = rawQuestions
-    .map(mapBackendQuestionToFrontend)
-    .filter((q) => q.level === level);
+  const questions = rawQuestions.map(mapBackendQuestionToFrontend).filter((q) => q.level === level);
 
   const lessons: Lesson[] = rawLessons.map((l) => ({
     id: l.id,
@@ -114,28 +134,41 @@ export function useQuestionBank(level: JLPTLevel) {
 
   // Mutations
   const createLessonMutation = useMutation({
-    mutationFn: async (vars: { lessonName: string; lessonNumber?: number }) => {
+    mutationFn: async (vars: { lessonName: string; lessonNumber?: number; status?: string }) => {
       const existingNumbers = rawLessons.map((l) => l.lessonNumber);
-      const nextNum = vars.lessonNumber || (existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1);
+      const nextNum =
+        vars.lessonNumber || (existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1);
       const response = await teacherQuestionsApi.createLesson({
         level,
         lessonNumber: nextNum,
         lessonName: vars.lessonName,
+        status: (vars.status || "DRAFT").toUpperCase(),
       });
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["questionBankLessons", level] });
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons"] });
     },
   });
 
   const updateLessonMutation = useMutation({
-    mutationFn: async (vars: { lessonId: number; lessonName: string; lessonNumber?: number; status?: string }) => {
-      const response = await teacherQuestionsApi.updateLesson(vars.lessonId, vars.lessonName, vars.lessonNumber, vars.status);
+    mutationFn: async (vars: {
+      lessonId: number;
+      lessonName: string;
+      lessonNumber?: number;
+      status?: string;
+    }) => {
+      const response = await teacherQuestionsApi.updateLesson(
+        vars.lessonId,
+        vars.lessonName,
+        vars.lessonNumber,
+        vars.status,
+      );
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["questionBankLessons", level] });
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons"] });
+      queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"] });
     },
   });
 
@@ -146,16 +179,13 @@ export function useQuestionBank(level: JLPTLevel) {
       await teacherQuestionsApi.deleteLesson(lessonId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["questionBankLessons", level] });
+      queryClient.invalidateQueries({ queryKey: ["questionBankLessons"] });
       queryClient.invalidateQueries({ queryKey: ["questionBankQuestions"] });
     },
   });
 
   const createQuestionMutation = useMutation({
-    mutationFn: async (vars: {
-      lessonId: number;
-      questionData: any;
-    }) => {
+    mutationFn: async (vars: { lessonId: number; questionData: any }) => {
       const req = {
         topicId: `lesson_${vars.lessonId}`,
         level,
@@ -179,10 +209,7 @@ export function useQuestionBank(level: JLPTLevel) {
   });
 
   const updateQuestionMutation = useMutation({
-    mutationFn: async (vars: {
-      questionId: string;
-      updates: any;
-    }) => {
+    mutationFn: async (vars: { questionId: string; updates: any }) => {
       const current = rawQuestions.find((q) => q.id === vars.questionId);
       if (!current) throw new Error("Question not found");
 
@@ -247,11 +274,20 @@ export function useQuestionBank(level: JLPTLevel) {
     error,
     refresh,
     getLessonStats,
-    createLesson: (name: string, num?: number) => createLessonMutation.mutateAsync({ lessonName: name, lessonNumber: num }),
-    updateLesson: (id: number, name: string, num?: number, status?: string) => updateLessonMutation.mutateAsync({ lessonId: id, lessonName: name, lessonNumber: num, status }),
+    createLesson: (name: string, num?: number) =>
+      createLessonMutation.mutateAsync({ lessonName: name, lessonNumber: num }),
+    updateLesson: (id: number, name: string, num?: number, status?: string) =>
+      updateLessonMutation.mutateAsync({
+        lessonId: id,
+        lessonName: name,
+        lessonNumber: num,
+        status,
+      }),
     deleteLesson: (id: number) => deleteLessonMutation.mutateAsync(id),
-    createQuestion: (lessonId: number, data: any) => createQuestionMutation.mutateAsync({ lessonId, questionData: data }),
-    updateQuestion: (id: string, updates: any) => updateQuestionMutation.mutateAsync({ questionId: id, updates }),
+    createQuestion: (lessonId: number, data: any) =>
+      createQuestionMutation.mutateAsync({ lessonId, questionData: data }),
+    updateQuestion: (id: string, updates: any) =>
+      updateQuestionMutation.mutateAsync({ questionId: id, updates }),
     deleteQuestion: (id: string) => deleteQuestionMutation.mutateAsync(id),
     getStats,
   };
