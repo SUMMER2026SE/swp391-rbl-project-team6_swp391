@@ -31,7 +31,8 @@ export function useClassDetail(classId: string) {
   // Map homework and exams to the "assignments" array structure expected by the frontend
   const assignments = useMemo((): Assignment[] => {
     const hwMapped = homeworkList.map((hw: any): Assignment => {
-      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" = "Not Started";
+      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" =
+        "Not Started";
       if (hw.submissionStatus === "GRADED") mappedStatus = "Graded";
       else if (hw.submissionStatus === "SUBMITTED") mappedStatus = "Submitted";
       else if (hw.submissionStatus === "IN_PROGRESS") mappedStatus = "In Progress";
@@ -61,14 +62,18 @@ export function useClassDetail(classId: string) {
 
     const examMapped = examList.map((ex: any): Assignment => {
       // Map backend status (NOT_STARTED / IN_PROGRESS / SUBMITTED / GRADED) to UI
-      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" = "Not Started";
+      let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" =
+        "Not Started";
       const rawStatus = ex.status as string;
       if (rawStatus === "GRADED") mappedStatus = "Graded";
       else if (rawStatus === "SUBMITTED") mappedStatus = "Submitted";
       else if (rawStatus === "IN_PROGRESS") mappedStatus = "In Progress";
       else if (rawStatus === "NOT_STARTED") mappedStatus = "Not Started";
 
-      const isExpired = ex.scheduledAt || ex.updatedAt ? new Date(ex.scheduledAt || ex.updatedAt).getTime() < new Date().getTime() : false;
+      const isExpired =
+        ex.scheduledAt || ex.updatedAt
+          ? new Date(ex.scheduledAt || ex.updatedAt).getTime() < new Date().getTime()
+          : false;
       if (isExpired && mappedStatus !== "Graded" && mappedStatus !== "Submitted") {
         mappedStatus = "Overdue";
       }
@@ -98,17 +103,20 @@ export function useClassDetail(classId: string) {
   // Find class information
   const classInfo = useMemo((): DetailedClassInfo | null => {
     if (!classDetail) return null;
+
+    // Get teacher name from the class detail response or use email as fallback
+    const teacherName = classDetail.teacherName || "Teacher";
+
     return {
       id: classDetail.id,
       name: classDetail.name,
       level: classDetail.level as any,
       status: (classDetail.status === "ACTIVE" ? "active" : "archived") as any,
-      teacher: "Instructor",
-      teacherAvatarInitials: "JP",
+      teacher: teacherName,
+      teacherAvatarInitials: teacherName.substring(0, 2).toUpperCase(),
       members: classDetail.maxStudents,
       assignments,
-      nextDeadline: "-",
-      joinDate: new Date(classDetail.createdAt).toLocaleDateString(),
+      joinDate: classDetail.joinDate ? new Date(classDetail.joinDate).toLocaleDateString() : "-",
       announcements: [],
     };
   }, [classDetail, assignments]);
@@ -136,7 +144,9 @@ export function useClassDetail(classId: string) {
       list = list.filter((a) => {
         if (assignmentFilter === "Homework") return a.status !== "Overdue" && a.status !== "Graded";
         if (assignmentFilter === "Upcoming")
-          return a.status === "Not Started" || a.status === "In Progress" || a.status === "Upcoming";
+          return (
+            a.status === "Not Started" || a.status === "In Progress" || a.status === "Upcoming"
+          );
         if (assignmentFilter === "Submitted") return a.status === "Submitted";
         if (assignmentFilter === "Graded") return a.status === "Graded";
         if (assignmentFilter === "Overdue") return a.status === "Overdue";

@@ -83,7 +83,6 @@ export interface Homework {
   status: "Draft" | "Assigned" | "Closed";
   submissions: number;
   totalStudents: number;
-  pendingGrading: number;
   source: "manual" | "lesson" | "data-bank" | "question-bank";
 }
 
@@ -418,7 +417,6 @@ export const homework: Homework[] = classes.flatMap((c, ci) =>
     status: i < c.openHomework ? "Assigned" : i === c.openHomework ? "Draft" : "Closed",
     submissions: Math.floor(c.studentCount * (0.4 + (i % 3) * 0.2)),
     totalStudents: c.studentCount,
-    pendingGrading: Math.floor(c.studentCount * 0.2),
     source: (["manual", "lesson", "data-bank", "question-bank"] as const)[(ci + i) % 4],
   })),
 );

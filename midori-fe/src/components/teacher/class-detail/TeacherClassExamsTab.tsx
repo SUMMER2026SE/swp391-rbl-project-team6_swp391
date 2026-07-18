@@ -35,17 +35,10 @@ function mapApiExamToView(e: ExamResponse, classId: string): TeacherExamView {
     classId,
     title: e.title,
     level: e.level as JLPTLevel,
-    status:
-      uiStatus === "published"
-        ? "Scheduled"
-        : uiStatus === "pending"
-          ? "Archived"
-          : "Draft",
+    status: uiStatus === "published" ? "Scheduled" : uiStatus === "pending" ? "Archived" : "Draft",
     totalQuestions: e.totalQuestions,
     duration: e.timeLimit,
-    scheduledAt: e.createdAt
-      ? new Date(e.createdAt).toLocaleDateString()
-      : "—",
+    scheduledAt: e.createdAt ? new Date(e.createdAt).toLocaleDateString() : "—",
     source,
     attempts: 1,
   };
@@ -182,74 +175,85 @@ export function TeacherClassExamsTab({ classId, urlQ, isArchived }: TeacherClass
           </p>
         </div>
       ) : (
-      <div className="grid gap-3 sm:grid-cols-2">
-        {filteredList.map((e) => (
-          <Card key={e.id}>
-            <CardContent className="p-4">
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="mb-1 flex items-center gap-2">
-                    <LevelBadge level={e.level} />
-                    <StatusBadge status={e.status} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {filteredList.map((e) => (
+            <Card key={e.id}>
+              <CardContent className="p-4">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="mb-1 flex items-center gap-2">
+                      <LevelBadge level={e.level} />
+                      <StatusBadge status={e.status} />
+                    </div>
+                    <button
+                      onClick={() => setOpen(e.id)}
+                      className="block truncate text-left font-semibold hover:text-primary"
+                    >
+                      {e.title}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setOpen(e.id)}
-                    className="block truncate text-left font-semibold hover:text-primary"
-                  >
-                    {e.title}
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-7 w-7">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setOpen(e.id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Preview
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setGradeExam(e.id)}>
+                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                        Grade / review
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setEditExam(e.id)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setArchiving(e.id)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Archive
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="icon" variant="ghost" className="h-7 w-7">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setOpen(e.id)}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      Preview
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setGradeExam(e.id)}>
-                      <ClipboardCheck className="mr-2 h-4 w-4" />
-                      Grade / review
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setEditExam(e.id)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setArchiving(e.id)}>
-                      <Archive className="mr-2 h-4 w-4" />
-                      Archive
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-md bg-muted/40 p-2">
-                  <div className="text-muted-foreground">Questions</div>
-                  <div className="font-bold">{e.totalQuestions}</div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-md bg-muted/40 p-2">
+                    <div className="text-muted-foreground">Questions</div>
+                    <div className="font-bold">{e.totalQuestions}</div>
+                  </div>
+                  <div className="rounded-md bg-muted/40 p-2">
+                    <div className="text-muted-foreground">Duration</div>
+                    <div className="font-bold">{e.duration}m</div>
+                  </div>
+                  <div className="rounded-md bg-muted/40 p-2">
+                    <div className="text-muted-foreground">Avg score</div>
+                    <div className="font-bold">{e.averageScore ?? "—"}</div>
+                  </div>
                 </div>
-                <div className="rounded-md bg-muted/40 p-2">
-                  <div className="text-muted-foreground">Duration</div>
-                  <div className="font-bold">{e.duration}m</div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {e.scheduledAt} · {e.source.replace("-", " ")}
                 </div>
-                <div className="rounded-md bg-muted/40 p-2">
-                  <div className="text-muted-foreground">Avg score</div>
-                  <div className="font-bold">{e.averageScore ?? "—"}</div>
-                </div>
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                {e.scheduledAt} · {e.source.replace("-", " ")}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
-      <PreviewSheet open={!!open} onOpenChange={(o) => !o && setOpen(null)} title={sel?.title ?? ""}>
-        {sel && <ExamPreviewContent examId={open!} classId={classId} onAssign={() => setAssignExam(open)} onGrade={() => setGradeExam(open)} />}
+      <PreviewSheet
+        open={!!open}
+        onOpenChange={(o) => !o && setOpen(null)}
+        title={sel?.title ?? ""}
+      >
+        {sel && (
+          <ExamPreviewContent
+            examId={open!}
+            classId={classId}
+            onAssign={() => setAssignExam(open)}
+            onGrade={() => setGradeExam(open)}
+          />
+        )}
       </PreviewSheet>
 
       <ConfirmDialog
@@ -350,11 +354,16 @@ function ExamPreviewContent({ examId, classId, onAssign, onGrade }: ExamPreviewC
 
       {/* Questions list */}
       <div className="space-y-4 pt-2">
-        <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Question List</h4>
+        <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+          Question List
+        </h4>
         {exam.questions && exam.questions.length > 0 ? (
           <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
             {exam.questions.map((q, idx) => (
-              <div key={`${q.id || ''}-${idx}`} className="p-4 rounded-xl border bg-card space-y-2.5">
+              <div
+                key={`${q.id || ""}-${idx}`}
+                className="p-4 rounded-xl border bg-card space-y-2.5"
+              >
                 <div className="flex justify-between items-start gap-2">
                   <span className="text-xs font-bold text-primary">Question {idx + 1}</span>
                   {q.points !== undefined && (
@@ -378,7 +387,8 @@ function ExamPreviewContent({ examId, classId, onAssign, onGrade }: ExamPreviewC
                               : "bg-muted/30 border-border/40 text-muted-foreground"
                           }`}
                         >
-                          <span className="font-bold mr-1">{String.fromCharCode(65 + oIdx)}.</span> {opt}
+                          <span className="font-bold mr-1">{String.fromCharCode(65 + oIdx)}.</span>{" "}
+                          {opt}
                         </div>
                       );
                     })}

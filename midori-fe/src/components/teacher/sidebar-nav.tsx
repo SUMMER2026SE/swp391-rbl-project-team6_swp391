@@ -1,7 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, GraduationCap, TrendingUp,
-  HelpCircle, FileBadge, MessageSquare, Bell
+  LayoutDashboard,
+  GraduationCap,
+  TrendingUp,
+  HelpCircle,
+  FileBadge,
+  MessageSquare,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,12 +17,6 @@ const groups = [
     items: [
       { to: "/teacher", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/teacher/classes", label: "My Classes", icon: GraduationCap },
-    ],
-  },
-  {
-    label: "Class Operations",
-    items: [
-      { to: "/teacher/progress", label: "Progress", icon: TrendingUp },
     ],
   },
   {
@@ -47,7 +46,10 @@ export function SidebarNav({ onNavigate, collapsed = false }: SidebarNavProps) {
 
   const isActive = (to: string, exact?: boolean) => {
     if (to === "/teacher/classes") {
-      return pathname === "/teacher/classes" || (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create");
+      return (
+        pathname === "/teacher/classes" ||
+        (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create")
+      );
     }
     if (to === "/teacher/classes/create") {
       return pathname === "/teacher/classes/create";

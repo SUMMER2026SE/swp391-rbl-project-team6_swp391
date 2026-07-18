@@ -1,10 +1,23 @@
 import { type ReactNode, useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import {
-  Bell, ChevronLeft, ChevronRight, Menu, Moon, Sun, Search, X,
-  LayoutDashboard, School, BookOpen,
-  TrendingUp, HelpCircle, FileBadge, MessageSquare,
-  LogOut, User, ChevronDown
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  Moon,
+  Sun,
+  Search,
+  X,
+  LayoutDashboard,
+  School,
+  BookOpen,
+  HelpCircle,
+  FileBadge,
+  MessageSquare,
+  LogOut,
+  User,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -26,12 +39,6 @@ const teacherGroups: NavGroup[] = [
     items: [
       { to: "/teacher", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { to: "/teacher/classes", label: "My Classes", icon: School },
-    ],
-  },
-  {
-    label: "Class Operations",
-    items: [
-      { to: "/teacher/progress", label: "Progress", icon: TrendingUp },
     ],
   },
   {
@@ -79,7 +86,18 @@ export function PageHeader({
             onClick={onBack}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1.5 shrink-0"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
             Back
           </button>
         )}
@@ -598,9 +616,7 @@ export function TeacherShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Main content */}
-        <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6">
-          {children}
-        </main>
+        <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6">{children}</main>
         <TeacherFooter />
       </div>
     </div>
@@ -620,18 +636,15 @@ function TeacherSearchBar() {
     const listRoutes = [
       "/teacher",
       "/teacher/classes",
-      "/teacher/progress",
       "/teacher/question-bank",
       "/teacher/jlpt-bank",
       "/teacher/reports",
       "/teacher/notifications",
     ];
-    const classDetailRoutes = [
-      "/teacher/classes/",
-    ];
+    const classDetailRoutes = ["/teacher/classes/"];
 
     const isListPage = listRoutes.some((r) =>
-      r === "/teacher" ? pathname === r : pathname === r || pathname.startsWith(r + "/")
+      r === "/teacher" ? pathname === r : pathname === r || pathname.startsWith(r + "/"),
     );
     const isClassDetail = classDetailRoutes.some((r) => pathname.startsWith(r));
 
