@@ -4,9 +4,7 @@ import {
   type ListeningDetailResponse,
   type ListeningLessonResponse,
 } from "@/lib/api/listening";
-import type {
-  ListeningLessonWithQuestionsRequest,
-} from "@/types/content-library";
+import type { ListeningLessonWithQuestionsRequest } from "@/types/content-library";
 
 export const adminListeningKeys = {
   all: ["adminListening"] as const,
