@@ -24,13 +24,16 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [reAnalyzingIndexes] = useState<Record<number, boolean>>({});
 
-  const handleUpdateQuestion = useCallback((idx: number, updatedFields: Partial<ImportedQuestion>) => {
-    setQuestions((prev) => {
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...updatedFields };
-      return copy;
-    });
-  }, []);
+  const handleUpdateQuestion = useCallback(
+    (idx: number, updatedFields: Partial<ImportedQuestion>) => {
+      setQuestions((prev) => {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], ...updatedFields };
+        return copy;
+      });
+    },
+    [],
+  );
 
   const handleDeleteQuestion = useCallback((idx: number) => {
     setQuestions((prev) => prev.filter((_, i) => i !== idx));
@@ -44,7 +47,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
         ...target,
         id: `extracted-${Date.now()}-dup`,
         content: `${target.content} (Copy)`,
-        answers: target.answers.map(ans => ({ ...ans })),
+        answers: target.answers.map((ans) => ({ ...ans })),
       };
       copy.splice(idx + 1, 0, duplicated);
       return copy;
@@ -80,7 +83,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       ],
       category: "Vocabulary",
     };
-    setQuestions(prev => [...prev, newQuestion]);
+    setQuestions((prev) => [...prev, newQuestion]);
   };
 
   const handleCreate = async () => {
@@ -113,9 +116,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       {/* Upload View */}
       {step === "upload" && (
         <div className="space-y-6">
-          <div
-            className="card-base p-12 border-2 border-dashed text-center transition border-[var(--border)] opacity-60 cursor-not-allowed"
-          >
+          <div className="card-base p-12 border-2 border-dashed text-center transition border-[var(--border)] opacity-60 cursor-not-allowed">
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-5">
               <Upload className="w-8 h-8 text-muted-foreground" />
             </div>
@@ -148,9 +149,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
         <div className="card-base p-12 text-center flex flex-col items-center justify-center space-y-4 border border-[var(--border)]">
           <Loader2 className="w-12 h-12 text-primary animate-spin" />
           <h3 className="font-display font-bold text-lg text-primary-col">Processing PDF</h3>
-          <p className="text-sm text-secondary-col max-w-md">
-            {loadingMessage}
-          </p>
+          <p className="text-sm text-secondary-col max-w-md">{loadingMessage}</p>
         </div>
       )}
 
