@@ -1,16 +1,22 @@
-import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, FileText, Shuffle } from "lucide-react";
+import { ClipboardList, FileText } from "lucide-react";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import type { QuestionTopic } from "@/data/teacher-data";
 
 interface QuestionTopicCardProps {
   topic: QuestionTopic;
   onOpenPreview: (id: string) => void;
+  onAssignHomework?: (id: string) => void;
+  onAssignExam?: (id: string) => void;
 }
 
-export function QuestionTopicCard({ topic, onOpenPreview }: QuestionTopicCardProps) {
+export function QuestionTopicCard({
+  topic,
+  onOpenPreview,
+  onAssignHomework,
+  onAssignExam,
+}: QuestionTopicCardProps) {
   return (
     <Card className="border-border/60 transition-all hover:border-primary/40 hover:shadow-md">
       <CardContent className="p-4">
@@ -39,29 +45,35 @@ export function QuestionTopicCard({ topic, onOpenPreview }: QuestionTopicCardPro
           <DifficultyBadge d="Hard" />
           <span>{topic.hard}</span>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-1.5">
-          <Button asChild size="sm" variant="outline" className="h-8">
-            <Link to={`/teacher/homework/create?source=question-bank&topicId=${topic.id}`}>
-              <ClipboardList className="h-3.5 w-3.5" />
-            </Link>
+        <div className="mt-3 grid grid-cols-2 gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAssignHomework?.(topic.id);
+            }}
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
           </Button>
-          <Button asChild size="sm" variant="outline" className="h-8">
-            <Link to={`/teacher/exams/create?source=question-bank&topicId=${topic.id}`}>
-              <FileText className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-          <Button asChild size="sm" className="h-8">
-            <Link
-              to={`/teacher/exams/create?source=question-bank&topicId=${topic.id}&mode=random`}
-            >
-              <Shuffle className="h-3.5 w-3.5" />
-            </Link>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAssignExam?.(topic.id);
+            }}
+          >
+            <FileText className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="mt-1.5 grid grid-cols-3 gap-1.5 text-center text-[9px] uppercase tracking-wider text-muted-foreground">
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5 text-center text-[9px] uppercase tracking-wider text-muted-foreground">
           <span>HW</span>
           <span>Exam</span>
-          <span>Random</span>
         </div>
       </CardContent>
     </Card>

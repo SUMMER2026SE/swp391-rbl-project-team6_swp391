@@ -27,7 +27,11 @@ interface MyQuestionModalProps {
   onOpenChange: (open: boolean) => void;
   mode: "view" | "edit" | "create";
   question?: TeacherQuestionResponse | null;
-  onSave: (q: Omit<TeacherQuestionResponse, "id" | "createdAt" | "updatedAt" | "teacherId"> & { id?: string }) => void;
+  onSave: (
+    q: Omit<TeacherQuestionResponse, "id" | "createdAt" | "updatedAt" | "teacherId"> & {
+      id?: string;
+    },
+  ) => void;
 }
 
 export function MyQuestionModal({
@@ -54,26 +58,34 @@ export function MyQuestionModal({
   useEffect(() => {
     if (open) {
       if (mode !== "create" && question) {
-        setTitle(question.jpPrompt || (question.prompt && question.prompt.length > 40 ? question.prompt.slice(0, 40) + "..." : question.prompt) || "");
+        setTitle(
+          question.jpPrompt ||
+            (question.prompt && question.prompt.length > 40
+              ? question.prompt.slice(0, 40) + "..."
+              : question.prompt) ||
+            "",
+        );
         setType(question.questionType || "Multiple Choice");
         setLevel((question.level || "N3") as JLPTLevel);
         setSkill((question.skill || "Grammar") as Skill);
-        
+
         const difficultyMapped = question.difficulty
-          ? (question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1).toLowerCase()) as Difficulty
+          ? ((question.difficulty.charAt(0).toUpperCase() +
+              question.difficulty.slice(1).toLowerCase()) as Difficulty)
           : "Medium";
         setDifficulty(difficultyMapped);
-        
+
         setContent(question.prompt || "");
         setChoices(
           question.options && question.options.length > 0
-             ? [...question.options]
-             : ["", "", "", ""]
+            ? [...question.options]
+            : ["", "", "", ""],
         );
-        
-        const correct = question.options && question.options[question.correctAnswerIndex] !== undefined
-          ? question.options[question.correctAnswerIndex]
-          : "";
+
+        const correct =
+          question.options && question.options[question.correctAnswerIndex] !== undefined
+            ? question.options[question.correctAnswerIndex]
+            : "";
         setCorrectAnswer(correct);
         setExplanation(question.explanation || "");
         setTagsInput(question.tags || "");
@@ -123,7 +135,8 @@ export function MyQuestionModal({
       difficulty: difficulty.toUpperCase(),
       prompt: content.trim(),
       options: cleanedChoices,
-      correctAnswerIndex: cleanedChoices.indexOf(correctAnswer) >= 0 ? cleanedChoices.indexOf(correctAnswer) : 0,
+      correctAnswerIndex:
+        cleanedChoices.indexOf(correctAnswer) >= 0 ? cleanedChoices.indexOf(correctAnswer) : 0,
       explanation: explanation.trim(),
       tags: parsedTags,
       status,
@@ -134,15 +147,25 @@ export function MyQuestionModal({
 
   const isView = mode === "view";
 
-  const questionTitle = question?.jpPrompt || (question?.prompt && question.prompt.length > 40 ? question.prompt.slice(0, 40) + "..." : question?.prompt) || "Question";
+  const questionTitle =
+    question?.jpPrompt ||
+    (question?.prompt && question.prompt.length > 40
+      ? question.prompt.slice(0, 40) + "..."
+      : question?.prompt) ||
+    "Question";
   const questionDifficulty = question?.difficulty
-    ? (question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1).toLowerCase()) as Difficulty
+    ? ((question.difficulty.charAt(0).toUpperCase() +
+        question.difficulty.slice(1).toLowerCase()) as Difficulty)
     : "Medium";
-  const questionCorrectAnswer = question?.options && question.options[question.correctAnswerIndex] !== undefined
-    ? question.options[question.correctAnswerIndex]
-    : "";
+  const questionCorrectAnswer =
+    question?.options && question.options[question.correctAnswerIndex] !== undefined
+      ? question.options[question.correctAnswerIndex]
+      : "";
   const questionTagsList = question?.tags
-    ? question.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    ? question.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
     : [];
 
   return (
@@ -150,7 +173,11 @@ export function MyQuestionModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isView ? "Question Details" : mode === "edit" ? "Edit Question" : "Create New Question"}
+            {isView
+              ? "Question Details"
+              : mode === "edit"
+                ? "Edit Question"
+                : "Create New Question"}
           </DialogTitle>
           <DialogDescription>
             {isView
@@ -213,7 +240,9 @@ export function MyQuestionModal({
                           {String.fromCharCode(65 + i)}
                         </span>
                         <span className="font-jp">{choice}</span>
-                        {isCorrect && <span className="ml-auto text-xs font-bold uppercase">Correct</span>}
+                        {isCorrect && (
+                          <span className="ml-auto text-xs font-bold uppercase">Correct</span>
+                        )}
                       </div>
                     );
                   })}
@@ -224,7 +253,9 @@ export function MyQuestionModal({
             {!question.options?.length && questionCorrectAnswer && (
               <div>
                 <h4 className="text-sm font-semibold text-muted-foreground mb-1">Correct Answer</h4>
-                <p className="text-sm font-semibold text-success font-jp">{questionCorrectAnswer}</p>
+                <p className="text-sm font-semibold text-success font-jp">
+                  {questionCorrectAnswer}
+                </p>
               </div>
             )}
 
