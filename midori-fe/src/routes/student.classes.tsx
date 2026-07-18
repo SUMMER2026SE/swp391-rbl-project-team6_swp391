@@ -106,6 +106,11 @@ function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
             <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
               {cls.name}
             </h3>
+            {cls.classCode && (
+              <div className="mt-1 inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-mono font-semibold text-muted-foreground">
+                {cls.classCode}
+              </div>
+            )}
           </div>
         </div>
 
@@ -173,6 +178,11 @@ function CompletedClassCard({ cls }: { cls: DetailedClassInfo }) {
             <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
               {cls.name}
             </h3>
+            {cls.classCode && (
+              <div className="mt-1 inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-mono font-semibold text-muted-foreground">
+                {cls.classCode}
+              </div>
+            )}
           </div>
 
           {cls.hasCertificate && (
@@ -322,6 +332,7 @@ function StudentClassesPage() {
       id: c.id,
       name: c.name,
       level: (c.level || "N5") as any,
+      classCode: c.classCode,
       status: (c.status?.toLowerCase() === "active" ? "active" : "completed") as any,
       teacher: c.teacherName || "Teacher",
       teacherAvatarInitials: (c.teacherName || "T").substring(0, 2).toUpperCase(),

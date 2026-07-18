@@ -58,6 +58,11 @@ function ClassDetailPage() {
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-primary/20 text-primary border border-primary/30">
                 Level {classInfo.level}
               </span>
+              {classInfo.classCode && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-muted text-muted-foreground border border-border">
+                  {classInfo.classCode}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
               <div className="w-6 h-6 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-[10px]">

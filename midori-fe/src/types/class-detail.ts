@@ -97,6 +97,7 @@ export interface DetailedClassInfo {
   teacher: string;
   teacherAvatarInitials: string;
   level: string;
+  classCode?: string;
   members: number;
   assignmentCount: number;
   unfinishedCount: number;

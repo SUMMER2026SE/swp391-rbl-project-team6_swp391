@@ -111,6 +111,7 @@ export function useClassDetail(classId: string) {
       id: classDetail.id,
       name: classDetail.name,
       level: classDetail.level as any,
+      classCode: classDetail.classCode,
       status: (classDetail.status === "ACTIVE" ? "active" : "archived") as any,
       teacher: teacherName,
       teacherAvatarInitials: teacherName.substring(0, 2).toUpperCase(),

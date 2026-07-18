@@ -161,6 +161,7 @@ function ClassesLayout() {
       upcomingExams: c.upcomingExamCount || 0,
       progress: 0,
       schedule: c.createdAt ? `Created ${c.createdAt.slice(0, 10)}` : "",
+      classCode: c.classCode || "",
     }));
   }, [dbClasses]);
 
@@ -260,6 +261,11 @@ function ClassesLayout() {
                     </div>
                     <div className="truncate font-display text-lg font-semibold">{c.name}</div>
                     <div className="font-jp text-xs text-muted-foreground">{c.jpName}</div>
+                    {c.classCode && (
+                      <div className="mt-1 inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-mono font-semibold text-muted-foreground">
+                        {c.classCode}
+                      </div>
+                    )}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
