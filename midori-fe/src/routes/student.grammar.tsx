@@ -430,7 +430,7 @@ function GrammarPage() {
   });
 
   // ── Derived state: completed, bookmarked, lastStudied ───────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (grammars.length === 0) return;
     const completedSet = new Set<string>();

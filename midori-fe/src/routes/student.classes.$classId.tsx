@@ -68,11 +68,10 @@ function ClassDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
           {[
             { label: "Students", value: classInfo.members },
             { label: "Assignments", value: classInfo.assignments.length },
-            { label: "Next Deadline", value: classInfo.nextDeadline },
             { label: "Join Date", value: classInfo.joinDate },
           ].map((stat, idx) => (
             <div

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Plus, X, Eye, Loader2, ArrowLeft, Trash2, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,13 +52,8 @@ function QuestionBankLessonListPage() {
   const navigate = useNavigate();
   const level = (params.level?.toUpperCase() || "N5") as JLPTLevel;
 
-  const {
-    lessons,
-    questions,
-    isLoading,
-    createLesson,
-    deleteLesson,
-  } = useQuestionBank(level);
+  const { lessons, questions, isLoading, createLesson, updateLesson, deleteLesson } =
+    useQuestionBank(level);
 
   // Calculate question count per lesson
   const getLessonStats = (lessonId: number) => {
@@ -92,13 +88,13 @@ function QuestionBankLessonListPage() {
 
   const handleSaveLesson = async () => {
     if (!newLessonNumber.trim() || !newLessonName.trim()) {
-      alert("Please fill in both Lesson Number and Lesson Name");
+      toast.error("Please fill in both Lesson Number and Lesson Name");
       return;
     }
 
     const lessonNum = parseInt(newLessonNumber);
     if (isNaN(lessonNum) || lessonNum < 1) {
-      alert("Please enter a valid lesson number");
+      toast.error("Please enter a valid lesson number");
       return;
     }
 
@@ -106,15 +102,25 @@ function QuestionBankLessonListPage() {
 
     try {
       if (editingLesson) {
-        console.log(`[QB] EDIT: Updating lesson ${editingLesson.id} to ${lessonNum} - ${newLessonName} (${newLessonStatus})`);
-        await updateLesson(editingLesson.id, newLessonName.trim(), lessonNum, newLessonStatus || "Draft");
+        console.log(
+          `[QB] EDIT: Updating lesson ${editingLesson.id} to ${lessonNum} - ${newLessonName} (${newLessonStatus})`,
+        );
+        await updateLesson(
+          editingLesson.id,
+          newLessonName.trim(),
+          lessonNum,
+          newLessonStatus || "Draft",
+        );
+        toast.success("Lesson updated successfully.");
       } else {
         console.log(`[QB] CREATE: Creating lesson ${lessonNum} - ${newLessonName}`);
         await createLesson(newLessonName.trim(), lessonNum);
+        toast.success("Lesson created successfully.");
       }
       handleCloseModal();
     } catch (err: any) {
-      alert(err?.message || "Failed to save lesson");
+      console.error("[QB] SAVE: Failed to save lesson", err);
+      toast.error(err?.message || "Failed to update lesson.");
     } finally {
       setIsCreating(false);
     }
@@ -130,8 +136,10 @@ function QuestionBankLessonListPage() {
     console.log(`[QB] DELETE: Deleting lesson ${deleteLessonId}`);
     try {
       await deleteLesson(deleteLessonId);
+      toast.success("Lesson deleted successfully.");
     } catch (err: any) {
-      alert(err?.message || "Failed to delete lesson");
+      console.error("[QB] DELETE: Failed to delete lesson", err);
+      toast.error(err?.message || "Failed to delete lesson");
     }
 
     setDeleteLessonId(null);

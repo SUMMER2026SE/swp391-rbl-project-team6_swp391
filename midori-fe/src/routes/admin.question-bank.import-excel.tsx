@@ -40,7 +40,7 @@ function ImportExcelPage() {
           correctIndex: correctIndex >= 0 ? correctIndex : 0,
           explanation: q.explanation || "",
         });
-      })
+      }),
     );
 
     navigate({
