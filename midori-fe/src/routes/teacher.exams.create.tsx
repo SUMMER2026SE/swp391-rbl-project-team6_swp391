@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
 import { examsApi } from "@/lib/api/exams";
+import { AiExamGenerate } from "@/components/teacher/AiExamGenerate";
 import { ApiError } from "@/lib/api/client";
 import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
 import {
@@ -50,7 +51,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Method = "manual" | "question-bank" | "jlpt-bank";
+type Method = "manual" | "question-bank" | "jlpt-bank" | "ai-generate";
 
 export const Route = createFileRoute("/teacher/exams/create")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -150,6 +151,14 @@ function CreateExam() {
             gradient="from-sakura to-warning"
             onClick={() => setMethod("jlpt-bank")}
           />
+          <BigMethodCard
+            icon={Sparkles}
+            title="AI Generate"
+            desc="Use AI to generate questions from lesson content in the content library."
+            badge="AI · Smart"
+            gradient="from-primary/60 to-success/60"
+            onClick={() => setMethod("ai-generate")}
+          />
         </div>
         {lockedClass && (
           <p className="text-center text-xs text-muted-foreground">
@@ -182,6 +191,9 @@ function CreateExam() {
       )}
       {method === "jlpt-bank" && (
         <JlptExam lockedClass={lockedClass} jlptSetId={jlptSetId} onDone={setDone} />
+      )}
+      {method === "ai-generate" && (
+        <AiExamGenerate lockedClass={lockedClass} onDone={setDone} />
       )}
     </div>
   );

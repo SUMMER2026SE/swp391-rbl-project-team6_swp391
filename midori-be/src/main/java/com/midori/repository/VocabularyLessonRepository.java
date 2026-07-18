@@ -34,4 +34,6 @@ public interface VocabularyLessonRepository extends JpaRepository<VocabularyLess
     long countByJlptLevel(String jlptLevel);
 
     long countByLessonId(UUID lessonId);
+
+    Optional<VocabularyLesson> findByJlptLevelAndLessonNumber(String jlptLevel, Integer lessonNumber);
 }

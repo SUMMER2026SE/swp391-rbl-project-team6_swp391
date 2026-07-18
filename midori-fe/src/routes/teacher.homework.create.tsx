@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
 import { homeworkApi } from "@/lib/api/homework";
+import { AiHomeworkGenerate } from "@/components/teacher/AiHomeworkGenerate";
 import {
   Select,
   SelectContent,
@@ -21,12 +22,12 @@ import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
 import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
 import {
-  ArrowLeft, ClipboardList, HelpCircle, Save, Send, Eye, Sparkles, Shuffle, Plus, AlertCircle, CheckCircle, Loader2, Upload
+  ArrowLeft, ClipboardList, HelpCircle, Save, Send, Eye, Sparkles, Shuffle, Plus, AlertCircle, CheckCircle, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Method = "ai-pdf" | "question-bank";
+type Method = "ai-generate" | "question-bank";
 
 export const Route = createFileRoute("/teacher/homework/create")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -106,7 +107,7 @@ function CreateHomework() {
           onBack={handleBack}
         />
         <div className="grid gap-3 md:grid-cols-2">
-          <MethodCard icon={Sparkles} title="AI PDF Homework" desc="Upload a PDF and let AI generate homework questions automatically." badge="AI Generator" onClick={() => setMethod("ai-pdf")} />
+          <MethodCard icon={Sparkles} title="AI Generate Homework" desc="Select a lesson and AI will generate homework questions from the content library." badge="AI · Smart" onClick={() => setMethod("ai-generate")} />
           <MethodCard icon={HelpCircle} title="From Question Bank" desc="Generate practice questions by difficulty." badge="Generator" onClick={() => setMethod("question-bank")} />
         </div>
         {lockedClass && (
@@ -124,7 +125,7 @@ function CreateHomework() {
         <ArrowLeft className="mr-1 h-4 w-4" />
         Change method
       </Button>
-      {method === "ai-pdf" && <HomeworkAiPdfPlaceholder />}
+      {method === "ai-generate" && <AiHomeworkGenerate lockedClass={lockedClass} onDone={handleDone} />}
       {method === "question-bank" && <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />}
     </div>
   );
@@ -922,76 +923,3 @@ function QuestionBankHW({
   );
 }
 
-function HomeworkAiPdfPlaceholder() {
-  return (
-    <div className="mx-auto max-w-4xl space-y-8">
-      <div className="card-base p-6 border border-[var(--border)] bg-card rounded-2xl shadow-sm text-center">
-        <h2 className="font-display font-black text-2xl text-primary-col mb-2">
-          AI PDF Homework Generator
-        </h2>
-        <p className="text-sm text-secondary-col">
-          Generate homework automatically by uploading a course syllabus, exam paper, or study material PDF.
-        </p>
-      </div>
-
-      {/* Stepper UI */}
-      <div className="flex items-center justify-between max-w-xl mx-auto px-4">
-        {[
-          { step: 1, label: "Upload PDF" },
-          { step: 2, label: "AI Parsing" },
-          { step: 3, label: "Preview & Edit" },
-          { step: 4, label: "Assign" },
-        ].map((s, idx, arr) => (
-          <div key={s.step} className="flex items-center flex-1 last:flex-initial">
-            <div className="flex flex-col items-center gap-1.5 z-10">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
-                s.step === 1 
-                  ? "bg-primary border-primary text-primary-foreground" 
-                  : "bg-background border-[var(--border)] text-muted-foreground"
-              )}>
-                {s.step}
-              </div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                {s.label}
-              </span>
-            </div>
-            {idx < arr.length - 1 && (
-              <div className="h-[2px] bg-[var(--border)] flex-1 -mx-2 -mt-4" />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Upload area UI */}
-      <div className="card-base p-12 border-2 border-dashed border-[var(--border)] text-center bg-card/50 rounded-2xl">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-          <Upload className="w-8 h-8 text-primary" />
-        </div>
-        <h3 className="font-display font-bold text-lg text-primary-col mb-1">
-          Upload PDF File
-        </h3>
-        <p className="text-sm text-secondary-col mb-6">
-          Drag and drop your PDF here, or click to browse.
-        </p>
-        <Button disabled variant="outline" className="px-6 py-2.5 rounded-xl font-bold">
-          Choose PDF File
-        </Button>
-      </div>
-
-      {/* Empty Preview area UI */}
-      <div className="card-base p-8 border border-[var(--border)] bg-card/30 rounded-2xl text-center">
-        <p className="text-sm text-muted-col italic">
-          No questions generated yet. Upload a PDF above to preview questions.
-        </p>
-      </div>
-
-      {/* Action footer */}
-      <div className="flex justify-end pt-4 border-t border-[var(--border)]">
-        <Button disabled size="lg" className="px-8 py-3 font-bold rounded-xl bg-muted text-muted-foreground border border-[var(--border)]">
-          AI PDF Homework Coming Soon
-        </Button>
-      </div>
-    </div>
-  );
-}

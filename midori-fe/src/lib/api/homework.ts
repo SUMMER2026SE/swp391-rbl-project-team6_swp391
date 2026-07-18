@@ -1,5 +1,6 @@
 import { api } from "./client";
 import { TeacherQuestionResponse } from "./teacherQuestions";
+import { AiExamGenerateResponse } from "./exams";
 
 export interface HomeworkResponse {
   id: string;
@@ -72,6 +73,15 @@ export interface SubmitHomeworkRequest {
 }
 
 export const homeworkApi = {
+  generateAiHomework: (req: {
+    level: string;
+    lessonId: number;
+    skills: string[];
+    difficulty: string;
+    questionCount: number;
+  }) =>
+    api.post<AiExamGenerateResponse>("/teacher/homeworks/ai-generate", req),
+
   // Teacher APIs
   createHomework: (req: CreateHomeworkRequest) =>
     api.post<HomeworkResponse>("/teacher/homeworks", req),
