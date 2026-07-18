@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Loader2,
   RotateCcw,
+  Pencil,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,7 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { InviteStudentsDialog } from "@/components/teacher/dialogs";
+import { InviteStudentsDialog, EditClassDialog } from "@/components/teacher/dialogs";
 import { cn } from "@/lib/utils";
 
 const LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
@@ -100,6 +101,13 @@ function ClassesLayout() {
   const [statusFilter, setStatusFilter] = useState<string>("Active");
   const [inviteFor, setInviteFor] = useState<string | null>(null);
   const [pendingArchive, setPendingArchive] = useState<{ id: string; name: string } | null>(null);
+  const [editingClass, setEditingClass] = useState<{
+    id: string;
+    name: string;
+    level: string;
+    maxStudents: number;
+    studentCount: number;
+  } | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -158,7 +166,11 @@ function ClassesLayout() {
 
   const filtered = useMemo(() => {
     return all.filter((c) => {
-      const matchSearch = !urlQ || c.name.toLowerCase().includes(urlQ.toLowerCase()) || c.level.toLowerCase().includes(urlQ.toLowerCase()) || (c.jpName && c.jpName.toLowerCase().includes(urlQ.toLowerCase()));
+      const matchSearch =
+        !urlQ ||
+        c.name.toLowerCase().includes(urlQ.toLowerCase()) ||
+        c.level.toLowerCase().includes(urlQ.toLowerCase()) ||
+        (c.jpName && c.jpName.toLowerCase().includes(urlQ.toLowerCase()));
       const matchLevel = levelFilter === "All" || c.level === levelFilter;
       const matchStatus = statusFilter === "All" || c.status === statusFilter;
       return matchSearch && matchLevel && matchStatus;
@@ -257,13 +269,29 @@ function ClassesLayout() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {c.status !== "Archived" && (
-                        <DropdownMenuItem onSelect={() => setInviteFor(c.id)}>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Invite students
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem
+                            onSelect={() =>
+                              setEditingClass({
+                                id: c.id,
+                                name: c.name,
+                                level: c.level,
+                                maxStudents: c.capacity,
+                                studentCount: c.studentCount,
+                              })
+                            }
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit class
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setInviteFor(c.id)}>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Invite students
+                          </DropdownMenuItem>
+                        </>
                       )}
                       <DropdownMenuItem asChild>
-                        <Link to="/teacher/classes/$classId/progress" params={{ classId: c.id }}>
+                        <Link to="/teacher/classes/$classId" params={{ classId: c.id }}>
                           <TgIcon className="mr-2 h-4 w-4" />
                           View progress
                         </Link>
@@ -356,6 +384,12 @@ function ClassesLayout() {
         className={all.find((c) => c.id === inviteFor)?.name}
       />
 
+      <EditClassDialog
+        open={!!editingClass}
+        onOpenChange={(o) => !o && setEditingClass(null)}
+        classData={editingClass}
+      />
+
       {/* Archive Confirmation Dialog */}
       <AlertDialog open={!!pendingArchive} onOpenChange={(o) => !o && setPendingArchive(null)}>
         <AlertDialogContent>
@@ -367,11 +401,14 @@ function ClassesLayout() {
             <AlertDialogDescription className="space-y-2">
               <span className="block">
                 You are about to archive{" "}
-                <span className="font-semibold text-foreground">&ldquo;{pendingArchive?.name}&rdquo;</span>.
+                <span className="font-semibold text-foreground">
+                  &ldquo;{pendingArchive?.name}&rdquo;
+                </span>
+                .
               </span>
               <span className="block text-amber-600 dark:text-amber-400">
-                ⚠ Once archived, you will not be able to add students, create homework, or create exams for this class.
-                You can restore the class at any time.
+                ⚠ Once archived, you will not be able to add students, create homework, or create
+                exams for this class. You can restore the class at any time.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>

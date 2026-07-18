@@ -949,7 +949,7 @@ function TeacherFlashcardsPage() {
 
     setBulkImporting(true);
     let imported = 0;
-    let failed = 0;
+    const failed = 0;
 
     try {
       for (const card of toCreate) {
