@@ -300,6 +300,36 @@ public final class AiPromptBuilder {
     /**
      * Check if the user message refers to the currently selected material.
      * Used for context-aware chat responses.
+     * 
+     * This overload checks for material reference patterns without requiring a material title.
+     * Returns true if the message contains common patterns like "bài này", "tài liệu này", etc.
+     */
+    public static boolean refersToSelectedMaterial(String userMessage) {
+        if (userMessage == null || userMessage.isBlank()) {
+            return false;
+        }
+        
+        String lowerMessage = userMessage.toLowerCase();
+        
+        // Check for common reference patterns
+        String[] materialPatterns = {
+            "bài này", "bài đó", "trong bài", "trong này", 
+            "tài liệu này", "tài liệu đó", "đang học",
+            "bài học", "chủ đề này", "nội dung này"
+        };
+        
+        for (String pattern : materialPatterns) {
+            if (lowerMessage.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if the user message refers to the currently selected material.
+     * Used for context-aware chat responses.
      */
     public static boolean refersToSelectedMaterial(String userMessage, String materialTitle) {
         if (userMessage == null || userMessage.isBlank()) {
