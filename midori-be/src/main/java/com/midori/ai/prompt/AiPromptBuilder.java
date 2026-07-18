@@ -1,5 +1,7 @@
 package com.midori.ai.prompt;
 
+import java.util.List;
+
 /**
  * Centralized prompt builder for all AI operations.
  * Ensures consistent prompts across all providers.
@@ -254,5 +256,133 @@ public final class AiPromptBuilder {
                   "context": "Tại sao từ này dùng vậy trong câu, gợi ý nhớ/tách nghĩa phù hợp cho người Việt."
                 }
                 """.formatted(sentence, word);
+    }
+
+    // ============================================================
+    // EXISTING QUESTIONS PARSING PROMPT
+    // ============================================================
+
+    /**
+     * Build prompt for parsing existing questions from an exam/quiz document.
+     * Used when teacher uploads a quiz file that already has questions.
+     */
+    public static String buildExistingQuestionsParsingPrompt(String examTitle, String existingQuestions, String newQuestionRequest) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Bạn là AI Sensei của MIDORI, trợ lý học tiếng Nhật.\n\n");
+        
+        prompt.append("Nhiệm vụ: Phân tích và xử lý các câu hỏi đã có trong đề thi.\n\n");
+        
+        if (examTitle != null && !examTitle.isBlank()) {
+            prompt.append("TÊN ĐỀ: ").append(examTitle).append("\n\n");
+        }
+        
+        if (existingQuestions != null && !existingQuestions.isBlank()) {
+            prompt.append("CÁC CÂU HỎI ĐÃ CÓ:\n").append(existingQuestions).append("\n\n");
+        }
+        
+        if (newQuestionRequest != null && !newQuestionRequest.isBlank()) {
+            prompt.append("YÊU CẦU BỔ SUNG:\n").append(newQuestionRequest).append("\n\n");
+        }
+        
+        prompt.append("QUY TẮC:\n");
+        prompt.append("1. Giữ nguyên các câu hỏi đã có.\n");
+        prompt.append("2. Bổ sung câu hỏi mới theo yêu cầu.\n");
+        prompt.append("3. Trả về JSON hợp lệ.\n");
+        prompt.append("4. Không thay đổi nội dung câu hỏi gốc.\n");
+        
+        return prompt.toString();
+    }
+
+    // ============================================================
+    // CHAT HELPERS FOR MATERIAL DETECTION
+    // ============================================================
+
+    /**
+     * Check if the user message refers to the currently selected material.
+     * Used for context-aware chat responses.
+     */
+    public static boolean refersToSelectedMaterial(String userMessage, String materialTitle) {
+        if (userMessage == null || userMessage.isBlank()) {
+            return false;
+        }
+        if (materialTitle == null || materialTitle.isBlank()) {
+            return false;
+        }
+        
+        String lowerMessage = userMessage.toLowerCase();
+        String lowerTitle = materialTitle.toLowerCase();
+        
+        // Check if message contains material title keywords
+        String[] titleWords = lowerTitle.split("\\s+");
+        int matchCount = 0;
+        for (String word : titleWords) {
+            if (word.length() > 2 && lowerMessage.contains(word)) {
+                matchCount++;
+            }
+        }
+        
+        // Also check for common reference patterns
+        String[] materialPatterns = {
+            "bài này", "bài đó", "trong bài", "trong này", 
+            "tài liệu này", "tài liệu đó", "đang học",
+            "bài học", "chủ đề này", "nội dung này"
+        };
+        
+        for (String pattern : materialPatterns) {
+            if (lowerMessage.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        // If more than half of title words are found, likely refers to material
+        return matchCount >= titleWords.length / 2;
+    }
+
+    /**
+     * Fallback system prompt when no material is selected.
+     * Provides general Japanese learning assistance.
+     */
+    public static String noMaterialSelectedFallback() {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append(getChatSystemPrompt());
+        prompt.append("\n\n");
+        prompt.append("## TRẠNG THÁI HIỆN TẠI\n");
+        prompt.append("- Không có tài liệu được chọn.\n");
+        prompt.append("- Trả lời dựa trên kiến thức chung về tiếng Nhật.\n");
+        prompt.append("- Nếu câu hỏi cần bài học cụ thể, hãy gợi ý chọn tài liệu phù hợp.\n");
+        return prompt.toString();
+    }
+
+    // ============================================================
+    // QUIZ GENERATION WITH EXAMPLES OVERLOAD
+    // ============================================================
+
+    /**
+     * Build prompt for Vietnamese quiz question generation with example questions.
+     * This overload accepts additional example questions for better context.
+     */
+    public static String buildQuizGenerationPrompt(
+            String materialTitle, 
+            String materialContent, 
+            int questionCount, 
+            String questionType, 
+            String difficulty,
+            List<String> exampleQuestions) {
+        
+        // Start with base prompt
+        String basePrompt = buildQuizGenerationPrompt(materialTitle, materialContent, questionCount, questionType, difficulty);
+        
+        // Add examples if provided
+        if (exampleQuestions != null && !exampleQuestions.isEmpty()) {
+            StringBuilder exampleSection = new StringBuilder();
+            exampleSection.append("\n\nVÍ DỤ THAM KHẢO:\n");
+            for (int i = 0; i < exampleQuestions.size(); i++) {
+                exampleSection.append((i + 1)).append(". ").append(exampleQuestions.get(i)).append("\n");
+            }
+            exampleSection.append("Hãy tạo câu hỏi theo phong cách tương tự.\n");
+            return basePrompt + exampleSection.toString();
+        }
+        
+        return basePrompt;
     }
 }
