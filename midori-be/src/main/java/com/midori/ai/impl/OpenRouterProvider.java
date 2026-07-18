@@ -199,12 +199,19 @@ public class OpenRouterProvider implements AiProvider {
     @Override
     public String generateQuestions(String materialTitle, String materialContent,
                                    int questionCount, String questionType, String difficulty) {
+        return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty, null, null);
+    }
+
+    @Override
+    public String generateQuestions(String materialTitle, String materialContent,
+                                   int questionCount, String questionType, String difficulty,
+                                   java.util.List<String> selectedSkills, com.midori.ai.AiTaskType taskType) {
         if (!isConfigured()) {
             throw new IllegalStateException("OpenRouter API key is not configured.");
         }
 
         String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
-                materialTitle, materialContent, questionCount, questionType, difficulty);
+                materialTitle, materialContent, questionCount, questionType, difficulty, selectedSkills);
 
         Throwable lastError = null;
         for (int attempt = 0; attempt < quizModels.size(); attempt++) {

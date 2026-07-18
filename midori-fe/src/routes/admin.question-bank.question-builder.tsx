@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -37,6 +37,11 @@ import type {
 } from "../services/questionBank.types";
 import { formatDuration, isListeningQuestion } from "../services/questionBank.types";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
+import {
+  parseReadingQuestionText,
+  composeReadingQuestionText,
+  shouldSplitReadingForQuestion,
+} from "../components/admin/pdf-import/readingQuestionParser";
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
@@ -668,6 +673,60 @@ function QuestionBuilderPage() {
   };
 
   const isListening = selectedQuestion?.type === "Listening";
+  const isReading = selectedQuestion?.type === "Reading";
+
+  // Reading-passage split. When the question's category is "Reading" and the
+  // AI packed both the passage and the question into the single
+  // `questionText` field, surface them in two separate textareas. The DB
+  // still receives one string — we recompose on every edit so the save
+  // payload stays the same shape the API expects.
+  const readingParsed = useMemo(() => {
+    if (!isReading || !selectedQuestion) return null;
+    return shouldSplitReadingForQuestion(selectedQuestion.type)
+      ? parseReadingQuestionText(selectedQuestion.questionText)
+      : null;
+  }, [isReading, selectedQuestion?.type, selectedQuestion?.questionText]);
+
+  const [passageDraft, setPassageDraft] = useState<string>("");
+  const [passageExpanded, setPassageExpanded] = useState<boolean>(true);
+  const passageLabelKey = readingParsed?.labelKey ?? "en-read";
+
+  // Re-sync local draft whenever the upstream questionText or type changes
+  // (e.g. user clicks a different sidebar item, or AI returns a different
+  // composed blob). Without this the local state would "stick" and silently
+  // overwrite later updates.
+  useEffect(() => {
+    setPassageDraft(readingParsed?.passage ?? "");
+  }, [
+    selectedQuestion?.id,
+    selectedQuestion?.type,
+    selectedQuestion?.questionText,
+  ]);
+
+  const handleReadingPassageChange = (text: string) => {
+    setPassageDraft(text);
+    if (!selectedQuestion) return;
+    const currentQuestion = readingParsed?.split
+      ? readingParsed.question
+      : parseReadingQuestionText(selectedQuestion.questionText).question ||
+        selectedQuestion.questionText;
+    const composed = composeReadingQuestionText(
+      text,
+      currentQuestion,
+      passageLabelKey,
+    );
+    updateQuestion(selectedQuestion.id, "questionText", composed);
+  };
+
+  const handleReadingQuestionChange = (text: string) => {
+    if (!selectedQuestion) return;
+    const composed = composeReadingQuestionText(
+      passageDraft,
+      text,
+      passageLabelKey,
+    );
+    updateQuestion(selectedQuestion.id, "questionText", composed);
+  };
 
   return (
     <div className="space-y-5">
@@ -741,6 +800,16 @@ function QuestionBuilderPage() {
               {questions.map((q, index) => {
                 const isComplete = isQuestionComplete(q);
                 const isSelected = q.id === selectedQuestionId;
+                // For Reading questions, show only the question portion in the
+                // sidebar card (the passage is surfaced separately in the
+                // editor and is too long for a 2-line preview).
+                const cardSplit = shouldSplitReadingForQuestion(q.type)
+                  ? parseReadingQuestionText(q.questionText)
+                  : null;
+                const cardPreview =
+                  q.type === "Reading" && cardSplit?.split
+                    ? cardSplit.question
+                    : q.questionText;
 
                 return (
                   <div
@@ -774,6 +843,9 @@ function QuestionBuilderPage() {
                         {q.type === "Listening" && q.audioUrl && (
                           <Music className="w-3 h-3 text-pink-500 shrink-0" />
                         )}
+                        {q.type === "Reading" && cardSplit?.split && (
+                          <BookOpen className="w-3 h-3 text-orange-500 shrink-0" />
+                        )}
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button
@@ -800,9 +872,9 @@ function QuestionBuilderPage() {
                       </div>
                     </div>
                     <p
-                      className={`mt-1.5 text-[11px] line-clamp-2 ml-7 ${q.questionText ? "text-muted-col" : "text-muted-foreground/50 italic"}`}
+                      className={`mt-1.5 text-[11px] line-clamp-2 ml-7 ${cardPreview ? "text-muted-col" : "text-muted-foreground/50 italic"}`}
                     >
-                      {q.questionText || "No question text..."}
+                      {cardPreview || "No question text..."}
                     </p>
                     <div className="mt-1.5 flex items-center gap-1 ml-7">
                       <span
@@ -963,6 +1035,11 @@ function QuestionBuilderPage() {
                     {isListening && (
                       <span className="text-xs text-muted-col">(Transcript or instruction)</span>
                     )}
+                    {isReading && (
+                      <span className="text-xs text-muted-col">
+                        (Reading passage + question)
+                      </span>
+                    )}
                   </div>
                   {expandedSections.content ? (
                     <ChevronUp className="w-4 h-4 text-muted-col" />
@@ -972,25 +1049,91 @@ function QuestionBuilderPage() {
                 </button>
                 {expandedSections.content && (
                   <div className="px-5 pb-4 space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
-                        {isListening ? "Instructions" : "Question Text"}{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        value={selectedQuestion.questionText}
-                        onChange={(e) =>
-                          updateQuestion(selectedQuestion.id, "questionText", e.target.value)
-                        }
-                        placeholder={
-                          isListening
-                            ? "e.g., Listen to the dialogue and select the correct response..."
-                            : "Enter your question here..."
-                        }
-                        rows={3}
-                        className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition resize-none"
-                      />
-                    </div>
+                    {isReading && readingParsed?.split ? (
+                      <>
+                        {/* Reading Passage block — separate textarea, collapsible */}
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="w-3.5 h-3.5 text-primary" />
+                              <label className="text-xs font-bold text-primary uppercase tracking-wider">
+                                Reading Passage
+                              </label>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPassageExpanded((v) => !v)}
+                              className="flex items-center gap-1 text-xs font-semibold text-muted-col hover:text-primary transition"
+                              aria-label={passageExpanded ? "Collapse passage" : "Expand passage"}
+                            >
+                              {passageExpanded ? (
+                                <>
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                  <span>Collapse</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                  <span>Expand</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          {passageExpanded && (
+                            <textarea
+                              value={passageDraft}
+                              onChange={(e) =>
+                                handleReadingPassageChange(e.target.value)
+                              }
+                              rows={6}
+                              placeholder="Reading passage text..."
+                              className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition resize-y min-h-[120px] max-h-[420px] leading-relaxed"
+                            />
+                          )}
+                          {!passageExpanded && (
+                            <p className="text-xs text-muted-col line-clamp-2 italic">
+                              {passageDraft || "(empty passage)"}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Question Text only — passage has been moved out */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                            Question Text <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={readingParsed.question}
+                            onChange={(e) =>
+                              handleReadingQuestionChange(e.target.value)
+                            }
+                            placeholder="Enter your question here..."
+                            rows={3}
+                            className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition resize-none"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-col uppercase tracking-wider">
+                          {isListening ? "Instructions" : "Question Text"}{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={selectedQuestion.questionText}
+                          onChange={(e) =>
+                            updateQuestion(selectedQuestion.id, "questionText", e.target.value)
+                          }
+                          placeholder={
+                            isListening
+                              ? "e.g., Listen to the dialogue and select the correct response..."
+                              : "Enter your question here..."
+                          }
+                          rows={3}
+                          className="w-full px-3 py-2.5 rounded-lg bg-[var(--input)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition resize-none"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
