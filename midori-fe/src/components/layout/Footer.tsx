@@ -113,7 +113,7 @@ export function Footer() {
             © 2026 MIDORI. All rights reserved.
           </p>
           <p className="text-[11px] text-slate-400 dark:text-white/30">
-            Built for Japanese learning platform.
+            Built for Japanese learners.
           </p>
         </div>
       </div>
