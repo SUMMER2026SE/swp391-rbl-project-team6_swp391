@@ -39,7 +39,6 @@ function StudentsPage() {
   const { q: urlQ } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"active" | "invited">("active");
   const [open, setOpen] = useState<string | null>(null);
   const [invite, setInvite] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -109,15 +108,6 @@ function StudentsPage() {
             className="pl-9"
           />
         </div>
-        <div className="flex rounded-md border bg-card p-0.5">
-          <Button
-            size="sm"
-            variant={tab === "active" ? "default" : "ghost"}
-            onClick={() => setTab("active")}
-          >
-            Active ({students.length})
-          </Button>
-        </div>
         <Button onClick={() => setInvite(true)} className="ml-auto">
           <UserPlus className="mr-2 h-4 w-4" />
           Invite students
@@ -180,9 +170,6 @@ function StudentsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setOpen(s.id)}>
-                        Open profile
-                      </DropdownMenuItem>
                       {s.status === "invited" ? (
                         <>
                           <DropdownMenuItem onSelect={() => toast.success("Invitation resent")}>

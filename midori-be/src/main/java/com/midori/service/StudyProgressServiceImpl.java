@@ -7,6 +7,7 @@ import com.midori.dto.progress.StudentProgressResponse;
 import com.midori.dto.progress.WeeklyStudyData;
 import com.midori.entity.ClassEntity;
 import com.midori.entity.ContentType;
+import com.midori.entity.Exam;
 import com.midori.entity.User;
 import com.midori.entity.UserLearningProgress;
 import com.midori.exception.ResourceNotFoundException;
@@ -23,6 +24,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -255,16 +257,24 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         String studentDisplayName = fullName != null ? fullName : student.getEmail().split("@")[0];
 
         long totalHomework = homeworkRepository.countByAssignedClassId(classId);
-        long totalExams = examRepository.findByAssignedClassId(classId).size();
+        List<Exam> classExams = examRepository.findByAssignedClassId(classId);
+        Set<UUID> classExamIds = classExams.stream().map(Exam::getId).collect(Collectors.toSet());
+        long totalExams = classExams.size();
 
-        // Count submitted homework (any status with submittedAt)
-        List<com.midori.entity.HomeworkSubmission> submissions = homeworkSubmissionRepository.findByStudentId(studentId);
+        // Count submitted homework for this class
+        List<com.midori.entity.HomeworkSubmission> allSubmissions = homeworkSubmissionRepository.findByStudentId(studentId);
+        List<com.midori.entity.HomeworkSubmission> submissions = allSubmissions.stream()
+                .filter(s -> s.getHomework() != null && s.getHomework().getAssignedClass() != null && s.getHomework().getAssignedClass().getId().equals(classId))
+                .collect(Collectors.toList());
         long submittedHomework = submissions.stream()
                 .filter(s -> s.getSubmittedAt() != null)
                 .count();
 
-        // Count completed exams
-        List<com.midori.entity.StudentExam> studentExams = studentExamRepository.findByStudentId(studentId);
+        // Count completed exams for this class
+        List<com.midori.entity.StudentExam> allStudentExams = studentExamRepository.findByStudentId(studentId);
+        List<com.midori.entity.StudentExam> studentExams = allStudentExams.stream()
+                .filter(e -> e.getExam() != null && classExamIds.contains(e.getExam().getId()))
+                .collect(Collectors.toList());
         long examsCompleted = studentExams.stream()
                 .filter(e -> e.getSubmittedAt() != null)
                 .count();

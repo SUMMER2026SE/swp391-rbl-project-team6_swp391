@@ -27,9 +27,8 @@ function StudentProgressPage() {
 
   const handleBack = () => {
     navigate({
-      to: "/teacher/classes/$classId",
+      to: "/teacher/classes/$classId/students",
       params: { classId },
-      search: { tab: "students" },
     });
   };
 
