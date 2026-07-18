@@ -1084,7 +1084,7 @@ function RandomExam({
                         Replace
                       </Button>
                     </div>
-                    <div className="text-sm font-medium">{q.prompt}</div>
+                    <div className="text-sm font-medium">{q.questionText ?? q.prompt}</div>
                   </div>
                 ))}
               </CardContent>
@@ -1107,6 +1107,22 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 
 // ─── JLPT EXAM BANK ────────────────────────────────────────────────────
 
+function mapSectionFromPrompt(prompt: string): { cleanPrompt: string; section: "Vocabulary" | "Grammar" | "Reading" | "Listening" } {
+  if (prompt.startsWith("[Vocabulary] ")) {
+    return { cleanPrompt: prompt.substring(13), section: "Vocabulary" };
+  }
+  if (prompt.startsWith("[Grammar] ")) {
+    return { cleanPrompt: prompt.substring(10), section: "Grammar" };
+  }
+  if (prompt.startsWith("[Reading] ")) {
+    return { cleanPrompt: prompt.substring(10), section: "Reading" };
+  }
+  if (prompt.startsWith("[Listening] ")) {
+    return { cleanPrompt: prompt.substring(12), section: "Listening" };
+  }
+  return { cleanPrompt: prompt, section: "Vocabulary" };
+}
+
 function JlptExam({
   lockedClass,
   jlptSetId,
@@ -1120,37 +1136,71 @@ function JlptExam({
     queryKey: ["teacherAllClasses"],
     queryFn: () => classesApi.getSelectableClasses(),
   });
-  const sets = getJlptExamSets();
-  const init = jlptSetId ? getJlptSetById(jlptSetId) : null;
-  if (jlptSetId && !init) toast.warning("JLPT set not found");
-  const [selectedId, setSelectedId] = useState<string | null>(init?.id ?? null);
-  const set = sets.find((s) => s.id === selectedId);
+
+  const { data: rawExams = [], isLoading: isExamsLoading } = useQuery({
+    queryKey: ["exam-bank"],
+    queryFn: () => examsApi.getAllExams(),
+  });
+
+  const sets = rawExams.filter(e => e.category === "JLPT" && e.status === "PUBLISHED");
+
+  const [selectedId, setSelectedId] = useState<string | null>(jlptSetId ?? null);
+
+  const { data: selectedSet } = useQuery({
+    queryKey: ["exam", selectedId],
+    queryFn: () => examsApi.getExamById(selectedId!),
+    enabled: !!selectedId,
+  });
+
   const [form, setForm] = useState({
     classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: set?.title ?? "",
+    title: "",
     instructions: "Bring writing materials. The exam will run for the full duration.",
     dueDate: "",
   });
+
+  useEffect(() => {
+    if (selectedSet) {
+      setForm((f) => ({ ...f, title: f.title || selectedSet.title }));
+    }
+  }, [selectedSet]);
+
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [preview, setPreview] = useState(false);
 
   const handleSave = async (shouldPublish = false) => {
-    if (!set) return;
+    if (!selectedSet) return;
     setIsSaving(true);
     try {
-      await examsApi.createExam({
+      const newExam = await examsApi.createExam({
         title: form.title,
-        level: set.level,
-        totalQuestions: set.totalQuestions,
-        timeLimit: set.duration,
+        level: selectedSet.level,
+        totalQuestions: selectedSet.totalQuestions ?? selectedSet.questions?.length ?? 0,
+        timeLimit: selectedSet.timeLimit,
         classIds: form.classId ? [form.classId] : [],
         category: "JLPT",
-        difficultyEasy: set.mix.easy,
-        difficultyMedium: set.mix.medium,
-        difficultyHard: set.mix.hard,
+        difficultyEasy: selectedSet.difficultyEasy,
+        difficultyMedium: selectedSet.difficultyMedium,
+        difficultyHard: selectedSet.difficultyHard,
         status: shouldPublish ? "PUBLISHED" : "DRAFT",
       });
+
+      if (!newExam?.id) {
+        throw new Error("Failed to create class exam shell");
+      }
+
+      if (selectedSet.questions && selectedSet.questions.length > 0) {
+        await examsApi.updateExamQuestions(newExam.id, {
+          questions: selectedSet.questions.map((q, index) => ({
+            prompt: q.prompt,
+            options: q.options || [],
+            correctAnswerIndex: q.correctAnswerIndex,
+            points: q.points || 1,
+            displayOrder: q.displayOrder || (index + 1),
+          })),
+        });
+      }
 
       if (shouldPublish) {
         toast.success("Exam published & assigned successfully!");
@@ -1173,7 +1223,45 @@ function JlptExam({
     }
   };
 
-  const valid = !!(set && form.title && form.dueDate);
+  const getExamStats = (exam: any) => {
+    const qs = exam.questions || [];
+    const vocab = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Vocabulary").length;
+    const grammar = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Grammar").length;
+    const reading = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Reading").length;
+    const listening = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Listening").length;
+
+    const sections = [
+      { name: "Vocabulary", questions: vocab },
+      { name: "Grammar", questions: grammar },
+      { name: "Reading", questions: reading },
+      { name: "Listening", questions: listening }
+    ].filter(sec => sec.questions > 0);
+
+    const easyCount = exam.difficultyEasy ?? 0;
+    const mediumCount = exam.difficultyMedium ?? 0;
+    const hardCount = exam.difficultyHard ?? 0;
+    const tot = easyCount + mediumCount + hardCount;
+    // Only compute percentages when the backend provides at least one non-zero value.
+    // Never fabricate difficulty data.
+    const mix =
+      tot > 0
+        ? {
+            easy: Math.round((easyCount / tot) * 100),
+            medium: Math.round((mediumCount / tot) * 100),
+            hard: Math.round((hardCount / tot) * 100),
+          }
+        : null;
+
+    return {
+      sections,
+      mix,
+      year: exam.createdAt ? new Date(exam.createdAt).getFullYear() : new Date().getFullYear(),
+      description: exam.category === "JLPT" ? `Official JLPT-style exam prepared by the Admin.` : ""
+    };
+  };
+
+  const valid = !!(selectedSet && form.title && form.dueDate);
+  const stats = selectedSet ? getExamStats(selectedSet) : null;
 
   return (
     <div>
@@ -1189,48 +1277,59 @@ function JlptExam({
             <CardTitle className="text-base">Choose a JLPT set</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {sets.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => {
-                  setSelectedId(s.id);
-                  setForm((f) => ({ ...f, title: s.title }));
-                }}
-                className={cn(
-                  "rounded-xl border p-4 text-left transition-all",
-                  selectedId === s.id
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "hover:border-primary/40",
-                )}
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <LevelBadge level={s.level} />
-                  <span className="text-xs text-muted-foreground">{s.year}</span>
-                </div>
-                <div className="font-display text-base font-semibold">{s.title}</div>
-                <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
-                <div className="mt-3 grid grid-cols-4 gap-2 text-[10px]">
-                  <div className="rounded-md bg-muted/40 p-1.5">
-                    <div className="text-muted-foreground">Duration</div>
-                    <div className="font-bold">{s.duration}m</div>
-                  </div>
-                  <div className="rounded-md bg-muted/40 p-1.5">
-                    <div className="text-muted-foreground">Questions</div>
-                    <div className="font-bold">{s.totalQuestions}</div>
-                  </div>
-                  <div className="rounded-md bg-muted/40 p-1.5">
-                    <div className="text-muted-foreground">Sections</div>
-                    <div className="font-bold">{s.sections.length}</div>
-                  </div>
-                  <div className="rounded-md bg-muted/40 p-1.5">
-                    <div className="text-muted-foreground">Mix E/M/H</div>
-                    <div className="font-bold">
-                      {s.mix.easy}/{s.mix.medium}/{s.mix.hard}
+            {isExamsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              sets.map((s) => {
+                const sStats = getExamStats(s);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setSelectedId(s.id);
+                      setForm((f) => ({ ...f, title: s.title }));
+                    }}
+                    className={cn(
+                      "rounded-xl border p-4 text-left transition-all",
+                      selectedId === s.id
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "hover:border-primary/40",
+                    )}
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <LevelBadge level={s.level} />
+                      <span className="text-xs text-muted-foreground">{sStats.year}</span>
                     </div>
-                  </div>
-                </div>
-              </button>
-            ))}
+                    <div className="font-display text-base font-semibold">{s.title}</div>
+                    <p className="mt-1 text-xs text-muted-foreground">{sStats.description}</p>
+                    <div className={`mt-3 grid gap-2 text-[10px] ${sStats.mix ? "grid-cols-4" : "grid-cols-3"}`}>
+                      <div className="rounded-md bg-muted/40 p-1.5">
+                        <div className="text-muted-foreground">Duration</div>
+                        <div className="font-bold">{s.timeLimit}m</div>
+                      </div>
+                      <div className="rounded-md bg-muted/40 p-1.5">
+                        <div className="text-muted-foreground">Questions</div>
+                        <div className="font-bold">{s.totalQuestions ?? s.questions?.length ?? 0}</div>
+                      </div>
+                      <div className="rounded-md bg-muted/40 p-1.5">
+                        <div className="text-muted-foreground">Sections</div>
+                        <div className="font-bold">{sStats.sections.length}</div>
+                      </div>
+                      {sStats.mix && (
+                        <div className="rounded-md bg-muted/40 p-1.5">
+                          <div className="text-muted-foreground">Mix E/M/H</div>
+                          <div className="font-bold">
+                            {sStats.mix.easy}/{sStats.mix.medium}/{sStats.mix.hard}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </CardContent>
         </Card>
 
@@ -1240,12 +1339,12 @@ function JlptExam({
               <CardTitle className="text-base">Assignment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {set ? (
+              {selectedSet && stats ? (
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <div className="text-xs text-muted-foreground">Selected set</div>
-                  <div className="font-medium">{set.title}</div>
+                  <div className="font-medium">{selectedSet.title}</div>
                   <div className="mt-1 text-[11px] text-muted-foreground">
-                    Level {set.level} · {set.duration} min · {set.totalQuestions} questions ·
+                    Level {selectedSet.level} · {selectedSet.timeLimit} min · {selectedSet.totalQuestions ?? selectedSet.questions?.length ?? 0} questions ·
                     difficulty mix already balanced
                   </div>
                 </div>
@@ -1308,29 +1407,29 @@ function JlptExam({
             <Button
               className="w-full"
               variant="outline"
-              disabled={!set}
+              disabled={!selectedSet}
               onClick={() => setPreview(true)}
             >
               <Eye className="mr-2 h-4 w-4" />
               Preview set
             </Button>
              <Button
-               className="w-full"
-               variant="outline"
-               disabled={!valid || isSaving}
-               onClick={() => handleSave(false)}
-             >
-               <Save className="mr-2 h-4 w-4" />
-               {isSaving ? "Saving..." : "Save draft"}
-             </Button>
-             <Button
-               className="w-full"
-               disabled={!valid || isSaving}
-               onClick={() => handleSave(true)}
-             >
-               <Sparkles className="mr-2 h-4 w-4" />
-               {isSaving ? "Publishing..." : "Use this set & publish"}
-             </Button>
+                className="w-full"
+                variant="outline"
+                disabled={!valid || isSaving}
+                onClick={() => handleSave(false)}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isSaving ? "Saving..." : "Save draft"}
+              </Button>
+              <Button
+                className="w-full"
+                disabled={!valid || isSaving}
+                onClick={() => handleSave(true)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {isSaving ? "Publishing..." : "Use this set & publish"}
+              </Button>
           </div>
         </div>
       </div>
@@ -1338,34 +1437,37 @@ function JlptExam({
       <PreviewSheet
         open={preview}
         onOpenChange={setPreview}
-        title={set?.title ?? ""}
+        title={selectedSet?.title ?? ""}
         description={
-          set ? `Level ${set.level} · ${set.duration} min · ${set.totalQuestions} questions` : ""
+          selectedSet ? `Level ${selectedSet.level} · ${selectedSet.timeLimit} min · ${selectedSet.totalQuestions ?? selectedSet.questions?.length ?? 0} questions` : ""
         }
       >
-        {set && (
-          <div className="space-y-3 text-sm">
-            <p>{set.description}</p>
-            <div>
-              <div className="mb-1 text-xs font-semibold text-muted-foreground">Sections</div>
-              <ul className="space-y-1">
-                {set.sections.map((s) => (
-                  <li key={s.name} className="flex justify-between rounded-md border p-2">
-                    <span>{s.name}</span>
-                    <span className="text-muted-foreground">{s.questions} questions</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <div className="mb-1 text-xs font-semibold text-muted-foreground">Difficulty mix</div>
-              <div className="flex gap-2">
-                <DifficultyBadge d="Easy" /> {set.mix.easy}% <DifficultyBadge d="Medium" />{" "}
-                {set.mix.medium}% <DifficultyBadge d="Hard" /> {set.mix.hard}%
+            {selectedSet && stats && (
+              <div className="space-y-3 text-sm">
+                <p>{stats.description}</p>
+                <div>
+                  <div className="mb-1 text-xs font-semibold text-muted-foreground">Sections</div>
+                  <ul className="space-y-1">
+                    {stats.sections.map((s) => (
+                      <li key={s.name} className="flex justify-between rounded-md border p-2">
+                        <span>{s.name}</span>
+                        <span className="text-muted-foreground">{s.questions} questions</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {stats.mix && (
+                  <div>
+                    <div className="mb-1 text-xs font-semibold text-muted-foreground">Difficulty mix</div>
+                    <div className="flex gap-2">
+                      <DifficultyBadge d="Easy" /> {stats.mix.easy}%{" "}
+                      <DifficultyBadge d="Medium" /> {stats.mix.medium}%{" "}
+                      <DifficultyBadge d="Hard" /> {stats.mix.hard}%
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-        )}
+            )}
       </PreviewSheet>
     </div>
   );

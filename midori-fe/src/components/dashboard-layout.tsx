@@ -78,11 +78,6 @@ const studentNav: NavItem[] = [
     ],
   },
   { to: "/student/journey", label: "Learning Journey", icon: Map },
-  {
-    to: "/student/progress",
-    label: "Progress",
-    icon: ChartColumn,
-  },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
 ];
@@ -103,12 +98,6 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
     ],
   },
   { to: "/", label: "Learning Journey", icon: Map, disabled: true },
-  {
-    to: "/",
-    label: "Progress",
-    icon: ChartColumn,
-    disabled: true,
-  },
   { to: "/student/ai-sensei", label: "AI Sensei", icon: Bot },
   { to: "/student/profile", label: "Profile", icon: User },
 ];

@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/lib/context/notification-context";
+import { TeacherFooter } from "@/components/layout/TeacherFooter";
 
 // ─── Nav structure ────────────────────────────────────────────────
 type NavItem = { to: string; label: string; icon: React.ElementType; exact?: boolean };
@@ -188,7 +189,12 @@ export function TeacherShell({ children }: { children: ReactNode }) {
 
   const isActive = (to: string, exact?: boolean) => {
     if (to === "/teacher/classes") {
-      return pathname === "/teacher/classes" || (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create");
+      return (
+        pathname === "/teacher/classes" ||
+        (pathname.startsWith("/teacher/classes/") && pathname !== "/teacher/classes/create") ||
+        pathname.startsWith("/teacher/homework") ||
+        pathname.startsWith("/teacher/exams")
+      );
     }
     if (to === "/teacher/classes/create") {
       return pathname === "/teacher/classes/create";
@@ -595,6 +601,7 @@ export function TeacherShell({ children }: { children: ReactNode }) {
         <main className="flex-1 p-3 md:p-6 pb-24 lg:pb-6">
           {children}
         </main>
+        <TeacherFooter />
       </div>
     </div>
   );

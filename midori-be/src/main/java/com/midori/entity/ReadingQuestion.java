@@ -9,8 +9,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "reading_questions",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"reading_lesson_id", "question_order"}))
+@Table(name = "reading_questions", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_reading_questions_passage_order", columnNames = {"reading_passage_id", "question_order"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,6 +26,10 @@ public class ReadingQuestion {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reading_lesson_id", nullable = false)
     private ReadingLesson readingLesson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reading_passage_id")
+    private ReadingPassage readingPassage;
 
     @Column(name = "question_order", nullable = false)
     private Integer questionOrder;

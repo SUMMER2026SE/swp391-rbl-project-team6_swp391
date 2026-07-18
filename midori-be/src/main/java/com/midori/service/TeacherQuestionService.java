@@ -11,4 +11,5 @@ public interface TeacherQuestionService {
     void deleteQuestion(UUID id, UUID teacherId);
     TeacherQuestion findQuestionById(UUID id, UUID teacherId);
     List<TeacherQuestion> findQuestionsByTeacher(UUID teacherId);
+    List<TeacherQuestion> findCentralizedQuestions();
 }

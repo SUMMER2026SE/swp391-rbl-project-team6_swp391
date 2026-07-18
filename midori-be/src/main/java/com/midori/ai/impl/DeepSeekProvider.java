@@ -3,6 +3,7 @@ package com.midori.ai.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderType;
+import com.midori.ai.AiTaskType;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.AiParsingException;
@@ -92,8 +93,11 @@ public class DeepSeekProvider implements AiProvider {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", config.getDeepseek().getModel());
         requestBody.put("messages", messages);
-        requestBody.put("temperature", 0.7);
-        requestBody.put("max_tokens", 2048);
+        requestBody.put("temperature", 0.25);
+        requestBody.put("max_tokens", 1024);
+        requestBody.put("top_p", 0.8);
+        requestBody.put("frequency_penalty", 0.3);
+        requestBody.put("presence_penalty", 0.0);
 
         return callDeepSeekApi(requestBody);
     }
@@ -105,12 +109,20 @@ public class DeepSeekProvider implements AiProvider {
     @Override
     public String generateQuestions(String materialTitle, String materialContent,
                                    int questionCount, String questionType, String difficulty) {
+        return generateQuestions(materialTitle, materialContent, questionCount, questionType,
+                difficulty, null, AiTaskType.COMPLEX_REASONING);
+    }
+
+    @Override
+    public String generateQuestions(String materialTitle, String materialContent,
+                                   int questionCount, String questionType, String difficulty,
+                                   java.util.List<String> selectedSkills, AiTaskType taskType) {
         if (!isConfigured()) {
             throw new IllegalStateException("DeepSeek API key is not configured.");
         }
 
         String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
-                materialTitle, materialContent, questionCount, questionType, difficulty);
+                materialTitle, materialContent, questionCount, questionType, difficulty, selectedSkills);
 
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(Map.of("role", "user", "content", prompt));

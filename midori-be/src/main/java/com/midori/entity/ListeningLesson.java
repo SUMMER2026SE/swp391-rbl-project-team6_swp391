@@ -26,6 +26,9 @@ public class ListeningLesson {
     @Column(name = "jlpt_level", nullable = false, length = 10)
     private String jlptLevel;
 
+    @Column(name = "level", nullable = false, length = 10)
+    private String level;
+
     @Column(name = "lesson_number", nullable = false)
     private Integer lessonNumber;
 
@@ -34,9 +37,6 @@ public class ListeningLesson {
 
     @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(name = "audio_url", columnDefinition = "TEXT")
-    private String audioUrl;
 
     @Column(columnDefinition = "TEXT")
     private String transcript;
@@ -55,7 +55,18 @@ public class ListeningLesson {
     @OneToMany(mappedBy = "listeningLesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionOrder ASC")
     @Builder.Default
-    private List<ListeningQuestion> questions = new ArrayList<>();
+    private List<ListeningItem> listeningItems = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "teacher_id")
+    private User teacher;
+
+    @Column(name = "status", length = 50)
+    private String status;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -64,4 +75,10 @@ public class ListeningLesson {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void syncLevel() {
+        this.level = this.jlptLevel;
+    }
 }

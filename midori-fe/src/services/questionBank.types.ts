@@ -9,6 +9,7 @@ export interface Lesson {
   id: number;
   lessonNumber: number;
   lessonName: string;
+  status: "Active" | "Draft";
   questionCount: number;
   createdAt: string;
 }
@@ -25,6 +26,7 @@ export interface QuestionBase {
   correctIndex: number;
   explanation: string;
   createdAt: string;
+  points?: number;
 }
 
 // Listening-specific audio fields

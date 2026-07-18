@@ -16,6 +16,9 @@ public class TeacherQuestionResponse {
     private UUID id;
     private UUID teacherId;
     private String topicId;
+    private String level;
+    private String skill;
+    private Integer lessonId;
     private String prompt;
     private String jpPrompt;
     private String questionType;
@@ -26,6 +29,9 @@ public class TeacherQuestionResponse {
     private String status;
     private Integer points;
     private List<String> options;
+    private String audioUrl;
+    private String audioFileName;
+    private Integer audioDuration;
     private Instant createdAt;
     private Instant updatedAt;
 }

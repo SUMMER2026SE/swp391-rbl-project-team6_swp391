@@ -53,9 +53,18 @@ public class ReadingLesson {
     private Boolean isActive = true;
 
     @OneToMany(mappedBy = "readingLesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("passageOrder ASC")
+    @Builder.Default
+    private List<ReadingPassage> passages = new ArrayList<>();
+
+    @OneToMany(mappedBy = "readingLesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("questionOrder ASC")
     @Builder.Default
     private List<ReadingQuestion> questions = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

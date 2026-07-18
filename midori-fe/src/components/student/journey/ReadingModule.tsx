@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, memo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -8,66 +8,162 @@ import {
   ChevronRight,
   CheckCircle2,
   XCircle,
-  Trophy,
-  RotateCcw,
-  Clock,
   Send,
-  BookText,
-  Sparkles,
   AlertCircle,
+  Loader2,
+  RotateCcw,
+  Check,
+  X as XIcon,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createShuffledOptions, type AnswerOption } from "@/lib/quiz-utils";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   studentReadingApi,
   type ReadingDetailResponse,
+  type ReadingPassageResponse,
+  type ReadingQuestionResponse,
+  type ReadingSubmitAnswerResult,
+  type ReadingSubmitResponse,
 } from "@/lib/api/reading";
-import { useQuery } from "@tanstack/react-query";
-
-interface ReadingQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: string;
-  explanation?: string;
-}
-
-export interface ReadingPassage {
-  id: string;
-  title: string;
-  passageText: string;
-  questions: ReadingQuestion[];
-  difficulty?: string;
-  estimatedTime?: number;
-}
 
 interface ReadingModuleProps {
   lessonNumber: number;
-  onComplete: (xpEarned: number) => void;
 }
 
-type ViewState = "list" | "detail" | "submitted";
-
-function toReadingPassages(detail: ReadingDetailResponse): ReadingPassage[] {
-  return [
-    {
-      id: detail.id,
-      title: detail.title,
-      passageText: detail.passage,
-      questions: detail.questions.map((question) => ({
-        id: question.id,
-        question: question.question,
-        options: [question.optionA, question.optionB, question.optionC, question.optionD],
-        correctAnswer: question.correctAnswer,
-        explanation: question.explanation ?? undefined,
-      })),
-      difficulty: detail.difficulty ?? undefined,
-      estimatedTime: detail.estimatedMinutes ?? undefined,
-    },
-  ];
+interface ReadingQuestionView {
+  id: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctLetter: string;
+  explanation?: string | null;
 }
 
-export function ReadingModule({ lessonNumber, onComplete }: ReadingModuleProps) {
+interface ReadingPassageView {
+  id: string;
+  title: string;
+  passageText: string;
+  questions: ReadingQuestionView[];
+}
+
+type ViewState = "list" | "quiz" | "result" | "review";
+
+const LETTERS = ["A", "B", "C", "D"] as const;
+type Letter = (typeof LETTERS)[number];
+
+function extractTitleFromPassage(content: string | null | undefined, fallback: string): string {
+  if (!content) return fallback;
+  const newline = content.indexOf("\n");
+  if (newline > 0) {
+    const firstLine = content.substring(0, newline).trim();
+    if (firstLine.length > 0 && firstLine.length <= 100) return firstLine;
+  }
+  return content.length > 50 ? content.substring(0, 50).trim() + "..." : content.trim();
+}
+
+function toReadingPassages(detail: ReadingDetailResponse): ReadingPassageView[] {
+  const questions: ReadingQuestionResponse[] = detail.questions ?? [];
+  const passages: ReadingPassageResponse[] = detail.passages ?? [];
+
+  // ─── Legacy single-passage layout ─────────────────────────────────────────
+  // No explicit passages on the lesson — collapse all questions into a single
+  // synthetic passage so the student still has a place to answer them.
+  if (passages.length === 0) {
+    return [
+      {
+        id: detail.id,
+        title: detail.title,
+        passageText: detail.passage ?? "",
+        questions: questions.map(toQuestionView),
+      },
+    ];
+  }
+
+  // ─── Multi-passage layout ─────────────────────────────────────────────────
+  // Build a Map<passageId, questions[]> that prefers the per-passage nested
+  // array (`passages[i].questions`) because that is what the backend's
+  // `toPassageResponse(...)` actually populates. We only fall back to
+  // grouping the lesson-level `questions[]` by `readingPassageId` if the
+  // nested array is missing or empty (defensive — `readingPassageId` is not
+  // populated by every backend code path, e.g. the older
+  // `ReadingQuestionServiceImpl.toResponse(...)` mapper).
+  const questionsByPassageId = new Map<string, ReadingQuestionResponse[]>();
+  passages.forEach((p) => questionsByPassageId.set(p.id, []));
+
+  passages.forEach((p) => {
+    const nested = p.questions ?? [];
+    if (nested.length > 0) {
+      questionsByPassageId.set(p.id, nested);
+    }
+  });
+
+  // If at least one nested array was populated, the lesson is "fully
+  // populated" — questions tied to a passageId but not nested anywhere are
+  // orphans and we ignore them on purpose.
+  const anyNested = passages.some((p) => (p.questions ?? []).length > 0);
+  if (!anyNested) {
+    // Fallback: bucket the lesson-level questions by `readingPassageId`.
+    questions.forEach((q) => {
+      const passageId = q.readingPassageId ?? null;
+      if (passageId && questionsByPassageId.has(passageId)) {
+        questionsByPassageId.get(passageId)!.push(q);
+      }
+    });
+    // If everything was unlinked (legacy data), distribute across the single
+    // passage so the student can still see them.
+    const totalAssigned = Array.from(questionsByPassageId.values()).reduce(
+      (sum, list) => sum + list.length,
+      0,
+    );
+    if (totalAssigned === 0 && questions.length > 0 && passages.length > 0) {
+      questionsByPassageId.set(passages[0].id, questions);
+    }
+  }
+
+  return passages
+    .slice()
+    .sort((a, b) => a.passageOrder - b.passageOrder)
+    .map((p, index) => ({
+      id: p.id,
+      title: extractTitleFromPassage(p.title, `Passage ${p.passageOrder || index + 1}`),
+      passageText: p.passage ?? "",
+      questions: (questionsByPassageId.get(p.id) ?? []).map(toQuestionView),
+    }));
+}
+
+function toQuestionView(q: ReadingQuestionResponse): ReadingQuestionView {
+  return {
+    id: q.id,
+    question: q.question,
+    optionA: q.optionA,
+    optionB: q.optionB,
+    optionC: q.optionC,
+    optionD: q.optionD,
+    correctLetter: (q.correctAnswer || "").toUpperCase().trim(),
+    explanation: q.explanation ?? null,
+  };
+}
+
+function getOptionText(q: ReadingQuestionView, letter: Letter | string | null | undefined): string {
+  if (!letter) return "";
+  switch (letter.toUpperCase()) {
+    case "A":
+      return q.optionA;
+    case "B":
+      return q.optionB;
+    case "C":
+      return q.optionC;
+    case "D":
+      return q.optionD;
+    default:
+      return "";
+  }
+}
+
+export function ReadingModule({ lessonNumber }: ReadingModuleProps) {
   const {
     data: readingLessons,
     isLoading: lessonsLoading,
@@ -94,7 +190,11 @@ export function ReadingModule({ lessonNumber, onComplete }: ReadingModuleProps) 
     staleTime: 5 * 60 * 1000,
   });
 
-  const passages = readingDetail ? toReadingPassages(readingDetail) : [];
+  const passages = useMemo<ReadingPassageView[]>(
+    () => (readingDetail ? toReadingPassages(readingDetail) : []),
+    [readingDetail],
+  );
+
   const isLoading = lessonsLoading || detailLoading;
   const isError = lessonsError || detailError;
   const error = lessonsErrorObj ?? detailErrorObj;
@@ -107,624 +207,701 @@ export function ReadingModule({ lessonNumber, onComplete }: ReadingModuleProps) 
 
   const [viewState, setViewState] = useState<ViewState>("list");
   const [selectedPassageId, setSelectedPassageId] = useState<string | null>(null);
-  const [selectedAnswers, setSelectedAnswers] = useState<Map<string, string>>(new Map());
-  const [completedPassages, setCompletedPassages] = useState<Set<string>>(new Set());
-  const [passageScores, setPassageScores] = useState<Map<string, number>>(new Map());
-  const [xpAwarded, setXpAwarded] = useState(false);
-  const [shuffledQuestions, setShuffledQuestions] = useState<
-    Map<string, { options: AnswerOption[] }>
-  >(new Map());
+  const [selectedAnswers, setSelectedAnswers] = useState<Map<string, Letter>>(new Map());
+  const [submitResult, setSubmitResult] = useState<ReadingSubmitResponse | null>(null);
 
-  const selectedPassage = passages.find((p) => p.id === selectedPassageId);
-  const questions = selectedPassage?.questions ?? [];
-
-  const answeredCount = selectedAnswers.size;
-  const allAnswered = answeredCount === questions.length && questions.length > 0;
-
-  const completedCount = completedPassages.size;
-  const totalQuestions = passages.reduce((sum, p) => sum + p.questions.length, 0);
-
-  const isAllComplete = completedCount === passages.length && passages.length > 0;
-  const isPassingScore = useMemo(() => {
-    if (passageScores.size === 0) return false;
-    const scores = Array.from(passageScores.values());
-    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-    return avgScore >= 75;
-  }, [passageScores]);
-
-  // Shuffle questions when passage is selected
+  // Reset transient state whenever the underlying lesson changes
   useEffect(() => {
-    if (selectedPassage && viewState === "detail") {
-      const newShuffled = new Map<string, { options: AnswerOption[] }>();
-      selectedPassage.questions.forEach((q) => {
-        const shuffled = createShuffledOptions(
-          q.correctAnswer,
-          q.options?.filter((o) => o !== q.correctAnswer) ?? [],
-        );
-        newShuffled.set(q.id, { options: shuffled });
-      });
-      setShuffledQuestions(newShuffled);
-    }
-  }, [selectedPassageId, viewState]);
+    setViewState("list");
+    setSelectedPassageId(null);
+    setSelectedAnswers(new Map());
+    setSubmitResult(null);
+  }, [readingDetail?.id]);
 
-  const handleSelectPassage = (passageId: string) => {
+  const selectedPassage =
+    passages.find((p) => p.id === selectedPassageId) ?? null;
+
+  const submitMutation = useMutation({
+    mutationFn: (payload: {
+      lessonId: string;
+      passageId: string | null;
+      answers: { questionId: string; selectedAnswer: Letter | null }[];
+    }) =>
+      studentReadingApi.submitReadingAnswers(payload.lessonId, {
+        passageId: payload.passageId,
+        answers: payload.answers.map((a) => ({
+          questionId: a.questionId,
+          selectedAnswer: a.selectedAnswer,
+        })),
+      }),
+    onSuccess: (data) => {
+      setSubmitResult(data);
+      setViewState("result");
+    },
+  });
+
+  const handleOpenPassage = (passageId: string) => {
     setSelectedPassageId(passageId);
     setSelectedAnswers(new Map());
-    setViewState("detail");
-  };
-
-  const handleSelectAnswer = (questionId: string, optionId: string) => {
-    if (viewState === "submitted") return;
-    const newAnswers = new Map(selectedAnswers);
-    newAnswers.set(questionId, optionId);
-    setSelectedAnswers(newAnswers);
-  };
-
-  const handleSubmit = () => {
-    if (!selectedPassage) return;
-
-    let correctCount = 0;
-    selectedPassage.questions.forEach((q) => {
-      const selectedId = selectedAnswers.get(q.id);
-      const questionOptions = shuffledQuestions.get(q.id)?.options ?? [];
-      const selectedOption = questionOptions.find((opt) => opt.id === selectedId);
-      if (selectedOption?.isCorrect) {
-        correctCount++;
-      }
-    });
-
-    const scorePercent = Math.round((correctCount / questions.length) * 100);
-
-    const newScores = new Map(passageScores);
-    newScores.set(selectedPassage.id, scorePercent);
-    setPassageScores(newScores);
-
-    const newCompleted = new Set(completedPassages);
-    newCompleted.add(selectedPassage.id);
-    setCompletedPassages(newCompleted);
-
-    if (newCompleted.size === passages.length && !xpAwarded) {
-      setXpAwarded(true);
-      onComplete(100);
-    }
-
-    setViewState("submitted");
-  };
-
-  const handleRetry = () => {
-    if (!selectedPassage) return;
-    setSelectedAnswers(new Map());
-    setViewState("detail");
+    setSubmitResult(null);
+    setViewState("quiz");
   };
 
   const handleBackToList = () => {
     setViewState("list");
     setSelectedPassageId(null);
     setSelectedAnswers(new Map());
+    setSubmitResult(null);
   };
 
-  const getQuestionScore = (questionId: string): number => {
-    if (viewState !== "submitted" || !selectedPassage) return 0;
-    const selectedId = selectedAnswers.get(questionId);
-    const questionOptions = shuffledQuestions.get(questionId)?.options ?? [];
-    const selectedOption = questionOptions.find((opt) => opt.id === selectedId);
-    return selectedOption?.isCorrect ? 1 : 0;
+  const handleSelectAnswer = (questionId: string, letter: Letter) => {
+    if (viewState !== "quiz") return;
+    setSelectedAnswers((prev) => {
+      const next = new Map(prev);
+      next.set(questionId, letter);
+      return next;
+    });
   };
 
-  // Passage List View
-  const ListView = () => (
-    <div className="space-y-4">
-      {/* Progress Header */}
-      <div className="bg-card rounded-xl p-4 border border-border/50">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-foreground">Reading Progress</h3>
-          <span className="text-xs text-muted-foreground">
-            {completedCount} / {passages.length} Passages
-          </span>
-        </div>
-        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-hero"
-            initial={{ width: 0 }}
-            animate={{ width: `${(completedCount / Math.max(passages.length, 1)) * 100}%` }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
-        {passageScores.size > 0 && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            Average score:{" "}
-            {Math.round(
-              Array.from(passageScores.values()).reduce((a, b) => a + b, 0) / passageScores.size,
-            )}
-            % (minimum: 75%)
-          </div>
-        )}
-      </div>
+  const handleSubmit = () => {
+    if (!selectedPassage || !realReadingLessonId) return;
+    if (selectedPassage.questions.length === 0) return;
 
-      {/* Passage Cards */}
-      <div className="space-y-3">
-        {passages.map((passage, index) => {
-          const isCompleted = completedPassages.has(passage.id);
-          const passageScore = passageScores.get(passage.id);
+    const answers = selectedPassage.questions.map((q) => ({
+      questionId: q.id,
+      selectedAnswer: selectedAnswers.get(q.id) ?? null,
+    }));
 
-          return (
-            <motion.button
-              key={passage.id}
-              onClick={() => handleSelectPassage(passage.id)}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className={cn(
-                "w-full text-left rounded-xl p-4 border transition-all duration-200",
-                isCompleted
-                  ? passageScore !== undefined && passageScore >= 75
-                    ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800"
-                    : "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
-                  : "bg-card border-border/50 hover:border-sky-blue/30 hover:shadow-md",
-              )}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                    isCompleted
-                      ? passageScore !== undefined && passageScore >= 75
-                        ? "bg-emerald-500 text-white"
-                        : "bg-red-500 text-white"
-                      : "bg-sky-blue/15 text-sky-blue",
-                  )}
-                >
-                  {isCompleted ? (
-                    passageScore !== undefined && passageScore >= 75 ? (
-                      <CheckCircle2 className="w-5 h-5" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5" />
-                    )
-                  ) : (
-                    <BookOpen className="w-5 h-5" />
-                  )}
-                </div>
+    submitMutation.mutate({
+      lessonId: realReadingLessonId,
+      passageId: selectedPassage.id,
+      answers,
+    });
+  };
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-sm text-foreground truncate">
-                      {passage.title}
-                    </h3>
-                    {isCompleted && (
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0",
-                          passageScore !== undefined && passageScore >= 75
-                            ? "bg-emerald-500/15 text-emerald-600"
-                            : "bg-red-500/15 text-red-600",
-                        )}
-                      >
-                        {passageScore !== undefined && passageScore >= 75 ? "Passed" : "Retry"}
-                      </span>
-                    )}
-                  </div>
+  const handleRetry = () => {
+    setSelectedAnswers(new Map());
+    setSubmitResult(null);
+    setViewState("quiz");
+  };
 
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    {passage.estimatedTime && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />~{passage.estimatedTime} min
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <BookText className="w-3 h-3" />
-                      {passage.questions.length} questions
-                    </span>
-                    {passage.difficulty && (
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                        {passage.difficulty}
-                      </span>
-                    )}
-                    {passageScore !== undefined && (
-                      <span
-                        className={cn(
-                          "font-semibold",
-                          passageScore >= 75 ? "text-emerald-600" : "text-red-600",
-                        )}
-                      >
-                        Score: {passageScore}%
-                      </span>
-                    )}
-                  </div>
-                </div>
+  const handleReview = () => {
+    setViewState("review");
+  };
 
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
-              </div>
-            </motion.button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  const handleBackToResult = () => {
+    setViewState("result");
+  };
 
-  // Passage Detail View (Split Layout)
-  const DetailView = memo(() => {
-    if (!selectedPassage) return null;
-
+  if (isLoading) {
     return (
-      <div className="space-y-4">
-        {/* Back Button */}
-        <button
-          onClick={handleBackToList}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-foreground hover:bg-muted transition text-sm font-medium"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to passages
-        </button>
-
-        {/* Progress */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{selectedPassage.title}</span>
-          <span>
-            {answeredCount}/{questions.length} answered
-          </span>
-        </div>
-
-        {/* Split Layout */}
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* LEFT - Reading Passage */}
-          <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
-            <div className="p-4 border-b border-border/50">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-sky-blue/15 flex items-center justify-center">
-                  <BookOpen className="w-4 h-4 text-sky-blue" />
-                </div>
-                <span className="text-xs font-semibold text-sky-blue">Reading Passage</span>
-              </div>
-            </div>
-            <div className="p-4 lg:p-6 max-h-[500px] overflow-y-auto">
-              <div
-                className="text-base leading-relaxed text-foreground whitespace-pre-wrap"
-                style={{ fontFamily: "var(--font-japanese, serif)" }}
-              >
-                {selectedPassage.passageText}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT - Questions */}
-          <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
-            <div className="p-4 border-b border-border/50">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-sky-blue">Questions</span>
-                <span className="text-xs text-muted-foreground">
-                  {answeredCount}/{questions.length}
-                </span>
-              </div>
-            </div>
-            <div className="p-4 space-y-4 max-h-[500px] overflow-y-auto">
-              {questions.map((q, qIndex) => {
-                const selectedOptionId = selectedAnswers.get(q.id);
-                const questionOptions = shuffledQuestions.get(q.id)?.options ?? [];
-
-                return (
-                  <div key={q.id} className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">
-                      {qIndex + 1}. {q.question}
-                    </p>
-                    {questionOptions.length > 0 && (
-                      <div className="space-y-1.5">
-                        {questionOptions.map((option) => {
-                          const isSelected = selectedOptionId === option.id;
-                          const isSubmitted = viewState === "submitted";
-
-                          return (
-                            <button
-                              key={option.id}
-                              onClick={() => handleSelectAnswer(q.id, option.id)}
-                              disabled={isSubmitted}
-                              className={cn(
-                                "w-full text-left px-3 py-2 rounded-lg border text-sm transition-all",
-                                !isSubmitted && "border-border/50 hover:border-sky-blue/30 bg-card",
-                                isSubmitted && option.isCorrect && "border-sky-blue bg-sky-blue/15",
-                                isSelected &&
-                                  !option.isCorrect &&
-                                  isSubmitted &&
-                                  "border-red-500 bg-red-50 dark:bg-red-950/30",
-                                isSelected && !isSubmitted && "border-sky-blue bg-sky-blue/15",
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={cn(
-                                    "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0",
-                                    isSelected
-                                      ? "border-sky-blue bg-sky-blue text-white"
-                                      : "border-border",
-                                  )}
-                                >
-                                  {String.fromCharCode(
-                                    65 + questionOptions.findIndex((o) => o.id === option.id),
-                                  )}
-                                </span>
-                                <span className="flex-1">{option.text}</span>
-                                {isSubmitted && option.isCorrect && (
-                                  <CheckCircle2 className="w-4 h-4 text-sky-blue" />
-                                )}
-                                {isSelected && !option.isCorrect && isSubmitted && (
-                                  <XCircle className="w-4 h-4 text-red-500" />
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        {viewState !== "submitted" && (
-          <button
-            onClick={handleSubmit}
-            disabled={!allAnswered}
-            className={cn(
-              "w-full py-3 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2",
-              allAnswered
-                ? "bg-gradient-hero text-white hover:opacity-90"
-                : "bg-muted text-muted-foreground cursor-not-allowed",
-            )}
-          >
-            <Send className="w-4 h-4" />
-            Submit ({answeredCount}/{questions.length})
-          </button>
-        )}
+      <div className="flex items-center justify-center min-h-[240px] gap-2 text-sm text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading reading lesson...
       </div>
     );
-  });
-  DetailView.displayName = "DetailView";
+  }
 
-  // Submitted View
-  const SubmittedView = () => {
-    if (!selectedPassage) return null;
-    const isPassing = (passageScores.get(selectedPassage.id) ?? 0) >= 75;
-
+  if (isError) {
     return (
-      <div className="space-y-4">
-        {/* Back Button */}
-        <button
-          onClick={handleBackToList}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-foreground hover:bg-muted transition text-sm font-medium"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to passages
-        </button>
-
-        {/* Score Card */}
-        <div
-          className={cn(
-            "rounded-xl p-5 text-center shadow-lg",
-            isPassing
-              ? "bg-gradient-to-r from-sky-blue to-pink-400 text-white"
-              : "bg-gradient-to-r from-red-500 to-orange-500 text-white",
-          )}
-        >
-          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
-            {isPassing ? (
-              <Trophy className="w-7 h-7 text-white" />
-            ) : (
-              <AlertCircle className="w-7 h-7 text-white" />
-            )}
-          </div>
-          <h3 className={cn("text-lg font-bold mb-1", isPassing ? "text-white" : "text-white")}>
-            {isPassing ? "Passage Complete!" : "Not Quite There"}
-          </h3>
-          <div className="text-3xl font-black my-2">{passageScores.get(selectedPassage.id)}%</div>
-          <p className="text-white/80 text-sm">
-            {isPassing ? "Great reading comprehension!" : "Minimum required: 75%"}
-          </p>
-        </div>
-
-        {/* Answer Review */}
-        <div className="space-y-3">
-          <h3 className="font-bold text-foreground text-sm">Answer Review</h3>
-          {questions.map((q, qIndex) => {
-            const userAnswerId = selectedAnswers.get(q.id);
-            const questionOptions = shuffledQuestions.get(q.id)?.options ?? [];
-            const userAnswerOption = questionOptions.find((opt) => opt.id === userAnswerId);
-            const correctOption = questionOptions.find((opt) => opt.isCorrect);
-            const isCorrect = userAnswerOption?.isCorrect ?? false;
-
-            return (
-              <div
-                key={q.id}
-                className={cn(
-                  "rounded-xl p-3 border",
-                  isCorrect
-                    ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
-                )}
-              >
-                <div className="flex items-start gap-2">
-                  {isCorrect ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground text-sm mb-1">
-                      Q{qIndex + 1}: {q.question}
-                    </p>
-                    <div className="text-xs space-y-0.5">
-                      <p
-                        className={
-                          isCorrect
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-red-600 dark:text-red-400"
-                        }
-                      >
-                        Your answer: {userAnswerOption?.text ?? "—"}
-                      </p>
-                      {!isCorrect && correctOption && (
-                        <p className="text-emerald-600 dark:text-emerald-400">
-                          Correct: {correctOption.text}
-                        </p>
-                      )}
-                      {q.explanation && (
-                        <p className="text-muted-foreground mt-1">{q.explanation}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleRetry}
-            className="flex-1 py-2.5 rounded-lg font-semibold bg-secondary text-foreground hover:bg-muted transition flex items-center justify-center gap-2 text-sm"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Retry
-          </button>
-          <button
-            onClick={handleBackToList}
-            className="flex-1 py-2.5 rounded-lg font-semibold bg-gradient-hero text-white hover:opacity-90 transition flex items-center justify-center gap-2 text-sm"
-          >
-            {isAllComplete ? "Complete" : "Next Passage"}
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center gap-3 text-center min-h-[240px]">
+        <AlertCircle className="w-8 h-8 text-red-500" />
+        <p className="text-sm text-foreground">Failed to load reading lesson</p>
+        <p className="text-xs text-red-500">{errorMessage}</p>
       </div>
     );
-  };
+  }
+
+  if (!readingDetail || passages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 text-center min-h-[240px]">
+        <BookOpen className="w-8 h-8 text-muted-foreground" />
+        <p className="text-sm text-foreground">No reading passages available</p>
+        <p className="text-xs text-muted-foreground">
+          This lesson does not have any reading content yet.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {isLoading && (
-        <div className="flex items-center justify-center min-h-[240px] text-sm text-muted-foreground">
-          Loading reading lesson...
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {viewState === "list" && (
+          <ReadingListView
+            key="list"
+            passages={passages}
+            onOpen={handleOpenPassage}
+          />
+        )}
 
-      {!isLoading && isError && (
-        <div className="flex flex-col items-center justify-center gap-3 text-center">
-          <AlertCircle className="w-8 h-8 text-red-500" />
-          <p className="text-sm text-foreground">Failed to load reading lesson</p>
-          <p className="text-xs text-red-500">{errorMessage}</p>
-        </div>
-      )}
+        {viewState === "quiz" && selectedPassage && (
+          <ReadingQuizView
+            key="quiz"
+            passage={selectedPassage}
+            selectedAnswers={selectedAnswers}
+            onSelect={handleSelectAnswer}
+            onBack={handleBackToList}
+            onSubmit={handleSubmit}
+            isSubmitting={submitMutation.isPending}
+            submitError={submitMutation.error?.message ?? null}
+          />
+        )}
 
-      {!isLoading && !isError && passages.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-3 text-center">
-          <BookOpen className="w-8 h-8 text-muted-foreground" />
-          <p className="text-sm text-foreground">No reading passages available</p>
-          <p className="text-xs text-muted-foreground">
-            This lesson does not have any reading content yet.
-          </p>
-        </div>
-      )}
+        {viewState === "result" && submitResult && selectedPassage && (
+          <ReadingResultView
+            key="result"
+            passage={selectedPassage}
+            result={submitResult}
+            onRetry={handleRetry}
+            onReview={handleReview}
+            onBack={handleBackToList}
+          />
+        )}
 
-      {!isLoading && !isError && passages.length > 0 && (
-        <>
-          {/* Learning Progress Steps */}
-          <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-            {/* Reading List Step */}
-            <button
-              onClick={() => {
-                if (viewState !== "detail" && viewState !== "submitted") {
-                  setViewState("list");
-                }
-              }}
-              disabled={viewState === "detail" || viewState === "submitted"}
-              className={cn(
-                "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1",
-                viewState === "list"
-                  ? "bg-card text-foreground shadow-sm"
-                  : completedCount === passages.length && isPassingScore
-                    ? "bg-sky-blue/15 text-sky-blue"
-                    : "text-muted-foreground",
-              )}
-            >
-              {completedCount === passages.length && isPassingScore ? (
-                <CheckCircle2 className="w-3 h-3" />
-              ) : (
-                <BookOpen className="w-3 h-3" />
-              )}
-              Passages
-            </button>
+        {viewState === "review" && submitResult && selectedPassage && (
+          <ReadingReviewView
+            key="review"
+            passage={selectedPassage}
+            result={submitResult}
+            onBack={handleBackToResult}
+            onRetry={handleRetry}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-            {/* Current Passage Step */}
-            {selectedPassage && (
-              <button
-                disabled={viewState !== "detail" && viewState !== "submitted"}
-                className={cn(
-                  "flex-1 py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1 truncate",
-                  viewState === "detail" || viewState === "submitted"
-                    ? "bg-card text-foreground shadow-sm"
-                    : completedPassages.has(selectedPassage.id)
-                      ? "bg-sky-blue/15 text-sky-blue"
-                      : "text-muted-foreground",
-                )}
-              >
-                {completedPassages.has(selectedPassage.id) ? (
-                  <CheckCircle2 className="w-3 h-3 shrink-0" />
-                ) : viewState === "submitted" ? (
-                  <Trophy className="w-3 h-3 shrink-0" />
-                ) : (
-                  <BookText className="w-3 h-3 shrink-0" />
-                )}
-                <span className="truncate">{selectedPassage.title}</span>
-              </button>
-            )}
+// ─── List View ─────────────────────────────────────────────────────────────────
+
+interface ReadingListViewProps {
+  passages: ReadingPassageView[];
+  onOpen: (passageId: string) => void;
+}
+
+function ReadingListView({ passages, onOpen }: ReadingListViewProps) {
+  return (
+    <motion.div
+      key="list"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-3"
+    >
+      <div className="bg-card rounded-xl border border-border/50 p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sky-blue/15 flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-sky-blue" />
           </div>
+          <div className="flex-1">
+            <h2 className="font-bold text-foreground">Reading Passages</h2>
+            <p className="text-xs text-muted-foreground">
+              {passages.length} passage{passages.length === 1 ? "" : "s"} available
+            </p>
+          </div>
+        </div>
+      </div>
 
-          {/* Completion Status */}
-          {passages.length > 1 && (
-            <div className="flex items-center gap-4 text-xs text-muted-foreground bg-card rounded-lg p-3 border border-border/50">
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-sky-blue" />
-                <span>
-                  Passages: {completedCount}/{passages.length}
-                </span>
+      <div className="space-y-3">
+        {passages.map((passage, index) => (
+          <motion.button
+            key={passage.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.04 }}
+            onClick={() => onOpen(passage.id)}
+            className="w-full text-left rounded-xl p-4 border bg-card border-border/50 hover:border-sky-blue/30 hover:shadow-md transition-all"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-blue/15 flex items-center justify-center shrink-0">
+                <BookOpen className="w-5 h-5 text-sky-blue" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <BookText className="w-3.5 h-3.5 text-sky-blue" />
-                <span>
-                  Questions: {totalQuestions}/{totalQuestions}
-                </span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm text-foreground line-clamp-2">
+                  {passage.title}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {passage.questions.length} question
+                  {passage.questions.length === 1 ? "" : "s"}
+                </p>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Trophy
-                  className={cn(
-                    "w-3.5 h-3.5",
-                    isPassingScore ? "text-emerald-500" : "text-muted-foreground",
-                  )}
-                />
-                <span className={isPassingScore ? "text-emerald-600 font-semibold" : ""}>
-                  {isPassingScore ? "Passed" : "Min 75%"}
-                </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpen(passage.id);
+                }}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-gradient-hero text-white text-xs font-semibold hover:opacity-90 transition"
+              >
+                Open
+              </button>
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Quiz View ────────────────────────────────────────────────────────────────
+
+interface ReadingQuizViewProps {
+  passage: ReadingPassageView;
+  selectedAnswers: Map<string, Letter>;
+  onSelect: (questionId: string, letter: Letter) => void;
+  onBack: () => void;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+  submitError: string | null;
+}
+
+function ReadingQuizView({
+  passage,
+  selectedAnswers,
+  onSelect,
+  onBack,
+  onSubmit,
+  isSubmitting,
+  submitError,
+}: ReadingQuizViewProps) {
+  const total = passage.questions.length;
+  const answered = selectedAnswers.size;
+  const allAnswered = total > 0 && answered === total;
+
+  return (
+    <motion.div
+      key="quiz"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-foreground hover:bg-muted transition text-sm font-medium"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Back to passages
+      </button>
+
+      <div className="bg-card rounded-xl p-4 border border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-sky-blue/15 flex items-center justify-center shrink-0">
+            <BookOpen className="w-5 h-5 text-sky-blue" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-foreground truncate">{passage.title}</h2>
+            <p className="text-xs text-muted-foreground">
+              {answered}/{total} answered
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Reading text */}
+      <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+        <div className="p-4 border-b border-border/50">
+          <span className="text-xs font-semibold text-sky-blue">Reading Text</span>
+        </div>
+        <div className="p-4 max-h-[320px] overflow-y-auto">
+          <div
+            className="text-base leading-relaxed text-foreground whitespace-pre-wrap"
+            style={{ fontFamily: "var(--font-japanese, serif)" }}
+          >
+            {passage.passageText}
+          </div>
+        </div>
+      </div>
+
+      {/* Questions */}
+      <div className="space-y-3">
+        {passage.questions.map((q, index) => {
+          const selectedLetter = selectedAnswers.get(q.id);
+          return (
+            <div
+              key={q.id}
+              className="bg-card rounded-xl border border-border/50 p-4 space-y-3"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-sky-blue/15 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-sky-blue">{index + 1}</span>
+                </div>
+                <p className="text-sm font-medium text-foreground flex-1">{q.question}</p>
+              </div>
+
+              <div className="space-y-2 ml-11">
+                {LETTERS.map((letter) => {
+                  const isSelected = selectedLetter === letter;
+                  const value = getOptionText(q, letter);
+                  return (
+                    <button
+                      key={letter}
+                      type="button"
+                      onClick={() => onSelect(q.id, letter)}
+                      className={cn(
+                        "w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all flex items-center gap-2",
+                        isSelected
+                          ? "border-sky-blue bg-sky-blue/15"
+                          : "border-border/50 hover:border-sky-blue/30 bg-card",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0",
+                          isSelected
+                            ? "border-sky-blue bg-sky-blue text-white"
+                            : "border-border",
+                        )}
+                      >
+                        {letter}
+                      </span>
+                      <span className="flex-1">{value}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
+          );
+        })}
+      </div>
 
-          {/* Content */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${viewState}-${selectedPassageId}`}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {viewState === "list" && <ListView />}
-              {viewState === "detail" && <DetailView />}
-              {viewState === "submitted" && <SubmittedView />}
-            </motion.div>
-          </AnimatePresence>
-        </>
+      {submitError && (
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20 p-3 text-xs text-red-600 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{submitError}</span>
+        </div>
       )}
+
+      <button
+        onClick={onSubmit}
+        disabled={!allAnswered || isSubmitting}
+        className={cn(
+          "w-full py-3 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2",
+          allAnswered && !isSubmitting
+            ? "bg-gradient-hero text-white hover:opacity-90"
+            : "bg-muted text-muted-foreground cursor-not-allowed",
+        )}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Send className="w-4 h-4" />
+            Submit ({answered}/{total})
+          </>
+        )}
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Result View ──────────────────────────────────────────────────────────────
+
+interface ReadingResultViewProps {
+  passage: ReadingPassageView;
+  result: ReadingSubmitResponse;
+  onRetry: () => void;
+  onReview: () => void;
+  onBack: () => void;
+}
+
+function ReadingResultView({
+  passage,
+  result,
+  onRetry,
+  onReview,
+  onBack,
+}: ReadingResultViewProps) {
+  const total = result.totalQuestions;
+  const correct = result.correctAnswers;
+  const wrong = result.wrongAnswers;
+  const percentage = result.percentage;
+  const accuracy = total === 0 ? 0 : Math.round((correct / total) * 1000) / 10;
+
+  return (
+    <motion.div
+      key="result"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-foreground hover:bg-muted transition text-sm font-medium"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Back to passages
+      </button>
+
+      <div className="rounded-xl p-6 text-center shadow-lg bg-gradient-to-r from-sky-blue to-pink-400 text-white">
+        <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
+          <Sparkles className="w-8 h-8 text-white" />
+        </div>
+        <h3 className="text-lg font-bold mb-1">Reading Result</h3>
+        <p className="text-xs text-white/80 mb-2">{passage.title}</p>
+        <p className="text-4xl font-black my-3">{accuracy}%</p>
+        <p className="text-lg font-semibold">
+          {correct} / {total} Correct
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <StatTile label="Correct" value={correct} tone="emerald" />
+        <StatTile label="Wrong" value={wrong} tone="rose" />
+        <StatTile label="Accuracy" value={`${accuracy}%`} tone="sky" />
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={onRetry}
+          className="flex-1 py-2.5 rounded-lg font-semibold bg-secondary text-foreground hover:bg-muted transition flex items-center justify-center gap-2 text-sm"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Retry
+        </button>
+        <button
+          onClick={onReview}
+          className="flex-1 py-2.5 rounded-lg font-semibold bg-gradient-hero text-white hover:opacity-90 transition flex items-center justify-center gap-2 text-sm"
+        >
+          Review
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <button
+        onClick={onBack}
+        className="w-full py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition"
+      >
+        Back to passages
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Review View ──────────────────────────────────────────────────────────────
+
+interface ReadingReviewViewProps {
+  passage: ReadingPassageView;
+  result: ReadingSubmitResponse;
+  onBack: () => void;
+  onRetry: () => void;
+}
+
+function ReadingReviewView({
+  passage,
+  result,
+  onBack,
+  onRetry,
+}: ReadingReviewViewProps) {
+  // Index questions by id so we can decorate the server response with the
+  // local question text (the server already includes it, but this keeps us
+  // resilient if the response order changes).
+  const questionById = useMemo(() => {
+    const map = new Map<string, ReadingQuestionView>();
+    passage.questions.forEach((q) => map.set(q.id, q));
+    return map;
+  }, [passage]);
+
+  return (
+    <motion.div
+      key="review"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-foreground hover:bg-muted transition text-sm font-medium"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Back to Result
+      </button>
+
+      <div className="bg-card rounded-xl p-4 border border-border/50">
+        <h2 className="font-bold text-foreground">Review — {passage.title}</h2>
+        <p className="text-xs text-muted-foreground">
+          {result.correctAnswers} correct out of {result.totalQuestions}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {result.answers.map((answer, index) => (
+          <ReviewCard
+            key={answer.questionId}
+            index={index}
+            answer={answer}
+            localQuestion={questionById.get(answer.questionId) ?? null}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={onRetry}
+        className="w-full py-2.5 rounded-lg font-semibold bg-gradient-hero text-white hover:opacity-90 transition flex items-center justify-center gap-2 text-sm"
+      >
+        <RotateCcw className="w-4 h-4" />
+        Retry
+      </button>
+    </motion.div>
+  );
+}
+
+interface ReviewCardProps {
+  index: number;
+  answer: ReadingSubmitAnswerResult;
+  localQuestion: ReadingQuestionView | null;
+}
+
+function ReviewCard({ index, answer, localQuestion }: ReviewCardProps) {
+  const isCorrect = answer.isCorrect;
+
+  const optionText = (letter: string | null | undefined): string => {
+    if (!letter) return "";
+    const upper = letter.toUpperCase();
+    if (answer.optionA || answer.optionB || answer.optionC || answer.optionD) {
+      switch (upper) {
+        case "A":
+          return answer.optionA;
+        case "B":
+          return answer.optionB;
+        case "C":
+          return answer.optionC;
+        case "D":
+          return answer.optionD;
+      }
+    }
+    if (localQuestion) {
+      return getOptionText(localQuestion, upper);
+    }
+    return "";
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-4 space-y-3",
+        isCorrect
+          ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20"
+          : "border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            "w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0",
+            isCorrect
+              ? "bg-emerald-500/15 text-emerald-600"
+              : "bg-red-500/15 text-red-600",
+          )}
+        >
+          {index + 1}
+        </span>
+        <p className="text-sm font-semibold text-foreground flex-1">{answer.question}</p>
+        {isCorrect ? (
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+        ) : (
+          <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+        )}
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-2">
+        <AnswerTile
+          label="Your answer"
+          letter={answer.userAnswer}
+          text={optionText(answer.userAnswer) || answer.userAnswerText}
+          tone={isCorrect ? "correct" : "wrong"}
+        />
+        <AnswerTile
+          label="Correct answer"
+          letter={answer.correctAnswer}
+          text={optionText(answer.correctAnswer) || answer.correctAnswerText}
+          tone="correct"
+        />
+      </div>
+
+      {answer.explanation && (
+        <div className="rounded-lg bg-muted/40 p-3">
+          <p className="text-xs text-muted-foreground mb-1">Explanation</p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{answer.explanation}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface AnswerTileProps {
+  label: string;
+  letter: string | null | undefined;
+  text: string | null | undefined;
+  tone: "correct" | "wrong";
+}
+
+function AnswerTile({ label, letter, text, tone }: AnswerTileProps) {
+  const displayLetter = letter ? letter.toUpperCase() : null;
+  const isWrongTone = tone === "wrong";
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-3",
+        isWrongTone
+          ? "border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20"
+          : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20",
+      )}
+    >
+      <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+        {label}
+        {displayLetter &&
+          (isWrongTone ? (
+            <XIcon className="w-3 h-3 text-red-500" />
+          ) : (
+            <Check className="w-3 h-3 text-emerald-600" />
+          ))}
+      </p>
+      <p
+        className={cn(
+          "text-sm font-semibold flex items-start gap-2",
+          isWrongTone ? "text-red-600" : "text-emerald-700",
+        )}
+      >
+        <span className="shrink-0">{displayLetter ?? "—"}</span>
+        <span className="flex-1">{displayLetter ? (text ? `— ${text}` : "") : "No answer"}</span>
+      </p>
+    </div>
+  );
+}
+
+// ─── Stat Tile ────────────────────────────────────────────────────────────────
+
+interface StatTileProps {
+  label: string;
+  value: number | string;
+  tone: "emerald" | "rose" | "sky";
+}
+
+function StatTile({ label, value, tone }: StatTileProps) {
+  const toneStyles: Record<StatTileProps["tone"], string> = {
+    emerald: "text-emerald-600",
+    rose: "text-red-500",
+    sky: "text-sky-blue",
+  };
+
+  return (
+    <div className="rounded-xl bg-card border border-border/50 p-3 text-center">
+      <p className={cn("text-2xl font-black", toneStyles[tone])}>{value}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-1">
+        {label}
+      </p>
     </div>
   );
 }

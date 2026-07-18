@@ -50,7 +50,7 @@ public class OpenRouterProvider implements AiProvider {
     private static final int DEFAULT_QUIZ_MAX_TOKENS = 4096;
 
     private static final double DEFAULT_STUDY_TEMPERATURE = 0.25;
-    private static final double DEFAULT_QUIZ_TEMPERATURE = 0.2;
+    private static final double DEFAULT_QUIZ_TEMPERATURE = 0.25;
 
     /**
      * Models that have been observed to be consistently broken.
@@ -199,12 +199,19 @@ public class OpenRouterProvider implements AiProvider {
     @Override
     public String generateQuestions(String materialTitle, String materialContent,
                                    int questionCount, String questionType, String difficulty) {
+        return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty, null, null);
+    }
+
+    @Override
+    public String generateQuestions(String materialTitle, String materialContent,
+                                   int questionCount, String questionType, String difficulty,
+                                   java.util.List<String> selectedSkills, com.midori.ai.AiTaskType taskType) {
         if (!isConfigured()) {
             throw new IllegalStateException("OpenRouter API key is not configured.");
         }
 
         String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
-                materialTitle, materialContent, questionCount, questionType, difficulty);
+                materialTitle, materialContent, questionCount, questionType, difficulty, selectedSkills);
 
         Throwable lastError = null;
         for (int attempt = 0; attempt < quizModels.size(); attempt++) {
@@ -367,6 +374,8 @@ public class OpenRouterProvider implements AiProvider {
         requestBody.put("messages", messages);
         requestBody.put("max_tokens", maxTokens);
         requestBody.put("temperature", temperature);
+        requestBody.put("top_p", 0.8);
+        requestBody.put("frequency_penalty", 0.3);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

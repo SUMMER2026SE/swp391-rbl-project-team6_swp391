@@ -51,6 +51,8 @@ public class AiServiceImpl implements AiService {
             Pattern.CASE_INSENSITIVE
     );
 
+    private static final Pattern HTML_ENTITY_PATTERN = Pattern.compile("&(?:amp|lt|gt|quot|apos|#39|#x27);");
+
     private final AiConversationRepository conversationRepository;
     private final AiMessageRepository messageRepository;
     private final AiCoreService aiCoreService;
@@ -79,27 +81,66 @@ public class AiServiceImpl implements AiService {
      */
     private String sanitizeAiContent(String content) {
         if (content == null) return null;
-        return THINK_TAG_PATTERN.matcher(content).replaceAll("").trim();
+        String cleaned = THINK_TAG_PATTERN.matcher(content).replaceAll("").trim();
+        return decodeHtmlEntities(cleaned);
+    }
+
+    /**
+     * Decode the most common HTML entities. Some LLM providers HTML-escape
+     * parts of their text output (e.g. 聞く), which then leaks into
+     * the chat UI as the literal string "&quot;聞く&quot;".
+     *
+     * <p>This is applied to both the material content (before being inserted
+     * into the prompt) and the LLM response (before being persisted and
+     * returned to the client) so the user always sees the original characters.
+     */
+    private String decodeHtmlEntities(String value) {
+        if (value == null || value.isEmpty()) return value;
+        if (!HTML_ENTITY_PATTERN.matcher(value).find()) {
+            return value;
+        }
+        return value
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&#39;", "'")
+                .replace("&#x27;", "'")
+                .replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">");
+    }
+
+    /**
+     * Determine whether a request has an actually usable selected material
+     * (non-null reference and non-blank content). A title-only entry is NOT
+     * enough to answer material-based questions.
+     */
+    private boolean hasUsableMaterial(ChatRequest.MaterialInfo material) {
+        return material != null
+                && material.getContent() != null
+                && !material.getContent().isBlank();
     }
 
     /**
      * Build effective system prompt with material content if available.
+     *
+     * <p>The material content is HTML-entity-decoded before being inserted into
+     * the prompt. This prevents the LLM from seeing and re-emitting escaped
+     * forms like "&quot;聞く&quot;" as if they were literal text.
      */
     private String buildSystemPrompt(ChatRequest.MaterialInfo material) {
-        if (material == null) {
+        if (!hasUsableMaterial(material)) {
             return AiPromptBuilder.getChatSystemPrompt();
         }
 
-        String materialContent = material.getContent();
-        if (materialContent == null || materialContent.isBlank()) {
-            return AiPromptBuilder.getChatSystemPrompt();
-        }
+        // Decode HTML entities in the material content so the model sees the
+        // real Japanese characters (e.g. 聞く instead of &quot;聞く&quot;).
+        String decodedContent = decodeHtmlEntities(material.getContent());
 
         return AiPromptBuilder.buildChatSystemPromptWithMaterial(
                 material.getTitle(),
                 material.getType(),
                 material.getLevel(),
-                materialContent
+                decodedContent
         );
     }
 
@@ -138,8 +179,6 @@ public class AiServiceImpl implements AiService {
     @Override
     @Transactional
     public ChatResponse chat(UUID userId, UUID conversationId, String message, ChatRequest.MaterialInfo selectedMaterial) {
-        String effectivePrompt = buildSystemPrompt(selectedMaterial);
-
         AiConversation conversation;
 
         if (conversationId != null) {
@@ -159,6 +198,39 @@ public class AiServiceImpl implements AiService {
                 .content(message)
                 .build();
         messageRepository.save(userMessage);
+
+        // Guard: if the user clearly asks about a selected material
+        // ("tài liệu này", "bài học này", "material này", ...)
+        // but the request did not include an actual material payload,
+        // do not let the LLM fabricate content. Reply with a fixed fallback
+        // and persist it as the assistant turn.
+        if (!hasUsableMaterial(selectedMaterial)
+                && AiPromptBuilder.refersToSelectedMaterial(message)) {
+            String reply = AiPromptBuilder.noMaterialSelectedFallback();
+            AiMessage aiMessage = AiMessage.builder()
+                    .conversation(conversation)
+                    .role("ASSISTANT")
+                    .content(reply)
+                    .build();
+            aiMessage = messageRepository.save(aiMessage);
+
+            if (conversation.getTitle() == null || conversation.getTitle().isEmpty()) {
+                String newTitle = message.length() > 60 ? message.substring(0, 60) + "..." : message;
+                conversation.setTitle(newTitle);
+                conversationRepository.save(conversation);
+            }
+
+            log.info("[AiService] No material selected but user asked about a material. Returning fixed fallback.");
+
+            return ChatResponse.builder()
+                    .conversationId(conversation.getId())
+                    .reply(reply)
+                    .createdAt(aiMessage.getCreatedAt())
+                    .modelUsed(null)
+                    .build();
+        }
+
+        String effectivePrompt = buildSystemPrompt(selectedMaterial);
 
         // Get conversation history for context
         List<String[]> history = getConversationHistory(conversation.getId());
@@ -791,18 +863,27 @@ public class AiServiceImpl implements AiService {
 
         String effectivePrompt = buildSystemPrompt(selectedMaterial);
         String newReply;
-        try {
-            newReply = aiCoreService.chat(effectivePrompt, trimmedContent, history);
-        } catch (IllegalStateException e) {
-            newReply = "Xin lỗi, AI Sensei chưa được cấu hình. Vui lòng liên hệ quản trị viên.";
-        } catch (Exception e) {
-            log.error("Error regenerating response: {}", e.getMessage());
-            newReply = "Xin lỗi, đã xảy ra lỗi khi gọi AI. Vui lòng thử lại sau.";
-        }
 
-        if (newReply == null || newReply.trim().isEmpty() || "null".equalsIgnoreCase(newReply.trim())) {
-            log.warn("[AiService] LLM returned null/blank response on regenerate");
-            newReply = "Xin lỗi, AI Sensei chưa tạo được câu trả lời. Vui lòng thử lại.";
+        // Same no-material guard as chat(): if the edited message refers to a
+        // material but no material is attached, do not let the LLM invent one.
+        if (!hasUsableMaterial(selectedMaterial)
+                && AiPromptBuilder.refersToSelectedMaterial(trimmedContent)) {
+            newReply = AiPromptBuilder.noMaterialSelectedFallback();
+            log.info("[AiService] No material selected on edit-and-regenerate. Returning fixed fallback.");
+        } else {
+            try {
+                newReply = aiCoreService.chat(effectivePrompt, trimmedContent, history);
+            } catch (IllegalStateException e) {
+                newReply = "Xin lỗi, AI Sensei chưa được cấu hình. Vui lòng liên hệ quản trị viên.";
+            } catch (Exception e) {
+                log.error("Error regenerating response: {}", e.getMessage());
+                newReply = "Xin lỗi, đã xảy ra lỗi khi gọi AI. Vui lòng thử lại sau.";
+            }
+
+            if (newReply == null || newReply.trim().isEmpty() || "null".equalsIgnoreCase(newReply.trim())) {
+                log.warn("[AiService] LLM returned null/blank response on regenerate");
+                newReply = "Xin lỗi, AI Sensei chưa tạo được câu trả lời. Vui lòng thử lại.";
+            }
         }
 
         newReply = sanitizeAiContent(newReply);

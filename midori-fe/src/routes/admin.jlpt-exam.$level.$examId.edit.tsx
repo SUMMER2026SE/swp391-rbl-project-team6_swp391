@@ -30,15 +30,25 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  type JLPTLevel,
-  type JLPTExam,
-  type ExamStatus,
-  type ExamQuestion,
-  getExamById,
-  getExamQuestions,
-  updateExam,
-} from "@/mocks/jlptExamMock";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { examsApi, type ExamResponse, type ExamQuestionResponse } from "@/lib/api/exams";
+
+type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
+type ExamStatus = "Active" | "Draft" | "Archived";
+
+export interface ExamQuestion {
+  id: string;
+  section: "Vocabulary" | "Grammar" | "Reading" | "Listening";
+  questionNumber: number;
+  type: "Multiple Choice" | "Fill in Blank" | "Listening Audio";
+  question: string;
+  options?: string[];
+  correctAnswer?: number;
+  explanation?: string;
+  audioUrl?: string;
+  audioFileName?: string;
+  passage?: string;
+}
 
 export const Route = createFileRoute("/admin/jlpt-exam/$level/$examId/edit")({
   component: EditExamPage,
@@ -518,16 +528,35 @@ function SectionContent({
   );
 }
 
+function mapSectionFromPrompt(prompt: string): { cleanPrompt: string; section: "Vocabulary" | "Grammar" | "Reading" | "Listening" } {
+  if (prompt.startsWith("[Vocabulary] ")) {
+    return { cleanPrompt: prompt.substring(13), section: "Vocabulary" };
+  }
+  if (prompt.startsWith("[Grammar] ")) {
+    return { cleanPrompt: prompt.substring(10), section: "Grammar" };
+  }
+  if (prompt.startsWith("[Reading] ")) {
+    return { cleanPrompt: prompt.substring(10), section: "Reading" };
+  }
+  if (prompt.startsWith("[Listening] ")) {
+    return { cleanPrompt: prompt.substring(12), section: "Listening" };
+  }
+  return { cleanPrompt: prompt, section: "Vocabulary" };
+}
+
 // Main Page Component
 function EditExamPage() {
   const { level, examId } = Route.useParams();
   const navigate = useNavigate();
   const upperLevel = level.toUpperCase() as JLPTLevelUpper;
+  const queryClient = useQueryClient();
 
-  const [exam, setExam] = useState<JLPTExam | null>(null);
+  const { data: exam, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["exam", examId],
+    queryFn: () => examsApi.getExamById(examId),
+  });
+
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
-
   const [examName, setExamName] = useState("");
   const [status, setStatus] = useState<ExamStatus>("Draft");
   const [duration, setDuration] = useState(0);
@@ -548,18 +577,34 @@ function EditExamPage() {
 
   const structure = JLPT_STRUCTURE[upperLevel] || JLPT_STRUCTURE.N5;
 
+  const [hasInitialized, setHasInitialized] = useState(false);
   useEffect(() => {
-    setLoading(true);
-    const foundExam = getExamById(examId);
-    if (foundExam && foundExam.level === upperLevel) {
-      setExam(foundExam);
-      setExamName(foundExam.name);
-      setStatus(foundExam.status);
-      setDuration(foundExam.duration);
-      setQuestions(getExamQuestions(foundExam));
+    if (exam && !hasInitialized) {
+      setExamName(exam.title);
+      setDuration(exam.timeLimit);
+      
+      let mappedStatus: ExamStatus = "Draft";
+      if (exam.status === "PUBLISHED") mappedStatus = "Active";
+      else if (exam.status === "ARCHIVED") mappedStatus = "Archived";
+      setStatus(mappedStatus);
+
+      const mappedQuestions: ExamQuestion[] = (exam.questions || []).map((q, idx) => {
+        const { cleanPrompt, section } = mapSectionFromPrompt(q.prompt);
+        return {
+          id: q.id,
+          section,
+          questionNumber: q.displayOrder || (idx + 1),
+          type: "Multiple Choice",
+          question: cleanPrompt,
+          options: q.options,
+          correctAnswer: q.correctAnswerIndex,
+          explanation: "",
+        };
+      });
+      setQuestions(mappedQuestions);
+      setHasInitialized(true);
     }
-    setLoading(false);
-  }, [examId, upperLevel]);
+  }, [exam, hasInitialized]);
 
   const handleAddQuestion = () => {
     setEditingQuestion(null);
@@ -616,15 +661,32 @@ function EditExamPage() {
     setError(null);
 
     try {
-      const updatedExam: JLPTExam = {
-        ...exam,
-        name: examName,
-        status,
-        questions,
-        duration,
-      };
+      const backendStatus = status === "Active" ? "PUBLISHED" : status === "Draft" ? "DRAFT" : "ARCHIVED";
 
-      updateExam(updatedExam);
+      await examsApi.updateExam(examId, {
+        title: examName,
+        timeLimit: duration,
+        status: backendStatus,
+      });
+
+      const isUuid = (id: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+      await examsApi.updateExamQuestions(examId, {
+        questions: questions.map((q, idx) => ({
+          id: isUuid(q.id) ? q.id : undefined,
+          prompt: `[${q.section}] ${q.question}`,
+          options: q.options || [],
+          correctAnswerIndex: q.correctAnswer || 0,
+          points: 1,
+          displayOrder: idx + 1,
+        })),
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["exam", examId] });
+      queryClient.invalidateQueries({ queryKey: ["exam-bank", upperLevel] });
+      queryClient.invalidateQueries({ queryKey: ["exam-bank"] });
+
       setSuccessMessage("Exam updated successfully!");
 
       setTimeout(() => {

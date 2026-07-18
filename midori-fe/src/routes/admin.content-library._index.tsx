@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { BookOpen, GraduationCap, Headphones, Mic } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
 export const Route = createFileRoute("/admin/content-library/_index")({
   component: ContentLibraryIndexPage,
@@ -161,72 +161,6 @@ function ContentLibraryIndexPage() {
             </Link>
           </motion.div>
         ))}
-      </div>
-
-      {/* Skill Categories */}
-      <div className="mt-8">
-        <h2 className="text-lg font-bold text-primary-col mb-4">Content Categories</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.3 }}
-            className="card-base p-4 flex items-center gap-3 hover:shadow-md transition-shadow"
-          >
-            <div className="w-10 h-10 rounded-xl bg-sakura/30 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-sakura" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary-col">Vocabulary</p>
-              <p className="text-xs text-muted-col">Words & kanji</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.3 }}
-            className="card-base p-4 flex items-center gap-3 hover:shadow-md transition-shadow"
-          >
-            <div className="w-10 h-10 rounded-xl bg-lavender/30 flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-lavender" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary-col">Grammar</p>
-              <p className="text-xs text-muted-col">Grammar patterns</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.3 }}
-            className="card-base p-4 flex items-center gap-3 hover:shadow-md transition-shadow"
-          >
-            <div className="w-10 h-10 rounded-xl bg-sky-blue/15 flex items-center justify-center">
-              <Headphones className="w-5 h-5 text-sky-blue" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary-col">Listening</p>
-              <p className="text-xs text-muted-col">Audio exercises</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65, duration: 0.3 }}
-            className="card-base p-4 flex items-center gap-3 hover:shadow-md transition-shadow"
-          >
-            <div className="w-10 h-10 rounded-xl bg-jp-red/15 flex items-center justify-center">
-              <Mic className="w-5 h-5 text-jp-red" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-primary-col">Shadowing</p>
-              <p className="text-xs text-muted-col">Speaking practice</p>
-            </div>
-          </motion.div>
-        </div>
       </div>
     </div>
   );

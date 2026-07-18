@@ -6,6 +6,7 @@ import { api } from "./client";
 
 export interface ReadingLessonResponse {
   id: string;
+  lessonId: string | null;
   jlptLevel: string;
   lessonNumber: number;
   title: string;
@@ -22,14 +23,26 @@ export interface ReadingLessonResponse {
 export interface ReadingPassageResponse {
   id: string;
   readingLessonId: string;
+  title?: string | null;
   passageOrder: number;
   passage: string;
   vietnameseTranslation: string | null;
+  /**
+   * Questions belonging to this passage. The student endpoint may or may not
+   * populate this field depending on the underlying data, so consumers must
+   * treat it as optional and fall back to the lesson-level `questions` list.
+   */
+  questions?: ReadingQuestionResponse[];
 }
 
 export interface ReadingQuestionResponse {
   id: string;
   readingLessonId: string;
+  /**
+   * Populated by the backend mapper on `toQuestionResponse(...)`. Legacy data
+   * (questions created before passages existed) may have this set to null.
+   */
+  readingPassageId?: string | null;
   questionOrder: number;
   question: string;
   optionA: string;
@@ -60,12 +73,15 @@ export interface ReadingLessonRequest {
 }
 
 export interface ReadingPassageRequest {
+  id?: string;
   passageOrder?: number;
   passage: string;
   vietnameseTranslation?: string;
+  questions?: ReadingQuestionRequest[];
 }
 
 export interface ReadingQuestionRequest {
+  id?: string;
   questionOrder: number;
   question: string;
   optionA: string;
@@ -79,7 +95,52 @@ export interface ReadingQuestionRequest {
 export interface ReadingLessonWithQuestionsRequest {
   lesson: ReadingLessonRequest;
   passages?: ReadingPassageRequest[];
-  questions: ReadingQuestionRequest[];
+}
+
+// ============================================================
+// Student Reading – Submit (server-graded)
+// ============================================================
+
+export interface ReadingSubmitAnswer {
+  questionId: string;
+  selectedAnswer: string | null;
+}
+
+export interface ReadingSubmitRequest {
+  passageId?: string | null;
+  answers: ReadingSubmitAnswer[];
+}
+
+export interface ReadingSubmitAnswerResult {
+  questionId: string;
+  questionOrder: number | null;
+  question: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  /** Letter the student picked (A/B/C/D) or null if skipped. */
+  userAnswer: string | null;
+  /** Letter of the correct option. */
+  correctAnswer: string | null;
+  userAnswerText: string | null;
+  correctAnswerText: string | null;
+  isCorrect: boolean;
+  explanation: string | null;
+}
+
+export interface ReadingSubmitResponse {
+  readingLessonId: string;
+  passageId: string | null;
+  /** Legacy scalar – same as percentage rounded down. */
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  /** 0–100, one decimal place. */
+  percentage: number;
+  answers: ReadingSubmitAnswerResult[];
+  submittedAt: string;
 }
 
 // ============================================================
@@ -114,6 +175,13 @@ export const studentReadingApi = {
   getReadingLessonsByLevel: async (level: string) => {
     return api.get<ReadingLessonResponse[]>(`/student/reading/level/${level}`);
   },
+
+  /**
+   * POST /api/student/reading/{id}/submit
+   * Grades a Reading attempt on the server and returns the per-question breakdown.
+   */
+  submitReadingAnswers: (lessonId: string, payload: ReadingSubmitRequest) =>
+    api.post<ReadingSubmitResponse>(`/student/reading/${lessonId}/submit`, payload),
 };
 
 // ============================================================

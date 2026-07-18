@@ -56,6 +56,9 @@ public class Grammar {
     @Column(length = 10)
     private GrammarLevel level;
 
+    @Column(name = "lesson_number")
+    private Integer lessonNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -100,6 +103,10 @@ public class Grammar {
 
     @Column(name = "pending_update_reject_reason", length = 1000)
     private String pendingUpdateRejectReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id")
+    private Lesson lesson;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

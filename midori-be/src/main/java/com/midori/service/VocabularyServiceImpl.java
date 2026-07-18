@@ -5,12 +5,12 @@ import com.midori.entity.NotificationType;
 import com.midori.entity.Role;
 import com.midori.entity.User;
 import com.midori.entity.UserStatus;
-import com.midori.entity.VocabularyLesson;
+import com.midori.entity.VocabularyLessonV2;
 import com.midori.entity.VocabularyWord;
 import com.midori.exception.AccessDeniedException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.UserRepository;
-import com.midori.repository.VocabularyLessonRepository;
+import com.midori.repository.VocabularyLessonV2Repository;
 import com.midori.repository.VocabularyWordRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -26,17 +26,13 @@ import java.util.stream.Collectors;
 @Transactional
 public class VocabularyServiceImpl implements VocabularyService {
 
-    private final VocabularyLessonRepository lessonRepository;
+    private final VocabularyLessonV2Repository lessonRepository;
     private final VocabularyWordRepository wordRepository;
     private final UserRepository userRepository;
     private final EntityManager entityManager;
     private final NotificationHelperService notificationHelper;
 
-    // ============================================================
-    // Ownership Check Helper
-    // ============================================================
-
-    private boolean isOwner(VocabularyLesson lesson, UUID currentUserId) {
+    private boolean isOwner(VocabularyLessonV2 lesson, UUID currentUserId) {
         if (lesson == null || currentUserId == null) {
             return false;
         }
@@ -44,22 +40,18 @@ public class VocabularyServiceImpl implements VocabularyService {
                lesson.getCreatedBy().getId().equals(currentUserId);
     }
 
-    private void checkLessonOwnership(VocabularyLesson lesson, UUID currentUserId) {
+    private void checkLessonOwnership(VocabularyLessonV2 lesson, UUID currentUserId) {
         if (!isOwner(lesson, currentUserId)) {
             throw new AccessDeniedException("You can only modify your own lessons");
         }
     }
 
-    // ============================================================
-    // Teacher / Admin Methods
-    // ============================================================
-
     @Override
-    public VocabularyLessonResponse createLesson(VocabularyLessonCreateRequest request, UUID createdBy) {
+    public VocabularyLessonResponseV2 createLesson(VocabularyLessonCreateRequestV2 request, UUID createdBy) {
         User creator = userRepository.findById(createdBy)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", createdBy));
 
-        VocabularyLesson lesson = VocabularyLesson.builder()
+        VocabularyLessonV2 lesson = VocabularyLessonV2.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .level(request.getLevel())
@@ -77,8 +69,8 @@ public class VocabularyServiceImpl implements VocabularyService {
     }
 
     @Override
-    public VocabularyLessonResponse updateLesson(UUID lessonId, VocabularyLessonUpdateRequest request, UUID currentUserId) {
-        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+    public VocabularyLessonResponseV2 updateLesson(UUID lessonId, VocabularyLessonUpdateRequestV2 request, UUID currentUserId) {
+        VocabularyLessonV2 lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         checkLessonOwnership(lesson, currentUserId);
@@ -91,7 +83,7 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     public void deleteLesson(UUID lessonId, UUID currentUserId) {
-        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+        VocabularyLessonV2 lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         checkLessonOwnership(lesson, currentUserId);
@@ -101,16 +93,16 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     @Transactional(readOnly = true)
-    public VocabularyLessonDetailResponse getLessonDetailForManagement(UUID lessonId, UUID currentUserId) {
-        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+    public VocabularyLessonDetailResponseV2 getLessonDetailForManagement(UUID lessonId, UUID currentUserId) {
+        VocabularyLessonV2 lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
         return toLessonDetailResponse(lesson, currentUserId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<VocabularyLessonResponse> listLessonsForManagement(String level, String topic, String search, UUID currentUserId) {
-        List<VocabularyLesson> lessons = lessonRepository.findAllOrderedWithCreator();
+    public List<VocabularyLessonResponseV2> listLessonsForManagement(String level, String topic, String search, UUID currentUserId) {
+        List<VocabularyLessonV2> lessons = lessonRepository.findAllOrderedWithCreator();
 
         if (level != null && !level.isBlank()) {
             lessons = lessons.stream()
@@ -136,8 +128,8 @@ public class VocabularyServiceImpl implements VocabularyService {
     }
 
     @Override
-    public VocabularyWordResponse addWord(UUID lessonId, VocabularyWordCreateRequest request, UUID currentUserId) {
-        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+    public VocabularyWordResponseV2 addWord(UUID lessonId, VocabularyWordCreateRequestV2 request, UUID currentUserId) {
+        VocabularyLessonV2 lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         checkLessonOwnership(lesson, currentUserId);
@@ -149,7 +141,7 @@ public class VocabularyServiceImpl implements VocabularyService {
     }
 
     @Override
-    public VocabularyWordResponse updateWord(UUID wordId, VocabularyWordUpdateRequest request, UUID currentUserId) {
+    public VocabularyWordResponseV2 updateWord(UUID wordId, VocabularyWordUpdateRequestV2 request, UUID currentUserId) {
         VocabularyWord word = wordRepository.findByLessonIdWithLesson(wordId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyWord", "id", wordId));
 
@@ -166,7 +158,7 @@ public class VocabularyServiceImpl implements VocabularyService {
         VocabularyWord word = wordRepository.findByLessonIdWithLesson(wordId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyWord", "id", wordId));
 
-        VocabularyLesson lesson = word.getLesson();
+        VocabularyLessonV2 lesson = word.getLesson();
         checkLessonOwnership(lesson, currentUserId);
 
         wordRepository.delete(word);
@@ -174,8 +166,8 @@ public class VocabularyServiceImpl implements VocabularyService {
     }
 
     @Override
-    public VocabularyLessonResponse publishLesson(UUID lessonId, UUID currentUserId) {
-        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+    public VocabularyLessonResponseV2 publishLesson(UUID lessonId, UUID currentUserId) {
+        VocabularyLessonV2 lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         checkLessonOwnership(lesson, currentUserId);
@@ -184,7 +176,6 @@ public class VocabularyServiceImpl implements VocabularyService {
         lesson = lessonRepository.save(lesson);
         syncLessonWordCount(lesson);
 
-        // Notify all active students about the new lesson
         notificationHelper.notifyAllByRole(
                 Role.STUDENT,
                 UserStatus.ACTIVE,
@@ -197,8 +188,8 @@ public class VocabularyServiceImpl implements VocabularyService {
     }
 
     @Override
-    public VocabularyLessonResponse unpublishLesson(UUID lessonId, UUID currentUserId) {
-        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+    public VocabularyLessonResponseV2 unpublishLesson(UUID lessonId, UUID currentUserId) {
+        VocabularyLessonV2 lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         checkLessonOwnership(lesson, currentUserId);
@@ -209,14 +200,10 @@ public class VocabularyServiceImpl implements VocabularyService {
         return toLessonResponse(lesson, currentUserId);
     }
 
-    // ============================================================
-    // Student Methods
-    // ============================================================
-
     @Override
     @Transactional(readOnly = true)
-    public List<VocabularyLessonResponse> listPublishedLessons(String level, String topic, String search) {
-        List<VocabularyLesson> lessons;
+    public List<VocabularyLessonResponseV2> listPublishedLessons(String level, String topic, String search) {
+        List<VocabularyLessonV2> lessons;
 
         boolean hasLevel = level != null && !level.isBlank();
         boolean hasTopic = topic != null && !topic.isBlank();
@@ -258,8 +245,8 @@ public class VocabularyServiceImpl implements VocabularyService {
 
     @Override
     @Transactional(readOnly = true)
-    public VocabularyLessonDetailResponse getPublishedLessonDetail(UUID lessonId) {
-        VocabularyLesson lesson = lessonRepository.findByIdWithCreator(lessonId)
+    public VocabularyLessonDetailResponseV2 getPublishedLessonDetail(UUID lessonId) {
+        VocabularyLessonV2 lesson = lessonRepository.findByIdWithCreator(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("VocabularyLesson", "id", lessonId));
 
         if (!Boolean.TRUE.equals(lesson.getIsPublished())) {
@@ -269,14 +256,10 @@ public class VocabularyServiceImpl implements VocabularyService {
         return toLessonDetailResponse(lesson, null);
     }
 
-    // ============================================================
-    // Mapper Methods
-    // ============================================================
-
-    private VocabularyLessonResponse toLessonResponse(VocabularyLesson lesson, UUID currentUserId) {
+    private VocabularyLessonResponseV2 toLessonResponse(VocabularyLessonV2 lesson, UUID currentUserId) {
         int wordCount = resolveWordCount(lesson);
         boolean ownedByMe = isOwner(lesson, currentUserId);
-        return VocabularyLessonResponse.builder()
+        return VocabularyLessonResponseV2.builder()
                 .id(lesson.getId())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
@@ -293,15 +276,15 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .build();
     }
 
-    private VocabularyLessonDetailResponse toLessonDetailResponse(VocabularyLesson lesson, UUID currentUserId) {
+    private VocabularyLessonDetailResponseV2 toLessonDetailResponse(VocabularyLessonV2 lesson, UUID currentUserId) {
         List<VocabularyWord> wordEntities = wordRepository.findByLessonIdOrderByDisplayOrderAsc(lesson.getId());
-        List<VocabularyWordResponse> words = wordEntities
+        List<VocabularyWordResponseV2> words = wordEntities
                 .stream()
                 .map(this::toWordResponse)
                 .collect(Collectors.toList());
 
         boolean ownedByMe = isOwner(lesson, currentUserId);
-        return VocabularyLessonDetailResponse.builder()
+        return VocabularyLessonDetailResponseV2.builder()
                 .id(lesson.getId())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
@@ -332,8 +315,8 @@ public class VocabularyServiceImpl implements VocabularyService {
         return "System";
     }
 
-    private VocabularyWordResponse toWordResponse(VocabularyWord word) {
-        return VocabularyWordResponse.builder()
+    private VocabularyWordResponseV2 toWordResponse(VocabularyWord word) {
+        return VocabularyWordResponseV2.builder()
                 .id(word.getId())
                 .lessonId(word.getLesson().getId())
                 .word(word.getWord())
@@ -349,7 +332,7 @@ public class VocabularyServiceImpl implements VocabularyService {
                 .build();
     }
 
-    private void applyLessonUpdate(VocabularyLesson lesson, VocabularyLessonUpdateRequest request) {
+    private void applyLessonUpdate(VocabularyLessonV2 lesson, VocabularyLessonUpdateRequestV2 request) {
         if (request.getTitle() != null) {
             lesson.setTitle(request.getTitle());
         }
@@ -370,7 +353,7 @@ public class VocabularyServiceImpl implements VocabularyService {
         }
     }
 
-    private void applyWordUpdate(VocabularyWord word, VocabularyWordUpdateRequest request) {
+    private void applyWordUpdate(VocabularyWord word, VocabularyWordUpdateRequestV2 request) {
         if (request.getWord() != null) {
             word.setWord(request.getWord());
         }
@@ -397,14 +380,14 @@ public class VocabularyServiceImpl implements VocabularyService {
         }
     }
 
-    private int saveLessonWords(VocabularyLesson lesson, List<VocabularyWordCreateRequest> words) {
+    private int saveLessonWords(VocabularyLessonV2 lesson, List<VocabularyWordCreateRequestV2> words) {
         if (words == null || words.isEmpty()) {
             return 0;
         }
 
         int savedWordCount = 0;
         for (int index = 0; index < words.size(); index++) {
-            VocabularyWordCreateRequest wordRequest = words.get(index);
+            VocabularyWordCreateRequestV2 wordRequest = words.get(index);
             if (!wordRequest.isValidForCreate()) {
                 continue;
             }
@@ -418,7 +401,7 @@ public class VocabularyServiceImpl implements VocabularyService {
         return savedWordCount;
     }
 
-    private VocabularyWord buildVocabularyWord(VocabularyLesson lesson, VocabularyWordCreateRequest request, int fallbackDisplayOrder) {
+    private VocabularyWord buildVocabularyWord(VocabularyLessonV2 lesson, VocabularyWordCreateRequestV2 request, int fallbackDisplayOrder) {
         String japanese = trimToNull(request.getJapanese());
         String vietnamese = trimToNull(request.getVietnamese());
         String romaji = trimToNull(request.getRomaji());
@@ -457,17 +440,17 @@ public class VocabularyServiceImpl implements VocabularyService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private int resolveWordCount(VocabularyLesson lesson) {
+    private int resolveWordCount(VocabularyLessonV2 lesson) {
         return Math.toIntExact(wordRepository.countByLessonId(lesson.getId()));
     }
 
-    private void syncLessonWordCount(VocabularyLesson lesson) {
+    private void syncLessonWordCount(VocabularyLessonV2 lesson) {
         int wordCount = resolveWordCount(lesson);
         lesson.setWordCount(wordCount);
         lessonRepository.save(lesson);
     }
 
-    private void syncLessonWordCountFromInt(VocabularyLesson lesson, int wordCount) {
+    private void syncLessonWordCountFromInt(VocabularyLessonV2 lesson, int wordCount) {
         lesson.setWordCount(wordCount);
         lessonRepository.save(lesson);
     }

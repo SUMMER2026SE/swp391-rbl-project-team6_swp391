@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { MockQuestion } from "@/data/mockQuestions";
+import type { TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
 import type { JLPTLevel, Skill, Difficulty } from "@/data/teacher-data";
 import { LevelBadge, DifficultyBadge } from "../badges";
 
@@ -26,8 +26,8 @@ interface MyQuestionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: "view" | "edit" | "create";
-  question?: MockQuestion | null;
-  onSave: (q: Omit<MockQuestion, "id" | "createdAt" | "updatedAt" | "usageCount"> & { id?: string }) => void;
+  question?: TeacherQuestionResponse | null;
+  onSave: (q: Omit<TeacherQuestionResponse, "id" | "createdAt" | "updatedAt" | "teacherId"> & { id?: string }) => void;
 }
 
 export function MyQuestionModal({
@@ -47,27 +47,38 @@ export function MyQuestionModal({
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [explanation, setExplanation] = useState("");
   const [tagsInput, setTagsInput] = useState("");
-  const [status, setStatus] = useState<"Active" | "Archived">("Active");
+  const [status, setStatus] = useState("ACTIVE");
+  const [points, setPoints] = useState<number>(10);
 
   // Load values when modal opens or question changes
   useEffect(() => {
     if (open) {
       if (mode !== "create" && question) {
-        setTitle(question.title);
-        setType(question.type);
-        setLevel(question.level);
-        setSkill(question.skill);
-        setDifficulty(question.difficulty);
-        setContent(question.content);
+        setTitle(question.jpPrompt || (question.prompt && question.prompt.length > 40 ? question.prompt.slice(0, 40) + "..." : question.prompt) || "");
+        setType(question.questionType || "Multiple Choice");
+        setLevel((question.level || "N3") as JLPTLevel);
+        setSkill((question.skill || "Grammar") as Skill);
+        
+        const difficultyMapped = question.difficulty
+          ? (question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1).toLowerCase()) as Difficulty
+          : "Medium";
+        setDifficulty(difficultyMapped);
+        
+        setContent(question.prompt || "");
         setChoices(
-          question.choices && question.choices.length > 0
-            ? [...question.choices]
-            : ["", "", "", ""]
+          question.options && question.options.length > 0
+             ? [...question.options]
+             : ["", "", "", ""]
         );
-        setCorrectAnswer(question.correctAnswer);
-        setExplanation(question.explanation);
-        setTagsInput(question.tags.join(", "));
-        setStatus(question.status);
+        
+        const correct = question.options && question.options[question.correctAnswerIndex] !== undefined
+          ? question.options[question.correctAnswerIndex]
+          : "";
+        setCorrectAnswer(correct);
+        setExplanation(question.explanation || "");
+        setTagsInput(question.tags || "");
+        setStatus(question.status || "ACTIVE");
+        setPoints(question.points !== undefined ? question.points : 10);
       } else {
         // Reset to default/blank values for Create mode
         setTitle("");
@@ -80,7 +91,8 @@ export function MyQuestionModal({
         setCorrectAnswer("");
         setExplanation("");
         setTagsInput("");
-        setStatus("Active");
+        setStatus("ACTIVE");
+        setPoints(10);
       }
     }
   }, [open, mode, question]);
@@ -92,7 +104,6 @@ export function MyQuestionModal({
   };
 
   const handleSave = () => {
-    if (!title.trim()) return;
     if (!content.trim()) return;
 
     // Filter out blank choices and parse tags
@@ -100,26 +111,39 @@ export function MyQuestionModal({
     const parsedTags = tagsInput
       .split(",")
       .map((t) => t.trim().toLowerCase())
-      .filter(Boolean);
+      .filter(Boolean)
+      .join(", ");
 
     onSave({
       id: question?.id,
-      title: title.trim(),
-      type,
+      jpPrompt: title.trim() || undefined,
+      questionType: type,
       level,
       skill,
-      difficulty,
-      content: content.trim(),
-      choices: cleanedChoices,
-      correctAnswer: correctAnswer.trim(),
+      difficulty: difficulty.toUpperCase(),
+      prompt: content.trim(),
+      options: cleanedChoices,
+      correctAnswerIndex: cleanedChoices.indexOf(correctAnswer) >= 0 ? cleanedChoices.indexOf(correctAnswer) : 0,
       explanation: explanation.trim(),
       tags: parsedTags,
       status,
+      points,
     });
     onOpenChange(false);
   };
 
   const isView = mode === "view";
+
+  const questionTitle = question?.jpPrompt || (question?.prompt && question.prompt.length > 40 ? question.prompt.slice(0, 40) + "..." : question?.prompt) || "Question";
+  const questionDifficulty = question?.difficulty
+    ? (question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1).toLowerCase()) as Difficulty
+    : "Medium";
+  const questionCorrectAnswer = question?.options && question.options[question.correctAnswerIndex] !== undefined
+    ? question.options[question.correctAnswerIndex]
+    : "";
+  const questionTagsList = question?.tags
+    ? question.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -139,37 +163,37 @@ export function MyQuestionModal({
           // VIEW MODE LAYOUT
           <div className="space-y-6 py-2">
             <div className="flex flex-wrap gap-2 items-center border-b pb-4">
-              <LevelBadge level={question.level} />
-              <DifficultyBadge d={question.difficulty} />
+              <LevelBadge level={(question.level || "N5") as JLPTLevel} />
+              <DifficultyBadge d={questionDifficulty} />
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                {question.skill}
+                {question.skill || "Grammar"}
               </span>
               <span className="text-xs text-muted-foreground bg-accent/30 px-2 py-0.5 rounded">
-                {question.type}
+                {question.questionType || "Multiple Choice"}
               </span>
               <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
-                {question.status}
+                {question.status === "ACTIVE" ? "Active" : "Archived"}
               </span>
             </div>
 
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-1">Title</h4>
-              <p className="font-semibold text-base text-foreground">{question.title}</p>
+              <p className="font-semibold text-base text-foreground">{questionTitle}</p>
             </div>
 
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-1">Prompt / Content</h4>
               <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-sm font-jp whitespace-pre-wrap">
-                {question.content}
+                {question.prompt}
               </div>
             </div>
 
-            {question.choices && question.choices.length > 0 && (
+            {question.options && question.options.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-muted-foreground mb-2">Choices</h4>
                 <div className="grid gap-2">
-                  {question.choices.map((choice, i) => {
-                    const isCorrect = choice === question.correctAnswer;
+                  {question.options.map((choice, i) => {
+                    const isCorrect = choice === questionCorrectAnswer;
                     return (
                       <div
                         key={i}
@@ -197,10 +221,10 @@ export function MyQuestionModal({
               </div>
             )}
 
-            {!question.choices?.length && question.correctAnswer && (
+            {!question.options?.length && questionCorrectAnswer && (
               <div>
                 <h4 className="text-sm font-semibold text-muted-foreground mb-1">Correct Answer</h4>
-                <p className="text-sm font-semibold text-success font-jp">{question.correctAnswer}</p>
+                <p className="text-sm font-semibold text-success font-jp">{questionCorrectAnswer}</p>
               </div>
             )}
 
@@ -213,11 +237,11 @@ export function MyQuestionModal({
               </div>
             )}
 
-            {question.tags.length > 0 && (
+            {questionTagsList.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-muted-foreground mb-1.5">Tags</h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {question.tags.map((tag) => (
+                  {questionTagsList.map((tag) => (
                     <span
                       key={tag}
                       className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full"
@@ -273,7 +297,7 @@ export function MyQuestionModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="q-skill">Skill</Label>
                 <Select value={skill} onValueChange={(v) => setSkill(v as Skill)}>
@@ -305,6 +329,17 @@ export function MyQuestionModal({
                     <SelectItem value="Hard">Hard</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="q-points">Points</Label>
+                <Input
+                  id="q-points"
+                  type="number"
+                  min={0}
+                  value={points}
+                  onChange={(e) => setPoints(Math.max(0, parseInt(e.target.value) || 0))}
+                />
               </div>
             </div>
 
@@ -382,30 +417,32 @@ export function MyQuestionModal({
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="q-tags">Tags (comma-separated)</Label>
-              <Input
-                id="q-tags"
-                placeholder="grammar, n3, particle"
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-              />
-            </div>
-
-            {mode === "edit" && (
+            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="q-status">Status</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as "Active" | "Archived")}>
-                  <SelectTrigger id="q-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="q-tags">Tags (comma-separated)</Label>
+                <Input
+                  id="q-tags"
+                  placeholder="grammar, n3, particle"
+                  value={tagsInput}
+                  onChange={(e) => setTagsInput(e.target.value)}
+                />
               </div>
-            )}
+
+              {(mode === "edit" || mode === "create") && (
+                <div className="grid gap-2">
+                  <Label htmlFor="q-status">Status</Label>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger id="q-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="ARCHIVED">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -417,7 +454,7 @@ export function MyQuestionModal({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={!title.trim() || !content.trim()}>
+              <Button onClick={handleSave} disabled={!content.trim()}>
                 Save Question
               </Button>
             </>

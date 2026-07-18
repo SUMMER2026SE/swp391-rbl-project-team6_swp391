@@ -1,8 +1,9 @@
 package com.midori.controller;
 
 import com.midori.common.ApiResponse;
-import com.midori.dto.grammar.GrammarResponse;
-import com.midori.service.GrammarService;
+import com.midori.dto.grammar.GrammarDetailResponse;
+import com.midori.dto.grammar.GrammarLessonResponse;
+import com.midori.service.GrammarLessonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,13 +16,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GrammarStudentController {
 
-    private final GrammarService grammarService;
+    private final GrammarLessonService grammarLessonService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<GrammarResponse>>> listGrammars(
-            @RequestParam(required = false) String level,
-            @RequestParam(required = false) String search) {
-        List<GrammarResponse> grammars = grammarService.listApprovedGrammars(level, search);
+    public ResponseEntity<ApiResponse<List<GrammarLessonResponse>>> getGrammarList(
+            @RequestParam(required = false) String level) {
+        List<GrammarLessonResponse> grammars;
+        if (level != null && !level.isBlank()) {
+            grammars = grammarLessonService.getActiveGrammarLessonsByLevel(level);
+        } else {
+            grammars = grammarLessonService.getActiveGrammarLessons();
+        }
         return ResponseEntity.ok(ApiResponse.success(grammars));
     }
 

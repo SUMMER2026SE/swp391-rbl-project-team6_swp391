@@ -16,6 +16,7 @@ import java.util.UUID;
 public class TeacherQuestionServiceImpl implements TeacherQuestionService {
 
     private final TeacherQuestionRepository teacherQuestionRepository;
+    private final com.midori.repository.UserRepository userRepository;
 
     @Override
     @Transactional
@@ -28,10 +29,19 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
     public TeacherQuestion updateQuestion(UUID id, TeacherQuestion questionDetails, UUID teacherId) {
         TeacherQuestion question = teacherQuestionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("TeacherQuestion", "id", id));
-        if (!question.getTeacher().getId().equals(teacherId)) {
+        
+        // Allow if user is creator or an ADMIN
+        boolean isAdmin = userRepository.findById(teacherId)
+                .map(u -> u.getRole() == com.midori.entity.Role.ADMIN)
+                .orElse(false);
+        if (!question.getTeacher().getId().equals(teacherId) && !isAdmin) {
             throw new com.midori.exception.AccessDeniedException("You do not own this question");
         }
+
         question.setTopicId(questionDetails.getTopicId());
+        question.setLevel(questionDetails.getLevel());
+        question.setSkill(questionDetails.getSkill());
+        question.setLesson(questionDetails.getLesson());
         question.setPrompt(questionDetails.getPrompt());
         question.setJpPrompt(questionDetails.getJpPrompt());
         question.setQuestionType(questionDetails.getQuestionType());
@@ -42,6 +52,10 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
         question.setStatus(questionDetails.getStatus());
         question.setPoints(questionDetails.getPoints());
         question.setOptions(questionDetails.getOptions());
+        question.setAudioUrl(questionDetails.getAudioUrl());
+        question.setAudioFileName(questionDetails.getAudioFileName());
+        question.setAudioDuration(questionDetails.getAudioDuration());
+
         return teacherQuestionRepository.save(question);
     }
 
@@ -50,7 +64,11 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
     public void deleteQuestion(UUID id, UUID teacherId) {
         TeacherQuestion question = teacherQuestionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("TeacherQuestion", "id", id));
-        if (!question.getTeacher().getId().equals(teacherId)) {
+        
+        boolean isAdmin = userRepository.findById(teacherId)
+                .map(u -> u.getRole() == com.midori.entity.Role.ADMIN)
+                .orElse(false);
+        if (!question.getTeacher().getId().equals(teacherId) && !isAdmin) {
             throw new com.midori.exception.AccessDeniedException("You do not own this question");
         }
         teacherQuestionRepository.delete(question);
@@ -60,8 +78,18 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
     public TeacherQuestion findQuestionById(UUID id, UUID teacherId) {
         TeacherQuestion question = teacherQuestionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("TeacherQuestion", "id", id));
-        if (!question.getTeacher().getId().equals(teacherId)) {
-            throw new com.midori.exception.AccessDeniedException("You do not own this question");
+        
+        boolean isAdmin = userRepository.findById(teacherId)
+                .map(u -> u.getRole() == com.midori.entity.Role.ADMIN)
+                .orElse(false);
+        boolean isTeacher = userRepository.findById(teacherId)
+                .map(u -> u.getRole() == com.midori.entity.Role.TEACHER)
+                .orElse(false);
+        boolean isCreator = question.getTeacher().getId().equals(teacherId);
+        boolean isActive = question.getStatus().equals(com.midori.entity.UserStatus.ACTIVE.name());
+
+        if (!isCreator && !isAdmin && !(isTeacher && isActive)) {
+            throw new com.midori.exception.AccessDeniedException("You do not have access to this question");
         }
         return question;
     }
@@ -69,5 +97,10 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
     @Override
     public List<TeacherQuestion> findQuestionsByTeacher(UUID teacherId) {
         return teacherQuestionRepository.findByTeacherIdOrderByCreatedAtDesc(teacherId);
+    }
+
+    @Override
+    public List<TeacherQuestion> findCentralizedQuestions() {
+        return teacherQuestionRepository.findByStatusOrderByCreatedAtDesc(com.midori.entity.UserStatus.ACTIVE.name());
     }
 }

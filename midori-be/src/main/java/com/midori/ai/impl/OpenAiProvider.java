@@ -92,8 +92,11 @@ public class OpenAiProvider implements AiProvider {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", config.getOpenai().getModel());
         requestBody.put("messages", messages);
-        requestBody.put("temperature", 0.7);
-        requestBody.put("max_tokens", 2048);
+        requestBody.put("temperature", 0.25);
+        requestBody.put("max_tokens", 1024);
+        requestBody.put("top_p", 0.8);
+        requestBody.put("frequency_penalty", 0.3);
+        requestBody.put("presence_penalty", 0.0);
 
         return callOpenAiApi(requestBody);
     }
@@ -105,12 +108,19 @@ public class OpenAiProvider implements AiProvider {
     @Override
     public String generateQuestions(String materialTitle, String materialContent,
                                    int questionCount, String questionType, String difficulty) {
+        return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty, null, null);
+    }
+
+    @Override
+    public String generateQuestions(String materialTitle, String materialContent,
+                                   int questionCount, String questionType, String difficulty,
+                                   java.util.List<String> selectedSkills, com.midori.ai.AiTaskType taskType) {
         if (!isConfigured()) {
             throw new IllegalStateException("OpenAI API key is not configured.");
         }
 
         String prompt = AiPromptBuilder.buildQuizGenerationPrompt(
-                materialTitle, materialContent, questionCount, questionType, difficulty);
+                materialTitle, materialContent, questionCount, questionType, difficulty, selectedSkills);
 
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(Map.of("role", "user", "content", prompt));

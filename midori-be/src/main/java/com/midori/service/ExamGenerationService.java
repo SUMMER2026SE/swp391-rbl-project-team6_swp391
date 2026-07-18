@@ -41,4 +41,10 @@ public interface ExamGenerationService {
     ExamResponse updateExam(UUID examId, UpdateExamRequest request);
 
     ExamResponse updateExamQuestions(UUID examId, UpdateExamQuestionsRequest request);
+
+    ExamResponse generateExamFromQuestionBank(com.midori.dto.request.GenerateExamFromQuestionBankRequest request, UserDetails userDetails);
+
+    java.util.List<com.midori.dto.questiondto.TeacherQuestionResponse> previewGeneration(com.midori.dto.request.PreviewGenerationRequest request, UserDetails userDetails);
+
+    java.util.Map<String, java.util.Map<String, Integer>> getQuestionStats(String level, String source, UserDetails userDetails);
 }
