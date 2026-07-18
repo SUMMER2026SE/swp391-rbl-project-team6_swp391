@@ -1,21 +1,17 @@
 package com.midori.service;
 
-import com.midori.ai.AiProvider;
-import com.midori.ai.AiProviderFactory;
-import com.midori.ai.AiProviderType;
+import com.midori.ai.core.AiCoreService;
 import com.midori.dto.shadowing.PronunciationFeedback;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeminiFeedbackService {
 
-    private final AiProviderFactory aiProviderFactory;
+    private final AiCoreService aiCoreService;
 
     public PronunciationFeedback generateFeedback(String reference, String studentTranscript) {
         long start = System.currentTimeMillis();
@@ -50,8 +46,7 @@ public class GeminiFeedbackService {
                 """.formatted(reference, studentTranscript);
 
         try {
-            AiProvider provider = aiProviderFactory.resolve(AiProviderType.GEMINI);
-            String response = provider.chat(
+            String response = aiCoreService.chat(
                     "You are an experienced Japanese pronunciation teacher. Respond ONLY with JSON.",
                     prompt,
                     java.util.Collections.emptyList()

@@ -1,8 +1,6 @@
 package com.midori.service.impl;
 
-import com.midori.ai.AiProvider;
-import com.midori.ai.AiProviderFactory;
-import com.midori.ai.AiProviderType;
+import com.midori.ai.core.AiCoreService;
 import com.midori.config.ShadowingEvaluationConfig;
 import com.midori.dto.shadowing.PronunciationFeedback;
 import com.midori.service.AIFeedbackProvider;
@@ -11,20 +9,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class GeminiFeedbackProvider implements AIFeedbackProvider {
 
-    private final AiProviderFactory aiProviderFactory;
+    private final AiCoreService aiCoreService;
     private final ShadowingEvaluationConfig evaluationConfig;
 
     @Override
     public boolean isConfigured() {
         try {
-            return aiProviderFactory.resolve(AiProviderType.GEMINI).isConfigured();
+            return aiCoreService.getCurrentProvider() != null 
+                    && aiCoreService.getCurrentProvider().isConfigured();
         } catch (Exception ex) {
             return false;
         }
@@ -35,8 +32,7 @@ public class GeminiFeedbackProvider implements AIFeedbackProvider {
         long start = System.currentTimeMillis();
         String prompt = buildPrompt(reference, studentTranscript, metrics, confidence);
         try {
-            AiProvider provider = aiProviderFactory.resolve(AiProviderType.GEMINI);
-            String response = provider.chat(
+            String response = aiCoreService.chat(
                     "You are an experienced Japanese pronunciation teacher. Respond ONLY with JSON.",
                     prompt,
                     java.util.Collections.emptyList()
