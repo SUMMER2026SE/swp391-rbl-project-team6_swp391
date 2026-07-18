@@ -5,8 +5,10 @@ import com.midori.dto.classdto.ClassResponse;
 import com.midori.dto.classdto.CreateClassRequest;
 import com.midori.dto.classdto.UpdateClassRequest;
 import com.midori.dto.classdto.StudentClassResponse;
+import com.midori.dto.progress.StudentProgressResponse;
 import com.midori.security.CustomUserDetails;
 import com.midori.service.ClassService;
+import com.midori.service.StudyProgressService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class TeacherClassController {
 
     private final ClassService classService;
+    private final StudyProgressService studyProgressService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ClassResponse>> createClass(
@@ -88,6 +91,15 @@ public class TeacherClassController {
     public ResponseEntity<ApiResponse<List<ClassResponse>>> getSelectableClasses(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<ClassResponse> response = classService.getSelectableClasses(userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{id}/students/{studentId}/progress")
+    public ResponseEntity<ApiResponse<StudentProgressResponse>> getStudentProgress(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID id,
+            @PathVariable UUID studentId) {
+        StudentProgressResponse response = studyProgressService.getStudentProgressForTeacher(id, studentId, userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

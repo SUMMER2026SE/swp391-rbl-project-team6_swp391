@@ -20,11 +20,15 @@ public class ClassResponse {
     private GrammarLevel level;
     private Integer maxStudents;
     private String description;
+    private String classCode;
     private ClassStatus status;
     private UUID teacherId;
+    private String teacherName;
     private Integer studentCount;
     private Integer homeworkCount;
+    private Integer examCount;
     private Integer upcomingExamCount;
+    private Instant joinDate;
     private Instant createdAt;
     private Instant updatedAt;
 }
