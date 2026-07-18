@@ -12,7 +12,6 @@ const learningLinks: FooterLink[] = [
   { label: "Grammar", href: "/student/grammar" },
   { label: "Flashcards", href: "/student/flashcards" },
   { label: "Listening", href: "/student/listening" },
-  { label: "Progress", href: "/student/progress" },
 ];
 
 const platformLinks: FooterLink[] = [
