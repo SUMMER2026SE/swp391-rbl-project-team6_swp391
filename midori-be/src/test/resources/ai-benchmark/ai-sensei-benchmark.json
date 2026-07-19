@@ -1,0 +1,2417 @@
+[
+  {
+    "id": "G-001",
+    "category": "GRAMMAR",
+    "level": "N5",
+    "prompt": "「です」は普通の動詞ですか？",
+    "expectedFacts": [
+      "です is not an ordinary verb",
+      "です is the polite copula",
+      "です is classified as an auxiliary verb (助動詞)",
+      "です indicates politeness/丁寧語",
+      "です attaches to a noun or na-adjective stem"
+    ],
+    "forbiddenClaims": [
+      "です is an ordinary verb",
+      "です is a regular ichidan verb",
+      "です is a 接続詞",
+      "です is the same as だ with no semantic difference"
+    ],
+    "evaluationCriteria": [
+      "Correctly classifies です as a copula/auxiliary, not as an ordinary verb",
+      "Mentions politeness register (丁寧語 / polite copula)",
+      "Gives a learner-friendly example such as 「私は学生です」"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-002",
+    "category": "GRAMMAR",
+    "level": "N5",
+    "prompt": "「だ」は普通の動詞ですか？",
+    "expectedFacts": [
+      "だ is not an ordinary verb",
+      "だ is the plain-form copula",
+      "だ is an auxiliary verb (助動詞)",
+      "だ follows a noun or na-adjective stem",
+      "だ is used in casual register"
+    ],
+    "forbiddenClaims": [
+      "だ is an ordinary godan verb",
+      "だ is a 接続詞",
+      "だ is the polite form of です"
+    ],
+    "evaluationCriteria": [
+      "States that だ is the plain copula, not an ordinary verb",
+      "Distinguishes だ (plain) from です (polite)",
+      "Provides a learner-friendly example such as 「私は学生だ」"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-003",
+    "category": "GRAMMAR",
+    "level": "N4",
+    "prompt": "「です」と「だ」の違いは？コピュラと助動詞のどちらの分析が正しいですか？",
+    "expectedFacts": [
+      "Both are copula variants",
+      "です is the polite form, だ is the plain form",
+      "です is analysed as 助動詞 (auxiliary verb)",
+      "だ is also typically analysed as 助動詞",
+      "They share the same stem with different politeness registers"
+    ],
+    "forbiddenClaims": [
+      "です is a noun",
+      "だ is an ichidan verb",
+      "です and だ are completely unrelated forms",
+      "Copula analysis is wrong"
+    ],
+    "evaluationCriteria": [
+      "Acknowledges the copula vs auxiliary-verb debate",
+      "States that です is polite and だ is plain",
+      "Mentions 助動詞 as the standard classification"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-004",
+    "category": "GRAMMAR",
+    "level": "N3",
+    "prompt": "「は」と「が」の違いを、文脈をふくめて説明してください。",
+    "expectedFacts": [
+      "は marks the topic",
+      "が marks the subject / new information",
+      "Contrastive は can mark a contrast",
+      "が is required in subordinate clauses for some structures",
+      "Word order and information structure affects choice"
+    ],
+    "forbiddenClaims": [
+      "は always means 'topic'",
+      "が always marks the subject",
+      "は and が are interchangeable in all sentences",
+      "Only one of them can mark the subject"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes topic-marking は from subject-marking が",
+      "Gives example sentences for at least two distinct uses",
+      "Mentions contrastive は or subordinate-clause が when relevant"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-005",
+    "category": "GRAMMAR",
+    "level": "N3",
+    "prompt": "「こと」と「の」の使い分けを、名詞化の意味から説明してください。",
+    "expectedFacts": [
+      "Both nominalise clauses",
+      "こと is preferred for abstract / factual nominalisation",
+      "の is preferred for casual, personal, or descriptive nominalisation",
+      "Some verbs allow only こと or only の",
+      "Certain sentence-final expressions require こと (e.g. ことができる)"
+    ],
+    "forbiddenClaims": [
+      "こと and の are always interchangeable",
+      "のこと always means the same thing",
+      "Only こと is a nominaliser",
+      "Only の is a nominaliser"
+    ],
+    "evaluationCriteria": [
+      "States the abstract-vs-concrete difference",
+      "Provides at least one example sentence",
+      "Acknowledges verb-specific restrictions"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-006",
+    "category": "GRAMMAR",
+    "level": "N3",
+    "prompt": "「そうだ」「ようだ」「らしい」の意味と用法の違いをまとめてください。",
+    "expectedFacts": [
+      "そうだ (様態) = appearance / looks like",
+      "そうだ (伝聞) = hearsay, based on what one heard",
+      "ようだ = conjecture based on evidence, or similarity",
+      "らしい = conjecture based on evidence, or hearsay depending on context",
+      "All three express different evidential / hearsay flavours"
+    ],
+    "forbiddenClaims": [
+      "そうだ always means hearsay",
+      "ようだ and らしい are identical",
+      "らしい only means hearsay",
+      "そうだ and ようだ can be used after any verb form without restrictions"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes the two そうだ (様態 vs 伝聞)",
+      "Distinguishes ようだ from らしい",
+      "Gives example sentences for at least two of the three"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-007",
+    "category": "GRAMMAR",
+    "level": "N2",
+    "prompt": "「ために」と「ように」の意味・用法の違いを、文型の目的・目的語の性質から説明してください。",
+    "expectedFacts": [
+      "ために follows a volitional subject / agent",
+      "ように follows a non-volitional outcome / purpose",
+      "ために can mean 'because of' (原因)",
+      "ように can mean 'so that / in order that' (indirect purpose)",
+      "Verb type affects which is appropriate"
+    ],
+    "forbiddenClaims": [
+      "ために and ように are fully interchangeable",
+      "ように always implies a volitional subject",
+      "ために cannot mean 'because of'"
+    ],
+    "evaluationCriteria": [
+      "Highlights the volitional vs non-volitional distinction",
+      "Mentions the secondary meanings (cause / indirect purpose)",
+      "Gives a contrastive example pair"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-008",
+    "category": "GRAMMAR",
+    "level": "N2",
+    "prompt": "「わけではない」の使い方と、含意される「部分否定」のニュアンスを教えてください。",
+    "expectedFacts": [
+      "わけではない expresses 'it's not the case that ...'",
+      "It conveys a partial / soft negation",
+      "It is often used to soften or correct a possible misunderstanding",
+      "It is different from full negation ない",
+      "It can be paraphrased as とは限らない / とは言えない"
+    ],
+    "forbiddenClaims": [
+      "わけではない is a complete negation",
+      "わけではない is the same as ない",
+      "わけではない is only used in formal writing"
+    ],
+    "evaluationCriteria": [
+      "Explains the partial-negation nuance",
+      "Distinguishes it from full negation",
+      "Gives a natural example sentence"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-009",
+    "category": "GRAMMAR",
+    "level": "N1",
+    "prompt": "「〜ものの」の文法的な特徴と、対比・逆接の含意を説明してください。",
+    "expectedFacts": [
+      "ものの is a concessive conjunction",
+      "It connects two clauses with contrast / unexpected outcome",
+      "It implies 'although ... (the expected did not happen)'",
+      "It is used in written or formal Japanese",
+      "It is interchangeable with のに / けれど in some contexts but has its own nuance"
+    ],
+    "forbiddenClaims": [
+      "ものの is the same as から",
+      "ものの expresses a cause",
+      "ものの can be used in casual speech without any change in register"
+    ],
+    "evaluationCriteria": [
+      "Identifies ものの as concessive / contrastive",
+      "Mentions its written or formal register",
+      "Provides a contrastive example"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "G-010",
+    "category": "GRAMMAR",
+    "level": "non-JLPT",
+    "prompt": "「〜に違いない」の意味、用法、対訳を教えてください。実際の用例もお願いします。",
+    "expectedFacts": [
+      "に違いない expresses strong conjecture",
+      "It implies near-certainty ('must be')",
+      "It can attach to verbs, adjectives, and nouns",
+      "It is more assertive than だろう / と思う",
+      "A natural example is 「あ的人是田中さんに違いない」"
+    ],
+    "forbiddenClaims": [
+      "に違いない is the same as かもしれない",
+      "に違いない expresses doubt",
+      "に違いない can only attach to nouns"
+    ],
+    "evaluationCriteria": [
+      "States the strong-conjecture nuance",
+      "Distinguishes it from weaker conjecture forms",
+      "Gives at least one realistic example"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-001",
+    "category": "PARTICLES",
+    "level": "N5",
+    "prompt": "「に」と「へ」の違いは何ですか？「東京に行く」と「東京へ行く」のニュアンスをふくめて教えてください。",
+    "expectedFacts": [
+      "に marks direction / destination",
+      "へ emphasises direction / movement",
+      "Both can mark a destination in modern Japanese",
+      "へ is more about direction; に is more about the endpoint",
+      "In casual speech they are largely interchangeable for destinations"
+    ],
+    "forbiddenClaims": [
+      "に and へ are always different",
+      "へ cannot mark a destination",
+      "に and へ are always identical",
+      "へ only appears in writing"
+    ],
+    "evaluationCriteria": [
+      "Explains that へ emphasises direction while に emphasises the endpoint",
+      "States that both work for destinations in modern Japanese",
+      "Provides an example sentence"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-002",
+    "category": "PARTICLES",
+    "level": "N5",
+    "prompt": "「に」と「で」の違いを、「場所」と「手段」の観点から説明してください。",
+    "expectedFacts": [
+      "に marks the destination / existence / time point",
+      "で marks the location of an action (verb of action)",
+      "で marks the means / instrument / material",
+      "「学校にいる」 vs 「学校で働く」",
+      "「ペンで書く」 = write with a pen"
+    ],
+    "forbiddenClaims": [
+      "に always means 'to'",
+      "で always means 'by'",
+      "で and に are interchangeable for any location",
+      "に cannot mark a location"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes action-location (で) from existence/destination (に)",
+      "Mentions the instrumental use of で",
+      "Provides a contrastive example pair"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-003",
+    "category": "PARTICLES",
+    "level": "N4",
+    "prompt": "「公園を歩く」の「を」は何を表していますか？「を通る」「を渡る」との違いも教えてください。",
+    "expectedFacts": [
+      "を marks the route / path of motion",
+      "It is used with movement verbs (歩く、走る、通る、渡る)",
+      "It does NOT mark a direct object here",
+      "を通る emphasises passing through",
+      "を渡る emphasises crossing"
+    ],
+    "forbiddenClaims": [
+      "を here always marks the direct object",
+      "を cannot mark a route",
+      "を here is the same as the accusative を",
+      "公園を歩く is ungrammatical"
+    ],
+    "evaluationCriteria": [
+      "Identifies を as a route/through marker, not direct object",
+      "Mentions movement verbs that take this を",
+      "Distinguishes を通る and を渡る if appropriate"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-004",
+    "category": "PARTICLES",
+    "level": "N3",
+    "prompt": "従属節の中で「が」を使う場合と「は」を使う場合の違いを教えてください。",
+    "expectedFacts": [
+      "が marks the subject inside subordinate clauses",
+      "は is normally NOT used to mark the subject of a subordinate clause",
+      "「彼が学生だと思う」 is correct",
+      "「彼は学生だと思う」 is unnatural in that subordinate position",
+      "Exception: contrastive は can appear in some subordinate clauses"
+    ],
+    "forbiddenClaims": [
+      "は and が are interchangeable in subordinate clauses",
+      "が cannot mark a subordinate-clause subject",
+      "は is always required in subordinate clauses"
+    ],
+    "evaluationCriteria": [
+      "States that subordinate-clause subjects take が",
+      "Gives an example with と思う or similar",
+      "Mentions the contrastive exception briefly"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-005",
+    "category": "PARTICLES",
+    "level": "N3",
+    "prompt": "「は」の対比用法（contrastive は）の使い方と、対比の「が」との違いを説明してください。",
+    "expectedFacts": [
+      "Contrastive は marks an item contrasted with another",
+      "「コーヒーは飲みますが、紅茶は飲みません」",
+      "Contrastive が emphasises one element as exceptional",
+      "「彼はできるが、妹はできない」",
+      "Both express contrast but with different emphasis"
+    ],
+    "forbiddenClaims": [
+      "Contrastive は means the same as contrastive が",
+      "Contrastive は is the same as topic は",
+      "Contrastive が cannot be used"
+    ],
+    "evaluationCriteria": [
+      "Defines contrastive は with at least one example",
+      "Distinguishes it from contrastive が",
+      "Avoids conflating it with the topic は"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-006",
+    "category": "PARTICLES",
+    "level": "N4",
+    "prompt": "「まで」と「までに」の違いを教えてください。",
+    "expectedFacts": [
+      "まで marks a continuous endpoint (time or space)",
+      "までに marks a deadline / boundary before which something happens",
+      "「5時まで働く」 = work until 5",
+      "「5時までに来て」 = come by 5",
+      "までに implies the action does not continue past the time point"
+    ],
+    "forbiddenClaims": [
+      "まで and までに are identical",
+      "までに marks a continuous action",
+      "まで can only mark space"
+    ],
+    "evaluationCriteria": [
+      "States the deadline vs endpoint distinction",
+      "Provides example sentences for both",
+      "Avoids describing までに as continuous"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-007",
+    "category": "PARTICLES",
+    "level": "N4",
+    "prompt": "「と」と「たら」の仮定用法の違いは何ですか？",
+    "expectedFacts": [
+      "と expresses a natural / habitual / certain consequence",
+      "たら expresses a one-time contingent condition ('if/when')",
+      "と is more limited to natural or automatic results",
+      "たら can be used in more varied contexts including past",
+      "Both can express conditional meaning but with different nuance"
+    ],
+    "forbiddenClaims": [
+      "と and たら are always interchangeable",
+      "たら only expresses past",
+      "と only expresses past"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes natural-consequence と from contingent たら",
+      "Gives at least one contrastive example",
+      "Mentions that たら has wider applicability"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-008",
+    "category": "PARTICLES",
+    "level": "N4",
+    "prompt": "「から」と「ので」の違いは何ですか？文体の観点から教えてください。",
+    "expectedFacts": [
+      "から marks subjective reason / cause",
+      "ので marks more objective / explanatory reason",
+      "ので is more polite than から",
+      "ので is preferred in formal writing",
+      "から can express volition / command (から+imperative)"
+    ],
+    "forbiddenClaims": [
+      "から and ので are always identical",
+      "ので cannot be used in polite sentences",
+      "から cannot be used in polite sentences"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes subjective (から) from objective (ので)",
+      "Notes that ので tends to be more polite/formal",
+      "Gives an example for each"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-009",
+    "category": "PARTICLES",
+    "level": "N2",
+    "prompt": "「によって」の複数の用法（手段・受動文・原因・依存）を整理して説明してください。",
+    "expectedFacts": [
+      "によって can mean 'by means of'",
+      "によって can mark the agent in passive sentences",
+      "によって can mean 'depending on'",
+      "によって can mean 'due to / because of'",
+      "The same form carries multiple distinct grammatical roles"
+    ],
+    "forbiddenClaims": [
+      "によって has only one meaning",
+      "によって cannot be used in passive sentences",
+      "によって always means 'because of'"
+    ],
+    "evaluationCriteria": [
+      "Lists at least two distinct uses of によって",
+      "Gives example sentences for at least two of those uses",
+      "Acknowledges that meaning depends on context"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "P-010",
+    "category": "PARTICLES",
+    "level": "N2",
+    "prompt": "「について」と「に対して」の違いは何ですか？",
+    "expectedFacts": [
+      "について means 'about / concerning' a topic",
+      "に対して marks a target / audience / counterpart",
+      "について is used for topic-of-discussion",
+      "に対して can imply contrast, response, or directed action",
+      "They are NOT fully interchangeable"
+    ],
+    "forbiddenClaims": [
+      "について and に対して are identical",
+      "に対して only means 'against'",
+      "について only means 'about a person'"
+    ],
+    "evaluationCriteria": [
+      "States that について is topic-related",
+      "States that に対して marks a target or directed action",
+      "Provides an example contrasting the two"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-001",
+    "category": "VERB_BEHAVIOR",
+    "level": "N5",
+    "prompt": "一段動詞と五段動詞はどう違いますか？",
+    "expectedFacts": [
+      "Ichidan verbs end in -eru or -iru (not -aru etc.) and conjugate uniformly",
+      "Godan verbs change the final sound across the conjugation paradigm",
+      "Ichidan: 食べる → 食べて, 食べた",
+      "Godan: 書く → 書いて, 書いた",
+      "Identification depends on the dictionary form and conjugation pattern"
+    ],
+    "forbiddenClaims": [
+      "All -iru / -eru verbs are ichidan",
+      "Ichidan and godan verbs conjugate identically",
+      "Godan verbs only end in -u",
+      "Ichidan verbs cannot take を"
+    ],
+    "evaluationCriteria": [
+      "Describes the conjugation pattern difference",
+      "Gives example verbs for both classes",
+      "Acknowledges that the -iru / -eru ending is not sufficient alone"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-002",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "「る」で終わるのに五段動詞の動詞にはどんなものがありますか？",
+    "expectedFacts": [
+      "Some godan verbs end in -iru or -eru, e.g. 走る、帰る、切る、喋る、減る、知る、要る",
+      "These can be confused with ichidan verbs",
+      "The te-form and past-form reveal the class",
+      "Pattern: godan -iru verbs have only one mora before -ru",
+      "Common pitfall: 知る ≠ ichidan, despite the appearance"
+    ],
+    "forbiddenClaims": [
+      "All -iru / -eru verbs are ichidan",
+      "Godan verbs cannot end in -eru",
+      "走る is ichidan",
+      "知る is ichidan"
+    ],
+    "evaluationCriteria": [
+      "Names at least three godan verbs ending in -iru / -eru",
+      "Explains how to test (te-form or past-form)",
+      "Distinguishes at least one false-ichidan example"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-003",
+    "category": "VERB_BEHAVIOR",
+    "level": "N5",
+    "prompt": "「て形」の作り方を、一段動詞と五段動詞に分けて教えてください。",
+    "expectedFacts": [
+      "Ichidan: drop -ru and add -te",
+      "Godan: change final -u based on the kana row",
+      "Examples: 食べて (ichidan) / 書いて (godan)",
+      "Irregular verbs: 行く → 行って, する → して, 来る → 来て",
+      "The te-form is shared with the ta-form (past)"
+    ],
+    "forbiddenClaims": [
+      "All verbs form te the same way",
+      "行く → 行いて is correct",
+      "する → すて is correct"
+    ],
+    "evaluationCriteria": [
+      "Shows te-form formation for ichidan and godan",
+      "Mentions at least two irregular verbs",
+      "Provides example verbs"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-004",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "受身形（passive）の作り方を、能動文と比較して教えてください。",
+    "expectedFacts": [
+      "Passive is formed by changing the verb into its passive form",
+      "Ichidan: drop -ru, add -rareru",
+      "Godan: change final -u to -areru",
+      "Example: 先生が生徒を褒める → 生徒が先生に褒められる",
+      "Indirect passive (迷惑の受身) marks the affected party"
+    ],
+    "forbiddenClaims": [
+      "Passive is formed by adding られる only",
+      "Passive in Japanese is identical to English passive in all cases",
+      "Indirect passive does not exist in Japanese"
+    ],
+    "evaluationCriteria": [
+      "States the formation rules for ichidan and godan",
+      "Provides a sample sentence transformation",
+      "Mentions the affected party or 迷惑の受身 if relevant"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-005",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "使役形（causative）の作り方を、例文とともに教えてください。",
+    "expectedFacts": [
+      "Causative is formed by adding -saseru (ichidan) or -aseru (godan)",
+      "Ichidan: 食べる → 食べさせる",
+      "Godan: 書く → 書かせる",
+      "Means 'make/let someone do something'",
+      "Marks both the causee and the cause"
+    ],
+    "forbiddenClaims": [
+      "Causative is identical to passive",
+      "Causative cannot be used with させる",
+      "Causative only works on ichidan verbs"
+    ],
+    "evaluationCriteria": [
+      "States the formation rules",
+      "Gives at least one example sentence",
+      "Explains the basic meaning (make/let)"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-006",
+    "category": "VERB_BEHAVIOR",
+    "level": "N3",
+    "prompt": "使役受身形（causative-passive）の使い方とニュアンスを教えてください。",
+    "expectedFacts": [
+      "Causative-passive combines 使役 + 受身",
+      "It expresses 'being made/forced to do something'",
+      "Form: verb-saserareru (ichidan) / -aserareru (godan)",
+      "Common with 迷惑の受身: 'I was made to ...' (with negative affect)",
+      "Often implies reluctance or unwanted situation"
+    ],
+    "forbiddenClaims": [
+      "Causative-passive is the same as causative",
+      "Causative-passive implies positive feeling",
+      "It is formed with -rareru only"
+    ],
+    "evaluationCriteria": [
+      "Identifies the form (-saserareru etc.)",
+      "Describes the 'being forced' nuance",
+      "Gives at least one example"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-007",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "可能形（potential form）の作り方と、「見られる／聞ける」のような可能動詞との違いを教えてください。",
+    "expectedFacts": [
+      "Potential form: ichidan -rareru; godan -eru",
+      "Example: 食べる → 食べられる; 書く → 書ける",
+      "る verbs can shift to ら抜き (見られる → 見れる) in casual speech",
+      "Potential verbs (書ける, 見られる) conjugate as ichidan",
+      "May involve object → subject rephrasing"
+    ],
+    "forbiddenClaims": [
+      "Potential is identical to passive",
+      "書ける is a noun",
+      "Potential cannot be used with が"
+    ],
+    "evaluationCriteria": [
+      "States the formation rule",
+      "Gives at least one example",
+      "Acknowledges that the resulting form is ichidan"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-008",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "条件形（〜ば／〜たら／〜と／〜なら）のニュアンスの違いを教えてください。",
+    "expectedFacts": [
+      "と = natural / automatic consequence",
+      "たら = one-time contingent condition; widest use",
+      "ば = general / hypothetical condition; restricted contexts",
+      "なら = topic-setting / 'if it is the case that ...'",
+      "They cannot always be interchanged"
+    ],
+    "forbiddenClaims": [
+      "All four conditionals are interchangeable",
+      "なら is the same as と",
+      "ば can be used with any verb in any context"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes at least three of the four",
+      "Provides at least one contrastive example",
+      "Acknowledges nuance differences"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-009",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "「ている」の「進行中」と「結果の状態」の違いを、例を挙げて説明してください。",
+    "expectedFacts": [
+      "ている with action verbs = ongoing action (今勉強している)",
+      "ている with change/state verbs = resulting state (結婚している)",
+      "Example pair: 食べている (eating) vs 知っている (know / state)",
+      "Aspect distinction: progressive vs perfect",
+      "Some verbs allow both readings depending on context"
+    ],
+    "forbiddenClaims": [
+      "ている always means progressive",
+      "ている always means state",
+      "知っている means 'is knowing' (always progressive)"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes progressive from result-state readings",
+      "Gives example verbs illustrating each",
+      "Mentions that some verbs only support one reading"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "V-010",
+    "category": "VERB_BEHAVIOR",
+    "level": "N3",
+    "prompt": "代表的な自動詞・他動詞のペア（開く／開ける、始める／始まるなど）を整理してください。",
+    "expectedFacts": [
+      "開く = intransitive (door opens by itself)",
+      "開ける = transitive (someone opens the door)",
+      "始まる = intransitive, 始める = transitive",
+      "Pattern: -u intransitive vs -eru transitive (sometimes)",
+      "Other common pairs: 落ちる／落とす, 消える／消す, 壊れる／壊す"
+    ],
+    "forbiddenClaims": [
+      "開く and 開ける are identical",
+      "Transitive/intransitive pairing is irregular and unpredictable",
+      "始まる can be used transitively"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes at least two pairs",
+      "Provides example sentences",
+      "Mentions a general pattern if appropriate"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-001",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N4",
+    "prompt": "「開く」と「開ける」の自動詞・他動詞としての違いを、例文とともに教えてください。",
+    "expectedFacts": [
+      "開く (あく) = intransitive (door opens)",
+      "開ける (あける) = transitive (someone opens it)",
+      "Example: ドアが開く / ドアを開ける",
+      "Potential 開ける is ichidan",
+      "Godan/intransitive vs ichidan/transitive pattern"
+    ],
+    "forbiddenClaims": [
+      "開く and 開ける are interchangeable",
+      "開く is transitive",
+      "開ける is intransitive"
+    ],
+    "evaluationCriteria": [
+      "Correctly classifies 開く as intransitive",
+      "Correctly classifies 開ける as transitive",
+      "Provides example sentences"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-002",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N4",
+    "prompt": "「始める」と「始まる」の使い分けを教えてください。",
+    "expectedFacts": [
+      "始める = transitive (start something)",
+      "始まる = intransitive (something starts)",
+      "Example: 授業を始める / 授業が始まる",
+      "始める takes a direct object",
+      "始まる cannot take a direct object in the same way"
+    ],
+    "forbiddenClaims": [
+      "Both verbs work transitively",
+      "Both verbs work intransitively only",
+      "始める = 始まる"
+    ],
+    "evaluationCriteria": [
+      "States the transitive/intransitive distinction",
+      "Gives example sentences for both",
+      "Mentions the object-taking difference"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-003",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N3",
+    "prompt": "「落ちる」と「落とす」の自動詞・他動詞の関係をまとめてください。",
+    "expectedFacts": [
+      "落ちる = intransitive (fall by itself)",
+      "落とす = transitive (drop something)",
+      "落ちる follows the -eru (intransitive) / -osu (transitive) pattern",
+      "Example: 花が落ちる / 花を落とす",
+      "Pattern: -eru intransitive vs -osu transitive (drop)"
+    ],
+    "forbiddenClaims": [
+      "Both verbs can be transitive",
+      "落とす means 'fall'",
+      "落ちる requires を"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes 落ちる (intransitive) from 落とす (transitive)",
+      "Provides example sentences",
+      "Mentions the role of を / が in marking the difference"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-004",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N3",
+    "prompt": "「壊れる」と「壊す」の違いを、自動詞・他動詞の観点から説明してください。",
+    "expectedFacts": [
+      "壊れる = intransitive (break by itself / be broken)",
+      "壊す = transitive (break something)",
+      "Example: 窓が壊れる / 窓を壊す",
+      "壊れる follows the -eru (intransitive) pattern",
+      "Transitivity affects the particle used (が / を)"
+    ],
+    "forbiddenClaims": [
+      "壊れる and 壊す are interchangeable",
+      "壊す means 'break down (intransitive)'",
+      "Both take を"
+    ],
+    "evaluationCriteria": [
+      "Correctly classifies each verb",
+      "Provides an example for each",
+      "Highlights the role of を / が"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-005",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N2",
+    "prompt": "「消える」と「消す」の自動詞・他動詞の使い分けを、文脈をふくめて教えてください。",
+    "expectedFacts": [
+      "消える = intransitive (something disappears / goes out)",
+      "消す = transitive (someone extinguishes / erases something)",
+      "Example: 火が消える / 火を消す",
+      "Used metaphorically: 記憶が消える / 記憶を消す",
+      "Particles change with transitivity"
+    ],
+    "forbiddenClaims": [
+      "Both verbs work identically",
+      "消える requires を",
+      "消す requires が"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes the two verbs",
+      "Provides examples including literal and figurative uses",
+      "Notes the particle changes"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-006",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N2",
+    "prompt": "「集まる」と「集める」の自動詞・他動詞としての関係は？",
+    "expectedFacts": [
+      "集まる = intransitive (people gather by themselves)",
+      "集める = transitive (someone gathers people/things)",
+      "Example: 人が集まる / 人を集める",
+      "Same as -u / -eru pairing",
+      "Particles: が for intransitive, を for transitive"
+    ],
+    "forbiddenClaims": [
+      "Both are transitive",
+      "Both are intransitive",
+      "集める is a noun"
+    ],
+    "evaluationCriteria": [
+      "Correctly classifies both verbs",
+      "Provides example sentences",
+      "Mentions particle choice"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-007",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N2",
+    "prompt": "「汚れる」と「汚す」の関係を教えてください。",
+    "expectedFacts": [
+      "汚れる = intransitive (becomes dirty)",
+      "汚す = transitive (makes something dirty)",
+      "Example: 服が汚れる / 服を汚す",
+      "Pattern: -eru (intransitive) vs -su (transitive)",
+      "Used with food / clothing / reputation"
+    ],
+    "forbiddenClaims": [
+      "両者は完全に同じ動詞です",
+      "汚れる is transitive",
+      "汚す is intransitive"
+    ],
+    "evaluationCriteria": [
+      "States which is transitive and which is intransitive",
+      "Provides an example for each",
+      "Mentions the typical pattern"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-008",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N1",
+    "prompt": "「凍る」と「凍らせる」のような、自動詞と使役形による他動詞化の違いは何ですか？",
+    "expectedFacts": [
+      "凍る = intransitive (water freezes by itself)",
+      "凍らせる = causative form of 凍る (freezes something intentionally)",
+      "Causative allows an agent",
+      "Used in scientific / cooking contexts",
+      "Example: 水が凍る / 氷を凍らせる"
+    ],
+    "forbiddenClaims": [
+      "凍る and 凍らせる are identical",
+      "凍る can take a direct object",
+      "凍らせる means 'to melt'"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes intransitive from causative-transitive",
+      "Provides example sentences",
+      "Mentions the agentive meaning"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-009",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "N1",
+    "prompt": "「増える」と「増やす」の意味・用法を整理してください。",
+    "expectedFacts": [
+      "増える = intransitive (increases by itself)",
+      "増やす = transitive (someone increases it)",
+      "Example: 利用者が増える / 利用者を増やす",
+      "Pattern: -eru (intransitive) vs -su (transitive)",
+      "Transitivity affects particles"
+    ],
+    "forbiddenClaims": [
+      "両者は完全に同じです",
+      "Both take を",
+      "Both take が"
+    ],
+    "evaluationCriteria": [
+      "Classifies each correctly",
+      "Provides example sentences",
+      "Highlights the particle contrast"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "TI-010",
+    "category": "TRANSITIVE_INTRANSITIVE",
+    "level": "non-JLPT",
+    "prompt": "「売れる」と「売る」の自動詞・他動詞の関係を、実用例で教えてください。",
+    "expectedFacts": [
+      "売る = transitive (someone sells something)",
+      "売れる = intransitive / potential (something sells well)",
+      "Example: 店で本を売る / この本はよく売れる",
+      "Potential reading implies passive / ability",
+      "Used in commercial / marketing contexts"
+    ],
+    "forbiddenClaims": [
+      "両者は完全に同じです",
+      "売れる means 'to sell (transitive)'",
+      "Both always require the same particle"
+    ],
+    "evaluationCriteria": [
+      "States that 売る is transitive",
+      "States that 売れる is intransitive/potential",
+      "Provides example sentences"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-001",
+    "category": "TRANSLATION",
+    "level": "N5",
+    "prompt": "「私がやったのは彼です。」を自然な日本語に翻訳してください。",
+    "expectedFacts": [
+      "Preserves the meaning of the original",
+      "Uses natural Japanese word order",
+      "Could be: 「やったのは私ではなく、彼です。」",
+      "Preserves contrastive は",
+      "Output is in polite or plain form depending on the situation"
+    ],
+    "forbiddenClaims": [
+      "Translation must include garbled word order",
+      "The original is ungrammatical and impossible to translate",
+      "Translation must omit the contrast marker"
+    ],
+    "evaluationCriteria": [
+      "Conveys the original meaning",
+      "Uses natural Japanese (not machine-translated-sounding)",
+      "Produces a grammatical sentence"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-002",
+    "category": "TRANSLATION",
+    "level": "N4",
+    "prompt": "「I have been studying Japanese for three years.」を自然な日本語に翻訳してください。",
+    "expectedFacts": [
+      "三年(間)日本語を勉強しています",
+      "三年(間)日本語を勉強してきました",
+      "三年(間)日本語を勉強しているところです",
+      "Aspect (ongoing) is preserved",
+      "Duration (三年) is preserved"
+    ],
+    "forbiddenClaims": [
+      "三年日本語を勉強します (aspect wrong)",
+      "日本語を三年勉強する (tense/aspect wrong)",
+      "Aspect is irrelevant in Japanese"
+    ],
+    "evaluationCriteria": [
+      "Preserves the duration (三年)",
+      "Preserves the ongoing / present perfect aspect",
+      "Uses a natural Japanese phrasing"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-003",
+    "category": "TRANSLATION",
+    "level": "N4",
+    "prompt": "「I don't think he will come.」を自然な日本語に翻訳してください。",
+    "expectedFacts": [
+      "彼は来ないと思います",
+      "彼は来ないだろうと思います",
+      "Preserves the negation (not come)",
+      "Preserves the opinion marker (思う)",
+      "Uses ない-form correctly"
+    ],
+    "forbiddenClaims": [
+      "He comes I think not",
+      "彼は来ると思います (negation lost)",
+      "Negation is optional"
+    ],
+    "evaluationCriteria": [
+      "Preserves the negation",
+      "Preserves the speaker's opinion",
+      "Uses natural Japanese"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-004",
+    "category": "TRANSLATION",
+    "level": "N3",
+    "prompt": "「If it rains tomorrow, the picnic will be cancelled.」を自然な日本語に翻訳してください。",
+    "expectedFacts": [
+      "明日雨が降ったら、ピクニックは中止になります",
+      "Preserves the conditional relation",
+      "Preserves the result clause",
+      "Uses たら / ば / と / なら appropriately",
+      "Result implies a passive/impersonal outcome"
+    ],
+    "forbiddenClaims": [
+      "Conditional is omitted",
+      "Result is omitted",
+      "Tomorrow's picnic rains"
+    ],
+    "evaluationCriteria": [
+      "Preserves both the condition and the result",
+      "Uses appropriate conditional form",
+      "Sounds natural in Japanese"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-005",
+    "category": "TRANSLATION",
+    "level": "N3",
+    "prompt": "「Could you please send me the report by Friday?」を丁寧な日本語のビジネスメール文に翻訳してください。",
+    "expectedFacts": [
+      "Uses いただく or similar polite request form",
+      "Uses ございます or おります where appropriate",
+      "金曜までに報告書をお送りいただけますでしょうか",
+      "Preserves the polite request nuance",
+      "Uses appropriate keigo for the request"
+    ],
+    "forbiddenClaims": [
+      "Translates literally word-by-word",
+      "Uses casual register in a business email",
+      "Omits the politeness"
+    ],
+    "evaluationCriteria": [
+      "Uses polite request form (いただける／いただく)",
+      "Preserves the deadline (金曜日)",
+      "Sounds natural in business Japanese"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-006",
+    "category": "TRANSLATION",
+    "level": "N3",
+    "prompt": "「Sorry, I'm running a bit late.」をカジュアルな日本語のメッセージに翻訳してください。",
+    "expectedFacts": [
+      "Uses casual register (e.g. ごめん、ちょっと遅れる)",
+      "Preserves the apology",
+      "Preserves the lateness",
+      "Could include すぐ行く / 今向かっている",
+      "Uses casual sentence-ending forms"
+    ],
+    "forbiddenClaims": [
+      "Uses formal business keigo here",
+      "Apology is omitted",
+      "Late is omitted"
+    ],
+    "evaluationCriteria": [
+      "Uses casual register",
+      "Preserves the apology and lateness",
+      "Sounds natural in a casual message"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-007",
+    "category": "TRANSLATION",
+    "level": "N2",
+    "prompt": "「I sincerely apologize for the inconvenience.」を丁寧な日本語のビジネス謝罪メール文に翻訳してください。",
+    "expectedFacts": [
+      "Uses ご迷惑 / お詫び / 申し訳ございません",
+      "Uses polite keigo (お詫び申し上げます)",
+      "Preserves the sincerity of the apology",
+      "Appropriate for formal business apology",
+      "Avoids casual register"
+    ],
+    "forbiddenClaims": [
+      "Casual register (ごめん)",
+      "Apology is omitted",
+      "Translates word-by-word literally"
+    ],
+    "evaluationCriteria": [
+      "Uses polite keigo",
+      "Preserves sincerity",
+      "Sounds natural in formal Japanese"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-008",
+    "category": "TRANSLATION",
+    "level": "N2",
+    "prompt": "「Would you mind opening the window?」を自然な日本語に翻訳してください。",
+    "expectedFacts": [
+      "Uses polite request form (～てもらえますか / ～ていただけますか)",
+      "Preserves the politeness / indirectness",
+      "Could be: 窓を開けていただけますか / 窓を開けてもらえますか",
+      "Preserves the request content",
+      "Avoids translating 'mind' literally"
+    ],
+    "forbiddenClaims": [
+      "Translates 'mind' literally as 心",
+      "Uses imperative 開けろ",
+      "Omits the request form"
+    ],
+    "evaluationCriteria": [
+      "Uses polite request form",
+      "Preserves the request content",
+      "Avoids awkward literal translation"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-009",
+    "category": "TRANSLATION",
+    "level": "N2",
+    "prompt": "「Although it was raining, the event was held as scheduled.」を自然な日本語に翻訳してください。",
+    "expectedFacts": [
+      "Uses concessive form (のに / けれど / ものの / にもかかわらず)",
+      "Preserves the contrast between rain and event proceeding",
+      "Could be: 雨が降っていたが、イベントは予定通り行われた",
+      "Preserves the past tense",
+      "Uses natural Japanese connectives"
+    ],
+    "forbiddenClaims": [
+      "Omits the contrast",
+      "Translates 'although' as 'because'",
+      "Uses incorrect tense"
+    ],
+    "evaluationCriteria": [
+      "Uses an appropriate concessive form",
+      "Preserves the contrastive meaning",
+      "Uses natural Japanese"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "T-010",
+    "category": "TRANSLATION",
+    "level": "non-JLPT",
+    "prompt": "「Please give me a call when you have a moment.」を自然な日本語のビジネス連絡文に翻訳してください。",
+    "expectedFacts": [
+      "Uses polite request form",
+      "Could be: お時間のある時にご連絡ください / お手すきの際にお電話いただけますと幸いです",
+      "Preserves the polite request",
+      "Preserves the timing nuance",
+      "Uses appropriate business register"
+    ],
+    "forbiddenClaims": [
+      "Translates literally as 'call me'",
+      "Uses casual register",
+      "Omits the politeness"
+    ],
+    "evaluationCriteria": [
+      "Uses polite business register",
+      "Preserves the timing nuance",
+      "Sounds natural in a business context"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-001",
+    "category": "CORRECTION",
+    "level": "N5",
+    "prompt": "次の文を訂正してください：「私は日本へ住んでいます。」",
+    "expectedFacts": [
+      "に is correct for a static location (住在)",
+      "Corrected: 「私は日本に住んでいます。」",
+      "へ emphasises direction; に is appropriate for residence",
+      "Explanation: を would imply movement out of a route",
+      "「に」 vs 「へ」 distinction applies"
+    ],
+    "forbiddenClaims": [
+      "へ is always wrong",
+      "に and へ are identical",
+      "日本に住んでいます is grammatically wrong"
+    ],
+    "evaluationCriteria": [
+      "Corrects the particle to に",
+      "Explains why に is appropriate",
+      "Provides the corrected sentence"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-002",
+    "category": "CORRECTION",
+    "level": "N4",
+    "prompt": "次の文を訂正してください：「昨日、映画を見ています。」",
+    "expectedFacts": [
+      "Tense mismatch: 'yesterday' implies past",
+      "Corrected: 「昨日、映画を見ました。」 or 「昨日、映画を見ていました。」",
+      "ている indicates current state / ongoing action",
+      "見る (transient) needs past tense",
+      "Choosing 見ていた depends on the intended meaning"
+    ],
+    "forbiddenClaims": [
+      "The original sentence is correct",
+      "日本語に直す必要はありません",
+      "Tense is irrelevant"
+    ],
+    "evaluationCriteria": [
+      "Identifies the tense mismatch",
+      "Provides a corrected sentence",
+      "Explains the tense choice"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-003",
+    "category": "CORRECTION",
+    "level": "N4",
+    "prompt": "「私は毎日日本語を勉強することが好きです。」は自然ですか？直すとどうなりますか？",
+    "expectedFacts": [
+      "Grammatically possible but slightly stiff / unnatural",
+      "More natural: 「私は毎日日本語を勉強するのが好きです。」",
+      "こと vs の nominalisation choice",
+      "の is preferred for habitual / personal preference",
+      "Alternatively: 「私は日本語を毎日勉強するのが好きです。」"
+    ],
+    "forbiddenClaims": [
+      "Original is fully natural and needs no change",
+      "Original is completely ungrammatical",
+      "Always use こと for nominalisation"
+    ],
+    "evaluationCriteria": [
+      "Identifies the naturalness issue",
+      "Provides a more natural alternative",
+      "Explains why の is preferred here"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-004",
+    "category": "CORRECTION",
+    "level": "N3",
+    "prompt": "次の文を訂正してください：「私にコーヒーを飲みました。」",
+    "expectedFacts": [
+      "Particle error: に should be は (or を is omitted)",
+      "Corrected: 「私はコーヒーを飲みました。」",
+      "に cannot mark the subject/topic",
+      "は marks the topic; が marks the subject",
+      "Drink: 飲む is transitive, takes を"
+    ],
+    "forbiddenClaims": [
+      "The original is correct",
+      "に and は are interchangeable",
+      "に is required after 私"
+    ],
+    "evaluationCriteria": [
+      "Identifies the particle error",
+      "Provides the corrected sentence",
+      "Explains why に is wrong here"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-005",
+    "category": "CORRECTION",
+    "level": "N3",
+    "prompt": "次の文の不自然な箇所を指摘してください：「彼が来るだから、準備ができません。」",
+    "expectedFacts": [
+      "Particle error: だから attaches to phrases, not nouns",
+      "Corrected: 「彼が来るから、準備ができません。」",
+      "Because he's coming, we cannot prepare",
+      "Or: 「彼が来るのですから、…」 in polite form",
+      "来るだから is a common learner's error"
+    ],
+    "forbiddenClaims": [
+      "The sentence is fully correct",
+      "だから must always attach to nouns",
+      "The original is grammatically perfect"
+    ],
+    "evaluationCriteria": [
+      "Identifies the noun+だから error",
+      "Provides a corrected sentence",
+      "Explains the rule for から attachment"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-006",
+    "category": "CORRECTION",
+    "level": "N3",
+    "prompt": "次の文の不自然な箇所を指摘してください：「私の友達に彼を紹介しました。」",
+    "expectedFacts": [
+      "Particle error: 紹介 requires に for the introducer and に/を for the introducee",
+      "Corrected: 「私は友達に彼を紹介しました。」 or 「友達に彼を紹介しました。」",
+      "に marks the recipient of introduction",
+      "The original omits the agent/topic",
+      "Sentence order is acceptable but topic may be needed"
+    ],
+    "forbiddenClaims": [
+      "Original is fully correct",
+      "を紹介 requires が instead of に",
+      "Friend cannot be marked with に"
+    ],
+    "evaluationCriteria": [
+      "Identifies the missing topic/agent",
+      "Suggests a more natural phrasing",
+      "Explains the role of に in 紹介"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-007",
+    "category": "CORRECTION",
+    "level": "N2",
+    "prompt": "次の文の不自然な箇所を指摘してください：「私は彼に会いに行った時、雨が降った。」",
+    "expectedFacts": [
+      "Tense / aspect issue: 行った implies completed action, but the sentence mixes it with simultaneous rain",
+      "More natural: 「彼に会いに行ったとき、雨が降っていた。」 or 「彼に会いに行った時、雨が降った。」 depending on intent",
+      "Time-clause tense often matches the matrix clause",
+      "Ambiguous as written; needs clearer aspect marking",
+      "Alternative: 「彼に会いに行った時には、雨が降っていた。」"
+    ],
+    "forbiddenClaims": [
+      "The sentence is perfectly natural",
+      "行った and 降った cannot coexist",
+      "Aspect is irrelevant in Japanese"
+    ],
+    "evaluationCriteria": [
+      "Identifies the tense / aspect ambiguity",
+      "Suggests a more natural alternative",
+      "Explains the aspect choice"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-008",
+    "category": "CORRECTION",
+    "level": "N2",
+    "prompt": "次の文の不自然な箇所を指摘してください：「今日、とても寒いですから、コートを着ます。」",
+    "expectedFacts": [
+      "Politeness register mismatch: から is plain; ます is polite",
+      "Corrected: 「とても寒いので、コートを着ます。」 (more polite) or 「とても寒いから、コートを着る。」 (plain)",
+      "Mixing ので/ます or から/る is awkward",
+      "Register consistency is required",
+      "Also: とても may be redundant; today is fine"
+    ],
+    "forbiddenClaims": [
+      "Register mixing is fine",
+      "から and ます always match",
+      "The sentence is fully natural"
+    ],
+    "evaluationCriteria": [
+      "Identifies the register mismatch",
+      "Provides a corrected sentence",
+      "Explains the rule about register consistency"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-009",
+    "category": "CORRECTION",
+    "level": "N2",
+    "prompt": "次の文の不自然な箇所を指摘してください：「先生に本を読みられました。」",
+    "expectedFacts": [
+      "Likely intended meaning: 先生に本を読まれました (passive) or 先生に本を読んでいただきました (honorific)",
+      "読まれる can be passive or honorific",
+      "Without context, the sentence is ambiguous",
+      "Clarify by adding てもらう or explicit subject",
+      "Common confusion: 読まれた vs 読んでいただいた"
+    ],
+    "forbiddenClaims": [
+      "The sentence has only one meaning",
+      "Passive and honorific are the same",
+      "読まれた is always passive"
+    ],
+    "evaluationCriteria": [
+      "Acknowledges the passive/honorific ambiguity",
+      "Suggests a clearer alternative",
+      "Explains the two readings"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "C-010",
+    "category": "CORRECTION",
+    "level": "non-JLPT",
+    "prompt": "次の文の不自然な箇所を指摘してください：「日本語を勉強することは私にとって大切であると考えられます。」",
+    "expectedFacts": [
+      "Overly literal / stiff",
+      "More natural: 「日本語を勉強することは大切だと思います。」 or 「日本語の学習は大切だと考えます。」",
+      "私にとって is acceptable but the whole sentence is heavy",
+      "と考えられる is overly formal for a personal opinion",
+      "Avoid stacking formal expressions"
+    ],
+    "forbiddenClaims": [
+      "The sentence is fully natural",
+      "Stacked formal forms are always best",
+      "私にとって cannot be omitted"
+    ],
+    "evaluationCriteria": [
+      "Identifies the stiffness / over-formality",
+      "Provides a more natural alternative",
+      "Explains the register issue"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-001",
+    "category": "KANJI",
+    "level": "N5",
+    "prompt": "「生」の主な読み方を教えてください。",
+    "expectedFacts": [
+      "い(きる) - kun reading, life / live",
+      "う(まれる) - kun reading, to be born",
+      "なま - kun reading, raw / fresh",
+      "セイ - on reading, life / student",
+      "ショウ - on reading, raw / grow"
+    ],
+    "forbiddenClaims": [
+      "生 is read only as せい",
+      "生 is read only as なま",
+      "生 has no on readings"
+    ],
+    "evaluationCriteria": [
+      "Lists at least three readings (kun + on)",
+      "Provides example compounds",
+      "Distinguishes at least one on from one kun"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-002",
+    "category": "KANJI",
+    "level": "N5",
+    "prompt": "「上」の主な読み方を教えてください。",
+    "expectedFacts": [
+      "うえ - kun reading, on top / upper",
+      "かみ - kun reading, upper part",
+      "のぼ(る) - kun reading, to climb / rise",
+      "ジョウ - on reading, up / first",
+      "ショウ - on reading, upper"
+    ],
+    "forbiddenClaims": [
+      "上 has only one reading",
+      "上 is read only as じょう",
+      "All kun readings are the same"
+    ],
+    "evaluationCriteria": [
+      "Lists at least three readings",
+      "Provides example compounds",
+      "Distinguishes on from kun"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-003",
+    "category": "KANJI",
+    "level": "N5",
+    "prompt": "「下」の主な読み方を教えてください。",
+    "expectedFacts": [
+      "した - kun reading, under / lower",
+      "しも - kun reading, lower part",
+      "くだ(る) - kun reading, to go down",
+      "さ(がる) - kun reading, to lower / step back",
+      "カ - on reading, below",
+      "ゲ - on reading, below / descend"
+    ],
+    "forbiddenClaims": [
+      "下 has only one reading",
+      "下 is read only as か",
+      "All kun readings are identical"
+    ],
+    "evaluationCriteria": [
+      "Lists at least three readings",
+      "Provides example compounds",
+      "Distinguishes on from kun"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-004",
+    "category": "KANJI",
+    "level": "N5",
+    "prompt": "「行」の主な読み方を教えてください。",
+    "expectedFacts": [
+      "い(く) - kun reading, to go",
+      "ゆ(く) - kun reading (classical), to go",
+      "おこな(う) - kun reading, to perform / conduct",
+      "コウ - on reading, going / conduct",
+      "ギョウ - on reading, line / row / behaviour (行儀)"
+    ],
+    "forbiddenClaims": [
+      "行 has only one reading",
+      "行 is read only as こう",
+      "There is no ぎょう reading"
+    ],
+    "evaluationCriteria": [
+      "Lists at least three readings including おこなう",
+      "Distinguishes いく / ゆく",
+      "Provides example compounds"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-005",
+    "category": "KANJI",
+    "level": "N4",
+    "prompt": "「開く」と「開ける」の読み方・意味・自他動詞としての関係を教えてください。",
+    "expectedFacts": [
+      "開く (あく) = intransitive, open by itself",
+      "開ける (あける) = transitive, open something",
+      "Both contain the same kanji",
+      "Difference is the verb class / transitivity",
+      "Open a door / a window / a meeting"
+    ],
+    "forbiddenClaims": [
+      "Both are read the same way (あける)",
+      "Both are transitive",
+      "Both are intransitive"
+    ],
+    "evaluationCriteria": [
+      "States the two readings (あく / あける)",
+      "Distinguishes transitive from intransitive",
+      "Provides example sentences"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-006",
+    "category": "KANJI",
+    "level": "N4",
+    "prompt": "多義的な読み方の例として、「今日」「明日」「明日（あした／あす／みょうにち）」の読み分けを教えてください。",
+    "expectedFacts": [
+      "今日 = きょう (today)",
+      "明日 = あした (tomorrow, casual) or あす (formal)",
+      "明日 = みょうにち (rare / formal, e.g. 明日香 あすか)",
+      "Reading depends on register and context",
+      "The same kanji compound has multiple readings"
+    ],
+    "forbiddenClaims": [
+      "明日 only reads as あした",
+      "明日 only reads as あす",
+      "Kanji readings are fixed regardless of context"
+    ],
+    "evaluationCriteria": [
+      "Lists multiple readings for 明日",
+      "Distinguishes register / formality",
+      "Notes that reading is context-dependent"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-007",
+    "category": "KANJI",
+    "level": "N3",
+    "prompt": "音読みと訓読みの違いを、具体例とともに説明してください。",
+    "expectedFacts": [
+      "音読み (on'yomi) = Sino-Japanese reading, derived from Chinese",
+      "訓読み (kun'yomi) = native Japanese reading",
+      "Example: 山 = サン (on) / やま (kun)",
+      "Compounds usually take on'yomi (山頂 サンちょう)",
+      "Single-kanji words often take kun'yomi"
+    ],
+    "forbiddenClaims": [
+      "音読み and 訓読み are the same",
+      "Compounds always use kun'yomi",
+      "Single-kanji words always use on'yomi"
+    ],
+    "evaluationCriteria": [
+      "Defines both terms clearly",
+      "Gives example compounds showing both readings",
+      "Notes the typical compound rule"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-008",
+    "category": "KANJI",
+    "level": "N3",
+    "prompt": "「送りがな」の役割と、送りがなに注意が必要な動詞の例（始める、走る、流れるなど）を教えてください。",
+    "expectedFacts": [
+      "送りがな = okurigana, the kana suffix attached to a kanji stem",
+      "Distinguishes similar verbs (始める vs 始まる, 流れる vs 流す)",
+      "Okurigana pattern follows the verb class",
+      "送りがな is part of the official spelling rules",
+      "Example: 走る (hasaru) vs 走る (hashiru) — same form, different readings"
+    ],
+    "forbiddenClaims": [
+      "送りがな is irrelevant",
+      "All kanji-verb pairs share the same okurigana",
+      "Okurigana has no spelling rules"
+    ],
+    "evaluationCriteria": [
+      "Defines 送りがな",
+      "Gives at least two example verb pairs",
+      "Mentions spelling-rule relevance"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-009",
+    "category": "KANJI",
+    "level": "N2",
+    "prompt": "「熟字訓」（jukujikun）の意味と、「海月」「大和」「五月」 のような具体例を教えてください。",
+    "expectedFacts": [
+      "熟字訓 = special reading assigned to a kanji compound, unrelated to on/kun readings of the individual kanji",
+      "海月 = くらげ (jellyfish)",
+      "五月 = さつき (May)",
+      "大和 = やまと",
+      "Often traditional or culture-bound readings"
+    ],
+    "forbiddenClaims": [
+      "Jukujikun follows standard on'yomi",
+      "Jukujikun follows standard kun'yomi",
+      "海月 reads as かいげつ"
+    ],
+    "evaluationCriteria": [
+      "Defines 熟字訓",
+      "Provides at least two example compounds with readings",
+      "Distinguishes from regular on/kun readings"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "K-010",
+    "category": "KANJI",
+    "level": "non-JLPT",
+    "prompt": "文脈によって読み分けが必要な漢字の例（例えば「橋」「端」「金」など）を挙げてください。",
+    "expectedFacts": [
+      "Reading depends on the word it forms",
+      "Example: 橋 = はし (bridge), 箸 = はし (chopsticks) — different kanji, same sound",
+      "Example: 端 = はし / は (edge) / た (端的な)",
+      "Example: 金 = かね / キン / コン",
+      "Context is decisive for which reading to choose"
+    ],
+    "forbiddenClaims": [
+      "Each kanji has exactly one reading",
+      "Reading is context-independent",
+      "金 always reads as かね"
+    ],
+    "evaluationCriteria": [
+      "Names at least two example kanji with multiple readings",
+      "Explains that context drives the reading",
+      "Provides example compounds"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-001",
+    "category": "KEIGO",
+    "level": "N5",
+    "prompt": "尊敬語、謙譲語、丁寧語の違いを教えてください。",
+    "expectedFacts": [
+      "尊敬語 = respect language, elevates the subject / listener",
+      "謙譲語 = humble language, lowers the speaker / speaker's group",
+      "丁寧語 = polite language, uses です / ます forms",
+      "尊敬語 acts on the listener/subject; 謙譲語 acts on the speaker",
+      "丁寧語 is about sentence-ending politeness"
+    ],
+    "forbiddenClaims": [
+      "尊敬語 and 謙譲語 are the same",
+      "丁寧語 is the same as 尊敬語",
+      "尊敬語 and 謙譲語 are interchangeable"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes the three keigo types",
+      "Provides at least one example each",
+      "Avoids conflating 尊敬語 and 謙譲語"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-002",
+    "category": "KEIGO",
+    "level": "N4",
+    "prompt": "「おっしゃる」はどの種類の敬語ですか？尊敬語・謙譲語のどちらですか？例文とともに教えてください。",
+    "expectedFacts": [
+      "おっしゃる is 尊敬語 (respectful / sonkeigo)",
+      "It elevates the listener / subject",
+      "Example: 田中先生がこうおっしゃいました",
+      "Polite form: おっしゃる → おっしゃいます",
+      "It refers to 'to say' for the respected party"
+    ],
+    "forbiddenClaims": [
+      "おっしゃる is 謙譲語",
+      "おっしゃる is 丁寧語 only",
+      "おっしゃる means 'to listen'"
+    ],
+    "evaluationCriteria": [
+      "Correctly classifies as 尊敬語",
+      "Provides example sentence",
+      "Mentions its function (elevates the respected party)"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-003",
+    "category": "KEIGO",
+    "level": "N4",
+    "prompt": "「伺う」と「参る」の違いは？謙譲語としてのニュアンスを教えてください。",
+    "expectedFacts": [
+      "伺う = humble form of 聞く / 訪ねる / 尋ねる",
+      "参る = humble form of 行く / 来る",
+      "伺う = to visit / to ask (humble)",
+      "参る = to go / to come (humble)",
+      "Both lower the speaker relative to the listener"
+    ],
+    "forbiddenClaims": [
+      "伺う and 参る are identical",
+      "伺う is 尊敬語",
+      "参る is 尊敬語"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes 伺う from 参る",
+      "States that both are 謙譲語",
+      "Provides example sentences"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-004",
+    "category": "KEIGO",
+    "level": "N3",
+    "prompt": "「いただく」と「くださる」の使い方を、例文とともに教えてください。",
+    "expectedFacts": [
+      "いただく = 謙譲語, speaker humbly receives",
+      "くださる = 尊敬語, respected party gives",
+      "Example: 先生から本をいただきました (I humbly received)",
+      "Example: 先生が本をくださった (teacher gave)",
+      "Both are humble / respect auxiliaries for てもらう / てくれる"
+    ],
+    "forbiddenClaims": [
+      "Both are 尊敬語",
+      "Both are 謙譲語",
+      "They are interchangeable"
+    ],
+    "evaluationCriteria": [
+      "Correctly classifies いただく (謙譲) and くださる (尊敬)",
+      "Provides example sentences",
+      "Distinguishes them clearly"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-005",
+    "category": "KEIGO",
+    "level": "N3",
+    "prompt": "ビジネスメールの件名「お疲れ様です」と「お世話になっております」の使い分けは？",
+    "expectedFacts": [
+      "お疲れ様です = internal / peer use",
+      "お世話になっております = external / business courtesy",
+      "Internal: same-company, often kanji サマ",
+      "External: clients, partners",
+      "Both polite, but お世話になっております is more formal"
+    ],
+    "forbiddenClaims": [
+      "Both are always interchangeable",
+      "お疲れ様です only for clients",
+      "お世話になっております is casual"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes the two openings",
+      "States which is appropriate for which audience",
+      "Gives context for both"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-006",
+    "category": "KEIGO",
+    "level": "N2",
+    "prompt": "お客様宛のビジネスメール「お詫び」の定型文を作ってください。",
+    "expectedFacts": [
+      "Includes opening (拝啓 / 平素より)",
+      "States the apology (お詫び申し上げます)",
+      "Explains cause / situation",
+      "Promises corrective action",
+      "Ends with closing (敬具 / 今後とも)",
+      "Uses 謙譲語 / 尊敬語 appropriately"
+    ],
+    "forbiddenClaims": [
+      "Casual register (ごめん)",
+      "Apology is omitted",
+      "No keigo"
+    ],
+    "evaluationCriteria": [
+      "Uses polite business keigo",
+      "Includes apology and corrective action",
+      "Sounds natural for a Japanese business apology"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-007",
+    "category": "KEIGO",
+    "level": "N2",
+    "prompt": "上司への依頼メールを書いてください。",
+    "expectedFacts": [
+      "Uses 謙譲語 / 尊敬語 appropriately",
+      "Uses お忙しいところ恐れ入りますが or similar softening",
+      "States request clearly",
+      "Includes reason / context",
+      "Ends politely (よろしくお願いいたします)",
+      "Avoids commanding tone"
+    ],
+    "forbiddenClaims": [
+      "Imperative tone",
+      "Casual register",
+      "Omitting 謙譲語 when needed"
+    ],
+    "evaluationCriteria": [
+      "Uses polite request form",
+      "Shows appropriate humility",
+      "Sounds natural in business Japanese"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-008",
+    "category": "KEIGO",
+    "level": "N2",
+    "prompt": "取引先への依頼メールを、「いただきたく存じます」「ご検討いただけますと幸甚に存じます」を使って書いてください。",
+    "expectedFacts": [
+      "Uses いただきたく存じます (humble request)",
+      "Uses ご検討いただけますと幸甚に存じます (polite conditional request)",
+      "Polite business register",
+      "Includes context / reason for the request",
+      "Closing phrase included"
+    ],
+    "forbiddenClaims": [
+      "Casual register",
+      "Omitting the keigo phrases",
+      "Using imperative form"
+    ],
+    "evaluationCriteria": [
+      "Includes both target phrases",
+      "Polite register throughout",
+      "Sounds natural for business correspondence"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-009",
+    "category": "KEIGO",
+    "level": "N2",
+    "prompt": "目上の方への依頼で「お手数おかけいたします」が適切な場面と、不適切な場面を教えてください。",
+    "expectedFacts": [
+      "Appropriate when asking for a small task / request",
+      "Appropriate in business / professional settings",
+      "Inappropriate when the request is too big (could sound sarcastic)",
+      "Should pair with further polite language",
+      "Used by the speaker to lower themselves"
+    ],
+    "forbiddenClaims": [
+      "Always appropriate",
+      "Never appropriate",
+      "Means the opposite of politeness"
+    ],
+    "evaluationCriteria": [
+      "States when it is appropriate",
+      "States when it might be inappropriate",
+      "Explains its role as humble language"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "KE-010",
+    "category": "KEIGO",
+    "level": "non-JLPT",
+    "prompt": "二重敬語を避ける原則と、誤用の例（例：「おっしゃられる」「お見えになられる」）を教えてください。",
+    "expectedFacts": [
+      "二重敬語 = stacking honorific prefixes/suffixes on one verb",
+      "Avoid forms like おっしゃられる, お見えになられる, 拝見される",
+      "Use the simpler correct form (おっしゃる, 見える / ご覧になる, 拝見する)",
+      "Reduces redundancy and keeps sentences natural",
+      "Often arises from excessive politeness"
+    ],
+    "forbiddenClaims": [
+      "二重敬語 is required for politeness",
+      "おっしゃられる is standard",
+      "Redundancy in keigo is fine"
+    ],
+    "evaluationCriteria": [
+      "Defines 二重敬語",
+      "Provides at least one correct vs incorrect example pair",
+      "Explains why it should be avoided"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-001",
+    "category": "WRITING_CONVERSATION",
+    "level": "N5",
+    "prompt": "面接で使える短い自己紹介を作ってください。",
+    "expectedFacts": [
+      "Includes name, university/major, year",
+      "Mentions motivation for applying",
+      "Uses polite です / ます forms",
+      "Stays concise (around 60-90 seconds)",
+      "Ends politely"
+    ],
+    "forbiddenClaims": [
+      "Uses casual register (だ / である)",
+      "Includes slang",
+      "Includes overly long background"
+    ],
+    "evaluationCriteria": [
+      "Includes name and basic info",
+      "Uses polite forms",
+      "Sounds natural for an interview"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-002",
+    "category": "WRITING_CONVERSATION",
+    "level": "N5",
+    "prompt": "友達をカジュアルに食事に誘うメッセージを書いてください。",
+    "expectedFacts": [
+      "Uses casual register (e.g. ね、よ、よっ)",
+      "Uses sentence-ending だよ / しない？ / しない？",
+      "Mentions place / time informally",
+      "Avoids stiff business keigo",
+      "Sounds friendly and natural"
+    ],
+    "forbiddenClaims": [
+      "Uses です / ます throughout",
+      "Uses です/ます but that's fine for casual",
+      "Uses business keigo"
+    ],
+    "evaluationCriteria": [
+      "Uses casual register",
+      "Includes place and time",
+      "Sounds natural in a casual message"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-003",
+    "category": "WRITING_CONVERSATION",
+    "level": "N4",
+    "prompt": "友達からの誘いを丁寧に断る返信を書いてください。",
+    "expectedFacts": [
+      "Uses polite register (です / ます)",
+      "States appreciation for the invitation",
+      "Gives a reason (without too much detail)",
+      "Politely declines",
+      "Optionally suggests alternative"
+    ],
+    "forbiddenClaims": [
+      "Casual decline (だめ、むり)",
+      "No apology",
+      "Ignores the invitation"
+    ],
+    "evaluationCriteria": [
+      "Polite register",
+      "Acknowledges and thanks",
+      "Declines with reason"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-004",
+    "category": "WRITING_CONVERSATION",
+    "level": "N4",
+    "prompt": "先生に質問するときの丁寧な言い方を教えてください。",
+    "expectedFacts": [
+      "Uses 教えていただけますか / お聞きしてもよろしいでしょうか",
+      "Polite opening (先生 / 失礼いたします)",
+      "Clear statement of the question",
+      "Closing (よろしくお願いいたします)",
+      "Avoids casual forms"
+    ],
+    "forbiddenClaims": [
+      "Uses 聞く (plain)",
+      "Uses casual register",
+      "Omitting keigo"
+    ],
+    "evaluationCriteria": [
+      "Uses polite request form",
+      "Sounds natural in a teacher-student context",
+      "Includes a clear question"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-005",
+    "category": "WRITING_CONVERSATION",
+    "level": "N3",
+    "prompt": "上司に許可を求める丁寧なビジネス会話を作ってください。",
+    "expectedFacts": [
+      "Uses 謙譲語 / 尊敬語 appropriately",
+      "Polite request (お許しいただけますでしょうか)",
+      "Brief explanation",
+      "Polite closing",
+      "Avoids commanding tone"
+    ],
+    "forbiddenClaims": [
+      "Uses imperative",
+      "Casual register",
+      "Omits explanation"
+    ],
+    "evaluationCriteria": [
+      "Uses polite business register",
+      "Includes explanation",
+      "Sounds natural"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-006",
+    "category": "WRITING_CONVERSATION",
+    "level": "N3",
+    "prompt": "レストランでの店員との会話例を作ってください。",
+    "expectedFacts": [
+      "Includes ordering, asking for menu, requesting check",
+      "Polite register on the customer side",
+      "Polite register on the staff side",
+      "Natural restaurant phrases (お決まりですか / ご注文はお決まりですか)",
+      "Possibly includes allergy / preference inquiry"
+    ],
+    "forbiddenClaims": [
+      "Customer uses casual register",
+      "Staff uses casual register",
+      "Includes untranslated menu items"
+    ],
+    "evaluationCriteria": [
+      "Both sides use appropriate register",
+      "Includes typical restaurant phrases",
+      "Sounds natural"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-007",
+    "category": "WRITING_CONVERSATION",
+    "level": "N2",
+    "prompt": "就活の面接で「自己PR」をする短い例を作ってください。",
+    "expectedFacts": [
+      "Polite です / ます register",
+      "Includes specific episode / strength",
+      "Connects to the role applied for",
+      "Mentions concrete outcome / value",
+      "Stays concise"
+    ],
+    "forbiddenClaims": [
+      "Casual register",
+      "Vague self-PR without examples",
+      "Sliding off-topic"
+    ],
+    "evaluationCriteria": [
+      "Uses polite register",
+      "Includes a concrete episode",
+      "Connects to the role"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-008",
+    "category": "WRITING_CONVERSATION",
+    "level": "N2",
+    "prompt": "担任の先生への学校メールを書いてください（質問・お礼）。",
+    "expectedFacts": [
+      "Polite opening (先生、お疲れ様です / いつもお世話になっております)",
+      "States purpose clearly",
+      "Polite closing (よろしくお願いいたします)",
+      "Includes question or thanks",
+      "Avoids casual register"
+    ],
+    "forbiddenClaims": [
+      "Casual register",
+      "No purpose stated",
+      "Missing closing"
+    ],
+    "evaluationCriteria": [
+      "Polite register",
+      "Includes purpose",
+      "Sounds natural in a school context"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-009",
+    "category": "WRITING_CONVERSATION",
+    "level": "N1",
+    "prompt": "職場での短い連絡メッセージ（Slack/Teams 風）を作ってください。",
+    "expectedFacts": [
+      "Polite but brief workplace register",
+      "Includes context / action needed",
+      "Could use です / ます or polite-casual hybrid (お疲れ様)",
+      "Mentions deadline or call to action",
+      "Avoids overly stiff business keigo"
+    ],
+    "forbiddenClaims": [
+      "Full business letter keigo (拝啓 / 敬具)",
+      "Casual register",
+      "Unclear call to action"
+    ],
+    "evaluationCriteria": [
+      "Appropriate workplace register",
+      "Clear call to action",
+      "Sounds natural for a Slack/Teams message"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "W-010",
+    "category": "WRITING_CONVERSATION",
+    "level": "non-JLPT",
+    "prompt": "短い意見作文（150〜250字程度）の例を作ってください。テーマは「私が日本語を学ぶ理由」。",
+    "expectedFacts": [
+      "Includes personal motivation for learning Japanese",
+      "Structured (intro / body / conclusion)",
+      "Appropriate length (150-250 characters approx.)",
+      "Uses polite or semi-polite register",
+      "Sounds like a learner paragraph"
+    ],
+    "forbiddenClaims": [
+      "Exceeds the target length drastically",
+      "Casual register in formal essay",
+      "Single paragraph without structure"
+    ],
+    "evaluationCriteria": [
+      "Stays within reasonable length",
+      "Has structure",
+      "Expresses a clear opinion"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-001",
+    "category": "JLPT_ADVANCED",
+    "level": "N5",
+    "prompt": "N5レベルで学ぶ文法・語彙の主な範囲を教えてください。",
+    "expectedFacts": [
+      "Basic sentence structure (XはYです)",
+      "Particles: は / が / を / に / で / へ / から / まで / の",
+      "Verb forms: dictionary / ます / て / た / ない",
+      "Adjective conjugation (い and な)",
+      "Basic counters and time expressions",
+      "~100 kanji, ~800 vocabulary"
+    ],
+    "forbiddenClaims": [
+      "N5 includes keigo",
+      "N5 includes ~2000 kanji",
+      "N5 includes causative / passive"
+    ],
+    "evaluationCriteria": [
+      "States the canonical N5 scope",
+      "Mentions basic particles and verb forms",
+      "Does not over-claim keigo or advanced grammar"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-002",
+    "category": "JLPT_ADVANCED",
+    "level": "N4",
+    "prompt": "N4レベルで新たに学ぶ文法・語彙の特徴を教えてください。",
+    "expectedFacts": [
+      "て-form compounds (ていく / てくる / てしまう)",
+      "たら / ば / と conditionals",
+      "Transitive / intransitive pairs",
+      "~300 kanji, ~1500 vocabulary",
+      "Plain form usage",
+      "Short forms / casual register"
+    ],
+    "forbiddenClaims": [
+      "N4 includes keigo",
+      "N4 includes ~1000 kanji",
+      "N4 is the highest level"
+    ],
+    "evaluationCriteria": [
+      "Mentions て-form compound usage",
+      "Mentions conditionals",
+      "Avoids over-claiming keigo or kanji count"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-003",
+    "category": "JLPT_ADVANCED",
+    "level": "N3",
+    "prompt": "N3レベルで学ぶ文法・語彙の特徴を教えてください。",
+    "expectedFacts": [
+      "Passive / causative / causative-passive",
+      "Compound sentences and connectives",
+      "Honorific / humble forms (basic)",
+      "~600 kanji, ~3750 vocabulary",
+      "Reading longer passages"
+    ],
+    "forbiddenClaims": [
+      "N3 is the lowest level",
+      "N3 excludes keigo entirely",
+      "N3 includes only ~100 kanji"
+    ],
+    "evaluationCriteria": [
+      "Mentions passive / causative",
+      "Mentions basic keigo",
+      "Avoids mis-stating the kanji/vocab counts"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-004",
+    "category": "JLPT_ADVANCED",
+    "level": "N2",
+    "prompt": "N2レベルで学ぶ文法・語彙の特徴を教えてください。",
+    "expectedFacts": [
+      "Advanced forms: ように / ばかり / ところ / わけ",
+      "新聞・記事レベルの読解",
+      "~1000 kanji, ~6000 vocabulary",
+      "Long-form listening",
+      "Authentic reading / listening"
+    ],
+    "forbiddenClaims": [
+      "N2 is the lowest JLPT level",
+      "N2 includes only ~100 kanji",
+      "N2 excludes any formal writing"
+    ],
+    "evaluationCriteria": [
+      "Mentions advanced grammar forms",
+      "Mentions reading / listening demands",
+      "Does not mis-state scope"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-005",
+    "category": "JLPT_ADVANCED",
+    "level": "N1",
+    "prompt": "N1レベルで学ぶ文法・語彙の特徴を教えてください。",
+    "expectedFacts": [
+      "Subtle / literary grammar (〜とも / 〜やら / 〜とも / 〜ながら / 〜つつ)",
+      "~2000 kanji, ~10000 vocabulary",
+      "Long-form reading with nuance",
+      "Idiomatic expressions",
+      "Difficult listening"
+    ],
+    "forbiddenClaims": [
+      "N1 includes only ~1000 kanji",
+      "N1 is the lowest level",
+      "N1 has no nuance"
+    ],
+    "evaluationCriteria": [
+      "Mentions advanced grammar",
+      "States realistic kanji / vocab counts",
+      "Acknowledges nuance difficulty"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-006",
+    "category": "JLPT_ADVANCED",
+    "level": "N2",
+    "prompt": "「〜まい」の文法的な特徴を教えてください。",
+    "expectedFacts": [
+      "まい expresses negative conjecture / intention",
+      "Attached to verb stems (五段) and dictionary form (一段)",
+      "Negative volitional: 'I shall not ...'",
+      "Negative conjecture: 'probably not ...'",
+      "Used in literary / written Japanese"
+    ],
+    "forbiddenClaims": [
+      "まい is the same as ない",
+      "まい only expresses affirmative",
+      "まい is conversational"
+    ],
+    "evaluationCriteria": [
+      "Defines まい",
+      "Distinguishes volitional vs conjecture uses",
+      "Notes written / literary register"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-007",
+    "category": "JLPT_ADVANCED",
+    "level": "N1",
+    "prompt": "「〜ところを」と「〜ところに」のニュアンスの違いを教えてください。",
+    "expectedFacts": [
+      "ところを + verb = 'just when ... (interrupting event)'",
+      "ところに + verb = 'at the moment when ... (arriving event)'",
+      "Both express timing",
+      "ところを is interruptive; ところに is arrival",
+      "Used in literary / formal Japanese"
+    ],
+    "forbiddenClaims": [
+      "Both forms are identical",
+      "Both only mean 'place'",
+      "Neither expresses timing"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes the two forms",
+      "Provides example sentences",
+      "Notes register"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-008",
+    "category": "JLPT_ADVANCED",
+    "level": "N1",
+    "prompt": "「〜にしては」と「〜わりに」のニュアンスの違いを教えてください。",
+    "expectedFacts": [
+      "〜にしては = 'considering that ... (unexpected standard)'",
+      "〜わりに = 'compared to (the expected) ...'",
+      "Both express discrepancy",
+      "〜にしては compares to a general standard",
+      "〜わりに compares to a specific expectation"
+    ],
+    "forbiddenClaims": [
+      "Both forms are identical",
+      "Only one of them exists",
+      "They mean the same as のに"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes the two expressions",
+      "Provides example sentences",
+      "Notes the comparison basis"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-009",
+    "category": "JLPT_ADVANCED",
+    "level": "non-JLPT",
+    "prompt": "JLPT以外の実用日本語の場面で重要なポイント（敬語の使い分け、和語・漢語・外来語のバランス、書き言葉と話し言葉の違い）を教えてください。",
+    "expectedFacts": [
+      "Keigo choice depends on in-group / out-group and hierarchy",
+      "Wago / kango / gairaigo balance affects register and clarity",
+      "書き言葉 (written) and 話し言葉 (spoken) differ in grammar",
+      "Spoken Japanese uses more contractions and fillers",
+      "Practical Japanese prioritises communication over textbook forms"
+    ],
+    "forbiddenClaims": [
+      "Keigo is irrelevant in real Japanese",
+      "Written and spoken Japanese are identical",
+      "JLPT is the only valid Japanese"
+    ],
+    "evaluationCriteria": [
+      "Mentions keigo in real contexts",
+      "Distinguishes written and spoken",
+      "Mentions word-origin balance"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "JL-010",
+    "category": "JLPT_ADVANCED",
+    "level": "non-JLPT",
+    "prompt": "JLPTレベルと実用日本語力のギャップについて説明してください。",
+    "expectedFacts": [
+      "JLPT measures passive knowledge, not active production",
+      "Higher JLPT does not guarantee natural conversation",
+      "Practical Japanese requires listening, speaking, and cultural fluency",
+      "Workplace Japanese demands keigo mastery beyond JLPT",
+      "JLPT is a useful benchmark, not a full proficiency measure"
+    ],
+    "forbiddenClaims": [
+      "JLPT guarantees native-level fluency",
+      "JLPT is irrelevant to all Japanese learners",
+      "JLPT is the only measure that matters"
+    ],
+    "evaluationCriteria": [
+      "Acknowledges JLPT's role as a benchmark",
+      "Notes the passive vs active gap",
+      "Mentions keigo / workplace fluency"
+    ],
+    "maxScore": 10
+  }
+]

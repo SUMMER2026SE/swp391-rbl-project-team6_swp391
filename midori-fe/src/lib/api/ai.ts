@@ -1,5 +1,8 @@
 import { api } from "./client";
 import type {
+  AiMaterialDetail,
+  AiMaterialSummary,
+  AiMaterialType,
   ChatRequest,
   ChatResponse,
   AiConversation,
@@ -94,5 +97,39 @@ export const aiApi = {
       formData.append("targetSkills", request.targetSkills.join(","));
     }
     return api.post<AiPdfPreviewResponse>("/ai/questions/generate-from-pdf", formData);
+  },
+
+  /**
+   * AI Sensei material selector — list lightweight summaries.
+   *
+   * Backend filters: only published, active, non-deleted lessons are
+   * returned. userId is NEVER accepted as a query parameter.
+   */
+  listMaterials: (params?: {
+    type?: AiMaterialType;
+    level?: string;
+    search?: string;
+  }): Promise<AiMaterialSummary[]> => {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set("type", params.type);
+    if (params?.level) searchParams.set("level", params.level);
+    if (params?.search) searchParams.set("search", params.search);
+    const qs = searchParams.toString();
+    return api.get<AiMaterialSummary[]>(
+      `/ai/materials${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  /**
+   * AI Sensei material selector — fetch full formatted detail for one material.
+   * The backend returns a single string `content` capped at 12000 chars.
+   */
+  getMaterialDetail: (
+    type: AiMaterialType,
+    id: string,
+  ): Promise<AiMaterialDetail> => {
+    return api.get<AiMaterialDetail>(
+      `/ai/materials/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+    );
   },
 };
