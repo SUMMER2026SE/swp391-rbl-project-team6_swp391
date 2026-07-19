@@ -609,6 +609,48 @@ public class ClassServiceImpl implements ClassService {
         List<ClassEntity> classes = classRepository.findActiveByTeacherId(teacherId);
         return classes.stream().map(this::mapToClassResponse).toList();
     }
+
+    @Override
+    public boolean isStudentEnrolledInLevel(UUID studentId, String level) {
+        if (level == null || level.trim().isEmpty()) {
+            return false;
+        }
+        User student = userRepository.findById(studentId).orElse(null);
+        if (student == null) {
+            return false;
+        }
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        if (assignedClasses == null) {
+            return false;
+        }
+        for (ClassEntity classEntity : assignedClasses) {
+            if (classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE
+                    && classEntity.getLevel() != null
+                    && classEntity.getLevel().name().equalsIgnoreCase(level.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public java.util.Set<String> getStudentActiveLevels(UUID studentId) {
+        User student = userRepository.findById(studentId).orElse(null);
+        if (student == null) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        if (assignedClasses == null) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<String> levels = new java.util.HashSet<>();
+        for (ClassEntity classEntity : assignedClasses) {
+            if (classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE && classEntity.getLevel() != null) {
+                levels.add(classEntity.getLevel().name());
+            }
+        }
+        return levels;
+    }
 }
 
 

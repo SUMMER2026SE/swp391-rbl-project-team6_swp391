@@ -27,6 +27,8 @@ public interface ClassService {
     List<HomeworkResponse> getClassHomework(UUID studentId, UUID classId);
     List<ExamResponse> getClassExams(UUID studentId, UUID classId);
     List<ClassResponse> getSelectableClasses(UUID teacherId);
+    boolean isStudentEnrolledInLevel(UUID studentId, String level);
+    java.util.Set<String> getStudentActiveLevels(UUID studentId);
 }
 
 
