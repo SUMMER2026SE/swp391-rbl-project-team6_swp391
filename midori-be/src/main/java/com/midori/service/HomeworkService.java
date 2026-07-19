@@ -12,7 +12,7 @@ public interface HomeworkService {
     void deleteHomework(UUID id);
     Homework findHomeworkById(UUID id);
     List<Homework> findHomeworkByClass(UUID classId);
-    HomeworkSubmission submitHomework(HomeworkSubmission submission, java.util.Map<java.util.UUID, Integer> answers);
+    HomeworkSubmission submitHomework(HomeworkSubmission submission, java.util.Map<java.util.UUID, Integer> answers, Integer focusViolationCount);
     HomeworkSubmission findSubmission(UUID homeworkId, UUID studentId);
     List<Homework> findHomeworksByTeacher(UUID teacherId);
     List<HomeworkSubmission> findSubmissionsByHomework(UUID homeworkId);

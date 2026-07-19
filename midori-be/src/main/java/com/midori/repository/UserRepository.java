@@ -26,6 +26,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT DISTINCT u FROM User u JOIN u.assignedClasses c WHERE c.id = :classId")
     List<User> findByAssignedClassId(@Param("classId") UUID classId);
 
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.profile JOIN u.assignedClasses c WHERE c.id = :classId")
+    List<User> findByAssignedClassIdWithProfile(@Param("classId") UUID classId);
+
     @Query("SELECT DISTINCT u FROM User u JOIN u.assignedClasses c WHERE c.id = :classId AND u.status = :status")
     List<User> findByAssignedClassIdAndStatus(@Param("classId") UUID classId, @Param("status") UserStatus status);
 

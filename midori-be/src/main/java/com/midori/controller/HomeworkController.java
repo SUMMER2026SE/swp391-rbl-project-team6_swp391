@@ -53,7 +53,7 @@ public class HomeworkController {
                 .maxScore(request.getMaxScore())
                 .attempts(request.getAttempts() != null ? request.getAttempts() : 1)
                 .timeLimit(request.getTimeLimit() != null ? request.getTimeLimit() : 0)
-                .status(Homework.HomeworkStatus.DRAFT)
+                .status(Homework.HomeworkStatus.ASSIGNED)
                 .build();
         Homework saved = homeworkService.createHomework(homework, request.getQuestionIds());
         return ResponseEntity.ok(ApiResponse.success("Homework created successfully", mapToHomeworkResponse(saved)));
@@ -76,7 +76,7 @@ public class HomeworkController {
                 .maxScore(request.getMaxScore())
                 .attempts(request.getAttempts() != null ? request.getAttempts() : 1)
                 .timeLimit(request.getTimeLimit() != null ? request.getTimeLimit() : 0)
-                .status(request.getStatus() != null ? Homework.HomeworkStatus.valueOf(request.getStatus().toUpperCase()) : Homework.HomeworkStatus.DRAFT)
+                .status(request.getStatus() != null ? Homework.HomeworkStatus.valueOf(request.getStatus().toUpperCase()) : homework.getStatus())
                 .build();
         Homework updated = homeworkService.updateHomework(id, details, request.getQuestionIds());
         return ResponseEntity.ok(ApiResponse.success("Homework updated successfully", mapToHomeworkResponse(updated)));
@@ -237,7 +237,7 @@ public class HomeworkController {
                 .attachmentUrl(request.getAttachmentUrl())
                 .status(HomeworkSubmission.SubmissionStatus.SUBMITTED)
                 .build();
-        HomeworkSubmission saved = homeworkService.submitHomework(submission, request.getAnswers());
+        HomeworkSubmission saved = homeworkService.submitHomework(submission, request.getAnswers(), request.getFocusViolationCount());
         return ResponseEntity.ok(ApiResponse.success("Homework submitted successfully", mapToSubmissionResponse(saved)));
     }
 
@@ -300,7 +300,7 @@ public class HomeworkController {
             long count = homeworkSubmissionRepository.countByHomeworkIdAndStudentId(homework.getId(), studentId);
             remainingAttempts = Math.max(0, homework.getAttempts() - (int) count);
             
-            java.util.Optional<HomeworkSubmission> submissionOpt = homeworkSubmissionRepository.findByHomeworkIdAndStudentId(homework.getId(), studentId);
+            java.util.Optional<HomeworkSubmission> submissionOpt = homeworkSubmissionRepository.findFirstByHomeworkIdAndStudentIdOrderBySubmittedAtDesc(homework.getId(), studentId);
             if (submissionOpt.isPresent()) {
                 HomeworkSubmission sub = submissionOpt.get();
                 submissionStatus = sub.getStatus().name();
@@ -398,6 +398,42 @@ public class HomeworkController {
         } else {
             studentName = submission.getStudent().getEmail();
         }
+
+        // Compute correctCount / totalQuestions / correctPercentage from the persisted
+        // answers JSON. This is the single source of truth used by both the Student View
+        // and the Teacher "View Submission" page so both sides always agree.
+        Integer totalQuestions = null;
+        Integer correctCount = null;
+        Integer correctPercentage = null;
+        List<TeacherQuestion> questions = submission.getHomework() != null
+                ? submission.getHomework().getQuestions()
+                : java.util.Collections.emptyList();
+        if (questions != null && !questions.isEmpty()
+                && submission.getSubmissionText() != null
+                && !submission.getSubmissionText().isBlank()) {
+            totalQuestions = questions.size();
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Integer> answers = mapper.readValue(
+                        submission.getSubmissionText(),
+                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Integer>>() {});
+                int c = 0;
+                for (TeacherQuestion q : questions) {
+                    if (q == null || q.getId() == null || q.getCorrectAnswerIndex() == null) continue;
+                    Integer selectedIdx = answers.get(q.getId().toString());
+                    if (selectedIdx != null && selectedIdx.equals(q.getCorrectAnswerIndex())) {
+                        c++;
+                    }
+                }
+                correctCount = c;
+                correctPercentage = (int) Math.round((c * 100.0) / totalQuestions);
+            } catch (Exception ignored) {
+                // Stored text isn't a JSON map (e.g. legacy / manual homework answer). Leave
+                // the percentage fields unset so the UI can fall back to "—" rather than guess.
+            }
+        }
+
         return HomeworkSubmissionResponse.builder()
                 .id(submission.getId())
                 .homeworkId(submission.getHomework().getId())
@@ -412,6 +448,10 @@ public class HomeworkController {
                 .submittedAt(submission.getSubmittedAt())
                 .gradedAt(submission.getGradedAt())
                 .gradedById(submission.getGradedBy() != null ? submission.getGradedBy().getId() : null)
+                .correctCount(correctCount)
+                .totalQuestions(totalQuestions)
+                .correctPercentage(correctPercentage)
+                .focusViolationCount(submission.getFocusViolationCount() == null ? 0 : submission.getFocusViolationCount())
                 .build();
     }
 }

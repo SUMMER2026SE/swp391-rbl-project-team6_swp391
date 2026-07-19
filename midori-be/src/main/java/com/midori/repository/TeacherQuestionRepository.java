@@ -14,7 +14,7 @@ public interface TeacherQuestionRepository extends JpaRepository<TeacherQuestion
     List<TeacherQuestion> findByTeacherIdOrderByCreatedAtDesc(UUID teacherId);
     boolean existsByTeacherIdAndPrompt(UUID teacherId, String prompt);
 
-    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q FROM TeacherQuestion q LEFT JOIN FETCH q.options WHERE q.teacher.id = :teacherId OR q.status = 'ACTIVE' ORDER BY q.createdAt DESC")
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT q FROM TeacherQuestion q LEFT JOIN FETCH q.options WHERE (q.teacher.id = :teacherId OR q.status = 'ACTIVE') AND (q.lesson IS NULL OR q.lesson.status = 'ACTIVE') ORDER BY q.createdAt DESC")
     List<TeacherQuestion> findByTeacherIdOrStatusActiveOrderByCreatedAtDesc(
         @org.springframework.data.repository.query.Param("teacherId") UUID teacherId
     );

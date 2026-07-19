@@ -26,4 +26,11 @@ public class HomeworkSubmissionResponse {
     private Instant submittedAt;
     private Instant gradedAt;
     private UUID gradedById;
+
+    // ---- Aggregated fields used by Teacher "View Submission" page and Student View Result ----
+    // Backend-authored single source of truth so the teacher and student see the same number.
+    private Integer correctCount;
+    private Integer totalQuestions;
+    private Integer correctPercentage;
+    private Integer focusViolationCount;
 }
