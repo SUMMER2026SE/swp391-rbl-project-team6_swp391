@@ -12,13 +12,15 @@ import lombok.Data;
 public class GenerateQuestionsRequest {
 
     @NotBlank(message = "Topic is required")
-    @Size(max = 500, message = "Topic must be at most 500 characters")
+    @Size(max = 255, message = "Topic must be at most 255 characters")
     private String topic;
 
     private String materialId;
 
+    @Size(max = 255, message = "Material title must be at most 255 characters")
     private String materialTitle;
 
+    @Size(max = 12000, message = "Material content must be at most 12000 characters")
     private String materialContent;
 
     @NotBlank(message = "Level is required")

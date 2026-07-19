@@ -19,6 +19,7 @@ import com.midori.repository.AiConversationRepository;
 import com.midori.repository.AiMessageRepository;
 import com.midori.repository.UserRepository;
 import com.midori.service.AiService;
+import com.midori.service.AiRateLimitService;
 import com.midori.dto.ai.AiMessageResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +53,12 @@ public class AiServiceImpl implements AiService {
 
     private static final Pattern HTML_ENTITY_PATTERN = Pattern.compile("&(?:amp|lt|gt|quot|apos|#39|#x27);");
 
+    private static final int MAX_CONVERSATION_HISTORY_MESSAGES = 20;
+
     private final AiConversationRepository conversationRepository;
     private final AiMessageRepository messageRepository;
     private final AiCoreService aiCoreService;
+    private final AiRateLimitService rateLimitService;
     private final ObjectMapper objectMapper;
     private final boolean fallbackEnabled;
 
@@ -65,11 +69,13 @@ public class AiServiceImpl implements AiService {
             AiConversationRepository conversationRepository,
             AiMessageRepository messageRepository,
             AiCoreService aiCoreService,
+            AiRateLimitService rateLimitService,
             ObjectMapper objectMapper,
             @Value("${ai.fallback-enabled:false}") boolean fallbackEnabled) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.aiCoreService = aiCoreService;
+        this.rateLimitService = rateLimitService;
         this.objectMapper = objectMapper;
         this.fallbackEnabled = fallbackEnabled;
         log.info("[AiService] AI Service initialized with AiCoreService, fallbackEnabled: {}", fallbackEnabled);
@@ -182,6 +188,8 @@ public class AiServiceImpl implements AiService {
     @Override
     @Transactional
     public ChatResponse chat(UUID userId, UUID conversationId, String message, ChatRequest.MaterialInfo selectedMaterial) {
+        rateLimitService.checkAndIncrementChat(userId);
+
         AiConversation conversation;
 
         if (conversationId != null) {
@@ -299,7 +307,9 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public GenerateQuestionsResponse generateQuestions(String topic, String level, Integer count, String type, String materialContent) {
+    public GenerateQuestionsResponse generateQuestions(UUID userId, String topic, String level, Integer count, String type, String materialContent) {
+        rateLimitService.checkAndIncrementQuizGeneration(userId);
+
         int actualCount = Math.max(1, Math.min(count != null ? count : 5, 20));
         String difficulty = level != null ? level : "MEDIUM";
         String questionType = type != null ? type : "MULTIPLE_CHOICE";
@@ -316,6 +326,9 @@ public class AiServiceImpl implements AiService {
         boolean usedFallback = false;
         String source = "AI";
 
+        log.info("[AiService] Quiz generation requested by userId={}: topic={}, count={}, type={}",
+                userId, topic, actualCount, questionType);
+
         // Try AI provider through AiCoreService
         try {
             String jsonResponse = aiCoreService.generateQuestions(topic, materialContent, actualCount, questionType, difficulty);
@@ -327,12 +340,12 @@ public class AiServiceImpl implements AiService {
                 throw new IllegalStateException("No valid questions after type enforcement");
             }
             questions = parsed;
-            log.info("[AiService] Successfully generated {} questions from AI provider", questions.size());
+            log.info("[AiService] Successfully generated {} questions from AI provider for userId={}", questions.size(), userId);
         } catch (IllegalStateException e) {
             log.warn("[AiService] AI provider not configured: {}", e.getMessage());
             errorMessage = "AI provider chưa được cấu hình. Vui lòng liên hệ quản trị viên.";
         } catch (Exception e) {
-            log.error("[AiService] Error generating questions from AI: {}", e.getMessage());
+            log.error("[AiService] Error generating questions from AI for userId={}: {}", userId, e.getMessage());
             String errorDetail = e.getMessage();
             if (errorDetail.contains("429")) {
                 errorMessage = "Xin lỗi, AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.";
@@ -350,7 +363,8 @@ public class AiServiceImpl implements AiService {
         // In strict mode (fallbackEnabled=false), return error instead of generating local fallback
         if (questions.isEmpty()) {
             if (!fallbackEnabled) {
-                log.warn("[AiService] AI quiz generation failed in strict mode (fallbackEnabled=false). errorMessage={}", errorMessage);
+                log.warn("[AiService] AI quiz generation failed in strict mode (fallbackEnabled=false) for userId={}. errorMessage={}",
+                        userId, errorMessage);
                 return GenerateQuestionsResponse.builder()
                         .materialTitle(topic)
                         .questions(List.of())
@@ -362,9 +376,11 @@ public class AiServiceImpl implements AiService {
             }
 
             // Legacy fallback mode (fallbackEnabled=true): generate questions from material content
-            log.warn("[AiService] AI quiz generation failed, using local fallback (fallbackEnabled=true)");
+            log.warn("[AiService] WARNING: Local fallback used for userId={} due to AI provider failure (fallbackEnabled=true). "
+                    + "This fallback generates generic questions and should be monitored.",
+                    userId);
             if (materialContent == null || materialContent.isBlank()) {
-                log.warn("[AiService] Local fallback skipped: materialContent empty");
+                log.warn("[AiService] Local fallback skipped for userId={}: materialContent empty", userId);
                 errorMessage = "Tài liệu chưa đủ dữ liệu để tạo quiz.";
             } else {
                 questions = generateLocalQuestions(topic, materialContent, actualCount, questionType, difficulty);
@@ -372,7 +388,7 @@ public class AiServiceImpl implements AiService {
                     usedFallback = true;
                     source = "LOCAL_FALLBACK";
                     errorMessage = null;
-                    log.info("[AiService] Local fallback generated {} questions", questions.size());
+                    log.info("[AiService] Local fallback generated {} questions for userId={}", questions.size(), userId);
                 } else {
                     errorMessage = "Tài liệu chưa đủ dữ liệu để tạo quiz.";
                 }
@@ -883,21 +899,32 @@ public class AiServiceImpl implements AiService {
     }
 
     private List<String[]> getConversationHistory(UUID conversationId) {
-        List<AiMessage> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        List<AiMessage> messages = messageRepository.findLatestMessagesByConversationId(
+                conversationId, MAX_CONVERSATION_HISTORY_MESSAGES);
+        // Reverse to get chronological order (oldest first) for AI context
+        List<AiMessage> chronological = new ArrayList<>(messages);
+        Collections.reverse(chronological);
         List<String[]> history = new ArrayList<>();
-        for (AiMessage msg : messages) {
+        for (AiMessage msg : chronological) {
             history.add(new String[]{msg.getRole(), msg.getContent()});
         }
         return history;
     }
 
     private List<String[]> getConversationHistoryExcluding(UUID conversationId, UUID excludeMessageId) {
-        List<AiMessage> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        List<AiMessage> messages;
+        if (excludeMessageId != null) {
+            messages = messageRepository.findLatestMessagesExcluding(
+                    conversationId, excludeMessageId, MAX_CONVERSATION_HISTORY_MESSAGES);
+        } else {
+            messages = messageRepository.findLatestMessagesByConversationId(
+                    conversationId, MAX_CONVERSATION_HISTORY_MESSAGES);
+        }
+        // Reverse to get chronological order (oldest first) for AI context
+        List<AiMessage> chronological = new ArrayList<>(messages);
+        Collections.reverse(chronological);
         List<String[]> history = new ArrayList<>();
-        for (AiMessage msg : messages) {
-            if (excludeMessageId != null && msg.getId().equals(excludeMessageId)) {
-                continue;
-            }
+        for (AiMessage msg : chronological) {
             history.add(new String[]{msg.getRole(), msg.getContent()});
         }
         return history;

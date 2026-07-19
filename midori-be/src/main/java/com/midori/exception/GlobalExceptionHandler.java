@@ -1,7 +1,9 @@
 package com.midori.exception;
 
 import com.midori.common.ApiResponse;
+import com.midori.service.AiRateLimitService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -41,6 +43,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(AiRateLimitService.RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceeded(AiRateLimitService.RateLimitExceededException ex) {
+        log.warn("[GlobalExceptionHandler] Rate limit exceeded: {}", ex.getMessage());
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
                 .body(ApiResponse.error(ex.getMessage()));
     }
 

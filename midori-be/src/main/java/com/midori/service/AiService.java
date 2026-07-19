@@ -20,7 +20,7 @@ public interface AiService {
 
     ChatResponse chat(UUID userId, UUID conversationId, String message, ChatRequest.MaterialInfo selectedMaterial);
 
-    GenerateQuestionsResponse generateQuestions(String topic, String level, Integer count, String type, String materialContent);
+    GenerateQuestionsResponse generateQuestions(UUID userId, String topic, String level, Integer count, String type, String materialContent);
 
     void deleteConversation(UUID conversationId, UUID userId);
 
