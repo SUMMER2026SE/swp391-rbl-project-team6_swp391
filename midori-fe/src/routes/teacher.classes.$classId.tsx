@@ -1,17 +1,12 @@
-import { useState, useMemo } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, LayoutDashboard, ClipboardList, Users, Award, Loader2, Archive } from "lucide-react";
+import { useMemo } from "react";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { ArrowLeft, ClipboardList, Users, Award, Loader2, Archive, TrendingUp, Copy, Check } from "lucide-react";
 import { Card } from "@/components/page-ui";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
-import { homeworkApi } from "@/lib/api/homework";
-import { examsApi } from "@/lib/api/exams";
-
-// Tab Sub-Components
-import { TeacherDashboardTab } from "@/components/teacher/class-detail/TeacherDashboardTab";
-import { TeacherAssignmentsTab } from "@/components/teacher/class-detail/TeacherAssignmentsTab";
-import { TeacherStudentsTab } from "@/components/teacher/class-detail/TeacherStudentsTab";
-import { TeacherClassExamsTab } from "@/components/teacher/class-detail/TeacherClassExamsTab";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export const Route = createFileRoute("/teacher/classes/$classId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -22,8 +17,7 @@ export const Route = createFileRoute("/teacher/classes/$classId")({
 
 function TeacherClassDetailPage() {
   const { classId } = Route.useParams();
-  const { q: urlQ } = Route.useSearch();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [copied, setCopied] = useState(false);
 
   const { data: classDetail, isLoading } = useQuery({
     queryKey: ["teacherClassDetail", classId],
@@ -31,103 +25,32 @@ function TeacherClassDetailPage() {
     enabled: !!classId,
   });
 
-  const { data: students = [] } = useQuery({
-    queryKey: ["classStudents", classId],
-    queryFn: () => classesApi.getClassStudents(classId),
-    enabled: !!classId,
-  });
-
-  const { data: allHomeworks = [] } = useQuery({
-    queryKey: ["teacherAllHomeworks"],
-    queryFn: () => homeworkApi.getTeacherHomeworks(),
-  });
-
-  const { data: classExams = [] } = useQuery({
-    queryKey: ["classExams", classId],
-    queryFn: () => examsApi.getExamsByClass(classId),
-    enabled: !!classId,
-  });
-
   const classInfo = useMemo(() => {
     if (!classDetail) return null;
-
-    const mappedHomeworks = allHomeworks.filter(h => h.classId === classDetail.id);
 
     return {
       id: classDetail.id,
       name: classDetail.name,
       level: classDetail.level,
-      members: classDetail.maxStudents,
-      teacher: "Instructor",
-      teacherAvatarInitials: "JP",
-      assignmentCount: mappedHomeworks.length,
-      avgScore: 0,
-      nextDeadline: "-",
-      createdDate: new Date(classDetail.createdAt).toLocaleDateString(),
+      classCode: classDetail.classCode,
+      studentCount: classDetail.studentCount || 0,
+      assignmentCount: classDetail.homeworkCount || 0,
+      createdAt: classDetail.createdAt,
       status: classDetail.status,
-      students: students.map(s => ({
-        id: s.studentId,
-        name: s.fullName || "Pending Accept",
-        email: s.email,
-        avatar: s.avatar || "",
-        avgScore: 0,
-        completionRate: 0,
-        currentStreak: 0,
-        lastActivity: "-",
-      })),
-      assignments: mappedHomeworks.map(h => ({
-        id: h.id,
-        title: h.title,
-        moduleType: "Grammar" as const,
-        assignedDate: h.createdAt ? h.createdAt.slice(0, 10) : "",
-        deadline: h.dueDate ? h.dueDate.slice(0, 10) : "",
-        totalSubmissions: h.submissionCount || 0,
-        notSubmittedCount: 0,
-        avgScore: 0,
-        status: h.status === "ASSIGNED" ? "Active" as const : h.status === "CLOSED" ? "Closed" as const : "Upcoming" as const,
-        ungradedCount: h.ungradedCount || 0,
-      })),
-      activities: [],
-      materials: [
-        { id: "vocabulary", moduleName: "Vocabulary", totalLessons: 0, publishedCount: 0, draftCount: 0 },
-        { id: "grammar", moduleName: "Grammar", totalLessons: 0, publishedCount: 0, draftCount: 0 },
-        { id: "listening", moduleName: "Listening", totalLessons: 0, publishedCount: 0, draftCount: 0 },
-        { id: "reading", moduleName: "Reading", totalLessons: 0, publishedCount: 0, draftCount: 0 },
-        { id: "shadowing", moduleName: "Shadowing", totalLessons: 0, publishedCount: 0, draftCount: 0 },
-        { id: "writing", moduleName: "Writing", totalLessons: 0, publishedCount: 0, draftCount: 0 },
-      ] as any[],
-      announcements: [],
-      analytics: {
-        avgScore: 0,
-        submissionRate: 0,
-        topStudents: [],
-        weakestTopics: [],
-        mostDifficultAssignments: [],
-        progressByModule: {
-          vocabulary: 0,
-          grammar: 0,
-          listening: 0,
-          reading: 0,
-          shadowing: 0,
-          writing: 0,
-        },
-      },
-      calendarEvents: [
-        ...mappedHomeworks.map(h => ({
-          id: `hw-${h.id}`,
-          title: `${h.title} (HW Deadline)`,
-          date: h.dueDate ? h.dueDate.slice(0, 10) : "",
-          type: "deadline" as const,
-        })),
-        ...classExams.map(e => ({
-          id: `exam-${e.id}`,
-          title: `${e.title} (Exam Scheduled)`,
-          date: e.createdAt ? e.createdAt.slice(0, 10) : "",
-          type: "event" as const,
-        })),
-      ],
     };
-  }, [classDetail, students, allHomeworks, classExams]);
+  }, [classDetail]);
+
+  const handleCopyClassCode = async () => {
+    if (!classDetail?.classCode) return;
+    try {
+      await navigator.clipboard.writeText(classDetail.classCode);
+      setCopied(true);
+      toast.success("Class Code copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy Class Code");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -172,7 +95,9 @@ function TeacherClassDetailPage() {
           <Archive className="h-5 w-5 shrink-0" />
           <div>
             <p className="text-sm font-bold">This class has been archived.</p>
-            <p className="text-xs opacity-80">All actions are disabled. Go back to your classes to restore it.</p>
+            <p className="text-xs opacity-80">
+              All actions are disabled. Go back to your classes to restore it.
+            </p>
           </div>
         </div>
       )}
@@ -194,28 +119,49 @@ function TeacherClassDetailPage() {
                 Level {classInfo.level}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-[10px]">
-                {classInfo.teacherAvatarInitials}
+            {classDetail?.teacherName && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-[10px]">
+                  {classDetail.teacherName.substring(0, 2).toUpperCase()}
+                </div>
+                <span>Teacher: {classDetail.teacherName}</span>
               </div>
-              <span>Teacher: {classInfo.teacher}</span>
-            </div>
+            )}
+            {classDetail?.classCode && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-muted-foreground">Class Code:</span>
+                <code className="px-2.5 py-1 rounded-lg bg-muted/80 border border-border/40 text-sm font-mono font-bold text-foreground">
+                  {classDetail.classCode}
+                </code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                  onClick={handleCopyClassCode}
+                  title="Copy Class Code"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
+        <div className="grid grid-cols-3 gap-4 text-center">
           {[
-            { label: "Students", value: classInfo.members },
+            { label: "Class Code", value: classInfo.classCode || "—" },
+            { label: "Students", value: classInfo.studentCount },
             { label: "Assignments", value: classInfo.assignmentCount },
-            { label: "Avg Score", value: `${classInfo.avgScore}/10` },
-            { label: "Next Deadline", value: classInfo.nextDeadline },
-            { label: "Created Date", value: classInfo.createdDate },
           ].map((stat, idx) => (
             <div
               key={idx}
               className="bg-white/40 dark:bg-slate-900/40 border border-slate-200/40 dark:border-white/5 p-2 rounded-xl min-w-[90px]"
             >
-              <div className="text-xs font-black text-foreground dark:text-white">{stat.value}</div>
+              <div className="text-xs font-black text-foreground dark:text-white truncate">{stat.value}</div>
               <div className="text-[9px] text-muted-foreground font-semibold mt-0.5 uppercase tracking-wider">
                 {stat.label}
               </div>
@@ -227,43 +173,36 @@ function TeacherClassDetailPage() {
       {/* Premium Tab Navigation Switcher */}
       <div className="flex flex-wrap gap-2 border-b border-slate-100 dark:border-white/5 pb-2">
         {[
-          { id: "overview", label: "Overview", icon: LayoutDashboard },
-          { id: "students", label: "Students", icon: Users },
-          { id: "homework", label: "Homework", icon: ClipboardList },
-          { id: "exams", label: "Exams", icon: Award },
+          { to: "/teacher/classes/$classId/progress", label: "Progress", icon: TrendingUp },
+          { to: "/teacher/classes/$classId/students", label: "Students", icon: Users },
+          { to: "/teacher/classes/$classId/homework", label: "Homework", icon: ClipboardList },
+          { to: "/teacher/classes/$classId/exams", label: "Exams", icon: Award },
         ].map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
           return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${isActive
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-white/5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
+            <Link
+              key={tab.to}
+              to={tab.to}
+              params={{ classId }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all border"
+              activeProps={{
+                className: "bg-primary text-primary-foreground border-primary shadow-sm",
+              }}
+              inactiveProps={{
+                className:
+                  "bg-white/50 dark:bg-slate-900/50 border-slate-200/50 dark:border-white/5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-white/10",
+              }}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
-            </button>
+            </Link>
           );
         })}
       </div>
 
-      {/* Render Active Tab Component */}
+      {/* Render Active Tab Component via Outlet */}
       <div className="mt-4">
-        {activeTab === "overview" && (
-          <TeacherDashboardTab classInfo={classInfo} classExams={classExams} onSelectTab={setActiveTab} />
-        )}
-        {activeTab === "students" && (
-          <TeacherStudentsTab classInfo={classInfo} onSelectTab={setActiveTab} urlQ={urlQ} isArchived={isArchived} />
-        )}
-        {activeTab === "homework" && (
-          <TeacherAssignmentsTab classInfo={classInfo} urlQ={urlQ} isArchived={isArchived} />
-        )}
-        {activeTab === "exams" && (
-          <TeacherClassExamsTab classId={classInfo.id} urlQ={urlQ} isArchived={isArchived} />
-        )}
+        <Outlet />
       </div>
     </div>
   );

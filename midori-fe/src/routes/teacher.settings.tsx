@@ -99,11 +99,15 @@ function LanguageDropdown({ value, onChange }: { value: string; onChange: (v: st
             {LANGUAGES.map((lang) => (
               <button
                 key={lang.value}
-                onClick={() => { onChange(lang.value); setOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-primary/5 transition ${value === lang.value
+                onClick={() => {
+                  onChange(lang.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-primary/5 transition ${
+                  value === lang.value
                     ? "bg-primary/5 text-primary font-semibold"
                     : "text-slate-700 dark:text-slate-200"
-                  }`}
+                }`}
               >
                 <div className="w-6 h-6 rounded-full bg-gradient-hero flex items-center justify-center text-white text-[9px] font-black flex-shrink-0">
                   {lang.native[0]}
@@ -149,13 +153,19 @@ function ThemeSelector({
           <button
             key={opt.id}
             onClick={() => onChange(opt.id)}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${active
+            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+              active
                 ? "border-primary bg-primary/5"
                 : "border-slate-200 dark:border-slate-700 hover:border-primary/40 bg-white dark:bg-slate-800"
-              }`}
+            }`}
           >
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${active ? "bg-primary/15 text-primary" : "bg-slate-100 dark:bg-slate-700 text-slate-500"
-              }`}>
+            <div
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                active
+                  ? "bg-primary/15 text-primary"
+                  : "bg-slate-100 dark:bg-slate-700 text-slate-500"
+              }`}
+            >
               <Icon className="w-4 h-4" />
             </div>
             <span
@@ -294,10 +304,11 @@ function TeacherSettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === tab.id
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    activeTab === tab.id
                       ? "bg-gradient-hero text-white shadow"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
+                  }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -616,8 +627,11 @@ function TeacherSettingsPage() {
                           value={pwConfirm}
                           onChange={(e) => setPwConfirm(e.target.value)}
                           placeholder="Confirm password"
-                          className={`w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border text-sm outline-none focus:ring-2 focus:ring-primary/40 ${pwConfirm && pwNew !== pwConfirm ? "border-red-400 dark:border-red-500/50" : "border-slate-200 dark:border-slate-700"
-                            }`}
+                          className={`w-full px-3 py-2.5 pr-10 rounded-xl bg-white dark:bg-slate-800 border text-sm outline-none focus:ring-2 focus:ring-primary/40 ${
+                            pwConfirm && pwNew !== pwConfirm
+                              ? "border-red-400 dark:border-red-500/50"
+                              : "border-slate-200 dark:border-slate-700"
+                          }`}
                         />
                         <button
                           type="button"

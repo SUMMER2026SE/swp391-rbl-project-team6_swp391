@@ -112,3 +112,37 @@ export const studentProgressApi = {
     );
   },
 };
+
+// ─── Teacher: Student Progress API ─────────────────────────────────────────────
+
+export interface StudentProgressResponse {
+  student: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatar: string;
+    className: string;
+  };
+  overallProgress: {
+    progressPercent: number | null;
+  };
+  learningSummary: {
+    homeworkCompleted: number;
+    examsCompleted: number;
+    averageScore: number;
+  };
+  recentActivities: Array<{
+    type: string;
+    title: string;
+    description: string;
+    timestamp: string;
+  }>;
+}
+
+export const progressApi = {
+  getStudentProgress(classId: string, studentId: string): Promise<StudentProgressResponse> {
+    return api.get<StudentProgressResponse>(
+      `/teacher/classes/${classId}/students/${studentId}/progress`,
+    );
+  },
+};

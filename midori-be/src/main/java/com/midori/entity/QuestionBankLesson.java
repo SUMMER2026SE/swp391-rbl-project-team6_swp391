@@ -30,7 +30,7 @@ public class QuestionBankLesson {
 
     @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'DRAFT'")
     @Builder.Default
-    private String status = "DRAFT";
+    private String status = "ACTIVE";
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

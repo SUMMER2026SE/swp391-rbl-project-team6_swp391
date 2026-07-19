@@ -93,7 +93,8 @@ function NotificationManagementPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedNotification, setSelectedNotification] = useState<AdminNotificationDetailResponse | null>(null);
+  const [selectedNotification, setSelectedNotification] =
+    useState<AdminNotificationDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -282,8 +283,15 @@ function NotificationManagementPage() {
         content: formData.content.trim(),
         type: formData.type,
         targetType: formData.target,
-        targetRole: formData.target === "TEACHERS" ? "TEACHER" : formData.target === "STUDENTS" ? "STUDENT" : undefined,
-        scheduledAt: formData.scheduledDate ? new Date(formData.scheduledDate).toISOString() : undefined,
+        targetRole:
+          formData.target === "TEACHERS"
+            ? "TEACHER"
+            : formData.target === "STUDENTS"
+              ? "STUDENT"
+              : undefined,
+        scheduledAt: formData.scheduledDate
+          ? new Date(formData.scheduledDate).toISOString()
+          : undefined,
       };
 
       if (formData.target === TARGET_AUDIENCE.SPECIFIC_CLASS) {
@@ -296,9 +304,7 @@ function NotificationManagementPage() {
         status: (created.displayStatus as LocalNotificationStatus) || "DRAFT",
       };
 
-      setNotifications((prev) =>
-        sortByCreatedAtDesc([mapped, ...prev])
-      );
+      setNotifications((prev) => sortByCreatedAtDesc([mapped, ...prev]));
       setShowCreateModal(false);
       setFormData({
         title: "",
@@ -333,11 +339,9 @@ function NotificationManagementPage() {
       title: notification.title ?? "",
       content: notification.content ?? "",
       type: (notification.type ?? NOTIFICATION_TYPES.SYSTEM) as NotificationType,
-      target: ((notification.targetType as TargetAudience) ?? TARGET_AUDIENCE.ALL),
+      target: (notification.targetType as TargetAudience) ?? TARGET_AUDIENCE.ALL,
       classCode: notification.targetClassId ?? "",
-      scheduledDate: notification.scheduledAt
-        ? toDatetimeLocalValue(notification.scheduledAt)
-        : "",
+      scheduledDate: notification.scheduledAt ? toDatetimeLocalValue(notification.scheduledAt) : "",
     });
     setShowEditModal(true);
 
@@ -355,11 +359,9 @@ function NotificationManagementPage() {
         title: detail.title ?? "",
         content: detail.content ?? "",
         type: (detail.type ?? NOTIFICATION_TYPES.SYSTEM) as NotificationType,
-        target: ((detail.targetType as TargetAudience) ?? TARGET_AUDIENCE.ALL),
+        target: (detail.targetType as TargetAudience) ?? TARGET_AUDIENCE.ALL,
         classCode: detail.targetClassId ?? "",
-        scheduledDate: detail.scheduledAt
-          ? toDatetimeLocalValue(detail.scheduledAt)
-          : "",
+        scheduledDate: detail.scheduledAt ? toDatetimeLocalValue(detail.scheduledAt) : "",
       });
 
       // Hydrate class lookup if the notification targets a specific class.
@@ -422,11 +424,12 @@ function NotificationManagementPage() {
         content: formData.content.trim(),
         type: formData.type,
         targetType: formData.target,
-        targetRole: formData.target === "TEACHERS"
-          ? "TEACHER"
-          : formData.target === "STUDENTS"
-            ? "STUDENT"
-            : undefined,
+        targetRole:
+          formData.target === "TEACHERS"
+            ? "TEACHER"
+            : formData.target === "STUDENTS"
+              ? "STUDENT"
+              : undefined,
         scheduledAt: formData.scheduledDate
           ? new Date(formData.scheduledDate).toISOString()
           : undefined,
@@ -445,14 +448,10 @@ function NotificationManagementPage() {
         ...(updated as AdminNotificationResponse),
         status: (updated.displayStatus as LocalNotificationStatus) || "DRAFT",
       };
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === mapped.id ? { ...n, ...mapped } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === mapped.id ? { ...n, ...mapped } : n)));
       // If the View modal happens to be open with this same notification,
       // sync its data so the user sees the fresh values without a refetch.
-      setSelectedNotification((prev) =>
-        prev && prev.id === updated.id ? updated : prev
-      );
+      setSelectedNotification((prev) => (prev && prev.id === updated.id ? updated : prev));
 
       setShowEditModal(false);
       setEditingNotificationId(null);
@@ -488,7 +487,9 @@ function NotificationManagementPage() {
     const colorClass = colorClasses[config.color] || colorClasses.gray;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${colorClass}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${colorClass}`}
+      >
         <config.icon className="w-3 h-3" /> {config.label}
       </span>
     );
@@ -505,7 +506,9 @@ function NotificationManagementPage() {
     const colorClass = colorClasses[config.color] || colorClasses.gray;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${colorClass}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${colorClass}`}
+      >
         <config.icon className="w-3 h-3" /> {config.label}
       </span>
     );
@@ -523,7 +526,9 @@ function NotificationManagementPage() {
     if (!value) return null;
     return (
       <div className="p-3 rounded-xl glass-surface">
-        <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">{label}</div>
+        <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+          {label}
+        </div>
         <div className="flex items-center gap-2 text-sm text-primary-col">
           <Calendar className="w-4 h-4 text-muted-col" />
           {value}
@@ -597,10 +602,8 @@ function NotificationManagementPage() {
       // value, so this is purely a UX nicety - not the source of truth.
       setNotifications((prev) =>
         prev.map((n) =>
-          n.id === notification.id
-            ? { ...n, displayStatus: "PUBLISHED", status: "PUBLISHED" }
-            : n
-        )
+          n.id === notification.id ? { ...n, displayStatus: "PUBLISHED", status: "PUBLISHED" } : n,
+        ),
       );
       toast.success("Notification sent successfully!");
 
@@ -616,8 +619,8 @@ function NotificationManagementPage() {
         prev.map((n) =>
           n.id === notification.id
             ? { ...n, displayStatus: notification.displayStatus, status: notification.status }
-            : n
-        )
+            : n,
+        ),
       );
       setSendErrors((prev) => ({
         ...prev,
@@ -647,8 +650,12 @@ function NotificationManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-display font-black text-primary-col">Notification Management</h1>
-          <p className="text-sm text-secondary-col mt-0.5">Send announcements and updates to users</p>
+          <h1 className="text-2xl font-display font-black text-primary-col">
+            Notification Management
+          </h1>
+          <p className="text-sm text-secondary-col mt-0.5">
+            Send announcements and updates to users
+          </p>
         </div>
         <button
           onClick={() => {
@@ -681,7 +688,9 @@ function NotificationManagementPage() {
             <Send className="w-5 h-5 text-[var(--status-active)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Published</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Published
+            </p>
             <p className="font-display font-black text-lg text-primary-col">{stats.published}</p>
           </div>
         </div>
@@ -699,7 +708,9 @@ function NotificationManagementPage() {
             <Calendar className="w-5 h-5 text-[oklch(0.6_0.22_25)]" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">Scheduled</p>
+            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
+              Scheduled
+            </p>
             <p className="font-display font-black text-lg text-primary-col">{stats.scheduled}</p>
           </div>
         </div>
@@ -769,9 +780,15 @@ function NotificationManagementPage() {
       {!loading && !listError && notifications.length > 0 && (
         <div className="card-base overflow-hidden">
           <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator">
-            <div className="col-span-3 text-[10px] uppercase tracking-wider text-muted-col font-bold">Title</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">Type</div>
-            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">Target</div>
+            <div className="col-span-3 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Title
+            </div>
+            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Type
+            </div>
+            <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+              Target
+            </div>
             <div className="col-span-2 text-[10px] uppercase tracking-wider text-muted-col font-bold text-center">
               Status
             </div>
@@ -816,8 +833,7 @@ function NotificationManagementPage() {
                       Draft status comes straight from the backend's
                       displayStatus, which is the single source of truth for
                       whether a notification has been published. */}
-                  {notification.status === "DRAFT" &&
-                    !sendingIds.has(notification.id) && (
+                  {notification.status === "DRAFT" && !sendingIds.has(notification.id) && (
                     <button
                       onClick={() => handleOpenEdit(notification)}
                       className="p-2 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition"
@@ -826,8 +842,7 @@ function NotificationManagementPage() {
                       <Pencil className="w-4 h-4" />
                     </button>
                   )}
-                  {notification.status === "DRAFT" &&
-                    !sendingIds.has(notification.id) && (
+                  {notification.status === "DRAFT" && !sendingIds.has(notification.id) && (
                     <button
                       onClick={() => handleSend(notification)}
                       className="p-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition"
@@ -854,7 +869,9 @@ function NotificationManagementPage() {
                   </button>
                 </div>
                 {sendErrors[notification.id] && (
-                  <div className="col-span-12 text-xs text-red-500">{sendErrors[notification.id]}</div>
+                  <div className="col-span-12 text-xs text-red-500">
+                    {sendErrors[notification.id]}
+                  </div>
                 )}
               </motion.div>
             ))}
@@ -879,7 +896,9 @@ function NotificationManagementPage() {
             className="relative z-10 w-full max-w-lg glass-modal rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="flex items-center justify-between px-6 py-4 border-b separator flex-shrink-0">
-              <h2 className="font-display font-bold text-primary-col text-base">Create Notification</h2>
+              <h2 className="font-display font-bold text-primary-col text-base">
+                Create Notification
+              </h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
@@ -890,7 +909,9 @@ function NotificationManagementPage() {
 
             <div className="p-6 space-y-5 overflow-y-auto flex-1">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Title *</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Title *
+                </label>
                 <input
                   type="text"
                   value={formData.title}
@@ -901,7 +922,9 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Message *</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Message *
+                </label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
@@ -912,7 +935,9 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Type</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Type
+                </label>
                 <select
                   value={formData.type}
                   onChange={(e) =>
@@ -928,7 +953,9 @@ function NotificationManagementPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Target Audience</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Target Audience
+                </label>
                 <select
                   value={formData.target}
                   onChange={(e) => {
@@ -974,9 +1001,7 @@ function NotificationManagementPage() {
                       }}
                       placeholder="Enter class ID (UUID)"
                       className={`flex-1 px-4 py-3 rounded-xl input-glass text-sm ${
-                        classIdError
-                          ? "border border-red-500 focus:outline-red-500"
-                          : ""
+                        classIdError ? "border border-red-500 focus:outline-red-500" : ""
                       }`}
                     />
                     <button
@@ -985,11 +1010,7 @@ function NotificationManagementPage() {
                       disabled={classLookupLoading || !formData.classCode.trim()}
                       className="px-4 py-3 rounded-xl bg-primary/12 text-primary text-xs font-bold border border-primary/20 hover:bg-primary/20 transition disabled:opacity-50"
                     >
-                      {classLookupLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        "Verify"
-                      )}
+                      {classLookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
                     </button>
                   </div>
                   {classLookup && (
@@ -997,9 +1018,12 @@ function NotificationManagementPage() {
                       <div className="text-[10px] font-bold text-[var(--status-active)] uppercase tracking-wider mb-1">
                         Class Found
                       </div>
-                      <div className="text-sm font-semibold text-primary-col">{classLookup.name}</div>
+                      <div className="text-sm font-semibold text-primary-col">
+                        {classLookup.name}
+                      </div>
                       <div className="text-xs text-muted-col mt-0.5">
-                        {classLookup.studentCount} student{classLookup.studentCount === 1 ? "" : "s"}
+                        {classLookup.studentCount} student
+                        {classLookup.studentCount === 1 ? "" : "s"}
                         {classLookup.teacherName ? ` · Teacher: ${classLookup.teacherName}` : ""}
                       </div>
                     </div>
@@ -1014,11 +1038,15 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Schedule (Optional)</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Schedule (Optional)
+                </label>
                 <input
                   type="datetime-local"
                   value={formData.scheduledDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))
+                  }
                   className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                 />
               </div>
@@ -1074,7 +1102,9 @@ function NotificationManagementPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b separator flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Pencil className="w-4 h-4 text-amber-500" />
-                <h2 className="font-display font-bold text-primary-col text-base">Edit Notification</h2>
+                <h2 className="font-display font-bold text-primary-col text-base">
+                  Edit Notification
+                </h2>
               </div>
               <button
                 onClick={() => {
@@ -1093,7 +1123,9 @@ function NotificationManagementPage() {
 
             <div className="p-6 space-y-5 overflow-y-auto flex-1">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Title *</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Title *
+                </label>
                 <input
                   type="text"
                   value={formData.title}
@@ -1104,7 +1136,9 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Message *</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Message *
+                </label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData((prev) => ({ ...prev, content: e.target.value }))}
@@ -1115,7 +1149,9 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Type</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Type
+                </label>
                 <select
                   value={formData.type}
                   onChange={(e) =>
@@ -1132,7 +1168,9 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Target Audience</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Target Audience
+                </label>
                 <select
                   value={formData.target}
                   onChange={(e) => {
@@ -1178,9 +1216,7 @@ function NotificationManagementPage() {
                       }}
                       placeholder="Enter class ID (UUID)"
                       className={`flex-1 px-4 py-3 rounded-xl input-glass text-sm ${
-                        classIdError
-                          ? "border border-red-500 focus:outline-red-500"
-                          : ""
+                        classIdError ? "border border-red-500 focus:outline-red-500" : ""
                       }`}
                     />
                     <button
@@ -1189,11 +1225,7 @@ function NotificationManagementPage() {
                       disabled={classLookupLoading || !formData.classCode.trim()}
                       className="px-4 py-3 rounded-xl bg-primary/12 text-primary text-xs font-bold border border-primary/20 hover:bg-primary/20 transition disabled:opacity-50"
                     >
-                      {classLookupLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        "Verify"
-                      )}
+                      {classLookupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
                     </button>
                   </div>
                   {classLookup && (
@@ -1201,9 +1233,12 @@ function NotificationManagementPage() {
                       <div className="text-[10px] font-bold text-[var(--status-active)] uppercase tracking-wider mb-1">
                         Class Found
                       </div>
-                      <div className="text-sm font-semibold text-primary-col">{classLookup.name}</div>
+                      <div className="text-sm font-semibold text-primary-col">
+                        {classLookup.name}
+                      </div>
                       <div className="text-xs text-muted-col mt-0.5">
-                        {classLookup.studentCount} student{classLookup.studentCount === 1 ? "" : "s"}
+                        {classLookup.studentCount} student
+                        {classLookup.studentCount === 1 ? "" : "s"}
                         {classLookup.teacherName ? ` · Teacher: ${classLookup.teacherName}` : ""}
                       </div>
                     </div>
@@ -1218,11 +1253,15 @@ function NotificationManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">Schedule (Optional)</label>
+                <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
+                  Schedule (Optional)
+                </label>
                 <input
                   type="datetime-local"
                   value={formData.scheduledDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))
+                  }
                   className="w-full px-4 py-3 rounded-xl input-glass text-sm"
                 />
               </div>
@@ -1273,7 +1312,9 @@ function NotificationManagementPage() {
             className="relative z-10 w-full max-w-lg glass-modal rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="flex items-center justify-between px-6 py-4 border-b separator flex-shrink-0">
-              <h2 className="font-display font-bold text-primary-col text-base">Notification Details</h2>
+              <h2 className="font-display font-bold text-primary-col text-base">
+                Notification Details
+              </h2>
               <button
                 onClick={() => setShowDetailModal(false)}
                 className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
@@ -1293,7 +1334,10 @@ function NotificationManagementPage() {
                 <div className="text-sm text-red-500">
                   {detailError}
                   <button
-                    onClick={() => { setShowDetailModal(false); fetchNotifications(); }}
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      fetchNotifications();
+                    }}
                     className="ml-3 underline"
                   >
                     Retry
@@ -1303,28 +1347,42 @@ function NotificationManagementPage() {
               {!detailLoading && !detailError && selectedNotification && (
                 <>
                   <div>
-                    <h3 className="font-bold text-primary-col text-xl">{selectedNotification.title}</h3>
+                    <h3 className="font-bold text-primary-col text-xl">
+                      {selectedNotification.title}
+                    </h3>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl glass-surface">
-                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Type</div>
+                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                        Type
+                      </div>
                       <div className="font-semibold text-sm">
                         {getTypeBadge(selectedNotification.type)}
                       </div>
                     </div>
                     <div className="p-3 rounded-xl glass-surface">
-                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Status</div>
+                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                        Status
+                      </div>
                       <div className="font-semibold text-sm">
-                        {getStatusBadge(selectedNotification.displayStatus as LocalNotificationStatus)}
+                        {getStatusBadge(
+                          selectedNotification.displayStatus as LocalNotificationStatus,
+                        )}
                       </div>
                     </div>
                     <div className="p-3 rounded-xl glass-surface">
-                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Recipients</div>
-                      <div className="font-semibold text-sm">{selectedNotification.recipientCount}</div>
+                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                        Recipients
+                      </div>
+                      <div className="font-semibold text-sm">
+                        {selectedNotification.recipientCount}
+                      </div>
                     </div>
                     <div className="p-3 rounded-xl glass-surface">
-                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">Created</div>
+                      <div className="text-[10px] text-muted-col uppercase tracking-wider font-bold mb-1">
+                        Created
+                      </div>
                       <div className="font-semibold text-sm">
                         {new Date(selectedNotification.createdAt).toLocaleString()}
                       </div>
@@ -1332,13 +1390,16 @@ function NotificationManagementPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">Message</div>
+                    <div className="text-[10px] font-bold text-muted-col uppercase tracking-wider">
+                      Message
+                    </div>
                     <div className="p-3 rounded-xl glass-surface text-sm text-primary-col whitespace-pre-wrap">
                       {selectedNotification.content}
                     </div>
                   </div>
 
-                  {selectedNotification.sentAt && renderDetailField("Sent At", selectedNotification.sentAt)}
+                  {selectedNotification.sentAt &&
+                    renderDetailField("Sent At", selectedNotification.sentAt)}
                 </>
               )}
             </div>
@@ -1354,37 +1415,37 @@ function NotificationManagementPage() {
                 !detailError &&
                 selectedNotification &&
                 selectedNotification.displayStatus === "DRAFT" && (
-                <button
-                  onClick={() => {
-                    const target = {
-                      ...selectedNotification,
-                      status: "DRAFT",
-                    } as LocalNotification;
-                    setShowDetailModal(false);
-                    handleOpenEdit(target);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-amber-500/12 text-amber-500 text-sm font-bold border border-amber-500/20 hover:bg-amber-500/20 transition"
-                >
-                  Edit
-                </button>
-              )}
+                  <button
+                    onClick={() => {
+                      const target = {
+                        ...selectedNotification,
+                        status: "DRAFT",
+                      } as LocalNotification;
+                      setShowDetailModal(false);
+                      handleOpenEdit(target);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-amber-500/12 text-amber-500 text-sm font-bold border border-amber-500/20 hover:bg-amber-500/20 transition"
+                  >
+                    Edit
+                  </button>
+                )}
               {!detailLoading &&
                 !detailError &&
                 selectedNotification &&
                 selectedNotification.displayStatus === "DRAFT" && (
-                <button
-                  onClick={() => {
-                    handleSend({
-                      ...selectedNotification,
-                      status: "DRAFT",
-                    } as LocalNotification);
-                    setShowDetailModal(false);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition"
-                >
-                  Send Now
-                </button>
-              )}
+                  <button
+                    onClick={() => {
+                      handleSend({
+                        ...selectedNotification,
+                        status: "DRAFT",
+                      } as LocalNotification);
+                      setShowDetailModal(false);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-[var(--status-active)]/12 text-[var(--status-active)] text-sm font-bold border border-[var(--status-active)]/20 hover:bg-[var(--status-active)]/20 transition"
+                  >
+                    Send Now
+                  </button>
+                )}
             </div>
           </motion.div>
         </motion.div>

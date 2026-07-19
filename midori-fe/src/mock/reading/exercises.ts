@@ -1684,7 +1684,7 @@ export const getExercisesByDifficulty = (
 };
 
 export const getRandomExercises = (count: number, level?: JLPTLevel): ReadingExercise[] => {
-  let exercises = level ? getExercisesByLevel(level) : n5ReadingExercises;
+  const exercises = level ? getExercisesByLevel(level) : n5ReadingExercises;
   return [...exercises].sort(() => Math.random() - 0.5).slice(0, count);
 };
 

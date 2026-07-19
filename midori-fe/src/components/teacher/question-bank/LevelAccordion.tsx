@@ -26,9 +26,8 @@ export function LevelAccordion({
         const isExpanded = !!expandedLevels[lvl];
         const totalTopics = Object.values(lessonsGroup).reduce(
           (sum, skillMap) =>
-            sum +
-            Object.values(skillMap).reduce((s, topics) => s + topics.length, 0),
-          0
+            sum + Object.values(skillMap).reduce((s, topics) => s + topics.length, 0),
+          0,
         );
 
         return (
@@ -57,10 +56,7 @@ export function LevelAccordion({
               <div className="border-t border-border/40 p-3 bg-muted/10 space-y-2">
                 {lessonKeys.map((les) => {
                   const skills = lessonsGroup[les];
-                  const topicCount = Object.values(skills).reduce(
-                    (s, list) => s + list.length,
-                    0
-                  );
+                  const topicCount = Object.values(skills).reduce((s, list) => s + list.length, 0);
 
                   return (
                     <div

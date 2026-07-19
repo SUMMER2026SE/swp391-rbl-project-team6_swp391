@@ -132,7 +132,7 @@ function SkeletonRow() {
   );
 }
 
-export function ReadingListPage() {
+function ReadingListPage() {
   const navigate = useNavigate();
 
   // Load progress from localStorage

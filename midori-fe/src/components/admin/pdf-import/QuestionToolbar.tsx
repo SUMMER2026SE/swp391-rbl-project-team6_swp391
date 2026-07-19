@@ -72,7 +72,7 @@ export const QuestionToolbar: React.FC<QuestionToolbarProps> = React.memo(
         </button>
       </div>
     );
-  }
+  },
 );
 
 QuestionToolbar.displayName = "QuestionToolbar";

@@ -20,7 +20,11 @@ function ClassHomeworkPage() {
   const { q: urlQ } = Route.useSearch();
 
   // Fetch class details (for meta info: name, studentCount, etc.)
-  const { data: classDetail, isLoading: isLoadingClass, isError } = useQuery({
+  const {
+    data: classDetail,
+    isLoading: isLoadingClass,
+    isError,
+  } = useQuery({
     queryKey: ["teacherClassDetail", classId],
     queryFn: () => classesApi.getClassById(classId),
     enabled: !!classId,
@@ -59,7 +63,7 @@ function ClassHomeworkPage() {
     const assignments: TeacherAssignment[] = homeworkList.map((h) => ({
       id: h.id,
       title: h.title,
-      moduleType: "Vocabulary" as const,  // generic fallback; backend doesn't provide module type yet
+      moduleType: "Vocabulary" as const, // generic fallback; backend doesn't provide module type yet
       assignedDate: h.createdAt ? h.createdAt.split("T")[0] : "",
       deadline: h.dueDate ? h.dueDate.split("T")[0] : "",
       totalSubmissions: h.submissionCount ?? 0,
@@ -78,11 +82,13 @@ function ClassHomeworkPage() {
       // Use live homework count from the fetched list — real-time accurate
       assignmentCount: homeworkList.length,
       avgScore: 0,
-      nextDeadline: homeworkList.length > 0
-        ? homeworkList
-            .filter((h) => h.dueDate)
-            .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0]?.dueDate?.split("T")[0] ?? "-"
-        : "-",
+      nextDeadline:
+        homeworkList.length > 0
+          ? (homeworkList
+              .filter((h) => h.dueDate)
+              .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0]
+              ?.dueDate?.split("T")[0] ?? "-")
+          : "-",
       createdDate: classDetail.createdAt ? classDetail.createdAt.split("T")[0] : "",
       students,
       assignments,
@@ -133,26 +139,6 @@ function ClassHomeworkPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header section with back button */}
-      <div className="flex items-center gap-4">
-        <Link
-          to="/teacher/classes/$classId"
-          params={{ classId: classInfo.id }}
-          className="p-2 rounded-xl border border-slate-200/70 bg-white/70 shadow-sm text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-white/10 transition-all shrink-0"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-xl font-black font-display text-foreground dark:text-white leading-tight flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-primary" />
-            Homework Management — {classInfo.name}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            {classInfo.assignmentCount} assignment{classInfo.assignmentCount !== 1 ? "s" : ""} assigned to this class.
-          </p>
-        </div>
-      </div>
-
       {/* Render the core tab component with live homework data */}
       <TeacherAssignmentsTab classInfo={classInfo} urlQ={urlQ} />
     </div>

@@ -184,6 +184,9 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                             .status("ACTIVE")
                             .points(1)
                             .options(new ArrayList<>(options))
+                            .level(exam.getLevel().name())
+                            .skill("Grammar")
+                            .source("EXAM")
                             .build();
                     teacherQuestionRepository.saveAndFlush(tq);
                 }
@@ -269,6 +272,8 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                 .startedAt(java.time.Instant.now())
                 .totalPoints(exam.getTotalQuestions())
                 .build();
+
+        studentExam = studentExamRepository.save(studentExam);
 
         List<StudentExamQuestion> studentQuestions;
 
@@ -644,6 +649,9 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
                             .status("ACTIVE")
                             .points(eq.getPoints() != null ? eq.getPoints() : 1)
                             .options(new ArrayList<>(eq.getOptions()))
+                            .level(exam.getLevel().name())
+                            .skill(eq.getCategory() != null ? eq.getCategory() : "Grammar")
+                            .source("EXAM")
                             .build();
                     teacherQuestionRepository.saveAndFlush(tq);
                 }

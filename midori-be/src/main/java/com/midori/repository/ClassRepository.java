@@ -26,4 +26,7 @@ public interface ClassRepository extends JpaRepository<ClassEntity, UUID> {
     List<ClassEntity> findByStatus(ClassEntity.ClassStatus status);
 
     List<ClassEntity> findByTeacherIdAndStatus(UUID teacherId, ClassEntity.ClassStatus status);
+
+    @Query(value = "SELECT c.classCode FROM ClassEntity c WHERE c.classCode LIKE :prefix% ORDER BY c.classCode DESC LIMIT 1")
+    String findMaxClassCodeByPrefix(@Param("prefix") String prefix);
 }

@@ -44,7 +44,7 @@ const JLPT_LEVELS: JLPTLevel[] = ["N5", "N4", "N3", "N2", "N1"];
 
 export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
-  
+
   // Basic info states
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState<JLPTLevel>("N5");
@@ -76,7 +76,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
       setDuration(fullExam.timeLimit);
       setStatus(fullExam.status);
       setScheduledAt(exam?.scheduledAt || "");
-      
+
       const loadedQs = (fullExam.questions || []).map((q) => ({
         id: q.id,
         prompt: q.prompt,
@@ -105,9 +105,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
   };
 
   const handleQuestionChange = (qIndex: number, field: keyof QuestionLocal, value: any) => {
-    setQuestions((prev) =>
-      prev.map((q, idx) => (idx === qIndex ? { ...q, [field]: value } : q))
-    );
+    setQuestions((prev) => prev.map((q, idx) => (idx === qIndex ? { ...q, [field]: value } : q)));
   };
 
   const handleOptionChange = (qIndex: number, oIndex: number, val: string) => {
@@ -119,7 +117,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
           return { ...q, options: updatedOptions };
         }
         return q;
-      })
+      }),
     );
   };
 
@@ -127,10 +125,13 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
     setQuestions((prev) =>
       prev.map((q, idx) => {
         if (idx === qIndex) {
-          return { ...q, options: [...q.options, `New Option ${String.fromCharCode(65 + q.options.length)}`] };
+          return {
+            ...q,
+            options: [...q.options, `New Option ${String.fromCharCode(65 + q.options.length)}`],
+          };
         }
         return q;
-      })
+      }),
     );
   };
 
@@ -147,7 +148,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
           return { ...q, options: updatedOptions, correctAnswerIndex: correct };
         }
         return q;
-      })
+      }),
     );
   };
 
@@ -208,9 +209,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-6">
         <DialogHeader>
           <DialogTitle>Edit Exam</DialogTitle>
-          <DialogDescription>
-            Modify exam settings, questions, and status below.
-          </DialogDescription>
+          <DialogDescription>Modify exam settings, questions, and status below.</DialogDescription>
         </DialogHeader>
 
         {isLoadingDetails ? (
@@ -219,7 +218,11 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
             <span className="text-sm text-muted-foreground">Loading exam details...</span>
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 mt-2">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex-1 flex flex-col min-h-0 mt-2"
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="basic">Basic Info & Status</TabsTrigger>
               <TabsTrigger value="questions">Questions ({questions.length})</TabsTrigger>
@@ -298,7 +301,9 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
             {/* Questions Tab */}
             <TabsContent value="questions" className="flex-1 flex flex-col min-h-0 py-4">
               <div className="flex justify-between items-center mb-3">
-                <span className="text-xs text-muted-foreground">Manage exam questions & options</span>
+                <span className="text-xs text-muted-foreground">
+                  Manage exam questions & options
+                </span>
                 <Button size="sm" onClick={handleAddQuestion} className="h-8 gap-1">
                   <Plus className="w-4 h-4" /> Add Question
                 </Button>
@@ -307,19 +312,29 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
               <ScrollArea className="flex-1 pr-3">
                 <div className="space-y-4">
                   {questions.map((q, qIdx) => (
-                    <div key={q.id || qIdx} className="p-4 rounded-xl border border-border bg-card space-y-4">
+                    <div
+                      key={q.id || qIdx}
+                      className="p-4 rounded-xl border border-border bg-card space-y-4"
+                    >
                       {/* Question Header */}
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-black text-primary">Question {qIdx + 1}</span>
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1.5">
-                            <Label htmlFor={`q-${qIdx}-pts`} className="text-[10px] font-bold text-muted-foreground uppercase">Points</Label>
+                            <Label
+                              htmlFor={`q-${qIdx}-pts`}
+                              className="text-[10px] font-bold text-muted-foreground uppercase"
+                            >
+                              Points
+                            </Label>
                             <Input
                               id={`q-${qIdx}-pts`}
                               type="number"
                               className="w-14 h-7 text-xs"
                               value={q.points}
-                              onChange={(e) => handleQuestionChange(qIdx, "points", parseInt(e.target.value) || 1)}
+                              onChange={(e) =>
+                                handleQuestionChange(qIdx, "points", parseInt(e.target.value) || 1)
+                              }
                             />
                           </div>
                           <Button
@@ -335,7 +350,12 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
 
                       {/* Question Text */}
                       <div className="space-y-1.5">
-                        <Label htmlFor={`q-${qIdx}-prompt`} className="text-[10px] font-bold text-muted-foreground uppercase">Question Prompt</Label>
+                        <Label
+                          htmlFor={`q-${qIdx}-prompt`}
+                          className="text-[10px] font-bold text-muted-foreground uppercase"
+                        >
+                          Question Prompt
+                        </Label>
                         <Input
                           id={`q-${qIdx}-prompt`}
                           value={q.prompt}
@@ -346,8 +366,15 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
                       {/* Options */}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <Label className="text-[10px] font-bold text-muted-foreground uppercase">Options (Select correct option)</Label>
-                          <Button size="sm" variant="ghost" onClick={() => handleAddOption(qIdx)} className="h-6 text-[10px] gap-0.5">
+                          <Label className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Options (Select correct option)
+                          </Label>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleAddOption(qIdx)}
+                            className="h-6 text-[10px] gap-0.5"
+                          >
                             <Plus className="w-3 h-3" /> Add Option
                           </Button>
                         </div>
@@ -361,11 +388,19 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
                                   size="icon"
                                   variant="ghost"
                                   className={`h-7 w-7 border shrink-0 rounded-full ${
-                                    isCorrect ? "bg-emerald-500 border-emerald-600 text-white" : "border-border text-muted-foreground"
+                                    isCorrect
+                                      ? "bg-emerald-500 border-emerald-600 text-white"
+                                      : "border-border text-muted-foreground"
                                   }`}
-                                  onClick={() => handleQuestionChange(qIdx, "correctAnswerIndex", oIdx)}
+                                  onClick={() =>
+                                    handleQuestionChange(qIdx, "correctAnswerIndex", oIdx)
+                                  }
                                 >
-                                  {isCorrect ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + oIdx)}
+                                  {isCorrect ? (
+                                    <Check className="w-3.5 h-3.5" />
+                                  ) : (
+                                    String.fromCharCode(65 + oIdx)
+                                  )}
                                 </Button>
                                 <Input
                                   value={opt}

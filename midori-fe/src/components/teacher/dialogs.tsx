@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { AlertCircle, BookOpen, Hash, X, UserPlus } from "lucide-react";
-import { classesApi } from "@/lib/api/classes";
+import { AlertCircle, BookOpen, Hash, X, UserPlus, Pencil } from "lucide-react";
+import { classesApi, UpdateClassRequest } from "@/lib/api/classes";
 import { ApiError } from "@/lib/api/client";
 
 function isValidEmail(email: string): boolean {
@@ -31,7 +32,10 @@ function isValidEmail(email: string): boolean {
 }
 
 function parseEmails(input: string): { valid: string[]; invalid: string[] } {
-  const parts = input.split(",").map((e) => e.trim()).filter(Boolean);
+  const parts = input
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
   const seen = new Set<string>();
   const valid: string[] = [];
   const invalid: string[] = [];
@@ -125,9 +129,7 @@ export function InviteStudentsDialog({
       if (successCount === 1) {
         toast.success(`Added ${valid[0]} to${levelDisplay} ${classDisplay}.`);
       } else {
-        toast.success(
-          `Added ${successCount} students to${levelDisplay} ${classDisplay}.`,
-        );
+        toast.success(`Added ${successCount} students to${levelDisplay} ${classDisplay}.`);
       }
       invalidateClassQueries(classId!);
       setEmailsInput("");
@@ -180,9 +182,7 @@ export function InviteStudentsDialog({
               onChange={(e) => setEmailsInput(e.target.value)}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground">
-              Separate multiple emails with commas.
-            </p>
+            <p className="text-xs text-muted-foreground">Separate multiple emails with commas.</p>
           </div>
 
           {/* Invalid emails warning */}
@@ -237,7 +237,8 @@ export function InviteStudentsDialog({
               </div>
             </div>
             <p className="text-xs text-muted-foreground pt-1">
-              Students will be enrolled immediately and will see the class on their dashboard. No email is sent.
+              Students will be enrolled immediately and will see the class on their dashboard. No
+              email is sent.
             </p>
           </div>
 
@@ -245,7 +246,8 @@ export function InviteStudentsDialog({
           {valid.length > 0 && invalid.length === 0 && (
             <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
               <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-primary">{valid.length}</span> student{valid.length !== 1 ? "s" : ""} will be added to this class
+                <span className="font-semibold text-primary">{valid.length}</span> student
+                {valid.length !== 1 ? "s" : ""} will be added to this class
               </p>
             </div>
           )}
@@ -255,10 +257,7 @@ export function InviteStudentsDialog({
           <Button variant="outline" onClick={handleClose} disabled={sending}>
             Cancel
           </Button>
-          <Button
-            disabled={!canSend || sending}
-            onClick={handleSend}
-          >
+          <Button disabled={!canSend || sending} onClick={handleSend}>
             {sending ? (
               <>
                 <span className="animate-spin mr-2">⟳</span>
@@ -454,5 +453,193 @@ export function ChipInput({
         )}
       </div>
     </div>
+  );
+}
+
+interface EditClassDialogProps {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  classData: {
+    id: string;
+    name: string;
+    level: string;
+    maxStudents: number;
+    studentCount: number;
+  } | null;
+}
+
+export function EditClassDialog({ open, onOpenChange, classData }: EditClassDialogProps) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [maxStudents, setMaxStudents] = useState<number>(30);
+  const [nameError, setNameError] = useState<string>("");
+  const [maxStudentsError, setMaxStudentsError] = useState<string>("");
+
+  useEffect(() => {
+    if (classData && open) {
+      setName(classData.name);
+      setMaxStudents(classData.maxStudents);
+      setNameError("");
+      setMaxStudentsError("");
+    }
+  }, [classData, open]);
+
+  const minMaxStudents = classData?.studentCount ?? 0;
+
+  const mutation = useMutation({
+    mutationFn: (data: UpdateClassRequest) => {
+      return classesApi.updateClass(classData!.id, data);
+    },
+    onSuccess: () => {
+      toast.success("Class updated successfully.");
+      queryClient.invalidateQueries({ queryKey: ["teacherAllClasses"] });
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to update class.";
+      toast.error(message);
+    },
+  });
+
+  const handleSave = () => {
+    let hasError = false;
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setNameError("Class name is required.");
+      hasError = true;
+    } else if (trimmedName.length > 100) {
+      setNameError("Class name must not exceed 100 characters.");
+      hasError = true;
+    } else {
+      setNameError("");
+    }
+
+    if (maxStudents < minMaxStudents) {
+      setMaxStudentsError(
+        `Maximum students must be at least ${minMaxStudents} (current enrolled students).`,
+      );
+      hasError = true;
+    } else if (maxStudents > 100) {
+      setMaxStudentsError("Maximum students cannot exceed 100.");
+      hasError = true;
+    } else {
+      setMaxStudentsError("");
+    }
+
+    if (hasError) return;
+
+    mutation.mutate({
+      name: trimmedName,
+      level: classData!.level,
+      maxStudents,
+    });
+  };
+
+  const isSaving = mutation.isPending;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-5 w-5 text-primary" />
+            Edit Class
+          </DialogTitle>
+          <DialogDescription>Update the class name and maximum student capacity.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="class-name">
+              Class Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="class-name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError("");
+              }}
+              placeholder="e.g. N5 Beginner"
+              maxLength={100}
+              aria-invalid={!!nameError}
+            />
+            <div className="flex justify-between">
+              {nameError ? <p className="text-xs text-destructive">{nameError}</p> : <span />}
+              <p className="text-xs text-muted-foreground">{name.length}/100</p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="max-students">
+              Maximum Students <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="max-students"
+              type="number"
+              min={minMaxStudents}
+              max={100}
+              value={maxStudents}
+              onChange={(e) => {
+                setMaxStudents(parseInt(e.target.value, 10) || 0);
+                if (maxStudentsError) setMaxStudentsError("");
+              }}
+              aria-invalid={!!maxStudentsError}
+            />
+            {maxStudentsError ? (
+              <p className="text-xs text-destructive">{maxStudentsError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Current enrolled: {minMaxStudents} student{minMaxStudents !== 1 ? "s" : ""}.
+                Minimum: {minMaxStudents}.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <BookOpen className="h-3.5 w-3.5" />
+                <span>Level:</span>
+              </div>
+              <div className="font-medium text-foreground">{classData?.level ?? "—"}</div>
+
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Hash className="h-3.5 w-3.5" />
+                <span>Enrolled:</span>
+              </div>
+              <div className="font-medium text-foreground">
+                {minMaxStudents} student{minMaxStudents !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <span className="animate-spin mr-2">⟳</span>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Pencil className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

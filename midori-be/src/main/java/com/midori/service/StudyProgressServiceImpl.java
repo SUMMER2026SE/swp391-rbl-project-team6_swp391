@@ -3,13 +3,15 @@ package com.midori.service;
 import com.midori.dto.progress.ProgressResponse;
 import com.midori.dto.progress.ProgressStatsResponse;
 import com.midori.dto.progress.ProgressUpdateRequest;
+import com.midori.dto.progress.StudentProgressResponse;
 import com.midori.dto.progress.WeeklyStudyData;
+import com.midori.entity.ClassEntity;
 import com.midori.entity.ContentType;
+import com.midori.entity.Exam;
 import com.midori.entity.User;
 import com.midori.entity.UserLearningProgress;
 import com.midori.exception.ResourceNotFoundException;
-import com.midori.repository.UserLearningProgressRepository;
-import com.midori.repository.UserRepository;
+import com.midori.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -31,6 +35,11 @@ public class StudyProgressServiceImpl implements StudyProgressService {
 
     private final UserLearningProgressRepository progressRepository;
     private final UserRepository userRepository;
+    private final HomeworkSubmissionRepository homeworkSubmissionRepository;
+    private final StudentExamRepository studentExamRepository;
+    private final ClassRepository classRepository;
+    private final HomeworkRepository homeworkRepository;
+    private final ExamRepository examRepository;
 
     // ============================================================
     // Upsert Helper
@@ -220,6 +229,199 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         progress.setLastStudiedAt(Instant.now());
         progress = progressRepository.save(progress);
         return toResponse(progress);
+    }
+
+    // ============================================================
+    // Teacher: Student Progress View
+    // ============================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentProgressResponse getStudentProgressForTeacher(UUID classId, UUID studentId, UUID teacherId) {
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", teacherId));
+        
+        ClassEntity classEntity = classRepository.findById(classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class", "id", classId));
+
+        boolean isAdmin = teacher.getRole() == com.midori.entity.Role.ADMIN;
+        if (!classEntity.getTeacher().getId().equals(teacherId) && !isAdmin) {
+            throw new com.midori.exception.AccessDeniedException("You are not allowed to view progress for this class");
+        }
+
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", studentId));
+
+        String avatar = student.getProfile() != null ? student.getProfile().getAvatarUrl() : null;
+        String fullName = student.getProfile() != null ? student.getProfile().getDisplayName() : null;
+        String studentDisplayName = fullName != null ? fullName : student.getEmail().split("@")[0];
+
+        long totalHomework = homeworkRepository.countByAssignedClassId(classId);
+        List<Exam> classExams = examRepository.findByAssignedClassId(classId);
+        Set<UUID> classExamIds = classExams.stream().map(Exam::getId).collect(Collectors.toSet());
+        long totalExams = classExams.size();
+
+        // Count submitted homework for this class
+        List<com.midori.entity.HomeworkSubmission> allSubmissions = homeworkSubmissionRepository.findByStudentId(studentId);
+        List<com.midori.entity.HomeworkSubmission> submissions = allSubmissions.stream()
+                .filter(s -> s.getHomework() != null && s.getHomework().getAssignedClass() != null && s.getHomework().getAssignedClass().getId().equals(classId))
+                .collect(Collectors.toList());
+        long submittedHomework = submissions.stream()
+                .filter(s -> s.getSubmittedAt() != null)
+                .count();
+
+        // Count completed exams for this class
+        List<com.midori.entity.StudentExam> allStudentExams = studentExamRepository.findByStudentId(studentId);
+        List<com.midori.entity.StudentExam> studentExams = allStudentExams.stream()
+                .filter(e -> e.getExam() != null && classExamIds.contains(e.getExam().getId()))
+                .collect(Collectors.toList());
+        long examsCompleted = studentExams.stream()
+                .filter(e -> e.getSubmittedAt() != null)
+                .count();
+
+        // Calculate overall progress based on homework and exam submissions
+        long totalItems = totalHomework + totalExams;
+        long completedItems = submittedHomework + examsCompleted;
+        Integer overallProgress = totalItems > 0 ? (int) ((completedItems * 100) / totalItems) : null;
+
+        // Homework completed (graded)
+        long homeworkCompleted = submissions.stream()
+                .filter(s -> s.getStatus() == com.midori.entity.HomeworkSubmission.SubmissionStatus.GRADED)
+                .count();
+
+        // Calculate average score from all graded submissions and exams
+        double totalScore = 0;
+        int scoreCount = 0;
+
+        // Homework scores
+        for (com.midori.entity.HomeworkSubmission sub : submissions) {
+            if (sub.getStatus() == com.midori.entity.HomeworkSubmission.SubmissionStatus.GRADED && sub.getScore() != null) {
+                totalScore += sub.getScore();
+                scoreCount++;
+            }
+        }
+
+        // Exam scores
+        for (com.midori.entity.StudentExam exam : studentExams) {
+            if (exam.getPercentage() != null) {
+                totalScore += exam.getPercentage();
+                scoreCount++;
+            }
+        }
+
+        double averageScore = scoreCount > 0 ? (totalScore / scoreCount) : 0;
+
+        StudentProgressResponse.StudentInfo studentInfo = StudentProgressResponse.StudentInfo.builder()
+                .id(student.getId().toString())
+                .fullName(studentDisplayName)
+                .email(student.getEmail())
+                .avatar(avatar != null ? avatar : "")
+                .className(classEntity.getName())
+                .build();
+
+        StudentProgressResponse.OverallProgress overallProgressData = StudentProgressResponse.OverallProgress.builder()
+                .progressPercent(overallProgress)
+                .build();
+
+        StudentProgressResponse.LearningSummary learningSummary = StudentProgressResponse.LearningSummary.builder()
+                .homeworkCompleted(homeworkCompleted)
+                .totalHomework(totalHomework)
+                .examsCompleted(examsCompleted)
+                .totalExams(totalExams)
+                .averageScore(Math.round(averageScore * 10.0) / 10.0)
+                .build();
+
+        List<StudentProgressResponse.RecentActivity> recentActivities = new ArrayList<>();
+
+        for (com.midori.entity.HomeworkSubmission submission : submissions) {
+            if (submission.getSubmittedAt() != null) {
+                String timestamp = submission.getSubmittedAt().toString();
+                if (submission.getSubmittedAt().atZone(ZoneOffset.UTC).toLocalDate().equals(LocalDate.now(ZoneOffset.UTC))) {
+                    timestamp = "Today";
+                } else {
+                    timestamp = DateTimeFormatter.ofPattern("MMM d").format(submission.getSubmittedAt().atZone(ZoneOffset.UTC));
+                }
+                recentActivities.add(StudentProgressResponse.RecentActivity.builder()
+                        .type("HOMEWORK")
+                        .title("Completed " + submission.getHomework().getTitle())
+                        .description(submission.getStatus() == com.midori.entity.HomeworkSubmission.SubmissionStatus.GRADED
+                                ? "Graded: " + submission.getScore() + "/" + submission.getHomework().getMaxScore()
+                                : "Pending grading")
+                        .timestamp(timestamp)
+                        .completedAt(submission.getSubmittedAt().toString())
+                        .build());
+            }
+        }
+
+        for (com.midori.entity.StudentExam exam : studentExams) {
+            if (exam.getSubmittedAt() != null && exam.getExam() != null) {
+                String timestamp = exam.getSubmittedAt().toString();
+                if (exam.getSubmittedAt().atZone(ZoneOffset.UTC).toLocalDate().equals(LocalDate.now(ZoneOffset.UTC))) {
+                    timestamp = "Today";
+                } else {
+                    timestamp = DateTimeFormatter.ofPattern("MMM d").format(exam.getSubmittedAt().atZone(ZoneOffset.UTC));
+                }
+                recentActivities.add(StudentProgressResponse.RecentActivity.builder()
+                        .type("EXAM")
+                        .title("Finished " + exam.getExam().getTitle())
+                        .description(exam.getPercentage() != null
+                                ? "Score: " + String.format("%.1f", exam.getPercentage()) + "%"
+                                : "In progress")
+                        .timestamp(timestamp)
+                        .completedAt(exam.getSubmittedAt().toString())
+                        .build());
+            }
+        }
+
+        List<UserLearningProgress> progressList = progressRepository.findAllByUserIdOrdered(studentId);
+        for (UserLearningProgress progress : progressList) {
+            if (progress.getUpdatedAt() != null) {
+                String timestamp = progress.getUpdatedAt().toString();
+                if (progress.getUpdatedAt().atZone(ZoneOffset.UTC).toLocalDate().equals(LocalDate.now(ZoneOffset.UTC))) {
+                    timestamp = "Today";
+                } else {
+                    timestamp = DateTimeFormatter.ofPattern("MMM d").format(progress.getUpdatedAt().atZone(ZoneOffset.UTC));
+                }
+                String contentTitle = progress.getContentType().name() + " - " + progress.getContentId();
+                String description = progress.getCompleted() ? "Completed" :
+                        progress.getMastered() ? "Mastered" :
+                        progress.getLearned() ? "Learning" : "Started";
+                recentActivities.add(StudentProgressResponse.RecentActivity.builder()
+                        .type(progress.getContentType().name())
+                        .title("Studied " + contentTitle)
+                        .description(description)
+                        .timestamp(timestamp)
+                        .completedAt(progress.getUpdatedAt().toString())
+                        .build());
+            }
+        }
+
+        recentActivities.sort((a, b) -> {
+            String t1 = a.getCompletedAt() != null ? a.getCompletedAt() : "";
+            String t2 = b.getCompletedAt() != null ? b.getCompletedAt() : "";
+            return t2.compareTo(t1);
+        });
+
+        if (recentActivities.size() > 5) {
+            recentActivities = recentActivities.subList(0, 5);
+        }
+
+        return StudentProgressResponse.builder()
+                .student(studentInfo)
+                .overallProgress(overallProgressData)
+                .learningSummary(learningSummary)
+                .recentActivities(recentActivities)
+                .studentId(student.getId().toString())
+                .studentName(studentDisplayName)
+                .studentEmail(student.getEmail())
+                .avatarUrl(avatar != null ? avatar : "")
+                .overallProgressVal(overallProgress)
+                .homeworkCompleted(homeworkCompleted)
+                .totalHomework(totalHomework)
+                .examsCompleted(examsCompleted)
+                .totalExams(totalExams)
+                .averageScore(Math.round(averageScore * 10.0) / 10.0)
+                .build();
     }
 
     // ============================================================

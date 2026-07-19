@@ -95,6 +95,8 @@ public class HomeworkController {
         return ResponseEntity.ok(ApiResponse.success("Homework deleted successfully", null));
     }
 
+
+
     @PreAuthorize("hasRole('TEACHER')")
     @GetMapping("/api/teacher/homeworks")
     public ResponseEntity<ApiResponse<List<HomeworkResponse>>> getTeacherHomeworks(

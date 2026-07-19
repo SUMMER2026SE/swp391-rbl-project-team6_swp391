@@ -18,7 +18,9 @@ export const validateBuilderQuestion = (q: BuilderQuestion): string[] => {
       }
       const correctCount = q.answers.filter((a) => a.isCorrect).length;
       if (correctCount !== 1) {
-        errors.push(`Multiple choice question requires exactly 1 correct answer (currently selected: ${correctCount})`);
+        errors.push(
+          `Multiple choice question requires exactly 1 correct answer (currently selected: ${correctCount})`,
+        );
       }
       if (q.answers.some((a) => !a.content.trim())) {
         errors.push("All options must have content");

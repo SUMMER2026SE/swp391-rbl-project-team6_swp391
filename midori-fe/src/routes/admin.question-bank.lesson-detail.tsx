@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { useSearch } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -21,9 +22,15 @@ import {
   Clock,
   Play,
   Pause,
+  ChevronDown,
+  ChevronUp,
   XCircle,
 } from "lucide-react";
-import { questionBankService, useQuestionBank, type Question } from "../services/questionBankService";
+import {
+  questionBankService,
+  useQuestionBank,
+  type Question,
+} from "../services/questionBankService";
 import { isListeningQuestion, formatDuration } from "../services/questionBank.types";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 
@@ -112,6 +119,7 @@ function QuestionBankLessonDetailPage() {
     open: false,
     questionId: null,
   });
+  const [collapsedSkills, setCollapsedSkills] = useState<Record<string, boolean>>({});
 
   const questions = allQuestions.filter((q) => q.lesson === lessonId);
 
@@ -128,6 +136,21 @@ function QuestionBankLessonDetailPage() {
     Reading: questions.filter((q) => q.type === "Reading").length,
     Listening: questions.filter((q) => q.type === "Listening").length,
   };
+
+  const groupedQuestions = useMemo(() => {
+    const groups: Record<QuestionType, Question[]> = {
+      Vocabulary: [],
+      Grammar: [],
+      Reading: [],
+      Listening: [],
+    };
+    filteredQuestions.forEach((q) => {
+      if (groups[q.type]) {
+        groups[q.type].push(q);
+      }
+    });
+    return groups;
+  }, [filteredQuestions]);
 
   const handleDelete = (id: string) => {
     setDeleteConfirm({ open: true, questionId: id });
@@ -352,116 +375,134 @@ function QuestionBankLessonDetailPage() {
           )}
         </div>
       ) : (
-        <div className="card-base overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-[var(--border)] bg-muted/30">
-            <div className="col-span-1 text-[11px] uppercase tracking-wider text-muted-col font-bold">
-              No.
-            </div>
-            <div className="col-span-5 text-[11px] uppercase tracking-wider text-muted-col font-bold">
-              Question
-            </div>
-            <div className="col-span-2 text-center text-[11px] uppercase tracking-wider text-muted-col font-bold">
-              Type
-            </div>
-            <div className="col-span-1 text-center text-[11px] uppercase tracking-wider text-muted-col font-bold">
-              Diff
-            </div>
-            <div className="col-span-3 text-right text-[11px] uppercase tracking-wider text-muted-col font-bold">
-              Actions
-            </div>
-          </div>
+        <div className="space-y-6">
+          {(["Vocabulary", "Grammar", "Reading", "Listening"] as QuestionType[]).map((skill) => {
+            const list = groupedQuestions[skill];
+            if (list.length === 0) return null;
+            const isCollapsed = !!collapsedSkills[skill];
 
-          {/* Table Rows */}
-          <div className="divide-y divide-[var(--border)]">
-            {filteredQuestions.map((q, index) => (
-              <div
-                key={q.id}
-                className="grid grid-cols-12 gap-3 px-5 py-4 hover:bg-[var(--accent)]/30 transition"
-              >
-                <div className="col-span-1 flex items-center">
-                  <span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-sm font-medium">
-                    {index + 1}
-                  </span>
-                </div>
-                <div className="col-span-5 flex items-center">
-                  <div className="min-w-0">
-                    {/* Listening audio badge */}
-                    {isListeningQuestion(q) && q.audio?.audioUrl && (
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-500/12 text-pink-600 text-xs font-medium">
-                          <Music className="w-3 h-3" />
-                          Listening
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-muted-col">
-                          <Clock className="w-3 h-3" />
-                          {formatDuration(q.audio.audioDuration)}
-                        </span>
-                      </div>
-                    )}
-                    <p className="text-sm text-primary-col font-medium line-clamp-2">
-                      {q.questionText}
-                    </p>
-                    {/* Show audio file name for listening */}
-                    {isListeningQuestion(q) && q.audio?.audioFileName && (
-                      <p className="text-xs text-muted-col mt-1 truncate">
-                        {q.audio.audioFileName}
-                      </p>
-                    )}
+            return (
+              <div key={skill} className="card-base overflow-hidden">
+                {/* Skill Header */}
+                <div
+                  onClick={() => setCollapsedSkills((prev) => ({ ...prev, [skill]: !prev[skill] }))}
+                  className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)] bg-muted/20 cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "px-3 py-0.5 rounded text-xs font-extrabold uppercase tracking-wide border",
+                      skill === "Vocabulary" && "bg-blue-500/10 text-blue-600 border-blue-500/20",
+                      skill === "Grammar" && "bg-purple-500/10 text-purple-600 border-purple-500/20",
+                      skill === "Reading" && "bg-orange-500/10 text-orange-600 border-orange-500/20",
+                      skill === "Listening" && "bg-pink-500/10 text-pink-600 border-pink-500/20"
+                    )}>
+                      {skill}
+                    </span>
+                    <span className="text-xs text-muted-col font-medium">({list.length} questions)</span>
                   </div>
-                </div>
-                <div className="col-span-2 flex items-center justify-center">
-                  <span
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                      q.type === "Vocabulary"
-                        ? "bg-blue-500/12 text-blue-600 border-blue-500/20"
-                        : q.type === "Grammar"
-                          ? "bg-purple-500/12 text-purple-600 border-purple-500/20"
-                          : q.type === "Reading"
-                            ? "bg-orange-500/12 text-orange-600 border-orange-500/20"
-                            : "bg-pink-500/12 text-pink-600 border-pink-500/20"
-                    }`}
-                  >
-                    {q.type}
+                  <span className="text-muted-col hover:text-primary transition-colors">
+                    {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
                   </span>
                 </div>
-                <div className="col-span-1 flex items-center justify-center">
-                  <span
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                      q.difficulty === "Easy"
-                        ? "bg-green-500/12 text-green-600 border-green-500/20"
-                        : q.difficulty === "Medium"
-                          ? "bg-yellow-500/12 text-yellow-600 border-yellow-500/20"
-                          : "bg-red-500/12 text-red-600 border-red-500/20"
-                    }`}
-                  >
-                    {q.difficulty.charAt(0)}
-                  </span>
-                </div>
-                <div className="col-span-3 flex items-center justify-end gap-1.5">
-                  <button
-                    onClick={() =>
-                      navigate({
-                        to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}&editId=${q.id}`,
-                      })
-                    }
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
-                    title="Edit"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(q.id)}
-                    className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+
+                {!isCollapsed && (
+                  <>
+                    {/* Table Header */}
+                    <div className="grid grid-cols-12 gap-3 px-5 py-2.5 border-b border-[var(--border)] bg-muted/5 flex items-center">
+                      <div className="col-span-1 text-[11px] uppercase tracking-wider text-muted-col font-bold">
+                        No.
+                      </div>
+                      <div className="col-span-7 text-[11px] uppercase tracking-wider text-muted-col font-bold">
+                        Question
+                      </div>
+                      <div className="col-span-1 text-center text-[11px] uppercase tracking-wider text-muted-col font-bold">
+                        Diff
+                      </div>
+                      <div className="col-span-3 text-right text-[11px] uppercase tracking-wider text-muted-col font-bold">
+                        Actions
+                      </div>
+                    </div>
+
+                    {/* Table Rows */}
+                    <div className="divide-y divide-[var(--border)]">
+                      {list.map((q, index) => (
+                        <div
+                          key={q.id}
+                          className="grid grid-cols-12 gap-3 px-5 py-4 hover:bg-[var(--accent)]/30 transition items-center"
+                        >
+                          <div className="col-span-1 flex items-center">
+                            <span className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground text-sm font-medium">
+                              {index + 1}
+                            </span>
+                          </div>
+                          <div className="col-span-7 flex items-center">
+                            <div className="min-w-0">
+                              {/* Listening audio badge */}
+                              {isListeningQuestion(q) && q.audio?.audioUrl && (
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-500/12 text-pink-600 text-xs font-medium">
+                                    <Music className="w-3 h-3" />
+                                    Listening
+                                  </span>
+                                  <span className="flex items-center gap-1 text-xs text-muted-col">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDuration(q.audio.audioDuration)}
+                                  </span>
+                                </div>
+                              )}
+                              <p className="text-sm text-primary-col font-medium line-clamp-2">
+                                {q.questionText}
+                              </p>
+                              {/* Show audio file name for listening */}
+                              {isListeningQuestion(q) && q.audio?.audioFileName && (
+                                <p className="text-xs text-muted-col mt-1 truncate">
+                                  {q.audio.audioFileName}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="col-span-1 flex items-center justify-center">
+                            <span
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                                q.difficulty === "Easy"
+                                  ? "bg-green-500/12 text-green-600 border-green-500/20"
+                                  : q.difficulty === "Medium"
+                                    ? "bg-yellow-500/12 text-yellow-600 border-yellow-500/20"
+                                    : "bg-red-500/12 text-red-600 border-red-500/20"
+                              }`}
+                            >
+                              {q.difficulty}
+                            </span>
+                          </div>
+                          <div className="col-span-3 flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() =>
+                                navigate({
+                                  to: `/admin/question-bank/question-builder?level=${level.toLowerCase()}&lessonId=${lessonId}&editId=${q.id}`,
+                                })
+                              }
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+                              title="Edit"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(q.id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 

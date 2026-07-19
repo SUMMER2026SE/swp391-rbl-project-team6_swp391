@@ -18,9 +18,7 @@ export interface CreateExamRequest {
   status?: string;
 }
 
-export function mapExamUiStatus(
-  status: string,
-): "draft" | "published" | "pending" {
+export function mapExamUiStatus(status: string): "draft" | "published" | "pending" {
   switch (status?.toUpperCase()) {
     case "PUBLISHED":
       return "published";
@@ -76,23 +74,18 @@ export interface UpdateExamQuestionsPayload {
 }
 
 export const examsApi = {
-  getAllExams: () =>
-    api.get<ExamResponse[]>("/exams"),
+  getAllExams: () => api.get<ExamResponse[]>("/exams"),
 
-  createExam: (req: CreateExamRequest) =>
-    api.post<ExamResponse>("/exams", req),
+  createExam: (req: CreateExamRequest) => api.post<ExamResponse>("/exams", req),
 
-  publishExam: (id: string) =>
-    api.post<ExamResponse>(`/exams/${id}/publish`),
+  publishExam: (id: string) => api.post<ExamResponse>(`/exams/${id}/publish`),
 
   assignExamToClass: (id: string, classId: string) =>
     api.post<ExamResponse>(`/exams/${id}/assign/${classId}`),
 
-  deleteExam: (id: string) =>
-    api.delete<void>(`/exams/${id}`),
+  deleteExam: (id: string) => api.delete<void>(`/exams/${id}`),
 
-  getExamsByClass: (classId: string) =>
-    api.get<ExamResponse[]>(`/exams/class/${classId}`),
+  getExamsByClass: (classId: string) => api.get<ExamResponse[]>(`/exams/class/${classId}`),
 
   getStudentExams: (studentId: string) =>
     api.get<any[]>(`/exams/student-exams/student/${studentId}`),
@@ -103,11 +96,9 @@ export const examsApi = {
   submitExam: (studentExamId: string, req: { answers: Record<string, number> }) =>
     api.post<any>(`/exams/student-exams/${studentExamId}/submit`, req),
 
-  getExamsByTeacher: (teacherId: string) =>
-    api.get<ExamResponse[]>(`/exams/teacher/${teacherId}`),
+  getExamsByTeacher: (teacherId: string) => api.get<ExamResponse[]>(`/exams/teacher/${teacherId}`),
 
-  getExamById: (id: string) =>
-    api.get<ExamResponse>(`/exams/${id}`),
+  getExamById: (id: string) => api.get<ExamResponse>(`/exams/${id}`),
 
   updateExam: (id: string, req: Partial<CreateExamRequest>) =>
     api.put<ExamResponse>(`/exams/${id}`, req),
@@ -120,8 +111,7 @@ export const examsApi = {
     easyCount: number;
     mediumCount: number;
     hardCount: number;
-  }) =>
-    api.post<ExamResponse>("/teacher/exams/generate-from-question-bank", req),
+  }) => api.post<ExamResponse>("/teacher/exams/generate-from-question-bank", req),
 
   previewGeneration: (req: {
     jlptLevel: string;
@@ -130,14 +120,14 @@ export const examsApi = {
     mediumCount: number;
     hardCount: number;
     questionSource: string;
-  }) =>
-    api.post<any[]>("/teacher/exams/preview-generation", req),
+  }) => api.post<any[]>("/teacher/exams/preview-generation", req),
 
   getQuestionStats: (level: string, source: string) =>
-    api.get<Record<string, Record<string, number>>>(`/teacher/exams/questions-stats?level=${level}&source=${source}`),
+    api.get<Record<string, Record<string, number>>>(
+      `/teacher/exams/questions-stats?level=${level}&source=${source}`,
+    ),
 
-  getSkills: () =>
-    api.get<string[]>("/teacher/exams/skills"),
+  getSkills: () => api.get<string[]>("/teacher/exams/skills"),
 
   updateExamQuestions: (id: string, req: UpdateExamQuestionsPayload) =>
     api.put<ExamResponse>(`/exams/${id}/questions`, req),
@@ -151,12 +141,16 @@ export const examsApi = {
     formData.append("classId", classId);
     if (level) formData.append("level", level);
     if (status) formData.append("status", status);
-    return api.post<{ jobId: string; status: string; message: string }>("/ai/exams/import", formData);
+    return api.post<{ jobId: string; status: string; message: string }>(
+      "/ai/exams/import",
+      formData,
+    );
   },
 
   getImportStatus: (jobId: string) =>
-    api.get<{ jobId: string; status: string; message: string; examId?: string }>(`/ai/exams/import/${jobId}`),
-
+    api.get<{ jobId: string; status: string; message: string; examId?: string }>(
+      `/ai/exams/import/${jobId}`,
+    ),
 };
 
 export interface StudentExamResponse {

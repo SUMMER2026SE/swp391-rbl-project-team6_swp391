@@ -13,8 +13,17 @@ import { homeworkApi } from "@/lib/api/homework";
 import { getNotifications as getLiveNotifications } from "@/lib/api/notifications";
 import { useAuth } from "@/lib/auth";
 import {
-  GraduationCap, Users, ClipboardList, FileText, AlertTriangle, ArrowRight,
-  Plus, HelpCircle, TrendingUp, CheckCircle2, Clock,
+  GraduationCap,
+  Users,
+  ClipboardList,
+  FileText,
+  AlertTriangle,
+  ArrowRight,
+  Plus,
+  HelpCircle,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/teacher/")({
@@ -79,7 +88,6 @@ function Dashboard() {
   const activeClasses = classes.filter((c) => c.status === "Active");
   const dueSoon = hw.filter((h) => h.status === "Assigned").slice(0, 4);
   const upcomingExams: any[] = [];
-  const pendingGrading = 0;
   const atRisk: any[] = [];
   const attention: any[] = [];
 
@@ -117,12 +125,6 @@ function Dashboard() {
       tone: "bg-success/10 text-success",
     },
     {
-      label: "Pending grading",
-      value: pendingGrading,
-      icon: Clock,
-      tone: "bg-sakura/30 text-foreground",
-    },
-    {
       label: "Students at risk",
       value: atRisk.length,
       icon: AlertTriangle,
@@ -135,7 +137,6 @@ function Dashboard() {
     { to: "/teacher/classes/create", label: "Create Class", icon: Plus },
     { to: "/teacher/homework/create", label: "Assign Homework", icon: ClipboardList },
     { to: "/teacher/exams/create", label: "Create Exam", icon: FileText },
-    { to: "/teacher/progress", label: "View Progress", icon: TrendingUp },
     { to: "/teacher/reports", label: "Reports", icon: HelpCircle },
   ];
 
@@ -155,13 +156,23 @@ function Dashboard() {
         subtitle="Here's what needs your attention today across your classes and students."
         actions={
           <>
-            <Button asChild variant="outline"><Link to="/teacher/classes"><GraduationCap className="mr-2 h-4 w-4" />My classes</Link></Button>
-            <Button asChild><Link to="/teacher/homework/create"><Plus className="mr-2 h-4 w-4" />Assign Homework</Link></Button>
+            <Button asChild variant="outline">
+              <Link to="/teacher/classes">
+                <GraduationCap className="mr-2 h-4 w-4" />
+                My classes
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/teacher/homework/create">
+                <Plus className="mr-2 h-4 w-4" />
+                Assign Homework
+              </Link>
+            </Button>
           </>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {stats.map((s) => (
           <Card key={s.label} className="overflow-hidden border-border/60">
             <CardContent className="p-4">
@@ -176,8 +187,9 @@ function Dashboard() {
       </div>
 
       <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">📚 System-managed lessons:</span>{" "}
-        Class lessons are assigned automatically by the system based on the class level. Teachers manage students, homework, exams, and progress.
+        <span className="font-medium text-foreground">📚 System-managed lessons:</span> Class
+        lessons are assigned automatically by the system based on the class level. Teachers manage
+        students, homework, exams, and progress.
       </div>
 
       <Card>
@@ -282,15 +294,13 @@ function Dashboard() {
           <CardContent className="space-y-2">
             {[
               ...dueSoon,
-              ...upcomingExams
-                .slice(0, 2)
-                .map((e) => ({
-                  id: e.id,
-                  classId: e.classId,
-                  title: e.title,
-                  dueDate: e.scheduledAt,
-                  status: "Scheduled",
-                })),
+              ...upcomingExams.slice(0, 2).map((e) => ({
+                id: e.id,
+                classId: e.classId,
+                title: e.title,
+                dueDate: e.scheduledAt,
+                status: "Scheduled",
+              })),
             ].map((d) => {
               const cls = classes.find((c) => c.id === d.classId);
               return (

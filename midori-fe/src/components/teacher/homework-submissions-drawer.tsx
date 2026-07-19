@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ClipboardCheck, Bell, AlertTriangle } from "lucide-react";
+import { ClipboardCheck, Bell } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -59,9 +59,6 @@ export function HomeworkSubmissionsDrawer({
   }, [homework, open]);
 
   const submittedCount = submissions.filter((s) => s.submitted).length;
-  const pendingGradingCount = submissions.filter(
-    (s) => s.submitted && (s.score ?? 0) < (homework?.maxScore ?? 100),
-  ).length;
   const totalCount = submissions.length;
   const submissionRate = totalCount > 0 ? (submittedCount / totalCount) * 100 : 0;
 
@@ -116,13 +113,6 @@ export function HomeworkSubmissionsDrawer({
               <span className="font-medium">{Math.round(submissionRate)}%</span>
             </div>
             <Progress value={submissionRate} className="h-2" />
-
-            {pendingGradingCount > 0 && (
-              <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-                <AlertTriangle className="w-4 h-4" />
-                <span>{pendingGradingCount} pending grading</span>
-              </div>
-            )}
           </div>
 
           <div className="mt-5 flex-1 overflow-y-auto space-y-3 pr-1">
