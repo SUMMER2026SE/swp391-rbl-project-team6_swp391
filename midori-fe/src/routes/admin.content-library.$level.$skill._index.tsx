@@ -1,4 +1,4 @@
-﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -3328,7 +3328,6 @@ function LegacySkillDetailPage() {
         ...(passage.id && !passage.id.startsWith("passage-") && !passage.id.startsWith("temp-") ? { id: passage.id } : {}),
         passageOrder: index + 1,
         passage: passage.passage,
-        vietnameseTranslation: passage.translationVietnamese ?? undefined,
         questions,
       };
     });
@@ -3340,7 +3339,6 @@ function LegacySkillDetailPage() {
         title: data.title,
         description: data.description ?? undefined,
         passage: mainPassage,
-        vietnameseTranslation: data.vietnameseTranslation ?? undefined,
         isActive: data.isActive,
       },
       passages,
@@ -4461,14 +4459,7 @@ function ReadingDetailModal({
                 </div>
               </div>
 
-              {transformedLesson.vietnameseTranslation && (
-                <div className="glass-card p-4">
-                  <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
-                    Vietnamese Translation
-                  </h3>
-                  <p className="text-sm text-secondary-col leading-relaxed">{transformedLesson.vietnameseTranslation}</p>
-                </div>
-              )}
+
 
                   {transformedLesson.questions?.length > 0 && (
                 <div className="space-y-4">
@@ -4876,17 +4867,6 @@ function ReadingBackendEditForm({
                         placeholder="Paste Japanese reading passage here..."
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                        Vietnamese Translation
-                      </label>
-                      <textarea
-                        value={passage.translationVietnamese}
-                        onChange={(e) => updatePassage(passage.id, { translationVietnamese: e.target.value })}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition resize-y min-h-[80px]"
-                        placeholder="Vietnamese translation"
-                      />
-                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -5247,7 +5227,7 @@ function ListeningBackendEditForm({
     transcript: lesson?.transcript || "",
     estimatedMinutes: lesson?.estimatedMinutes || "",
     difficulty: lesson?.difficulty || "",
-    status: lesson?.isActive ? "active" : "inactive",
+    status: (lesson?.isActive ?? true) ? "active" : "inactive",
     listeningItems: [...(lesson?.listeningItems || [])] as AdminListeningLesson["listeningItems"],
   });
 
