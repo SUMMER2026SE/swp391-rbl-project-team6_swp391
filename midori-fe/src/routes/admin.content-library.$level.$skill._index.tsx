@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -44,7 +44,8 @@ import {
   type AdminReadingPassage,
   type ReadingQuestion,
   type AdminListeningLesson,
-  type ListeningQuestion,
+  type AdminVocabularyLesson,
+  type AdminVocabularyItem,
 } from "@/types/content-library";
 import {
   useFetchReadingLessons,
@@ -64,7 +65,17 @@ import {
   usePublishListeningLesson,
   useUnpublishListeningLesson,
 } from "@/services/adminListeningService";
-import { adminListeningApi } from "@/lib/api/listening";
+import {
+  useFetchVocabularyLessons,
+  useFetchVocabularyDetail,
+  useCreateVocabularyLesson,
+  useUpdateVocabularyLesson,
+  useDeleteVocabularyLesson,
+  usePublishVocabularyLesson,
+  useUnpublishVocabularyLesson,
+} from "@/services/adminVocabularyService";
+import { adminListeningApi, adminUploadApi } from "@/lib/api/listening";
+import { AdminGrammarContentPage } from "@/components/admin/content-library/AdminGrammarContentPage";
 
 export const Route = createFileRoute("/admin/content-library/$level/$skill/_index")({
   component: SkillDetailPage,
@@ -787,325 +798,6 @@ function GrammarEditForm({
   );
 }
 
-// ─── Listening Edit Form ───────────────────────────────────────────────────────
-
-function ListeningEditForm({
-  lesson,
-  onSave,
-  onCancel,
-  mode = "edit",
-}: {
-  lesson: AdminListeningLesson;
-  onSave: (data: Partial<AdminListeningLesson>) => void;
-  onCancel: () => void;
-  mode?: "create" | "edit" | "view";
-}) {
-  const [form, setForm] = useState({
-    lessonNumber: lesson.lessonNumber || 1,
-    title: lesson.title || "",
-    description: lesson.description || "",
-    audioUrl: lesson.audioUrl || "",
-    transcript: lesson.transcript || "",
-    estimatedMinutes: lesson.estimatedMinutes || "",
-    difficulty: lesson.difficulty || "",
-    status: lesson.isActive ? "active" : "inactive",
-    questions: [...(lesson.questions || [])] as ListeningQuestion[],
-  });
-  const [saving, setSaving] = useState(false);
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
-
-  const addQuestion = () => {
-    const newQuestion: ListeningQuestion = {
-      id: `temp-${Date.now()}`,
-      questionOrder: form.questions.length + 1,
-      question: "",
-      optionA: "",
-      optionB: "",
-      optionC: "",
-      optionD: "",
-      correctAnswer: "A",
-      explanation: null,
-      questionType: "MULTIPLE_CHOICE",
-    };
-    setForm((f) => ({ ...f, questions: [...f.questions, newQuestion] }));
-    setExpandedQuestions((prev) => new Set([...prev, form.questions.length]));
-  };
-
-  const updateQuestion = (index: number, field: string, value: string | number | null) => {
-    setForm((f) => {
-      const questions = f.questions.map((q, i) => (i === index ? { ...q, [field]: value } : q));
-      return { ...f, questions };
-    });
-  };
-
-  const removeQuestion = (index: number) => {
-    setForm((f) => {
-      const questions = f.questions
-        .filter((_, i) => i !== index)
-        .map((q, i) => ({ ...q, questionOrder: i + 1 }));
-      return { ...f, questions };
-    });
-  };
-
-  const toggleExpand = (index: number) => {
-    setExpandedQuestions((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
-
-  const handleSave = () => {
-    setSaving(true);
-    setTimeout(() => {
-      onSave({
-        ...form,
-        id: lesson.id,
-        isActive: form.status === "active",
-        estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
-        description: form.description || null,
-        transcript: form.transcript || null,
-        audioUrl: form.audioUrl || null,
-        difficulty: form.difficulty || null,
-      });
-      setSaving(false);
-    }, 200);
-  };
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-        {/* Lesson Information */}
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Headphones className="w-4 h-4 text-sky-blue" />
-            <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Lesson Number
-              </label>
-              <input
-                type="number"
-                value={form.lessonNumber}
-                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-                min={1}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Lesson Title
-              </label>
-              <input
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
-                placeholder="Lesson description"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Audio File
-              </label>
-              <AudioUploader
-                value={form.audioUrl}
-                onChange={(url) => setForm((f) => ({ ...f, audioUrl: url }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select
-                value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="block text-xs font-medium text-secondary-col mb-1.5">
-              Japanese Transcript
-            </label>
-            <textarea
-              value={form.transcript}
-              onChange={(e) => setForm((f) => ({ ...f, transcript: e.target.value }))}
-              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]"
-              placeholder="Japanese transcript"
-            />
-          </div>
-        </div>
-
-        {/* Listening Questions */}
-        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-primary-col">Listening Questions</h3>
-            <p className="text-xs text-muted-col mt-0.5">
-              {form.questions.length} question{form.questions.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-
-          {form.questions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-col">
-                No questions yet. Click "Add Question" below to add one.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {form.questions.map((q, i) => {
-                const isExpanded = expandedQuestions.has(i);
-                return (
-                  <div
-                    key={q.id}
-                    className="rounded-lg border border-[var(--border)] overflow-hidden"
-                  >
-                    {/* Question Header */}
-                    <button
-                      type="button"
-                      onClick={() => toggleExpand(i)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center">
-                          {i + 1}
-                        </span>
-                        <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">
-                            {q.question || "New Question"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-col">
-                          {q.questionType || "MULTIPLE_CHOICE"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeQuestion(i);
-                          }}
-                          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <ChevronDown
-                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                        />
-                      </div>
-                    </button>
-
-                    {/* Question Content */}
-                    {isExpanded && (
-                      <div className="px-4 py-4 glass-card space-y-3">
-                        <div>
-                          <label className="block text-xs text-muted-col mb-1">Question Text</label>
-                          <textarea
-                            value={q.question}
-                            onChange={(e) => updateQuestion(i, "question", e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
-                            placeholder="Enter the question text..."
-                          />
-                        </div>
-
-                        {/* Options */}
-                        <div className="space-y-2">
-                          <label className="block text-xs text-muted-col">Options</label>
-                          {(["A", "B", "C", "D"] as const).map((opt) => (
-                            <div key={opt} className="flex items-center gap-2">
-                              <span className="text-xs text-muted-col w-4 shrink-0">{opt}.</span>
-                              <input
-                                value={q[`option${opt}` as keyof ListeningQuestion] as string}
-                                onChange={(e) => updateQuestion(i, `option${opt}`, e.target.value)}
-                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
-                                placeholder={`Option ${opt}`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateQuestion(i, "correctAnswer", opt)}
-                                className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
-                                  q.correctAnswer === opt
-                                    ? "border-emerald-500 bg-emerald-500 text-white"
-                                    : "border-[var(--border)]"
-                                }`}
-                                title="Set as correct answer"
-                              >
-                                {q.correctAnswer === opt && (
-                                  <span className="w-2 h-2 rounded-full bg-white" />
-                                )}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Explanation */}
-                        <div>
-                          <label className="block text-xs text-muted-col mb-1">
-                            Explanation (optional)
-                          </label>
-                          <textarea
-                            value={q.explanation || ""}
-                            onChange={(e) => updateQuestion(i, "explanation", e.target.value)}
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
-                            placeholder="Explanation for the correct answer..."
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Add Question Button */}
-          <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button
-              onClick={addQuestion}
-              type="button"
-              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Question
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button
-          onClick={onCancel}
-          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saving || !form.title.trim()}
-          className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-cyan-500/25"
-        >
-          <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ─── Reading Edit Form ────────────────────────────────────────────────────────
 
@@ -1294,9 +986,7 @@ function ReadingEditForm({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">
-                            Japanese Passage
-                          </label>
+                          <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
                           <textarea
                             value={item.passage}
                             onChange={(e) => updateItem(i, "passage", e.target.value)}
@@ -1305,9 +995,7 @@ function ReadingEditForm({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">
-                            Vietnamese Translation
-                          </label>
+                          <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
                           <textarea
                             value={item.translationVietnamese}
                             onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
@@ -1319,9 +1007,7 @@ function ReadingEditForm({
                         {/* Vocabulary Hints */}
                         <div className="border-t border-[var(--border)] pt-3">
                           <div className="flex items-center justify-between mb-2">
-                            <label className="text-xs text-muted-col font-medium">
-                              Vocabulary Hints
-                            </label>
+                            <label className="text-xs text-muted-col font-medium">Vocabulary Hints</label>
                             <button
                               type="button"
                               onClick={() => {
@@ -1371,9 +1057,7 @@ function ReadingEditForm({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const hints = (item.vocabularyHints || []).filter(
-                                    (_, idx) => idx !== vi,
-                                  );
+                                  const hints = (item.vocabularyHints || []).filter((_, idx) => idx !== vi);
                                   updateItem(i, "vocabularyHints", hints);
                                 }}
                                 className="text-red-400 hover:text-red-600 shrink-0"
@@ -1411,10 +1095,7 @@ function ReadingEditForm({
                             </button>
                           </div>
                           {(item.questions || []).map((q, qi) => (
-                            <div
-                              key={q.id}
-                              className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]"
-                            >
+                            <div key={q.id} className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-semibold text-primary-col">
                                   Q{qi + 1}
@@ -1422,9 +1103,7 @@ function ReadingEditForm({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const questions = (item.questions || []).filter(
-                                      (_, idx) => idx !== qi,
-                                    );
+                                    const questions = (item.questions || []).filter((_, idx) => idx !== qi);
                                     updateItem(i, "questions", questions);
                                   }}
                                   className="text-red-400 hover:text-red-600"
@@ -1445,9 +1124,7 @@ function ReadingEditForm({
                               <div className="space-y-1">
                                 {q.options.map((opt, oi) => (
                                   <div key={oi} className="flex items-center gap-2">
-                                    <span className="text-xs text-muted-col w-4 shrink-0">
-                                      {String.fromCharCode(65 + oi)}.
-                                    </span>
+                                    <span className="text-xs text-muted-col w-4 shrink-0">{String.fromCharCode(65 + oi)}.</span>
                                     <input
                                       value={opt}
                                       onChange={(e) => {
@@ -2087,7 +1764,6 @@ function GrammarLessonForm({
   const [form, setForm] = useState({
     lessonNumber: 1,
     title: "",
-    status: "active",
     items: [
       {
         id: generateId("g"),
@@ -2140,13 +1816,13 @@ function GrammarLessonForm({
     <div className="flex flex-col h-full">
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-        {/* Lesson Information */}
+        {/* Lesson Information - Simplified */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <BookOpen className="w-4 h-4 text-sakura" />
             <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
           </div>
-          <div className="grid grid-cols-[120px_1fr_180px] gap-4">
+          <div className="grid grid-cols-[120px_1fr] gap-4">
             <div>
               <label className="block text-xs font-medium text-secondary-col mb-1.5">
                 Lesson Number
@@ -2169,17 +1845,6 @@ function GrammarLessonForm({
                 className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
                 placeholder="Enter lesson title"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select
-                value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
-              >
-                <option value="active">Active</option>
-                <option value="draft">Draft</option>
-              </select>
             </div>
           </div>
         </div>
@@ -2345,6 +2010,7 @@ function AudioUploader({
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -2353,19 +2019,23 @@ function AudioUploader({
       setError("Please upload an audio file");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File size must be less than 10MB");
+    if (file.size > 20 * 1024 * 1024) {
+      setError("File size must be less than 20MB");
       return;
     }
 
     setError(null);
     setIsUploading(true);
+    setProgress(0);
 
     try {
-      const url = URL.createObjectURL(file);
+      const url = await adminUploadApi.uploadAudio(file, (p) => setProgress(p));
       onChange(url);
+      setProgress(100);
     } catch (err) {
-      setError("Failed to upload file");
+      const message =
+        err instanceof Error ? err.message : "Failed to upload audio file";
+      setError(message);
     } finally {
       setIsUploading(false);
     }
@@ -2443,7 +2113,17 @@ function AudioUploader({
             <div className="w-10 h-10 rounded-xl bg-sky-blue/20 flex items-center justify-center mb-3 animate-pulse">
               <Upload className="w-5 h-5 text-sky-blue" />
             </div>
-            <p className="text-sm text-primary-col">Uploading...</p>
+            <p className="text-sm text-primary-col">
+              Uploading... {progress > 0 && progress < 100 ? `${progress}%` : ""}
+            </p>
+            {isUploading && progress > 0 && progress < 100 && (
+              <div className="w-32 h-1 mt-2 bg-[var(--card)] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-sky-blue transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -2460,312 +2140,6 @@ function AudioUploader({
   );
 }
 
-function ListeningLessonForm({
-  onSave,
-  onCancel,
-}: {
-  onSave: (data: Partial<AdminListeningLesson>) => void;
-  onCancel: () => void;
-}) {
-  const [form, setForm] = useState({
-    lessonNumber: 1,
-    title: "",
-    description: "",
-    audioUrl: "",
-    transcript: "",
-    estimatedMinutes: "",
-    difficulty: "",
-    status: "active",
-    questions: [] as ListeningQuestion[],
-  });
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
-
-  const addQuestion = () => {
-    const newQuestion: ListeningQuestion = {
-      id: `temp-${Date.now()}`,
-      questionOrder: form.questions.length + 1,
-      question: "",
-      optionA: "",
-      optionB: "",
-      optionC: "",
-      optionD: "",
-      correctAnswer: "A",
-      explanation: null,
-      questionType: "MULTIPLE_CHOICE",
-    };
-    setForm((f) => ({ ...f, questions: [...f.questions, newQuestion] }));
-    setExpandedQuestions((prev) => new Set([...prev, form.questions.length]));
-  };
-
-  const updateQuestion = (index: number, field: string, value: string | number | null) => {
-    setForm((f) => {
-      const questions = f.questions.map((q, i) => (i === index ? { ...q, [field]: value } : q));
-      return { ...f, questions };
-    });
-  };
-
-  const removeQuestion = (index: number) => {
-    setForm((f) => {
-      const questions = f.questions
-        .filter((_, i) => i !== index)
-        .map((q, i) => ({ ...q, questionOrder: i + 1 }));
-      return { ...f, questions };
-    });
-  };
-
-  const toggleExpand = (index: number) => {
-    setExpandedQuestions((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
-
-  return (
-    <div className="flex flex-col" style={{ minHeight: "500px" }}>
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-        {/* Lesson Information */}
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Headphones className="w-4 h-4 text-sky-blue" />
-            <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Lesson Number
-              </label>
-              <input
-                type="number"
-                value={form.lessonNumber}
-                onChange={(e) => setForm((f) => ({ ...f, lessonNumber: +e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-                min={1}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Lesson Title
-              </label>
-              <input
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
-                placeholder="Enter lesson title"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
-                placeholder="Lesson description"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Audio File
-              </label>
-              <AudioUploader
-                value={form.audioUrl}
-                onChange={(url) => setForm((f) => ({ ...f, audioUrl: url }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">Status</label>
-              <select
-                value={form.status}
-                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="block text-xs font-medium text-secondary-col mb-1.5">
-              Japanese Transcript
-            </label>
-            <textarea
-              value={form.transcript}
-              onChange={(e) => setForm((f) => ({ ...f, transcript: e.target.value }))}
-              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]"
-              placeholder="Japanese transcript"
-            />
-          </div>
-        </div>
-
-        {/* Listening Questions */}
-        <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-primary-col">Listening Questions</h3>
-            <p className="text-xs text-muted-col mt-0.5">
-              {form.questions.length} question{form.questions.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-
-          {form.questions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-col">
-                No questions yet. Click "Add Question" below to add one.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {form.questions.map((q, i) => {
-                const isExpanded = expandedQuestions.has(i);
-                return (
-                  <div
-                    key={q.id}
-                    className="rounded-lg border border-[var(--border)] overflow-hidden"
-                  >
-                    {/* Question Header */}
-                    <button
-                      type="button"
-                      onClick={() => toggleExpand(i)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center">
-                          {i + 1}
-                        </span>
-                        <div className="text-left">
-                          <span className="text-sm font-medium text-primary-col">
-                            {q.question || "New Question"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-col">
-                          {q.questionType || "MULTIPLE_CHOICE"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeQuestion(i);
-                          }}
-                          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <ChevronDown
-                          className={`w-4 h-4 text-muted-col transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                        />
-                      </div>
-                    </button>
-
-                    {/* Question Content */}
-                    {isExpanded && (
-                      <div className="px-4 py-4 glass-card space-y-3">
-                        <div>
-                          <label className="block text-xs text-muted-col mb-1">Question Text</label>
-                          <textarea
-                            value={q.question}
-                            onChange={(e) => updateQuestion(i, "question", e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
-                            placeholder="Enter the question text..."
-                          />
-                        </div>
-
-                        {/* Options */}
-                        <div className="space-y-2">
-                          <label className="block text-xs text-muted-col">Options</label>
-                          {(["A", "B", "C", "D"] as const).map((opt) => (
-                            <div key={opt} className="flex items-center gap-2">
-                              <span className="text-xs text-muted-col w-4 shrink-0">{opt}.</span>
-                              <input
-                                value={q[`option${opt}` as keyof ListeningQuestion] as string}
-                                onChange={(e) => updateQuestion(i, `option${opt}`, e.target.value)}
-                                className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
-                                placeholder={`Option ${opt}`}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateQuestion(i, "correctAnswer", opt)}
-                                className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
-                                  q.correctAnswer === opt
-                                    ? "border-emerald-500 bg-emerald-500 text-white"
-                                    : "border-[var(--border)]"
-                                }`}
-                                title="Set as correct answer"
-                              >
-                                {q.correctAnswer === opt && (
-                                  <span className="w-2 h-2 rounded-full bg-white" />
-                                )}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Explanation */}
-                        <div>
-                          <label className="block text-xs text-muted-col mb-1">
-                            Explanation (optional)
-                          </label>
-                          <textarea
-                            value={q.explanation || ""}
-                            onChange={(e) => updateQuestion(i, "explanation", e.target.value)}
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[60px]"
-                            placeholder="Explanation for the correct answer..."
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Add Question Button */}
-          <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <button
-              onClick={addQuestion}
-              type="button"
-              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 transition text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Question
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
-        <button
-          onClick={onCancel}
-          className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() =>
-            onSave({
-              ...form,
-              isActive: form.status === "active",
-              estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
-              description: form.description || null,
-              transcript: form.transcript || null,
-              audioUrl: form.audioUrl || null,
-              difficulty: form.difficulty || null,
-            })
-          }
-          disabled={!form.title.trim()}
-          className="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
-        >
-          Create Lesson
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function ReadingLessonForm({
   onSave,
@@ -2943,9 +2317,7 @@ function ReadingLessonForm({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-col mb-1">
-                          Japanese Passage
-                        </label>
+                        <label className="block text-xs text-muted-col mb-1">Japanese Passage</label>
                         <textarea
                           value={item.passage}
                           onChange={(e) => updateItem(i, "passage", e.target.value)}
@@ -2954,9 +2326,7 @@ function ReadingLessonForm({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-col mb-1">
-                          Vietnamese Translation
-                        </label>
+                        <label className="block text-xs text-muted-col mb-1">Vietnamese Translation</label>
                         <textarea
                           value={item.translationVietnamese}
                           onChange={(e) => updateItem(i, "translationVietnamese", e.target.value)}
@@ -2968,9 +2338,7 @@ function ReadingLessonForm({
                       {/* Vocabulary Hints */}
                       <div className="border-t border-[var(--border)] pt-3">
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-xs text-muted-col font-medium">
-                            Vocabulary Hints
-                          </label>
+                          <label className="text-xs text-muted-col font-medium">Vocabulary Hints</label>
                           <button
                             type="button"
                             onClick={() => {
@@ -3020,9 +2388,7 @@ function ReadingLessonForm({
                             <button
                               type="button"
                               onClick={() => {
-                                const hints = (item.vocabularyHints || []).filter(
-                                  (_, idx) => idx !== vi,
-                                );
+                                const hints = (item.vocabularyHints || []).filter((_, idx) => idx !== vi);
                                 updateItem(i, "vocabularyHints", hints);
                               }}
                               className="text-red-400 hover:text-red-600 shrink-0"
@@ -3060,20 +2426,13 @@ function ReadingLessonForm({
                           </button>
                         </div>
                         {(item.questions || []).map((q, qi) => (
-                          <div
-                            key={q.id}
-                            className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]"
-                          >
+                          <div key={q.id} className="rounded-lg border border-[var(--border)] p-3 mb-2 bg-[var(--card)]">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-semibold text-primary-col">
-                                Q{qi + 1}
-                              </span>
+                              <span className="text-xs font-semibold text-primary-col">Q{qi + 1}</span>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const questions = (item.questions || []).filter(
-                                    (_, idx) => idx !== qi,
-                                  );
+                                  const questions = (item.questions || []).filter((_, idx) => idx !== qi);
                                   updateItem(i, "questions", questions);
                                 }}
                                 className="text-red-400 hover:text-red-600"
@@ -3458,9 +2817,7 @@ function ExcelImportModal({
   level: JLPTLevel;
   onClose: () => void;
   onImport: (
-    data: Partial<
-      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
-    >,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -3676,7 +3033,9 @@ function ExcelImportModal({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-primary-col truncate">{file.name}</p>
-              <p className="text-xs text-muted-col">{(file.size / 1024).toFixed(1)} KB</p>
+              <p className="text-xs text-muted-col">
+                {(file.size / 1024).toFixed(1)} KB
+              </p>
             </div>
             <button
               onClick={(e) => {
@@ -3721,8 +3080,16 @@ function ExcelImportModal({
 // ─── Skill Detail Page (Match Question Bank) ─────────────────────────────────
 
 function SkillDetailPage() {
-  console.log("[SKILL INDEX MOUNTED] /admin/content-library/$level/$skill");
+  const { level, skill } = Route.useParams();
 
+  if (skill === "grammar") {
+    return <AdminGrammarContentPage level={level} />;
+  }
+
+  return <LegacySkillDetailPage />;
+}
+
+function LegacySkillDetailPage() {
   const { level, skill } = Route.useParams();
   const navigate = useNavigate();
   const upperLevel = level.toUpperCase() as JLPTLevel;
@@ -3739,9 +3106,8 @@ function SkillDetailPage() {
 
   const [readingDetailId, setReadingDetailId] = useState<string | null>(null);
   const readingDetailQuery = useFetchReadingDetail(readingDetailId ?? "");
-  const readingDetail: AdminReadingLesson | null = (
-    readingDetailQuery.data != null ? readingDetailQuery.data : null
-  ) as AdminReadingLesson | null;
+  const readingDetail: AdminReadingLesson | null =
+    (readingDetailQuery.data != null ? readingDetailQuery.data : null) as AdminReadingLesson | null;
 
   const createReadingMutation = useCreateReadingLesson(upperLevel);
   const updateReadingMutation = useUpdateReadingLesson(upperLevel, readingDetailId ?? "");
@@ -3770,22 +3136,13 @@ function SkillDetailPage() {
   // ── Reading-specific modals & state ──
   const [showReadingDetailModal, setShowReadingDetailModal] = useState(false);
   const [showReadingEditModal, setShowReadingEditModal] = useState(false);
-  const [readingSelectedLesson, setReadingSelectedLesson] = useState<AdminReadingLesson | null>(
-    null,
-  );
+  const [readingSelectedLesson, setReadingSelectedLesson] = useState<AdminReadingLesson | null>(null);
   const [readingEditMode, setReadingEditMode] = useState<"create" | "edit">("create");
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showUnpublishConfirm, setShowUnpublishConfirm] = useState(false);
 
   const filtered = lessons.filter(
-    (
-      item,
-    ): item is
-      | VocabularyLesson
-      | GrammarLesson
-      | ListeningLesson
-      | ShadowingItem
-      | ReadingLesson => {
+    (item): item is VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson => {
       if (!search.trim()) return true;
       const s = search.toLowerCase();
       return (
@@ -3808,40 +3165,30 @@ function SkillDetailPage() {
   });
 
   const handleCreate = (
-    data: Partial<
-      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
-    >,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => {
     createLesson(data);
     toast.success("Lesson created successfully");
     setShowCreateModal(false);
   };
 
-  const handleEdit = (
-    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson,
-  ) => {
+  const handleEdit = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
     setSelectedItem(item);
     setShowEditModal(true);
   };
 
-  const handleView = (
-    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson,
-  ) => {
+  const handleView = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
     setSelectedItem(item);
     setShowViewModal(true);
   };
 
-  const handleDeleteClick = (
-    item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson,
-  ) => {
+  const handleDeleteClick = (item: VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson) => {
     setSelectedItem(item);
     setShowDeleteConfirm(true);
   };
 
   const handleUpdate = (
-    data: Partial<
-      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
-    >,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => {
     if (!selectedItem) return;
     updateLesson(selectedItem.id, data);
@@ -3851,9 +3198,7 @@ function SkillDetailPage() {
   };
 
   const handleImport = (
-    data: Partial<
-      VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson
-    >,
+    data: Partial<VocabularyLesson | GrammarLesson | ListeningLesson | ShadowingItem | ReadingLesson>,
   ) => {
     createLesson(data);
     toast.success("Lesson imported successfully");
@@ -3940,6 +3285,7 @@ function SkillDetailPage() {
         toast.success("Reading lesson deleted successfully");
         setShowDeleteConfirm(false);
         setReadingSelectedLesson(null);
+        readingQuery.refetch();
       },
       onError: () => {
         toast.error("Failed to delete reading lesson");
@@ -3951,25 +3297,45 @@ function SkillDetailPage() {
   const handleReadSave = (data: AdminReadingLesson) => {
     const firstPassage = (data.passages ?? []).find((passage) => passage.passage.trim());
     const mainPassage = firstPassage?.passage ?? data.passage ?? "";
-    const questions = (data.passages ?? []).flatMap((passage) =>
-      (passage.questions ?? []).map((q, idx) => ({
-        questionOrder: idx + 1,
-        question: q.question,
-        optionA: q.options[0] || "",
-        optionB: q.options[1] || "",
-        optionC: q.options[2] || "",
-        optionD: q.options[3] || "",
-        correctAnswer: String.fromCharCode(65 + ((q.correctAnswer ?? 0) % 4)),
-        explanation: q.explanation,
-      })),
-    );
+
+    // Build passages with nested questions
+    const passages = (data.passages ?? []).map((passage, index) => {
+      let questionOrder = 1;
+      const questions = (passage.questions ?? []).map((q) => {
+        const order = questionOrder++;
+        const isTempId = !q.id || q.id.startsWith("q-") || q.id.startsWith("temp-");
+        return {
+          ...(q.id && !isTempId ? { id: q.id } : {}),
+          questionOrder: order,
+          question: q.question,
+          optionA: (q.options ?? [])[0] || "",
+          optionB: (q.options ?? [])[1] || "",
+          optionC: (q.options ?? [])[2] || "",
+          optionD: (q.options ?? [])[3] || "",
+          correctAnswer: (() => {
+            const val = q.correctAnswer;
+            if (typeof val === 'string' && /^[A-D]$/i.test(val)) {
+              return val.toUpperCase();
+            }
+            const idx = typeof val === 'number' ? val : parseInt(String(val), 10);
+            return isNaN(idx) ? 'A' : String.fromCharCode(65 + (idx % 4));
+          })(),
+          explanation: q.explanation,
+        };
+      });
+
+      return {
+        ...(passage.id && !passage.id.startsWith("passage-") && !passage.id.startsWith("temp-") ? { id: passage.id } : {}),
+        passageOrder: index + 1,
+        passage: passage.passage,
+        vietnameseTranslation: passage.translationVietnamese ?? undefined,
+        questions,
+      };
+    });
 
     const payload = {
       lesson: {
-        jlptLevel:
-          readingEditMode === "create"
-            ? upperLevel
-            : readingSelectedLesson?.jlptLevel || upperLevel,
+        jlptLevel: readingEditMode === "create" ? upperLevel : readingSelectedLesson?.jlptLevel || upperLevel,
         lessonNumber: data.lessonNumber,
         title: data.title,
         description: data.description ?? undefined,
@@ -3977,12 +3343,7 @@ function SkillDetailPage() {
         vietnameseTranslation: data.vietnameseTranslation ?? undefined,
         isActive: data.isActive,
       },
-      passages: (data.passages ?? []).map((passage, index) => ({
-        passageOrder: index + 1,
-        passage: passage.passage,
-        vietnameseTranslation: passage.translationVietnamese ?? undefined,
-      })),
-      questions,
+      passages,
     };
 
     console.log("[READING SAVE]", { mode: readingEditMode, payload });
@@ -4019,16 +3380,14 @@ function SkillDetailPage() {
 
   // ── Backend listening hooks (used only when skill === "listening") ──
   const listeningQuery = useFetchListeningLessons(upperLevel);
-  const listeningLessons: AdminListeningLesson[] = (listeningQuery.data ??
-    []) as AdminListeningLesson[];
+  const listeningLessons: AdminListeningLesson[] = (listeningQuery.data ?? []) as unknown as AdminListeningLesson[];
 
   const [listeningDetailId, setListeningDetailId] = useState<string | null>(null);
   // Use ref to always get the latest lessonId (fixes closure bug in mutation)
   const listeningDetailIdRef = useRef<string | null>(null);
   const listeningDetailQuery = useFetchListeningDetail(listeningDetailId ?? "");
-  const listeningDetail: AdminListeningLesson | null = (
-    listeningDetailQuery.data != null ? listeningDetailQuery.data : null
-  ) as AdminListeningLesson | null;
+  const listeningDetail: AdminListeningLesson | null =
+    (listeningDetailQuery.data != null ? listeningDetailQuery.data : null) as AdminListeningLesson | null;
 
   // Update ref when detailId changes
   useEffect(() => {
@@ -4044,11 +3403,8 @@ function SkillDetailPage() {
   // ── Listening-specific modals & state ──
   const [showListeningDetailModal, setShowListeningDetailModal] = useState(false);
   const [showListeningEditModal, setShowListeningEditModal] = useState(false);
-  const [listeningSelectedLesson, setListeningSelectedLesson] =
-    useState<AdminListeningLesson | null>(null);
-  const [listeningEditMode, setListeningEditMode] = useState<
-    "create" | "edit" | "view" | undefined
-  >("create");
+  const [listeningSelectedLesson, setListeningSelectedLesson] = useState<AdminListeningLesson | null>(null);
+  const [listeningEditMode, setListeningEditMode] = useState<"create" | "edit" | "view" | undefined>("create");
 
   // Backend-driven listening lessons
   const listeningBackendFiltered = listeningLessons.filter((item) => {
@@ -4144,32 +3500,29 @@ function SkillDetailPage() {
   };
 
   const handleListeningSave = (data: Partial<AdminListeningLesson>) => {
-    const questions = (data.questions ?? []).map((q, idx) => ({
+    const items = (data.listeningItems ?? []).map((q, idx) => ({
+      id: q.id,
       questionOrder: idx + 1,
-      question: q.question,
+      audioUrl: q.audioUrl || "",
+      question: q.question || "",
       optionA: q.optionA || "",
       optionB: q.optionB || "",
       optionC: q.optionC || "",
       optionD: q.optionD || "",
       correctAnswer: q.correctAnswer || "A",
       explanation: q.explanation ?? undefined,
-      questionType: q.questionType ?? "MULTIPLE_CHOICE",
     }));
 
     const payload = {
       lesson: {
-        jlptLevel:
-          listeningEditMode === "create"
-            ? upperLevel
-            : listeningSelectedLesson?.jlptLevel || upperLevel,
+        jlptLevel: listeningEditMode === "create" ? upperLevel : listeningSelectedLesson?.jlptLevel || upperLevel,
         lessonNumber: data.lessonNumber ?? listeningSelectedLesson?.lessonNumber ?? 1,
         title: data.title ?? listeningSelectedLesson?.title ?? "",
         description: data.description ?? listeningSelectedLesson?.description ?? undefined,
-        audioUrl: data.audioUrl ?? listeningSelectedLesson?.audioUrl ?? undefined,
         transcript: data.transcript ?? listeningSelectedLesson?.transcript ?? undefined,
         isActive: data.isActive ?? listeningSelectedLesson?.isActive ?? true,
       },
-      questions,
+      items,
     };
 
     console.log("[LISTENING SAVE]", { mode: listeningEditMode, payload });
@@ -4208,8 +3561,7 @@ function SkillDetailPage() {
         toast.error("No lesson selected for update");
         return;
       }
-      adminListeningApi
-        .updateListeningLesson(lessonId, payload)
+      adminListeningApi.updateListeningLesson(lessonId, payload)
         .then(() => {
           toast.success("Listening lesson updated successfully");
           setShowListeningEditModal(false);
@@ -4219,9 +3571,204 @@ function SkillDetailPage() {
         .catch((error: unknown) => {
           console.error("[LISTENING SAVE ERROR]", error);
           const message =
-            error instanceof Error ? error.message : "Failed to update listening lesson";
+            error instanceof Error
+              ? error.message
+              : "Failed to update listening lesson";
           toast.error(message);
         });
+    }
+  };
+
+  // ── Backend vocabulary hooks (used only when skill === "vocabulary") ──
+  const vocabularyQuery = useFetchVocabularyLessons(upperLevel);
+  const vocabularyLessons: AdminVocabularyLesson[] = (vocabularyQuery.data ?? []) as AdminVocabularyLesson[];
+
+  const [vocabularyDetailId, setVocabularyDetailId] = useState<string | null>(null);
+  const vocabularyDetailIdRef = useRef<string | null>(null);
+  const vocabularyDetailQuery = useFetchVocabularyDetail(vocabularyDetailId ?? "");
+  const vocabularyDetail: AdminVocabularyLesson | null =
+    (vocabularyDetailQuery.data != null ? vocabularyDetailQuery.data : null) as AdminVocabularyLesson | null;
+
+  useEffect(() => {
+    vocabularyDetailIdRef.current = vocabularyDetailId;
+  }, [vocabularyDetailId]);
+
+  const createVocabularyMutation = useCreateVocabularyLesson(upperLevel);
+  const updateVocabularyMutation = useUpdateVocabularyLesson(
+    upperLevel,
+    vocabularyDetailId ?? "",
+  );
+  const deleteVocabularyMutation = useDeleteVocabularyLesson(upperLevel);
+  const publishVocabularyMutation = usePublishVocabularyLesson(upperLevel);
+  const unpublishVocabularyMutation = useUnpublishVocabularyLesson(upperLevel);
+
+  // ── Vocabulary-specific modals & state ──
+  const [showVocabularyDetailModal, setShowVocabularyDetailModal] = useState(false);
+  const [showVocabularyEditModal, setShowVocabularyEditModal] = useState(false);
+  const [vocabularySelectedLesson, setVocabularySelectedLesson] =
+    useState<AdminVocabularyLesson | null>(null);
+  const [vocabularyEditMode, setVocabularyEditMode] = useState<
+    "create" | "edit" | "view" | undefined
+  >("create");
+
+  // Backend-driven vocabulary lessons (search filter)
+  const vocabularyBackendFiltered = vocabularyLessons.filter((item) => {
+    if (!search.trim()) return true;
+    const s = search.toLowerCase();
+    return (
+      item.title?.toLowerCase().includes(s) ||
+      String(item.lessonNumber).includes(s) ||
+      (item.jlptLevel?.toLowerCase().includes(s) ?? false) ||
+      (item.difficulty?.toLowerCase().includes(s) ?? false)
+    );
+  });
+
+  const handleVocabularyView = (lesson: AdminVocabularyLesson) => {
+    setVocabularySelectedLesson(lesson);
+    setVocabularyDetailId(lesson.id);
+    setVocabularyEditMode("view");
+    setShowVocabularyDetailModal(true);
+  };
+
+  const handleVocabularyEdit = (lesson: AdminVocabularyLesson) => {
+    setVocabularySelectedLesson(lesson);
+    setVocabularyDetailId(lesson.id);
+    setVocabularyEditMode("edit");
+    setShowVocabularyEditModal(true);
+  };
+
+  const handleVocabularyCreate = () => {
+    setVocabularySelectedLesson(null);
+    setVocabularyDetailId(null);
+    setVocabularyEditMode("create");
+    setShowVocabularyEditModal(true);
+  };
+
+  const handleVocabularyDelete = (lesson: AdminVocabularyLesson) => {
+    setVocabularySelectedLesson(lesson);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleVocabularyPublish = (lesson: AdminVocabularyLesson) => {
+    setVocabularySelectedLesson(lesson);
+    setShowPublishConfirm(true);
+  };
+
+  const handleVocabularyUnpublish = (lesson: AdminVocabularyLesson) => {
+    setVocabularySelectedLesson(lesson);
+    setShowUnpublishConfirm(true);
+  };
+
+  const confirmVocabularyPublish = () => {
+    if (!vocabularySelectedLesson) return;
+    publishVocabularyMutation.mutate(vocabularySelectedLesson.id, {
+      onSuccess: () => {
+        toast.success("Vocabulary lesson published successfully");
+        setShowPublishConfirm(false);
+        setVocabularySelectedLesson(null);
+      },
+      onError: () => {
+        toast.error("Failed to publish vocabulary lesson");
+        setShowPublishConfirm(false);
+      },
+    });
+  };
+
+  const confirmVocabularyUnpublish = () => {
+    if (!vocabularySelectedLesson) return;
+    unpublishVocabularyMutation.mutate(vocabularySelectedLesson.id, {
+      onSuccess: () => {
+        toast.success("Vocabulary lesson unpublished successfully");
+        setShowUnpublishConfirm(false);
+        setVocabularySelectedLesson(null);
+      },
+      onError: () => {
+        toast.error("Failed to unpublish vocabulary lesson");
+        setShowUnpublishConfirm(false);
+      },
+    });
+  };
+
+  const confirmVocabularyDelete = () => {
+    if (!vocabularySelectedLesson) return;
+    deleteVocabularyMutation.mutate(vocabularySelectedLesson.id, {
+      onSuccess: () => {
+        toast.success("Vocabulary lesson deleted successfully");
+        setShowDeleteConfirm(false);
+        setVocabularySelectedLesson(null);
+      },
+      onError: () => {
+        toast.error("Failed to delete vocabulary lesson");
+        setShowDeleteConfirm(false);
+      },
+    });
+  };
+
+  const handleVocabularySave = (data: Partial<AdminVocabularyLesson>) => {
+    const items = (data.items ?? []).map((item, idx) => {
+      const isTempId = !item.id || item.id.startsWith("temp-");
+      return {
+        ...(item.id && !isTempId ? { id: item.id } : {}),
+        itemOrder: item.itemOrder || idx + 1,
+        japanese: item.japanese,
+        furigana: item.furigana ?? undefined,
+        romaji: item.romaji ?? undefined,
+        meaning: item.meaning,
+        exampleSentence: item.exampleSentence ?? undefined,
+        exampleTranslation: item.exampleTranslation ?? undefined,
+        partOfSpeech: item.partOfSpeech ?? undefined,
+      };
+    });
+
+    const payload = {
+      lesson: {
+        jlptLevel:
+          vocabularyEditMode === "create"
+            ? upperLevel
+            : vocabularySelectedLesson?.jlptLevel || upperLevel,
+        lessonNumber: data.lessonNumber ?? vocabularySelectedLesson?.lessonNumber ?? 1,
+        title: data.title ?? vocabularySelectedLesson?.title ?? "",
+        description: data.description ?? undefined,
+        estimatedMinutes: data.estimatedMinutes ?? undefined,
+        difficulty: data.difficulty ?? undefined,
+        isActive: data.isActive ?? vocabularySelectedLesson?.isActive ?? true,
+      },
+      items,
+    };
+
+    const mutateOptions = {
+      onSuccess: () => {
+        toast.success(
+          vocabularyEditMode === "create"
+            ? "Vocabulary lesson created successfully"
+            : "Vocabulary lesson updated successfully",
+        );
+        setShowVocabularyEditModal(false);
+        setVocabularySelectedLesson(null);
+        setShowCreateModal(false);
+        vocabularyQuery.refetch().catch(console.error);
+      },
+      onError: (error: unknown) => {
+        console.error("[VOCABULARY SAVE ERROR]", error);
+        const message =
+          error instanceof Error
+            ? error.message
+            : vocabularyEditMode === "create"
+              ? "Failed to create vocabulary lesson"
+              : "Failed to update vocabulary lesson";
+        toast.error(message);
+      },
+    };
+
+    if (vocabularyEditMode === "create") {
+      createVocabularyMutation.mutate(payload, mutateOptions);
+    } else {
+      const lessonId = vocabularyDetailIdRef.current ?? vocabularySelectedLesson?.id;
+      if (!lessonId) {
+        toast.error("No lesson selected for update");
+        return;
+      }
+      updateVocabularyMutation.mutate(payload, mutateOptions);
     }
   };
 
@@ -4232,7 +3779,8 @@ function SkillDetailPage() {
       | ListeningLesson
       | ShadowingItem
       | ReadingLesson
-      | AdminReadingLesson,
+      | AdminReadingLesson
+      | AdminVocabularyLesson,
   ): number => {
     if ("items" in item && Array.isArray(item.items)) return item.items.length;
     if ("segments" in item && Array.isArray(item.segments)) return item.segments.length;
@@ -4277,7 +3825,9 @@ function SkillDetailPage() {
                 ? handleReadCreate()
                 : skill === "listening"
                   ? handleListeningCreate()
-                  : setShowCreateModal(true)
+                  : skill === "vocabulary"
+                    ? handleVocabularyCreate()
+                    : setShowCreateModal(true)
             }
             className="px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
           >
@@ -4298,27 +3848,18 @@ function SkillDetailPage() {
       </div>
 
       {/* Table (Match Question Bank style) */}
-      {skill === "reading" || skill === "listening" ? (
-        /* ── Backend-driven Table (Reading & Listening) ── */
+      {skill === "reading" || skill === "listening" || skill === "vocabulary" ? (
+        /* ── Backend-driven Table (Reading, Listening, Vocabulary) ── */
         <div className="card-base overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-10 gap-3 px-5 py-3 border-b separator">
-            <div className="col-span-1 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+          <div className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-3 border-b separator items-center">
+            <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Lesson #
             </div>
-            <div className="col-span-3 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Title
             </div>
-            <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              JLPT
-            </div>
-            <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Questions
-            </div>
-            <div className="col-span-1 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Status
-            </div>
-            <div className="col-span-2 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Actions
             </div>
           </div>
@@ -4347,184 +3888,139 @@ function SkillDetailPage() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="grid grid-cols-10 gap-3 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
+                    className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
                   >
-                    <div className="col-span-1 text-sm font-medium text-muted-col whitespace-nowrap">
+                    <div className="text-sm font-medium text-muted-col whitespace-nowrap">
                       #{item.lessonNumber}
                     </div>
-                    <div className="col-span-4">
-                      <div className="font-medium text-sm text-primary-col">{item.title}</div>
-                      {item.description && (
-                        <div className="text-xs text-muted-col truncate mt-0.5">
-                          {item.description}
-                        </div>
-                      )}
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">
-                        {item.jlptLevel}
-                      </span>
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <span className="text-sm font-medium text-muted-col">
-                        {item.questions?.length ?? 0}
-                      </span>
-                    </div>
-                    <div className="col-span-1 flex justify-center">
-                      <StatusBadge status={item.isActive ? "active" : "inactive"} />
-                    </div>
-                    <div className="col-span-2 flex justify-end items-center gap-1.5">
-                      <button
-                        onClick={() => handleReadView(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        View
-                      </button>
+                    <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleReadEdit(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                         Edit
                       </button>
                       <button
                         onClick={() => handleReadDelete(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
+                        Delete
                       </button>
-                      {item.isActive ? (
-                        <button
-                          onClick={() => handleReadUnpublish(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
-                          title="Unpublish"
-                        >
-                          <CloudOff className="w-3.5 h-3.5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleReadPublish(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition text-xs font-medium"
-                          title="Publish"
-                        >
-                          <Cloud className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                     </div>
                   </motion.div>
                 ))
               )
-            ) : listeningQuery.isLoading ? (
-              <div className="px-5 py-12 text-center">
-                <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-muted-col mt-2">Loading listening lessons...</p>
-              </div>
-            ) : listeningQuery.isError ? (
-              <div className="px-5 py-12 text-center">
-                <p className="text-sm text-red-500">Failed to load listening lessons.</p>
-              </div>
-            ) : listeningBackendFiltered.length === 0 ? (
-              <div className="px-5 py-12 text-center">
-                <p className="text-sm text-muted-col">
-                  No listening content found{search ? " matching your search" : ""}
-                </p>
-              </div>
-            ) : (
-              listeningBackendFiltered.map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="grid grid-cols-10 gap-3 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
-                >
-                  <div className="col-span-1 text-sm font-medium text-muted-col whitespace-nowrap">
-                    #{item.lessonNumber}
-                  </div>
-                  <div className="col-span-4">
+            ) : skill === "listening" ? (
+              listeningQuery.isLoading ? (
+                <div className="px-5 py-12 text-center">
+                  <div className="inline-block w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-muted-col mt-2">Loading listening lessons...</p>
+                </div>
+              ) : listeningQuery.isError ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-red-500">Failed to load listening lessons.</p>
+                </div>
+              ) : listeningBackendFiltered.length === 0 ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-muted-col">
+                    No listening content found{search ? " matching your search" : ""}
+                  </p>
+                </div>
+              ) : (
+                listeningBackendFiltered.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-4 hover:bg-emerald-500/5 transition items-center"
+                  >
+                    <div className="text-sm font-medium text-muted-col whitespace-nowrap">
+                      #{item.lessonNumber}
+                    </div>
                     <div className="font-medium text-sm text-primary-col">{item.title}</div>
-                    {item.description && (
-                      <div className="text-xs text-muted-col truncate mt-0.5">
-                        {item.description}
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-span-1 text-center">
-                    <span className="text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-md">
-                      {item.jlptLevel}
-                    </span>
-                  </div>
-                  <div className="col-span-1 text-center">
-                    <span className="text-sm font-medium text-muted-col">
-                      {item.questions?.length ?? 0}
-                    </span>
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <StatusBadge status={item.isActive ? "active" : "inactive"} />
-                  </div>
-                  <div className="col-span-2 flex justify-end items-center gap-1.5">
-                    <button
-                      onClick={() => handleListeningView(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleListeningEdit(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleListeningDelete(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                    {item.isActive ? (
+                    <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => handleListeningUnpublish(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition text-xs font-medium"
-                        title="Unpublish"
+                        onClick={() => handleListeningEdit(item)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
                       >
-                        <CloudOff className="w-3.5 h-3.5" />
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit
                       </button>
-                    ) : (
                       <button
-                        onClick={() => handleListeningPublish(item)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition text-xs font-medium"
-                        title="Publish"
+                        onClick={() => handleListeningDelete(item)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
                       >
-                        <Cloud className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
                       </button>
-                    )}
-                  </div>
-                </motion.div>
-              ))
-            )}
+                    </div>
+                  </motion.div>
+                ))
+              )
+            ) : skill === "vocabulary" ? (
+              vocabularyQuery.isLoading ? (
+                <div className="px-5 py-12 text-center">
+                  <div className="inline-block w-6 h-6 border-2 border-sakura border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-muted-col mt-2">Loading vocabulary lessons...</p>
+                </div>
+              ) : vocabularyQuery.isError ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-red-500">Failed to load vocabulary lessons.</p>
+                </div>
+              ) : vocabularyBackendFiltered.length === 0 ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-muted-col">
+                    No vocabulary content found{search ? " matching your search" : ""}
+                  </p>
+                </div>
+              ) : (
+                vocabularyBackendFiltered.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="grid grid-cols-[60px_1fr_auto] gap-4 px-5 py-4 hover:bg-sakura/5 transition items-center"
+                  >
+                    <div className="text-sm font-medium text-muted-col whitespace-nowrap">
+                      #{item.lessonNumber}
+                    </div>
+                    <div className="font-medium text-sm text-primary-col">{item.title}</div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleVocabularyEdit(item)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 transition text-xs font-medium"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleVocabularyDelete(item)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition text-xs font-medium"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
+              )
+            ) : null}
           </div>
         </div>
       ) : (
-        /* ── Mock Data Tables (vocabulary, grammar, shadowing) ── */
+        /* ── Mock Data Tables (grammar, shadowing) ── */
         <div className="card-base overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
+          <div className="grid grid-cols-[1fr_auto] gap-4 px-5 py-3 border-b separator items-center">
+            <div className="text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Lesson
             </div>
-            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Type
-            </div>
-            <div className="col-span-2 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Level
-            </div>
-            <div className="col-span-3 text-left text-[10px] uppercase tracking-wider text-muted-col font-bold">
-              Description
-            </div>
-            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Actions
             </div>
           </div>
@@ -4541,62 +4037,29 @@ function SkillDetailPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-[var(--accent)] transition"
+                  className="grid grid-cols-[1fr_auto] gap-4 px-5 py-4 items-center hover:bg-[var(--accent)] transition"
                 >
-                  <div className="col-span-2">
-                    <p className="text-sm font-semibold text-primary-col">{item.title}</p>
-                    <p className="text-xs text-muted-col mt-0.5">
-                      #
-                      {"lessonNumber" in item
-                        ? (
-                            item as
-                              | VocabularyLesson
-                              | GrammarLesson
-                              | ListeningLesson
-                              | ReadingLesson
-                          ).lessonNumber
-                        : "—"}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-col font-medium">#{"lessonNumber" in item ? (item as VocabularyLesson | GrammarLesson | ListeningLesson | ReadingLesson).lessonNumber : "—"}</span>
+                    <span className="text-sm font-semibold text-primary-col">{item.title}</span>
                   </div>
-                  <div className="col-span-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent)] text-xs font-medium text-primary-col">
-                      <SkillIcon className="w-3 h-3" />
-                      {config.label}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="inline-flex items-center px-2 py-1 rounded-lg bg-[var(--accent)] text-xs font-bold text-primary-col">
-                      {upperLevel}
-                    </span>
-                  </div>
-                  <div className="col-span-3">
-                    <p className="text-xs text-secondary-col line-clamp-2">
-                      {"description" in item
-                        ? (item as { description?: string | null }).description || "—"
-                        : "—"}
-                    </p>
-                  </div>
-                  <div className="col-span-3 flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => handleEdit(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[var(--accent)] text-primary-col hover:bg-[var(--border)] transition text-xs font-medium"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition text-xs font-medium"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
+                      Edit
                     </button>
                     <button
                       onClick={() => {
                         setSelectedItem(item);
                         setShowDeleteConfirm(true);
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20 transition text-xs font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-600 hover:bg-red-500/20 transition text-xs font-medium"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
+                      Delete
                     </button>
                   </div>
                 </motion.div>
@@ -4613,27 +4076,34 @@ function SkillDetailPage() {
           setSelectedItem(null);
           setReadingSelectedLesson(null);
           setListeningSelectedLesson(null);
+          setVocabularySelectedLesson(null);
         }}
         onConfirm={
           skill === "reading" && readingSelectedLesson
             ? confirmReadDelete
             : skill === "listening" && listeningSelectedLesson
               ? confirmListeningDelete
-              : handleDelete
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? confirmVocabularyDelete
+                : handleDelete
         }
         title={
           skill === "reading" && readingSelectedLesson
             ? "Delete Reading Lesson"
             : skill === "listening" && listeningSelectedLesson
               ? "Delete Listening Lesson"
-              : "Delete Lesson"
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? "Delete Vocabulary Lesson"
+                : "Delete Lesson"
         }
         message={
           skill === "reading" && readingSelectedLesson
             ? `Are you sure you want to delete "${readingSelectedLesson.title}"? This action cannot be undone.`
             : skill === "listening" && listeningSelectedLesson
               ? `Are you sure you want to delete "${listeningSelectedLesson.title}"? This action cannot be undone.`
-              : `Are you sure you want to delete "${selectedItem?.title}"? This action cannot be undone.`
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? `Are you sure you want to delete "${vocabularySelectedLesson.title}"? This action cannot be undone.`
+                : `Are you sure you want to delete "${selectedItem?.title}"? This action cannot be undone.`
         }
       />
 
@@ -4644,27 +4114,34 @@ function SkillDetailPage() {
           setShowPublishConfirm(false);
           setReadingSelectedLesson(null);
           setListeningSelectedLesson(null);
+          setVocabularySelectedLesson(null);
         }}
         onConfirm={
           skill === "reading" && readingSelectedLesson
             ? confirmReadPublish
             : skill === "listening" && listeningSelectedLesson
               ? confirmListeningPublish
-              : confirmReadPublish
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? confirmVocabularyPublish
+                : confirmReadPublish
         }
         title={
           skill === "reading" && readingSelectedLesson
             ? "Publish Reading Lesson"
             : skill === "listening" && listeningSelectedLesson
               ? "Publish Listening Lesson"
-              : "Publish Lesson"
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? "Publish Vocabulary Lesson"
+                : "Publish Lesson"
         }
         message={
           skill === "reading" && readingSelectedLesson
             ? `Are you sure you want to publish "${readingSelectedLesson?.title}"? It will become available to students.`
             : skill === "listening" && listeningSelectedLesson
               ? `Are you sure you want to publish "${listeningSelectedLesson?.title}"? It will become available to students.`
-              : ""
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? `Are you sure you want to publish "${vocabularySelectedLesson?.title}"? It will become available to students.`
+                : ""
         }
       />
 
@@ -4674,27 +4151,34 @@ function SkillDetailPage() {
           setShowUnpublishConfirm(false);
           setReadingSelectedLesson(null);
           setListeningSelectedLesson(null);
+          setVocabularySelectedLesson(null);
         }}
         onConfirm={
           skill === "reading" && readingSelectedLesson
             ? confirmReadUnpublish
             : skill === "listening" && listeningSelectedLesson
               ? confirmListeningUnpublish
-              : confirmReadUnpublish
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? confirmVocabularyUnpublish
+                : confirmReadUnpublish
         }
         title={
           skill === "reading" && readingSelectedLesson
             ? "Unpublish Reading Lesson"
             : skill === "listening" && listeningSelectedLesson
               ? "Unpublish Listening Lesson"
-              : "Unpublish Lesson"
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? "Unpublish Vocabulary Lesson"
+                : "Unpublish Lesson"
         }
         message={
           skill === "reading" && readingSelectedLesson
             ? `Are you sure you want to unpublish "${readingSelectedLesson?.title}"? It will no longer be available to students.`
             : skill === "listening" && listeningSelectedLesson
               ? `Are you sure you want to unpublish "${listeningSelectedLesson?.title}"? It will no longer be available to students.`
-              : ""
+              : skill === "vocabulary" && vocabularySelectedLesson
+                ? `Are you sure you want to unpublish "${vocabularySelectedLesson?.title}"? It will no longer be available to students.`
+                : ""
         }
       />
 
@@ -4794,13 +4278,14 @@ function SkillDetailPage() {
       <ReadingBackendEditForm
         open={showReadingEditModal}
         mode={readingEditMode}
-        lesson={readingSelectedLesson}
+        lesson={(readingDetail ?? readingSelectedLesson) as AdminReadingLesson | null}
         onSave={handleReadSave}
         onCancel={() => {
           setShowReadingEditModal(false);
           setReadingSelectedLesson(null);
         }}
         isSaving={createReadingMutation.isPending || updateReadingMutation.isPending}
+        isLoading={readingDetailQuery.isLoading && readingEditMode === "edit"}
       />
 
       {/* ── Listening Backend: Detail Modal ── */}
@@ -4812,7 +4297,7 @@ function SkillDetailPage() {
           setListeningDetailId(null);
           setListeningEditMode(undefined);
         }}
-        lesson={listeningDetail ?? listeningSelectedLesson}
+        lesson={(listeningDetail ?? listeningSelectedLesson)}
         isLoading={listeningDetailQuery.isLoading}
         isError={listeningDetailQuery.isError}
       />
@@ -4828,6 +4313,34 @@ function SkillDetailPage() {
           setListeningSelectedLesson(null);
           setListeningDetailId(null);
           setListeningEditMode(undefined);
+        }}
+      />
+
+      {/* ── Vocabulary Backend: Detail Modal ── */}
+      <VocabularyDetailModal
+        open={showVocabularyDetailModal}
+        onClose={() => {
+          setShowVocabularyDetailModal(false);
+          setVocabularySelectedLesson(null);
+          setVocabularyDetailId(null);
+          setVocabularyEditMode(undefined);
+        }}
+        lesson={vocabularyDetail ?? vocabularySelectedLesson}
+        isLoading={vocabularyDetailQuery.isLoading}
+        isError={vocabularyDetailQuery.isError}
+      />
+
+      {/* ── Vocabulary Backend: Create/Edit Modal ── */}
+      <VocabularyBackendEditForm
+        open={showVocabularyEditModal}
+        mode={vocabularyEditMode}
+        lesson={vocabularyDetail ?? vocabularySelectedLesson}
+        onSave={handleVocabularySave}
+        onCancel={() => {
+          setShowVocabularyEditModal(false);
+          setVocabularySelectedLesson(null);
+          setVocabularyDetailId(null);
+          setVocabularyEditMode(undefined);
         }}
       />
     </div>
@@ -4852,31 +4365,28 @@ function ReadingDetailModal({
   if (!open) return null;
 
   // Transform API response to component format
-  const transformedLesson = lesson
-    ? {
-        ...lesson,
-        questions: (lesson.questions ?? []).map((q) => {
-          // Check if options is already an array (form format) or needs conversion (API format)
-          if (Array.isArray(q.options)) {
-            return q;
-          }
-          // Convert API format (optionA, optionB, optionC, optionD) to array format
-          return {
-            ...q,
-            options: [
-              (q as any).optionA ?? "",
-              (q as any).optionB ?? "",
-              (q as any).optionC ?? "",
-              (q as any).optionD ?? "",
-            ],
-            correctAnswer:
-              typeof q.correctAnswer === "string"
-                ? ["A", "B", "C", "D"].indexOf((q.correctAnswer as string).toUpperCase())
-                : (q.correctAnswer ?? 0),
-          };
-        }),
+  const transformedLesson = lesson ? {
+    ...lesson,
+    questions: (lesson.questions ?? []).map((q) => {
+      // Check if options is already an array (form format) or needs conversion (API format)
+      if (Array.isArray(q.options)) {
+        return q;
       }
-    : null;
+      // Convert API format (optionA, optionB, optionC, optionD) to array format
+      return {
+        ...q,
+        options: [
+          (q as any).optionA ?? "",
+          (q as any).optionB ?? "",
+          (q as any).optionC ?? "",
+          (q as any).optionD ?? "",
+        ],
+        correctAnswer: typeof q.correctAnswer === 'string'
+          ? ['A', 'B', 'C', 'D'].indexOf((q.correctAnswer as string).toUpperCase())
+          : (q.correctAnswer ?? 0),
+      };
+    }),
+  } : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -4956,18 +4466,16 @@ function ReadingDetailModal({
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
                     Vietnamese Translation
                   </h3>
-                  <p className="text-sm text-secondary-col leading-relaxed">
-                    {transformedLesson.vietnameseTranslation}
-                  </p>
+                  <p className="text-sm text-secondary-col leading-relaxed">{transformedLesson.vietnameseTranslation}</p>
                 </div>
               )}
 
-              {(transformedLesson.questions?.length ?? 0) > 0 && (
+                  {transformedLesson.questions?.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide">
                     Questions ({transformedLesson.questions?.length ?? 0})
                   </h3>
-                  {transformedLesson.questions.map((q: ReadingQuestion, qi: number) => (
+                  {(transformedLesson.questions ?? []).map((q: ReadingQuestion, qi: number) => (
                     <div
                       key={q.id || qi}
                       className="glass-card p-4 space-y-3 border-l-4 border-emerald-500"
@@ -4993,9 +4501,7 @@ function ReadingDetailModal({
                             </span>
                             <span>{opt}</span>
                             {oi === q.correctAnswer && (
-                              <span className="ml-auto text-emerald-600 font-semibold">
-                                Correct
-                              </span>
+                              <span className="ml-auto text-emerald-600 font-semibold">Correct</span>
                             )}
                           </div>
                         ))}
@@ -5041,6 +4547,7 @@ function ReadingBackendEditForm({
   onSave,
   onCancel,
   isSaving,
+  isLoading,
 }: {
   open: boolean;
   mode: "create" | "edit";
@@ -5048,7 +4555,20 @@ function ReadingBackendEditForm({
   onSave: (data: AdminReadingLesson) => void;
   onCancel: () => void;
   isSaving: boolean;
+  isLoading?: boolean;
 }) {
+  // Show loading state while fetching lesson detail
+  if (isLoading && mode === "edit") {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="glass-modal rounded-2xl p-8">
+          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
+          <p className="text-center mt-4 text-sm text-muted-foreground">Loading lesson...</p>
+        </div>
+      </div>
+    );
+  }
+
   const createEmptyPassage = (): AdminReadingPassage => ({
     id: `passage-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
     title: "",
@@ -5065,14 +4585,41 @@ function ReadingBackendEditForm({
     explanation: "",
   });
 
+  const transformQuestion = (q: any): ReadingQuestion => ({
+    id: q.id || `q-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+    question: q.question || "",
+    options: Array.isArray(q.options) ? q.options : [q.optionA ?? "", q.optionB ?? "", q.optionC ?? "", q.optionD ?? ""],
+    correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : (typeof q.correctAnswer === 'string' && /^[A-D]$/i.test(q.correctAnswer) ? ['A','B','C','D'].indexOf(q.correctAnswer.toUpperCase()) : 0),
+    explanation: q.explanation || "",
+  });
+
   const [form, setForm] = useState<AdminReadingLesson>(() => {
-    const initialPassages =
-      !lesson || !lesson.passages || lesson.passages.length === 0
-        ? [createEmptyPassage()]
-        : lesson.passages.map((passage) => ({
-            ...passage,
-            questions: (passage.questions ?? []).map((question) => ({ ...question })),
-          }));
+    // Build passages from either:
+    // 1. lesson.passages (if exists) - new format
+    // 2. lesson.questions (if exists) - create one passage with all questions
+    // 3. empty - create one empty passage
+    
+    let initialPassages: AdminReadingPassage[];
+    
+    if (lesson?.passages && lesson.passages.length > 0) {
+      // Use existing passages
+      initialPassages = lesson.passages.map((passage) => ({
+        ...passage,
+        questions: (passage.questions ?? []).map(transformQuestion),
+      }));
+    } else if (lesson?.questions && lesson.questions.length > 0) {
+      // API returns flat questions - create one passage with all questions
+      initialPassages = [{
+        id: `passage-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        title: lesson.title || "",
+        passage: lesson.passage || "",
+        translationVietnamese: lesson.vietnameseTranslation || "",
+        questions: lesson.questions.map(transformQuestion),
+      }];
+    } else {
+      // No data - create one empty passage
+      initialPassages = [createEmptyPassage()];
+    }
 
     return {
       id: lesson?.id ?? "",
@@ -5087,7 +4634,7 @@ function ReadingBackendEditForm({
       isActive: lesson?.isActive ?? true,
       createdAt: lesson?.createdAt ?? new Date().toISOString(),
       updatedAt: lesson?.updatedAt ?? new Date().toISOString(),
-      questions: lesson?.questions ?? [],
+      questions: [], // Not used when passages exist
       passages: initialPassages,
     };
   });
@@ -5095,21 +4642,24 @@ function ReadingBackendEditForm({
   useEffect(() => {
     if (!lesson) return;
 
-    const passages =
-      lesson.passages && lesson.passages.length > 0
-        ? lesson.passages.map((passage) => ({
-            ...passage,
-            questions: (passage.questions ?? []).map((question) => ({ ...question })),
-          }))
-        : [
-            {
-              id: `passage-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-              title: lesson.title,
-              passage: lesson.passage,
-              translationVietnamese: lesson.vietnameseTranslation ?? "",
-              questions: (lesson.questions ?? []).map((question) => ({ ...question })),
-            },
-          ];
+    let passages: AdminReadingPassage[];
+    
+    if (lesson.passages && lesson.passages.length > 0) {
+      passages = lesson.passages.map((passage) => ({
+        ...passage,
+        questions: (passage.questions ?? []).map(transformQuestion),
+      }));
+    } else if (lesson.questions && lesson.questions.length > 0) {
+      passages = [{
+        id: `passage-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        title: lesson.title || "",
+        passage: lesson.passage || "",
+        translationVietnamese: lesson.vietnameseTranslation || "",
+        questions: lesson.questions.map(transformQuestion),
+      }];
+    } else {
+      passages = [createEmptyPassage()];
+    }
 
     setForm({
       id: lesson.id,
@@ -5124,22 +4674,19 @@ function ReadingBackendEditForm({
       isActive: lesson.isActive,
       createdAt: lesson.createdAt,
       updatedAt: lesson.updatedAt,
-      questions: lesson.questions,
+      questions: [], // Not used when passages exist
       passages,
     });
   }, [lesson]);
 
-  const updateField = <K extends keyof AdminReadingLesson>(
-    key: K,
-    value: AdminReadingLesson[K],
-  ) => {
+  const updateField = <K extends keyof AdminReadingLesson>(key: K, value: AdminReadingLesson[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
   };
 
   const addPassage = () => {
     setForm((f) => ({
       ...f,
-      passages: [...(f.passages ?? []), createEmptyPassage()],
+      passages: [...f.passages ?? [], createEmptyPassage()],
     }));
   };
 
@@ -5232,13 +4779,13 @@ function ReadingBackendEditForm({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 space-y-5">
-          {/* Lesson Info */}
+          {/* Lesson Info - Simplified */}
           <div className="glass-card p-5 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <BookOpen className="w-4 h-4 text-emerald-500" />
               <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
             </div>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-[120px_1fr] gap-4">
               <div>
                 <label className="block text-xs font-medium text-secondary-col mb-1.5">
                   Lesson Number
@@ -5251,69 +4798,16 @@ function ReadingBackendEditForm({
                   min={1}
                 />
               </div>
-              <div className="col-span-2">
-                <label className="block text-xs font-medium text-secondary-col mb-1.5">Title</label>
+              <div>
+                <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                  Title
+                </label>
                 <input
                   value={form.title}
                   onChange={(e) => updateField("title", e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition"
                   placeholder="Lesson title"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                  Active
-                </label>
-                <select
-                  value={form.isActive ? "active" : "inactive"}
-                  onChange={(e) => updateField("isActive", e.target.value === "active")}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition cursor-pointer"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={form.description ?? ""}
-                onChange={(e) => updateField("description", e.target.value || null)}
-                className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition resize-y min-h-[80px]"
-                placeholder="Optional description"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                  JLPT Level
-                </label>
-                <select
-                  value={form.jlptLevel}
-                  onChange={(e) => updateField("jlptLevel", e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition cursor-pointer"
-                >
-                  {["N5", "N4", "N3", "N2", "N1"].map((l) => (
-                    <option key={l} value={l}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                  Active
-                </label>
-                <select
-                  value={form.isActive ? "active" : "inactive"}
-                  onChange={(e) => updateField("isActive", e.target.value === "active")}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition cursor-pointer"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
               </div>
             </div>
           </div>
@@ -5324,8 +4818,7 @@ function ReadingBackendEditForm({
               <div>
                 <h3 className="text-sm font-semibold text-primary-col">Reading Passages</h3>
                 <p className="text-xs text-muted-col mt-0.5">
-                  {(form.passages ?? []).length} passage
-                  {(form.passages ?? []).length !== 1 ? "s" : ""}
+                  {(form.passages ?? []).length} passage{(form.passages ?? []).length !== 1 ? "s" : ""}
                 </p>
               </div>
               <button
@@ -5346,8 +4839,7 @@ function ReadingBackendEditForm({
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-col">
-                        {passage.questions?.length ?? 0} question
-                        {(passage.questions?.length ?? 0) === 1 ? "" : "s"}
+                        {(passage.questions?.length ?? 0)} question{(passage.questions?.length ?? 0) === 1 ? "" : "s"}
                       </span>
                       {(form.passages ?? []).length > 1 && (
                         <button
@@ -5390,9 +4882,7 @@ function ReadingBackendEditForm({
                       </label>
                       <textarea
                         value={passage.translationVietnamese}
-                        onChange={(e) =>
-                          updatePassage(passage.id, { translationVietnamese: e.target.value })
-                        }
+                        onChange={(e) => updatePassage(passage.id, { translationVietnamese: e.target.value })}
                         className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition resize-y min-h-[80px]"
                         placeholder="Vietnamese translation"
                       />
@@ -5449,7 +4939,7 @@ function ReadingBackendEditForm({
                               placeholder="Question text"
                             />
                             <div className="space-y-1.5">
-                              {question.options.map((option, optionIndex) => (
+                              {(question.options ?? []).map((option, optionIndex) => (
                                 <div key={optionIndex} className="flex items-center gap-2">
                                   <span className="text-xs text-muted-col font-bold w-4 shrink-0">
                                     {String.fromCharCode(65 + optionIndex)}.
@@ -5458,11 +4948,8 @@ function ReadingBackendEditForm({
                                     value={option}
                                     onChange={(e) =>
                                       updateQuestionInPassage(passage.id, question.id, {
-                                        options: question.options.map(
-                                          (currentOption, currentIndex) =>
-                                            currentIndex === optionIndex
-                                              ? e.target.value
-                                              : currentOption,
+                                        options: question.options.map((currentOption, currentIndex) =>
+                                          currentIndex === optionIndex ? e.target.value : currentOption,
                                         ),
                                       })
                                     }
@@ -5614,12 +5101,29 @@ function ListeningDetailModal({
                 </div>
               )}
 
-              {lesson.audioUrl && (
+              {lesson.listeningItems?.length > 0 && (
                 <div className="glass-card p-4">
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-3">
-                    Audio
+                    Audio Files
                   </h3>
-                  <audio controls src={lesson.audioUrl} className="w-full h-10 rounded-lg" />
+                  <div className="space-y-3">
+                    {lesson.listeningItems.map((it, idx) => (
+                      <div key={it.id || idx} className="space-y-1">
+                        <p className="text-xs text-muted-col">
+                          Item {idx + 1}
+                          {it.audioUrl ? "" : " (no audio)"}
+                        </p>
+                        {it.audioUrl && (
+                          <audio
+                            controls
+                            preload="metadata"
+                            src={it.audioUrl}
+                            className="w-full h-9 rounded-lg"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -5634,12 +5138,12 @@ function ListeningDetailModal({
                 </div>
               )}
 
-              {(lesson.questions?.length ?? 0) > 0 && (
+              {(lesson.listeningItems?.length ?? 0) > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide">
-                    Questions ({lesson.questions?.length ?? 0})
+                    Listening Items ({lesson.listeningItems?.length ?? 0})
                   </h3>
-                  {lesson.questions.map((q: ListeningQuestion, qi: number) => (
+                  {lesson.listeningItems.map((q, qi) => (
                     <div
                       key={q.id || qi}
                       className="glass-card p-4 space-y-3 border-l-4 border-sky-blue"
@@ -5648,13 +5152,24 @@ function ListeningDetailModal({
                         <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
                           {qi + 1}
                         </span>
-                        <p className="text-sm font-medium text-primary-col">
-                          {q.question || "No question text"}
-                        </p>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-primary-col">
+                            {q.question || "No question text"}
+                          </p>
+                          {q.audioUrl && (
+                            <audio
+                              controls
+                              preload="metadata"
+                              src={q.audioUrl}
+                              className="w-full h-9 mt-2 rounded-lg"
+                            />
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-1.5 ml-9">
                         {(["A", "B", "C", "D"] as const).map((opt) => {
-                          const optValue = q[`option${opt}` as keyof ListeningQuestion] as string;
+                          const optValue =
+                            q[`option${opt}` as "optionA" | "optionB" | "optionC" | "optionD"];
                           const isCorrect = q.correctAnswer === opt;
                           return (
                             <div
@@ -5729,21 +5244,21 @@ function ListeningBackendEditForm({
     lessonNumber: lesson?.lessonNumber || 1,
     title: lesson?.title || "",
     description: lesson?.description || "",
-    audioUrl: lesson?.audioUrl || "",
     transcript: lesson?.transcript || "",
     estimatedMinutes: lesson?.estimatedMinutes || "",
     difficulty: lesson?.difficulty || "",
     status: lesson?.isActive ? "active" : "inactive",
-    questions: [...(lesson?.questions || [])] as ListeningQuestion[],
+    listeningItems: [...(lesson?.listeningItems || [])] as AdminListeningLesson["listeningItems"],
   });
 
   const isViewMode = mode === "view";
   const isEditMode = mode === "edit";
 
-  const addQuestion = () => {
-    const newQuestion: ListeningQuestion = {
+  const addItem = () => {
+    const newItem: AdminListeningLesson["listeningItems"][number] = {
       id: `temp-${Date.now()}`,
-      questionOrder: form.questions.length + 1,
+      questionOrder: form.listeningItems.length + 1,
+      audioUrl: "",
       question: "",
       optionA: "",
       optionB: "",
@@ -5751,24 +5266,36 @@ function ListeningBackendEditForm({
       optionD: "",
       correctAnswer: "A",
       explanation: null,
-      questionType: "MULTIPLE_CHOICE",
     };
-    setForm((f) => ({ ...f, questions: [...f.questions, newQuestion] }));
+    setForm((f) => ({ ...f, listeningItems: [...f.listeningItems, newItem] }));
   };
 
-  const updateQuestion = (index: number, field: string, value: string | number | null) => {
+  const updateItem = (index: number, field: string, value: string | number | null) => {
     setForm((f) => {
-      const questions = f.questions.map((q, i) => (i === index ? { ...q, [field]: value } : q));
-      return { ...f, questions };
+      const listeningItems = f.listeningItems.map((q, i) =>
+        i === index ? { ...q, [field]: value } : q
+      );
+      return { ...f, listeningItems };
     });
   };
 
-  const removeQuestion = (index: number) => {
+  const removeItem = (index: number) => {
     setForm((f) => {
-      const questions = f.questions
+      const listeningItems = f.listeningItems
         .filter((_, i) => i !== index)
         .map((q, i) => ({ ...q, questionOrder: i + 1 }));
-      return { ...f, questions };
+      return { ...f, listeningItems };
+    });
+  };
+
+  const moveItem = (index: number, direction: -1 | 1) => {
+    setForm((f) => {
+      const next = [...f.listeningItems];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return f;
+      [next[index], next[target]] = [next[target], next[index]];
+      const listeningItems = next.map((q, i) => ({ ...q, questionOrder: i + 1 }));
+      return { ...f, listeningItems };
     });
   };
 
@@ -5780,7 +5307,6 @@ function ListeningBackendEditForm({
       estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
       description: form.description || null,
       transcript: form.transcript || null,
-      audioUrl: form.audioUrl || null,
       difficulty: form.difficulty || null,
     });
   };
@@ -5799,7 +5325,9 @@ function ListeningBackendEditForm({
             <h2 className="font-display font-bold text-primary-col text-base">
               {mode === "create" ? "Create" : "Edit"} Listening Lesson
             </h2>
-            {lesson?.title && <p className="text-xs text-muted-col mt-0.5">{lesson.title}</p>}
+            {lesson?.title && (
+              <p className="text-xs text-muted-col mt-0.5">{lesson.title}</p>
+            )}
           </div>
           <button
             onClick={onCancel}
@@ -5810,13 +5338,13 @@ function ListeningBackendEditForm({
         </div>
         <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
           <div className="space-y-6">
-            {/* Lesson Information */}
+            {/* Lesson Information - Simplified */}
             <div className="glass-card p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Headphones className="w-4 h-4 text-sky-blue" />
                 <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-[120px_1fr] gap-4">
                 <div>
                   <label className="block text-xs font-medium text-secondary-col mb-1.5">
                     Lesson Number
@@ -5841,102 +5369,98 @@ function ListeningBackendEditForm({
                     disabled={isViewMode}
                   />
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                    Description
-                  </label>
-                  <textarea
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[80px]"
-                    disabled={isViewMode}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                    Audio File
-                  </label>
-                  <AudioUploader
-                    value={form.audioUrl}
-                    onChange={(url) => setForm((f) => ({ ...f, audioUrl: url }))}
-                    disabled={isViewMode}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                    Status
-                  </label>
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
-                    disabled={isViewMode}
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
-              <div className="mt-4">
-                <label className="block text-xs font-medium text-secondary-col mb-1.5">
-                  Japanese Transcript
-                </label>
-                <textarea
-                  value={form.transcript}
-                  onChange={(e) => setForm((f) => ({ ...f, transcript: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition resize-y min-h-[120px]"
-                  disabled={isViewMode}
-                />
               </div>
             </div>
 
-            {/* Listening Questions */}
+            {/* Listening Items */}
             <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-primary-col">Listening Questions</h3>
+                  <h3 className="text-sm font-semibold text-primary-col">Listening Items</h3>
                   <p className="text-xs text-muted-col mt-0.5">
-                    {form.questions.length} question{form.questions.length !== 1 ? "s" : ""}
+                    {form.listeningItems.length} item{form.listeningItems.length !== 1 ? "s" : ""} — each item has its own audio
                   </p>
                 </div>
                 {!isViewMode && (
                   <button
-                    onClick={addQuestion}
+                    onClick={addItem}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium hover:bg-emerald-500/20 transition"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Add Question
+                    Add Listening Item
                   </button>
                 )}
               </div>
 
-              {form.questions.length === 0 ? (
+              {form.listeningItems.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-muted-col">No questions yet.</p>
+                  <p className="text-sm text-muted-col">
+                    No listening items yet. Add at least one to publish the lesson.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {form.questions.map((q, i) => (
+                  {form.listeningItems.map((q, i) => (
                     <div
                       key={q.id}
                       className="rounded-lg border border-[var(--border)] overflow-hidden"
                     >
                       <div className="px-4 py-3 bg-[var(--accent)]/40">
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center">
-                            {i + 1}
-                          </span>
-                          <span className="text-sm font-medium text-primary-col">
-                            {q.question || "New Question"}
-                          </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3">
+                            <span className="w-6 h-6 rounded-md bg-sky-blue/15 text-sky-blue text-xs font-bold flex items-center justify-center">
+                              {i + 1}
+                            </span>
+                            <span className="text-sm font-medium text-primary-col">
+                              {q.question || `Item ${i + 1}`}
+                            </span>
+                          </div>
+                          {!isViewMode && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => moveItem(i, -1)}
+                                disabled={i === 0}
+                                className="p-1 rounded-md text-muted-col hover:bg-[var(--accent)] disabled:opacity-30"
+                                title="Move up"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveItem(i, 1)}
+                                disabled={i === form.listeningItems.length - 1}
+                                className="p-1 rounded-md text-muted-col hover:bg-[var(--accent)] disabled:opacity-30"
+                                title="Move down"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(i)}
+                                className="p-1 rounded-md text-red-500 hover:bg-red-500/10"
+                                title="Delete item"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="px-4 py-4 space-y-3 bg-[var(--card)]">
                         <div>
-                          <label className="block text-xs text-muted-col mb-1">Question Text</label>
+                          <label className="block text-xs text-muted-col mb-1">Audio</label>
+                          <AudioUploader
+                            value={q.audioUrl}
+                            onChange={(url) => updateItem(i, "audioUrl", url)}
+                            disabled={isViewMode}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">Question</label>
                           <textarea
                             value={q.question}
-                            onChange={(e) => updateQuestion(i, "question", e.target.value)}
+                            onChange={(e) => updateItem(i, "question", e.target.value)}
                             className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
                             disabled={isViewMode}
                           />
@@ -5947,16 +5471,14 @@ function ListeningBackendEditForm({
                             <div key={opt} className="flex items-center gap-2">
                               <span className="text-xs text-muted-col w-4 shrink-0">{opt}.</span>
                               <input
-                                value={q[`option${opt}` as keyof ListeningQuestion] as string}
-                                onChange={(e) => updateQuestion(i, `option${opt}`, e.target.value)}
+                                value={q[`option${opt}` as "optionA" | "optionB" | "optionC" | "optionD"]}
+                                onChange={(e) => updateItem(i, `option${opt}`, e.target.value)}
                                 className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
                                 disabled={isViewMode}
                               />
                               <button
                                 type="button"
-                                onClick={() =>
-                                  !isViewMode && updateQuestion(i, "correctAnswer", opt)
-                                }
+                                onClick={() => !isViewMode && updateItem(i, "correctAnswer", opt)}
                                 className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition ${
                                   q.correctAnswer === opt
                                     ? "border-emerald-500 bg-emerald-500 text-white"
@@ -5971,6 +5493,18 @@ function ListeningBackendEditForm({
                               </button>
                             </div>
                           ))}
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-col mb-1">
+                            Explanation (optional)
+                          </label>
+                          <textarea
+                            value={q.explanation ?? ""}
+                            onChange={(e) => updateItem(i, "explanation", e.target.value)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col"
+                            rows={2}
+                            disabled={isViewMode}
+                          />
                         </div>
                       </div>
                     </div>
@@ -5992,6 +5526,570 @@ function ListeningBackendEditForm({
               onClick={handleSave}
               disabled={!form.title.trim()}
               className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+            >
+              <Save className="w-4 h-4" />
+              {mode === "create" ? "Create Lesson" : "Save Changes"}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Vocabulary Backend: Detail Modal ────────────────────────────────────────
+
+function VocabularyDetailModal({
+  open,
+  onClose,
+  lesson,
+  isLoading,
+  isError,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lesson: AdminVocabularyLesson | null;
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative z-10 w-full max-w-4xl glass-modal rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: "90vh" }}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b separator shrink-0">
+          <div>
+            <h2 className="font-display font-bold text-primary-col text-base">
+              {lesson?.title ?? "Vocabulary Lesson Detail"}
+            </h2>
+            {lesson && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-col">JLPT {lesson.jlptLevel}</span>
+                {lesson.difficulty && (
+                  <>
+                    <span className="text-xs text-muted-col">•</span>
+                    <span className="text-xs text-muted-col">{lesson.difficulty}</span>
+                  </>
+                )}
+                {lesson.estimatedMinutes != null && (
+                  <>
+                    <span className="text-xs text-muted-col">•</span>
+                    <span className="text-xs text-muted-col">{lesson.estimatedMinutes} min</span>
+                  </>
+                )}
+                <span className="text-xs text-muted-col">•</span>
+                <StatusBadge status={lesson.isActive ? "active" : "inactive"} />
+              </div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="inline-block w-6 h-6 border-2 border-sakura border-t-transparent rounded-full animate-spin" />
+              <span className="ml-3 text-sm text-muted-col">Loading...</span>
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12 text-red-500 text-sm">
+              Failed to load vocabulary lesson details.
+            </div>
+          ) : lesson ? (
+            <div className="space-y-6">
+              {lesson.description && (
+                <div className="glass-card p-4">
+                  <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide mb-2">
+                    Description
+                  </h3>
+                  <p className="text-sm text-secondary-col">{lesson.description}</p>
+                </div>
+              )}
+
+              {(lesson.items?.length ?? 0) > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-xs font-semibold text-muted-col uppercase tracking-wide">
+                    Vocabulary Items ({lesson.items?.length ?? 0})
+                  </h3>
+                  {[...(lesson.items ?? [])]
+                    .sort((a, b) => a.itemOrder - b.itemOrder)
+                    .map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="glass-card p-4 space-y-3 border-l-4 border-sakura"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                            {item.itemOrder}
+                          </span>
+                          <div className="flex-1 space-y-2">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-xs text-muted-col mb-0.5">Japanese</p>
+                                <p className="text-sm font-medium text-primary-col">{item.japanese}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-col mb-0.5">Meaning</p>
+                                <p className="text-sm text-secondary-col">{item.meaning}</p>
+                              </div>
+                            </div>
+                            {(item.furigana || item.romaji) && (
+                              <div className="grid grid-cols-2 gap-3">
+                                {item.furigana && (
+                                  <div>
+                                    <p className="text-xs text-muted-col mb-0.5">Furigana</p>
+                                    <p className="text-sm text-secondary-col">{item.furigana}</p>
+                                  </div>
+                                )}
+                                {item.romaji && (
+                                  <div>
+                                    <p className="text-xs text-muted-col mb-0.5">Romaji</p>
+                                    <p className="text-sm text-secondary-col">{item.romaji}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {(item.exampleSentence || item.exampleTranslation) && (
+                              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-[var(--border)]">
+                                {item.exampleSentence && (
+                                  <div>
+                                    <p className="text-xs text-muted-col mb-0.5">Example Sentence</p>
+                                    <p className="text-sm text-primary-col leading-relaxed">
+                                      {item.exampleSentence}
+                                    </p>
+                                  </div>
+                                )}
+                                {item.exampleTranslation && (
+                                  <div>
+                                    <p className="text-xs text-muted-col mb-0.5">Example Translation</p>
+                                    <p className="text-sm text-secondary-col leading-relaxed">
+                                      {item.exampleTranslation}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {item.partOfSpeech && (
+                              <div className="pt-1">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--accent)] text-xs text-secondary-col">
+                                  {item.partOfSpeech}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              {(lesson.items?.length ?? 0) === 0 && (
+                <div className="text-center py-8 text-muted-col text-sm">
+                  No vocabulary items in this lesson yet.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-col text-sm">
+              No lesson data available.
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Vocabulary Backend: Create/Edit Form ──────────────────────────────────────
+
+function VocabularyBackendEditForm({
+  open,
+  mode,
+  lesson,
+  onSave,
+  onCancel,
+}: {
+  open: boolean;
+  mode: "create" | "edit" | "view" | undefined;
+  lesson: AdminVocabularyLesson | null;
+  onSave: (data: Partial<AdminVocabularyLesson>) => void;
+  onCancel: () => void;
+}) {
+  if (!open) return null;
+
+  const isViewMode = mode === "view";
+
+  const [form, setForm] = useState<Partial<AdminVocabularyLesson>>(() => ({
+    lessonNumber: lesson?.lessonNumber || 1,
+    title: lesson?.title || "",
+    description: lesson?.description || "",
+    estimatedMinutes: lesson?.estimatedMinutes ?? null,
+    difficulty: lesson?.difficulty || "",
+    isActive: lesson?.isActive ?? true,
+    items: (lesson?.items ?? []).map((item) => ({ ...item })),
+  }));
+
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!lesson) return;
+    setForm({
+      lessonNumber: lesson.lessonNumber,
+      title: lesson.title,
+      description: lesson.description ?? "",
+      estimatedMinutes: lesson.estimatedMinutes ?? null,
+      difficulty: lesson.difficulty ?? "",
+      isActive: lesson.isActive,
+      items: (lesson.items ?? []).map((item) => ({ ...item })),
+    });
+  }, [lesson]);
+
+  const addItem = () => {
+    const currentItems = form.items ?? [];
+    const newItem: AdminVocabularyItem = {
+      id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      itemOrder: currentItems.length + 1,
+      japanese: "",
+      furigana: null,
+      romaji: null,
+      meaning: "",
+      exampleSentence: null,
+      exampleTranslation: null,
+      partOfSpeech: null,
+    };
+    // Normalize ALL item orders to ensure no duplicates after add
+    const allItems = [...currentItems, newItem].map((item, i) => ({
+      ...item,
+      itemOrder: i + 1,
+    }));
+    setForm((f) => ({ ...f, items: allItems }));
+    setExpandedItems((prev) => new Set([...prev, newItem.id]));
+  };
+
+  const updateItem = (index: number, patch: Partial<AdminVocabularyItem>) => {
+    setForm((f) => {
+      const items = (f.items ?? []).map((item, i) =>
+        i === index ? { ...item, ...patch } : item,
+      );
+      return { ...f, items };
+    });
+  };
+
+  const removeItem = (index: number) => {
+    setForm((f) => {
+      const items = (f.items ?? [])
+        .filter((_, i) => i !== index)
+        .map((item, i) => ({ ...item, itemOrder: i + 1 }));
+      return { ...f, items };
+    });
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSubmit = () => {
+    onSave({
+      ...form,
+      id: lesson?.id || "",
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative z-10 w-full max-w-4xl glass-modal rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: "90vh" }}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b separator shrink-0">
+          <div>
+            <h2 className="font-display font-bold text-primary-col text-base">
+              {mode === "create" ? "Create" : "Edit"} Vocabulary Lesson
+            </h2>
+            {lesson?.title && (
+              <p className="text-xs text-muted-col mt-0.5">{lesson.title}</p>
+            )}
+          </div>
+          <button
+            onClick={onCancel}
+            className="p-2 rounded-xl glass-surface text-secondary-col hover:text-primary-col transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 space-y-5">
+          {/* Lesson Information - Simplified */}
+          <div className="glass-card p-5 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <BookOpen className="w-4 h-4 text-sakura" />
+              <h3 className="text-sm font-semibold text-primary-col">Lesson Information</h3>
+            </div>
+            <div className="grid grid-cols-[120px_1fr] gap-4">
+              <div>
+                <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                  Lesson Number
+                </label>
+                <input
+                  type="number"
+                  value={form.lessonNumber ?? 1}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, lessonNumber: Number(e.target.value) }))
+                  }
+                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition"
+                  min={1}
+                  disabled={isViewMode}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-secondary-col mb-1.5">
+                  Lesson Title
+                </label>
+                <input
+                  value={form.title ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition"
+                  disabled={isViewMode}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Vocabulary Items */}
+          <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-primary-col">Vocabulary Items</h3>
+                <p className="text-xs text-muted-col mt-0.5">
+                  {(form.items ?? []).length} item{(form.items ?? []).length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              {!isViewMode && (
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sakura/10 text-sakura hover:bg-sakura/20 transition text-xs font-medium"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Item
+                </button>
+              )}
+            </div>
+
+            {(form.items ?? []).length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-col">
+                  No vocabulary items yet. Click "Add Item" below to add one.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(form.items ?? []).map((item, i) => {
+                  const isExpanded = expandedItems.has(item.id);
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-lg border border-[var(--border)] overflow-hidden"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(item.id)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-[var(--accent)]/40 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-md bg-sakura/15 text-sakura text-xs font-bold flex items-center justify-center">
+                            {item.itemOrder || i + 1}
+                          </span>
+                          <div className="text-left">
+                            <span className="text-sm font-medium text-primary-col">
+                              {item.japanese || "New Item"}
+                            </span>
+                            {item.meaning && (
+                              <span className="text-xs text-muted-col ml-2">
+                                — {item.meaning}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!isViewMode && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeItem(i);
+                              }}
+                              className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <ChevronDown
+                            className={`w-4 h-4 text-muted-col transition-transform ${
+                              isExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="px-4 py-4 glass-card space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-muted-col mb-1">
+                                Japanese
+                              </label>
+                              <input
+                                value={item.japanese}
+                                onChange={(e) =>
+                                  updateItem(i, { japanese: e.target.value })
+                                }
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition"
+                                placeholder="Japanese word"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-muted-col mb-1">
+                                Furigana
+                              </label>
+                              <input
+                                value={item.furigana ?? ""}
+                                onChange={(e) =>
+                                  updateItem(i, {
+                                    furigana: e.target.value || null,
+                                  })
+                                }
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition"
+                                placeholder="Furigana (optional)"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-muted-col mb-1">
+                                Romaji
+                              </label>
+                              <input
+                                value={item.romaji ?? ""}
+                                onChange={(e) =>
+                                  updateItem(i, {
+                                    romaji: e.target.value || null,
+                                  })
+                                }
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition"
+                                placeholder="Romaji (optional)"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-muted-col mb-1">
+                                Part of Speech
+                              </label>
+                              <input
+                                value={item.partOfSpeech ?? ""}
+                                onChange={(e) =>
+                                  updateItem(i, {
+                                    partOfSpeech: e.target.value || null,
+                                  })
+                                }
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition"
+                                placeholder="e.g. noun, verb"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-muted-col mb-1">
+                              Meaning
+                            </label>
+                            <input
+                              value={item.meaning}
+                              onChange={(e) => updateItem(i, { meaning: e.target.value })}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition"
+                              placeholder="Meaning (Vietnamese)"
+                              disabled={isViewMode}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-muted-col mb-1">
+                                Example Sentence
+                              </label>
+                              <textarea
+                                value={item.exampleSentence ?? ""}
+                                onChange={(e) =>
+                                  updateItem(i, {
+                                    exampleSentence: e.target.value || null,
+                                  })
+                                }
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition resize-y min-h-[60px]"
+                                placeholder="Example sentence (optional)"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-muted-col mb-1">
+                                Example Translation
+                              </label>
+                              <textarea
+                                value={item.exampleTranslation ?? ""}
+                                onChange={(e) =>
+                                  updateItem(i, {
+                                    exampleTranslation: e.target.value || null,
+                                  })
+                                }
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--card)] text-primary-col focus:outline-none focus:ring-2 focus:ring-sakura/30 transition resize-y min-h-[60px]"
+                                placeholder="Example translation (optional)"
+                                disabled={isViewMode}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t separator glass-surface shrink-0">
+          <button
+            onClick={onCancel}
+            className="px-5 py-2.5 rounded-lg border border-[var(--border)] text-secondary-col text-sm font-medium hover:bg-[var(--accent)] transition"
+          >
+            {isViewMode ? "Close" : "Cancel"}
+          </button>
+          {!isViewMode && (
+            <button
+              onClick={handleSubmit}
+              disabled={!form.title?.trim()}
+              className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-sakura to-pink-500 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-sakura/25"
             >
               <Save className="w-4 h-4" />
               {mode === "create" ? "Create Lesson" : "Save Changes"}

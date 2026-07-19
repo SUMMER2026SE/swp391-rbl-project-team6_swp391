@@ -5,6 +5,11 @@ import { useQuestionBank } from "../services/questionBankService";
 import { QuestionBankStickyHeader } from "../components/question-bank-sticky-header";
 import { AiPdfImportWorkflow } from "../components/admin/AiPdfImportWorkflow";
 import { ImportedQuestion } from "../components/admin/pdf-import/QuestionEditor";
+import {
+  parseReadingQuestionText,
+  composeReadingQuestionText,
+  shouldSplitReadingForQuestion,
+} from "../components/admin/pdf-import/readingQuestionParser";
 
 export const Route = createFileRoute("/admin/question-bank/import-excel")({
   component: ImportExcelPage,
@@ -27,21 +32,37 @@ function ImportExcelPage() {
   const lessonName = lesson?.lessonName || `Lesson ${lessonId}`;
 
   const handleCreateQuestions = async (importedQuestions: ImportedQuestion[]) => {
-    await Promise.all(
-      importedQuestions.map((q) => {
-        const correctIndex = q.answers.findIndex((ans) => ans.isCorrect);
-        const options = q.answers.map((ans) => ans.content);
+    // Save sequentially to preserve preview order. Backend list sorts by createdAt DESC,
+    // so parallel inserts with the same timestamp let the LAST inserted question surface first.
+    for (const q of importedQuestions) {
+      const correctIndex = q.answers.findIndex((ans) => ans.isCorrect);
+      const options = q.answers.map((ans) => ans.content);
 
-        return createQuestion(lessonId, {
-          type: q.category || "Vocabulary",
-          difficulty: q.difficulty || "MEDIUM",
-          questionText: q.content,
-          options,
-          correctIndex: correctIndex >= 0 ? correctIndex : 0,
-          explanation: q.explanation || "",
-        });
-      }),
-    );
+      // Reading questions are edited with separate passage / question text
+      // boxes. Recompose them into the canonical "Read the passage: ...
+      // Question: ..." shape right before saving so the DB still stores a
+      // single `prompt` string (no schema change).
+      let questionText = q.content;
+      if (shouldSplitReadingForQuestion(q.category)) {
+        const parsed = parseReadingQuestionText(q.content);
+        if (parsed.split) {
+          questionText = composeReadingQuestionText(
+            parsed.passage,
+            parsed.question,
+            parsed.labelKey ?? "en-read",
+          );
+        }
+      }
+
+      await createQuestion(lessonId, {
+        type: q.category || "Vocabulary",
+        difficulty: q.difficulty || "MEDIUM",
+        questionText,
+        options,
+        correctIndex: correctIndex >= 0 ? correctIndex : 0,
+        explanation: q.explanation || "",
+      });
+    }
 
     navigate({
       to: "/admin/question-bank/lesson-detail",
@@ -66,7 +87,7 @@ function ImportExcelPage() {
           { label: "Import PDF" },
         ]}
         title="Import Questions with AI"
-        subtitle="Upload an exam PDF to automatically extract questions using AI"
+        subtitle="Upload a question, test, or lesson PDF to create reusable Question Bank items using AI"
         stats={
           <div className="card-base p-4 border border-[var(--border)]">
             <div className="flex items-center gap-4">
@@ -94,6 +115,7 @@ function ImportExcelPage() {
           subtitle="Upload any PDF exam sheet to extract questions"
           backHref={`/admin/question-bank/lesson-detail?level=${level.toLowerCase()}&lessonId=${lessonId}`}
           backLabel="Back to Lesson Detail"
+          enabled={true}
         />
       </div>
     </div>

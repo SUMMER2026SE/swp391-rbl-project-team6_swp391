@@ -43,7 +43,6 @@ import { Route as TeacherClassesRouteImport } from './routes/teacher.classes'
 import { Route as StudentVocabularyRouteImport } from './routes/student.vocabulary'
 import { Route as StudentShadowingRouteImport } from './routes/student.shadowing'
 import { Route as StudentReadingRouteImport } from './routes/student.reading'
-import { Route as StudentProgressRouteImport } from './routes/student.progress'
 import { Route as StudentProfileRouteImport } from './routes/student.profile'
 import { Route as StudentNotificationsRouteImport } from './routes/student.notifications'
 import { Route as StudentListeningRouteImport } from './routes/student.listening'
@@ -291,11 +290,6 @@ const StudentShadowingRoute = StudentShadowingRouteImport.update({
 const StudentReadingRoute = StudentReadingRouteImport.update({
   id: '/reading',
   path: '/reading',
-  getParentRoute: () => StudentRoute,
-} as any)
-const StudentProgressRoute = StudentProgressRouteImport.update({
-  id: '/progress',
-  path: '/progress',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentProfileRoute = StudentProfileRouteImport.update({
@@ -758,7 +752,6 @@ export interface FileRoutesByFullPath {
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
   '/student/profile': typeof StudentProfileRoute
-  '/student/progress': typeof StudentProgressRoute
   '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRouteWithChildren
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
@@ -869,7 +862,6 @@ export interface FileRoutesByTo {
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
   '/student/profile': typeof StudentProfileRoute
-  '/student/progress': typeof StudentProgressRoute
   '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRouteWithChildren
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
@@ -981,7 +973,6 @@ export interface FileRoutesById {
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
   '/student/profile': typeof StudentProfileRoute
-  '/student/progress': typeof StudentProgressRoute
   '/student/reading': typeof StudentReadingRouteWithChildren
   '/student/shadowing': typeof StudentShadowingRouteWithChildren
   '/student/vocabulary': typeof StudentVocabularyRouteWithChildren
@@ -1098,7 +1089,6 @@ export interface FileRouteTypes {
     | '/student/listening'
     | '/student/notifications'
     | '/student/profile'
-    | '/student/progress'
     | '/student/reading'
     | '/student/shadowing'
     | '/student/vocabulary'
@@ -1209,7 +1199,6 @@ export interface FileRouteTypes {
     | '/student/listening'
     | '/student/notifications'
     | '/student/profile'
-    | '/student/progress'
     | '/student/reading'
     | '/student/shadowing'
     | '/student/vocabulary'
@@ -1320,7 +1309,6 @@ export interface FileRouteTypes {
     | '/student/listening'
     | '/student/notifications'
     | '/student/profile'
-    | '/student/progress'
     | '/student/reading'
     | '/student/shadowing'
     | '/student/vocabulary'
@@ -1663,13 +1651,6 @@ declare module '@tanstack/react-router' {
       path: '/reading'
       fullPath: '/student/reading'
       preLoaderRoute: typeof StudentReadingRouteImport
-      parentRoute: typeof StudentRoute
-    }
-    '/student/progress': {
-      id: '/student/progress'
-      path: '/progress'
-      fullPath: '/student/progress'
-      preLoaderRoute: typeof StudentProgressRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/profile': {
@@ -2539,7 +2520,6 @@ interface StudentRouteChildren {
   StudentListeningRoute: typeof StudentListeningRoute
   StudentNotificationsRoute: typeof StudentNotificationsRoute
   StudentProfileRoute: typeof StudentProfileRoute
-  StudentProgressRoute: typeof StudentProgressRoute
   StudentReadingRoute: typeof StudentReadingRouteWithChildren
   StudentShadowingRoute: typeof StudentShadowingRouteWithChildren
   StudentVocabularyRoute: typeof StudentVocabularyRouteWithChildren
@@ -2557,7 +2537,6 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentListeningRoute: StudentListeningRoute,
   StudentNotificationsRoute: StudentNotificationsRoute,
   StudentProfileRoute: StudentProfileRoute,
-  StudentProgressRoute: StudentProgressRoute,
   StudentReadingRoute: StudentReadingRouteWithChildren,
   StudentShadowingRoute: StudentShadowingRouteWithChildren,
   StudentVocabularyRoute: StudentVocabularyRouteWithChildren,

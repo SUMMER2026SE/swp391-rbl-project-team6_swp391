@@ -32,4 +32,6 @@ public interface ReadingLessonRepository extends JpaRepository<ReadingLesson, UU
     long countByIsActive(Boolean isActive);
 
     long countByJlptLevel(String jlptLevel);
+
+    long countByLessonId(UUID lessonId);
 }

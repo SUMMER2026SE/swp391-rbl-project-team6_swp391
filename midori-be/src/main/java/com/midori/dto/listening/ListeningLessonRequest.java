@@ -37,9 +37,6 @@ public class ListeningLessonRequest {
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("audioUrl")
-    private String audioUrl;
-
     @JsonProperty("transcript")
     private String transcript;
 

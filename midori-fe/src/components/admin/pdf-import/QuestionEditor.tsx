@@ -1,7 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
+import { ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { OptionEditor } from "./OptionEditor";
 import { QuestionToolbar } from "./QuestionToolbar";
 import { ValidationBanner } from "./ValidationBanner";
+import {
+  parseReadingQuestionText,
+  composeReadingQuestionText,
+  shouldSplitReadingForQuestion,
+} from "./readingQuestionParser";
 
 export interface ImportedQuestion {
   id: string;
@@ -24,6 +30,7 @@ interface QuestionEditorProps {
   onMoveQuestion: (index: number, direction: "up" | "down") => void;
   onReAnalyze: (index: number) => void;
   isReAnalyzing: boolean;
+  selectedSkills?: string[];
 }
 
 export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
@@ -37,6 +44,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
     onMoveQuestion,
     onReAnalyze,
     isReAnalyzing,
+    selectedSkills = [],
   }) => {
     // Validation
     const errors: string[] = [];
@@ -53,8 +61,45 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
 
     const correctIndex = question.answers.findIndex((a) => a.isCorrect);
 
+    // Reading-passage split UI: when the question's category is Reading
+    // and the AI packed both the passage and the question into a single
+    // `content` string, surface them in two separate textareas. The DB
+    // still receives a single string — we recompose on every edit.
+    const splitReading = shouldSplitReadingForQuestion(question.category);
+    const parsed = splitReading ? parseReadingQuestionText(question.content) : null;
+    const [passageDraft, setPassageDraft] = React.useState<string>(
+      parsed?.passage ?? "",
+    );
+    const [passageExpanded, setPassageExpanded] = useState<boolean>(true);
+    const passageLabelKey = parsed?.labelKey ?? "en-read";
+
+    // Re-sync local draft when the upstream content changes (e.g. user
+    // uploads a different file). Without this the local state would
+    // "stick" and silently overwrite later updates.
+    React.useEffect(() => {
+      setPassageDraft(parsed?.passage ?? "");
+    }, [question.content, question.category]);
+
     const handleTextChange = (text: string) => {
       onUpdateQuestion(index, { content: text });
+    };
+
+    const handleReadingQuestionChange = (text: string) => {
+      const composed = composeReadingQuestionText(
+        passageDraft,
+        text,
+        passageLabelKey,
+      );
+      onUpdateQuestion(index, { content: composed });
+    };
+
+    const handleReadingPassageChange = (text: string) => {
+      setPassageDraft(text);
+      const currentQuestion = parsed?.split
+        ? parsed.question
+        : parseReadingQuestionText(question.content).question || question.content;
+      const composed = composeReadingQuestionText(text, currentQuestion, passageLabelKey);
+      onUpdateQuestion(index, { content: composed });
     };
 
     const handleExplanationChange = (text: string) => {
@@ -137,18 +182,80 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
         </div>
 
         {/* Question content */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-secondary-col uppercase tracking-wider">
-            Question Text
-          </label>
-          <textarea
-            value={question.content}
-            onChange={(e) => handleTextChange(e.target.value)}
-            rows={2}
-            className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
-            placeholder="Enter question text..."
-          />
-        </div>
+        {splitReading && parsed?.split ? (
+          <div className="space-y-4">
+            {/* Reading Passage block — bigger textarea, collapsible */}
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5 text-primary" />
+                  <label className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                    Reading Passage
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPassageExpanded((v) => !v)}
+                  className="flex items-center gap-1 text-[10px] font-semibold text-secondary-col hover:text-primary transition"
+                  aria-label={passageExpanded ? "Collapse passage" : "Expand passage"}
+                >
+                  {passageExpanded ? (
+                    <>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                      <span>Collapse</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      <span>Expand</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              {passageExpanded && (
+                <textarea
+                  value={passageDraft}
+                  onChange={(e) => handleReadingPassageChange(e.target.value)}
+                  rows={6}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-1 focus:ring-primary/40 transition resize-y min-h-[120px] max-h-[420px] leading-relaxed"
+                  placeholder="Reading passage text..."
+                />
+              )}
+              {!passageExpanded && (
+                <p className="text-xs text-muted-col line-clamp-2 italic">
+                  {passageDraft || "(empty passage)"}
+                </p>
+              )}
+            </div>
+
+            {/* Question text only — passage has been moved out */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-secondary-col uppercase tracking-wider">
+                Question Text
+              </label>
+              <textarea
+                value={parsed.question}
+                onChange={(e) => handleReadingQuestionChange(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
+                placeholder="Enter question text..."
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-secondary-col uppercase tracking-wider">
+              Question Text
+            </label>
+            <textarea
+              value={question.content}
+              onChange={(e) => handleTextChange(e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
+              placeholder="Enter question text..."
+            />
+          </div>
+        )}
 
         {/* Options */}
         {question.type !== "TRUE_FALSE" ? (
@@ -183,18 +290,55 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-secondary-col uppercase tracking-wider">
-              JLPT Section
+              Skill
             </label>
-            <select
-              value={question.category || "Vocabulary"}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
-            >
-              <option value="Vocabulary">Vocabulary</option>
-              <option value="Grammar">Grammar</option>
-              <option value="Reading">Reading</option>
-              <option value="Listening">Listening</option>
-            </select>
+            {selectedSkills.length === 1 ? (
+              <div className="px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col flex items-center">
+                <span className="font-semibold">{selectedSkills[0]}</span>
+              </div>
+            ) : (() => {
+              // The backend returns category as PascalCase ("Grammar", "Vocabulary",
+              // "Reading") while `selectedSkills` are uppercase ("GRAMMAR",
+              // "VOCABULARY"). Without normalizing the option list to the same
+              // case as `question.category`, React's <select value> falls back to
+              // the first <option> when the value doesn't match anything —
+              // meaning every question displayed as "VOCABULARY" even though the
+              // underlying state still held the correct category. The dropdown
+              // also silently rewrote the state the moment the user opened it.
+              //
+              // Fix: build a label/value map keyed by uppercased skill so the
+              // select always matches `question.category` regardless of case.
+              const skillOptions: { label: string; value: string }[] = (
+                selectedSkills.length > 0
+                  ? selectedSkills
+                  : ["VOCABULARY", "GRAMMAR", "READING"]
+              ).map((s) => {
+                const upper = s.toUpperCase();
+                const pascal = upper.charAt(0) + upper.slice(1).toLowerCase();
+                return { label: upper, value: pascal };
+              });
+
+              const current = question.category || "";
+              // If the backend's normalized category is not in the user's
+              // selected skills (e.g. backend returned "Reading" but the user
+              // picked only Vocab+Grammar), fall back to the first selected
+              // skill so the dropdown never appears empty.
+              const value = skillOptions.some((o) => o.value === current)
+                ? current
+                : skillOptions[0]?.value ?? "Vocabulary";
+
+              return (
+                <select
+                  value={value}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
+                >
+                  {skillOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              );
+            })()}
           </div>
 
           <div className="space-y-1.5">

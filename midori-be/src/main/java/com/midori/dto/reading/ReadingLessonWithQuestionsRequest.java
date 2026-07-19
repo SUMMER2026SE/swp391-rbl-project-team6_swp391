@@ -20,5 +20,5 @@ public class ReadingLessonWithQuestionsRequest {
     private ReadingLessonRequest lesson;
 
     @Valid
-    private List<ReadingQuestionRequest> questions;
+    private List<ReadingPassageRequest> passages;
 }

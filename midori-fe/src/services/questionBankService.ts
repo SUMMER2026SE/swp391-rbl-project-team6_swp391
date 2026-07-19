@@ -113,7 +113,18 @@ export function useQuestionBank(level: JLPTLevel) {
     },
   });
 
-  const questions = rawQuestions.map(mapBackendQuestionToFrontend).filter((q) => q.level === level);
+  const questions = rawQuestions
+    .map(mapBackendQuestionToFrontend)
+    .filter((q) => q.level === level)
+    // Backend returns questions ordered by createdAt DESC. We want oldest-first so that
+    // the UI preserves insertion order (existing questions stay at the top, new ones
+    // append at the bottom).
+    .slice()
+    .sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return ta - tb;
+    });
 
   const lessons: Lesson[] = rawLessons.map((l) => ({
     id: l.id,
