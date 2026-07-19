@@ -35,6 +35,14 @@ import type {
   AiMessage,
   ConversationMessagesResponse,
 } from "@/types/ai";
+import {
+  fillBlankResultState,
+  hasBlankMarker,
+  isFreeTextAnswerCorrect,
+  normalizeQuestion,
+  UNSUPPORTED,
+  type QuizQuestionType,
+} from "@/lib/ai/quizNormalize";
 
 // ═══════════════════════════════════════════════════════════════════
 // AI SENSEI MATERIAL MODEL
@@ -95,7 +103,13 @@ interface QuizQuestion {
   options: string[];
   correctAnswer: string;
   explanation?: string;
-  userAnswer?: number;
+  /**
+   * User-supplied answer. For option-based questions (MULTIPLE_CHOICE /
+   * TRUE_FALSE) this is the index of the chosen option. For FILL_BLANK
+   * questions it is the typed string. The renderer and scorer both key on
+   * the normalized question type to know which form to expect.
+   */
+  userAnswer?: number | string;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1005,7 +1019,18 @@ function PracticeMode({
   const [submitted, setSubmitted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [usedFallback, setUsedFallback] = useState(false);
-  const [fillBlankInput, setFillBlankInput] = useState("");
+  /**
+   * Per-question typed answer for fill-blank questions, keyed by the
+   * question's stable id. This replaces the previous single
+   * <code>fillBlankInput</code> state that lost its value when the user
+   * navigated between questions, especially under MIXED mode where the
+   * input state was shared with multiple-choice questions.
+   *
+   * <p>Multiple-choice / true-false answers continue to be stored on
+   * <code>quizData[i].userAnswer</code> as an option index; only the
+   * free-text answer for fill-blank lives here.
+   */
+  const [fillBlankAnswers, setFillBlankAnswers] = useState<Record<string, string>>({});
 
   const handleGenerate = async () => {
     if (!selectedMaterial) {
@@ -1019,7 +1044,7 @@ function PracticeMode({
     setSubmitted(false);
     setCurrentIndex(0);
     setUsedFallback(false);
-    setFillBlankInput("");
+    setFillBlankAnswers({});
 
     try {
       // Phase 2 final trust boundary: send materialId + materialType so the
@@ -1045,44 +1070,64 @@ function PracticeMode({
       }
 
       if (response.questions && response.questions.length > 0) {
-        // Validate and normalize each question
+        // Validate and normalize each question. The renderer and scorer
+        // both key off the normalized type. Unknown types are NOT
+        // silently coerced to FILL_BLANK any more — they are kept in
+        // the quiz with type="UNSUPPORTED" so the renderer can show a
+        // safe Vietnamese fallback and so submission can be blocked
+        // until the user regenerates.
         const validQuestions: QuizQuestion[] = response.questions
           .map((q, i) => {
-            const type = (q.type || "MULTIPLE_CHOICE").toUpperCase();
-            let question = q.question || q.questionText || "";
+            const rawType = q.type || "";
+            // Object-based normalization: inspect the WHOLE question
+            // (type + text + options + correctAnswer), not just the type
+            // string. This is what catches the MIXED-mode bug where the
+            // provider emits a fill-blank question labelled MULTIPLE_CHOICE
+            // with an empty options array.
+            const normalized = normalizeQuestion(q);
+            if (normalized === UNSUPPORTED && rawType !== "") {
+              // Log only non-sensitive diagnostic info (the raw type,
+              // not the question text or the answer).
+              // eslint-disable-next-line no-console
+              console.warn(`[Quiz] Question ${q.id || i}: unsupported type "${rawType}", rendering as unsupported`);
+            }
+            const question = (q.question || q.questionText || "").trim();
             let correctAnswer = q.correctAnswer || "";
-            let options = q.options || [];
+            let options = Array.isArray(q.options) ? q.options : [];
 
             if (!correctAnswer && typeof q.correctAnswerIndex === "number" && options[q.correctAnswerIndex]) {
               correctAnswer = options[q.correctAnswerIndex];
             }
 
-            if (type === "TRUE_FALSE") {
+            if (normalized === "TRUE_FALSE") {
               options = ["Đúng", "Sai"];
             }
 
-            if (type === "FILL_BLANK") {
+            if (normalized === "FILL_BLANK") {
               options = [];
             }
 
+            // For unsupported questions the backend never provided a
+            // meaningful correctAnswer / options; the renderer will
+            // simply hide them.
             return {
               id: q.id || `q_${i}`,
-              type,
-              question: question.trim(),
+              type: normalized,
+              question,
               options,
-              correctAnswer: correctAnswer.trim(),
+              correctAnswer: (correctAnswer || "").trim(),
               explanation: q.explanation || "",
             };
           })
           .filter((q) => {
             if (!q.question) {
+              // eslint-disable-next-line no-console
               console.warn(`[Quiz] Skipping question ${q.id}: empty question text`);
               return false;
             }
-            if (!q.correctAnswer) {
-              console.warn(`[Quiz] Skipping question ${q.id}: empty correctAnswer`);
-              return false;
-            }
+            // Unsupported questions can stay so the renderer can show
+            // the fallback and block submission, but they are not
+            // counted toward the score.
             return true;
           });
 
@@ -1120,26 +1165,82 @@ function PracticeMode({
     setError((prev) => (prev ? null : prev));
   };
 
-  const handleFillBlankAnswer = (text: string) => {
+  /**
+   * Persist the user's typed answer for a fill-blank question, keyed by
+   * the question's stable id. The input stays mounted across navigation
+   * because the answer is stored per-question, not in a sibling
+   * component-level state. We deliberately do not mirror the value onto
+   * <code>q.userAnswer</code> so the renderer and scorer always read
+   * fill-blank answers from one canonical place.
+   */
+  const handleFillBlankAnswer = (questionId: string, text: string) => {
     if (!quizData || submitted) return;
-    setFillBlankInput(text);
-    const newQuiz = [...quizData];
-    newQuiz[currentIndex] = { ...newQuiz[currentIndex], userAnswer: text };
-    setQuizData(newQuiz);
+    setFillBlankAnswers((prev) => ({ ...prev, [questionId]: text }));
     setError((prev) => (prev ? null : prev));
   };
 
+  /**
+   * Whether every question in the current quiz has an answer recorded.
+  /**
+   * Whether every question has an answer recorded. UNSUPPORTED
+   * questions are intentionally excluded: the user cannot answer
+   * them, so blocking submit on them would be unfair. Submission is
+   * independently blocked when an unsupported question exists (see
+   * {@link hasUnsupportedQuestions}).
+   */
+  const answeredCount = quizData
+    ? quizData.filter((q) => {
+        const t = q.type;
+        if (t === UNSUPPORTED) return true; // already "answered" by the renderer
+        if (t === "FILL_BLANK") {
+          return (fillBlankAnswers[q.id] ?? "").trim() !== "";
+        }
+        const ua = q.userAnswer;
+        return ua !== undefined && ua !== null && ua !== "";
+      }).length
+    : 0;
+
+  /**
+   * True when at least one question in the quiz is unsupported.
+   * Submission is blocked and the user is asked to regenerate.
+   */
+  const hasUnsupportedQuestions = !!quizData
+    && quizData.some((q) => q.type === UNSUPPORTED);
+
+  /**
+   * Count of unsupported questions in the quiz. Surfaced in the UI so
+   * the user knows why submission is blocked.
+   */
+  const unsupportedCount = quizData
+    ? quizData.filter((q) => q.type === UNSUPPORTED).length
+    : 0;
+
+  /**
+   * For fill-blank questions the answer is read from the per-question
+   * map; for option-based questions the answer is on the question
+   * object itself. UNSUPPORTED questions are excluded from the
+   * answered-count denominator above; for an UNSUPPORTED question
+   * we don't render an input, so isAnswered deliberately returns
+   * true so it does not block "all answered" semantics.
+   */
+  const allQuestionsAnswered = !!quizData && answeredCount === quizData.length;
+
   const handleSubmit = () => {
     if (!quizData) return;
-    const unanswered = quizData.filter((q) => q.userAnswer === undefined || q.userAnswer === null || q.userAnswer === "").length;
-    if (unanswered > 0) {
+    if (hasUnsupportedQuestions) {
+      setError(
+        `Bộ câu hỏi chứa ${unsupportedCount} câu không hỗ trợ. Vui lòng tạo lại bộ câu hỏi để tiếp tục.`
+      );
+      return;
+    }
+    if (!allQuestionsAnswered) {
+      const unanswered = quizData.length - answeredCount;
       setError(`Vui lòng trả lời tất cả câu hỏi trước khi nộp. Còn ${unanswered} câu chưa trả lời.`);
       return;
     }
     setError(null);
     setSubmitted(true);
     setCurrentIndex(0);
-    setFillBlankInput("");
   };
 
   const handleRetry = () => {
@@ -1148,37 +1249,57 @@ function PracticeMode({
     setCurrentIndex(0);
     setUsedFallback(false);
     setError(null);
-    setFillBlankInput("");
+    setFillBlankAnswers({});
     // Leave selectedMaterial, questionCount, questionType, difficulty as-is so
     // the user can immediately re-tap Generate with the same settings.
   };
 
-  const computeScore = (): { score: number; percent: number } => {
-    if (!quizData || quizData.length === 0) return { score: 0, percent: 0 };
+  const computeScore = (): { score: number; percent: number; scored: number; skipped: number } => {
+    if (!quizData || quizData.length === 0) return { score: 0, percent: 0, scored: 0, skipped: 0 };
     let correct = 0;
+    let scored = 0;
+    let skipped = 0;
     for (const q of quizData) {
-      const ua = q.userAnswer;
-      if (ua === undefined || ua === null || ua === "") continue;
-      if (typeof ua === "number") {
+      const t = q.type;
+      if (t === UNSUPPORTED) {
+        // Provider returned a type the renderer does not understand.
+        // Skip from the denominator so the user is not penalized for
+        // a malformed provider response. Submission is independently
+        // blocked by handleSubmit so the user regenerates.
+        skipped++;
+        continue;
+      }
+      scored++;
+      if (t === "FILL_BLANK") {
+        const typed = fillBlankAnswers[q.id] ?? "";
+        if (isFreeTextAnswerCorrect(typed, q.correctAnswer)) correct++;
+      } else if (typeof q.userAnswer === "number") {
         const opts = q.options || [];
-        if (opts[ua] === q.correctAnswer) correct++;
-      } else {
-        // String answer - normalize for comparison
-        const userAns = String(ua).trim().toLowerCase();
-        const correctAns = q.correctAnswer.trim().toLowerCase();
-        if (userAns === correctAns) correct++;
+        if (opts[q.userAnswer] === q.correctAnswer) correct++;
       }
     }
     return {
       score: correct,
-      percent: Math.round((correct / quizData.length) * 100),
+      percent: scored === 0 ? 0 : Math.round((correct / scored) * 100),
+      scored,
+      skipped,
     };
   };
 
   const { score, percent } = computeScore();
 
   const currentQuestion = quizData && quizData.length > 0 ? quizData[currentIndex] : null;
-  const isCurrentAnswered = currentQuestion !== undefined && currentQuestion?.userAnswer !== undefined && currentQuestion?.userAnswer !== null && currentQuestion?.userAnswer !== "";
+  const isCurrentAnswered = currentQuestion
+    ? (() => {
+        const t = currentQuestion.type;
+        if (t === UNSUPPORTED) return true; // not answerable
+        if (t === "FILL_BLANK") {
+          return (fillBlankAnswers[currentQuestion.id] ?? "").trim() !== "";
+        }
+        const ua = currentQuestion.userAnswer;
+        return ua !== undefined && ua !== null && ua !== "";
+      })()
+    : false;
 
   const typeOptions = [
     { value: "MULTIPLE_CHOICE", label: "Trắc nghiệm" },
@@ -1367,7 +1488,17 @@ function PracticeMode({
                 <span className="text-3xl font-bold">{percent}%</span>
               </div>
               <p className="text-sm font-medium">
-                {score}/{quizData.length} câu đúng
+                {score}/{(() => {
+                  const skippedCount = quizData.filter((q) => q.type === UNSUPPORTED).length;
+                  return quizData.length - skippedCount;
+                })()} câu đúng
+                {(() => {
+                  const skippedCount = quizData.filter((q) => q.type === UNSUPPORTED).length;
+                  if (skippedCount > 0) {
+                    return <span className="text-xs text-muted-foreground ml-1">({skippedCount} không hỗ trợ)</span>;
+                  }
+                  return null;
+                })()}
               </p>
               <p
                 className={`text-xs mt-1 ${
@@ -1388,11 +1519,14 @@ function PracticeMode({
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>
                 Câu {currentIndex + 1}/{quizData.length} ·{" "}
-                <span className="font-medium">{currentQuestion.type.replace("_", " ")}</span>
+                <span className="font-medium">{(() => {
+                  const t = currentQuestion.type;
+                  if (t === UNSUPPORTED) return "không hỗ trợ";
+                  return t.replace("_", " ");
+                })()}</span>
               </span>
               <span>
-                {quizData.filter((q) => q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== "").length}/
-                {quizData.length} đã trả lời
+                {answeredCount}/{quizData.length} đã trả lời
               </span>
             </div>
             <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -1411,7 +1545,7 @@ function PracticeMode({
             </p>
 
             {/* MULTIPLE_CHOICE rendering */}
-            {currentQuestion.type === "MULTIPLE_CHOICE" && currentQuestion.options && (
+            {currentQuestion.type === "MULTIPLE_CHOICE" && currentQuestion.options && currentQuestion.options.length > 0 && (
               <div className="space-y-2">
                 {currentQuestion.options.map((option, i) => {
                   const state = getOptionState(option, i);
@@ -1482,37 +1616,101 @@ function PracticeMode({
               </div>
             )}
 
-            {/* FILL_BLANK rendering */}
-            {currentQuestion.type === "FILL_BLANK" && (
-              <div>
-                <input
-                  data-testid="practice-fill-blank-input"
-                  aria-label="Nhập đáp án điền từ"
-                  type="text"
-                  value={fillBlankInput}
-                  onChange={(e) => handleFillBlankAnswer(e.target.value)}
-                  disabled={submitted}
-                  placeholder="Nhập đáp án..."
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400 ${
-                    submitted
-                      ? fillBlankInput.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase()
-                        ? "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700"
-                        : "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700"
-                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 focus:border-primary/50"
-                  }`}
-                />
-                {submitted && (
-                  <div className="mt-2 flex items-center gap-2">
-                    {fillBlankInput.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase() ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <X className="w-4 h-4 text-red-500" />
+            {/* FILL_BLANK rendering — always shows a free-text input */}
+            {currentQuestion.type === "FILL_BLANK" && (() => {
+              const typed = fillBlankAnswers[currentQuestion.id] ?? "";
+              const hasMarker = hasBlankMarker(currentQuestion.question);
+              const resultState = submitted
+                ? fillBlankResultState(typed, currentQuestion.correctAnswer)
+                : "unanswered";
+              const isCorrect = resultState === "correct";
+              const isIncorrect = resultState === "incorrect";
+              return (
+                <div data-testid="practice-fill-blank-block">
+                  {hasMarker && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Gợi ý: điền vào chỗ trống <span className="font-mono">____</span> trong câu hỏi.
+                    </p>
+                  )}
+                  <input
+                    key={currentQuestion.id}
+                    data-testid="practice-fill-blank-input"
+                    aria-label="Nhập đáp án điền từ"
+                    type="text"
+                    value={typed}
+                    onChange={(e) => handleFillBlankAnswer(currentQuestion.id, e.target.value)}
+                    onKeyDown={(e) => {
+                      // Enter on the last unanswered question triggers
+                      // submit so the user can review without using the mouse.
+                      if (e.key === "Enter" && !submitted && currentIndex === quizData.length - 1) {
+                        e.preventDefault();
+                        if (allQuestionsAnswered) handleSubmit();
+                      }
+                    }}
+                    disabled={submitted}
+                    placeholder="Nhập đáp án..."
+                    autoComplete="off"
+                    spellCheck={false}
+                    className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400 ${
+                      submitted
+                        ? isCorrect
+                          ? "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700"
+                          : isIncorrect
+                          ? "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700"
+                          : "bg-slate-50 border-slate-300 dark:bg-slate-700/40 dark:border-slate-600"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+                    }`}
+                  />
+                  {submitted && (
+                    <div className="mt-2 flex items-center gap-2">
+                      {isCorrect ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      ) : isIncorrect ? (
+                        <X className="w-4 h-4 text-red-500" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
+                      )}
+                      <span className="text-xs">
+                        Đáp án đúng: <strong>{currentQuestion.correctAnswer}</strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* UNSUPPORTED question rendering — provider returned a type
+                the frontend does not know how to render. The user is
+                shown a Vietnamese warning, NOT given a fill-blank input
+                or any option buttons, and submission is independently
+                blocked at the quiz level so the score is not skewed. */}
+            {currentQuestion.type === UNSUPPORTED && (
+              <div
+                data-testid="practice-unsupported-block"
+                role="alert"
+                className="rounded-xl border border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 p-3"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      Không thể hiển thị loại câu hỏi này. Vui lòng tạo lại bộ câu hỏi.
+                    </p>
+                    {currentQuestion.type && typeof currentQuestion.type === "string" && currentQuestion.type !== UNSUPPORTED && (
+                      <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1 break-all">
+                        Loại câu hỏi: <span className="font-mono">{currentQuestion.type}</span>
+                      </p>
                     )}
-                    <span className="text-xs">
-                      Đáp án đúng: <strong>{currentQuestion.correctAnswer}</strong>
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Tạo lại câu hỏi
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -1529,11 +1727,7 @@ function PracticeMode({
           <div className="flex gap-2 flex-shrink-0 mt-auto">
             <button
               type="button"
-              onClick={() => {
-                setCurrentIndex(Math.max(0, currentIndex - 1));
-                setFillBlankInput(typeof quizData[Math.max(0, currentIndex - 1)]?.userAnswer === "string"
-                  ? String(quizData[Math.max(0, currentIndex - 1)]?.userAnswer || "") : "");
-              }}
+              onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
               className="px-4 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-xl disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
             >
@@ -1543,11 +1737,7 @@ function PracticeMode({
             {currentIndex < quizData.length - 1 ? (
               <button
                 type="button"
-                onClick={() => {
-                  setCurrentIndex(currentIndex + 1);
-                  setFillBlankInput(typeof quizData[currentIndex + 1]?.userAnswer === "string"
-                    ? String(quizData[currentIndex + 1]?.userAnswer || "") : "");
-                }}
+                onClick={() => setCurrentIndex(currentIndex + 1)}
                 className="flex-1 px-4 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary/90 transition"
               >
                 Next →
