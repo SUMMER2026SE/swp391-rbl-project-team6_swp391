@@ -10,6 +10,7 @@ import com.midori.dto.ai.AiMaterialDetailResponse;
 import com.midori.dto.ai.ChatRequest;
 import com.midori.dto.ai.ChatResponse;
 import com.midori.dto.ai.ConversationMessagesResponse;
+import com.midori.dto.ai.ExplainResponse;
 import com.midori.dto.ai.GenerateQuestionsResponse;
 import com.midori.dto.ai.GeneratedQuestionDto;
 import com.midori.entity.AiConversation;
@@ -139,10 +140,6 @@ public class AiServiceImpl implements AiService {
 
     /**
      * Strip XML-style and plain think tags from AI response content before persisting.
-     * Models like DeepSeek-R1 may emit <think>...</think> or <think>...
-</think>
- internally;
-     * these must not reach the user or DB.
      */
     private String sanitizeAiContent(String content) {
         if (content == null) return null;
@@ -501,6 +498,43 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
+    public ExplainResponse explain(String sentence, String word) {
+        String systemPrompt = AiPromptBuilder.buildExplanationPrompt(sentence, word);
+
+        String rawResponse;
+        try {
+            rawResponse = aiCoreService.chat(systemPrompt, sentence, List.of());
+        } catch (IllegalStateException e) {
+            log.warn("[AiService] AI provider not configured for explain: {}", e.getMessage());
+            return ExplainResponse.builder()
+                    .grammarExplanation("Xin lỗi, AI Sensei chưa được cấu hình. Vui lòng liên hệ quản trị viên.")
+                    .wordUsage("Xin lỗi, AI Sensei chưa được cấu hình. Vui lòng liên hệ quản trị viên.")
+                    .nuance("Xin lỗi, AI Sensei chưa được cấu hình. Vui lòng liên hệ quản trị viên.")
+                    .context("Xin lỗi, AI Sensei chưa được cấu hình. Vui lòng liên hệ quản trị viên.")
+                    .build();
+        } catch (Exception e) {
+            log.error("[AiService] Error calling AI for explain: {}", e.getMessage());
+            String fallback = "Xin lỗi, đã xảy ra lỗi khi gọi AI. Vui lòng thử lại sau.";
+            return ExplainResponse.builder()
+                    .grammarExplanation(fallback)
+                    .wordUsage(fallback)
+                    .nuance(fallback)
+                    .context(fallback)
+                    .build();
+        }
+
+        ExplainResponse response = ExplainResponse.fromRawResponse(rawResponse);
+
+        try {
+            lastModelUsed = aiCoreService.getCurrentProvider().getLastModelUsed();
+        } catch (Exception ignored) {
+            // model info is optional for this endpoint
+        }
+
+        return response;
+    }
+
+    @Override
     public GenerateQuestionsResponse generateQuestions(UUID userId, String topic, String level,
                                                       Integer count, String type,
                                                       String materialType, UUID materialId,
@@ -822,7 +856,7 @@ public class AiServiceImpl implements AiService {
                 readingOptions.add(reading);
                 for (String om : otherMeanings) {
                     if (readingOptions.size() >= 4) break;
-                    readingOptions.add(om);
+                    if (!readingOptions.contains(om)) readingOptions.add(om);
                 }
                 while (readingOptions.size() < 4) readingOptions.add("?");
                 Collections.shuffle(readingOptions);

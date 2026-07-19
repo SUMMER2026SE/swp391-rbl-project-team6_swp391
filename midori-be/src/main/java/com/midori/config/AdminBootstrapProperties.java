@@ -15,5 +15,5 @@ public class AdminBootstrapProperties {
 
     private String email = "admin@midori.local";
 
-    private String password = "ChangeMe123!";
+    private String password = "MidoriAdmin2026!";
 }

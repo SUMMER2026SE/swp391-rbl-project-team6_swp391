@@ -5,6 +5,8 @@ import com.midori.dto.ai.AiConversationResponse;
 import com.midori.dto.ai.ChatRequest;
 import com.midori.dto.ai.ChatResponse;
 import com.midori.dto.ai.ConversationMessagesResponse;
+import com.midori.dto.ai.ExplainRequest;
+import com.midori.dto.ai.ExplainResponse;
 import com.midori.dto.ai.GenerateQuestionsRequest;
 import com.midori.dto.ai.GenerateQuestionsResponse;
 import com.midori.dto.ai.UpdateAiMessageRequest;
@@ -115,6 +117,12 @@ public class AiController {
                 request.getMaterialId(),
                 request.getMaterialContent(),
                 request.getMaterialTitle());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/explain")
+    public ResponseEntity<ApiResponse<ExplainResponse>> explain(@Valid @RequestBody ExplainRequest request) {
+        ExplainResponse response = aiService.explain(request.getSentence(), request.getWord());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

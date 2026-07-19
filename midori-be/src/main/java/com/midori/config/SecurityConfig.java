@@ -62,6 +62,10 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/health").permitAll()
+                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/swagger-ui.html").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/levels").permitAll()
                         // WebSocket endpoint - authentication is performed inside
@@ -86,7 +90,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/teacher/**").authenticated()
                         .requestMatchers("/api/ai/**").authenticated()
                         .requestMatchers("/api/vocabulary/**").authenticated()
-                        .requestMatchers("/api/kanji/**").authenticated()
+                        .requestMatchers("/api/kanji/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

@@ -8,6 +8,7 @@ import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.AiParsingException;
 import com.midori.ai.key.GeminiKeyManager;
+import com.midori.ai.model.GeminiModel;
 import com.midori.ai.model.GeminiModelResolver;
 import com.midori.ai.model.ModelResolutionResult;
 import com.midori.ai.model.ModelSelectionContext;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -72,12 +74,28 @@ public class GeminiProvider implements AiProvider {
         log.info("==============================================");
         log.info("[GeminiProvider] INITIALIZED");
         log.info("==============================================");
-        log.info("  Model: {}", config.getGemini().getModel());
+        
+        // Log configured model info
+        String primaryModel = config.getGemini().getModel();
+        GeminiModel modelEnum = GeminiModel.fromApiModelNameOrDefault(primaryModel, GeminiModel.getDefault());
+        log.info("  Configured Model: {}", primaryModel);
+        log.info("  Resolved Model: {} ({})", modelEnum.getDisplayName(), modelEnum.getApiModelName());
+        log.info("  Model Capability: {}/5", modelEnum.getCapabilityLevel());
+        log.info("  Model Cost Level: {}/5", modelEnum.getCostLevel());
+        
         log.info("  Base URL: {}", config.getGemini().getBaseUrl());
         log.info("  API Keys configured: {}", keyManager.getKeyCount());
         log.info("  Timeout: {}s", config.getTimeoutSeconds());
         log.info("  Temperature: {}", config.getTemperature());
         log.info("  Max Tokens: {}", config.getMaxTokens());
+        log.info("  Auto Mode: {}", modelResolver.isAutoMode());
+        
+        // Log available models
+        List<String> availableModels = modelResolver.getAvailableModelNames();
+        if (!availableModels.isEmpty()) {
+            log.info("  Available Models: {}", String.join(", ", availableModels));
+        }
+        
         log.info("==============================================");
     }
 
@@ -208,8 +226,44 @@ public class GeminiProvider implements AiProvider {
                 operation != null ? operation : "operation"
         );
         ModelResolutionResult result = modelResolver.resolve(context);
-        log.info("[GeminiProvider] Model selection for task={}: selected={}, reason={}", result.taskType(), result.selectedModel(), result.reason());
-        return List.of(result.selectedModel());
+        
+        List<String> models = new ArrayList<>();
+        models.add(result.selectedModel());
+        
+        // Add candidates in order of priority if present
+        if (result.candidates() != null) {
+            for (String candidate : result.candidates()) {
+                if (!models.contains(candidate)) {
+                    models.add(candidate);
+                }
+            }
+        }
+        
+        // Add configured fallback models
+        List<String> configFallbacks = config.getGemini().getFallbackModelsList();
+        if (configFallbacks != null) {
+            for (String fb : configFallbacks) {
+                if (!models.contains(fb)) {
+                    models.add(fb);
+                }
+            }
+        }
+        
+        // Enhanced logging with model metadata
+        GeminiModel model = result.getSelectedModelEnum();
+        log.info("[GeminiProvider] =============================================");
+        log.info("[GeminiProvider] MODELS RESOLVED for {} (selected: {})", operation, model.getApiModelName());
+        log.info("[GeminiProvider]   Resolved Models list: {}", models);
+        log.info("[GeminiProvider] =============================================");
+        log.info("[GeminiProvider]   Task Type: {}", result.taskType());
+        log.info("[GeminiProvider]   Selected Model: {}", model.getApiModelName());
+        log.info("[GeminiProvider]   Display Name: {}", model.getDisplayName());
+        log.info("[GeminiProvider]   Reason: {}", result.reason());
+        log.info("[GeminiProvider]   Capability: {}/5", model.getCapabilityLevel());
+        log.info("[GeminiProvider]   Cost Level: {}/5", model.getCostLevel());
+        log.info("[GeminiProvider] =============================================");
+        
+        return models;
     }
 
     private boolean isFallbackStatusCode(int status) {
@@ -281,6 +335,9 @@ public class GeminiProvider implements AiProvider {
     @Override
     public String chat(String systemPrompt, String userMessage, List<String[]> conversationHistory, AiTaskType taskType) {
         validateConfig();
+        
+        long requestStartTime = System.currentTimeMillis();
+        String requestId = UUID.randomUUID().toString().substring(0, 8);
 
         List<Map<String, Object>> contents = new ArrayList<>();
 
@@ -302,9 +359,8 @@ public class GeminiProvider implements AiProvider {
         systemInstruction.put("parts", List.of(Map.of("text", systemPrompt)));
 
         Map<String, Object> generationConfig = new HashMap<>();
-        generationConfig.put("temperature", 0.25);
-        generationConfig.put("maxOutputTokens", 1024);
-        generationConfig.put("topP", 0.8);
+        generationConfig.put("temperature", 0.7);
+        generationConfig.put("maxOutputTokens", config.getMaxTokens() > 0 ? config.getMaxTokens() : 8192);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("contents", contents);
@@ -313,16 +369,23 @@ public class GeminiProvider implements AiProvider {
 
         String baseUrl = config.getGemini().getBaseUrl();
         String apiKeysStr = config.getGemini().getApiKeysStr();
+        
+        log.info("[GeminiProvider] =============================================");
+        log.info("[GeminiProvider] CHAT REQUEST - Request ID: {}", requestId);
         log.info("[GeminiProvider] CHAT REQUEST - BaseURL: {}", baseUrl);
         log.info("[GeminiProvider] CHAT REQUEST - API Key loaded: {}", (apiKeysStr != null && !apiKeysStr.isBlank()) ? "YES" : "NO");
-        log.info("[GeminiProvider] CHAT REQUEST - Request body: {}", requestBody);
-        long startMs = System.currentTimeMillis();
+        log.info("[GeminiProvider] CHAT REQUEST - Task Type: {}", taskType);
+        log.info("[GeminiProvider] CHAT REQUEST - Request body size: {} bytes", requestBody.toString().length());
+        log.info("[GeminiProvider] =============================================");
+        log.info("[GeminiProvider] Request body preview: {}", truncateForLog(requestBody.toString(), 500));
 
         return executeWithFallback("chat", (model, apiKey) -> {
             String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
             String requestUrl = baseUrl + "/v1beta/models/" + model + ":generateContent?key=" + keyMasked;
-            log.info("[GeminiProvider] CHAT REQUEST - URL: {}", requestUrl);
-            log.info("[GeminiProvider] CHAT REQUEST - Key index: {}/{}", keyManager.getKeyCount() > 0 ? "1" : "N/A", keyManager.getKeyCount());
+            
+            long callStartTime = System.currentTimeMillis();
+            
+            log.info("[GeminiProvider] CHAT CALL - Request ID: {}, Model: {}, URL: {}", requestId, model, requestUrl);
 
             String rawResponse = webClientBuilder
                     .baseUrl(baseUrl)
@@ -336,8 +399,15 @@ public class GeminiProvider implements AiProvider {
                     .timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
                     .block();
 
-            long latencyMs = System.currentTimeMillis() - startMs;
-            log.info("[GeminiProvider] CHAT RESPONSE - Model: {}, Latency: {}ms, Response length: {} chars", model, latencyMs, rawResponse != null ? rawResponse.length() : 0);
+            long latencyMs = System.currentTimeMillis() - callStartTime;
+            long totalMs = System.currentTimeMillis() - requestStartTime;
+            
+            log.info("[GeminiProvider] CHAT RESPONSE - Request ID: {}", requestId);
+            log.info("[GeminiProvider]   Model: {}", model);
+            log.info("[GeminiProvider]   Latency: {}ms", latencyMs);
+            log.info("[GeminiProvider]   Total Time: {}ms", totalMs);
+            log.info("[GeminiProvider]   Response length: {} chars", rawResponse != null ? rawResponse.length() : 0);
+            
             return extractTextFromResponse(rawResponse);
         }, taskType);
     }
@@ -576,6 +646,15 @@ public class GeminiProvider implements AiProvider {
             cleaned = cleaned.substring(firstBrace, lastBrace + 1);
         }
         return cleaned.trim();
+    }
+
+    /**
+     * Truncate a string for logging purposes.
+     */
+    private String truncateForLog(String text, int maxLength) {
+        if (text == null) return "null";
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength) + "... [truncated]";
     }
 
     private void validateResult(AiExamParseResponse result) throws AiParsingException {

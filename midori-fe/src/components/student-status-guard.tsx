@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth, isStudentActive, type FrontendRole } from "@/lib/auth";
+import { Lock } from "lucide-react";
 
 type StudentStatusGuardProps = {
   children: React.ReactNode;
@@ -32,6 +33,7 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
 
   // Default public routes for all students
   const defaultPublicRoutes = [
+    "/student/landing",
     "/student/profile",
     "/student/settings",
     "/student/settings/theme",
@@ -62,12 +64,8 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
       (route) => currentPath === route || currentPath.startsWith(route + "/"),
     );
 
-    // Guest students (not joined any class) cannot access protected routes
-    // Redirect to intro page where they can learn about the program and join a class
-    if (user.role === "student" && !isStudentActive(user) && !isPublicRoute) {
-      nav({ to: "/student/intro", replace: true });
-      return;
-    }
+    // Guest students (not joined any class) can now see the layout but features will be locked.
+    // No redirect here so they can see the locked UI.
   }, [loaded, user, role, nav, routerState.location.pathname, allPublicRoutes]);
 
   if (!loaded) {
@@ -85,9 +83,21 @@ export function StudentStatusGuard({ children, role, publicRoutes = [] }: Studen
     (route) => currentPath === route || currentPath.startsWith(route + "/"),
   );
 
-  // Block guest students from protected routes
+  // Block guest students from protected routes with a Demo mode UI
   if (user.role === "student" && !isStudentActive(user) && !isPublicRoute) {
-    return null;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center space-y-6">
+        <div className="w-24 h-24 bg-primary/10 text-primary rounded-full flex items-center justify-center">
+          <Lock className="w-12 h-12" />
+        </div>
+        <div className="max-w-md space-y-2">
+          <h2 className="text-2xl font-bold text-foreground">Tính năng xem trước (Demo Mode)</h2>
+          <p className="text-muted-foreground">
+            Đây là tính năng dành cho học viên chính thức. Bạn cần được giáo viên thêm vào lớp học để có thể bắt đầu sử dụng.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

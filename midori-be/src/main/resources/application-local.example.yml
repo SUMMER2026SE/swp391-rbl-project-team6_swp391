@@ -155,3 +155,4 @@ supabase:
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
+    videos-bucket: ${SUPABASE_VIDEOS_BUCKET:shadowing-videos}

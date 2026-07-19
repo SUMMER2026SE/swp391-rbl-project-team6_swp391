@@ -60,6 +60,43 @@ For detailed instructions on roles, routes, and operational flows for Admin and 
 
 ---
 
+## Download KanjiVG
+
+### Purpose
+KanjiVG provides SVG stroke-order animations for Kanji characters displayed on the platform.
+
+### Official Source
+- Repository: [https://github.com/KanjiVG/kanjivg](https://github.com/KanjiVG/kanjivg)
+- Website: [http://kanjivg.tagaini.net](http://kanjivg.tagaini.net)
+
+### Download & Extraction Instructions
+1. Download the ZIP file of the repository from the official GitHub page.
+2. Extract the archive on your local computer.
+3. Copy the folder named `kanji` from the extracted archive into:
+   `midori-be/src/main/resources/dictionary/kanjivg/`
+
+The final directory structure must be:
+```
+midori-be/
+└── src/
+    └── main/
+        └── resources/
+            └── dictionary/
+                └── kanjivg/
+                    ├── 04e00.svg
+                    ├── 04e01.svg
+                    ├── ...
+                    └── 09fff.svg
+```
+
+### Git Exclusion Rationale
+These SVG files are intentionally excluded from Git tracking (configured in `.gitignore`) because:
+- **Large Dataset:** There are over 11,000 SVG files in the dataset, which bloats the repository size.
+- **Static Content:** These files represent standardized stroke animations and rarely, if ever, change.
+- **Reproducibility:** Every developer downloads the exact same official dataset, so there is no need to track them in git history.
+
+---
+
 ## Features
 
 ### Authentication & Profile
