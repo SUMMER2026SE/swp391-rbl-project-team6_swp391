@@ -57,6 +57,7 @@ class AiControllerSecurityTest {
         aiController = new AiController(aiService);
         mockMvc = MockMvcBuilders.standaloneSetup(aiController)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
                 .build();
         objectMapper = new ObjectMapper();
 
@@ -269,7 +270,7 @@ class AiControllerSecurityTest {
                 {
                     "message": "What does this mean?",
                     "selectedMaterial": {
-                        "id": "vocab-1",
+                        "id": "11111111-1111-1111-1111-111111111111",
                         "title": "Test Vocabulary",
                         "type": "VOCABULARY",
                         "level": "N5",
@@ -283,6 +284,115 @@ class AiControllerSecurityTest {
                             .content(requestJson))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.success", is(false)));
+        }
+
+        @Test
+        @DisplayName("chat: rejects partial material reference (id without type)")
+        void chat_partialRef_idWithoutType_rejected() throws Exception {
+            setSecurityContext(studentUser);
+
+            String requestJson = """
+                {
+                    "message": "Explain this lesson",
+                    "selectedMaterial": {
+                        "id": "11111111-1111-1111-1111-111111111111"
+                    }
+                }
+                """;
+
+            mockMvc.perform(post("/api/ai/chat")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestJson))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success", is(false)));
+            // AiService must NOT be invoked at all
+            verify(aiService, never()).chat(any(UUID.class), any(UUID.class), anyString(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("chat: rejects partial material reference (type without id)")
+        void chat_partialRef_typeWithoutId_rejected() throws Exception {
+            setSecurityContext(studentUser);
+
+            String requestJson = """
+                {
+                    "message": "Explain this lesson",
+                    "selectedMaterial": {
+                        "type": "VOCABULARY"
+                    }
+                }
+                """;
+
+            mockMvc.perform(post("/api/ai/chat")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestJson))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success", is(false)));
+            verify(aiService, never()).chat(any(UUID.class), any(UUID.class), anyString(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("generate-questions: rejects partial material reference (materialId without materialType)")
+        void quiz_partialRef_idWithoutType_rejected() throws Exception {
+            setSecurityContext(studentUser);
+
+            String requestJson = """
+                {
+                    "topic": "Some Topic",
+                    "materialId": "11111111-1111-1111-1111-111111111111",
+                    "level": "N5",
+                    "count": 5,
+                    "type": "MULTIPLE_CHOICE"
+                }
+                """;
+
+            mockMvc.perform(post("/api/ai/generate-questions")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestJson))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success", is(false)));
+            verify(aiService, never()).generateQuestions(any(UUID.class), anyString(), anyString(), any(), anyString(), any(), any(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("generate-questions: rejects partial material reference (materialType without materialId)")
+        void quiz_partialRef_typeWithoutId_rejected() throws Exception {
+            setSecurityContext(studentUser);
+
+            String requestJson = """
+                {
+                    "topic": "Some Topic",
+                    "materialType": "VOCABULARY",
+                    "level": "N5",
+                    "count": 5,
+                    "type": "MULTIPLE_CHOICE"
+                }
+                """;
+
+            mockMvc.perform(post("/api/ai/generate-questions")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestJson))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success", is(false)));
+            verify(aiService, never()).generateQuestions(any(UUID.class), anyString(), anyString(), any(), anyString(), any(), any(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("chat: accepts fully empty material reference (free-text path)")
+        void chat_noMaterialRef_freeText_ok() throws Exception {
+            setSecurityContext(studentUser);
+
+            String requestJson = """
+                {
+                    "message": "Hello AI Sensei",
+                    "selectedMaterial": {}
+                }
+                """;
+
+            mockMvc.perform(post("/api/ai/chat")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestJson))
+                    .andExpect(status().isCreated());
         }
     }
 }

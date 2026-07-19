@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.core.AiCoreService;
 import com.midori.ai.prompt.AiPromptBuilder;
 import com.midori.dto.ai.AiConversationResponse;
+import com.midori.dto.ai.AiMaterialDetailResponse;
 import com.midori.dto.ai.ChatRequest;
 import com.midori.dto.ai.ChatResponse;
 import com.midori.dto.ai.ConversationMessagesResponse;
@@ -14,11 +15,13 @@ import com.midori.dto.ai.GeneratedQuestionDto;
 import com.midori.entity.AiConversation;
 import com.midori.entity.AiMessage;
 import com.midori.entity.User;
+import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.AiConversationRepository;
 import com.midori.repository.AiMessageRepository;
 import com.midori.repository.UserRepository;
 import com.midori.service.AiService;
+import com.midori.service.AiMaterialService;
 import com.midori.service.AiRateLimitService;
 import com.midori.dto.ai.AiMessageResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -33,12 +36,12 @@ import java.util.regex.Pattern;
 
 /**
  * AI Service implementation using AiCoreService for centralized AI operations.
- * 
+ *
  * This service handles:
  * - Chat conversations with AI Sensei
  * - Question generation from material content
  * - Local fallback when AI is unavailable
- * 
+ *
  * All AI operations go through AiCoreService, which handles
  * provider selection, fallback, and key rotation.
  */
@@ -59,6 +62,7 @@ public class AiServiceImpl implements AiService {
     private final AiMessageRepository messageRepository;
     private final AiCoreService aiCoreService;
     private final AiRateLimitService rateLimitService;
+    private final AiMaterialService aiMaterialService;
     private final ObjectMapper objectMapper;
     private final boolean fallbackEnabled;
 
@@ -70,15 +74,17 @@ public class AiServiceImpl implements AiService {
             AiMessageRepository messageRepository,
             AiCoreService aiCoreService,
             AiRateLimitService rateLimitService,
+            AiMaterialService aiMaterialService,
             ObjectMapper objectMapper,
             @Value("${ai.fallback-enabled:false}") boolean fallbackEnabled) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.aiCoreService = aiCoreService;
         this.rateLimitService = rateLimitService;
+        this.aiMaterialService = aiMaterialService;
         this.objectMapper = objectMapper;
         this.fallbackEnabled = fallbackEnabled;
-        log.info("[AiService] AI Service initialized with AiCoreService, fallbackEnabled: {}", fallbackEnabled);
+        log.info("[AiService] AI Service initialized with AiCoreService, AiMaterialService, fallbackEnabled: {}", fallbackEnabled);
     }
 
     /**
@@ -120,13 +126,138 @@ public class AiServiceImpl implements AiService {
 
     /**
      * Determine whether a request has an actually usable selected material
-     * (non-null reference and non-blank content). A title-only entry is NOT
-     * enough to answer material-based questions.
+     * (trusted resolved material OR legacy free-text content). When
+     * {@code materialId} is provided the trust boundary is enforced by
+     * {@link #resolveTrustedMaterial}.
      */
-    private boolean hasUsableMaterial(ChatRequest.MaterialInfo material) {
-        return material != null
-                && material.getContent() != null
-                && !material.getContent().isBlank();
+    private boolean hasUsableMaterial(MaterialResolution resolution) {
+        return resolution != null && resolution.usable();
+    }
+
+    /**
+     * Resolved, trusted material payload used to construct the LLM prompt.
+     *
+     * <p>The fields in {@link ChatRequest.MaterialInfo} that are populated
+     * here come from {@code AiMaterialService.getMaterialDetail} — never
+     * from the client request body. If the client supplies a database
+     * reference (id+type) that cannot be resolved, the {@code error}
+     * field is set and {@code usable()} returns false so that the caller
+     * fails closed instead of falling back to client content.
+     */
+    private static final class MaterialResolution {
+        final String type;
+        final String title;
+        final String level;
+        final String content;
+        final BadRequestException error;
+        final ResourceNotFoundException notFound;
+
+        private MaterialResolution(Builder b) {
+            this.type = b.type;
+            this.title = b.title;
+            this.level = b.level;
+            this.content = b.content;
+            this.error = b.error;
+            this.notFound = b.notFound;
+        }
+
+        static MaterialResolution ok(String type, String title, String level, String content) {
+            return new Builder()
+                    .type(type).title(title).level(level).content(content)
+                    .build();
+        }
+
+        static MaterialResolution badRequest(BadRequestException error) {
+            return new Builder().error(error).build();
+        }
+
+        static MaterialResolution notFound(ResourceNotFoundException notFound) {
+            return new Builder().notFound(notFound).build();
+        }
+
+        boolean usable() {
+            return content != null && !content.isBlank();
+        }
+
+        ChatRequest.MaterialInfo toMaterialInfo() {
+            ChatRequest.MaterialInfo info = new ChatRequest.MaterialInfo();
+            info.setType(type);
+            info.setTitle(title);
+            info.setLevel(level);
+            info.setContent(content);
+            return info;
+        }
+
+        private static final class Builder {
+            String type;
+            String title;
+            String level;
+            String content;
+            BadRequestException error;
+            ResourceNotFoundException notFound;
+
+            Builder type(String v) { this.type = v; return this; }
+            Builder title(String v) { this.title = v; return this; }
+            Builder level(String v) { this.level = v; return this; }
+            Builder content(String v) { this.content = v; return this; }
+            Builder error(BadRequestException v) { this.error = v; return this; }
+            Builder notFound(ResourceNotFoundException v) { this.notFound = v; return this; }
+
+            MaterialResolution build() {
+                return new MaterialResolution(this);
+            }
+        }
+    }
+
+    /**
+     * Resolve the material that the LLM prompt should be grounded on.
+     *
+     * <p><strong>Trust boundary:</strong>
+     * <ul>
+     *   <li>If {@code materialId} is non-null, the material is loaded from
+     *       {@code AiMaterialService.getMaterialDetail(materialType, materialId)}.
+     *       The client-supplied title / content / level are IGNORED.</li>
+     *   <li>If the type is invalid, returns a {@link BadRequestException}
+     *       — the caller MUST fail closed (HTTP 400), never fall back.</li>
+     *   <li>If the material is unknown / inactive / unpublished, returns a
+     *       {@link ResourceNotFoundException} — the caller MUST fail closed
+     *       (HTTP 404), never fall back.</li>
+     *   <li>If both {@code materialId} and {@code materialType} are null/blank,
+     *       no material is resolved. The legacy {@code clientMaterial}
+     *       (if any) is returned without its body so that free-text chat
+     *       continues to work — but {@link #hasUsableMaterial} will return
+     *       false and the prompt will not include material context.</li>
+     * </ul>
+     */
+    private MaterialResolution resolveTrustedMaterial(String materialType,
+                                                      UUID materialId,
+                                                      ChatRequest.MaterialInfo clientMaterial) {
+        if (materialId == null) {
+            // Free-text path: do not load anything from the DB. We
+            // intentionally return a blank MaterialInfo so that
+            // hasUsableMaterial(...) returns false and the chat falls back
+            // to normal Japanese tutoring. The legacy client-supplied
+            // content (if any) is NOT forwarded.
+            return MaterialResolution.ok(null, null, null, "");
+        }
+
+        // materialId provided — type must also be provided. The controller
+        // already rejects partial references via @AssertTrue; this is a
+        // defence-in-depth check.
+        if (materialType == null || materialType.isBlank()) {
+            return MaterialResolution.badRequest(new BadRequestException(
+                    "materialType is required when materialId is present"));
+        }
+
+        try {
+            AiMaterialDetailResponse detail = aiMaterialService.getMaterialDetail(materialType, materialId);
+            return MaterialResolution.ok(detail.getType(), detail.getTitle(),
+                    detail.getLevel(), detail.getContent());
+        } catch (BadRequestException e) {
+            return MaterialResolution.badRequest(e);
+        } catch (ResourceNotFoundException e) {
+            return MaterialResolution.notFound(e);
+        }
     }
 
     /**
@@ -136,19 +267,19 @@ public class AiServiceImpl implements AiService {
      * the prompt. This prevents the LLM from seeing and re-emitting escaped
      * forms like "&quot;聞く&quot;" as if they were literal text.
      */
-    private String buildSystemPrompt(ChatRequest.MaterialInfo material) {
-        if (!hasUsableMaterial(material)) {
+    private String buildSystemPrompt(MaterialResolution resolution) {
+        if (!hasUsableMaterial(resolution)) {
             return AiPromptBuilder.getChatSystemPrompt();
         }
 
         // Decode HTML entities in the material content so the model sees the
         // real Japanese characters (e.g. 聞く instead of &quot;聞く&quot;).
-        String decodedContent = decodeHtmlEntities(material.getContent());
+        String decodedContent = decodeHtmlEntities(resolution.content);
 
         return AiPromptBuilder.buildChatSystemPromptWithMaterial(
-                material.getTitle(),
-                material.getType(),
-                material.getLevel(),
+                resolution.title,
+                resolution.type,
+                resolution.level,
                 decodedContent
         );
     }
@@ -187,8 +318,21 @@ public class AiServiceImpl implements AiService {
 
     @Override
     @Transactional
-    public ChatResponse chat(UUID userId, UUID conversationId, String message, ChatRequest.MaterialInfo selectedMaterial) {
+    public ChatResponse chat(UUID userId, UUID conversationId, String message,
+                             String materialType, UUID materialId,
+                             ChatRequest.MaterialInfo clientMaterial) {
         rateLimitService.checkAndIncrementChat(userId);
+
+        // Resolve the trusted material BEFORE any DB work. If the resolution
+        // surfaces a BadRequestException or ResourceNotFoundException, fail
+        // closed — never substitute the client-supplied title / content.
+        MaterialResolution resolution = resolveTrustedMaterial(materialType, materialId, clientMaterial);
+        if (resolution.error != null) {
+            throw resolution.error;
+        }
+        if (resolution.notFound != null) {
+            throw resolution.notFound;
+        }
 
         AiConversation conversation;
 
@@ -215,7 +359,7 @@ public class AiServiceImpl implements AiService {
         // but the request did not include an actual material payload,
         // do not let the LLM fabricate content. Reply with a fixed fallback
         // and persist it as the assistant turn.
-        if (!hasUsableMaterial(selectedMaterial)
+        if (!hasUsableMaterial(resolution)
                 && AiPromptBuilder.refersToSelectedMaterial(message)) {
             String reply = AiPromptBuilder.noMaterialSelectedFallback();
             AiMessage aiMessage = AiMessage.builder()
@@ -241,7 +385,7 @@ public class AiServiceImpl implements AiService {
                     .build();
         }
 
-        String effectivePrompt = buildSystemPrompt(selectedMaterial);
+        String effectivePrompt = buildSystemPrompt(resolution);
 
         // Get conversation history for context
         List<String[]> history = getConversationHistory(conversation.getId());
@@ -307,8 +451,32 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public GenerateQuestionsResponse generateQuestions(UUID userId, String topic, String level, Integer count, String type, String materialContent) {
+    public GenerateQuestionsResponse generateQuestions(UUID userId, String topic, String level,
+                                                      Integer count, String type,
+                                                      String materialType, UUID materialId,
+                                                      String materialContent,
+                                                      String materialTitle) {
         rateLimitService.checkAndIncrementQuizGeneration(userId);
+
+        // Trust boundary: when the client supplies a database reference,
+        // resolve the material through AiMaterialService and IGNORE any
+        // client-supplied title / content. Bad references fail closed.
+        String trustedTitle = (materialTitle != null && !materialTitle.isBlank())
+                ? materialTitle : (topic != null ? topic : "");
+        String trustedContent = null;
+        if (materialId != null) {
+            if (materialType == null || materialType.isBlank()) {
+                throw new BadRequestException(
+                        "materialType is required when materialId is present");
+            }
+            AiMaterialDetailResponse detail = aiMaterialService.getMaterialDetail(materialType, materialId);
+            trustedTitle = detail.getTitle();
+            trustedContent = detail.getContent();
+        } else if (materialContent != null && !materialContent.isBlank()) {
+            // Legacy / manual topic-based path: client content is the
+            // authoritative source because there is no lesson reference.
+            trustedContent = materialContent;
+        }
 
         int actualCount = Math.max(1, Math.min(count != null ? count : 5, 20));
         String difficulty = level != null ? level : "MEDIUM";
@@ -326,12 +494,13 @@ public class AiServiceImpl implements AiService {
         boolean usedFallback = false;
         String source = "AI";
 
-        log.info("[AiService] Quiz generation requested by userId={}: topic={}, count={}, type={}",
-                userId, topic, actualCount, questionType);
+        log.info("[AiService] Quiz generation requested by userId={}: topic={}, count={}, type={}, trustedMaterial={}",
+                userId, trustedTitle, actualCount, questionType,
+                materialId != null ? materialType + ":" + materialId : "none");
 
         // Try AI provider through AiCoreService
         try {
-            String jsonResponse = aiCoreService.generateQuestions(topic, materialContent, actualCount, questionType, difficulty);
+            String jsonResponse = aiCoreService.generateQuestions(trustedTitle, trustedContent, actualCount, questionType, difficulty);
             List<GeneratedQuestionDto> parsed = parseQuestionsFromJson(jsonResponse, difficulty);
             if (!"MIXED".equalsIgnoreCase(questionType)) {
                 parsed = enforceSingleQuestionType(parsed, questionType);
@@ -366,7 +535,7 @@ public class AiServiceImpl implements AiService {
                 log.warn("[AiService] AI quiz generation failed in strict mode (fallbackEnabled=false) for userId={}. errorMessage={}",
                         userId, errorMessage);
                 return GenerateQuestionsResponse.builder()
-                        .materialTitle(topic)
+                        .materialTitle(trustedTitle)
                         .questions(List.of())
                         .errorMessage(errorMessage != null ? errorMessage
                                 : "Xin lỗi, đã xảy ra lỗi khi tạo quiz. Vui lòng thử lại sau.")
@@ -379,11 +548,11 @@ public class AiServiceImpl implements AiService {
             log.warn("[AiService] WARNING: Local fallback used for userId={} due to AI provider failure (fallbackEnabled=true). "
                     + "This fallback generates generic questions and should be monitored.",
                     userId);
-            if (materialContent == null || materialContent.isBlank()) {
+            if (trustedContent == null || trustedContent.isBlank()) {
                 log.warn("[AiService] Local fallback skipped for userId={}: materialContent empty", userId);
                 errorMessage = "Tài liệu chưa đủ dữ liệu để tạo quiz.";
             } else {
-                questions = generateLocalQuestions(topic, materialContent, actualCount, questionType, difficulty);
+                questions = generateLocalQuestions(trustedTitle, trustedContent, actualCount, questionType, difficulty);
                 if (!questions.isEmpty()) {
                     usedFallback = true;
                     source = "LOCAL_FALLBACK";
@@ -396,7 +565,7 @@ public class AiServiceImpl implements AiService {
         }
 
         return GenerateQuestionsResponse.builder()
-                .materialTitle(topic)
+                .materialTitle(trustedTitle)
                 .questions(questions)
                 .errorMessage(errorMessage)
                 .isFallback(usedFallback)
@@ -843,12 +1012,24 @@ public class AiServiceImpl implements AiService {
 
         List<String[]> history = getConversationHistoryExcluding(conversationId, assistantToDelete != null ? assistantToDelete.getId() : null);
 
-        String effectivePrompt = buildSystemPrompt(selectedMaterial);
+        // Apply the same trust boundary as chat(): when the MaterialInfo
+        // carries a database reference, resolve through AiMaterialService.
+        String matType = selectedMaterial != null ? selectedMaterial.getType() : null;
+        UUID matId = selectedMaterial != null ? selectedMaterial.getId() : null;
+        MaterialResolution resolution = resolveTrustedMaterial(matType, matId, selectedMaterial);
+        if (resolution.error != null) {
+            throw resolution.error;
+        }
+        if (resolution.notFound != null) {
+            throw resolution.notFound;
+        }
+
+        String effectivePrompt = buildSystemPrompt(resolution);
         String newReply;
 
         // Same no-material guard as chat(): if the edited message refers to a
         // material but no material is attached, do not let the LLM invent one.
-        if (!hasUsableMaterial(selectedMaterial)
+        if (!hasUsableMaterial(resolution)
                 && AiPromptBuilder.refersToSelectedMaterial(trimmedContent)) {
             newReply = AiPromptBuilder.noMaterialSelectedFallback();
             log.info("[AiService] No material selected on edit-and-regenerate. Returning fixed fallback.");

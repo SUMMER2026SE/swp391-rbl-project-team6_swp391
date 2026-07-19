@@ -51,11 +51,19 @@ public class AiController {
             @Valid @RequestBody ChatRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         UUID userId = requireUserId(userDetails);
+        ChatRequest.MaterialInfo material = request.getSelectedMaterial();
+        // Trust boundary: pass the database reference (id+type) separately
+        // so the service can resolve through AiMaterialService and ignore
+        // any client-supplied title / content.
+        UUID materialId = material != null ? material.getId() : null;
+        String materialType = material != null ? material.getType() : null;
         ChatResponse response = aiService.chat(
                 userId,
                 request.getConversationId(),
                 request.getMessage(),
-                request.getSelectedMaterial());
+                materialType,
+                materialId,
+                material);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
@@ -99,11 +107,14 @@ public class AiController {
                 userId, request.getNormalizedType(), request.getCount(), request.getMaterialTitle());
         GenerateQuestionsResponse response = aiService.generateQuestions(
                 userId,
-                request.getMaterialTitle() != null ? request.getMaterialTitle() : request.getTopic(),
+                request.getTopic(),
                 request.getLevel(),
                 request.getCount(),
                 request.getNormalizedType(),
-                request.getMaterialContent());
+                request.getMaterialType(),
+                request.getMaterialId(),
+                request.getMaterialContent(),
+                request.getMaterialTitle());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

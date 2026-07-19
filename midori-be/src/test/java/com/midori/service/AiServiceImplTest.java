@@ -48,6 +48,9 @@ class AiServiceImplTest {
     @Mock
     private AiRateLimitService rateLimitService;
 
+    @Mock
+    private AiMaterialService aiMaterialService;
+
     private AiServiceImpl aiService;
     private ObjectMapper objectMapper;
     private UUID userId;
@@ -61,6 +64,7 @@ class AiServiceImplTest {
                 messageRepository,
                 aiCoreService,
                 rateLimitService,
+                aiMaterialService,
                 objectMapper,
                 false // fallbackEnabled = false (strict mode)
         );
@@ -72,6 +76,7 @@ class AiServiceImplTest {
                 messageRepository,
                 aiCoreService,
                 rateLimitService,
+                aiMaterialService,
                 objectMapper,
                 fallbackEnabled
         );
@@ -89,7 +94,9 @@ class AiServiceImplTest {
             when(aiCoreService.generateQuestions(anyString(), any(), anyInt(), anyString(), anyString()))
                     .thenThrow(new RuntimeException("API error"));
 
-            var response = strictService.generateQuestions(userId, "Test Topic", "N5", 5, "MULTIPLE_CHOICE", "Some content");
+            var response = strictService.generateQuestions(
+                    userId, "Test Topic", "N5", 5, "MULTIPLE_CHOICE",
+                    null, null, "Some content", null);
 
             assertNotNull(response);
             assertEquals("Test Topic", response.getMaterialTitle());
@@ -107,7 +114,9 @@ class AiServiceImplTest {
             when(aiCoreService.generateQuestions(anyString(), any(), anyInt(), anyString(), anyString()))
                     .thenThrow(new RuntimeException("API error"));
 
-            var response = strictService.generateQuestions(userId, "Topic", "N5", 3, "MULTIPLE_CHOICE", "content");
+            var response = strictService.generateQuestions(
+                    userId, "Topic", "N5", 3, "MULTIPLE_CHOICE",
+                    null, null, "content", null);
 
             assertTrue(response.getQuestions().isEmpty());
             assertNotNull(response.getErrorMessage());
@@ -121,7 +130,9 @@ class AiServiceImplTest {
             when(aiCoreService.generateQuestions(anyString(), any(), anyInt(), anyString(), anyString()))
                     .thenThrow(new RuntimeException("API error"));
 
-            var response = fallbackService.generateQuestions(userId, "Test Topic", "N5", 3, "MULTIPLE_CHOICE", "日本語|にほんご|Japanese");
+            var response = fallbackService.generateQuestions(
+                    userId, "Test Topic", "N5", 3, "MULTIPLE_CHOICE",
+                    null, null, "日本語|にほんご|Japanese", null);
 
             assertNotNull(response);
         }
@@ -134,7 +145,9 @@ class AiServiceImplTest {
             when(aiCoreService.generateQuestions(anyString(), any(), anyInt(), anyString(), anyString()))
                     .thenThrow(new IllegalStateException("Provider not configured"));
 
-            var response = strictService.generateQuestions(userId, "Topic", "N5", 5, "MULTIPLE_CHOICE", null);
+            var response = strictService.generateQuestions(
+                    userId, "Topic", "N5", 5, "MULTIPLE_CHOICE",
+                    null, null, null, null);
 
             assertTrue(response.getQuestions().isEmpty());
             assertFalse(response.getIsFallback());
@@ -149,7 +162,9 @@ class AiServiceImplTest {
             when(aiCoreService.generateQuestions(anyString(), any(), anyInt(), anyString(), anyString()))
                     .thenThrow(new RuntimeException("All providers failed"));
 
-            var response = strictService.generateQuestions(userId, "Topic", "N5", 5, "MULTIPLE_CHOICE", null);
+            var response = strictService.generateQuestions(
+                    userId, "Topic", "N5", 5, "MULTIPLE_CHOICE",
+                    null, null, null, null);
 
             assertTrue(response.getQuestions().isEmpty());
             assertFalse(response.getIsFallback());
@@ -170,7 +185,9 @@ class AiServiceImplTest {
             when(aiCoreService.generateQuestions(anyString(), any(), anyInt(), anyString(), anyString()))
                     .thenReturn("{\"questions\": []}");
 
-            var response = aiService.generateQuestions(expectedUserId, "Topic", "N5", 5, "MULTIPLE_CHOICE", null);
+            var response = aiService.generateQuestions(
+                    expectedUserId, "Topic", "N5", 5, "MULTIPLE_CHOICE",
+                    null, null, null, null);
 
             assertNotNull(response);
             verify(aiCoreService).generateQuestions(anyString(), isNull(), anyInt(), anyString(), anyString());

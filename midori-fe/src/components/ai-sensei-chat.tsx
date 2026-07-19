@@ -5,7 +5,6 @@ import {
   BookOpen,
   GraduationCap,
   Headphones,
-  Mic2,
   FileText,
   Bot,
   X,
@@ -28,152 +27,43 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { aiApi } from "@/lib/api/ai";
-import type { AiConversation, AiMessage, ConversationMessagesResponse } from "@/types/ai";
+import type {
+  AiConversation,
+  AiMaterialDetail,
+  AiMaterialSummary,
+  AiMaterialType,
+  AiMessage,
+  ConversationMessagesResponse,
+} from "@/types/ai";
 
 // ═══════════════════════════════════════════════════════════════════
-// MOCK STUDY MATERIALS (FRONTEND ONLY)
-// In production, this should come from backend API
+// AI SENSEI MATERIAL MODEL
+// The frontend no longer carries any hardcoded study material. All
+// material data is fetched at runtime from /api/ai/materials, which in
+// turn reads only published, active, non-deleted lessons.
 // ═══════════════════════════════════════════════════════════════════
-
-interface VocabItem {
-  jp: string;
-  reading: string;
-  vi: string;
-  example?: string;
-}
-
-interface GrammarItem {
-  pattern: string;
-  meaning: string;
-  formation: string;
-  examples: { ja: string; vi: string }[];
-  notes?: string;
-}
 
 interface MaterialContent {
   id: string;
-  type: "vocabulary" | "grammar" | "reading" | "listening" | "shadowing";
+  type: AiMaterialType;
   title: string;
   level: string;
-  content: VocabItem[] | GrammarItem[] | string;
+  /**
+   * Server-formatted plain text. Loaded lazily when the user selects a
+   * material. Empty string until the detail call returns.
+   */
+  content: string;
+  /**
+   * Short preview shown in the selector. Always available.
+   */
+  shortDescription?: string | null;
+  lessonNumber?: number;
+  /**
+   * True when the server truncated the formatted content to fit the
+   * 12000-character limit.
+   */
+  truncated?: boolean;
 }
-
-// Detailed content for quiz generation
-const studyMaterials: MaterialContent[] = [
-  {
-    id: "n5_vocab_01",
-    type: "vocabulary",
-    title: "N5 Vocabulary - Bài 1 (Động từ cơ bản)",
-    level: "N5",
-    content: [
-      { jp: "食べる", reading: "たべる", vi: "ăn", example: "日本食を食べる (ăn thức ăn Nhật)" },
-      { jp: "飲む", reading: "のむ", vi: "uống", example: "水を飲む (uống nước)" },
-      { jp: "行く", reading: "いく", vi: "đi", example: "学校に行く (đi học)" },
-      { jp: "来る", reading: "くる", vi: "đến", example: "友達が来る (bạn đến)" },
-      { jp: "見る", reading: "みる", vi: "xem", example: "映画を見る (xem phim)" },
-      { jp: "聞く", reading: "きく", vi: "nghe/hỏi", example: "音楽を聞く (nghe nhạc)" },
-      { jp: "読む", reading: "よむ", vi: "đọc", example: "本を読む (đọc sách)" },
-      { jp: "書く", reading: "かく", vi: "viết", example: "手紙を書く (viết thư)" },
-      { jp: "話す", reading: "はなす", vi: "nói", example: "日本語を話す (nói tiếng Nhật)" },
-      { jp: "寝る", reading: "ねる", vi: "ngủ", example: "早く寝る (đi ngủ sớm)" },
-      { jp: "起きる", reading: "おきる", vi: "thức dậy", example: "六時に起きる (thức dậy lúc 6h)" },
-      { jp: "買う", reading: "かう", vi: "mua", example: "パンをかう (mua bánh mì)" },
-    ] as VocabItem[],
-  },
-  {
-    id: "n5_grammar_01",
-    type: "grammar",
-    title: "N5 Grammar - です (Câu trang trọng)",
-    level: "N5",
-    content: [
-      {
-        pattern: "〜です",
-        meaning: "Diễn đạt sự lịch sự, phép lịch sự",
-        formation: "[Danh từ/Tính từ] + です",
-        examples: [
-          { ja: "私は学生です", vi: "Tôi là sinh viên" },
-          { ja: "今日は暑いです", vi: "Hôm nay nóng" },
-        ],
-        notes: "Đuôi です dùng để biểu thị thái độ lịch sự khi nói chuyện",
-      },
-      {
-        pattern: "〜ではありません",
-        meaning: "Phủ định của です",
-        formation: "[Danh từ/Tính từ] + ではありません",
-        examples: [
-          { ja: "私は先生ではありません", vi: "Tôi không phải là giáo viên" },
-          { ja: "今日は寒くではありません", vi: "Hôm nay không lạnh" },
-        ],
-        notes: "Dạng phủ định lịch sự",
-      },
-      {
-        pattern: "〜ですか",
-        meaning: "Câu hỏi",
-        formation: "[Câu] + か",
-        examples: [
-          { ja: "あなたは学生ですか", vi: "Bạn là sinh viên à?" },
-          { ja: "これは何ですか", vi: "Cái này là gì?" },
-        ],
-      },
-      {
-        pattern: "〜ました",
-        meaning: "Quá khứ lịch sự",
-        formation: "[Động từ thể ます] + ました",
-        examples: [
-          { ja: "昨日、学校に行きました", vi: "Hôm qua, tôi đã đi học" },
-          { ja: "映画を見ました", vi: "Đã xem phim" },
-        ],
-      },
-    ] as GrammarItem[],
-  },
-  {
-    id: "n5_vocab_02",
-    type: "vocabulary",
-    title: "N5 Vocabulary - Bài 2 (Danh từ)",
-    level: "N5",
-    content: [
-      { jp: "学校", reading: "がっこう", vi: "trường học", example: "学校に行く (đi học)" },
-      { jp: "先生", reading: "せんせい", vi: "giáo viên", example: "日本語先生 (giáo viên tiếng Nhật)" },
-      { jp: "学生", reading: "がくせい", vi: "sinh viên/học sinh", example: "私は学生です (Tôi là học sinh)" },
-      { jp: "友達", reading: "ともだち", vi: "bạn bè", example: "友達と話す (nói chuyện với bạn)" },
-      { jp: "家族", reading: "かぞく", vi: "gia đình", example: "家族は何人ですか (Gia đình có bao nhiêu người?)" },
-      { jp: "会社", reading: "かいしゃ", vi: "công ty", example: "会社で働く (làm việc ở công ty)" },
-    ] as VocabItem[],
-  },
-  {
-    id: "n5_reading_01",
-    type: "reading",
-    title: "N5 Reading - Bài đọc 1 (Giới thiệu bản thân)",
-    level: "N5",
-    content: `私の名前は田中です。今日は九月十八日です。
-私は日本の大学生です。毎朝、六時半に起きます。
-学校は九時に始まります。五時に終わります。
-放課後、図書館で勉强します。
-周末和朋友打篮球。`,
-  },
-  {
-    id: "n5_listening_01",
-    type: "listening",
-    title: "N5 Listening - Dialog 1 (Hỏi đường)",
-    level: "N5",
-    content: `A: すみません、図書館はどこですか。
-B: 図書館は二階です。
-A: ありがとうございます。
-B: どういたしまして。`,
-  },
-  {
-    id: "n5_shadowing_01",
-    type: "shadowing",
-    title: "N5 Shadowing - Greeting (Chào hỏi)",
-    level: "N5",
-    content: `おはようございます (6-12h)
-こんにちは (12-18h)
-こんばんは (18h trở đi)
-おやすみなさい (trước khi ngủ)
-はじめまして (gặp lần đầu)
-よろしくおねがいします (rất vui được làm quen)`,
-  },
-];
 
 // ═══════════════════════════════════════════════════════════════════
 // TYPES
@@ -216,14 +106,27 @@ function genId() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Build the ChatRequest.selectedMaterial payload.
+ *
+ * <p><strong>Phase 2 final trust boundary:</strong> when a real database
+ * material is selected, we send only <code>id</code> and <code>type</code>.
+ * The backend re-resolves the material through <code>AiMaterialService</code>
+ * and ignores <code>title</code> / <code>content</code>. We still attach
+ * <code>title</code> for instant UI display (the sidebar chip does not need
+ * to wait for a network round-trip to show the lesson name).
+ *
+ * <p>The 12000-char <code>content</code> is intentionally <strong>not</strong>
+ * sent on the wire — the backend already has it.
+ */
 function toMaterialContextPayload(material: MaterialContent | null | undefined) {
   if (!material) return undefined;
   return {
     id: material.id,
-    title: material.title,
     type: material.type,
+    title: material.title,
     level: material.level,
-    content: materialToText(material),
+    // content is omitted: the backend loads it from the DB by id+type
   };
 }
 
@@ -255,25 +158,11 @@ function highlightJapanese(text: string, tone: "user" | "ai" = "ai"): React.Reac
   );
 }
 
-// Convert material to text for LLM and fallback parser
-function materialToText(material: MaterialContent): string {
-  if (material.type === "vocabulary") {
-    const items = material.content as VocabItem[];
-    const lines = items.map(item => {
-      const parts = [item.jp, item.reading, item.vi];
-      if (item.example) parts.push(item.example);
-      return `- ${parts.join(" | ")}`;
-    });
-    return `Vocabulary:\n${lines.join("\n")}`;
-  }
-  if (material.type === "grammar") {
-    const items = material.content as GrammarItem[];
-    return items.map(item =>
-      `${item.pattern} | Nghĩa: ${item.meaning} | Cấu trúc: ${item.formation}\nVí dụ: ${item.examples.map(e => `${e.ja} (${e.vi})`).join(', ')}`
-    ).join("\n\n");
-  }
-  return material.content as string;
-}
+// The legacy `materialToText` helper was removed in Phase 2. The backend
+// now returns server-formatted plain-text material content (capped at
+// 12000 characters) via GET /api/ai/materials/{type}/{id}. The frontend
+// simply forwards that string to the chat / quiz endpoints — it no longer
+// parses the material shape client-side.
 
 // Safe markdown lite renderer for assistant messages.
 // No raw HTML, no new dependencies, supports tables requested by user prompts.
@@ -719,50 +608,89 @@ function MaterialSelector({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<AiMaterialType | "ALL">("ALL");
+  const [materials, setMaterials] = useState<AiMaterialSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-  const typeIcons = {
-    vocabulary: BookOpen,
-    grammar: GraduationCap,
-    reading: FileText,
-    listening: Headphones,
-    shadowing: Mic2,
+  // Reset detail error whenever the selector opens.
+  useEffect(() => {
+    if (isOpen) setDetailError(null);
+  }, [isOpen]);
+
+  // Lightweight list — no full content. Fetched only when the user opens
+  // the selector so we don't pay for content we don't need.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+    aiApi
+      .listMaterials({ type: typeFilter === "ALL" ? undefined : typeFilter })
+      .then((data) => {
+        if (!cancelled) setMaterials(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to load AI materials", err);
+          setLoadError(err?.message || "Không tải được danh sách tài liệu.");
+          setMaterials([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, typeFilter]);
+
+  const typeIcons: Record<AiMaterialType, typeof BookOpen> = {
+    VOCABULARY: BookOpen,
+    GRAMMAR: GraduationCap,
+    READING: FileText,
+    LISTENING: Headphones,
   };
 
   const TypeIcon = selected ? typeIcons[selected.type] : BookOpen;
 
-  const filteredMaterials = studyMaterials.filter((material) => {
+  const filteredMaterials = materials.filter((material) => {
     const query = search.trim().toLowerCase();
     if (!query) return true;
-
-    const haystack = [
-      material.title,
-      material.type,
-      material.level,
-      typeof material.content === "string" ? material.content : "",
-      Array.isArray(material.content)
-        ? material.content
-            .map((item) => {
-              if (material.type === "vocabulary" && "jp" in item && "vi" in item) {
-                const vocab = item as { jp?: string; reading?: string; vi?: string; example?: string };
-                return [vocab.jp, vocab.reading, vocab.vi, vocab.example].filter(Boolean).join(" ");
-              }
-              if (material.type === "grammar" && "pattern" in item && "meaning" in item) {
-                const grammar = item as { pattern?: string; meaning?: string; formation?: string; notes?: string };
-                return [grammar.pattern, grammar.meaning, grammar.formation, grammar.notes]
-                  .filter(Boolean)
-                  .join(" ");
-              }
-              return "";
-            })
-            .join(" ")
-        : "",
-    ]
+    const haystack = [material.title, material.type, material.level, material.shortDescription ?? ""]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-
     return haystack.includes(query);
   });
+
+  const handlePick = async (material: AiMaterialSummary) => {
+    setDetailError(null);
+    const id = `${material.type}:${material.id}`;
+    setDetailLoadingId(id);
+    try {
+      const detail: AiMaterialDetail = await aiApi.getMaterialDetail(material.type, material.id);
+      onSelect({
+        id: detail.id,
+        type: detail.type,
+        title: detail.title,
+        level: detail.level,
+        content: detail.content,
+        shortDescription: material.shortDescription,
+        lessonNumber: detail.lessonNumber,
+        truncated: detail.truncated,
+      });
+      setIsOpen(false);
+      setSearch("");
+    } catch (err: any) {
+      console.error("Failed to load material detail", err);
+      setDetailError(err?.message || "Không tải được chi tiết tài liệu.");
+    } finally {
+      setDetailLoadingId(null);
+    }
+  };
 
   return (
     <div className="relative">
@@ -783,9 +711,24 @@ function MaterialSelector({
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="absolute top-full left-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl z-50 overflow-hidden"
+            className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl z-50 overflow-hidden"
           >
-            <div className="p-2 border-b border-slate-100 dark:border-slate-700">
+            <div className="p-2 border-b border-slate-100 dark:border-slate-700 space-y-2">
+              <div className="flex gap-1 flex-wrap">
+                {(["ALL", "VOCABULARY", "GRAMMAR", "READING", "LISTENING"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTypeFilter(t)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                      typeFilter === t
+                        ? "bg-primary text-white"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"
+                    }`}
+                  >
+                    {t === "ALL" ? "Tất cả" : t.charAt(0) + t.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
               <div className="flex items-center gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/60 px-2 py-1.5">
                 <Search className="w-3.5 h-3.5 text-muted-foreground" />
                 <input
@@ -796,27 +739,49 @@ function MaterialSelector({
                 />
               </div>
             </div>
+
+            {detailError && (
+              <div className="px-3 py-2 text-xs text-red-600 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800 flex items-center gap-2">
+                <AlertCircle className="w-3 h-3" />
+                {detailError}
+              </div>
+            )}
+
             <div className="max-h-64 overflow-y-auto p-2">
-              {filteredMaterials.length === 0 ? (
+              {isLoading ? (
+                <div className="py-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Đang tải tài liệu...
+                </div>
+              ) : loadError ? (
+                <div className="py-6 text-center text-xs text-red-600">
+                  {loadError}
+                  <button
+                    onClick={() => setTypeFilter((prev) => prev)}
+                    className="block mx-auto mt-2 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-[11px]"
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              ) : filteredMaterials.length === 0 ? (
                 <div className="py-6 text-center text-xs text-muted-foreground">
                   Không tìm thấy tài liệu phù hợp.
                 </div>
               ) : (
                 filteredMaterials.map((material) => {
                   const Icon = typeIcons[material.type];
+                  const id = `${material.type}:${material.id}`;
+                  const isLoadingThis = detailLoadingId === id;
                   return (
                     <button
-                      key={material.id}
-                      onClick={() => {
-                        onSelect(material);
-                        setIsOpen(false);
-                        setSearch("");
-                      }}
+                      key={id}
+                      onClick={() => handlePick(material)}
+                      disabled={detailLoadingId !== null}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                         selected?.id === material.id
                           ? "bg-primary/15 text-primary font-semibold"
                           : "hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-800 dark:text-slate-200"
-                      }`}
+                      } ${detailLoadingId !== null && !isLoadingThis ? "opacity-60" : ""}`}
                     >
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -825,12 +790,17 @@ function MaterialSelector({
                             : "bg-slate-100 dark:bg-slate-700"
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
+                        {isLoadingThis ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Icon className="w-4 h-4" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{material.title}</p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {material.type} · {material.level}
+                          {material.type.toLowerCase()} · {material.level}
+                          {material.lessonNumber ? ` · Bài ${material.lessonNumber}` : ""}
                         </p>
                       </div>
                       {selected?.id === material.id && <Check className="w-4 h-4 text-primary" />}
@@ -854,53 +824,47 @@ function MaterialPreview({ material }: { material: MaterialContent | null }) {
       <div className="flex items-center gap-2 mb-3 flex-shrink-0">
         <BookMarked className="w-4 h-4 text-primary" />
         <h3 className="text-sm font-bold">Material Preview</h3>
+        <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">
+          {material.type}
+        </span>
       </div>
 
       <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Title</span>
-          <span className="text-sm font-medium">{material.title}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Type</span>
-          <span className="text-sm font-medium capitalize">{material.type}</span>
+          <span className="text-sm font-medium text-right">{material.title}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Level</span>
           <span className="text-sm font-medium">{material.level}</span>
         </div>
-
-        {material.type === "vocabulary" && (
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-            <p className="text-xs text-muted-foreground mb-1">Preview:</p>
-            <div className="space-y-1">
-              {(material.content as VocabItem[]).slice(0, 3).map((item, i) => (
-                <p key={i} className="text-sm">
-                  <span className="font-bold text-slate-900 dark:text-white">{item.jp}</span>
-                  <span className="text-muted-foreground">（{item.reading}）</span>
-                  <span className="ml-1 text-slate-700 dark:text-slate-300">= {item.vi}</span>
-                </p>
-              ))}
-              <p className="text-xs text-muted-foreground">
-                ...và {(material.content as VocabItem[]).length - 3} từ khác
-              </p>
-            </div>
+        {material.lessonNumber != null && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Lesson</span>
+            <span className="text-sm font-medium">{material.lessonNumber}</span>
           </div>
         )}
-
-        {material.type === "grammar" && (
+        {material.shortDescription && (
           <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-            <p className="text-xs text-muted-foreground mb-1">Patterns:</p>
-            <div className="space-y-1">
-              {(material.content as GrammarItem[]).slice(0, 3).map((item, i) => (
-                <p key={i} className="text-sm">
-                  <span className="font-bold text-slate-900 dark:text-white">{item.pattern}</span>
-                  <span className="ml-1 text-slate-700 dark:text-slate-300">= {item.meaning}</span>
-                </p>
-              ))}
-            </div>
+            <p className="text-xs text-muted-foreground mb-1">Description</p>
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {material.shortDescription}
+            </p>
           </div>
         )}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-muted-foreground">Content (server-formatted)</p>
+            {material.truncated && (
+              <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                Đã cắt bớt
+              </span>
+            )}
+          </div>
+          <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-words font-sans text-slate-700 dark:text-slate-300 max-h-40 overflow-y-auto">
+            {material.content || "Đang tải nội dung..."}
+          </pre>
+        </div>
       </div>
     </div>
   );
@@ -1058,11 +1022,17 @@ function PracticeMode({
     setFillBlankInput("");
 
     try {
+      // Phase 2 final trust boundary: send materialId + materialType so the
+      // backend resolves content from the DB. We do NOT send materialContent
+      // (the 12000-char lesson body) — that would defeat the trust boundary.
+      // materialTitle is kept as a fallback topic label; the backend will
+      // replace it with the authoritative DB title once it resolves the
+      // material.
       const response = await aiApi.generateQuestions({
         topic: selectedMaterial.title,
         materialId: selectedMaterial.id,
+        materialType: selectedMaterial.type,
         materialTitle: selectedMaterial.title,
-        materialContent: materialToText(selectedMaterial),
         level: difficulty,
         count: questionCount,
         type: questionType,
@@ -1261,7 +1231,7 @@ function PracticeMode({
                   <p className="text-xs text-muted-foreground">Tài liệu đã chọn</p>
                   <p className="text-sm font-medium">{selectedMaterial.title}</p>
                   <p className="text-xs text-muted-foreground capitalize">
-                    {selectedMaterial.type} · {selectedMaterial.level}
+                    {selectedMaterial.type.toLowerCase()} · {selectedMaterial.level}
                   </p>
                 </div>
 
@@ -2131,6 +2101,15 @@ export function AISenseiPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-bold">Material Selection</h3>
+            {selectedMaterial && (
+              <button
+                onClick={() => setSelectedMaterial(null)}
+                className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                title="Bỏ chọn tài liệu"
+              >
+                <X className="w-3 h-3" /> Bỏ chọn
+              </button>
+            )}
           </div>
 
           <MaterialSelector selected={selectedMaterial} onSelect={setSelectedMaterial} />
@@ -2181,7 +2160,7 @@ export function AISenseiPage() {
           {selectedMaterial && (
             <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs flex-shrink-0">
               <BookMarked className="w-3 h-3" />
-              <span className="font-medium">{selectedMaterial.type}</span>
+              <span className="font-medium">{selectedMaterial.type.toLowerCase()}</span>
             </div>
           )}
         </div>

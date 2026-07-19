@@ -24,6 +24,8 @@ public interface VocabularyLessonRepository extends JpaRepository<VocabularyLess
 
     List<VocabularyLesson> findByJlptLevelAndIsActiveTrue(String jlptLevel);
 
+    List<VocabularyLesson> findByIsActiveTrueAndIsPublishedTrue();
+
     boolean existsByLessonNumberAndJlptLevel(Integer lessonNumber, String jlptLevel);
 
     @Query("SELECT v FROM VocabularyLesson v WHERE v.jlptLevel = :jlptLevel ORDER BY v.lessonNumber ASC")
