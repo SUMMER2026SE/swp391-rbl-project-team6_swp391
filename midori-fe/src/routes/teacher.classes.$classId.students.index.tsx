@@ -43,18 +43,25 @@ function StudentsPage() {
   const [invite, setInvite] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
 
+  const { data: classDetail } = useQuery({
+    queryKey: ["teacherClassDetail", classId],
+    queryFn: () => classesApi.getClassById(classId),
+    enabled: !!classId,
+  });
+
   const { data: rawStudents = [], isLoading } = useQuery({
     queryKey: ["classStudents", classId],
     queryFn: () => classesApi.getClassStudents(classId),
   });
 
   const students = useMemo(() => {
+    const classLevel = classDetail?.level || "N5";
     return rawStudents.map((s) => ({
       id: s.studentId,
       name: s.fullName || s.email,
       email: s.email,
       avatar: s.avatar || "",
-      level: "N5",
+      level: classLevel,
       status: "active",
       progress: s.progressPercent || 0,
       averageScore: s.averageScore ? s.averageScore.toString() : "—",
@@ -62,7 +69,7 @@ function StudentsPage() {
       lastActive: s.lastActivityAt ? new Date(s.lastActivityAt).toLocaleDateString() : "—",
       weakSkill: "—",
     }));
-  }, [rawStudents]);
+  }, [rawStudents, classDetail]);
 
   const list = students.filter(
     (s) =>
@@ -232,7 +239,11 @@ function StudentsPage() {
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2">
                     <div className="text-xs text-muted-foreground">Avg score</div>
-                    <div className="text-lg font-bold">{selected.averageScore}</div>
+                    <div className="text-lg font-bold">
+                      {selected.averageScore && selected.averageScore !== "—"
+                        ? `${selected.averageScore}%`
+                        : selected.averageScore}
+                    </div>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2">
                     <div className="text-xs text-muted-foreground">Attendance</div>

@@ -3,6 +3,36 @@ import { useQuery } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
 import type { DetailedClassInfo, Assignment, Announcement } from "@/types/class-detail";
 
+function mapSkill(skillStr: string | undefined): "Vocabulary" | "Grammar" | "Listening" | "Reading" | "Shadowing" | "Writing" | undefined {
+  if (!skillStr) return undefined;
+  const s = skillStr.toUpperCase();
+  if (s.includes("VOCABULARY") || s.includes("VOCAB") || s.includes("KANJI") || s.includes("TỪ VỰNG")) return "Vocabulary";
+  if (s.includes("GRAMMAR") || s.includes("BUNPOU") || s.includes("NGỮ PHÁP")) return "Grammar";
+  if (s.includes("LISTENING") || s.includes("CHOUKAI") || s.includes("NGHE")) return "Listening";
+  if (s.includes("READING") || s.includes("DOKUKAI") || s.includes("ĐỌC")) return "Reading";
+  if (s.includes("SHADOWING")) return "Shadowing";
+  if (s.includes("WRITING") || s.includes("VIẾT")) return "Writing";
+  return undefined;
+}
+
+function detectModuleType(title: string, skillFromQuestions: string | undefined, category: string | undefined): "Vocabulary" | "Grammar" | "Listening" | "Reading" | "Shadowing" | "Writing" {
+  let mapped = mapSkill(skillFromQuestions);
+  if (mapped) return mapped;
+
+  mapped = mapSkill(category);
+  if (mapped) return mapped;
+
+  const t = title.toLowerCase();
+  if (t.includes("vocab") || t.includes("từ vựng") || t.includes("vocabulary") || t.includes("kanji") || t.includes("chữ hán")) return "Vocabulary";
+  if (t.includes("grammar") || t.includes("ngữ pháp") || t.includes("bunpou")) return "Grammar";
+  if (t.includes("listen") || t.includes("nghe") || t.includes("listening") || t.includes("choukai")) return "Listening";
+  if (t.includes("read") || t.includes("đọc") || t.includes("reading") || t.includes("dokukai")) return "Reading";
+  if (t.includes("shadow") || t.includes("shadowing")) return "Shadowing";
+  if (t.includes("write") || t.includes("viết") || t.includes("writing")) return "Writing";
+
+  return "Grammar";
+}
+
 export function useClassDetail(classId: string) {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [assignmentFilter, setAssignmentFilter] = useState<string>("All");
@@ -32,7 +62,7 @@ export function useClassDetail(classId: string) {
   const assignments = useMemo((): Assignment[] => {
     const hwMapped = homeworkList.map((hw: any): Assignment => {
       let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" =
-        "Not Started";
+        "In Progress";
       if (hw.submissionStatus === "GRADED") mappedStatus = "Graded";
       else if (hw.submissionStatus === "SUBMITTED") mappedStatus = "Submitted";
       else if (hw.submissionStatus === "IN_PROGRESS") mappedStatus = "In Progress";
@@ -42,14 +72,17 @@ export function useClassDetail(classId: string) {
         mappedStatus = "Overdue";
       }
 
-      if (mappedStatus === "Not Started" && hw.status === "CLOSED") {
+      if (mappedStatus === "In Progress" && hw.status === "CLOSED") {
         mappedStatus = "Graded";
       }
+
+      const firstQuestionSkill = hw.questions && hw.questions.length > 0 ? hw.questions[0].skill : undefined;
+      const detectedSkill = detectModuleType(hw.title, firstQuestionSkill, undefined);
 
       return {
         id: hw.id,
         title: hw.title,
-        moduleType: "Grammar" as const,
+        moduleType: detectedSkill,
         type: "Homework" as const,
         status: mappedStatus,
         deadline: hw.dueDate || "-",
@@ -63,28 +96,31 @@ export function useClassDetail(classId: string) {
     const examMapped = examList.map((ex: any): Assignment => {
       // Map backend status (NOT_STARTED / IN_PROGRESS / SUBMITTED / GRADED) to UI
       let mappedStatus: "Not Started" | "In Progress" | "Submitted" | "Graded" | "Overdue" =
-        "Not Started";
+        "In Progress";
       const rawStatus = ex.status as string;
       if (rawStatus === "GRADED") mappedStatus = "Graded";
       else if (rawStatus === "SUBMITTED") mappedStatus = "Submitted";
       else if (rawStatus === "IN_PROGRESS") mappedStatus = "In Progress";
-      else if (rawStatus === "NOT_STARTED") mappedStatus = "Not Started";
+      else if (rawStatus === "NOT_STARTED") mappedStatus = "In Progress";
 
       const isExpired =
-        ex.scheduledAt || ex.updatedAt
-          ? new Date(ex.scheduledAt || ex.updatedAt).getTime() < new Date().getTime()
+        ex.scheduledAt
+          ? new Date(ex.scheduledAt).getTime() < new Date().getTime()
           : false;
       if (isExpired && mappedStatus !== "Graded" && mappedStatus !== "Submitted") {
         mappedStatus = "Overdue";
       }
 
+      const firstQuestionSkill = ex.questions && ex.questions.length > 0 ? ex.questions[0].category : undefined;
+      const detectedSkill = detectModuleType(ex.title, firstQuestionSkill, ex.category);
+
       return {
         id: ex.id,
         title: ex.title,
-        moduleType: "Grammar" as const,
+        moduleType: detectedSkill,
         type: "Exam" as const,
         status: mappedStatus,
-        deadline: ex.scheduledAt || ex.updatedAt || "-",
+        deadline: ex.scheduledAt || "-",
         assignedDate: ex.createdAt,
         timeLimit: typeof ex.timeLimit === "number" ? ex.timeLimit : 0,
         maxScore:
@@ -115,7 +151,7 @@ export function useClassDetail(classId: string) {
       status: (classDetail.status === "ACTIVE" ? "active" : "archived") as any,
       teacher: teacherName,
       teacherAvatarInitials: teacherName.substring(0, 2).toUpperCase(),
-      members: classDetail.maxStudents,
+      members: classDetail.studentCount ?? 0,
       assignments,
       joinDate: classDetail.joinDate ? new Date(classDetail.joinDate).toLocaleDateString() : "-",
       announcements: [],

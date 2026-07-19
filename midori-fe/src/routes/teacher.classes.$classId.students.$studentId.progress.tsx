@@ -181,7 +181,7 @@ function StudentProgressPage() {
               <p className="text-2xl font-black">
                 {learningSummary.averageScore > 0 ? learningSummary.averageScore.toFixed(1) : "--"}
                 {learningSummary.averageScore > 0 && (
-                  <span className="text-sm font-normal text-muted-foreground">/10</span>
+                  <span className="text-sm font-normal text-muted-foreground">%</span>
                 )}
               </p>
               <p className="text-xs text-muted-foreground">Average Score</p>
