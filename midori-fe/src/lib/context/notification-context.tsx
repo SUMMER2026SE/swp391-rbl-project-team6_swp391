@@ -232,7 +232,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           return { ...n, unread: false };
         }
         return n;
-      })
+      }),
     );
     if (previousUnread) {
       setUnreadCount((prev) => Math.max(0, prev - 1));
@@ -243,7 +243,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       // Revert only if the notification was actually unread before
       if (previousUnread) {
         setNotifications((prev) =>
-          prev.map((n) => (n.id === notificationId ? { ...n, unread: true } : n))
+          prev.map((n) => (n.id === notificationId ? { ...n, unread: true } : n)),
         );
         setUnreadCount((prev) => prev + 1);
       }

@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, LevelBadge } from "@/components/page-ui";
-import { School, User, Users, ClipboardList, Clock, Calendar, ShieldAlert } from "lucide-react";
+import { School, User, Users, ClipboardList, Calendar, ShieldAlert } from "lucide-react";
 import type { DetailedClassInfo } from "@/types/class-detail";
 
 interface ClassInfoCardProps {
@@ -54,14 +54,6 @@ export function ClassInfoCard({ classInfo }: ClassInfoCardProps) {
           </span>
           <span className="font-semibold text-foreground dark:text-white">
             {classInfo.assignments.length} tasks
-          </span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-amber-500" /> Next Deadline
-          </span>
-          <span className="font-semibold text-foreground dark:text-white">
-            {classInfo.nextDeadline}
           </span>
         </div>
         <div className="flex justify-between items-center">

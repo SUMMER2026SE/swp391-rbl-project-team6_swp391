@@ -29,6 +29,23 @@ public class ClassController {
     private final UserRepository userRepository;
     private final HomeworkRepository homeworkRepository;
     private final ExamRepository examRepository;
+    private final com.midori.repository.ClassRepository classRepository;
+
+    @GetMapping("/fix-class-codes")
+    public ResponseEntity<ApiResponse<String>> fixClassCodes() {
+        List<ClassEntity> classes = classRepository.findAll();
+        int count = 0;
+        for (ClassEntity c : classes) {
+            if (c.getClassCode() == null || c.getClassCode().isEmpty()) {
+                String levelName = c.getLevel().name();
+                String code = "JP26" + levelName + String.format("%04d", count + 1);
+                c.setClassCode(code);
+                classRepository.save(c);
+                count++;
+            }
+        }
+        return ResponseEntity.ok(ApiResponse.success("Fixed " + count + " class codes"));
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ClassResponse>>> getAllClasses(
@@ -115,14 +132,27 @@ public class ClassController {
         int homeworkCount = homeworkCounts.getOrDefault(classEntity.getId(), 0L).intValue();
         int examCount = examCounts.getOrDefault(classEntity.getId(), 0L).intValue();
 
+        // Get teacher name from profile or use email as fallback
+        String teacherName = null;
+        if (classEntity.getTeacher() != null) {
+            if (classEntity.getTeacher().getProfile() != null
+                    && classEntity.getTeacher().getProfile().getDisplayName() != null) {
+                teacherName = classEntity.getTeacher().getProfile().getDisplayName();
+            } else {
+                teacherName = classEntity.getTeacher().getEmail();
+            }
+        }
+
         return ClassResponse.builder()
                 .id(classEntity.getId())
                 .name(classEntity.getName())
                 .level(classEntity.getLevel())
                 .maxStudents(classEntity.getMaxStudents())
                 .description(classEntity.getDescription())
+                .classCode(classEntity.getClassCode())
                 .status(classEntity.getStatus())
                 .teacherId(classEntity.getTeacher() != null ? classEntity.getTeacher().getId() : null)
+                .teacherName(teacherName)
                 .studentCount(studentCount)
                 .homeworkCount(homeworkCount)
                 .upcomingExamCount(examCount)

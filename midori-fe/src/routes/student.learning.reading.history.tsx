@@ -37,7 +37,7 @@ const levelColors: Record<string, string> = {
 
 type FilterType = "all" | "completed" | "in-progress";
 
-export function ReadingHistoryPage() {
+function ReadingHistoryPage() {
   const [history, setHistory] = useState<ReadingProgress[]>([]);
   const [stats, setStats] = useState(readingStatsStore.getDefaultStats());
   const [filter, setFilter] = useState<FilterType>("all");

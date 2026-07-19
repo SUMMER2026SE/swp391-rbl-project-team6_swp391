@@ -19,8 +19,13 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +80,116 @@ public class OpenRouterProvider implements AiProvider {
     private final int quizMaxTokens;
 
     private volatile String lastModelUsed;
+    private final ThreadLocal<Boolean> benchmarkObservationEnabled = new ThreadLocal<>();
+    private final ThreadLocal<ChatObservation> lastChatObservation = new ThreadLocal<>();
+
+    /**
+     * Internal chat-call observation used by the benchmark test bridge. This is
+     * intentionally not part of {@link AiProvider}'s public production contract.
+     */
+    static final class ChatObservation {
+        private final String provider;
+        private final String requestedModel;
+        private final String actualResolvedModel;
+        private final String fallbackModelUsed;
+        private final boolean fallbackOccurred;
+        private final String finishReason;
+        private final long latencyMs;
+        private final int errorOrRetryCount;
+        private final Long promptTokens;
+        private final Long completionTokens;
+        private final Long totalTokens;
+        private final String rawHttpResponse;
+        private final String rawHttpResponseBase64;
+        private final String error;
+
+        ChatObservation(
+                String provider,
+                String requestedModel,
+                String actualResolvedModel,
+                String fallbackModelUsed,
+                boolean fallbackOccurred,
+                String finishReason,
+                long latencyMs,
+                int errorOrRetryCount,
+                Long promptTokens,
+                Long completionTokens,
+                Long totalTokens,
+                String rawHttpResponse,
+                String rawHttpResponseBase64,
+                String error) {
+            this.provider = provider;
+            this.requestedModel = requestedModel;
+            this.actualResolvedModel = actualResolvedModel;
+            this.fallbackModelUsed = fallbackModelUsed;
+            this.fallbackOccurred = fallbackOccurred;
+            this.finishReason = finishReason;
+            this.latencyMs = latencyMs;
+            this.errorOrRetryCount = errorOrRetryCount;
+            this.promptTokens = promptTokens;
+            this.completionTokens = completionTokens;
+            this.totalTokens = totalTokens;
+            this.rawHttpResponse = rawHttpResponse;
+            this.rawHttpResponseBase64 = rawHttpResponseBase64;
+            this.error = error;
+        }
+
+        String provider() { return provider; }
+        String requestedModel() { return requestedModel; }
+        String actualResolvedModel() { return actualResolvedModel; }
+        String fallbackModelUsed() { return fallbackModelUsed; }
+        boolean fallbackOccurred() { return fallbackOccurred; }
+        String finishReason() { return finishReason; }
+        long latencyMs() { return latencyMs; }
+        int errorOrRetryCount() { return errorOrRetryCount; }
+        Long promptTokens() { return promptTokens; }
+        Long completionTokens() { return completionTokens; }
+        Long totalTokens() { return totalTokens; }
+        String rawHttpResponse() { return rawHttpResponse; }
+        String rawHttpResponseBase64() { return rawHttpResponseBase64; }
+        String error() { return error; }
+    }
+
+    private record ParsedChatResponse(
+            String text,
+            String actualResolvedModel,
+            String finishReason,
+            Long promptTokens,
+            Long completionTokens,
+            Long totalTokens,
+            String rawHttpResponse,
+            String rawHttpResponseBase64) {
+    }
+
+    private static final class ObservedChatException extends RuntimeException {
+        private final String rawHttpResponse;
+        private final String rawHttpResponseBase64;
+
+        ObservedChatException(String message, String rawHttpResponse, String rawHttpResponseBase64, Throwable cause) {
+            super(message, cause);
+            this.rawHttpResponse = rawHttpResponse;
+            this.rawHttpResponseBase64 = rawHttpResponseBase64;
+        }
+    }
+
+    ChatObservation getLastChatObservation() {
+        return lastChatObservation.get();
+    }
+
+    void setBenchmarkObservationEnabled(boolean enabled) {
+        if (enabled) {
+            benchmarkObservationEnabled.set(true);
+        } else {
+            benchmarkObservationEnabled.remove();
+            lastChatObservation.remove();
+        }
+    }
+
+    private void observe(ChatObservation observation) {
+        if (Boolean.TRUE.equals(benchmarkObservationEnabled.get())) {
+            lastChatObservation.set(observation);
+        }
+    }
 
     public OpenRouterProvider(AiConfigProperties config, ObjectMapper objectMapper) {
         this.config = config;
@@ -151,45 +266,109 @@ public class OpenRouterProvider implements AiProvider {
             throw new IllegalStateException("OpenRouter API key is not configured. Please set ai.openrouter.api-key in application-local.yml");
         }
 
+        lastChatObservation.remove();
+        String requestedModel = chatModels.isEmpty() ? null : chatModels.get(0);
+        long overallStart = System.currentTimeMillis();
+        int retryCount = 0;
         Throwable lastError = null;
+        String lastRawHttpResponse = null;
+        String lastRawHttpResponseBase64 = null;
         for (int attempt = 0; attempt < chatModels.size(); attempt++) {
             String model = chatModels.get(attempt);
             long start = System.currentTimeMillis();
             try {
-                String response = callChat(model, systemPrompt, userMessage, conversationHistory,
+                ParsedChatResponse response = callChatObserved(model, systemPrompt, userMessage, conversationHistory,
                         chatMaxTokens, DEFAULT_STUDY_TEMPERATURE, createFactory(chatTimeoutMs));
                 long duration = System.currentTimeMillis() - start;
+                boolean fallbackOccurred = attempt > 0;
                 log.info("OpenRouter model={} durationMs={} status=OK", model, duration);
                 lastModelUsed = model;
-                return response;
+                observe(new ChatObservation(
+                        "OPENROUTER",
+                        requestedModel,
+                        response.actualResolvedModel(),
+                        fallbackOccurred ? model : null,
+                        fallbackOccurred,
+                        response.finishReason(),
+                        System.currentTimeMillis() - overallStart,
+                        retryCount,
+                        response.promptTokens(),
+                        response.completionTokens(),
+                        response.totalTokens(),
+                        response.rawHttpResponse(),
+                        response.rawHttpResponseBase64(),
+                        null));
+                return response.text();
             } catch (AuthException e) {
                 long duration = System.currentTimeMillis() - start;
                 log.error("OpenRouter model={} durationMs={} status=AUTH reason={}", model, duration, e.getMessage());
+                recordFailedObservation(requestedModel, model, attempt, retryCount + 1, overallStart,
+                        e, lastRawHttpResponse, lastRawHttpResponseBase64);
                 throw e;
             } catch (NonRetryableException e) {
                 long duration = System.currentTimeMillis() - start;
                 log.error("OpenRouter model={} durationMs={} status=NON_RETRYABLE reason={}",
                         model, duration, e.getMessage());
+                recordFailedObservation(requestedModel, model, attempt, retryCount + 1, overallStart,
+                        e, lastRawHttpResponse, lastRawHttpResponseBase64);
                 throw new RuntimeException("AI không phản hồi được: " + e.getMessage());
             } catch (RuntimeException e) {
                 long duration = System.currentTimeMillis() - start;
                 log.warn("OpenRouter model={} durationMs={} status=RETRY reason={}",
                         model, duration, e.getMessage());
+                if (e instanceof ObservedChatException observed) {
+                    lastRawHttpResponse = observed.rawHttpResponse;
+                    lastRawHttpResponseBase64 = observed.rawHttpResponseBase64;
+                }
+                retryCount++;
                 lastError = e;
             } catch (Exception e) {
                 long duration = System.currentTimeMillis() - start;
                 log.warn("OpenRouter model={} durationMs={} status=UNEXPECTED reason={}",
                         model, duration, e.getMessage());
+                retryCount++;
                 lastError = e;
             }
         }
 
         log.error("OpenRouter all chat models exhausted (chainSize={})", chatModels.size());
+        recordFailedObservation(requestedModel, null, chatModels.size(), retryCount, overallStart,
+                lastError, lastRawHttpResponse, lastRawHttpResponseBase64);
         String msg = lastError != null ? lastError.getMessage() : "Không rõ";
         if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout")) {
             throw new RuntimeException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
         }
         throw new RuntimeException("AI không phản hồi được. Vui lòng thử lại sau.");
+    }
+
+    private void recordFailedObservation(
+            String requestedModel,
+            String attemptedModel,
+            int attempt,
+            int retryCount,
+            long overallStart,
+            Throwable error,
+            String rawHttpResponse,
+            String rawHttpResponseBase64) {
+        boolean fallbackOccurred = attemptedModel != null
+                ? attempt > 0
+                : chatModels.size() > 1;
+        String fallbackModelUsed = fallbackOccurred ? attemptedModel : null;
+        observe(new ChatObservation(
+                "OPENROUTER",
+                requestedModel,
+                null,
+                fallbackModelUsed,
+                fallbackOccurred,
+                null,
+                System.currentTimeMillis() - overallStart,
+                retryCount,
+                null,
+                null,
+                null,
+                rawHttpResponse,
+                rawHttpResponseBase64,
+                error == null ? "Unknown provider failure" : error.getClass().getSimpleName() + ": " + error.getMessage()));
     }
 
     // ============================================================
@@ -352,8 +531,20 @@ public class OpenRouterProvider implements AiProvider {
                             List<String[]> conversationHistory,
                             int maxTokens, double temperature,
                             SimpleClientHttpRequestFactory factory) {
+        return callChatObserved(model, systemPrompt, userMessage, conversationHistory,
+                maxTokens, temperature, factory).text();
+    }
+
+    private ParsedChatResponse callChatObserved(
+            String model,
+            String systemPrompt,
+            String userMessage,
+            List<String[]> conversationHistory,
+            int maxTokens,
+            double temperature,
+            SimpleClientHttpRequestFactory factory) {
         List<Map<String, Object>> messages = new ArrayList<>();
-        
+
         if (systemPrompt != null) {
             messages.add(Map.of("role", "system", "content", systemPrompt));
         }
@@ -387,14 +578,39 @@ public class OpenRouterProvider implements AiProvider {
 
         RestTemplate rt = new RestTemplate(factory);
         try {
-            ResponseEntity<String> response = rt.postForEntity(OPENROUTER_API_URL, request, String.class);
-            return extractTextFromResponse(response.getBody(), model);
+            ResponseEntity<byte[]> response = rt.postForEntity(OPENROUTER_API_URL, request, byte[].class);
+            byte[] rawBytes = response.getBody();
+            String rawBase64 = rawBytes == null ? null : Base64.getEncoder().encodeToString(rawBytes);
+            String rawText;
+            try {
+                rawText = decodeUtf8Strict(rawBytes);
+            } catch (CharacterCodingException e) {
+                throw new ObservedChatException(
+                        "Malformed UTF-8 in OpenRouter HTTP response for model " + model,
+                        null,
+                        rawBase64,
+                        e);
+            }
+            try {
+                return extractChatResponse(rawText, rawBase64, model);
+            } catch (RetryableException e) {
+                throw new ObservedChatException(e.getMessage(), rawText, rawBase64, e);
+            }
         } catch (HttpClientErrorException e) {
             handleHttpError(e, model);
             throw new RetryableException("HTTP error: " + e.getStatusCode());
         } catch (ResourceAccessException e) {
             throw new RetryableException("timeout");
         }
+    }
+
+    private static String decodeUtf8Strict(byte[] rawBytes) throws CharacterCodingException {
+        if (rawBytes == null) return null;
+        return StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(rawBytes))
+                .toString();
     }
 
     private String callGenerateQuestions(String model, String prompt,
@@ -481,6 +697,64 @@ public class OpenRouterProvider implements AiProvider {
         } catch (Exception e) {
             throw new RetryableException("Failed to parse response: " + e.getMessage());
         }
+    }
+
+    private ParsedChatResponse extractChatResponse(String response, String rawBase64, String model) {
+        try {
+            if (response == null || response.isEmpty()) {
+                throw new RetryableException("Empty response from model " + model);
+            }
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode choices = root.path("choices");
+            if (choices.isArray() && !choices.isEmpty()) {
+                JsonNode choice = choices.get(0);
+                JsonNode message = choice.path("message");
+                String text = message.path("content").asText();
+                if (text != null && !text.isEmpty()) {
+                    JsonNode usage = root.path("usage");
+                    return new ParsedChatResponse(
+                            text,
+                            textOrNull(root.path("model")),
+                            textOrNull(choice.path("finish_reason")),
+                            longOrNull(usage.path("prompt_tokens")),
+                            longOrNull(usage.path("completion_tokens")),
+                            longOrNull(usage.path("total_tokens")),
+                            response,
+                            rawBase64);
+                }
+            }
+            JsonNode error = root.path("error");
+            if (error.has("message")) {
+                String errorMsg = error.path("message").asText();
+                log.error("[OpenRouterProvider] OpenRouter error: {}", errorMsg);
+                if (errorMsg.toLowerCase().contains("unauthorized") || errorMsg.toLowerCase().contains("invalid api key")) {
+                    throw new AuthException("API key không hợp lệ: " + errorMsg);
+                }
+                if (errorMsg.toLowerCase().contains("not found") || errorMsg.toLowerCase().contains("model")) {
+                    throw new NonRetryableException("Model không hợp lệ: " + errorMsg);
+                }
+                throw new RetryableException("OpenRouter error: " + errorMsg);
+            }
+            throw new RetryableException("Invalid response format from model " + model);
+        } catch (AuthException | RetryableException | NonRetryableException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ObservedChatException(
+                    "Failed to parse response: " + e.getMessage(),
+                    response,
+                    rawBase64,
+                    e);
+        }
+    }
+
+    private static String textOrNull(JsonNode node) {
+        return node == null || node.isMissingNode() || node.isNull() ? null : node.asText();
+    }
+
+    private static Long longOrNull(JsonNode node) {
+        return node == null || node.isMissingNode() || node.isNull() || !node.canConvertToLong()
+                ? null
+                : node.asLong();
     }
 
     public String cleanJsonResponse(String raw) {

@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { PenLine, Plus, Trash2, ArrowUp, ArrowDown, Search, Eye, RefreshCw, X, HelpCircle, Award } from "lucide-react";
+import {
+  PenLine,
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Search,
+  Eye,
+  RefreshCw,
+  X,
+  HelpCircle,
+  Award,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -46,7 +58,7 @@ export function HomeworkEditDialog({
   const [maxScore, setMaxScore] = useState(100);
   const [attempts, setAttempts] = useState(1);
   const [status, setStatus] = useState<"DRAFT" | "ASSIGNED" | "CLOSED">("ASSIGNED");
-  
+
   // Questions state
   const [questions, setQuestions] = useState<TeacherQuestionResponse[]>([]);
 
@@ -58,7 +70,7 @@ export function HomeworkEditDialog({
   // Question bank dialog state
   const [isBankOpen, setIsBankOpen] = useState(false);
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
-  
+
   // Question bank filters
   const [bankLevel, setBankLevel] = useState<string>("All");
   const [bankSkill, setBankSkill] = useState<string>("All");
@@ -193,7 +205,7 @@ export function HomeworkEditDialog({
       !bankSearch ||
       q.prompt.toLowerCase().includes(bankSearch.toLowerCase()) ||
       (q.jpPrompt && q.jpPrompt.toLowerCase().includes(bankSearch.toLowerCase()));
-    
+
     // Prevent showing questions that are already in the list (unless replacing)
     const isAlreadySelected = questions.some((existing) => existing.id === q.id);
     if (replacingIndex === null && isAlreadySelected) return false;
@@ -225,7 +237,9 @@ export function HomeworkEditDialog({
         return;
       }
       // Deduplicate before adding
-      const toAdd = selectedQuestions.filter((q) => !questions.some((existing) => existing.id === q.id));
+      const toAdd = selectedQuestions.filter(
+        (q) => !questions.some((existing) => existing.id === q.id),
+      );
       setQuestions((prev) => [...prev, ...toAdd]);
       setIsBankOpen(false);
       toast.success(`Added ${toAdd.length} question(s) to homework.`);
@@ -256,7 +270,8 @@ export function HomeworkEditDialog({
                 Edit Homework
               </DialogTitle>
               <DialogDescription className="mt-1 text-xs text-muted-foreground">
-                Update instructions and manage questions. Use the controls to arrange, add, edit, or swap questions.
+                Update instructions and manage questions. Use the controls to arrange, add, edit, or
+                swap questions.
               </DialogDescription>
             </div>
             <button
@@ -273,7 +288,12 @@ export function HomeworkEditDialog({
               {/* Basic Fields */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="hw-title" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Title *</Label>
+                  <Label
+                    htmlFor="hw-title"
+                    className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                  >
+                    Title *
+                  </Label>
                   <Input
                     id="hw-title"
                     value={title}
@@ -284,7 +304,12 @@ export function HomeworkEditDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="hw-instructions" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Instructions</Label>
+                  <Label
+                    htmlFor="hw-instructions"
+                    className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                  >
+                    Instructions
+                  </Label>
                   <Textarea
                     id="hw-instructions"
                     value={instructions}
@@ -297,7 +322,12 @@ export function HomeworkEditDialog({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="hw-due-date" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Due Date</Label>
+                    <Label
+                      htmlFor="hw-due-date"
+                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    >
+                      Due Date
+                    </Label>
                     <Input
                       id="hw-due-date"
                       type="date"
@@ -308,12 +338,20 @@ export function HomeworkEditDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hw-status" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Status</Label>
+                    <Label
+                      htmlFor="hw-status"
+                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    >
+                      Status
+                    </Label>
                     <Select
                       value={status}
                       onValueChange={(v) => setStatus(v as "DRAFT" | "ASSIGNED" | "CLOSED")}
                     >
-                      <SelectTrigger id="hw-status" className="rounded-xl bg-muted/30 focus:bg-background transition">
+                      <SelectTrigger
+                        id="hw-status"
+                        className="rounded-xl bg-muted/30 focus:bg-background transition"
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -328,8 +366,15 @@ export function HomeworkEditDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <Label htmlFor="hw-max-score" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Max Score</Label>
-                      <span className="text-[10px] text-muted-foreground italic">(Sum of question points)</span>
+                      <Label
+                        htmlFor="hw-max-score"
+                        className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                      >
+                        Max Score
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground italic">
+                        (Sum of question points)
+                      </span>
                     </div>
                     <Input
                       id="hw-max-score"
@@ -341,7 +386,12 @@ export function HomeworkEditDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="hw-attempts" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Attempts Limit</Label>
+                    <Label
+                      htmlFor="hw-attempts"
+                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    >
+                      Attempts Limit
+                    </Label>
                     <Input
                       id="hw-attempts"
                       type="number"
@@ -358,14 +408,22 @@ export function HomeworkEditDialog({
               <div className="border-t pt-6 space-y-4">
                 <div className="flex justify-between items-center bg-muted/20 p-4 rounded-2xl border">
                   <div>
-                    <h3 className="text-sm font-black text-foreground uppercase tracking-wide">Homework Questions List ({questions.length})</h3>
-                    <p className="text-xs text-muted-foreground">Detailed view and ordering controls.</p>
+                    <h3 className="text-sm font-black text-foreground uppercase tracking-wide">
+                      Homework Questions List ({questions.length})
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Detailed view and ordering controls.
+                    </p>
                   </div>
-                   <Button size="sm" className="rounded-xl bg-gradient-hero text-white font-bold" onClick={() => {
-                    setEditingQuestion(null);
-                    setQuestionModalMode("create");
-                    setIsQuestionModalOpen(true);
-                  }}>
+                  <Button
+                    size="sm"
+                    className="rounded-xl bg-gradient-hero text-white font-bold"
+                    onClick={() => {
+                      setEditingQuestion(null);
+                      setQuestionModalMode("create");
+                      setIsQuestionModalOpen(true);
+                    }}
+                  >
                     <Plus className="w-4 h-4 mr-1.5" /> Add Question
                   </Button>
                 </div>
@@ -373,8 +431,12 @@ export function HomeworkEditDialog({
                 {questions.length === 0 ? (
                   <div className="text-center py-12 border border-dashed rounded-3xl bg-muted/10">
                     <HelpCircle className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground font-semibold">No questions assigned to this homework.</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Click "Add Question" to write a new question.</p>
+                    <p className="text-sm text-muted-foreground font-semibold">
+                      No questions assigned to this homework.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Click "Add Question" to write a new question.
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -393,7 +455,9 @@ export function HomeworkEditDialog({
                           >
                             <ArrowUp className="w-4 h-4 text-muted-foreground" />
                           </button>
-                          <span className="text-xs font-black text-primary font-mono">{idx + 1}</span>
+                          <span className="text-xs font-black text-primary font-mono">
+                            {idx + 1}
+                          </span>
                           <button
                             onClick={() => handleMoveDown(idx)}
                             disabled={idx === questions.length - 1}
@@ -412,7 +476,10 @@ export function HomeworkEditDialog({
                               {q.level && <LevelBadge level={q.level as any} />}
                               {q.difficulty && (
                                 <DifficultyBadge
-                                  d={(q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1).toLowerCase()) as any}
+                                  d={
+                                    (q.difficulty.charAt(0).toUpperCase() +
+                                      q.difficulty.slice(1).toLowerCase()) as any
+                                  }
                                 />
                               )}
                               <span className="text-[10px] font-black uppercase text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-border/40">
@@ -426,9 +493,13 @@ export function HomeworkEditDialog({
                           </div>
 
                           {/* Prompt */}
-                          <div className="text-sm font-semibold text-foreground leading-normal">{q.prompt}</div>
+                          <div className="text-sm font-semibold text-foreground leading-normal">
+                            {q.prompt}
+                          </div>
                           {q.jpPrompt && (
-                            <div className="text-xs font-medium text-muted-foreground font-jp">{q.jpPrompt}</div>
+                            <div className="text-xs font-medium text-muted-foreground font-jp">
+                              {q.jpPrompt}
+                            </div>
                           )}
 
                           {/* Answer Options */}
@@ -445,7 +516,10 @@ export function HomeworkEditDialog({
                                         : "bg-muted/40 border-border text-muted-foreground"
                                     }`}
                                   >
-                                    <span className="font-bold mr-1.5">{String.fromCharCode(65 + oIdx)}.</span> {opt}
+                                    <span className="font-bold mr-1.5">
+                                      {String.fromCharCode(65 + oIdx)}.
+                                    </span>{" "}
+                                    {opt}
                                   </div>
                                 );
                               })}
@@ -455,7 +529,8 @@ export function HomeworkEditDialog({
                           {/* Explanation */}
                           {q.explanation && (
                             <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-xl border-l-3 border-primary leading-relaxed">
-                              <strong className="text-foreground">Explanation:</strong> {q.explanation}
+                              <strong className="text-foreground">Explanation:</strong>{" "}
+                              {q.explanation}
                             </div>
                           )}
                         </div>
@@ -512,7 +587,10 @@ export function HomeworkEditDialog({
             <Button variant="outline" className="rounded-xl" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button className="rounded-xl bg-gradient-hero text-white font-bold" onClick={handleSave}>
+            <Button
+              className="rounded-xl bg-gradient-hero text-white font-bold"
+              onClick={handleSave}
+            >
               Save Changes
             </Button>
           </div>
@@ -553,7 +631,9 @@ export function HomeworkEditDialog({
           {/* Filter Bar */}
           <div className="p-4 bg-muted/30 border-b grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">JLPT Level</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
+                JLPT Level
+              </label>
               <Select value={bankLevel} onValueChange={setBankLevel}>
                 <SelectTrigger className="h-9 rounded-xl text-xs">
                   <SelectValue />
@@ -587,7 +667,9 @@ export function HomeworkEditDialog({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Difficulty</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
+                Difficulty
+              </label>
               <Select value={bankDifficulty} onValueChange={setBankDifficulty}>
                 <SelectTrigger className="h-9 rounded-xl text-xs">
                   <SelectValue />
@@ -602,7 +684,9 @@ export function HomeworkEditDialog({
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase">Search</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">
+                Search
+              </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
                 <Input
@@ -620,7 +704,9 @@ export function HomeworkEditDialog({
             {filteredBank.length === 0 ? (
               <div className="text-center py-16 border border-dashed rounded-2xl bg-muted/10">
                 <HelpCircle className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-muted-foreground">No matching questions found in the bank pool.</p>
+                <p className="text-sm font-semibold text-muted-foreground">
+                  No matching questions found in the bank pool.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -649,7 +735,10 @@ export function HomeworkEditDialog({
                             {q.level && <LevelBadge level={q.level as any} className="scale-90" />}
                             {q.difficulty && (
                               <DifficultyBadge
-                                d={(q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1).toLowerCase()) as any}
+                                d={
+                                  (q.difficulty.charAt(0).toUpperCase() +
+                                    q.difficulty.slice(1).toLowerCase()) as any
+                                }
                                 className="scale-90"
                               />
                             )}
@@ -657,11 +746,15 @@ export function HomeworkEditDialog({
                               {q.skill || "Vocabulary"}
                             </span>
                           </div>
-                          <span className="text-[10px] font-black text-muted-foreground shrink-0">{q.points ?? 10} pts</span>
+                          <span className="text-[10px] font-black text-muted-foreground shrink-0">
+                            {q.points ?? 10} pts
+                          </span>
                         </div>
 
                         {/* Prompt */}
-                        <p className="text-xs font-bold text-foreground leading-normal">{q.prompt}</p>
+                        <p className="text-xs font-bold text-foreground leading-normal">
+                          {q.prompt}
+                        </p>
 
                         {/* Options preview */}
                         {q.options && q.options.length > 0 && (
@@ -677,7 +770,10 @@ export function HomeworkEditDialog({
                                       : "bg-muted/40 border-border text-muted-foreground"
                                   }`}
                                 >
-                                  <span className="font-bold mr-1">{String.fromCharCode(65 + oIdx)}.</span> {opt}
+                                  <span className="font-bold mr-1">
+                                    {String.fromCharCode(65 + oIdx)}.
+                                  </span>{" "}
+                                  {opt}
                                 </div>
                               );
                             })}
@@ -693,11 +789,22 @@ export function HomeworkEditDialog({
 
           {/* Footer */}
           <div className="p-4 border-t bg-muted/20 flex justify-end gap-2">
-            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setIsBankOpen(false)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setIsBankOpen(false)}
+            >
               Cancel
             </Button>
-            <Button size="sm" className="rounded-xl font-bold bg-gradient-hero text-white" onClick={handleAddSelectedFromBank}>
-              {replacingIndex !== null ? "Replace Question" : `Add Selected (${selectedBankIds.length})`}
+            <Button
+              size="sm"
+              className="rounded-xl font-bold bg-gradient-hero text-white"
+              onClick={handleAddSelectedFromBank}
+            >
+              {replacingIndex !== null
+                ? "Replace Question"
+                : `Add Selected (${selectedBankIds.length})`}
             </Button>
           </div>
         </DialogContent>

@@ -32,6 +32,13 @@ public class TeacherQuestionController {
     private final com.midori.repository.QuestionBankLessonRepository questionBankLessonRepository;
     private final com.midori.service.QuestionBankLessonService questionBankLessonService;
 
+    private boolean isAdmin(CustomUserDetails userDetails) {
+        if (userDetails == null) return false;
+        return userRepository.findById(userDetails.getId())
+                .map(u -> u.getRole() == com.midori.entity.Role.ADMIN)
+                .orElse(false);
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TeacherQuestionResponse>> createQuestion(
@@ -51,6 +58,7 @@ public class TeacherQuestionController {
                 .level(request.getLevel())
                 .skill(request.getSkill())
                 .lesson(lesson)
+                .source(request.getSource() != null ? request.getSource() : "HOMEWORK")
                 .prompt(request.getPrompt())
                 .jpPrompt(request.getJpPrompt())
                 .questionType(request.getQuestionType())
@@ -118,8 +126,9 @@ public class TeacherQuestionController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<TeacherQuestionResponse>>> getQuestions(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        // Return identical centralized list of ACTIVE questions to both Admin and Teacher
-        List<TeacherQuestion> questions = teacherQuestionService.findCentralizedQuestions();
+        List<TeacherQuestion> questions = isAdmin(userDetails)
+                ? teacherQuestionRepository.findAll()
+                : teacherQuestionService.findQuestionsForTeacherView(userDetails.getId());
         
         java.util.Map<String, TeacherQuestion> uniqueMap = new java.util.LinkedHashMap<>();
         java.util.List<TeacherQuestion> duplicatesToDelete = new java.util.ArrayList<>();
@@ -157,8 +166,11 @@ public class TeacherQuestionController {
 
     @GetMapping("/lessons")
     public ResponseEntity<ApiResponse<List<com.midori.entity.QuestionBankLesson>>> getLessons(
-            @RequestParam String level) {
-        List<com.midori.entity.QuestionBankLesson> lessons = questionBankLessonService.findLessonsByLevel(level);
+            @RequestParam String level,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<com.midori.entity.QuestionBankLesson> lessons = isAdmin(userDetails)
+                ? questionBankLessonService.findLessonsByLevel(level)
+                : questionBankLessonService.findActiveLessonsByLevel(level);
         return ResponseEntity.ok(ApiResponse.success(lessons));
     }
 
@@ -198,6 +210,7 @@ public class TeacherQuestionController {
                 .level(question.getLevel())
                 .skill(question.getSkill())
                 .lessonId(question.getLesson() != null ? question.getLesson().getId() : null)
+                .source(question.getSource())
                 .prompt(question.getPrompt())
                 .jpPrompt(question.getJpPrompt())
                 .questionType(question.getQuestionType())

@@ -19,9 +19,36 @@ public interface AiService {
 
     ConversationMessagesResponse getConversationMessages(UUID conversationId, UUID userId);
 
-    ChatResponse chat(UUID userId, UUID conversationId, String message, ChatRequest.MaterialInfo selectedMaterial);
+    /**
+     * Chat with the AI Sensei.
+     *
+     * <p>If {@code materialId} is non-null, the material is loaded from
+     * {@code AiMaterialService} and the client-supplied
+     * {@link ChatRequest.MaterialInfo#getContent() client content} is
+     * <strong>ignored</strong>. The caller (controller) is responsible for
+     * rejecting partial references (id-only or type-only) before invoking
+     * this method.
+     *
+     * @param materialType validated material type (may be null when no material is referenced)
+     * @param materialId   validated material UUID (may be null when no material is referenced)
+     * @param clientMaterial legacy / display-only MaterialInfo; ignored when materialId is non-null
+     */
+    ChatResponse chat(UUID userId, UUID conversationId, String message,
+                      String materialType, UUID materialId,
+                      ChatRequest.MaterialInfo clientMaterial);
 
-    GenerateQuestionsResponse generateQuestions(String topic, String level, Integer count, String type, String materialContent);
+    /**
+     * Generate quiz questions.
+     *
+     * <p>When {@code materialId} is non-null, the material is loaded from
+     * {@code AiMaterialService} and the client-supplied
+     * {@code materialContent} is <strong>ignored</strong>.
+     */
+    GenerateQuestionsResponse generateQuestions(UUID userId, String topic, String level,
+                                                Integer count, String type,
+                                                String materialType, UUID materialId,
+                                                String materialContent,
+                                                String materialTitle);
 
     ExplainResponse explain(String sentence, String word);
 
@@ -29,5 +56,7 @@ public interface AiService {
 
     AiConversationResponse updateConversationTitle(UUID conversationId, UUID userId, String title);
 
-    ConversationMessagesResponse updateUserMessage(UUID conversationId, UUID messageId, UUID userId, String content, ChatRequest.MaterialInfo selectedMaterial);
+    ConversationMessagesResponse updateUserMessage(UUID conversationId, UUID messageId,
+                                                  UUID userId, String content,
+                                                  ChatRequest.MaterialInfo selectedMaterial);
 }

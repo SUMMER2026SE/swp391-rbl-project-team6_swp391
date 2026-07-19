@@ -40,6 +40,10 @@ public class TeacherQuestion {
     @JoinColumn(name = "lesson_id")
     private QuestionBankLesson lesson;
 
+    @Column(length = 20)
+    @Builder.Default
+    private String source = "HOMEWORK";
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String prompt;
 

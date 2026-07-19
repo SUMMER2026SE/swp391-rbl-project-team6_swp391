@@ -6,12 +6,15 @@ export interface ClassResponse {
   level: string;
   maxStudents: number;
   description: string;
+  classCode: string;
   status: "ACTIVE" | "ARCHIVED";
   teacherId: string;
   teacherName?: string;
   studentCount?: number;
   homeworkCount?: number;
+  examCount?: number;
   upcomingExamCount?: number;
+  joinDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +25,14 @@ export interface StudentClassResponse {
   email: string;
   avatar: string | null;
   status: string;
+  progressPercent?: number;
+  submittedHomework?: number;
+  totalHomework?: number;
+  completedExams?: number;
+  totalExams?: number;
+  averageScore?: number;
+  lastActivityAt?: string;
+  joinedAt?: string;
 }
 
 export interface CreateClassRequest {
@@ -105,6 +116,12 @@ export const classesApi = {
   },
 
   inviteStudent(id: string, email: string): Promise<StudentClassResponse> {
-    return api.post<StudentClassResponse>(`/teacher/classes/${id}/students?email=${encodeURIComponent(email)}`);
+    return api.post<StudentClassResponse>(
+      `/teacher/classes/${id}/students?email=${encodeURIComponent(email)}`,
+    );
+  },
+
+  getStudentProgress(classId: string, studentId: string): Promise<any> {
+    return api.get<any>(`/teacher/classes/${classId}/students/${studentId}/progress`);
   },
 };

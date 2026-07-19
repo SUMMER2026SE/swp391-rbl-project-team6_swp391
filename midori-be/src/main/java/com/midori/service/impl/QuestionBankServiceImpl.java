@@ -31,7 +31,12 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 
     @Override
     public List<String> getSkills() {
-        return List.of("VOCABULARY", "GRAMMAR", "LISTENING", "READING", "KANJI");
+        return List.of("VOCABULARY", "GRAMMAR", "READING");
+    }
+
+    @Override
+    public List<com.midori.entity.QuestionBankLesson> getLessonsByLevel(String level) {
+        return questionBankLessonRepository.findLessonsWithActiveQuestions(level);
     }
 
     @Override
@@ -48,7 +53,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 level, upperSkills
         );
 
-        // Group questions by lesson
+        // Group questions by lesson - only include lessons with ACTIVE status
+        // This ensures only properly published lessons are available for homework/exam generation
         Map<QuestionBankLesson, List<TeacherQuestion>> grouped = questions.stream()
                 .filter(q -> q.getLesson() != null && "ACTIVE".equals(q.getLesson().getStatus()))
                 .collect(Collectors.groupingBy(TeacherQuestion::getLesson));
@@ -145,6 +151,67 @@ public class QuestionBankServiceImpl implements QuestionBankService {
                 easyList.size(), mediumList.size(), hardList.size()
             );
             throw new BadRequestException(validationMsg);
+        }
+
+        // Randomize
+        Random random = new Random();
+        Collections.shuffle(easyList, random);
+        Collections.shuffle(mediumList, random);
+        Collections.shuffle(hardList, random);
+
+        List<TeacherQuestion> selected = new ArrayList<>();
+        selected.addAll(easyList.subList(0, easyCount));
+        selected.addAll(mediumList.subList(0, mediumCount));
+        selected.addAll(hardList.subList(0, hardCount));
+
+        // Shuffle the combined list so questions are mixed up
+        Collections.shuffle(selected, random);
+
+        return selected.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TeacherQuestionResponse> generatePreview(com.midori.dto.questiondto.GeneratePreviewRequest request) {
+        if (request.getSkills() == null || request.getSkills().isEmpty()) {
+            throw new BadRequestException("At least one skill must be selected.");
+        }
+        if (request.getLessonIds() == null || request.getLessonIds().isEmpty()) {
+            throw new BadRequestException("At least one lesson must be selected.");
+        }
+
+        int easyCount = request.getDifficulty().getEasy();
+        int mediumCount = request.getDifficulty().getMedium();
+        int hardCount = request.getDifficulty().getHard();
+
+        if (easyCount < 0 || mediumCount < 0 || hardCount < 0) {
+            throw new BadRequestException("Question counts must be non-negative.");
+        }
+        if (easyCount + mediumCount + hardCount <= 0) {
+            throw new BadRequestException("Total question count must be greater than zero.");
+        }
+
+        // Fetch candidate questions
+        List<String> upperSkills = request.getSkills().stream()
+                .map(String::toUpperCase)
+                .collect(Collectors.toList());
+
+        List<Integer> lessonIds = request.getLessonIds();
+
+        List<TeacherQuestion> easyList = new ArrayList<>(teacherQuestionRepository.findCandidates(request.getLevel(), upperSkills, "EASY", lessonIds));
+        List<TeacherQuestion> mediumList = new ArrayList<>(teacherQuestionRepository.findCandidates(request.getLevel(), upperSkills, "MEDIUM", lessonIds));
+        List<TeacherQuestion> hardList = new ArrayList<>(teacherQuestionRepository.findCandidates(request.getLevel(), upperSkills, "HARD", lessonIds));
+
+        // Validate availability
+        if (easyList.size() < easyCount) {
+            throw new BadRequestException(String.format("Only %d Easy questions are available.", easyList.size()));
+        }
+        if (mediumList.size() < mediumCount) {
+            throw new BadRequestException(String.format("Only %d Medium questions are available.", mediumList.size()));
+        }
+        if (hardList.size() < hardCount) {
+            throw new BadRequestException(String.format("Only %d Hard questions are available.", hardList.size()));
         }
 
         // Randomize

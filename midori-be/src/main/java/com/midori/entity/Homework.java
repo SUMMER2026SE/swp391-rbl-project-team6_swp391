@@ -52,14 +52,43 @@ public class Homework {
     @Builder.Default
     private HomeworkStatus status = HomeworkStatus.DRAFT;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "homework_questions",
-        joinColumns = @JoinColumn(name = "homework_id"),
-        inverseJoinColumns = @JoinColumn(name = "question_id")
-    )
+    @OneToMany(mappedBy = "homework", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("questionOrder ASC")
     @Builder.Default
-    private java.util.List<TeacherQuestion> questions = new java.util.ArrayList<>();
+    private java.util.List<HomeworkQuestion> homeworkQuestions = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "homework", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private java.util.List<HomeworkSubmission> submissions = new java.util.ArrayList<>();
+
+    public java.util.List<TeacherQuestion> getQuestions() {
+        if (homeworkQuestions == null) {
+            return new java.util.ArrayList<>();
+        }
+        return homeworkQuestions.stream()
+                .sorted(java.util.Comparator.comparing(HomeworkQuestion::getQuestionOrder))
+                .map(HomeworkQuestion::getQuestion)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void setQuestions(java.util.List<TeacherQuestion> questions) {
+        if (questions == null) {
+            this.homeworkQuestions = new java.util.ArrayList<>();
+            return;
+        }
+        this.homeworkQuestions = new java.util.ArrayList<>();
+        for (int i = 0; i < questions.size(); i++) {
+            TeacherQuestion q = questions.get(i);
+            HomeworkQuestionId hqId = new HomeworkQuestionId(this.id, q.getId());
+            this.homeworkQuestions.add(HomeworkQuestion.builder()
+                    .id(hqId)
+                    .homework(this)
+                    .question(q)
+                    .questionOrder(i + 1)
+                    .build());
+        }
+    }
+
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

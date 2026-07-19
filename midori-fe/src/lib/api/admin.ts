@@ -174,4 +174,29 @@ export const adminApi = {
    * Restore a banned or suspended user.
    */
   restoreUser: (userId: string) => api.put<AdminTeacherResponse>(`/admin/users/${userId}/restore`),
+
+  // ─── Question Bank Lessons (Admin) ──────────────────────────────────────────
+
+  /**
+   * Get all lessons for a level (admin view includes Draft/Archived/Inactive).
+   */
+  getQuestionBankLessons: (level: string) =>
+    api.get<AdminQuestionBankLesson[]>(`/admin/question-bank/lessons?level=${level}`),
+
+  /**
+   * Update an existing lesson (lesson number, name, status).
+   */
+  updateQuestionBankLesson: (
+    id: number,
+    payload: { lessonName?: string; lessonNumber?: number; status?: string },
+  ) => api.put<AdminQuestionBankLesson>(`/admin/question-bank/lessons/${id}`, payload),
 };
+
+export interface AdminQuestionBankLesson {
+  id: number;
+  level: string;
+  lessonNumber: number;
+  lessonName: string;
+  status: string;
+  createdAt: string;
+}

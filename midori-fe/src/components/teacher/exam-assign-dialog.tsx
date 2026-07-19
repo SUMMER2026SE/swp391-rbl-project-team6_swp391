@@ -51,11 +51,7 @@ export function ExamAssignDialog({ open, onOpenChange, exam, onSuccess }: ExamAs
 
   const selectedClass = activeClasses.find((c) => c.id === selectedClassId) ?? null;
 
-  const canAssign = !!(
-    exam &&
-    selectedClassId &&
-    !isAssigning
-  );
+  const canAssign = !!(exam && selectedClassId && !isAssigning);
 
   const handleAssign = async () => {
     if (!exam || !selectedClassId) return;
@@ -87,9 +83,7 @@ export function ExamAssignDialog({ open, onOpenChange, exam, onSuccess }: ExamAs
           <DialogDescription>
             Select a class and schedule date to assign this exam.
             {exam && (
-              <span className="block mt-1 font-medium text-foreground">
-                Exam: {exam.title}
-              </span>
+              <span className="block mt-1 font-medium text-foreground">Exam: {exam.title}</span>
             )}
           </DialogDescription>
         </DialogHeader>

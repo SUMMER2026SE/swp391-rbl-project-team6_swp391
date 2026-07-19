@@ -120,7 +120,9 @@ export interface SendNotificationResponse {
 }
 
 export const notificationApi = {
-  getNotifications: async (params?: NotificationListParams): Promise<AdminNotificationResponse[]> => {
+  getNotifications: async (
+    params?: NotificationListParams,
+  ): Promise<AdminNotificationResponse[]> => {
     const searchParams = new URLSearchParams();
     if (params?.type) searchParams.set("type", params.type);
     if (params?.keyword) searchParams.set("keyword", params.keyword);
@@ -128,12 +130,14 @@ export const notificationApi = {
     if (params?.size !== undefined) searchParams.set("size", String(params.size));
     const query = searchParams.toString();
     // Backend returns Spring Page<AdminNotificationResponse>, not plain array
-    const page = await api.get<SpringPage<AdminNotificationResponse>>(`/admin/notifications${query ? `?${query}` : ""}`);
+    const page = await api.get<SpringPage<AdminNotificationResponse>>(
+      `/admin/notifications${query ? `?${query}` : ""}`,
+    );
     return page?.content ?? [];
   },
 
   getNotificationById: (notificationId: number) =>
-    api.get<AdminNotificationDetailResponse>(`/admin/notifications/${notificationId}`),  
+    api.get<AdminNotificationDetailResponse>(`/admin/notifications/${notificationId}`),
 
   createNotification: (data: CreateNotificationRequest) =>
     api.post<AdminNotificationDetailResponse>("/admin/notifications", data),
@@ -148,5 +152,7 @@ export const notificationApi = {
     api.post<SendNotificationResponse>(`/admin/notifications/${notificationId}/send`, data),
 
   lookupClass: (classCode: string) =>
-    api.get<ClassLookupResponse>(`/admin/notifications/classes/lookup?classCode=${encodeURIComponent(classCode)}`),
+    api.get<ClassLookupResponse>(
+      `/admin/notifications/classes/lookup?classCode=${encodeURIComponent(classCode)}`,
+    ),
 };

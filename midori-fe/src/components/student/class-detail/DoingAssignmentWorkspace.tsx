@@ -102,7 +102,7 @@ export function DoingAssignmentWorkspace({
     try {
       const req = {
         submissionText: manualText,
-        attachmentUrl: manualAttachment
+        attachmentUrl: manualAttachment,
       };
       const res = await homeworkApi.submitHomework(assignment.id, req);
       setSubmission(res);
@@ -117,104 +117,114 @@ export function DoingAssignmentWorkspace({
     }
   };
 
-  const loadHomeworkData = useCallback(async (shouldShowLoading = true) => {
-    try {
-      if (shouldShowLoading) {
-        setLoading(true);
-      }
-      
-      const isExam = assignment.type === "Exam";
-      let hw: any;
-      if (isExam) {
-        hw = await examsApi.startExam(assignment.id, user?.id || "");
-        setStudentExamId(hw.id);
-      } else {
-        hw = await homeworkApi.getStudentHomeworkById(assignment.id);
-      }
-      
-      console.log("ACTUAL_API_RESPONSE_PAYLOAD:", JSON.stringify(hw));
-      setDbHomework(hw);
-      
-      const rawQuestions = hw.questions || [];
-      const mappedQuestions = rawQuestions.map((q: any) => ({
-        id: q.id,
-        q: q.questionText || q.prompt || "",
-        jpPrompt: q.jpPrompt || "",
-        options: q.options || [],
-        correctIdx: q.correctAnswerIndex !== undefined && q.correctAnswerIndex !== null ? q.correctAnswerIndex : undefined,
-        type: q.questionType || "MULTIPLE_CHOICE",
-        points: q.points || 1,
-        skill: q.topicId || "General",
-        weakness: q.difficulty || "Medium",
-        aiFeedback: {
-          explanation: q.explanation || "No explanation available.",
-          grammar: "Focus on topic grammar points.",
-          vocabulary: "Review vocabulary matching this question.",
-          commonMistake: "Verify answer option choices carefully.",
-          suggestion: "Keep practicing related grammar and vocabulary."
+  const loadHomeworkData = useCallback(
+    async (shouldShowLoading = true) => {
+      try {
+        if (shouldShowLoading) {
+          setLoading(true);
         }
-      }));
-      
-      console.log("MAPPED_QUESTIONS_TABLE:");
-      console.table(mappedQuestions);
-      setQuestions(mappedQuestions);
 
-      const limit = hw.timeLimit || assignment.timeLimit;
-      if (limit && Number(limit) > 0) {
-        setTimeLeft(Number(limit) * 60);
-      } else {
-        setTimeLeft(999999);
-      }
-
-      if (isExam) {
-        if (hw.status === "SUBMITTED" || hw.status === "GRADED") {
-          setIsSubmitted(true);
-          setSubmission(hw);
-          const newAnswers: Record<number, number> = {};
-          mappedQuestions.forEach((q: any, idx: number) => {
-            const rawQ = rawQuestions.find((rq: any) => rq.id === q.id);
-            if (rawQ && rawQ.selectedAnswerIndex !== undefined && rawQ.selectedAnswerIndex !== null) {
-              newAnswers[idx] = rawQ.selectedAnswerIndex;
-            }
-          });
-          setAnswers(newAnswers);
+        const isExam = assignment.type === "Exam";
+        let hw: any;
+        if (isExam) {
+          hw = await examsApi.startExam(assignment.id, user?.id || "");
+          setStudentExamId(hw.id);
+        } else {
+          hw = await homeworkApi.getStudentHomeworkById(assignment.id);
         }
-      } else {
-        try {
-          const subResponse = await homeworkApi.getStudentSubmission(assignment.id);
-          if (subResponse) {
-            const sub = subResponse;
-            setSubmission(sub);
-            if (sub.status === "GRADED" || sub.status === "SUBMITTED") {
-              setIsSubmitted(true);
-              if (sub.submissionText) {
-                try {
-                  const parsedAnswers = JSON.parse(sub.submissionText);
-                  const newAnswers: Record<number, number> = {};
-                  mappedQuestions.forEach((q: any, idx: number) => {
-                    if (parsedAnswers[q.id] !== undefined) {
-                      newAnswers[idx] = parsedAnswers[q.id];
-                    }
-                  });
-                  setAnswers(newAnswers);
-                } catch (e) {
-                  console.error("Failed to parse submission answers", e);
+
+        console.log("ACTUAL_API_RESPONSE_PAYLOAD:", JSON.stringify(hw));
+        setDbHomework(hw);
+
+        const rawQuestions = hw.questions || [];
+        const mappedQuestions = rawQuestions.map((q: any) => ({
+          id: q.id,
+          q: q.questionText || q.prompt || "",
+          jpPrompt: q.jpPrompt || "",
+          options: q.options || [],
+          correctIdx:
+            q.correctAnswerIndex !== undefined && q.correctAnswerIndex !== null
+              ? q.correctAnswerIndex
+              : undefined,
+          type: q.questionType || "MULTIPLE_CHOICE",
+          points: q.points || 1,
+          skill: q.topicId || "General",
+          weakness: q.difficulty || "Medium",
+          aiFeedback: {
+            explanation: q.explanation || "No explanation available.",
+            grammar: "Focus on topic grammar points.",
+            vocabulary: "Review vocabulary matching this question.",
+            commonMistake: "Verify answer option choices carefully.",
+            suggestion: "Keep practicing related grammar and vocabulary.",
+          },
+        }));
+
+        console.log("MAPPED_QUESTIONS_TABLE:");
+        console.table(mappedQuestions);
+        setQuestions(mappedQuestions);
+
+        const limit = hw.timeLimit || assignment.timeLimit;
+        if (limit && Number(limit) > 0) {
+          setTimeLeft(Number(limit) * 60);
+        } else {
+          setTimeLeft(999999);
+        }
+
+        if (isExam) {
+          if (hw.status === "SUBMITTED" || hw.status === "GRADED") {
+            setIsSubmitted(true);
+            setSubmission(hw);
+            const newAnswers: Record<number, number> = {};
+            mappedQuestions.forEach((q: any, idx: number) => {
+              const rawQ = rawQuestions.find((rq: any) => rq.id === q.id);
+              if (
+                rawQ &&
+                rawQ.selectedAnswerIndex !== undefined &&
+                rawQ.selectedAnswerIndex !== null
+              ) {
+                newAnswers[idx] = rawQ.selectedAnswerIndex;
+              }
+            });
+            setAnswers(newAnswers);
+          }
+        } else {
+          try {
+            const subResponse = await homeworkApi.getStudentSubmission(assignment.id);
+            if (subResponse) {
+              const sub = subResponse;
+              setSubmission(sub);
+              if (sub.status === "GRADED" || sub.status === "SUBMITTED") {
+                setIsSubmitted(true);
+                if (sub.submissionText) {
+                  try {
+                    const parsedAnswers = JSON.parse(sub.submissionText);
+                    const newAnswers: Record<number, number> = {};
+                    mappedQuestions.forEach((q: any, idx: number) => {
+                      if (parsedAnswers[q.id] !== undefined) {
+                        newAnswers[idx] = parsedAnswers[q.id];
+                      }
+                    });
+                    setAnswers(newAnswers);
+                  } catch (e) {
+                    console.error("Failed to parse submission answers", e);
+                  }
                 }
               }
             }
+          } catch (subErr) {
+            console.log("No submission found yet or error fetching submission", subErr);
           }
-        } catch (subErr) {
-          console.log("No submission found yet or error fetching submission", subErr);
+        }
+      } catch (err) {
+        console.error("Error loading workspace data", err);
+      } finally {
+        if (shouldShowLoading) {
+          setLoading(false);
         }
       }
-    } catch (err) {
-      console.error("Error loading workspace data", err);
-    } finally {
-      if (shouldShowLoading) {
-        setLoading(false);
-      }
-    }
-  }, [assignment.id, assignment.type, assignment.timeLimit, user?.id]);
+    },
+    [assignment.id, assignment.type, assignment.timeLimit, user?.id],
+  );
 
   useEffect(() => {
     loadHomeworkData(true);
@@ -441,7 +451,7 @@ export function DoingAssignmentWorkspace({
     try {
       setShowSubmitDialog(false);
       setAutoSaveStatus("Saving...");
-      
+
       const submitAnswersMap: Record<string, number> = {};
       questions.forEach((q, idx) => {
         if (answers[idx] !== undefined) {
@@ -456,11 +466,11 @@ export function DoingAssignmentWorkspace({
       } else {
         const req = {
           submissionText: JSON.stringify(submitAnswersMap),
-          answers: submitAnswersMap
+          answers: submitAnswersMap,
         };
         res = await homeworkApi.submitHomework(assignment.id, req);
       }
-      
+
       setSubmission(res);
       setIsSubmitted(true);
       if (document.fullscreenElement) {
@@ -490,12 +500,16 @@ export function DoingAssignmentWorkspace({
 
   if (questions.length === 0) {
     const isGraded = submission?.status === "GRADED";
-    const statusText = submission?.status === "GRADED" ? "Graded" : submission?.status === "SUBMITTED" ? "Submitted" : "Not Started";
+    const statusText =
+      submission?.status === "GRADED"
+        ? "Graded"
+        : submission?.status === "SUBMITTED"
+          ? "Submitted"
+          : "Not Started";
 
     return (
       <div className="fixed inset-0 z-[200] overflow-y-auto bg-slate-50/95 dark:bg-[#0a0c14]/95 backdrop-blur-sm p-4 sm:p-6 md:p-8">
         <div className="max-w-4xl mx-auto space-y-6 pt-10 pb-16">
-          
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-4">
             <div className="flex items-center gap-3">
@@ -532,7 +546,6 @@ export function DoingAssignmentWorkspace({
           <div className="grid gap-6 md:grid-cols-3">
             {/* Left/Main Column: Instructions & Submission Form */}
             <div className="md:col-span-2 space-y-6">
-              
               {/* Instructions Card */}
               <Card className="p-6 border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0d1020]/45 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 text-primary">
@@ -585,7 +598,9 @@ export function DoingAssignmentWorkspace({
 
                     <button
                       onClick={handleSubmitManual}
-                      disabled={submittingManual || (!manualText.trim() && !manualAttachment.trim())}
+                      disabled={
+                        submittingManual || (!manualText.trim() && !manualAttachment.trim())
+                      }
                       className="w-full py-3.5 bg-primary hover:opacity-95 disabled:opacity-50 text-primary-foreground rounded-xl text-xs font-black uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2"
                     >
                       {submittingManual ? "Submitting..." : "Submit Assignment"}
@@ -622,12 +637,10 @@ export function DoingAssignmentWorkspace({
                   </div>
                 )}
               </Card>
-
             </div>
 
             {/* Right Column: Info & Grade feedback */}
             <div className="space-y-6">
-              
               {/* Grading / Score Feedback Card */}
               {isGraded ? (
                 <Card className="p-5 border border-green-500/30 bg-green-500/5 dark:bg-green-950/10 shadow-sm space-y-4">
@@ -643,7 +656,9 @@ export function DoingAssignmentWorkspace({
                       <span className="text-4xl font-black text-green-500">
                         {submission?.score !== null ? submission.score : "--"}
                       </span>
-                      <span className="text-muted-foreground text-xs">/ {assignment.maxScore} pts</span>
+                      <span className="text-muted-foreground text-xs">
+                        / {assignment.maxScore} pts
+                      </span>
                     </div>
 
                     {submission?.feedback ? (
@@ -673,7 +688,9 @@ export function DoingAssignmentWorkspace({
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
                       <span className="text-muted-foreground">Max Score</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{assignment.maxScore} pts</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        {assignment.maxScore} pts
+                      </span>
                     </div>
                     {submission?.submittedAt && (
                       <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
@@ -686,10 +703,8 @@ export function DoingAssignmentWorkspace({
                   </div>
                 </Card>
               )}
-
             </div>
           </div>
-
         </div>
       </div>
     );
@@ -700,16 +715,21 @@ export function DoingAssignmentWorkspace({
   const flaggedCount = Object.values(flagged).filter(Boolean).length;
 
   const scoreEarned = questions.reduce((acc, q, idx) => {
-    return acc + (q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx ? q.points : 0);
+    return (
+      acc + (q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx ? q.points : 0)
+    );
   }, 0);
-  const correctCount = questions.filter((q, idx) => q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx).length;
+  const correctCount = questions.filter(
+    (q, idx) => q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx,
+  ).length;
   const wrongCount = questions.length - correctCount;
   const isPassed = scoreEarned >= assignment.maxScore * 0.5;
 
   const selectedReviewQuestion = questions[currentReviewIndex] || null;
-  const isReviewCorrect = selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number"
-    ? answers[currentReviewIndex] === selectedReviewQuestion.correctIdx
-    : false;
+  const isReviewCorrect =
+    selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number"
+      ? answers[currentReviewIndex] === selectedReviewQuestion.correctIdx
+      : false;
 
   // Weak areas statistics calculation
   const weakAreasStats = questions.reduce(
@@ -798,7 +818,10 @@ export function DoingAssignmentWorkspace({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
-                    const firstWrong = questions.findIndex((q, i) => q && typeof q.correctIdx === "number" && answers[i] !== q.correctIdx);
+                    const firstWrong = questions.findIndex(
+                      (q, i) =>
+                        q && typeof q.correctIdx === "number" && answers[i] !== q.correctIdx,
+                    );
                     setCurrentReviewIndex(firstWrong >= 0 ? firstWrong : 0);
                   }}
                   className="py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition"
@@ -822,7 +845,8 @@ export function DoingAssignmentWorkspace({
             </h4>
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
-                const correct = q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx;
+                const correct =
+                  q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx;
                 const isSelected = currentReviewIndex === idx;
                 return (
                   <button
@@ -895,48 +919,53 @@ export function DoingAssignmentWorkspace({
 
             {/* Choice Review Options */}
             <div className="space-y-3">
-              {selectedReviewQuestion && selectedReviewQuestion.options && selectedReviewQuestion.options.map((opt, optIdx) => {
-                const wasChosen = answers[currentReviewIndex] === optIdx;
-                const isCorrect = selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number" && selectedReviewQuestion.correctIdx === optIdx;
-                return (
-                  <div
-                    key={optIdx}
-                    className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-150 text-xs sm:text-sm font-semibold ${
-                      isCorrect
-                        ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400"
-                        : wasChosen
-                          ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
-                          : "bg-white/50 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center font-bold border text-[10px]">
-                        {String.fromCharCode(65 + optIdx)}
-                      </span>
-                      <span>{opt}</span>
-                    </div>
+              {selectedReviewQuestion &&
+                selectedReviewQuestion.options &&
+                selectedReviewQuestion.options.map((opt, optIdx) => {
+                  const wasChosen = answers[currentReviewIndex] === optIdx;
+                  const isCorrect =
+                    selectedReviewQuestion &&
+                    typeof selectedReviewQuestion.correctIdx === "number" &&
+                    selectedReviewQuestion.correctIdx === optIdx;
+                  return (
+                    <div
+                      key={optIdx}
+                      className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-150 text-xs sm:text-sm font-semibold ${
+                        isCorrect
+                          ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400"
+                          : wasChosen
+                            ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
+                            : "bg-white/50 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center font-bold border text-[10px]">
+                          {String.fromCharCode(65 + optIdx)}
+                        </span>
+                        <span>{opt}</span>
+                      </div>
 
-                    <div className="flex gap-2 items-center shrink-0">
-                      {isCorrect && (
-                        <span className="px-2 py-0.5 rounded bg-green-500/20 text-green-600 text-[8px] font-black uppercase">
-                          Correct Answer
-                        </span>
-                      )}
-                      {wasChosen && (
-                        <span
-                          className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                            isReviewCorrect
-                              ? "bg-green-500/20 text-green-600"
-                              : "bg-red-500/20 text-red-600"
-                          }`}
-                        >
-                          Your Choice
-                        </span>
-                      )}
+                      <div className="flex gap-2 items-center shrink-0">
+                        {isCorrect && (
+                          <span className="px-2 py-0.5 rounded bg-green-500/20 text-green-600 text-[8px] font-black uppercase">
+                            Correct Answer
+                          </span>
+                        )}
+                        {wasChosen && (
+                          <span
+                            className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                              isReviewCorrect
+                                ? "bg-green-500/20 text-green-600"
+                                : "bg-red-500/20 text-red-600"
+                            }`}
+                          >
+                            Your Choice
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </Card>
 
@@ -961,7 +990,12 @@ export function DoingAssignmentWorkspace({
                     </strong>{" "}
                     with the correct option{" "}
                     <strong className="text-green-500">
-                      "{typeof selectedReviewQuestion.correctIdx === "number" && selectedReviewQuestion.options[selectedReviewQuestion.correctIdx] ? selectedReviewQuestion.options[selectedReviewQuestion.correctIdx] : ""}"
+                      "
+                      {typeof selectedReviewQuestion.correctIdx === "number" &&
+                      selectedReviewQuestion.options[selectedReviewQuestion.correctIdx]
+                        ? selectedReviewQuestion.options[selectedReviewQuestion.correctIdx]
+                        : ""}
+                      "
                     </strong>
                     .
                   </p>

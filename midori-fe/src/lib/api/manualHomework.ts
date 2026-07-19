@@ -61,16 +61,14 @@ export interface AssignClassRequest {
 }
 
 export const manualHomeworkApi = {
-  getManualHomeworks: () =>
-    api.get<ManualHomeworkResponse[]>("/teacher/manual-homeworks"),
+  getManualHomeworks: () => api.get<ManualHomeworkResponse[]>("/teacher/manual-homeworks"),
   getManualHomeworkById: (id: string) =>
     api.get<ManualHomeworkResponse>(`/teacher/manual-homeworks/${id}`),
   createManualHomework: (req: ManualHomeworkRequest) =>
     api.post<ManualHomeworkResponse>("/teacher/manual-homeworks", req),
   updateManualHomework: (id: string, req: ManualHomeworkRequest) =>
     api.put<ManualHomeworkResponse>(`/teacher/manual-homeworks/${id}`, req),
-  deleteManualHomework: (id: string) =>
-    api.delete<void>(`/teacher/manual-homeworks/${id}`),
+  deleteManualHomework: (id: string) => api.delete<void>(`/teacher/manual-homeworks/${id}`),
   publishManualHomework: (id: string, req?: AssignClassRequest) =>
     api.post<ManualHomeworkResponse>(`/teacher/manual-homeworks/${id}/publish`, req),
   draftManualHomework: (id: string) =>

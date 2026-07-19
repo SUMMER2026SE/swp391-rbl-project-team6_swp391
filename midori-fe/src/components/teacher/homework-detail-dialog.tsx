@@ -33,9 +33,7 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
             <ClipboardList className="w-5 h-5 text-primary" />
             Homework Details
           </DialogTitle>
-          <DialogDescription>
-            View instructions and questions for this homework.
-          </DialogDescription>
+          <DialogDescription>View instructions and questions for this homework.</DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
@@ -73,7 +71,9 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
                     <Clock className="w-3.5 h-3.5 text-amber-500" /> Time Limit
                   </div>
                   <div className="mt-1 text-xs font-bold text-foreground">
-                    {homework.timeLimit && homework.timeLimit > 0 ? `${homework.timeLimit} mins` : "Unlimited"}
+                    {homework.timeLimit && homework.timeLimit > 0
+                      ? `${homework.timeLimit} mins`
+                      : "Unlimited"}
                   </div>
                 </div>
                 <div>
@@ -88,7 +88,9 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
 
               {/* Instructions */}
               <div className="space-y-2 mt-4">
-                <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Instructions</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                  Instructions
+                </h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed bg-background/50 p-4 rounded-xl border">
                   {homework.instructions || "No instructions provided."}
                 </p>
@@ -97,10 +99,15 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
               {/* Questions List */}
               {homework.questions && homework.questions.length > 0 && (
                 <div className="space-y-3 mt-4">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground">Questions list</h4>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                    Questions list
+                  </h4>
                   <div className="space-y-3">
                     {homework.questions.map((q: any, idx: number) => (
-                      <div key={`${q.id || ''}-${idx}`} className="p-4 rounded-xl border border-border bg-card space-y-3">
+                      <div
+                        key={`${q.id || ""}-${idx}`}
+                        className="p-4 rounded-xl border border-border bg-card space-y-3"
+                      >
                         <div className="flex justify-between items-start gap-2">
                           <span className="text-xs font-bold text-primary">Question {idx + 1}</span>
                           {q.points !== undefined && (
@@ -111,9 +118,11 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
                         </div>
                         <div className="text-sm font-semibold text-foreground">{q.prompt}</div>
                         {q.jpPrompt && (
-                          <div className="text-sm font-medium text-muted-foreground font-jp">{q.jpPrompt}</div>
+                          <div className="text-sm font-medium text-muted-foreground font-jp">
+                            {q.jpPrompt}
+                          </div>
                         )}
-                        
+
                         {/* Options */}
                         {q.options && q.options.length > 0 && (
                           <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 mt-2">
@@ -128,7 +137,10 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
                                       : "bg-muted/40 border-border text-muted-foreground"
                                   }`}
                                 >
-                                  <span className="font-bold mr-1">{String.fromCharCode(65 + oIdx)}.</span> {opt}
+                                  <span className="font-bold mr-1">
+                                    {String.fromCharCode(65 + oIdx)}.
+                                  </span>{" "}
+                                  {opt}
                                 </div>
                               );
                             })}
@@ -138,7 +150,8 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
                         {/* Explanation */}
                         {q.explanation && (
                           <div className="text-xs text-muted-foreground mt-2 bg-muted/20 p-2.5 rounded-lg border-l-2 border-primary">
-                            <strong className="text-foreground">Explanation:</strong> {q.explanation}
+                            <strong className="text-foreground">Explanation:</strong>{" "}
+                            {q.explanation}
                           </div>
                         )}
                       </div>

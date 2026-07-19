@@ -26,7 +26,12 @@ export const NOTIFICATION_TYPES = {
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
 
-export const NOTIFICATION_TYPE_LIST: { value: NotificationType; label: string; icon: LucideIcon; color: string }[] = [
+export const NOTIFICATION_TYPE_LIST: {
+  value: NotificationType;
+  label: string;
+  icon: LucideIcon;
+  color: string;
+}[] = [
   {
     value: NOTIFICATION_TYPES.LESSON,
     label: "Lesson",
@@ -69,12 +74,14 @@ export const NOTIFICATION_TYPE_LIST: { value: NotificationType; label: string; i
  * Get notification type config by value
  */
 export function getNotificationTypeConfig(type: NotificationType) {
-  return NOTIFICATION_TYPE_LIST.find((t) => t.value === type) ?? {
-    value: type,
-    label: type,
-    icon: Bell,
-    color: "gray",
-  };
+  return (
+    NOTIFICATION_TYPE_LIST.find((t) => t.value === type) ?? {
+      value: type,
+      label: type,
+      icon: Bell,
+      color: "gray",
+    }
+  );
 }
 
 /**
@@ -88,7 +95,12 @@ export const NOTIFICATION_STATUSES = {
 
 export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[keyof typeof NOTIFICATION_STATUSES];
 
-export const NOTIFICATION_STATUS_LIST: { value: NotificationStatus; label: string; icon: LucideIcon; color: string }[] = [
+export const NOTIFICATION_STATUS_LIST: {
+  value: NotificationStatus;
+  label: string;
+  icon: LucideIcon;
+  color: string;
+}[] = [
   {
     value: NOTIFICATION_STATUSES.DRAFT,
     label: "Draft",
@@ -113,12 +125,14 @@ export const NOTIFICATION_STATUS_LIST: { value: NotificationStatus; label: strin
  * Get notification status config by value
  */
 export function getNotificationStatusConfig(status: NotificationStatus) {
-  return NOTIFICATION_STATUS_LIST.find((s) => s.value === status) ?? {
-    value: status,
-    label: status,
-    icon: Bell,
-    color: "gray",
-  };
+  return (
+    NOTIFICATION_STATUS_LIST.find((s) => s.value === status) ?? {
+      value: status,
+      label: status,
+      icon: Bell,
+      color: "gray",
+    }
+  );
 }
 
 /**

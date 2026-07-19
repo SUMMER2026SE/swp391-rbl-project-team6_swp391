@@ -1,6 +1,7 @@
 package com.midori.service;
 
 import com.midori.entity.ClassEntity;
+import com.midori.entity.ClassMembership;
 import com.midori.entity.User;
 import com.midori.dto.classdto.ClassResponse;
 import com.midori.dto.classdto.CreateClassRequest;
@@ -9,8 +10,10 @@ import com.midori.dto.classdto.StudentClassResponse;
 import com.midori.dto.homeworkdto.HomeworkResponse;
 import com.midori.dto.response.ExamResponse;
 import com.midori.entity.Homework;
+import com.midori.entity.Exam;
 import com.midori.entity.StudentExam;
 import com.midori.entity.HomeworkSubmission;
+import com.midori.entity.GrammarLevel;
 import java.time.Instant;
 import com.midori.repository.StudentExamRepository;
 import com.midori.exception.ResourceNotFoundException;
@@ -25,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +46,7 @@ public class ClassServiceImpl implements ClassService {
     private final GrammarService grammarService;
     private final com.midori.repository.HomeworkSubmissionRepository homeworkSubmissionRepository;
     private final StudentExamRepository studentExamRepository;
+    private final com.midori.repository.ClassMembershipRepository classMembershipRepository;
 
     @Override
     public List<ClassEntity> getAllClasses(String status) {
@@ -113,7 +118,14 @@ public class ClassServiceImpl implements ClassService {
             throw new com.midori.exception.AccessDeniedException("Student is not enrolled in this class");
         }
 
-        return mapToClassResponse(assignedClass);
+        // Get join date from ClassMembership
+        Instant joinDate = classMembershipRepository.findByStudentIdAndClassId(studentId, classId)
+                .map(ClassMembership::getJoinedAt)
+                .orElse(assignedClass.getCreatedAt());
+
+        ClassResponse response = mapToClassResponse(assignedClass);
+        response.setJoinDate(joinDate);
+        return response;
     }
 
     @Override
@@ -122,6 +134,8 @@ public class ClassServiceImpl implements ClassService {
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", teacherId));
 
+        String classCode = generateClassCode(request.getLevel());
+
         ClassEntity classEntity = ClassEntity.builder()
                 .name(request.getName())
                 .level(request.getLevel())
@@ -129,10 +143,29 @@ public class ClassServiceImpl implements ClassService {
                 .description(request.getDescription())
                 .teacher(teacher)
                 .status(ClassEntity.ClassStatus.ACTIVE)
+                .classCode(classCode)
                 .build();
 
         ClassEntity savedClass = classRepository.save(classEntity);
         return mapToClassResponse(savedClass);
+    }
+
+    private String generateClassCode(GrammarLevel level) {
+        int year = java.time.Year.now().getValue();
+        String yy = String.format("%02d", year % 100);
+        String prefix = "JP" + yy + level.name();
+
+        String maxCode = classRepository.findMaxClassCodeByPrefix(prefix);
+
+        int nextSeq;
+        if (maxCode == null) {
+            nextSeq = 1;
+        } else {
+            String seqStr = maxCode.substring(prefix.length());
+            nextSeq = Integer.parseInt(seqStr) + 1;
+        }
+
+        return prefix + String.format("%04d", nextSeq);
     }
 
     @Override
@@ -216,7 +249,7 @@ public class ClassServiceImpl implements ClassService {
 
         List<StudentClassResponse> list = new ArrayList<>();
         classEntity.getStudents().forEach(student -> {
-            list.add(mapToStudentClassResponse(student));
+            list.add(mapToStudentClassResponse(student, classEntity));
         });
 
         return list;
@@ -286,26 +319,38 @@ public class ClassServiceImpl implements ClassService {
         student.getAssignedClasses().add(classEntity);
         userRepository.save(student);
 
-        return mapToStudentClassResponse(student);
+        // Create ClassMembership to track join date
+        ClassMembership membership = ClassMembership.builder()
+                .student(student)
+                .classEntity(classEntity)
+                .build();
+        classMembershipRepository.save(membership);
+
+        return mapToStudentClassResponse(student, classEntity);
     }
 
 
     private ClassResponse mapToClassResponse(ClassEntity classEntity) {
         if (classEntity == null) return null;
-        
+
         int studentCount = classEntity.getStudents() != null ? classEntity.getStudents().size() : 0;
-        
+
         long homeworkCount = homeworkRepository.countByAssignedClassId(classEntity.getId());
 
-        int examCount = examRepository.countUpcomingExamsPerClass().stream()
+        List<Object[]> upcomingExams = examRepository.countUpcomingExamsPerClass();
+        int upcomingExamCount = upcomingExams.stream()
                 .filter(arr -> classEntity.getId().equals(arr[0]))
                 .map(arr -> ((Long) arr[1]).intValue())
                 .findFirst().orElse(0);
 
-        String teacherName = "";
+        List<com.midori.entity.Exam> allExams = examRepository.findByAssignedClassId(classEntity.getId());
+        int examCount = allExams.size();
+
+        // Get teacher name from profile or use email as fallback
+        String teacherName = null;
         if (classEntity.getTeacher() != null) {
-            if (classEntity.getTeacher().getProfile() != null && 
-                classEntity.getTeacher().getProfile().getDisplayName() != null) {
+            if (classEntity.getTeacher().getProfile() != null
+                    && classEntity.getTeacher().getProfile().getDisplayName() != null) {
                 teacherName = classEntity.getTeacher().getProfile().getDisplayName();
             } else {
                 teacherName = classEntity.getTeacher().getEmail();
@@ -318,26 +363,107 @@ public class ClassServiceImpl implements ClassService {
                 .level(classEntity.getLevel())
                 .maxStudents(classEntity.getMaxStudents())
                 .description(classEntity.getDescription())
+                .classCode(classEntity.getClassCode())
                 .status(classEntity.getStatus())
                 .teacherId(classEntity.getTeacher() != null ? classEntity.getTeacher().getId() : null)
                 .teacherName(teacherName)
                 .studentCount(studentCount)
                 .homeworkCount((int) homeworkCount)
-                .upcomingExamCount(examCount)
+                .examCount(examCount)
+                .upcomingExamCount(upcomingExamCount)
                 .createdAt(classEntity.getCreatedAt())
                 .updatedAt(classEntity.getUpdatedAt())
                 .build();
     }
 
 
-    private StudentClassResponse mapToStudentClassResponse(User student) {
+    private StudentClassResponse mapToStudentClassResponse(User student, ClassEntity classEntity) {
         if (student == null) return null;
+
+        // Calculate progress data for this student in this class
+        int totalHomework = (int) homeworkRepository.countByAssignedClassId(classEntity.getId());
+        List<HomeworkSubmission> submissions = homeworkSubmissionRepository.findByStudentId(student.getId()).stream()
+                .filter(sub -> sub.getHomework() != null && sub.getHomework().getAssignedClass() != null && sub.getHomework().getAssignedClass().getId().equals(classEntity.getId()))
+                .collect(Collectors.toList());
+
+        // Count submitted homework (submitted, not just created)
+        int submittedHomework = (int) submissions.stream()
+                .filter(sub -> sub.getSubmittedAt() != null)
+                .count();
+
+        // Count exams completed for this class
+        List<Exam> classExams = examRepository.findByAssignedClassId(classEntity.getId());
+        Set<UUID> classExamIds = classExams.stream().map(Exam::getId).collect(Collectors.toSet());
+        List<StudentExam> studentExams = studentExamRepository.findByStudentId(student.getId()).stream()
+                .filter(e -> e.getExam() != null && classExamIds.contains(e.getExam().getId()))
+                .collect(Collectors.toList());
+        int completedExams = (int) studentExams.stream()
+                .filter(e -> e.getSubmittedAt() != null)
+                .count();
+
+        // Calculate average score from all graded submissions and exams
+        double totalScore = 0;
+        int scoreCount = 0;
+
+        // Homework scores
+        for (HomeworkSubmission sub : submissions) {
+            if (sub.getStatus() == HomeworkSubmission.SubmissionStatus.GRADED && sub.getScore() != null) {
+                totalScore += sub.getScore();
+                scoreCount++;
+            }
+        }
+
+        // Exam scores
+        for (StudentExam exam : studentExams) {
+            if (exam.getPercentage() != null) {
+                totalScore += exam.getPercentage();
+                scoreCount++;
+            }
+        }
+
+        double averageScore = scoreCount > 0 ? (totalScore / scoreCount) : 0;
+
+        // Calculate overall progress percentage (homework + exams)
+        int totalItems = totalHomework + completedExams;
+        int completedItems = submittedHomework + completedExams;
+        int progressPercent = totalItems > 0 ? (int) ((completedItems * 100) / totalItems) : 0;
+
+        // Find last activity
+        Instant lastActivityAt = null;
+        for (HomeworkSubmission sub : submissions) {
+            if (sub.getSubmittedAt() != null) {
+                if (lastActivityAt == null || sub.getSubmittedAt().isAfter(lastActivityAt)) {
+                    lastActivityAt = sub.getSubmittedAt();
+                }
+            }
+        }
+        for (StudentExam exam : studentExams) {
+            if (exam.getSubmittedAt() != null) {
+                if (lastActivityAt == null || exam.getSubmittedAt().isAfter(lastActivityAt)) {
+                    lastActivityAt = exam.getSubmittedAt();
+                }
+            }
+        }
+
+        // Get join date from ClassMembership
+        Instant joinedAt = classMembershipRepository.findByStudentIdAndClassId(student.getId(), classEntity.getId())
+                .map(ClassMembership::getJoinedAt)
+                .orElse(student.getCreatedAt());
+
         return StudentClassResponse.builder()
                 .studentId(student.getId())
                 .fullName(student.getProfile() != null ? student.getProfile().getDisplayName() : null)
                 .email(student.getEmail())
                 .avatar(student.getProfile() != null ? student.getProfile().getAvatarUrl() : null)
                 .status(student.getStatus())
+                .progressPercent(progressPercent)
+                .submittedHomework(Math.min(submittedHomework, totalHomework))
+                .totalHomework(totalHomework)
+                .completedExams(completedExams)
+                .totalExams(classExams.size())
+                .averageScore(Math.round(averageScore * 10.0) / 10.0)
+                .lastActivityAt(lastActivityAt)
+                .joinedAt(joinedAt)
                 .build();
     }
 

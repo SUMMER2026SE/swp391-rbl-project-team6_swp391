@@ -31,11 +31,7 @@ export type NotificationPushFrame =
   | { type: "notification.created"; payload: NotificationPushPayload }
   | { type: string; payload?: unknown };
 
-export type NotificationSocketStatus =
-  | "idle"
-  | "connecting"
-  | "open"
-  | "closed";
+export type NotificationSocketStatus = "idle" | "connecting" | "open" | "closed";
 
 export type NotificationSocketListener = (frame: NotificationPushFrame) => void;
 export type NotificationSocketStatusListener = (status: NotificationSocketStatus) => void;
@@ -82,7 +78,10 @@ export class NotificationSocket {
    * a fresh login is picked up automatically on the next reconnect.
    */
   connect(): void {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)
+    ) {
       return;
     }
     const token = api.getToken();
@@ -134,9 +133,7 @@ export class NotificationSocket {
           `[NotificationSocket] closed code=${event.code} reason=${event.reason} - will retry with fresh token`,
         );
       } else {
-        console.debug(
-          `[NotificationSocket] closed code=${event.code} reason=${event.reason}`,
-        );
+        console.debug(`[NotificationSocket] closed code=${event.code} reason=${event.reason}`);
       }
       this.setStatus("closed");
       this.scheduleReconnect();
@@ -244,10 +241,7 @@ export class NotificationSocket {
     }
     this.currentToken = latestToken;
 
-    const delay = Math.min(
-      INITIAL_BACKOFF_MS * 2 ** this.reconnectAttempts,
-      MAX_BACKOFF_MS,
-    );
+    const delay = Math.min(INITIAL_BACKOFF_MS * 2 ** this.reconnectAttempts, MAX_BACKOFF_MS);
     // Add a small jitter so multiple tabs do not reconnect in lockstep.
     const jitter = Math.floor(Math.random() * 500);
     this.reconnectAttempts++;

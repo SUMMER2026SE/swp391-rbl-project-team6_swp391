@@ -100,6 +100,11 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
     }
 
     @Override
+    public List<TeacherQuestion> findQuestionsForTeacherView(UUID teacherId) {
+        return teacherQuestionRepository.findByTeacherIdOrStatusActiveOrderByCreatedAtDesc(teacherId);
+    }
+
+    @Override
     public List<TeacherQuestion> findCentralizedQuestions() {
         return teacherQuestionRepository.findByStatusOrderByCreatedAtDesc(com.midori.entity.UserStatus.ACTIVE.name());
     }

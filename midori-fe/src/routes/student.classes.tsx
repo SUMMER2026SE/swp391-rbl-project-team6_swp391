@@ -52,7 +52,7 @@ function getProgressPercentage(cls: DetailedClassInfo): number {
 }
 
 function formatShortDate(date: string): string {
-  if (date === "-") return "None";
+  if (date === "-" || !date) return "None";
   const d = new Date(date);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
@@ -106,6 +106,11 @@ function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
             <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
               {cls.name}
             </h3>
+            {cls.classCode && (
+              <div className="mt-1 inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-mono font-semibold text-muted-foreground">
+                {cls.classCode}
+              </div>
+            )}
           </div>
         </div>
 
@@ -134,24 +139,15 @@ function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">
-              Due{" "}
+              Created{" "}
               <span className="font-medium text-foreground">
-                {formatShortDate(cls.nextDeadline)}
+                {formatShortDate(cls.createdDate || cls.createdAt)}
               </span>
             </span>
           </div>
         </div>
 
-        {/* Progress */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-muted-foreground">Progress</span>
-            <span className="text-xs font-medium text-foreground">
-              {completedCount}/{totalCount}
-            </span>
-          </div>
-          <Progress value={progressPercent} />
-        </div>
+
 
         {/* CTA Button */}
         <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl btn-gradient-primary text-white text-sm font-semibold transition-colors duration-150">
@@ -182,6 +178,11 @@ function CompletedClassCard({ cls }: { cls: DetailedClassInfo }) {
             <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
               {cls.name}
             </h3>
+            {cls.classCode && (
+              <div className="mt-1 inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs font-mono font-semibold text-muted-foreground">
+                {cls.classCode}
+              </div>
+            )}
           </div>
 
           {cls.hasCertificate && (
@@ -263,7 +264,13 @@ function TabButton({
 
 // ==================== EMPTY STATE ====================
 
-function EmptyState({ type, hasNoEnrolledClasses }: { type: TabType; hasNoEnrolledClasses: boolean }) {
+function EmptyState({
+  type,
+  hasNoEnrolledClasses,
+}: {
+  type: TabType;
+  hasNoEnrolledClasses: boolean;
+}) {
   const content = {
     active: {
       icon: BookOpen,
@@ -311,7 +318,11 @@ function StudentClassesPage() {
   const isIndex =
     location.pathname === "/student/classes" || location.pathname === "/student/classes/";
 
-  const { data: dbClasses = [], isLoading, isError } = useQuery({
+  const {
+    data: dbClasses = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["studentJoinedClasses"],
     queryFn: () => classesApi.getJoinedClasses(),
   });
@@ -321,12 +332,13 @@ function StudentClassesPage() {
       id: c.id,
       name: c.name,
       level: (c.level || "N5") as any,
+      classCode: c.classCode,
       status: (c.status?.toLowerCase() === "active" ? "active" : "completed") as any,
-      teacher: "Teacher",
-      teacherAvatarInitials: "T",
+      teacher: c.teacherName || "Teacher",
+      teacherAvatarInitials: (c.teacherName || "T").substring(0, 2).toUpperCase(),
       assignments: [],
-      nextDeadline: "-",
       createdDate: c.createdAt ? c.createdAt.split("T")[0] : "",
+      createdAt: c.createdAt || "",
       completionDate: c.updatedAt ? c.updatedAt.split("T")[0] : "",
     }));
   }, [dbClasses]);
@@ -364,12 +376,6 @@ function StudentClassesPage() {
         new Date(a.completionDate || a.createdDate).getTime(),
     );
 
-  // Calculate summary stats
-  const totalPendingAssignments = activeClasses.reduce(
-    (sum, cls) => sum + getPendingAssignments(cls),
-    0,
-  );
-
   // Get current tab data
   const currentClasses = activeTab === "active" ? activeClasses : completedClasses;
 
@@ -400,14 +406,6 @@ function StudentClassesPage() {
               active classes
             </span>
           </div>
-          {totalPendingAssignments > 0 && (
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-              <Clock className="w-4 h-4" />
-              <span>
-                <strong className="font-semibold">{totalPendingAssignments}</strong> pending
-              </span>
-            </div>
-          )}
         </div>
       )}
 

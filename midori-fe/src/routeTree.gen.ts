@@ -28,7 +28,6 @@ import { Route as TeacherShadowingRouteImport } from './routes/teacher.shadowing
 import { Route as TeacherSettingsRouteImport } from './routes/teacher.settings'
 import { Route as TeacherReportsRouteImport } from './routes/teacher.reports'
 import { Route as TeacherQuestionBankRouteImport } from './routes/teacher.question-bank'
-import { Route as TeacherProgressRouteImport } from './routes/teacher.progress'
 import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
 import { Route as TeacherNotificationsRouteImport } from './routes/teacher.notifications'
 import { Route as TeacherMyQuestionsRouteImport } from './routes/teacher.my-questions'
@@ -85,6 +84,7 @@ import { Route as AdminContentLibraryIndexRouteImport } from './routes/admin.con
 import { Route as AdminContentLibraryLevelRouteImport } from './routes/admin.content-library.$level'
 import { Route as AdminClassClassIdRouteImport } from './routes/admin.class.$classId'
 import { Route as AdminClassManagementIndexRouteImport } from './routes/admin.class-management._index'
+import { Route as TeacherClassesClassIdIndexRouteImport } from './routes/teacher.classes.$classId.index'
 import { Route as AdminContentLibraryLevelIndexRouteImport } from './routes/admin.content-library.$level.index'
 import { Route as TeacherClassesClassIdStudentsRouteImport } from './routes/teacher.classes.$classId.students'
 import { Route as TeacherClassesClassIdProgressRouteImport } from './routes/teacher.classes.$classId.progress'
@@ -110,6 +110,7 @@ import { Route as AdminTeachersTeacherIdClassesRouteImport } from './routes/admi
 import { Route as AdminTeachersTeacherIdAnalyticsRouteImport } from './routes/admin.teachers.$teacherId.analytics'
 import { Route as AdminJlptExamLevelCreateRouteImport } from './routes/admin.jlpt-exam.$level.create'
 import { Route as AdminJlptExamLevelIndexRouteImport } from './routes/admin.jlpt-exam.$level._index'
+import { Route as TeacherClassesClassIdStudentsIndexRouteImport } from './routes/teacher.classes.$classId.students.index'
 import { Route as StudentLearningJapaneseLessonLessonIdRouteImport } from './routes/student.learning.japanese.lesson.$lessonId'
 import { Route as StudentLearningAlphabetKatakanaDakutenRouteImport } from './routes/student.learning.alphabet.katakana.dakuten'
 import { Route as StudentLearningAlphabetKatakanaCombinationRouteImport } from './routes/student.learning.alphabet.katakana.combination'
@@ -119,6 +120,7 @@ import { Route as StudentLearningAlphabetHiraganaCombinationRouteImport } from '
 import { Route as StudentLearningAlphabetHiraganaBasicRouteImport } from './routes/student.learning.alphabet.hiragana.basic'
 import { Route as AdminJlptExamLevelExamIdEditRouteImport } from './routes/admin.jlpt-exam.$level.$examId.edit'
 import { Route as AdminContentLibraryLevelSkillIndexRouteImport } from './routes/admin.content-library.$level.$skill._index'
+import { Route as TeacherClassesClassIdStudentsStudentIdProgressRouteImport } from './routes/teacher.classes.$classId.students.$studentId.progress'
 
 const VerifyOtpRoute = VerifyOtpRouteImport.update({
   id: '/verify-otp',
@@ -213,11 +215,6 @@ const TeacherReportsRoute = TeacherReportsRouteImport.update({
 const TeacherQuestionBankRoute = TeacherQuestionBankRouteImport.update({
   id: '/question-bank',
   path: '/question-bank',
-  getParentRoute: () => TeacherRoute,
-} as any)
-const TeacherProgressRoute = TeacherProgressRouteImport.update({
-  id: '/progress',
-  path: '/progress',
   getParentRoute: () => TeacherRoute,
 } as any)
 const TeacherProfileRoute = TeacherProfileRouteImport.update({
@@ -507,6 +504,12 @@ const AdminClassManagementIndexRoute =
     path: '/class-management',
     getParentRoute: () => AdminRoute,
   } as any)
+const TeacherClassesClassIdIndexRoute =
+  TeacherClassesClassIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TeacherClassesClassIdRoute,
+  } as any)
 const AdminContentLibraryLevelIndexRoute =
   AdminContentLibraryLevelIndexRouteImport.update({
     id: '/',
@@ -656,6 +659,12 @@ const AdminJlptExamLevelIndexRoute = AdminJlptExamLevelIndexRouteImport.update({
   path: '/jlpt-exam/$level',
   getParentRoute: () => AdminRoute,
 } as any)
+const TeacherClassesClassIdStudentsIndexRoute =
+  TeacherClassesClassIdStudentsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => TeacherClassesClassIdStudentsRoute,
+  } as any)
 const StudentLearningJapaneseLessonLessonIdRoute =
   StudentLearningJapaneseLessonLessonIdRouteImport.update({
     id: '/lesson/$lessonId',
@@ -710,6 +719,12 @@ const AdminContentLibraryLevelSkillIndexRoute =
     path: '/$skill',
     getParentRoute: () => AdminContentLibraryLevelRoute,
   } as any)
+const TeacherClassesClassIdStudentsStudentIdProgressRoute =
+  TeacherClassesClassIdStudentsStudentIdProgressRouteImport.update({
+    id: '/$studentId/progress',
+    path: '/$studentId/progress',
+    getParentRoute: () => TeacherClassesClassIdStudentsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -752,7 +767,6 @@ export interface FileRoutesByFullPath {
   '/teacher/my-questions': typeof TeacherMyQuestionsRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
-  '/teacher/progress': typeof TeacherProgressRoute
   '/teacher/question-bank': typeof TeacherQuestionBankRoute
   '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
@@ -810,8 +824,9 @@ export interface FileRoutesByFullPath {
   '/teacher/classes/$classId/homework': typeof TeacherClassesClassIdHomeworkRoute
   '/teacher/classes/$classId/lessons': typeof TeacherClassesClassIdLessonsRoute
   '/teacher/classes/$classId/progress': typeof TeacherClassesClassIdProgressRoute
-  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRoute
+  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRouteWithChildren
   '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
+  '/teacher/classes/$classId/': typeof TeacherClassesClassIdIndexRoute
   '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
   '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
   '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
@@ -821,6 +836,8 @@ export interface FileRoutesByFullPath {
   '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
   '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
   '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
+  '/teacher/classes/$classId/students/': typeof TeacherClassesClassIdStudentsIndexRoute
+  '/teacher/classes/$classId/students/$studentId/progress': typeof TeacherClassesClassIdStudentsStudentIdProgressRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -860,7 +877,6 @@ export interface FileRoutesByTo {
   '/teacher/my-questions': typeof TeacherMyQuestionsRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
-  '/teacher/progress': typeof TeacherProgressRoute
   '/teacher/question-bank': typeof TeacherQuestionBankRoute
   '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
@@ -888,7 +904,6 @@ export interface FileRoutesByTo {
   '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
-  '/teacher/classes/$classId': typeof TeacherClassesClassIdRouteWithChildren
   '/teacher/classes/create': typeof TeacherClassesCreateRoute
   '/teacher/exams/create': typeof TeacherExamsCreateRoute
   '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
@@ -917,8 +932,8 @@ export interface FileRoutesByTo {
   '/teacher/classes/$classId/homework': typeof TeacherClassesClassIdHomeworkRoute
   '/teacher/classes/$classId/lessons': typeof TeacherClassesClassIdLessonsRoute
   '/teacher/classes/$classId/progress': typeof TeacherClassesClassIdProgressRoute
-  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRoute
   '/admin/content-library/$level': typeof AdminContentLibraryLevelIndexRoute
+  '/teacher/classes/$classId': typeof TeacherClassesClassIdIndexRoute
   '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
   '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
   '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
@@ -928,6 +943,8 @@ export interface FileRoutesByTo {
   '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
   '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
   '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
+  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsIndexRoute
+  '/teacher/classes/$classId/students/$studentId/progress': typeof TeacherClassesClassIdStudentsStudentIdProgressRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -971,7 +988,6 @@ export interface FileRoutesById {
   '/teacher/my-questions': typeof TeacherMyQuestionsRoute
   '/teacher/notifications': typeof TeacherNotificationsRoute
   '/teacher/profile': typeof TeacherProfileRoute
-  '/teacher/progress': typeof TeacherProgressRoute
   '/teacher/question-bank': typeof TeacherQuestionBankRoute
   '/teacher/reports': typeof TeacherReportsRoute
   '/teacher/settings': typeof TeacherSettingsRoute
@@ -1030,8 +1046,9 @@ export interface FileRoutesById {
   '/teacher/classes/$classId/homework': typeof TeacherClassesClassIdHomeworkRoute
   '/teacher/classes/$classId/lessons': typeof TeacherClassesClassIdLessonsRoute
   '/teacher/classes/$classId/progress': typeof TeacherClassesClassIdProgressRoute
-  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRoute
+  '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsRouteWithChildren
   '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
+  '/teacher/classes/$classId/': typeof TeacherClassesClassIdIndexRoute
   '/admin/content-library/$level/$skill/_index': typeof AdminContentLibraryLevelSkillIndexRoute
   '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
   '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
@@ -1041,6 +1058,8 @@ export interface FileRoutesById {
   '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
   '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
   '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
+  '/teacher/classes/$classId/students/': typeof TeacherClassesClassIdStudentsIndexRoute
+  '/teacher/classes/$classId/students/$studentId/progress': typeof TeacherClassesClassIdStudentsStudentIdProgressRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1085,7 +1104,6 @@ export interface FileRouteTypes {
     | '/teacher/my-questions'
     | '/teacher/notifications'
     | '/teacher/profile'
-    | '/teacher/progress'
     | '/teacher/question-bank'
     | '/teacher/reports'
     | '/teacher/settings'
@@ -1145,6 +1163,7 @@ export interface FileRouteTypes {
     | '/teacher/classes/$classId/progress'
     | '/teacher/classes/$classId/students'
     | '/admin/content-library/$level/'
+    | '/teacher/classes/$classId/'
     | '/admin/content-library/$level/$skill'
     | '/admin/jlpt-exam/$level/$examId/edit'
     | '/student/learning/alphabet/hiragana/basic'
@@ -1154,6 +1173,8 @@ export interface FileRouteTypes {
     | '/student/learning/alphabet/katakana/combination'
     | '/student/learning/alphabet/katakana/dakuten'
     | '/student/learning/japanese/lesson/$lessonId'
+    | '/teacher/classes/$classId/students/'
+    | '/teacher/classes/$classId/students/$studentId/progress'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1193,7 +1214,6 @@ export interface FileRouteTypes {
     | '/teacher/my-questions'
     | '/teacher/notifications'
     | '/teacher/profile'
-    | '/teacher/progress'
     | '/teacher/question-bank'
     | '/teacher/reports'
     | '/teacher/settings'
@@ -1221,7 +1241,6 @@ export interface FileRouteTypes {
     | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/vocabulary/$lessonId'
-    | '/teacher/classes/$classId'
     | '/teacher/classes/create'
     | '/teacher/exams/create'
     | '/teacher/homework/create'
@@ -1250,8 +1269,8 @@ export interface FileRouteTypes {
     | '/teacher/classes/$classId/homework'
     | '/teacher/classes/$classId/lessons'
     | '/teacher/classes/$classId/progress'
-    | '/teacher/classes/$classId/students'
     | '/admin/content-library/$level'
+    | '/teacher/classes/$classId'
     | '/admin/content-library/$level/$skill'
     | '/admin/jlpt-exam/$level/$examId/edit'
     | '/student/learning/alphabet/hiragana/basic'
@@ -1261,6 +1280,8 @@ export interface FileRouteTypes {
     | '/student/learning/alphabet/katakana/combination'
     | '/student/learning/alphabet/katakana/dakuten'
     | '/student/learning/japanese/lesson/$lessonId'
+    | '/teacher/classes/$classId/students'
+    | '/teacher/classes/$classId/students/$studentId/progress'
   id:
     | '__root__'
     | '/'
@@ -1303,7 +1324,6 @@ export interface FileRouteTypes {
     | '/teacher/my-questions'
     | '/teacher/notifications'
     | '/teacher/profile'
-    | '/teacher/progress'
     | '/teacher/question-bank'
     | '/teacher/reports'
     | '/teacher/settings'
@@ -1364,6 +1384,7 @@ export interface FileRouteTypes {
     | '/teacher/classes/$classId/progress'
     | '/teacher/classes/$classId/students'
     | '/admin/content-library/$level/'
+    | '/teacher/classes/$classId/'
     | '/admin/content-library/$level/$skill/_index'
     | '/admin/jlpt-exam/$level/$examId/edit'
     | '/student/learning/alphabet/hiragana/basic'
@@ -1373,6 +1394,8 @@ export interface FileRouteTypes {
     | '/student/learning/alphabet/katakana/combination'
     | '/student/learning/alphabet/katakana/dakuten'
     | '/student/learning/japanese/lesson/$lessonId'
+    | '/teacher/classes/$classId/students/'
+    | '/teacher/classes/$classId/students/$studentId/progress'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1522,13 +1545,6 @@ declare module '@tanstack/react-router' {
       path: '/question-bank'
       fullPath: '/teacher/question-bank'
       preLoaderRoute: typeof TeacherQuestionBankRouteImport
-      parentRoute: typeof TeacherRoute
-    }
-    '/teacher/progress': {
-      id: '/teacher/progress'
-      path: '/progress'
-      fullPath: '/teacher/progress'
-      preLoaderRoute: typeof TeacherProgressRouteImport
       parentRoute: typeof TeacherRoute
     }
     '/teacher/profile': {
@@ -1923,6 +1939,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminClassManagementIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/teacher/classes/$classId/': {
+      id: '/teacher/classes/$classId/'
+      path: '/'
+      fullPath: '/teacher/classes/$classId/'
+      preLoaderRoute: typeof TeacherClassesClassIdIndexRouteImport
+      parentRoute: typeof TeacherClassesClassIdRoute
+    }
     '/admin/content-library/$level/': {
       id: '/admin/content-library/$level/'
       path: '/'
@@ -2098,6 +2121,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminJlptExamLevelIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/teacher/classes/$classId/students/': {
+      id: '/teacher/classes/$classId/students/'
+      path: '/'
+      fullPath: '/teacher/classes/$classId/students/'
+      preLoaderRoute: typeof TeacherClassesClassIdStudentsIndexRouteImport
+      parentRoute: typeof TeacherClassesClassIdStudentsRoute
+    }
     '/student/learning/japanese/lesson/$lessonId': {
       id: '/student/learning/japanese/lesson/$lessonId'
       path: '/lesson/$lessonId'
@@ -2160,6 +2190,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/content-library/$level/$skill'
       preLoaderRoute: typeof AdminContentLibraryLevelSkillIndexRouteImport
       parentRoute: typeof AdminContentLibraryLevelRoute
+    }
+    '/teacher/classes/$classId/students/$studentId/progress': {
+      id: '/teacher/classes/$classId/students/$studentId/progress'
+      path: '/$studentId/progress'
+      fullPath: '/teacher/classes/$classId/students/$studentId/progress'
+      preLoaderRoute: typeof TeacherClassesClassIdStudentsStudentIdProgressRouteImport
+      parentRoute: typeof TeacherClassesClassIdStudentsRoute
     }
   }
 }
@@ -2507,12 +2544,31 @@ const StudentRouteChildren: StudentRouteChildren = {
 const StudentRouteWithChildren =
   StudentRoute._addFileChildren(StudentRouteChildren)
 
+interface TeacherClassesClassIdStudentsRouteChildren {
+  TeacherClassesClassIdStudentsIndexRoute: typeof TeacherClassesClassIdStudentsIndexRoute
+  TeacherClassesClassIdStudentsStudentIdProgressRoute: typeof TeacherClassesClassIdStudentsStudentIdProgressRoute
+}
+
+const TeacherClassesClassIdStudentsRouteChildren: TeacherClassesClassIdStudentsRouteChildren =
+  {
+    TeacherClassesClassIdStudentsIndexRoute:
+      TeacherClassesClassIdStudentsIndexRoute,
+    TeacherClassesClassIdStudentsStudentIdProgressRoute:
+      TeacherClassesClassIdStudentsStudentIdProgressRoute,
+  }
+
+const TeacherClassesClassIdStudentsRouteWithChildren =
+  TeacherClassesClassIdStudentsRoute._addFileChildren(
+    TeacherClassesClassIdStudentsRouteChildren,
+  )
+
 interface TeacherClassesClassIdRouteChildren {
   TeacherClassesClassIdExamsRoute: typeof TeacherClassesClassIdExamsRoute
   TeacherClassesClassIdHomeworkRoute: typeof TeacherClassesClassIdHomeworkRoute
   TeacherClassesClassIdLessonsRoute: typeof TeacherClassesClassIdLessonsRoute
   TeacherClassesClassIdProgressRoute: typeof TeacherClassesClassIdProgressRoute
-  TeacherClassesClassIdStudentsRoute: typeof TeacherClassesClassIdStudentsRoute
+  TeacherClassesClassIdStudentsRoute: typeof TeacherClassesClassIdStudentsRouteWithChildren
+  TeacherClassesClassIdIndexRoute: typeof TeacherClassesClassIdIndexRoute
 }
 
 const TeacherClassesClassIdRouteChildren: TeacherClassesClassIdRouteChildren = {
@@ -2520,7 +2576,9 @@ const TeacherClassesClassIdRouteChildren: TeacherClassesClassIdRouteChildren = {
   TeacherClassesClassIdHomeworkRoute: TeacherClassesClassIdHomeworkRoute,
   TeacherClassesClassIdLessonsRoute: TeacherClassesClassIdLessonsRoute,
   TeacherClassesClassIdProgressRoute: TeacherClassesClassIdProgressRoute,
-  TeacherClassesClassIdStudentsRoute: TeacherClassesClassIdStudentsRoute,
+  TeacherClassesClassIdStudentsRoute:
+    TeacherClassesClassIdStudentsRouteWithChildren,
+  TeacherClassesClassIdIndexRoute: TeacherClassesClassIdIndexRoute,
 }
 
 const TeacherClassesClassIdRouteWithChildren =
@@ -2602,7 +2660,6 @@ interface TeacherRouteChildren {
   TeacherMyQuestionsRoute: typeof TeacherMyQuestionsRoute
   TeacherNotificationsRoute: typeof TeacherNotificationsRoute
   TeacherProfileRoute: typeof TeacherProfileRoute
-  TeacherProgressRoute: typeof TeacherProgressRoute
   TeacherQuestionBankRoute: typeof TeacherQuestionBankRoute
   TeacherReportsRoute: typeof TeacherReportsRoute
   TeacherSettingsRoute: typeof TeacherSettingsRoute
@@ -2624,7 +2681,6 @@ const TeacherRouteChildren: TeacherRouteChildren = {
   TeacherMyQuestionsRoute: TeacherMyQuestionsRoute,
   TeacherNotificationsRoute: TeacherNotificationsRoute,
   TeacherProfileRoute: TeacherProfileRoute,
-  TeacherProgressRoute: TeacherProgressRoute,
   TeacherQuestionBankRoute: TeacherQuestionBankRoute,
   TeacherReportsRoute: TeacherReportsRoute,
   TeacherSettingsRoute: TeacherSettingsRoute,

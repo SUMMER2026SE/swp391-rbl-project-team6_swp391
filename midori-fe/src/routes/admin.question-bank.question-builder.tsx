@@ -27,7 +27,11 @@ import {
   Library,
   RotateCcw,
 } from "lucide-react";
-import { questionBankService, useQuestionBank, type Question } from "../services/questionBankService";
+import {
+  questionBankService,
+  useQuestionBank,
+  type Question,
+} from "../services/questionBankService";
 import { audioService } from "../services/questionBank.audioService";
 import type {
   JLPTLevel,
@@ -442,7 +446,12 @@ function QuestionBuilderPage() {
   const lessonId = parseInt(search.lessonId || "1");
   const editId = search.editId as string | undefined;
 
-  const { lessons, questions: dbQuestions, createQuestion: createQuestionMutation, updateQuestion: updateQuestionMutation } = useQuestionBank(level);
+  const {
+    lessons,
+    questions: dbQuestions,
+    createQuestion: createQuestionMutation,
+    updateQuestion: updateQuestionMutation,
+  } = useQuestionBank(level);
 
   // Get lesson data from service
   const lesson = lessons.find((l) => l.id === lessonId);
@@ -467,7 +476,11 @@ function QuestionBuilderPage() {
 
   // Reset initialization flag when params change
   useEffect(() => {
-    console.log("Effect 1: Resetting hasInitializedRef because params changed", { level, lessonId, editId });
+    console.log("Effect 1: Resetting hasInitializedRef because params changed", {
+      level,
+      lessonId,
+      editId,
+    });
     hasInitializedRef.current = false;
   }, [level, lessonId, editId]);
 
@@ -476,7 +489,7 @@ function QuestionBuilderPage() {
     console.log("Effect 2: Initialization check", {
       hasInitialized: hasInitializedRef.current,
       editId,
-      dbQuestionsLength: dbQuestions.length
+      dbQuestionsLength: dbQuestions.length,
     });
     if (hasInitializedRef.current) return;
 
@@ -627,7 +640,7 @@ function QuestionBuilderPage() {
               return updateQuestionMutation(q.id, data);
             }
           }
-        })
+        }),
       );
 
       setSavedCount(completeQuestions.length);

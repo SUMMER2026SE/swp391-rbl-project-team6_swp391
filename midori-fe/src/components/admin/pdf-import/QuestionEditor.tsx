@@ -149,9 +149,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
             <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
               {index + 1}
             </span>
-            <span className="text-xs font-semibold text-muted-col">
-              Type:
-            </span>
+            <span className="text-xs font-semibold text-muted-col">Type:</span>
             <select
               value={question.type}
               onChange={(e) => handleTypeChange(e.target.value)}
@@ -376,7 +374,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
         <ValidationBanner errors={errors} />
       </div>
     );
-  }
+  },
 );
 
 QuestionEditor.displayName = "QuestionEditor";

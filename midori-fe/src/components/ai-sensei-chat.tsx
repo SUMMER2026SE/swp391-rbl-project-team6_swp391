@@ -5,7 +5,6 @@ import {
   BookOpen,
   GraduationCap,
   Headphones,
-  Mic2,
   FileText,
   Bot,
   X,
@@ -28,11 +27,28 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { aiApi } from "@/lib/api/ai";
-import type { AiConversation, AiMessage, ConversationMessagesResponse } from "@/types/ai";
+import type {
+  AiConversation,
+  AiMaterialDetail,
+  AiMaterialSummary,
+  AiMaterialType,
+  AiMessage,
+  ConversationMessagesResponse,
+} from "@/types/ai";
+import {
+  fillBlankResultState,
+  hasBlankMarker,
+  isFreeTextAnswerCorrect,
+  normalizeQuestion,
+  UNSUPPORTED,
+  type QuizQuestionType,
+} from "@/lib/ai/quizNormalize";
 
 // ═══════════════════════════════════════════════════════════════════
-// MOCK STUDY MATERIALS (FRONTEND ONLY)
-// In production, this should come from backend API
+// AI SENSEI MATERIAL MODEL
+// The frontend no longer carries any hardcoded study material. All
+// material data is fetched at runtime from /api/ai/materials, which in
+// turn reads only published, active, non-deleted lessons.
 // ═══════════════════════════════════════════════════════════════════
 
 interface VocabItem {
@@ -52,10 +68,24 @@ interface GrammarItem {
 
 interface MaterialContent {
   id: string;
-  type: "vocabulary" | "grammar" | "reading" | "listening" | "shadowing";
+  type: AiMaterialType | "vocabulary" | "grammar" | "reading" | "listening" | "shadowing";
   title: string;
   level: string;
-  content: VocabItem[] | GrammarItem[] | string;
+  /**
+   * Server-formatted plain text. Loaded lazily when the user selects a
+   * material. Empty string until the detail call returns.
+   */
+  content: string | VocabItem[] | GrammarItem[];
+  /**
+   * Short preview shown in the selector. Always available.
+   */
+  shortDescription?: string | null;
+  lessonNumber?: number;
+  /**
+   * True when the server truncated the formatted content to fit the
+   * 12000-character limit.
+   */
+  truncated?: boolean;
 }
 
 // Detailed content for quiz generation
@@ -67,17 +97,22 @@ const studyMaterials: MaterialContent[] = [
     level: "N5",
     content: [
       { jp: "食べる", reading: "たべる", vi: "ăn", example: "日本食を食べる (ăn thức ăn Nhật)" },
-      { jp: "飲む", reading: "のむ", vi: "uống", example: "水を飲む (uống nước)" },
-      { jp: "行く", reading: "いく", vi: "đi", example: "学校に行く (đi học)" },
-      { jp: "来る", reading: "くる", vi: "đến", example: "友達が来る (bạn đến)" },
-      { jp: "見る", reading: "みる", vi: "xem", example: "映画を見る (xem phim)" },
-      { jp: "聞く", reading: "きく", vi: "nghe/hỏi", example: "音楽を聞く (nghe nhạc)" },
-      { jp: "読む", reading: "よむ", vi: "đọc", example: "本を読む (đọc sách)" },
-      { jp: "書く", reading: "かく", vi: "viết", example: "手紙を書く (viết thư)" },
-      { jp: "話す", reading: "はなす", vi: "nói", example: "日本語を話す (nói tiếng Nhật)" },
-      { jp: "寝る", reading: "ねる", vi: "ngủ", example: "早く寝る (đi ngủ sớm)" },
-      { jp: "起きる", reading: "おきる", vi: "thức dậy", example: "六時に起きる (thức dậy lúc 6h)" },
-      { jp: "買う", reading: "かう", vi: "mua", example: "パンをかう (mua bánh mì)" },
+      { jp: "飲む", reading: "nomu", vi: "uống", example: "mizu wo nomu (uống nước)" },
+      { jp: "行く", reading: "iku", vi: "đi", example: "gakkou ni iku (đi học)" },
+      { jp: "来る", reading: "kuru", vi: "đến", example: "tomodachi ga kuru (bạn đến)" },
+      { jp: "見る", reading: "miru", vi: "xem", example: "eiga wo miru (xem phim)" },
+      { jp: "聞k", reading: "kiku", vi: "nghe/hỏi", example: "ongaku wo kiku (nghe nhạc)" },
+      { jp: "読む", reading: "yomu", vi: "đọc", example: "hon wo yomu (đọc sách)" },
+      { jp: "書く", reading: "kaku", vi: "viết", example: "tegami wo kaku (viết thư)" },
+      { jp: "話す", reading: "hanasu", vi: "nói", example: "nihongo wo hanasu (nói tiếng Nhật)" },
+      { jp: "寝る", reading: "neru", vi: "ngủ", example: "hayaku neru (đi ngủ sớm)" },
+      {
+        jp: "起きる",
+        reading: "okiru",
+        vi: "thức dậy",
+        example: "roku-ji ni okiru (thức dậy lúc 6h)",
+      },
+      { jp: "買う", reading: "kau", vi: "mua", example: "pan wo kau (mua bánh mì)" },
     ] as VocabItem[],
   },
   {
@@ -87,41 +122,41 @@ const studyMaterials: MaterialContent[] = [
     level: "N5",
     content: [
       {
-        pattern: "〜です",
+        pattern: "〜đes",
         meaning: "Diễn đạt sự lịch sự, phép lịch sự",
-        formation: "[Danh từ/Tính từ] + です",
+        formation: "[Danh từ/Tính từ] + des",
         examples: [
-          { ja: "私は学生です", vi: "Tôi là sinh viên" },
-          { ja: "今日は暑いです", vi: "Hôm nay nóng" },
+          { ja: "watashi wa gakusei desu", vi: "Tôi là sinh viên" },
+          { ja: "kyou wa atsui desu", vi: "Hôm nay nóng" },
         ],
-        notes: "Đuôi です dùng để biểu thị thái độ lịch sự khi nói chuyện",
+        notes: "Đuôi des dùng để biểu thị thái độ lịch sự khi nói chuyện",
       },
       {
-        pattern: "〜ではありません",
-        meaning: "Phủ định của です",
-        formation: "[Danh từ/Tính từ] + ではありません",
+        pattern: "〜đeharemasen",
+        meaning: "Phủ định của des",
+        formation: "[Danh từ/Tính từ] + deharemasen",
         examples: [
-          { ja: "私は先生ではありません", vi: "Tôi không phải là giáo viên" },
-          { ja: "今日は寒くではありません", vi: "Hôm nay không lạnh" },
+          { ja: "watashi wa sensei deharemasen", vi: "Tôi không phải là giáo viên" },
+          { ja: "kyou wa samuku deharemasen", vi: "Hôm nay không lạnh" },
         ],
         notes: "Dạng phủ định lịch sự",
       },
       {
-        pattern: "〜ですか",
+        pattern: "〜đeska",
         meaning: "Câu hỏi",
-        formation: "[Câu] + か",
+        formation: "[Câu] + ka",
         examples: [
-          { ja: "あなたは学生ですか", vi: "Bạn là sinh viên à?" },
-          { ja: "これは何ですか", vi: "Cái này là gì?" },
+          { ja: "anata wa gakusei deska", vi: "Bạn là sinh viên à?" },
+          { ja: "kore wa nan deska", vi: "Cái này là gì?" },
         ],
       },
       {
-        pattern: "〜ました",
+        pattern: "〜mashita",
         meaning: "Quá khứ lịch sự",
-        formation: "[Động từ thể ます] + ました",
+        formation: "[Động từ thể masu] + mashita",
         examples: [
-          { ja: "昨日、学校に行きました", vi: "Hôm qua, tôi đã đi học" },
-          { ja: "映画を見ました", vi: "Đã xem phim" },
+          { ja: "kinou, gakkou ni ikimashita", vi: "Hôm qua, tôi đã đi học" },
+          { ja: "eiga wo mimashita", vi: "Đã xem phim" },
         ],
       },
     ] as GrammarItem[],
@@ -132,12 +167,32 @@ const studyMaterials: MaterialContent[] = [
     title: "N5 Vocabulary - Bài 2 (Danh từ)",
     level: "N5",
     content: [
-      { jp: "学校", reading: "がっこう", vi: "trường học", example: "学校に行く (đi học)" },
-      { jp: "先生", reading: "せんせい", vi: "giáo viên", example: "日本語先生 (giáo viên tiếng Nhật)" },
-      { jp: "学生", reading: "がくせい", vi: "sinh viên/học sinh", example: "私は学生です (Tôi là học sinh)" },
-      { jp: "友達", reading: "ともだち", vi: "bạn bè", example: "友達と話す (nói chuyện với bạn)" },
-      { jp: "家族", reading: "かぞく", vi: "gia đình", example: "家族は何人ですか (Gia đình có bao nhiêu người?)" },
-      { jp: "会社", reading: "かいしゃ", vi: "công ty", example: "会社で働く (làm việc ở công ty)" },
+      { jp: "学校", reading: "gakkou", vi: "trường học", example: "gakkou ni iku (đi học)" },
+      {
+        jp: "先生",
+        reading: "sensei",
+        vi: "giáo viên",
+        example: "nihongo sensei (giáo viên tiếng Nhật)",
+      },
+      {
+        jp: "学生",
+        reading: "gakusei",
+        vi: "sinh viên/học sinh",
+        example: "watashi wa gakusei desu (Tôi là học sinh)",
+      },
+      { jp: "友達", reading: "tomodachi", vi: "bạn bè", example: "tomodachi to hanasu (nói chuyện với bạn)" },
+      {
+        jp: "家族",
+        reading: "kazoku",
+        vi: "gia đình",
+        example: "kazoku wa nannin deska (Gia đình có bao nhiêu người?)",
+      },
+      {
+        jp: "会社",
+        reading: "かいしゃ",
+        vi: "công ty",
+        example: "会社で働く (làm việc ở công ty)",
+      },
     ] as VocabItem[],
   },
   {
@@ -205,7 +260,13 @@ interface QuizQuestion {
   options: string[];
   correctAnswer: string;
   explanation?: string;
-  userAnswer?: number;
+  /**
+   * User-supplied answer. For option-based questions (MULTIPLE_CHOICE /
+   * TRUE_FALSE) this is the index of the chosen option. For FILL_BLANK
+   * questions it is the typed string. The renderer and scorer both key on
+   * the normalized question type to know which form to expect.
+   */
+  userAnswer?: number | string;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -216,18 +277,35 @@ function genId() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Build the ChatRequest.selectedMaterial payload.
+ *
+ * <p><strong>Phase 2 final trust boundary:</strong> when a real database
+ * material is selected, we send only <code>id</code> and <code>type</code>.
+ * The backend re-resolves the material through <code>AiMaterialService</code>
+ * and ignores <code>title</code> / <code>content</code>. We still attach
+ * <code>title</code> for instant UI display (the sidebar chip does not need
+ * to wait for a network round-trip to show the lesson name).
+ *
+ * <p>The 12000-char <code>content</code> is intentionally <strong>not</strong>
+ * sent on the wire — the backend already has it.
+ */
 function toMaterialContextPayload(material: MaterialContent | null | undefined) {
   if (!material) return undefined;
   return {
     id: material.id,
-    title: material.title,
     type: material.type,
+    title: material.title,
     level: material.level,
-    content: materialToText(material),
+    // content is omitted: the backend loads it from the DB by id+type
   };
 }
 
-function buildChatRequest(messageText: string, material: MaterialContent | null | undefined, conversationId: string | null) {
+function buildChatRequest(
+  messageText: string,
+  material: MaterialContent | null | undefined,
+  conversationId: string | null,
+) {
   return {
     message: messageText,
     conversationId: conversationId || undefined,
@@ -255,25 +333,11 @@ function highlightJapanese(text: string, tone: "user" | "ai" = "ai"): React.Reac
   );
 }
 
-// Convert material to text for LLM and fallback parser
-function materialToText(material: MaterialContent): string {
-  if (material.type === "vocabulary") {
-    const items = material.content as VocabItem[];
-    const lines = items.map(item => {
-      const parts = [item.jp, item.reading, item.vi];
-      if (item.example) parts.push(item.example);
-      return `- ${parts.join(" | ")}`;
-    });
-    return `Vocabulary:\n${lines.join("\n")}`;
-  }
-  if (material.type === "grammar") {
-    const items = material.content as GrammarItem[];
-    return items.map(item =>
-      `${item.pattern} | Nghĩa: ${item.meaning} | Cấu trúc: ${item.formation}\nVí dụ: ${item.examples.map(e => `${e.ja} (${e.vi})`).join(', ')}`
-    ).join("\n\n");
-  }
-  return material.content as string;
-}
+// The legacy `materialToText` helper was removed in Phase 2. The backend
+// now returns server-formatted plain-text material content (capped at
+// 12000 characters) via GET /api/ai/materials/{type}/{id}. The frontend
+// simply forwards that string to the chat / quiz endpoints — it no longer
+// parses the material shape client-side.
 
 // Safe markdown lite renderer for assistant messages.
 // No raw HTML, no new dependencies, supports tables requested by user prompts.
@@ -283,7 +347,7 @@ function materialToText(material: MaterialContent): string {
 // minimum set of characters that could break JSX/text rendering (<, >) so
 // the content stays safe to inject as React text without dangerouslySetInnerHTML.
 const HTML_ENTITY_DECODE_MAP: Record<string, string> = {
-  "&quot;": "\"",
+  "&quot;": '"',
   "&apos;": "'",
   "&#39;": "'",
   "&#x27;": "'",
@@ -295,7 +359,10 @@ const HTML_ENTITY_DECODE_MAP: Record<string, string> = {
 
 function decodeHtmlEntities(value: string): string {
   if (!value || value.indexOf("&") < 0) return value;
-  return value.replace(/&(?:quot|apos|amp|lt|gt|#39|#x27|#039);/g, (m) => HTML_ENTITY_DECODE_MAP[m] ?? m);
+  return value.replace(
+    /&(?:quot|apos|amp|lt|gt|#39|#x27|#039);/g,
+    (m) => HTML_ENTITY_DECODE_MAP[m] ?? m,
+  );
 }
 
 function escapeHtml(value: string): string {
@@ -312,14 +379,16 @@ function renderInline(inline: string, tone: "user" | "ai" = "ai"): React.ReactNo
   let match: RegExpExecArray | null;
   while ((match = regex.exec(inline)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex, match.index)), tone)}</span>);
+      parts.push(
+        <span key={`inline-${key++}`}>
+          {highlightJapanese(escapeHtml(inline.slice(lastIndex, match.index)), tone)}
+        </span>,
+      );
     }
     const token = match[0];
     if (token.startsWith("**") && token.endsWith("**")) {
       const strongClass =
-        tone === "user"
-          ? "font-bold text-white"
-          : "font-bold text-slate-900 dark:text-slate-50";
+        tone === "user" ? "font-bold text-white" : "font-bold text-slate-900 dark:text-slate-50";
       parts.push(
         <strong key={`inline-${key++}`} className={strongClass}>
           {highlightJapanese(escapeHtml(token.slice(2, -2)), tone)}
@@ -331,10 +400,7 @@ function renderInline(inline: string, tone: "user" | "ai" = "ai"): React.ReactNo
           ? "rounded bg-white/20 text-white px-1 py-0.5 text-xs font-mono border border-white/25"
           : "rounded bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-50 px-1 py-0.5 text-xs font-mono";
       parts.push(
-        <code
-          key={`inline-${key++}`}
-          className={codeClass}
-        >
+        <code key={`inline-${key++}`} className={codeClass}>
           {escapeHtml(token.slice(1, -1))}
         </code>,
       );
@@ -342,7 +408,11 @@ function renderInline(inline: string, tone: "user" | "ai" = "ai"): React.ReactNo
     lastIndex = match.index + token.length;
   }
   if (lastIndex < inline.length || parts.length === 0) {
-    parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex)), tone)}</span>);
+    parts.push(
+      <span key={`inline-${key++}`}>
+        {highlightJapanese(escapeHtml(inline.slice(lastIndex)), tone)}
+      </span>,
+    );
   }
   return parts;
 }
@@ -366,7 +436,9 @@ function isTableSeparatorLine(trimmed: string): boolean {
 function isSpaceAlignedSeparator(trimmed: string): boolean {
   if (!trimmed || trimmed.includes("|")) return false;
   // Must contain at least one ---, :---, ---:, or :---: separated by whitespace.
-  return /^(:?-{3,}|:?-{3,}:?)\s+(:?-{3,}|:?-{3,}:?)((\s+)(:?-{3,}|:?-{3,}:?))*(\s*:|-:)?$/.test(trimmed);
+  return /^(:?-{3,}|:?-{3,}:?)\s+(:?-{3,}|:?-{3,}:?)((\s+)(:?-{3,}|:?-{3,}:?))*(\s*:|-:)?$/.test(
+    trimmed,
+  );
 }
 
 function splitTableRow(line: string): string[] {
@@ -378,18 +450,16 @@ function splitTableRow(line: string): string[] {
   return body.split("|").map((cell) => cell.trim());
 }
 
-function renderTable(rows: string[][], tableIndex: number, tone: "user" | "ai" = "ai"): React.ReactNode {
+function renderTable(
+  rows: string[][],
+  tableIndex: number,
+  tone: "user" | "ai" = "ai",
+): React.ReactNode {
   if (rows.length === 0) return null;
   const header = rows[0];
   const body = rows.slice(1);
-  const baseText =
-    tone === "user"
-      ? "text-white"
-      : "text-slate-900 dark:text-slate-100";
-  const thBg =
-    tone === "user"
-      ? "bg-white/15"
-      : "bg-slate-100 dark:bg-slate-800";
+  const baseText = tone === "user" ? "text-white" : "text-slate-900 dark:text-slate-100";
+  const thBg = tone === "user" ? "bg-white/15" : "bg-slate-100 dark:bg-slate-800";
   const thClass =
     tone === "user"
       ? "px-3 py-2 text-left text-xs font-semibold border-b border-white/25 text-white whitespace-nowrap"
@@ -412,10 +482,7 @@ function renderTable(rows: string[][], tableIndex: number, tone: "user" | "ai" =
         <thead className={thBg}>
           <tr>
             {header.map((cell, idx) => (
-              <th
-                key={`${tableIndex}-h-${idx}`}
-                className={thClass}
-              >
+              <th key={`${tableIndex}-h-${idx}`} className={thClass}>
                 {renderInline(cell, tone)}
               </th>
             ))}
@@ -423,15 +490,9 @@ function renderTable(rows: string[][], tableIndex: number, tone: "user" | "ai" =
         </thead>
         <tbody className={baseText}>
           {body.map((row, rowIdx) => (
-            <tr
-              key={`${tableIndex}-r-${rowIdx}`}
-              className={rowClass}
-            >
+            <tr key={`${tableIndex}-r-${rowIdx}`} className={rowClass}>
               {row.map((cell, cellIdx) => (
-                <td
-                  key={`${tableIndex}-${rowIdx}-${cellIdx}`}
-                  className={tdClass}
-                >
+                <td key={`${tableIndex}-${rowIdx}-${cellIdx}`} className={tdClass}>
                   {renderInline(cell, tone)}
                 </td>
               ))}
@@ -562,7 +623,10 @@ function renderMarkdown(markdown: string, tone: "user" | "ai" = "ai"): React.Rea
         return splitTableRow(text);
       }
       // For non-pipe rows, try to split by 2+ spaces
-      return text.split(/\s{2,}/).map(c => c.trim()).filter(Boolean);
+      return text
+        .split(/\s{2,}/)
+        .map((c) => c.trim())
+        .filter(Boolean);
     };
 
     const header = parseRow(pipeRows[0].text);
@@ -587,7 +651,9 @@ function renderMarkdown(markdown: string, tone: "user" | "ai" = "ai"): React.Rea
   //   Kanji   Hiragana   Romaji   Nghĩa
   //   :---    :---       :---     :---
   //   食べる  たべる     taberu   ăn
-  const tryParseSpaceAlignedTable = (start: number): { nextIndex: number; rows: string[][] } | null => {
+  const tryParseSpaceAlignedTable = (
+    start: number,
+  ): { nextIndex: number; rows: string[][] } | null => {
     if (start >= lines.length) return null;
     const firstTrimmed = lines[start].trim();
     if (!firstTrimmed) return null;
@@ -619,12 +685,18 @@ function renderMarkdown(markdown: string, tone: "user" | "ai" = "ai"): React.Rea
     // Second row must be the separator.
     if (!isSpaceAlignedSeparator(rows[1])) return null;
 
-    const headerCells = rows[0].split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
+    const headerCells = rows[0]
+      .split(/\s{2,}/)
+      .map((c) => c.trim())
+      .filter(Boolean);
     if (headerCells.length < 1) return null;
 
     const bodyRows: string[][] = [];
     for (let k = 2; k < rows.length; k++) {
-      const cells = rows[k].split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
+      const cells = rows[k]
+        .split(/\s{2,}/)
+        .map((c) => c.trim())
+        .filter(Boolean);
       if (cells.length > 0) bodyRows.push(cells);
     }
 
@@ -719,50 +791,89 @@ function MaterialSelector({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<AiMaterialType | "ALL">("ALL");
+  const [materials, setMaterials] = useState<AiMaterialSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-  const typeIcons = {
-    vocabulary: BookOpen,
-    grammar: GraduationCap,
-    reading: FileText,
-    listening: Headphones,
-    shadowing: Mic2,
+  // Reset detail error whenever the selector opens.
+  useEffect(() => {
+    if (isOpen) setDetailError(null);
+  }, [isOpen]);
+
+  // Lightweight list — no full content. Fetched only when the user opens
+  // the selector so we don't pay for content we don't need.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+    aiApi
+      .listMaterials({ type: typeFilter === "ALL" ? undefined : typeFilter })
+      .then((data) => {
+        if (!cancelled) setMaterials(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to load AI materials", err);
+          setLoadError(err?.message || "Không tải được danh sách tài liệu.");
+          setMaterials([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, typeFilter]);
+
+  const typeIcons: Record<AiMaterialType, typeof BookOpen> = {
+    VOCABULARY: BookOpen,
+    GRAMMAR: GraduationCap,
+    READING: FileText,
+    LISTENING: Headphones,
   };
 
   const TypeIcon = selected ? typeIcons[selected.type] : BookOpen;
 
-  const filteredMaterials = studyMaterials.filter((material) => {
+  const filteredMaterials = materials.filter((material) => {
     const query = search.trim().toLowerCase();
     if (!query) return true;
-
-    const haystack = [
-      material.title,
-      material.type,
-      material.level,
-      typeof material.content === "string" ? material.content : "",
-      Array.isArray(material.content)
-        ? material.content
-            .map((item) => {
-              if (material.type === "vocabulary" && "jp" in item && "vi" in item) {
-                const vocab = item as { jp?: string; reading?: string; vi?: string; example?: string };
-                return [vocab.jp, vocab.reading, vocab.vi, vocab.example].filter(Boolean).join(" ");
-              }
-              if (material.type === "grammar" && "pattern" in item && "meaning" in item) {
-                const grammar = item as { pattern?: string; meaning?: string; formation?: string; notes?: string };
-                return [grammar.pattern, grammar.meaning, grammar.formation, grammar.notes]
-                  .filter(Boolean)
-                  .join(" ");
-              }
-              return "";
-            })
-            .join(" ")
-        : "",
-    ]
+    const haystack = [material.title, material.type, material.level, material.shortDescription ?? ""]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-
     return haystack.includes(query);
   });
+
+  const handlePick = async (material: AiMaterialSummary) => {
+    setDetailError(null);
+    const id = `${material.type}:${material.id}`;
+    setDetailLoadingId(id);
+    try {
+      const detail: AiMaterialDetail = await aiApi.getMaterialDetail(material.type, material.id);
+      onSelect({
+        id: detail.id,
+        type: detail.type,
+        title: detail.title,
+        level: detail.level,
+        content: detail.content,
+        shortDescription: material.shortDescription,
+        lessonNumber: detail.lessonNumber,
+        truncated: detail.truncated,
+      });
+      setIsOpen(false);
+      setSearch("");
+    } catch (err: any) {
+      console.error("Failed to load material detail", err);
+      setDetailError(err?.message || "Không tải được chi tiết tài liệu.");
+    } finally {
+      setDetailLoadingId(null);
+    }
+  };
 
   return (
     <div className="relative">
@@ -783,9 +894,24 @@ function MaterialSelector({
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="absolute top-full left-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl z-50 overflow-hidden"
+            className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xl z-50 overflow-hidden"
           >
-            <div className="p-2 border-b border-slate-100 dark:border-slate-700">
+            <div className="p-2 border-b border-slate-100 dark:border-slate-700 space-y-2">
+              <div className="flex gap-1 flex-wrap">
+                {(["ALL", "VOCABULARY", "GRAMMAR", "READING", "LISTENING"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTypeFilter(t)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                      typeFilter === t
+                        ? "bg-primary text-white"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"
+                    }`}
+                  >
+                    {t === "ALL" ? "Tất cả" : t.charAt(0) + t.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
               <div className="flex items-center gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/60 px-2 py-1.5">
                 <Search className="w-3.5 h-3.5 text-muted-foreground" />
                 <input
@@ -796,27 +922,49 @@ function MaterialSelector({
                 />
               </div>
             </div>
+
+            {detailError && (
+              <div className="px-3 py-2 text-xs text-red-600 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800 flex items-center gap-2">
+                <AlertCircle className="w-3 h-3" />
+                {detailError}
+              </div>
+            )}
+
             <div className="max-h-64 overflow-y-auto p-2">
-              {filteredMaterials.length === 0 ? (
+              {isLoading ? (
+                <div className="py-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Đang tải tài liệu...
+                </div>
+              ) : loadError ? (
+                <div className="py-6 text-center text-xs text-red-600">
+                  {loadError}
+                  <button
+                    onClick={() => setTypeFilter((prev) => prev)}
+                    className="block mx-auto mt-2 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-700 text-[11px]"
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              ) : filteredMaterials.length === 0 ? (
                 <div className="py-6 text-center text-xs text-muted-foreground">
                   Không tìm thấy tài liệu phù hợp.
                 </div>
               ) : (
                 filteredMaterials.map((material) => {
                   const Icon = typeIcons[material.type];
+                  const id = `${material.type}:${material.id}`;
+                  const isLoadingThis = detailLoadingId === id;
                   return (
                     <button
-                      key={material.id}
-                      onClick={() => {
-                        onSelect(material);
-                        setIsOpen(false);
-                        setSearch("");
-                      }}
+                      key={id}
+                      onClick={() => handlePick(material)}
+                      disabled={detailLoadingId !== null}
                       className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
                         selected?.id === material.id
                           ? "bg-primary/15 text-primary font-semibold"
                           : "hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-800 dark:text-slate-200"
-                      }`}
+                      } ${detailLoadingId !== null && !isLoadingThis ? "opacity-60" : ""}`}
                     >
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -825,12 +973,17 @@ function MaterialSelector({
                             : "bg-slate-100 dark:bg-slate-700"
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
+                        {isLoadingThis ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Icon className="w-4 h-4" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{material.title}</p>
                         <p className="text-xs text-muted-foreground capitalize">
-                          {material.type} · {material.level}
+                          {material.type.toLowerCase()} · {material.level}
+                          {material.lessonNumber ? ` · Bài ${material.lessonNumber}` : ""}
                         </p>
                       </div>
                       {selected?.id === material.id && <Check className="w-4 h-4 text-primary" />}
@@ -854,53 +1007,47 @@ function MaterialPreview({ material }: { material: MaterialContent | null }) {
       <div className="flex items-center gap-2 mb-3 flex-shrink-0">
         <BookMarked className="w-4 h-4 text-primary" />
         <h3 className="text-sm font-bold">Material Preview</h3>
+        <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">
+          {material.type}
+        </span>
       </div>
 
       <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Title</span>
-          <span className="text-sm font-medium">{material.title}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Type</span>
-          <span className="text-sm font-medium capitalize">{material.type}</span>
+          <span className="text-sm font-medium text-right">{material.title}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Level</span>
           <span className="text-sm font-medium">{material.level}</span>
         </div>
-
-        {material.type === "vocabulary" && (
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-            <p className="text-xs text-muted-foreground mb-1">Preview:</p>
-            <div className="space-y-1">
-              {(material.content as VocabItem[]).slice(0, 3).map((item, i) => (
-                <p key={i} className="text-sm">
-                  <span className="font-bold text-slate-900 dark:text-white">{item.jp}</span>
-                  <span className="text-muted-foreground">（{item.reading}）</span>
-                  <span className="ml-1 text-slate-700 dark:text-slate-300">= {item.vi}</span>
-                </p>
-              ))}
-              <p className="text-xs text-muted-foreground">
-                ...và {(material.content as VocabItem[]).length - 3} từ khác
-              </p>
-            </div>
+        {material.lessonNumber != null && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Lesson</span>
+            <span className="text-sm font-medium">{material.lessonNumber}</span>
           </div>
         )}
-
-        {material.type === "grammar" && (
+        {material.shortDescription && (
           <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-            <p className="text-xs text-muted-foreground mb-1">Patterns:</p>
-            <div className="space-y-1">
-              {(material.content as GrammarItem[]).slice(0, 3).map((item, i) => (
-                <p key={i} className="text-sm">
-                  <span className="font-bold text-slate-900 dark:text-white">{item.pattern}</span>
-                  <span className="ml-1 text-slate-700 dark:text-slate-300">= {item.meaning}</span>
-                </p>
-              ))}
-            </div>
+            <p className="text-xs text-muted-foreground mb-1">Description</p>
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {material.shortDescription}
+            </p>
           </div>
         )}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-muted-foreground">Content (server-formatted)</p>
+            {material.truncated && (
+              <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                Đã cắt bớt
+              </span>
+            )}
+          </div>
+          <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-words font-sans text-slate-700 dark:text-slate-300 max-h-40 overflow-y-auto">
+            {material.content || "Đang tải nội dung..."}
+          </pre>
+        </div>
       </div>
     </div>
   );
@@ -1041,7 +1188,18 @@ function PracticeMode({
   const [submitted, setSubmitted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [usedFallback, setUsedFallback] = useState(false);
-  const [fillBlankInput, setFillBlankInput] = useState("");
+  /**
+   * Per-question typed answer for fill-blank questions, keyed by the
+   * question's stable id. This replaces the previous single
+   * <code>fillBlankInput</code> state that lost its value when the user
+   * navigated between questions, especially under MIXED mode where the
+   * input state was shared with multiple-choice questions.
+   *
+   * <p>Multiple-choice / true-false answers continue to be stored on
+   * <code>quizData[i].userAnswer</code> as an option index; only the
+   * free-text answer for fill-blank lives here.
+   */
+  const [fillBlankAnswers, setFillBlankAnswers] = useState<Record<string, string>>({});
 
   const handleGenerate = async () => {
     if (!selectedMaterial) {
@@ -1055,14 +1213,20 @@ function PracticeMode({
     setSubmitted(false);
     setCurrentIndex(0);
     setUsedFallback(false);
-    setFillBlankInput("");
+    setFillBlankAnswers({});
 
     try {
+      // Phase 2 final trust boundary: send materialId + materialType so the
+      // backend resolves content from the DB. We do NOT send materialContent
+      // (the 12000-char lesson body) — that would defeat the trust boundary.
+      // materialTitle is kept as a fallback topic label; the backend will
+      // replace it with the authoritative DB title once it resolves the
+      // material.
       const response = await aiApi.generateQuestions({
         topic: selectedMaterial.title,
         materialId: selectedMaterial.id,
+        materialType: selectedMaterial.type,
         materialTitle: selectedMaterial.title,
-        materialContent: materialToText(selectedMaterial),
         level: difficulty,
         count: questionCount,
         type: questionType,
@@ -1075,44 +1239,68 @@ function PracticeMode({
       }
 
       if (response.questions && response.questions.length > 0) {
-        // Validate and normalize each question
+        // Validate and normalize each question. The renderer and scorer
+        // both key off the normalized type. Unknown types are NOT
+        // silently coerced to FILL_BLANK any more — they are kept in
+        // the quiz with type="UNSUPPORTED" so the renderer can show a
+        // safe Vietnamese fallback and so submission can be blocked
+        // until the user regenerates.
         const validQuestions: QuizQuestion[] = response.questions
           .map((q, i) => {
-            const type = (q.type || "MULTIPLE_CHOICE").toUpperCase();
-            let question = q.question || q.questionText || "";
+            const rawType = q.type || "";
+            // Object-based normalization: inspect the WHOLE question
+            // (type + text + options + correctAnswer), not just the type
+            // string. This is what catches the MIXED-mode bug where the
+            // provider emits a fill-blank question labelled MULTIPLE_CHOICE
+            // with an empty options array.
+            const normalized = normalizeQuestion(q);
+            if (normalized === UNSUPPORTED && rawType !== "") {
+              // Log only non-sensitive diagnostic info (the raw type,
+              // not the question text or the answer).
+              // eslint-disable-next-line no-console
+              console.warn(`[Quiz] Question ${q.id || i}: unsupported type "${rawType}", rendering as unsupported`);
+            }
+            const question = (q.question || q.questionText || "").trim();
             let correctAnswer = q.correctAnswer || "";
-            let options = q.options || [];
+            let options = Array.isArray(q.options) ? q.options : [];
 
-            if (!correctAnswer && typeof q.correctAnswerIndex === "number" && options[q.correctAnswerIndex]) {
+            if (
+              !correctAnswer &&
+              typeof q.correctAnswerIndex === "number" &&
+              options[q.correctAnswerIndex]
+            ) {
               correctAnswer = options[q.correctAnswerIndex];
             }
 
-            if (type === "TRUE_FALSE") {
+            if (normalized === "TRUE_FALSE") {
               options = ["Đúng", "Sai"];
             }
 
-            if (type === "FILL_BLANK") {
+            if (normalized === "FILL_BLANK") {
               options = [];
             }
 
+            // For unsupported questions the backend never provided a
+            // meaningful correctAnswer / options; the renderer will
+            // simply hide them.
             return {
               id: q.id || `q_${i}`,
-              type,
-              question: question.trim(),
+              type: normalized,
+              question,
               options,
-              correctAnswer: correctAnswer.trim(),
+              correctAnswer: (correctAnswer || "").trim(),
               explanation: q.explanation || "",
             };
           })
           .filter((q) => {
             if (!q.question) {
+              // eslint-disable-next-line no-console
               console.warn(`[Quiz] Skipping question ${q.id}: empty question text`);
               return false;
             }
-            if (!q.correctAnswer) {
-              console.warn(`[Quiz] Skipping question ${q.id}: empty correctAnswer`);
-              return false;
-            }
+            // Unsupported questions can stay so the renderer can show
+            // the fallback and block submission, but they are not
+            // counted toward the score.
             return true;
           });
 
@@ -1150,26 +1338,82 @@ function PracticeMode({
     setError((prev) => (prev ? null : prev));
   };
 
-  const handleFillBlankAnswer = (text: string) => {
+  /**
+   * Persist the user's typed answer for a fill-blank question, keyed by
+   * the question's stable id. The input stays mounted across navigation
+   * because the answer is stored per-question, not in a sibling
+   * component-level state. We deliberately do not mirror the value onto
+   * <code>q.userAnswer</code> so the renderer and scorer always read
+   * fill-blank answers from one canonical place.
+   */
+  const handleFillBlankAnswer = (questionId: string, text: string) => {
     if (!quizData || submitted) return;
-    setFillBlankInput(text);
-    const newQuiz = [...quizData];
-    newQuiz[currentIndex] = { ...newQuiz[currentIndex], userAnswer: text };
-    setQuizData(newQuiz);
+    setFillBlankAnswers((prev) => ({ ...prev, [questionId]: text }));
     setError((prev) => (prev ? null : prev));
   };
 
+  /**
+   * Whether every question in the current quiz has an answer recorded.
+  /**
+   * Whether every question has an answer recorded. UNSUPPORTED
+   * questions are intentionally excluded: the user cannot answer
+   * them, so blocking submit on them would be unfair. Submission is
+   * independently blocked when an unsupported question exists (see
+   * {@link hasUnsupportedQuestions}).
+   */
+  const answeredCount = quizData
+    ? quizData.filter((q) => {
+        const t = q.type;
+        if (t === UNSUPPORTED) return true; // already "answered" by the renderer
+        if (t === "FILL_BLANK") {
+          return (fillBlankAnswers[q.id] ?? "").trim() !== "";
+        }
+        const ua = q.userAnswer;
+        return ua !== undefined && ua !== null && ua !== "";
+      }).length
+    : 0;
+
+  /**
+   * True when at least one question in the quiz is unsupported.
+   * Submission is blocked and the user is asked to regenerate.
+   */
+  const hasUnsupportedQuestions = !!quizData
+    && quizData.some((q) => q.type === UNSUPPORTED);
+
+  /**
+   * Count of unsupported questions in the quiz. Surfaced in the UI so
+   * the user knows why submission is blocked.
+   */
+  const unsupportedCount = quizData
+    ? quizData.filter((q) => q.type === UNSUPPORTED).length
+    : 0;
+
+  /**
+   * For fill-blank questions the answer is read from the per-question
+   * map; for option-based questions the answer is on the question
+   * object itself. UNSUPPORTED questions are excluded from the
+   * answered-count denominator above; for an UNSUPPORTED question
+   * we don't render an input, so isAnswered deliberately returns
+   * true so it does not block "all answered" semantics.
+   */
+  const allQuestionsAnswered = !!quizData && answeredCount === quizData.length;
+
   const handleSubmit = () => {
     if (!quizData) return;
-    const unanswered = quizData.filter((q) => q.userAnswer === undefined || q.userAnswer === null || q.userAnswer === "").length;
-    if (unanswered > 0) {
+    if (hasUnsupportedQuestions) {
+      setError(
+        `Bộ câu hỏi chứa ${unsupportedCount} câu không hỗ trợ. Vui lòng tạo lại bộ câu hỏi để tiếp tục.`
+      );
+      return;
+    }
+    if (!allQuestionsAnswered) {
+      const unanswered = quizData.length - answeredCount;
       setError(`Vui lòng trả lời tất cả câu hỏi trước khi nộp. Còn ${unanswered} câu chưa trả lời.`);
       return;
     }
     setError(null);
     setSubmitted(true);
     setCurrentIndex(0);
-    setFillBlankInput("");
   };
 
   const handleRetry = () => {
@@ -1178,37 +1422,57 @@ function PracticeMode({
     setCurrentIndex(0);
     setUsedFallback(false);
     setError(null);
-    setFillBlankInput("");
+    setFillBlankAnswers({});
     // Leave selectedMaterial, questionCount, questionType, difficulty as-is so
     // the user can immediately re-tap Generate with the same settings.
   };
 
-  const computeScore = (): { score: number; percent: number } => {
-    if (!quizData || quizData.length === 0) return { score: 0, percent: 0 };
+  const computeScore = (): { score: number; percent: number; scored: number; skipped: number } => {
+    if (!quizData || quizData.length === 0) return { score: 0, percent: 0, scored: 0, skipped: 0 };
     let correct = 0;
+    let scored = 0;
+    let skipped = 0;
     for (const q of quizData) {
-      const ua = q.userAnswer;
-      if (ua === undefined || ua === null || ua === "") continue;
-      if (typeof ua === "number") {
+      const t = q.type;
+      if (t === UNSUPPORTED) {
+        // Provider returned a type the renderer does not understand.
+        // Skip from the denominator so the user is not penalized for
+        // a malformed provider response. Submission is independently
+        // blocked by handleSubmit so the user regenerates.
+        skipped++;
+        continue;
+      }
+      scored++;
+      if (t === "FILL_BLANK") {
+        const typed = fillBlankAnswers[q.id] ?? "";
+        if (isFreeTextAnswerCorrect(typed, q.correctAnswer)) correct++;
+      } else if (typeof q.userAnswer === "number") {
         const opts = q.options || [];
-        if (opts[ua] === q.correctAnswer) correct++;
-      } else {
-        // String answer - normalize for comparison
-        const userAns = String(ua).trim().toLowerCase();
-        const correctAns = q.correctAnswer.trim().toLowerCase();
-        if (userAns === correctAns) correct++;
+        if (opts[q.userAnswer] === q.correctAnswer) correct++;
       }
     }
     return {
       score: correct,
-      percent: Math.round((correct / quizData.length) * 100),
+      percent: scored === 0 ? 0 : Math.round((correct / scored) * 100),
+      scored,
+      skipped,
     };
   };
 
   const { score, percent } = computeScore();
 
   const currentQuestion = quizData && quizData.length > 0 ? quizData[currentIndex] : null;
-  const isCurrentAnswered = currentQuestion !== undefined && currentQuestion?.userAnswer !== undefined && currentQuestion?.userAnswer !== null && currentQuestion?.userAnswer !== "";
+  const isCurrentAnswered = currentQuestion
+    ? (() => {
+        const t = currentQuestion.type;
+        if (t === UNSUPPORTED) return true; // not answerable
+        if (t === "FILL_BLANK") {
+          return (fillBlankAnswers[currentQuestion.id] ?? "").trim() !== "";
+        }
+        const ua = currentQuestion.userAnswer;
+        return ua !== undefined && ua !== null && ua !== "";
+      })()
+    : false;
 
   const typeOptions = [
     { value: "MULTIPLE_CHOICE", label: "Trắc nghiệm" },
@@ -1224,7 +1488,10 @@ function PracticeMode({
   ];
 
   // Determine if an option is correct/wrong for display
-  const getOptionState = (option: string, index: number): "correct" | "wrong" | "selected" | "default" => {
+  const getOptionState = (
+    option: string,
+    index: number,
+  ): "correct" | "wrong" | "selected" | "default" => {
     if (!submitted || !currentQuestion) return "default";
     const correct = currentQuestion.correctAnswer;
     if (option === correct) return "correct";
@@ -1261,7 +1528,7 @@ function PracticeMode({
                   <p className="text-xs text-muted-foreground">Tài liệu đã chọn</p>
                   <p className="text-sm font-medium">{selectedMaterial.title}</p>
                   <p className="text-xs text-muted-foreground capitalize">
-                    {selectedMaterial.type} · {selectedMaterial.level}
+                    {selectedMaterial.type.toLowerCase()} · {selectedMaterial.level}
                   </p>
                 </div>
 
@@ -1380,8 +1647,8 @@ function PracticeMode({
                 percent >= 75
                   ? "bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-100 dark:border-emerald-800"
                   : percent >= 50
-                  ? "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-800"
-                  : "bg-red-50 text-red-900 border-red-200 dark:bg-red-950/40 dark:text-red-100 dark:border-red-800"
+                    ? "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-800"
+                    : "bg-red-50 text-red-900 border-red-200 dark:bg-red-950/40 dark:text-red-100 dark:border-red-800"
               }`}
             >
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -1390,22 +1657,32 @@ function PracticeMode({
                     percent >= 75
                       ? "text-emerald-600 dark:text-emerald-400"
                       : percent >= 50
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-red-600 dark:text-red-400"
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-red-600 dark:text-red-400"
                   }`}
                 />
                 <span className="text-3xl font-bold">{percent}%</span>
               </div>
               <p className="text-sm font-medium">
-                {score}/{quizData.length} câu đúng
+                {score}/{(() => {
+                  const skippedCount = quizData.filter((q) => q.type === UNSUPPORTED).length;
+                  return quizData.length - skippedCount;
+                })()} câu đúng
+                {(() => {
+                  const skippedCount = quizData.filter((q) => q.type === UNSUPPORTED).length;
+                  if (skippedCount > 0) {
+                    return <span className="text-xs text-muted-foreground ml-1">({skippedCount} không hỗ trợ)</span>;
+                  }
+                  return null;
+                })()}
               </p>
               <p
                 className={`text-xs mt-1 ${
                   percent >= 75
                     ? "text-emerald-700 dark:text-emerald-300"
                     : percent >= 50
-                    ? "text-amber-700 dark:text-amber-300"
-                    : "text-red-700 dark:text-red-300"
+                      ? "text-amber-700 dark:text-amber-300"
+                      : "text-red-700 dark:text-red-300"
                 }`}
               >
                 {percent >= 75 ? "Xuất sắc!" : percent >= 50 ? "Khá tốt!" : "Cố gắng hơn nhé!"}
@@ -1418,11 +1695,14 @@ function PracticeMode({
             <div className="flex justify-between text-xs text-muted-foreground mb-1">
               <span>
                 Câu {currentIndex + 1}/{quizData.length} ·{" "}
-                <span className="font-medium">{currentQuestion.type.replace("_", " ")}</span>
+                <span className="font-medium">{(() => {
+                  const t = currentQuestion.type;
+                  if (t === UNSUPPORTED) return "không hỗ trợ";
+                  return t.replace("_", " ");
+                })()}</span>
               </span>
               <span>
-                {quizData.filter((q) => q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== "").length}/
-                {quizData.length} đã trả lời
+                {answeredCount}/{quizData.length} đã trả lời
               </span>
             </div>
             <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -1441,18 +1721,21 @@ function PracticeMode({
             </p>
 
             {/* MULTIPLE_CHOICE rendering */}
-            {currentQuestion.type === "MULTIPLE_CHOICE" && currentQuestion.options && (
+            {currentQuestion.type === "MULTIPLE_CHOICE" && currentQuestion.options && currentQuestion.options.length > 0 && (
               <div className="space-y-2">
                 {currentQuestion.options.map((option, i) => {
                   const state = getOptionState(option, i);
-                  let className = "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
+                  let className =
+                    "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
                   let icon: React.ReactNode = null;
 
                   if (state === "correct") {
-                    className = "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
+                    className =
+                      "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
                     icon = <CheckCircle2 className="w-4 h-4 text-green-500" />;
                   } else if (state === "wrong") {
-                    className = "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
+                    className =
+                      "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
                     icon = <X className="w-4 h-4 text-red-500" />;
                   } else if (!submitted && currentQuestion.userAnswer === i) {
                     className = "bg-primary/10 border-primary/30 text-primary";
@@ -1466,7 +1749,9 @@ function PracticeMode({
                       className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm transition-all flex items-center justify-between ${className}`}
                     >
                       <span className="flex items-center gap-2">
-                        <span className="font-bold w-5 shrink-0 text-center">{String.fromCharCode(65 + i)}.</span>
+                        <span className="font-bold w-5 shrink-0 text-center">
+                          {String.fromCharCode(65 + i)}.
+                        </span>
                         <span>{option}</span>
                       </span>
                       {icon}
@@ -1482,15 +1767,18 @@ function PracticeMode({
                 {["Đúng", "Sai"].map((opt, i) => {
                   const isCorrect = opt === currentQuestion.correctAnswer;
                   const isSelected = currentQuestion.userAnswer === i;
-                  let className = "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
+                  let className =
+                    "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
                   let icon: React.ReactNode = null;
 
                   if (submitted) {
                     if (isCorrect) {
-                      className = "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
+                      className =
+                        "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
                       icon = <CheckCircle2 className="w-5 h-5 text-green-500" />;
                     } else if (isSelected && !isCorrect) {
-                      className = "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
+                      className =
+                        "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
                       icon = <X className="w-5 h-5 text-red-500" />;
                     }
                   } else if (isSelected) {
@@ -1512,37 +1800,95 @@ function PracticeMode({
               </div>
             )}
 
-            {/* FILL_BLANK rendering */}
-            {currentQuestion.type === "FILL_BLANK" && (
-              <div>
-                <input
-                  data-testid="practice-fill-blank-input"
-                  aria-label="Nhập đáp án điền từ"
-                  type="text"
-                  value={fillBlankInput}
-                  onChange={(e) => handleFillBlankAnswer(e.target.value)}
-                  disabled={submitted}
-                  placeholder="Nhập đáp án..."
-                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400 ${
-                    submitted
-                      ? fillBlankInput.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase()
-                        ? "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700"
-                        : "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700"
-                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 focus:border-primary/50"
-                  }`}
-                />
-                {submitted && (
-                  <div className="mt-2 flex items-center gap-2">
-                    {fillBlankInput.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase() ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <X className="w-4 h-4 text-red-500" />
+            {/* FILL_BLANK rendering — always shows a free-text input */}
+            {currentQuestion.type === "FILL_BLANK" && (() => {
+              const typed = fillBlankAnswers[currentQuestion.id] ?? "";
+              const hasMarker = hasBlankMarker(currentQuestion.question);
+              const resultState = submitted
+                ? fillBlankResultState(typed, currentQuestion.correctAnswer)
+                : "unanswered";
+              const isCorrect = resultState === "correct";
+              const isIncorrect = resultState === "incorrect";
+              return (
+                <div data-testid="practice-fill-blank-block">
+                  {hasMarker && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Gợi ý: điền vào chỗ trống <span className="font-mono">____</span> trong câu hỏi.
+                    </p>
+                  )}
+                  <input
+                    key={currentQuestion.id}
+                    data-testid="practice-fill-blank-input"
+                    aria-label="Nhập đáp án điền từ"
+                    type="text"
+                    value={typed}
+                    onChange={(e) => handleFillBlankAnswer(currentQuestion.id, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !submitted && currentIndex === quizData.length - 1) {
+                        e.preventDefault();
+                        if (allQuestionsAnswered) handleSubmit();
+                      }
+                    }}
+                    disabled={submitted}
+                    placeholder="Nhập đáp án..."
+                    autoComplete="off"
+                    spellCheck={false}
+                    className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400 ${
+                      submitted
+                        ? isCorrect
+                          ? "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700"
+                          : isIncorrect
+                          ? "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700"
+                          : "bg-slate-50 border-slate-300 dark:bg-slate-700/40 dark:border-slate-600"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+                    }`}
+                  />
+                  {submitted && (
+                    <div className="mt-2 flex items-center gap-2">
+                      {isCorrect ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      ) : isIncorrect ? (
+                        <X className="w-4 h-4 text-red-500" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
+                      )}
+                      <span className="text-xs">
+                        Đáp án đúng: <strong>{currentQuestion.correctAnswer}</strong>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* UNSUPPORTED question rendering */}
+            {currentQuestion.type === UNSUPPORTED && (
+              <div
+                data-testid="practice-unsupported-block"
+                role="alert"
+                className="rounded-xl border border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 p-3"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      Không thể hiển thị loại câu hỏi này. Vui lòng tạo lại bộ câu hỏi.
+                    </p>
+                    {currentQuestion.type && typeof currentQuestion.type === "string" && currentQuestion.type !== UNSUPPORTED && (
+                      <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1 break-all">
+                        Loại câu hỏi: <span className="font-mono">{currentQuestion.type}</span>
+                      </p>
                     )}
-                    <span className="text-xs">
-                      Đáp án đúng: <strong>{currentQuestion.correctAnswer}</strong>
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Tạo lại câu hỏi
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -1559,11 +1905,7 @@ function PracticeMode({
           <div className="flex gap-2 flex-shrink-0 mt-auto">
             <button
               type="button"
-              onClick={() => {
-                setCurrentIndex(Math.max(0, currentIndex - 1));
-                setFillBlankInput(typeof quizData[Math.max(0, currentIndex - 1)]?.userAnswer === "string"
-                  ? String(quizData[Math.max(0, currentIndex - 1)]?.userAnswer || "") : "");
-              }}
+              onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
               className="px-4 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-xl disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
             >
@@ -1573,11 +1915,7 @@ function PracticeMode({
             {currentIndex < quizData.length - 1 ? (
               <button
                 type="button"
-                onClick={() => {
-                  setCurrentIndex(currentIndex + 1);
-                  setFillBlankInput(typeof quizData[currentIndex + 1]?.userAnswer === "string"
-                    ? String(quizData[currentIndex + 1]?.userAnswer || "") : "");
-                }}
+                onClick={() => setCurrentIndex(currentIndex + 1)}
                 className="flex-1 px-4 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary/90 transition"
               >
                 Next →
@@ -1694,7 +2032,11 @@ export function AISenseiPage() {
   const [chatBootState, setChatBootState] = useState<"loading" | "ready" | "error">("loading");
 
   // Edit mode state
-  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; materialContext?: MaterialContent } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{
+    id: string;
+    content: string;
+    materialContext?: MaterialContent;
+  } | null>(null);
   const [editInput, setEditInput] = useState("");
   const [isSavingEdit, setSavingEdit] = useState(false);
 
@@ -1818,26 +2160,23 @@ export function AISenseiPage() {
     [activeConversationId],
   );
 
-  const handleRenameConversation = useCallback(
-    async (conversation: AiConversation) => {
-      const newTitle = window.prompt("Nhập tên mới cho đoạn chat:", conversation.title);
-      if (newTitle === null) return;
-      const trimmed = newTitle.trim();
-      if (!trimmed) return;
+  const handleRenameConversation = useCallback(async (conversation: AiConversation) => {
+    const newTitle = window.prompt("Nhập tên mới cho đoạn chat:", conversation.title);
+    if (newTitle === null) return;
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
 
-      setApiError(null);
-      try {
-        const updated = await aiApi.updateConversationTitle(conversation.id, { title: trimmed });
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conversation.id ? { ...c, title: updated.title } : c)),
-        );
-      } catch (error) {
-        console.error("Failed to rename conversation", error);
-        setApiError("Không đổi được tên conversation.");
-      }
-    },
-    [],
-  );
+    setApiError(null);
+    try {
+      const updated = await aiApi.updateConversationTitle(conversation.id, { title: trimmed });
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversation.id ? { ...c, title: updated.title } : c)),
+      );
+    } catch (error) {
+      console.error("Failed to rename conversation", error);
+      setApiError("Không đổi được tên conversation.");
+    }
+  }, []);
 
   const handleEditMessage = useCallback((msg: Message) => {
     setEditingMessage({ id: msg.id, content: msg.content, materialContext: msg.materialContext });
@@ -1916,12 +2255,21 @@ export function AISenseiPage() {
       setIsTyping(false);
       setChatLoadingText(null);
     }
-  }, [editingMessage, editInput, activeConversationId, messages, selectedMaterial, loadConversations]);
+  }, [
+    editingMessage,
+    editInput,
+    activeConversationId,
+    messages,
+    selectedMaterial,
+    loadConversations,
+  ]);
 
   const [chatLoadingText, setChatLoadingText] = useState<string | null>(null);
   const aiLoadingMessages = [
     "AI Sensei đang phân tích câu hỏi...",
-    selectedMaterial ? "Đang tham chiếu tài liệu đã chọn..." : "Đang tổng hợp kiến thức liên quan...",
+    selectedMaterial
+      ? "Đang tham chiếu tài liệu đã chọn..."
+      : "Đang tổng hợp kiến thức liên quan...",
     "Đang soạn câu trả lời...",
   ];
 
@@ -1955,7 +2303,9 @@ export function AISenseiPage() {
       }, 1200);
 
       try {
-        const response = await aiApi.chat(buildChatRequest(trimmed, materialContext, activeConversationId));
+        const response = await aiApi.chat(
+          buildChatRequest(trimmed, materialContext, activeConversationId),
+        );
 
         const success = await loadMessages(response.conversationId);
 
@@ -1966,7 +2316,11 @@ export function AISenseiPage() {
         await loadConversations();
       } catch (error: any) {
         console.error("Failed to send message", error);
-        if (error?.message?.includes("not configured") || error?.message?.includes("OPENROUTER_API_KEY") || error?.message?.includes("GEMINI_API_KEY")) {
+        if (
+          error?.message?.includes("not configured") ||
+          error?.message?.includes("OPENROUTER_API_KEY") ||
+          error?.message?.includes("GEMINI_API_KEY")
+        ) {
           setApiError("AI provider chưa được cấu hình. Vui lòng liên hệ quản trị viên.");
         } else if (error?.message?.includes("429")) {
           setApiError("AI đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
@@ -1981,7 +2335,14 @@ export function AISenseiPage() {
         setChatLoadingText(null);
       }
     },
-    [input, isSendingMessage, activeConversationId, loadConversations, loadMessages, selectedMaterial],
+    [
+      input,
+      isSendingMessage,
+      activeConversationId,
+      loadConversations,
+      loadMessages,
+      selectedMaterial,
+    ],
   );
 
   const handleModeChange = (newMode: Mode) => {
@@ -2008,7 +2369,9 @@ export function AISenseiPage() {
     if (isLoadingConversations || bootInitializedRef.current) return;
 
     const isReload = () => {
-      const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+      const nav = performance.getEntriesByType("navigation")[0] as
+        | PerformanceNavigationTiming
+        | undefined;
       return nav?.type === "reload";
     };
 
@@ -2072,9 +2435,7 @@ export function AISenseiPage() {
           </div>
 
           <div className="space-y-1 max-h-40 overflow-y-auto">
-            {isLoadingConversations && (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            )}
+            {isLoadingConversations && <p className="text-xs text-muted-foreground">Loading...</p>}
             {!isLoadingConversations && conversations.length === 0 && (
               <p className="text-xs text-muted-foreground">No conversations yet.</p>
             )}
@@ -2131,6 +2492,15 @@ export function AISenseiPage() {
           <div className="flex items-center gap-2 mb-4">
             <Search className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-bold">Material Selection</h3>
+            {selectedMaterial && (
+              <button
+                onClick={() => setSelectedMaterial(null)}
+                className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+                title="Bỏ chọn tài liệu"
+              >
+                <X className="w-3 h-3" /> Bỏ chọn
+              </button>
+            )}
           </div>
 
           <MaterialSelector selected={selectedMaterial} onSelect={setSelectedMaterial} />
@@ -2181,7 +2551,7 @@ export function AISenseiPage() {
           {selectedMaterial && (
             <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs flex-shrink-0">
               <BookMarked className="w-3 h-3" />
-              <span className="font-medium">{selectedMaterial.type}</span>
+              <span className="font-medium">{selectedMaterial.type.toLowerCase()}</span>
             </div>
           )}
         </div>
@@ -2195,7 +2565,10 @@ export function AISenseiPage() {
         ) : (
           <>
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-24 lg:pb-0">
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-24 lg:pb-0"
+            >
               {apiError && (
                 <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -2226,7 +2599,11 @@ export function AISenseiPage() {
                 ))}
 
               {isTyping && chatLoadingText && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex"
+                >
                   <div className="max-w-[85%]">
                     <div className="flex items-center gap-2 mb-1 ml-1">
                       <div className="w-6 h-6 rounded-lg bg-gradient-hero flex items-center justify-center">
@@ -2237,9 +2614,18 @@ export function AISenseiPage() {
                     <div className="rounded-2xl px-4 py-3 bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700">
                       <div className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 flex items-center gap-2">
                         <span className="flex gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                            style={{ animationDelay: "0ms" }}
+                          />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                            style={{ animationDelay: "150ms" }}
+                          />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                            style={{ animationDelay: "300ms" }}
+                          />
                         </span>
                         {chatLoadingText}
                       </div>
@@ -2249,7 +2635,11 @@ export function AISenseiPage() {
               )}
 
               {!isTyping && apiError && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex"
+                >
                   <div className="max-w-[85%]">
                     <div className="flex items-center gap-2 mb-1 ml-1">
                       <div className="w-6 h-6 rounded-lg bg-gradient-hero flex items-center justify-center">
@@ -2345,9 +2735,7 @@ export function AISenseiPage() {
                   disabled={!input.trim() || isSendingMessage || !!editingMessage}
                   className="px-4 py-3 rounded-xl bg-gradient-hero text-white disabled:opacity-50 hover:opacity-90 transition shadow-md"
                   title={
-                    editingMessage
-                      ? "Lưu hoặc hủy sửa tin nhắn trước"
-                      : "Gửi tin nhắn (Enter)"
+                    editingMessage ? "Lưu hoặc hủy sửa tin nhắn trước" : "Gửi tin nhắn (Enter)"
                   }
                 >
                   <Send className="w-4 h-4" />
@@ -2356,7 +2744,8 @@ export function AISenseiPage() {
 
               <p className="text-[10px] text-muted-foreground text-center mt-2">
                 <Sparkles className="w-3 h-3 inline mr-1" />
-                Enter gửi · Shift+Enter xuống dòng · AI Sensei có thể ưu tiên tài liệu đã chọn khi trả lời.
+                Enter gửi · Shift+Enter xuống dòng · AI Sensei có thể ưu tiên tài liệu đã chọn khi
+                trả lời.
               </p>
             </div>
           </>

@@ -92,10 +92,7 @@ export function getTopicById(
   return topics.find((t) => t.id === id);
 }
 
-export function getAggregatedTopicCounts(
-  topics: QuestionTopicView[],
-  topicIds: string[],
-) {
+export function getAggregatedTopicCounts(topics: QuestionTopicView[], topicIds: string[]) {
   const selected = topics.filter((t) => topicIds.includes(t.id));
   return {
     easy: selected.reduce((s, t) => s + t.easy, 0),
@@ -126,9 +123,7 @@ export interface RandomGenParams {
 
 export function pickRandomQuestions(params: RandomGenParams): BankQuestionView[] {
   const pool = params.questions.filter(
-    (q) =>
-      params.topicIds.includes(q.topicId) &&
-      !(params.excludeIds || []).includes(q.id),
+    (q) => params.topicIds.includes(q.topicId) && !(params.excludeIds || []).includes(q.id),
   );
   if (pool.length === 0 || params.total <= 0) return [];
 

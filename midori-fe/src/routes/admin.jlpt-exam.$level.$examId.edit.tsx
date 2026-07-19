@@ -528,7 +528,10 @@ function SectionContent({
   );
 }
 
-function mapSectionFromPrompt(prompt: string): { cleanPrompt: string; section: "Vocabulary" | "Grammar" | "Reading" | "Listening" } {
+function mapSectionFromPrompt(prompt: string): {
+  cleanPrompt: string;
+  section: "Vocabulary" | "Grammar" | "Reading" | "Listening";
+} {
   if (prompt.startsWith("[Vocabulary] ")) {
     return { cleanPrompt: prompt.substring(13), section: "Vocabulary" };
   }
@@ -551,7 +554,11 @@ function EditExamPage() {
   const upperLevel = level.toUpperCase() as JLPTLevelUpper;
   const queryClient = useQueryClient();
 
-  const { data: exam, isLoading: loading, error: queryError } = useQuery({
+  const {
+    data: exam,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
     queryKey: ["exam", examId],
     queryFn: () => examsApi.getExamById(examId),
   });
@@ -582,7 +589,7 @@ function EditExamPage() {
     if (exam && !hasInitialized) {
       setExamName(exam.title);
       setDuration(exam.timeLimit);
-      
+
       let mappedStatus: ExamStatus = "Draft";
       if (exam.status === "PUBLISHED") mappedStatus = "Active";
       else if (exam.status === "ARCHIVED") mappedStatus = "Archived";
@@ -593,7 +600,7 @@ function EditExamPage() {
         return {
           id: q.id,
           section,
-          questionNumber: q.displayOrder || (idx + 1),
+          questionNumber: q.displayOrder || idx + 1,
           type: "Multiple Choice",
           question: cleanPrompt,
           options: q.options,
@@ -661,7 +668,8 @@ function EditExamPage() {
     setError(null);
 
     try {
-      const backendStatus = status === "Active" ? "PUBLISHED" : status === "Draft" ? "DRAFT" : "ARCHIVED";
+      const backendStatus =
+        status === "Active" ? "PUBLISHED" : status === "Draft" ? "DRAFT" : "ARCHIVED";
 
       await examsApi.updateExam(examId, {
         title: examName,

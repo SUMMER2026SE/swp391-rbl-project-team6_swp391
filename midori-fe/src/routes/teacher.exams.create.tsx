@@ -1,16 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
 import { examsApi } from "@/lib/api/exams";
-import { ApiError } from "@/lib/api/client";
-import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
 import {
   Select,
   SelectContent,
@@ -18,72 +15,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  buildTopicsFromQuestions,
-  getAggregatedTopicCounts,
-  getTopicById,
-  mapApiQuestion,
-  pickRandomQuestions,
-  type BankQuestionView,
-} from "@/lib/exam/questionBank";
+import { teacherQuestionsApi, type TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
-import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
-import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
+import { SuccessBanner } from "@/components/teacher/dialogs";
+import { QuestionEditor, ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
 import {
   ArrowLeft,
   FileText,
   HelpCircle,
-  FileBadge,
-  Sparkles,
-  Save,
   Send,
-  Eye,
-  Shuffle,
-  Lock,
-  Unlock,
-  RefreshCw,
-  Plus,
-  Trash2,
-  Pencil,
+  Sparkles,
+  AlertCircle,
+  CheckCircle,
   Loader2,
+  Upload,
+  ArrowRight,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Method = "manual" | "question-bank" | "jlpt-bank";
+type Method = "ai-pdf" | "question-bank";
 
 export const Route = createFileRoute("/teacher/exams/create")({
   validateSearch: (s: Record<string, unknown>) => ({
     classId: typeof s.classId === "string" ? s.classId : undefined,
-    examId: typeof s.examId === "string" ? s.examId : undefined,
-    source:
-      s.source === "question-bank" || s.source === "jlpt-bank"
-        ? (s.source as "question-bank" | "jlpt-bank")
-        : undefined,
+    source: s.source === "question-bank" ? ("question-bank" as const) : undefined,
     topicId: typeof s.topicId === "string" ? s.topicId : undefined,
-    jlptSetId: typeof s.jlptSetId === "string" ? s.jlptSetId : undefined,
-    mode: s.mode === "random" ? "random" : undefined,
   }),
   component: CreateExam,
 });
 
 function CreateExam() {
-  const { classId, examId, source, topicId, jlptSetId } = Route.useSearch();
+  const { classId, source, topicId } = Route.useSearch();
   const navigate = useNavigate();
   const { data: classes = [] } = useQuery({
     queryKey: ["teacherAllClasses"],
     queryFn: () => classesApi.getSelectableClasses(),
   });
-  const { data: existingExam } = useQuery({
-    queryKey: ["exam", examId],
-    queryFn: () => (examId ? examsApi.getExamById(examId) : Promise.resolve(null)),
-    enabled: !!examId,
-  });
   const lockedClass = classId ? classes.find((c) => c.id === classId) : null;
   const init: Method | null = (source as Method) ?? null;
   const [method, setMethod] = useState<Method | null>(init);
   const [done, setDone] = useState<string | null>(null);
-  const [doneExamId, setDoneExamId] = useState<string | null>(null);
+  const [createdClassId, setCreatedClassId] = useState<string | null>(null);
 
   const handleBack = () => {
     if (classId) {
@@ -91,6 +65,11 @@ function CreateExam() {
     } else {
       navigate({ to: "/teacher/exams" });
     }
+  };
+
+  const handleDone = (title: string, assignedClassId: string) => {
+    setCreatedClassId(assignedClassId);
+    setDone(title);
   };
 
   if (done) {
@@ -107,6 +86,13 @@ function CreateExam() {
             <FileText className="mr-2 h-4 w-4" />
             Create another
           </Button>
+          {createdClassId && (
+            <Button asChild variant="outline">
+              <Link to="/teacher/classes/$classId/homework" params={{ classId: createdClassId }} search={{ q: "" }}>
+                View class exams
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link to="/teacher/exams">Back to exams</Link>
           </Button>
@@ -120,35 +106,25 @@ function CreateExam() {
       <div className="mx-auto max-w-5xl space-y-6">
         <PageHeader
           eyebrow="New exam"
-          title="Choose how to build your exam"
-          subtitle="Each method has a different workflow — pick what fits this assessment."
+          title="How do you want to create this exam?"
+          subtitle="Pick the source of the questions and content."
           showBack={true}
           onBack={handleBack}
         />
-        <div className="grid gap-4 md:grid-cols-3">
-          <BigMethodCard
-            icon={Pencil}
-            title="Manual Exam Builder"
-            desc="Write your own questions with full control. Best for custom assessments."
-            badge="Builder · Editor"
-            gradient="from-primary to-success"
-            onClick={() => setMethod("manual")}
+        <div className="grid gap-3 md:grid-cols-2">
+          <MethodCard
+            icon={Sparkles}
+            title="AI PDF Exam"
+            desc="Upload a PDF and let AI generate exam questions automatically."
+            badge="AI Generator"
+            onClick={() => setMethod("ai-pdf")}
           />
-          <BigMethodCard
+          <MethodCard
             icon={HelpCircle}
-            title="Random from Question Bank"
-            desc="Auto-generate by choosing topics and difficulty distribution."
-            badge="Generator · Randomizer"
-            gradient="from-info to-primary"
+            title="From Question Bank"
+            desc="Generate exam questions by selecting topics and difficulty."
+            badge="Generator"
             onClick={() => setMethod("question-bank")}
-          />
-          <BigMethodCard
-            icon={FileBadge}
-            title="Use JLPT Exam Bank"
-            desc="Use a complete official-style exam set from the Center library."
-            badge="Picker · Ready-made"
-            gradient="from-sakura to-warning"
-            onClick={() => setMethod("jlpt-bank")}
           />
         </div>
         {lockedClass && (
@@ -166,1309 +142,1341 @@ function CreateExam() {
         <ArrowLeft className="mr-1 h-4 w-4" />
         Change method
       </Button>
-      {method === "manual" && (
-        <ManualExam
-          lockedClass={lockedClass}
-          examId={examId}
-          existingExam={existingExam}
-          onDone={(title, savedExamId) => {
-            setDone(title);
-            setDoneExamId(savedExamId ?? null);
-          }}
-        />
-      )}
+      {method === "ai-pdf" && <ExamAiPdfFlow lockedClass={lockedClass} onDone={handleDone} />}
       {method === "question-bank" && (
-        <RandomExam lockedClass={lockedClass} topicId={topicId} onDone={setDone} />
-      )}
-      {method === "jlpt-bank" && (
-        <JlptExam lockedClass={lockedClass} jlptSetId={jlptSetId} onDone={setDone} />
+        <QuestionBankExam lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
       )}
     </div>
   );
 }
 
-function BigMethodCard({
+function MethodCard({
   icon: Icon,
   title,
   desc,
   badge,
-  gradient,
   onClick,
 }: {
   icon: React.ElementType;
   title: string;
   desc: string;
   badge: string;
-  gradient: string;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className="group overflow-hidden rounded-2xl border bg-card text-left transition-all hover:border-primary/50 hover:shadow-lg"
+      className="group rounded-2xl border bg-card p-5 text-left transition-all hover:border-primary/50 hover:shadow-md"
     >
-      <div className={cn("h-2 bg-gradient-to-r", gradient)} />
-      <div className="p-6">
-        <div
-          className={cn(
-            "mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br text-primary-foreground",
-            gradient,
-          )}
-        >
-          <Icon className="h-6 w-6" />
+      <div className="mb-3 flex items-center gap-2">
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground">
+          <Icon className="h-5 w-5" />
         </div>
-        <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {badge}
-        </div>
-        <h3 className="mt-1 font-display text-lg font-bold">{title}</h3>
-        <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+        </span>
       </div>
+      <h3 className="font-display text-base font-semibold">{title}</h3>
+      <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
     </button>
   );
 }
 
-// ─── MANUAL BUILDER ──────────────────────────────────────────────────────
-
-interface ManualQ {
-  id: string;
-  text: string;
-  options: string[];
-  correct: number;
-  points: number;
-}
-
-type ExamAction = "DRAFT" | "PUBLISHED";
-type SubmitState = { status: ExamAction } | null;
-
-function validateDraft(form: { title: string }, questions: ManualQ[]): string | null {
-  if (!form.title.trim()) return "Please enter an exam title.";
-  return null;
-}
-
-function validatePublish(
-  form: { title: string; duration: number },
-  questions: ManualQ[],
-): string | null {
-  const draftErr = validateDraft(form, questions);
-  if (draftErr) return draftErr;
-  if (questions.length === 0) return "Please add at least one question.";
-  if (form.duration <= 0) return "Duration must be greater than 0.";
-  for (let i = 0; i < questions.length; i++) {
-    const q = questions[i];
-    if (!q.text.trim()) return `Question ${i + 1} has an empty question prompt.`;
-    if (!q.options || q.options.length < 2)
-      return `Question ${i + 1} must have at least 2 options.`;
-    if (q.options.some((o) => !o.trim()))
-      return `Please fill out all options for Question ${i + 1}.`;
-    if (q.correct < 0 || q.correct >= q.options.length)
-      return `Question ${i + 1} needs a correct answer selected.`;
-    if (q.points <= 0) return `Question ${i + 1} needs a positive score.`;
-  }
-  return null;
-}
-
-function ManualExam({
+function QuestionBankExam({
   lockedClass,
-  examId,
-  existingExam,
-  onDone,
-}: {
-  lockedClass: any | null;
-  examId?: string;
-  existingExam?: any;
-  onDone: (title: string, examId?: string) => void;
-}) {
-  const { data: classes = [] } = useQuery({
-    queryKey: ["teacherAllClasses"],
-    queryFn: () => classesApi.getSelectableClasses(),
-  });
-
-  const initForm = {
-    classId:
-      existingExam?.assignedClassId ??
-      existingExam?.classId ??
-      lockedClass?.id ??
-      classes[0]?.id ??
-      "",
-    title: existingExam?.title ?? "",
-    level: existingExam?.level ?? lockedClass?.level ?? "N5",
-    duration: existingExam?.timeLimit ?? 60,
-    attempts: existingExam?.attempts ?? 1,
-  };
-
-  const [form, setForm] = useState(initForm);
-  const queryClient = useQueryClient();
-  const [submitting, setSubmitting] = useState<SubmitState>(null);
-  const [questions, setQuestions] = useState<ManualQ[]>(
-    existingExam?.questions?.length
-      ? existingExam.questions.map((q: any) => ({
-          id: q.id,
-          text: q.prompt ?? q.questionText ?? "",
-          options: Array.isArray(q.options) && q.options.length > 0
-            ? q.options
-            : ["", "", "", ""],
-          correct: typeof q.correctAnswerIndex === "number"
-            ? q.correctAnswerIndex
-            : 0,
-          points: typeof q.points === "number" ? q.points : 2,
-        }))
-      : [{ id: "q1", text: "", options: ["", "", "", ""], correct: 0, points: 2 }],
-  );
-  const [editIdx, setEditIdx] = useState<number | null>(
-    existingExam?.questions?.length ? null : 0,
-  );
-  const [preview, setPreview] = useState(false);
-
-  const submitExam = useCallback(
-    async (status: ExamAction) => {
-      if (submitting) return;
-
-      const validationError =
-        status === "DRAFT"
-          ? validateDraft(form, questions)
-          : validatePublish(form, questions);
-      if (validationError) {
-        toast.error(validationError);
-        return;
-      }
-
-      setSubmitting({ status });
-      let savedExamId: string | undefined;
-
-      try {
-        if (examId) {
-          // ── EDIT path: update the existing exam metadata + questions ──────────
-          await examsApi.updateExam(examId, {
-            title: form.title.trim(),
-            level: form.level,
-            timeLimit: form.duration,
-            totalQuestions: questions.length,
-            classIds: form.classId ? [form.classId] : [],
-            status,
-          });
-          savedExamId = examId;
-
-          // Sync questions: backend returns the same shape on this endpoint,
-          // so we can map straight from ManualQ. existing questions keep their
-          // UUID, new ones omit `id` so backend inserts them.
-          const payload = questions.map((q, idx) => {
-            const isExistingUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q.id);
-            return {
-              ...(isExistingUuid ? { id: q.id } : {}),
-              prompt: q.text,
-              options: q.options.map((o) => o ?? ""),
-              correctAnswerIndex: q.correct,
-              points: q.points,
-              displayOrder: idx + 1,
-            };
-          });
-          await examsApi.updateExamQuestions(examId, { questions: payload });
-        } else {
-          // ── CREATE path: parallel question creation + rollback on failure ──────
-          const createResults = await Promise.allSettled(
-            questions.map((q) =>
-              teacherQuestionsApi.createQuestion({
-                prompt: q.text,
-                options: q.options,
-                correctAnswerIndex: q.correct,
-                points: q.points,
-                questionType: "MULTIPLE_CHOICE",
-                difficulty: "MEDIUM",
-                explanation: "Exam manual question",
-              }),
-            ),
-          );
-
-          // Collect successes; surface first failure without orphan cleanup
-          const successes: { id: string }[] = [];
-          for (let i = 0; i < createResults.length; i++) {
-            const result = createResults[i];
-            if (result.status === "fulfilled") {
-              successes.push(result.value);
-            } else {
-              // Rollback already-saved questions before surfacing the error
-              await Promise.allSettled(
-                successes.map((s) => teacherQuestionsApi.deleteQuestion(s.id)),
-              );
-              const reason = result.reason;
-              const msg =
-                reason instanceof ApiError
-                  ? reason.message
-                  : reason?.message ?? "Failed to save question.";
-              toast.error(`Question ${i + 1}: ${msg}`);
-              return; // exits without touching submitting state — finally handles it
-            }
-          }
-
-          const savedExam = await examsApi.createExam({
-            title: form.title.trim(),
-            level: form.level,
-            totalQuestions: questions.length,
-            timeLimit: form.duration,
-            classIds: form.classId ? [form.classId] : [],
-            questionIds: successes.map((s) => s.id),
-            status,
-          });
-          savedExamId = savedExam.id;
-        }
-
-        // ── React Query: invalidate all exam lists in parallel ──────────────────
-        const invalidations = [
-          queryClient.invalidateQueries({ queryKey: ["exams"] }),
-          queryClient.invalidateQueries({ queryKey: ["teacherExams"] }),
-          ...(form.classId
-            ? [
-                queryClient.invalidateQueries({ queryKey: ["examsByClass", form.classId] }),
-                queryClient.invalidateQueries({ queryKey: ["classExams", form.classId] }),
-                queryClient.invalidateQueries({
-                  queryKey: ["teacherClassExams", form.classId],
-                }),
-              ]
-            : []),
-          ...(savedExamId
-            ? [queryClient.invalidateQueries({ queryKey: ["exam", savedExamId] })]
-            : []),
-        ];
-        await Promise.all(invalidations);
-
-        // ── UX ────────────────────────────────────────────────────────────────
-        if (status === "PUBLISHED") {
-          toast.success("Exam published successfully.");
-          onDone(form.title, savedExamId);
-        } else {
-          toast.success("Draft saved. You can keep editing.");
-        }
-      } catch (err: unknown) {
-        const apiErr = err as ApiError;
-        const message =
-          apiErr?.message ??
-          (status === "DRAFT" ? "Failed to save draft." : "Failed to publish exam.");
-        toast.error(message);
-      } finally {
-        setSubmitting(null);
-      }
-    },
-    [submitting, form, questions, examId, queryClient, onDone],
-  );
-
-  const isPending = submitting !== null;
-  const isSavingDraft = submitting?.status === "DRAFT";
-  const isPublishing = submitting?.status === "PUBLISHED";
-
-  const totalPoints = questions.reduce((s, q) => s + q.points, 0);
-  const valid = !!(
-    form.title &&
-    questions.length > 0 &&
-    questions.every((q) => q.text && q.options.every((o) => o.trim()))
-  );
-
-  const addQ = () => {
-    const id = `q${questions.length + 1}-${Date.now()}`;
-    setQuestions((q) => [...q, { id, text: "", options: ["", "", "", ""], correct: 0, points: 2 }]);
-    setEditIdx(questions.length);
-  };
-  const updQ = (i: number, patch: Partial<ManualQ>) =>
-    setQuestions((q) => q.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
-  const delQ = (i: number) => {
-    setQuestions((q) => q.filter((_, idx) => idx !== i));
-    setEditIdx(null);
-  };
-  const editing = editIdx !== null ? questions[editIdx] : null;
-
-  return (
-    <div>
-      <PageHeader
-        eyebrow="Manual exam builder"
-        title="Build your exam"
-        subtitle="Builder layout — add and edit questions, review the list, publish when ready."
-      />
-      <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Exam settings</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Title *</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. N5 Mid-term Assessment"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Target class</Label>
-                {lockedClass ? (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
-                    <LevelBadge level={lockedClass.level} />
-                    <span className="text-sm">{lockedClass.name}</span>
-                  </div>
-                ) : (
-                  <Select
-                    value={form.classId}
-                    onValueChange={(v) => setForm({ ...form, classId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Level</Label>
-                <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["N5", "N4", "N3", "N2", "N1"].map((l) => (
-                      <SelectItem key={l} value={l}>
-                        {l}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Duration (min)</Label>
-                <Input
-                  type="number"
-                  value={form.duration}
-                  onChange={(e) => setForm({ ...form, duration: Number(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Attempts</Label>
-                <Input
-                  type="number"
-                  value={form.attempts}
-                  onChange={(e) => setForm({ ...form, attempts: Number(e.target.value) || 1 })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base">
-                Questions ({questions.length}) · {totalPoints} pts
-              </CardTitle>
-              <Button size="sm" onClick={addQ}>
-                <Plus className="mr-1 h-4 w-4" />
-                Add question
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {questions.map((q, i) => (
-                <div
-                  key={q.id}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg border p-3",
-                    editIdx === i && "border-primary bg-primary/5",
-                  )}
-                >
-                  <span className="text-xs font-bold text-muted-foreground">Q{i + 1}</span>
-                  <div className="min-w-0 flex-1 truncate text-sm">
-                    {q.text || <em className="text-muted-foreground">Empty question</em>}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{q.points} pts</span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={() => setEditIdx(i)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-destructive"
-                    onClick={() => delQ(i)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          {editing && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Edit question</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label>Question text</Label>
-                  <Textarea
-                    rows={3}
-                    value={editing.text}
-                    onChange={(e) => updQ(editIdx!, { text: e.target.value })}
-                    placeholder="Type the question (Japanese OK)"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Options (select the correct answer)</Label>
-                  {editing.options.map((o, oi) => {
-                    const handleOptionChange = (val: string) =>
-                      updQ(editIdx!, {
-                        options: editing.options.map((x, idx) => (idx === oi ? val : x)),
-                      });
-                    return (
-                      <label
-                        key={oi}
-                        className={cn(
-                          "flex items-center gap-2 rounded-md border p-2",
-                          editing.correct === oi && "border-success bg-success/5",
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          checked={editing.correct === oi}
-                          onChange={() => updQ(editIdx!, { correct: oi })}
-                        />
-                        <Input
-                          value={o}
-                          onChange={(e) => handleOptionChange(e.target.value)}
-                          placeholder={`Option ${oi + 1}`}
-                          className="h-8"
-                        />
-                      </label>
-                    );
-                  })}
-                </div>
-                <div className="space-y-2">
-                  <Label>Points</Label>
-                  <Input
-                    type="number"
-                    value={editing.points}
-                    onChange={(e) => updQ(editIdx!, { points: Number(e.target.value) || 1 })}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          <div className="space-y-2">
-            <Button className="w-full" variant="outline" onClick={() => setPreview(true)}>
-              <Eye className="mr-2 h-4 w-4" />
-              Preview exam
-            </Button>
-            <Button
-              className="w-full"
-              variant="outline"
-              disabled={isPending}
-              onClick={() => submitExam("DRAFT")}
-            >
-              {isSavingDraft ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isSavingDraft ? "Saving draft..." : "Save draft"}
-            </Button>
-            <Button
-              className="w-full"
-              disabled={isPending}
-              onClick={() => submitExam("PUBLISHED")}
-            >
-              {isPublishing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
-              {isPublishing ? "Publishing..." : "Publish & assign"}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <PreviewSheet
-        open={preview}
-        onOpenChange={setPreview}
-        title={form.title || "Exam preview"}
-        description={`${questions.length} questions · ${totalPoints} pts · ${form.duration} min`}
-      >
-        <ol className="space-y-3 text-sm">
-          {questions.map((q, i) => (
-            <li key={q.id} className="rounded-lg border p-3">
-              <div className="mb-2 font-medium">
-                Q{i + 1}. {q.text}
-              </div>
-              <ul className="space-y-1 pl-4 text-muted-foreground">
-                {q.options.map((o, oi) => (
-                  <li key={oi} className={oi === q.correct ? "text-success" : ""}>
-                    • {o || <em>—</em>}
-                    {oi === q.correct && " ✓"}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ol>
-      </PreviewSheet>
-    </div>
-  );
-}
-
-// ─── RANDOM FROM QUESTION BANK ─────────────────────────────────────────
-
-function RandomExam({
-  lockedClass,
-  topicId,
   onDone,
 }: {
   lockedClass: any | null;
   topicId?: string;
-  onDone: (t: string) => void;
+  onDone: (t: string, classId: string) => void;
 }) {
+  const queryClient = useQueryClient();
+
   const { data: classes = [] } = useQuery({
     queryKey: ["teacherAllClasses"],
     queryFn: () => classesApi.getSelectableClasses(),
   });
-  const { data: bankQuestions = [], isLoading: bankLoading } = useQuery({
-    queryKey: ["teacherQuestions"],
-    queryFn: () => teacherQuestionsApi.getQuestions(),
-  });
-  const topics = useMemo(() => buildTopicsFromQuestions(bankQuestions), [bankQuestions]);
-  const questionPool = useMemo(
-    () => bankQuestions.map(mapApiQuestion),
-    [bankQuestions],
-  );
-  const init = topicId ? getTopicById(topics, topicId) : null;
-  if (topicId && !init) toast.warning("Topic not found in Question Bank");
 
-  const [form, setForm] = useState({
+  const [step, setStep] = useState<number>(1);
+  const [level, setLevel] = useState<string>("");
+  const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [totalQuestionsInput, setTotalQuestionsInput] = useState<number>(30);
+  const [difficultyPercent, setDifficultyPercent] = useState({ easy: 40, medium: 40, hard: 20 });
+
+  const [metadata, setMetadata] = useState({
     classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: init ? `${init.name} Assessment` : "Random Generated Exam",
-    level: init?.level ?? lockedClass?.level ?? "N5",
-    total: 30,
+    title: "",
+    dueDate: "",
     duration: 60,
-    dist: { easy: 40, medium: 40, hard: 20 },
+    attempts: 1,
+    maxScore: 100,
   });
-  const queryClient = useQueryClient();
-  const [isSaving, setIsSaving] = useState(false);
-  const [selectedTopics, setSelectedTopics] = useState<string[]>(init ? [init.id] : []);
-  const [generated, setGenerated] = useState<BankQuestionView[] | null>(null);
-  const [locked, setLocked] = useState<Set<string>>(new Set());
 
-  const handleSave = async (shouldPublish = false) => {
-    if (!generated) return;
+  useEffect(() => {
+    if (!metadata.classId) {
+      const targetId = lockedClass?.id ?? classes[0]?.id;
+      if (targetId) {
+        setMetadata((prev) => ({ ...prev, classId: targetId }));
+      }
+    }
+  }, [lockedClass, classes, metadata.classId]);
+
+  const [preview, setPreview] = useState<TeacherQuestionResponse[] | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
+
+  const {
+    data: availableSkills = [],
+    error: skillsError,
+    refetch: refetchSkills,
+  } = useQuery({
+    queryKey: ["questionBankSkills"],
+    queryFn: async () => {
+      const res = await teacherQuestionsApi.getQuestionBankSkills();
+      return res;
+    },
+  });
+
+  const {
+    data: lessons = [],
+    isLoading: isLoadingLessons,
+    error: lessonsError,
+    refetch: refetchLessons,
+  } = useQuery({
+    queryKey: ["questionBankLessonsByLevel", level],
+    queryFn: async () => {
+      if (!level) return [];
+      const res = await teacherQuestionsApi.getQuestionBankLessons(level, [
+        "VOCABULARY",
+        "GRAMMAR",
+        "READING",
+      ]);
+      return res;
+    },
+    enabled: !!level,
+  });
+
+  const handleLevelChange = (newLevel: string) => {
+    setLevel(newLevel);
+    setSelectedLessons([]);
+    setSelectedSkills([]);
+    setPreview(null);
+    setBackendError(null);
+    setStep(2);
+  };
+
+  const handleLessonToggle = (lessonId: number) => {
+    setSelectedLessons((prev) => {
+      const updated = prev.includes(lessonId)
+        ? prev.filter((id) => id !== lessonId)
+        : [...prev, lessonId];
+      setSelectedSkills([]);
+      setPreview(null);
+      setBackendError(null);
+      return updated;
+    });
+  };
+
+  const handleSkillToggle = (skill: string) => {
+    setSelectedSkills((prev) => {
+      const updated = prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill];
+      setPreview(null);
+      setBackendError(null);
+      return updated;
+    });
+  };
+
+  const easyCount = Math.round((difficultyPercent.easy * totalQuestionsInput) / 100);
+  const mediumCount = Math.round((difficultyPercent.medium * totalQuestionsInput) / 100);
+  const hardCount = Math.max(0, totalQuestionsInput - (easyCount + mediumCount));
+
+  const percentSum = difficultyPercent.easy + difficultyPercent.medium + difficultyPercent.hard;
+  const isValidDistribution = percentSum === 100;
+
+  const handleGeneratePreview = async () => {
+    if (selectedLessons.length === 0 || selectedSkills.length === 0) {
+      toast.error("Please complete steps 2 and 3 first.");
+      return;
+    }
+
+    if (!isValidDistribution) {
+      toast.error("Difficulty distribution must equal exactly 100%.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setBackendError(null);
+    try {
+      const res = await teacherQuestionsApi.generatePreview({
+        level,
+        skills: selectedSkills,
+        lessonIds: selectedLessons,
+        difficulty: {
+          easy: easyCount,
+          medium: mediumCount,
+          hard: hardCount,
+        },
+      });
+      setPreview(res);
+      setStep(5);
+      toast.success(`Generated preview of ${res.length} questions successfully!`);
+    } catch (err: any) {
+      const errMsg = err?.message || "Failed to generate randomized questions.";
+      setBackendError(errMsg);
+      toast.error(errMsg);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAssign = async () => {
+    if (!preview || preview.length === 0) return;
+    if (!metadata.classId || !metadata.dueDate || !metadata.title) {
+      toast.error("Please fill in target class, title, and due date.");
+      return;
+    }
+
     setIsSaving(true);
     try {
+      const questionIds = preview.map((q) => q.id);
+
+      await examsApi.createExam({
+        title: metadata.title,
+        level: level,
+        totalQuestions: preview.length,
+        timeLimit: metadata.duration,
+        classIds: metadata.classId ? [metadata.classId] : [],
+        questionIds: questionIds,
+        status: "PUBLISHED",
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ["exams"] });
+      if (metadata.classId) {
+        await queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] });
+        await queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] });
+      }
+
+      toast.success("Exam published successfully!");
+      onDone(metadata.title, metadata.classId);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to assign exam.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="From Question Bank · Refactored Workflow"
+        title="Generate practice exam"
+        subtitle="Generate custom exam sets directly from the Admin Question Bank."
+      />
+
+      <div className="grid grid-cols-6 gap-2 border-b pb-4">
+        {[
+          { num: 1, label: "JLPT Level", active: step >= 1 },
+          { num: 2, label: "Lessons", active: step >= 2 },
+          { num: 3, label: "Skills", active: step >= 3 },
+          { num: 4, label: "Configure", active: step >= 4 },
+          { num: 5, label: "Preview", active: step >= 5 },
+          { num: 6, label: "Exam Info", active: step >= 6 },
+        ].map((s) => (
+          <button
+            key={s.num}
+            disabled={
+              (s.num === 2 && !level) ||
+              (s.num === 3 && selectedLessons.length === 0) ||
+              (s.num === 4 && selectedSkills.length === 0) ||
+              (s.num === 5 && !preview) ||
+              (s.num === 6 && !preview)
+            }
+            onClick={() => setStep(s.num)}
+            className={cn(
+              "flex flex-col items-center gap-1 py-2 text-center border-b-2 text-xs font-bold transition-all",
+              step === s.num
+                ? "border-primary text-primary"
+                : s.active
+                  ? "border-primary/40 text-primary/70"
+                  : "border-transparent text-muted-foreground opacity-50",
+            )}
+          >
+            <span>Step {s.num}</span>
+            <span className="hidden md:inline text-[10px]">{s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-6">
+          {step === 1 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    1
+                  </span>
+                  Select JLPT Level
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex flex-wrap gap-2">
+                  {["N5", "N4", "N3", "N2", "N1"].map((lvl) => (
+                    <button
+                      key={lvl}
+                      onClick={() => handleLevelChange(lvl)}
+                      className={cn(
+                        "px-6 py-4 rounded-xl border text-base font-bold transition-all duration-200",
+                        level === lvl
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-[var(--border)] hover:border-primary/50 text-secondary-col",
+                      )}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 2 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    2
+                  </span>
+                  Select Lessons (Level {level})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {isLoadingLessons ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : lessonsError ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-destructive font-semibold mb-2">
+                      Failed to load lessons.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => refetchLessons()}>
+                      Retry
+                    </Button>
+                  </div>
+                ) : lessons.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground border border-dashed rounded-xl p-4">
+                    No questions available.
+                  </div>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {lessons.map((les) => (
+                      <button
+                        key={les.id}
+                        onClick={() => handleLessonToggle(les.id)}
+                        type="button"
+                        className={cn(
+                          "rounded-xl border p-3.5 text-left transition-all duration-200",
+                          selectedLessons.includes(les.id)
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                            : "border-[var(--border)] hover:border-primary/40 bg-card",
+                        )}
+                      >
+                        <div className="flex items-start justify-between">
+                          <span className="text-sm font-bold text-primary-col">
+                            {les.name || (les as any).lessonName || `Lesson ${les.id}`}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={selectedLessons.includes(les.id)}
+                            readOnly
+                            className="rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4 mt-0.5"
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-muted-foreground font-semibold">
+                          <span>Easy: {les.easy ?? 0}</span>
+                          <span>•</span>
+                          <span>Medium: {les.medium ?? 0}</span>
+                          <span>•</span>
+                          <span>Hard: {les.hard ?? 0}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-between mt-4 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(1)}>
+                    Back
+                  </Button>
+                  <Button disabled={selectedLessons.length === 0} onClick={() => setStep(3)}>
+                    Next
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 3 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    3
+                  </span>
+                  Select Skills
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {skillsError ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-destructive font-semibold mb-2">
+                      Failed to load skills.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => refetchSkills()}>
+                      Retry
+                    </Button>
+                  </div>
+                ) : availableSkills.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    No skills available.
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {availableSkills.map((skill) => (
+                      <label
+                        key={skill}
+                        className={cn(
+                          "flex items-center gap-2 px-5 py-4 rounded-xl border cursor-pointer select-none transition-all duration-200",
+                          selectedSkills.includes(skill)
+                            ? "border-primary bg-primary/5 text-primary-col"
+                            : "border-[var(--border)] hover:border-primary/40 text-secondary-col",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4"
+                          checked={selectedSkills.includes(skill)}
+                          onChange={() => handleSkillToggle(skill)}
+                        />
+                        <span className="text-sm font-semibold capitalize">
+                          {skill.toLowerCase()}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-between mt-6 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(2)}>
+                    Back
+                  </Button>
+                  <Button disabled={selectedSkills.length === 0} onClick={() => setStep(4)}>
+                    Next
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 4 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    4
+                  </span>
+                  Configure Question Generation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-muted-col uppercase">
+                    Total Questions
+                  </Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm font-bold"
+                    value={totalQuestionsInput}
+                    onChange={(e) => {
+                      setTotalQuestionsInput(Math.max(1, Number(e.target.value) || 0));
+                      setBackendError(null);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-muted-col uppercase block mb-1">
+                    Difficulty Distribution (%)
+                  </Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-col">Easy (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
+                        value={difficultyPercent.easy}
+                        onChange={(e) => {
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            easy: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                          });
+                          setBackendError(null);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-col">Medium (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
+                        value={difficultyPercent.medium}
+                        onChange={(e) => {
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            medium: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                          });
+                          setBackendError(null);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-col">Hard (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
+                        value={difficultyPercent.hard}
+                        onChange={(e) => {
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            hard: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                          });
+                          setBackendError(null);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-muted/40 rounded-xl space-y-2 text-xs font-bold">
+                  <div className="flex justify-between">
+                    <span>Distribution Sum:</span>
+                    <span
+                      className={cn(isValidDistribution ? "text-green-600" : "text-destructive")}
+                    >
+                      {percentSum}% / 100% {isValidDistribution ? "✓" : "✗"}
+                    </span>
+                  </div>
+                  {!isValidDistribution && (
+                    <p className="text-[10px] text-destructive font-semibold">
+                      Error: The sum of Easy, Medium, and Hard percentages must equal exactly 100%.
+                    </p>
+                  )}
+                  <div className="border-t border-[var(--border)] pt-2 space-y-1 text-muted-col font-medium">
+                    <div className="flex justify-between">
+                      <span>Easy:</span>
+                      <span>
+                        {easyCount} question(s) ({difficultyPercent.easy}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Medium:</span>
+                      <span>
+                        {mediumCount} question(s) ({difficultyPercent.medium}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Hard:</span>
+                      <span>
+                        {hardCount} question(s) ({difficultyPercent.hard}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mt-6 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(3)}>
+                    Back
+                  </Button>
+                  <Button
+                    disabled={!isValidDistribution || totalQuestionsInput <= 0 || isGenerating}
+                    onClick={handleGeneratePreview}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate Preview"
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 5 && preview && (
+            <Card className="border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)] flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  Generated Preview ({preview.length} Questions)
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs flex items-center gap-1"
+                  disabled={isGenerating}
+                  onClick={handleGeneratePreview}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generate Again
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0 divide-y divide-[var(--border)]">
+                {preview.map((q, i) => (
+                  <div
+                    key={q.id}
+                    className="p-4 flex items-start gap-4 transition-all hover:bg-[var(--accent)]/10"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
+                      {i + 1}
+                    </span>
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                          {q.skill}
+                        </span>
+                        <DifficultyBadge
+                          d={
+                            q.difficulty === "EASY"
+                              ? "Easy"
+                              : q.difficulty === "HARD"
+                                ? "Hard"
+                                : "Medium"
+                          }
+                        />
+                        <span className="ml-auto text-xs text-muted-col font-bold">
+                          {q.points || 1} pt(s)
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-primary-col leading-relaxed">
+                        {q.prompt}
+                      </p>
+                      {q.options && q.options.length > 0 && (
+                        <div className="grid gap-1.5 sm:grid-cols-2 mt-2 pl-2 border-l-2 border-[var(--border)]">
+                          {q.options.map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className={cn(
+                                "text-xs px-2.5 py-1.5 rounded-md border",
+                                optIdx === q.correctAnswerIndex
+                                  ? "bg-green-500/10 border-green-500/30 text-green-700 font-bold"
+                                  : "bg-[var(--accent)] border-[var(--border)] text-secondary-col",
+                              )}
+                            >
+                              <span className="font-bold mr-1.5">
+                                {String.fromCharCode(65 + optIdx)}.
+                              </span>
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex justify-between p-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(4)}>
+                    Back
+                  </Button>
+                  <Button onClick={() => setStep(6)}>Next</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 6 && (
+            <Card className="border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    6
+                  </span>
+                  Exam Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Target class
+                  </Label>
+                  {lockedClass ? (
+                    <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
+                      <LevelBadge level={lockedClass.level} />
+                      <span className="text-sm font-semibold">{lockedClass.name}</span>
+                      <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">
+                        Locked
+                      </span>
+                    </div>
+                  ) : (
+                    <Select
+                      value={metadata.classId}
+                      onValueChange={(v: string) => setMetadata({ ...metadata, classId: v })}
+                    >
+                      <SelectTrigger className="w-full rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm">
+                        <SelectValue placeholder="Select a class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} ({c.level})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Title
+                  </Label>
+                  <Input
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.title}
+                    onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
+                    placeholder="E.g., N5 Grammar Assessment"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Due date
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.dueDate}
+                      onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Duration (min)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.duration}
+                      onChange={(e) =>
+                        setMetadata({
+                          ...metadata,
+                          duration: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Max score
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.maxScore}
+                      onChange={(e) =>
+                        setMetadata({
+                          ...metadata,
+                          maxScore: Math.max(1, Number(e.target.value) || 0),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Attempts
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.attempts}
+                      onChange={(e) =>
+                        setMetadata({
+                          ...metadata,
+                          attempts: Math.max(1, Number(e.target.value) || 1),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between mt-6 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(5)}>
+                    Back
+                  </Button>
+                  <Button
+                    className="flex items-center gap-1.5"
+                    disabled={!preview || isSaving}
+                    onClick={handleAssign}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Publish Exam
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {backendError && (
+            <div className="p-4 rounded-xl bg-[var(--status-rejected)]/10 border border-[var(--status-rejected)]/20 text-[var(--status-rejected)] text-sm flex flex-col gap-2 shadow-sm">
+              <div className="flex items-center gap-2 font-bold">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>Randomization Failed</span>
+              </div>
+              <p className="whitespace-pre-line text-xs font-semibold leading-relaxed pl-7">
+                {backendError}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <Card className="border-[var(--border)] bg-card shadow-sm p-4">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-secondary-col mb-3">
+              Exam Configuration
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">JLPT Level:</span>
+                <span className="font-bold">{level || "Not selected"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Lessons Selected:</span>
+                <span className="font-bold">{selectedLessons.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Skills:</span>
+                <span className="font-bold">
+                  {selectedSkills.length > 0 ? selectedSkills.join(", ") : "None"}
+                </span>
+              </div>
+              <div className="flex justify-between border-t pt-2 mt-2">
+                <span className="text-muted-foreground font-bold">Generated Questions:</span>
+                <span className="font-extrabold text-primary">{preview ? preview.length : 0}</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExamAiPdfFlow({
+  lockedClass,
+  onDone,
+}: {
+  lockedClass: any | null;
+  onDone: (t: string, classId: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
+
+  const [step, setStep] = useState<"upload" | "preview" | "assign">("upload");
+  const [error, setError] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<ImportedQuestion[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [fileName, setFileName] = useState<string>("");
+
+  const [metadata, setMetadata] = useState({
+    classId: lockedClass?.id ?? classes[0]?.id ?? "",
+    title: "",
+    dueDate: "",
+    duration: 60,
+  });
+
+  const handleUpdateQuestion = (idx: number, updatedFields: Partial<ImportedQuestion>) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], ...updatedFields };
+      return copy;
+    });
+  };
+
+  const handleDeleteQuestion = (idx: number) => {
+    setQuestions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleDuplicateQuestion = (idx: number) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      const target = copy[idx];
+      const duplicated = {
+        ...target,
+        id: `extracted-${Date.now()}-dup`,
+        content: `${target.content} (Copy)`,
+        answers: target.answers.map((ans: { content: string; isCorrect: boolean }) => ({ ...ans })),
+      };
+      copy.splice(idx + 1, 0, duplicated);
+      return copy;
+    });
+  };
+
+  const handleMoveQuestion = (idx: number, direction: "up" | "down") => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= copy.length) return prev;
+      const temp = copy[idx];
+      copy[idx] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy;
+    });
+  };
+
+  const handleReAnalyze = (_idx: number) => {
+    // Disabled (Coming Soon)
+  };
+
+  const handleAddQuestion = () => {
+    const newQuestion: ImportedQuestion = {
+      id: `extracted-${Date.now()}-manual`,
+      type: "MULTIPLE_CHOICE",
+      content: "",
+      difficulty: "MEDIUM",
+      explanation: "",
+      answers: [
+        { content: "", isCorrect: true },
+        { content: "", isCorrect: false },
+      ],
+      category: "Vocabulary",
+    };
+    setQuestions((prev) => [...prev, newQuestion]);
+  };
+
+  const handleFileUpload = () => {
+    // Simulate AI parsing with sample questions
+    const sampleQuestions: ImportedQuestion[] = [
+      {
+        id: "sample-1",
+        type: "MULTIPLE_CHOICE",
+        content: "What is the meaning of 学校 (がっこう)?",
+        difficulty: "EASY",
+        explanation: "School in Japanese",
+        answers: [
+          { content: "School", isCorrect: true },
+          { content: "Hospital", isCorrect: false },
+          { content: "Library", isCorrect: false },
+          { content: "Park", isCorrect: false },
+        ],
+        category: "Vocabulary",
+      },
+      {
+        id: "sample-2",
+        type: "MULTIPLE_CHOICE",
+        content: "Which particle is used to mark the topic of a sentence?",
+        difficulty: "MEDIUM",
+        explanation: "は (wa) is the topic marker particle",
+        answers: [
+          { content: "は (wa)", isCorrect: true },
+          { content: "を (wo)", isCorrect: false },
+          { content: "で (de)", isCorrect: false },
+          { content: "に (ni)", isCorrect: false },
+        ],
+        category: "Grammar",
+      },
+      {
+        id: "sample-3",
+        type: "MULTIPLE_CHOICE",
+        content: "Choose the correct reading for 山 (mountain):",
+        difficulty: "EASY",
+        explanation: "The kanji 山 can be read as やま (yama) or さん (san)",
+        answers: [
+          { content: "やま (yama)", isCorrect: true },
+          { content: "かわ (kawa)", isCorrect: false },
+          { content: "そら (sora)", isCorrect: false },
+          { content: "うみ (umi)", isCorrect: false },
+        ],
+        category: "Vocabulary",
+      },
+    ];
+    setFileName("sample-jlpt-n5.pdf");
+    setQuestions(sampleQuestions);
+    setStep("preview");
+  };
+
+  const handleAssign = async () => {
+    if (!metadata.classId || !metadata.title || !metadata.dueDate) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    if (questions.length === 0) {
+      toast.error("No questions to assign.");
+      return;
+    }
+
+    const selectedClass = lockedClass || classes.find((c) => c.id === metadata.classId);
+    const targetLevel = selectedClass?.level || "N5";
+
+    setSubmitting(true);
+    try {
       const savedQuestionIds: string[] = [];
-      for (const q of generated) {
+      for (const q of questions) {
+        const correctIndex = q.answers.findIndex((ans) => ans.isCorrect);
         const res = await teacherQuestionsApi.createQuestion({
-          prompt: q.prompt,
-          options: q.options,
-          correctAnswerIndex: q.correctAnswerIndex,
-          points: q.points,
+          prompt: q.content,
+          options: q.answers.map((ans) => ans.content),
+          correctAnswerIndex: correctIndex >= 0 ? correctIndex : 0,
+          points: 1,
           questionType: "MULTIPLE_CHOICE",
-          difficulty: q.difficulty.toUpperCase(),
-          explanation: "Exam random question",
+          difficulty: q.difficulty as "EASY" | "MEDIUM" | "HARD",
+          explanation: q.explanation || "",
+          level: targetLevel,
+          skill: q.category?.toUpperCase() || "VOCABULARY",
+          source: "EXAM",
         });
         savedQuestionIds.push(res.id);
       }
 
       await examsApi.createExam({
-        title: form.title,
-        level: form.level,
-        totalQuestions: form.total,
-        timeLimit: form.duration,
-        classIds: form.classId ? [form.classId] : [],
+        title: metadata.title,
+        level: targetLevel,
+        totalQuestions: questions.length,
+        timeLimit: metadata.duration,
+        classIds: metadata.classId ? [metadata.classId] : [],
         questionIds: savedQuestionIds,
-        status: shouldPublish ? "PUBLISHED" : "DRAFT",
+        status: "PUBLISHED",
       });
 
-      if (shouldPublish) {
-        toast.success("Exam published & assigned successfully!");
-      } else {
-        toast.success("Draft saved successfully!");
-      }
-
       await queryClient.invalidateQueries({ queryKey: ["exams"] });
-      if (form.classId) {
-        await queryClient.invalidateQueries({ queryKey: ["examsByClass", form.classId] });
-        await queryClient.invalidateQueries({ queryKey: ["classExams", form.classId] });
+      if (metadata.classId) {
+        await queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] });
+        await queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] });
       }
 
-      onDone(form.title);
+      toast.success("Exam published successfully!");
+      onDone(metadata.title, metadata.classId);
     } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Failed to save exam.");
+      toast.error(err?.message || "Failed to assign exam.");
     } finally {
-      setIsSaving(false);
+      setSubmitting(false);
     }
   };
 
-  const available = useMemo(
-    () => getAggregatedTopicCounts(topics, selectedTopics),
-    [topics, selectedTopics],
-  );
-  const distOk = isDistValid(form.dist, form.total, available);
-  const canGen = selectedTopics.length > 0 && distOk;
-
-  const generate = (keepLocked = false) => {
-    const lockedQs = keepLocked && generated ? generated.filter((q) => locked.has(q.id)) : [];
-    const need = form.total - lockedQs.length;
-    if (need <= 0) {
-      setGenerated(lockedQs.slice(0, form.total));
-      return;
-    }
-    const fresh = getQuestionsForRandomGeneration({
-      topicIds: selectedTopics,
-      total: need,
-      easyPct: form.dist.easy,
-      mediumPct: form.dist.medium,
-      hardPct: form.dist.hard,
-    });
-    setGenerated([...lockedQs, ...fresh]);
-    toast.success(
-      keepLocked
-        ? `Re-randomized ${fresh.length} questions (${lockedQs.length} locked)`
-        : `Generated ${fresh.length} questions`,
-    );
-  };
-
-  const toggleLock = (id: string) =>
-    setLocked((s) => {
-      const n = new Set(s);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  const replaceQ = (id: string) => {
-    if (!generated) return;
-    const old = generated.find((q) => q.id === id);
-    if (!old) return;
-    const pool = getQuestionsForRandomGeneration({
-      topicIds: selectedTopics,
-      total: 50,
-      easyPct: 100,
-      mediumPct: 0,
-      hardPct: 0,
-    });
-    const candidates = pool.filter((q) => q.id !== id && q.difficulty === old.difficulty);
-    const next = candidates[Math.floor(Math.random() * candidates.length)] ?? old;
-    setGenerated(generated.map((q) => (q.id === id ? next : q)));
-    toast.success("Question replaced");
-  };
-  const toggleTopic = (id: string) =>
-    setSelectedTopics((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const stepItems = [
+    { num: 1, label: "Upload PDF" },
+    { num: 2, label: "Preview & Edit" },
+    { num: 3, label: "Assign" },
+  ];
+  const currentStepNum = step === "upload" ? 1 : step === "preview" ? 2 : 3;
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="Question Bank · Randomizer"
-        title="Generate exam from the Question Bank"
-        subtitle="Configure topics and difficulty mix, then review and refine each generated question."
+        eyebrow="AI PDF Exam Generator"
+        title="Create exam from PDF"
+        subtitle="Upload a PDF and let AI generate exam questions automatically."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
+      {/* Stepper UI */}
+      <div className="flex items-center justify-between max-w-xl mx-auto px-4">
+        {stepItems.map((s, idx, arr) => (
+          <div key={s.num} className="flex items-center flex-1 last:flex-initial">
+            <div className="flex flex-col items-center gap-1.5 z-10">
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
+                  currentStepNum === s.num
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : currentStepNum > s.num
+                      ? "bg-green-500 border-green-500 text-white"
+                      : "bg-background border-[var(--border)] text-muted-foreground",
+                )}
+              >
+                {currentStepNum > s.num ? <CheckCircle className="w-4 h-4" /> : s.num}
               </div>
-              <div className="space-y-2">
-                <Label>Target class</Label>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {s.label}
+              </span>
+            </div>
+            {idx < arr.length - 1 && (
+              <div className={cn("h-[2px] flex-1 -mx-2 -mt-4", currentStepNum > s.num ? "bg-green-500" : "bg-[var(--border)]")} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Upload View */}
+      {step === "upload" && (
+        <div className="space-y-6">
+          <div className="card-base p-12 border-2 border-dashed text-center transition border-[var(--border)] hover:border-primary/50">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+              <Upload className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="font-display font-bold text-lg text-primary-col mb-1">
+              Upload PDF File
+            </h3>
+            <p className="text-sm text-secondary-col mb-6">
+              Drag and drop your PDF here, or click to browse.
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Supported: PDF files with text content
+            </p>
+            <Button onClick={handleFileUpload} className="px-6 py-2.5 rounded-xl font-bold">
+              <Upload className="w-4 h-4 mr-2" />
+              Choose PDF File
+            </Button>
+          </div>
+
+          {error && (
+            <div className="p-4 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preview View */}
+      {step === "preview" && (
+        <div className="space-y-6">
+          {/* Header bar */}
+          <div className="flex items-center justify-between flex-wrap gap-4 bg-[var(--accent)]/50 p-4 rounded-xl border border-[var(--border)] sticky top-0 z-30 backdrop-blur-md">
+            <div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <h3 className="font-display font-bold text-primary-col">
+                  {questions.length} Questions Extracted
+                </h3>
+              </div>
+              <p className="text-xs text-muted-col mt-0.5">
+                From: {fileName || "PDF Document"}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStep("upload");
+                  setQuestions([]);
+                }}
+              >
+                Upload Another
+              </Button>
+              <Button onClick={() => setStep("assign")}>
+                Continue to Assign
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Add Question Button */}
+          <div className="flex justify-center">
+            <Button variant="outline" onClick={handleAddQuestion} className="rounded-xl">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Question
+            </Button>
+          </div>
+
+          {/* Questions List */}
+          <div className="space-y-4">
+            {questions.map((q, idx) => (
+              <QuestionEditor
+                key={q.id}
+                question={q}
+                index={idx}
+                totalQuestions={questions.length}
+                onUpdateQuestion={handleUpdateQuestion}
+                onDeleteQuestion={handleDeleteQuestion}
+                onDuplicateQuestion={handleDuplicateQuestion}
+                onMoveQuestion={handleMoveQuestion}
+                onReAnalyze={handleReAnalyze}
+                isReAnalyzing={false}
+              />
+            ))}
+          </div>
+
+          {questions.length === 0 && (
+            <div className="card-base p-12 text-center border border-[var(--border)]">
+              <p className="text-sm text-muted-foreground">No questions yet. Click "Add Question" to start.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Assign View */}
+      {step === "assign" && (
+        <div className="space-y-6">
+          <Card className="border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                {questions.length} Questions Ready
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                  Target class <span className="text-red-500">*</span>
+                </Label>
                 {lockedClass ? (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
+                  <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
                     <LevelBadge level={lockedClass.level} />
-                    <span className="text-sm">{lockedClass.name}</span>
+                    <span className="text-sm font-semibold">{lockedClass.name}</span>
+                    <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">
+                      Locked
+                    </span>
                   </div>
                 ) : (
                   <Select
-                    value={form.classId}
-                    onValueChange={(v) => setForm({ ...form, classId: v })}
+                    value={metadata.classId}
+                    onValueChange={(v: string) => setMetadata({ ...metadata, classId: v })}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
+                    <SelectTrigger className="w-full rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm">
+                      <SelectValue placeholder="Select a class" />
                     </SelectTrigger>
                     <SelectContent>
                       {classes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.name}
+                          {c.name} ({c.level})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                  Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                  value={metadata.title}
+                  onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
+                  placeholder="E.g., N5 Grammar Assessment"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Level</Label>
-                  <Select
-                    value={form.level}
-                    onValueChange={(v) => {
-                      setForm({ ...form, level: v });
-                      setSelectedTopics([]);
-                      setGenerated(null);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["N5", "N4", "N3", "N2", "N1"].map((l) => (
-                        <SelectItem key={l} value={l}>
-                          {l}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Due date <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.dueDate}
+                    onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label>Duration (min)</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Duration (min)
+                  </Label>
                   <Input
                     type="number"
-                    value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: Number(e.target.value) || 0 })}
+                    min={0}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.duration}
+                    onChange={(e) =>
+                      setMetadata({
+                        ...metadata,
+                        duration: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Total questions</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={form.total}
-                  onChange={(e) =>
-                    setForm({ ...form, total: Math.max(1, Number(e.target.value) || 1) })
-                  }
-                />
+
+              <div className="flex justify-between mt-6 pt-4 border-t">
+                <Button variant="outline" onClick={() => setStep("preview")}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <Button
+                  className="flex items-center gap-1.5"
+                  disabled={submitting}
+                  onClick={handleAssign}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Publish Exam
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Select topics</CardTitle>
+          {/* Questions Preview */}
+          <Card className="border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col">
+                Questions Preview
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {topics
-                .filter((t) => t.level === form.level)
-                .map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => toggleTopic(t.id)}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg border p-2 text-left text-sm",
-                      selectedTopics.includes(t.id)
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-primary/40",
-                    )}
-                  >
-                    <input type="checkbox" checked={selectedTopics.includes(t.id)} readOnly />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{t.name}</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {t.totalQuestions} questions
-                      </div>
+            <CardContent className="p-0 divide-y divide-[var(--border)]">
+              {questions.slice(0, 5).map((q, i) => (
+                <div key={q.id || i} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
+                      {i + 1}
+                    </span>
+                    <div className="space-y-1 flex-1">
+                      <p className="text-sm font-semibold text-primary-col">{q.content || "(Empty question)"}</p>
+                      <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
+                        {q.category || "Vocabulary"}
+                      </span>
                     </div>
-                  </button>
-                ))}
-              {topics.filter((t) => t.level === form.level).length === 0 && (
-                <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
-                  No topics at this level.
+                  </div>
+                </div>
+              ))}
+              {questions.length > 5 && (
+                <div className="p-3 text-center text-xs text-muted-foreground">
+                  +{questions.length - 5} more questions
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardContent className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
-              <Stat label="Topics" value={selectedTopics.length} />
-              <Stat label="Available" value={available.total} />
-              <Stat label="Target" value={form.total} />
-              <Stat label="Generated" value={generated?.length ?? 0} />
-            </CardContent>
-          </Card>
-
-          <DifficultyDistribution
-            value={form.dist}
-            onChange={(v) => setForm({ ...form, dist: v })}
-            total={form.total}
-            available={available}
-          />
-
-          <div className="flex flex-wrap gap-2">
-            <Button disabled={!canGen} onClick={() => generate(false)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Generate
-            </Button>
-            <Button variant="outline" disabled={!generated} onClick={() => generate(true)}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Randomize again (keep locked)
-            </Button>
-            <Button
-              variant="outline"
-              disabled={!generated || isSaving}
-              onClick={() => handleSave(false)}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {isSaving ? "Saving..." : "Save draft"}
-            </Button>
-            <Button
-              disabled={!generated || isSaving}
-              onClick={() => handleSave(true)}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              {isSaving ? "Publishing..." : "Publish & assign"}
-            </Button>
-          </div>
-
-          {generated && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Generated questions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {generated.map((q, i) => (
-                  <div
-                    key={q.id + i}
-                    className={cn(
-                      "rounded-lg border p-3",
-                      locked.has(q.id) && "border-warning/40 bg-warning/5",
-                    )}
-                  >
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-muted-foreground">Q{i + 1}</span>
-                      <DifficultyBadge d={q.difficulty} />
-                      <span className="ml-auto text-xs text-muted-foreground">{q.points} pts</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7"
-                        onClick={() => toggleLock(q.id)}
-                      >
-                        {locked.has(q.id) ? (
-                          <>
-                            <Lock className="mr-1 h-3 w-3" />
-                            Locked
-                          </>
-                        ) : (
-                          <>
-                            <Unlock className="mr-1 h-3 w-3" />
-                            Lock
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7"
-                        disabled={locked.has(q.id)}
-                        onClick={() => replaceQ(q.id)}
-                      >
-                        <Shuffle className="mr-1 h-3 w-3" />
-                        Replace
-                      </Button>
-                    </div>
-                    <div className="text-sm font-medium">{q.questionText ?? q.prompt}</div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-lg bg-muted/40 p-3 text-center">
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-xl font-bold">{value}</div>
-    </div>
-  );
-}
-
-// ─── JLPT EXAM BANK ────────────────────────────────────────────────────
-
-function mapSectionFromPrompt(prompt: string): { cleanPrompt: string; section: "Vocabulary" | "Grammar" | "Reading" | "Listening" } {
-  if (prompt.startsWith("[Vocabulary] ")) {
-    return { cleanPrompt: prompt.substring(13), section: "Vocabulary" };
-  }
-  if (prompt.startsWith("[Grammar] ")) {
-    return { cleanPrompt: prompt.substring(10), section: "Grammar" };
-  }
-  if (prompt.startsWith("[Reading] ")) {
-    return { cleanPrompt: prompt.substring(10), section: "Reading" };
-  }
-  if (prompt.startsWith("[Listening] ")) {
-    return { cleanPrompt: prompt.substring(12), section: "Listening" };
-  }
-  return { cleanPrompt: prompt, section: "Vocabulary" };
-}
-
-function JlptExam({
-  lockedClass,
-  jlptSetId,
-  onDone,
-}: {
-  lockedClass: any | null;
-  jlptSetId?: string;
-  onDone: (t: string) => void;
-}) {
-  const { data: classes = [] } = useQuery({
-    queryKey: ["teacherAllClasses"],
-    queryFn: () => classesApi.getSelectableClasses(),
-  });
-
-  const { data: rawExams = [], isLoading: isExamsLoading } = useQuery({
-    queryKey: ["exam-bank"],
-    queryFn: () => examsApi.getAllExams(),
-  });
-
-  const sets = rawExams.filter(e => e.category === "JLPT" && e.status === "PUBLISHED");
-
-  const [selectedId, setSelectedId] = useState<string | null>(jlptSetId ?? null);
-
-  const { data: selectedSet } = useQuery({
-    queryKey: ["exam", selectedId],
-    queryFn: () => examsApi.getExamById(selectedId!),
-    enabled: !!selectedId,
-  });
-
-  const [form, setForm] = useState({
-    classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: "",
-    instructions: "Bring writing materials. The exam will run for the full duration.",
-    dueDate: "",
-  });
-
-  useEffect(() => {
-    if (selectedSet) {
-      setForm((f) => ({ ...f, title: f.title || selectedSet.title }));
-    }
-  }, [selectedSet]);
-
-  const queryClient = useQueryClient();
-  const [isSaving, setIsSaving] = useState(false);
-  const [preview, setPreview] = useState(false);
-
-  const handleSave = async (shouldPublish = false) => {
-    if (!selectedSet) return;
-    setIsSaving(true);
-    try {
-      const newExam = await examsApi.createExam({
-        title: form.title,
-        level: selectedSet.level,
-        totalQuestions: selectedSet.totalQuestions ?? selectedSet.questions?.length ?? 0,
-        timeLimit: selectedSet.timeLimit,
-        classIds: form.classId ? [form.classId] : [],
-        category: "JLPT",
-        difficultyEasy: selectedSet.difficultyEasy,
-        difficultyMedium: selectedSet.difficultyMedium,
-        difficultyHard: selectedSet.difficultyHard,
-        status: shouldPublish ? "PUBLISHED" : "DRAFT",
-      });
-
-      if (!newExam?.id) {
-        throw new Error("Failed to create class exam shell");
-      }
-
-      if (selectedSet.questions && selectedSet.questions.length > 0) {
-        await examsApi.updateExamQuestions(newExam.id, {
-          questions: selectedSet.questions.map((q, index) => ({
-            prompt: q.prompt,
-            options: q.options || [],
-            correctAnswerIndex: q.correctAnswerIndex,
-            points: q.points || 1,
-            displayOrder: q.displayOrder || (index + 1),
-          })),
-        });
-      }
-
-      if (shouldPublish) {
-        toast.success("Exam published & assigned successfully!");
-      } else {
-        toast.success("Draft saved successfully!");
-      }
-
-      await queryClient.invalidateQueries({ queryKey: ["exams"] });
-      if (form.classId) {
-        await queryClient.invalidateQueries({ queryKey: ["examsByClass", form.classId] });
-        await queryClient.invalidateQueries({ queryKey: ["classExams", form.classId] });
-      }
-
-      onDone(form.title);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Failed to save exam.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const getExamStats = (exam: any) => {
-    const qs = exam.questions || [];
-    const vocab = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Vocabulary").length;
-    const grammar = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Grammar").length;
-    const reading = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Reading").length;
-    const listening = qs.filter((q: any) => mapSectionFromPrompt(q.prompt).section === "Listening").length;
-
-    const sections = [
-      { name: "Vocabulary", questions: vocab },
-      { name: "Grammar", questions: grammar },
-      { name: "Reading", questions: reading },
-      { name: "Listening", questions: listening }
-    ].filter(sec => sec.questions > 0);
-
-    const easyCount = exam.difficultyEasy ?? 0;
-    const mediumCount = exam.difficultyMedium ?? 0;
-    const hardCount = exam.difficultyHard ?? 0;
-    const tot = easyCount + mediumCount + hardCount;
-    // Only compute percentages when the backend provides at least one non-zero value.
-    // Never fabricate difficulty data.
-    const mix =
-      tot > 0
-        ? {
-            easy: Math.round((easyCount / tot) * 100),
-            medium: Math.round((mediumCount / tot) * 100),
-            hard: Math.round((hardCount / tot) * 100),
-          }
-        : null;
-
-    return {
-      sections,
-      mix,
-      year: exam.createdAt ? new Date(exam.createdAt).getFullYear() : new Date().getFullYear(),
-      description: exam.category === "JLPT" ? `Official JLPT-style exam prepared by the Admin.` : ""
-    };
-  };
-
-  const valid = !!(selectedSet && form.title && form.dueDate);
-  const stats = selectedSet ? getExamStats(selectedSet) : null;
-
-  return (
-    <div>
-      <PageHeader
-        eyebrow="JLPT Exam Bank · Picker"
-        title="Use a JLPT exam set"
-        subtitle="Pick a Center-managed full exam, configure assignment and publish."
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Choose a JLPT set</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            {isExamsLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : (
-              sets.map((s) => {
-                const sStats = getExamStats(s);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setSelectedId(s.id);
-                      setForm((f) => ({ ...f, title: s.title }));
-                    }}
-                    className={cn(
-                      "rounded-xl border p-4 text-left transition-all",
-                      selectedId === s.id
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "hover:border-primary/40",
-                    )}
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <LevelBadge level={s.level} />
-                      <span className="text-xs text-muted-foreground">{sStats.year}</span>
-                    </div>
-                    <div className="font-display text-base font-semibold">{s.title}</div>
-                    <p className="mt-1 text-xs text-muted-foreground">{sStats.description}</p>
-                    <div className={`mt-3 grid gap-2 text-[10px] ${sStats.mix ? "grid-cols-4" : "grid-cols-3"}`}>
-                      <div className="rounded-md bg-muted/40 p-1.5">
-                        <div className="text-muted-foreground">Duration</div>
-                        <div className="font-bold">{s.timeLimit}m</div>
-                      </div>
-                      <div className="rounded-md bg-muted/40 p-1.5">
-                        <div className="text-muted-foreground">Questions</div>
-                        <div className="font-bold">{s.totalQuestions ?? s.questions?.length ?? 0}</div>
-                      </div>
-                      <div className="rounded-md bg-muted/40 p-1.5">
-                        <div className="text-muted-foreground">Sections</div>
-                        <div className="font-bold">{sStats.sections.length}</div>
-                      </div>
-                      {sStats.mix && (
-                        <div className="rounded-md bg-muted/40 p-1.5">
-                          <div className="text-muted-foreground">Mix E/M/H</div>
-                          <div className="font-bold">
-                            {sStats.mix.easy}/{sStats.mix.medium}/{sStats.mix.hard}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Assignment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {selectedSet && stats ? (
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <div className="text-xs text-muted-foreground">Selected set</div>
-                  <div className="font-medium">{selectedSet.title}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    Level {selectedSet.level} · {selectedSet.timeLimit} min · {selectedSet.totalQuestions ?? selectedSet.questions?.length ?? 0} questions ·
-                    difficulty mix already balanced
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
-                  Select a set to continue
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label>Target class</Label>
-                {lockedClass ? (
-                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
-                    <LevelBadge level={lockedClass.level} />
-                    <span className="text-sm">{lockedClass.name}</span>
-                  </div>
-                ) : (
-                  <Select
-                    value={form.classId}
-                    onValueChange={(v) => setForm({ ...form, classId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Exam title</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Schedule date</Label>
-                <Input
-                  type="date"
-                  value={form.dueDate}
-                  onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Instructions</Label>
-                <Textarea
-                  rows={3}
-                  value={form.instructions}
-                  onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          <div className="space-y-2">
-            <Button
-              className="w-full"
-              variant="outline"
-              disabled={!selectedSet}
-              onClick={() => setPreview(true)}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Preview set
-            </Button>
-             <Button
-                className="w-full"
-                variant="outline"
-                disabled={!valid || isSaving}
-                onClick={() => handleSave(false)}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                {isSaving ? "Saving..." : "Save draft"}
-              </Button>
-              <Button
-                className="w-full"
-                disabled={!valid || isSaving}
-                onClick={() => handleSave(true)}
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                {isSaving ? "Publishing..." : "Use this set & publish"}
-              </Button>
-          </div>
-        </div>
-      </div>
-
-      <PreviewSheet
-        open={preview}
-        onOpenChange={setPreview}
-        title={selectedSet?.title ?? ""}
-        description={
-          selectedSet ? `Level ${selectedSet.level} · ${selectedSet.timeLimit} min · ${selectedSet.totalQuestions ?? selectedSet.questions?.length ?? 0} questions` : ""
-        }
-      >
-            {selectedSet && stats && (
-              <div className="space-y-3 text-sm">
-                <p>{stats.description}</p>
-                <div>
-                  <div className="mb-1 text-xs font-semibold text-muted-foreground">Sections</div>
-                  <ul className="space-y-1">
-                    {stats.sections.map((s) => (
-                      <li key={s.name} className="flex justify-between rounded-md border p-2">
-                        <span>{s.name}</span>
-                        <span className="text-muted-foreground">{s.questions} questions</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {stats.mix && (
-                  <div>
-                    <div className="mb-1 text-xs font-semibold text-muted-foreground">Difficulty mix</div>
-                    <div className="flex gap-2">
-                      <DifficultyBadge d="Easy" /> {stats.mix.easy}%{" "}
-                      <DifficultyBadge d="Medium" /> {stats.mix.medium}%{" "}
-                      <DifficultyBadge d="Hard" /> {stats.mix.hard}%
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-      </PreviewSheet>
+      )}
     </div>
   );
 }

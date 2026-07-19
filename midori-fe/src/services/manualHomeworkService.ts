@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { manualHomeworkApi, ManualHomeworkRequest, AssignClassRequest } from "../lib/api/manualHomework";
+import {
+  manualHomeworkApi,
+  ManualHomeworkRequest,
+  AssignClassRequest,
+} from "../lib/api/manualHomework";
 
 export function useManualHomeworks() {
   return useQuery({

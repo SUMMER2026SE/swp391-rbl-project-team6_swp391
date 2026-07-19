@@ -12,6 +12,7 @@ public class CreateTeacherQuestionRequest {
     private String level;
     private String skill;
     private Integer lessonId;
+    private String source;
     @NotBlank
     private String prompt;
     private String jpPrompt;

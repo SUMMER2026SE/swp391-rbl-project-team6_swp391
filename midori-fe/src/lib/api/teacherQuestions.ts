@@ -8,6 +8,7 @@ export interface TeacherQuestionResponse {
   skill?: string;
   lessonId?: number;
   prompt: string;
+  source?: string; // "HOMEWORK" | "EXAM"
   jpPrompt?: string;
   questionType: string;
   difficulty: string;
@@ -29,6 +30,7 @@ export interface CreateTeacherQuestionRequest {
   level?: string;
   skill?: string;
   lessonId?: number;
+  source?: string; // "HOMEWORK" | "EXAM"
   prompt: string;
   jpPrompt?: string;
   questionType: string;
@@ -87,36 +89,43 @@ export const teacherQuestionsApi = {
     api.post<TeacherQuestionResponse>("/teacher/questions", req),
   updateQuestion: (id: string, req: UpdateTeacherQuestionRequest) =>
     api.put<TeacherQuestionResponse>(`/teacher/questions/${id}`, req),
-  deleteQuestion: (id: string) =>
-    api.delete<void>(`/teacher/questions/${id}`),
-  getQuestions: () =>
-    api.get<TeacherQuestionResponse[]>("/teacher/questions"),
-  getQuestionById: (id: string) =>
-    api.get<TeacherQuestionResponse>(`/teacher/questions/${id}`),
-  
+  deleteQuestion: (id: string) => api.delete<void>(`/teacher/questions/${id}`),
+  getQuestions: () => api.get<TeacherQuestionResponse[]>("/teacher/questions"),
+  getQuestionById: (id: string) => api.get<TeacherQuestionResponse>(`/teacher/questions/${id}`),
+
   // Lessons
   getLessons: (level: string) =>
     api.get<QuestionBankLessonResponse[]>(`/teacher/questions/lessons?level=${level}`),
   createLesson: (lesson: Omit<QuestionBankLessonResponse, "id" | "createdAt">) =>
     api.post<QuestionBankLessonResponse>("/teacher/questions/lessons", lesson),
   updateLesson: (id: number, lessonName: string, lessonNumber?: number, status?: string) =>
-    api.put<QuestionBankLessonResponse>(`/teacher/questions/lessons/${id}`, { lessonName, lessonNumber, status }),
-  deleteLesson: (id: number) =>
-    api.delete<void>(`/teacher/questions/lessons/${id}`),
+    api.put<QuestionBankLessonResponse>(`/teacher/questions/lessons/${id}`, {
+      lessonName,
+      lessonNumber,
+      status,
+    }),
+  deleteLesson: (id: number) => api.delete<void>(`/teacher/questions/lessons/${id}`),
 
   // Question Bank Integration
-  getQuestionBankLevels: () =>
-    api.get<string[]>("/question-bank/levels"),
-  getQuestionBankSkills: () =>
-    api.get<string[]>("/question-bank/skills"),
+  getQuestionBankLevels: () => api.get<string[]>("/question-bank/levels"),
+  getQuestionBankSkills: () => api.get<string[]>("/question-bank/skills"),
   getQuestionBankLessons: (level: string, skills: string[]) =>
-    api.get<QuestionBankGeneratorLessonResponse[]>(`/question-bank/lessons?level=${level}&skills=${skills.join(",")}`),
+    api.get<QuestionBankGeneratorLessonResponse[]>(
+      `/question-bank/lessons?level=${level}&${skills.map((s) => `skills=${s}`).join("&")}`,
+    ),
+  getLessonsByLevel: (level: string) =>
+    api.get<QuestionBankLessonResponse[]>(`/question-bank/levels/${level}/lessons`),
   randomizeQuestions: (req: {
     level: string;
     skills: string[];
     lessonIds: number[];
     difficulty: { easy: number; medium: number; hard: number };
     questionCount: number;
-  }) =>
-    api.post<TeacherQuestionResponse[]>("/question-bank/randomize", req),
+  }) => api.post<TeacherQuestionResponse[]>("/question-bank/randomize", req),
+  generatePreview: (req: {
+    level: string;
+    lessonIds: number[];
+    skills: string[];
+    difficulty: { easy: number; medium: number; hard: number };
+  }) => api.post<TeacherQuestionResponse[]>("/homework/question-bank/generate-preview", req),
 };
