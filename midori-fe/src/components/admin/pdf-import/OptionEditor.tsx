@@ -81,9 +81,7 @@ export const OptionEditor: React.FC<OptionEditorProps> = React.memo(
                 />
 
                 {/* Option Label (A, B, C...) */}
-                <span className="text-xs font-mono font-bold text-muted-col w-4">
-                  {label}
-                </span>
+                <span className="text-xs font-mono font-bold text-muted-col w-4">{label}</span>
 
                 {/* Option Text Input */}
                 <input
@@ -130,7 +128,7 @@ export const OptionEditor: React.FC<OptionEditorProps> = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 OptionEditor.displayName = "OptionEditor";

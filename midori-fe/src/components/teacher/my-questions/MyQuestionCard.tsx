@@ -55,15 +55,20 @@ export function MyQuestionCard({
   const statusLabel = isArchived ? "Archived" : "Active";
 
   const tagsList = question.tags
-    ? question.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    ? question.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
     : [];
 
-  const title = question.prompt && question.prompt.length > 40
-    ? question.prompt.slice(0, 40) + "..."
-    : question.prompt;
+  const title =
+    question.prompt && question.prompt.length > 40
+      ? question.prompt.slice(0, 40) + "..."
+      : question.prompt;
 
   const difficultyLabel = question.difficulty
-    ? (question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1).toLowerCase()) as Difficulty
+    ? ((question.difficulty.charAt(0).toUpperCase() +
+        question.difficulty.slice(1).toLowerCase()) as Difficulty)
     : "Medium";
 
   const levelLabel = (question.level || "N5") as JLPTLevel;
@@ -125,7 +130,10 @@ export function MyQuestionCard({
               <StatusBadge status={statusLabel} />
             </div>
 
-            <h3 className="font-semibold text-base text-foreground truncate hover:text-primary cursor-pointer mb-1" onClick={() => onView(question)}>
+            <h3
+              className="font-semibold text-base text-foreground truncate hover:text-primary cursor-pointer mb-1"
+              onClick={() => onView(question)}
+            >
               {title}
             </h3>
 

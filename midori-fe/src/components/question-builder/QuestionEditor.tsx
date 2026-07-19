@@ -2,7 +2,12 @@ import React from "react";
 import { OptionEditor } from "./OptionEditor";
 import { QuestionToolbar } from "./QuestionToolbar";
 import { ValidationBanner } from "./ValidationBanner";
-import { BuilderQuestion, QuestionType, QuestionDifficulty, QuestionSkill } from "../../types/question";
+import {
+  BuilderQuestion,
+  QuestionType,
+  QuestionDifficulty,
+  QuestionSkill,
+} from "../../types/question";
 import { validateBuilderQuestion } from "../../utils/questionValidation";
 
 interface QuestionEditorProps {
@@ -250,7 +255,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
         <ValidationBanner errors={errors} />
       </div>
     );
-  }
+  },
 );
 
 QuestionEditor.displayName = "QuestionEditor";

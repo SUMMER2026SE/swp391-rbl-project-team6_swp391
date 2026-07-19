@@ -138,7 +138,7 @@ export const getRandomQuizQuestions = (
   count: number,
   level?: QuizQuestion["jlptLevel"],
 ): QuizQuestion[] => {
-  let questions = level ? getQuizQuestionsByLevel(level) : allQuizQuestions;
+  const questions = level ? getQuizQuestionsByLevel(level) : allQuizQuestions;
   return [...questions].sort(() => Math.random() - 0.5).slice(0, count);
 };
 

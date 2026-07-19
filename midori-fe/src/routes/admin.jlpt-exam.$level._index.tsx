@@ -76,7 +76,11 @@ function ExamListPage() {
   const [archiveExam, setArchiveExam] = useState<ExamResponse | null>(null);
   const [restoreExam, setRestoreExam] = useState<ExamResponse | null>(null);
 
-  const { data: rawExams = [], isLoading, error: queryError } = useQuery({
+  const {
+    data: rawExams = [],
+    isLoading,
+    error: queryError,
+  } = useQuery({
     queryKey: ["exam-bank", upperLevel],
     queryFn: async () => {
       const res = await examsApi.getAllExams();
@@ -84,13 +88,10 @@ function ExamListPage() {
     },
   });
 
-  const exams = rawExams.filter(
-    (e) => e.level === upperLevel && e.category === "JLPT"
-  );
+  const exams = rawExams.filter((e) => e.level === upperLevel && e.category === "JLPT");
 
   const archiveMutation = useMutation({
-    mutationFn: (examId: string) =>
-      examsApi.updateExam(examId, { status: "ARCHIVED" }),
+    mutationFn: (examId: string) => examsApi.updateExam(examId, { status: "ARCHIVED" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exam-bank", upperLevel] });
       setArchiveExam(null);
@@ -98,8 +99,7 @@ function ExamListPage() {
   });
 
   const restoreMutation = useMutation({
-    mutationFn: (examId: string) =>
-      examsApi.updateExam(examId, { status: "PUBLISHED" }),
+    mutationFn: (examId: string) => examsApi.updateExam(examId, { status: "PUBLISHED" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exam-bank", upperLevel] });
       setRestoreExam(null);

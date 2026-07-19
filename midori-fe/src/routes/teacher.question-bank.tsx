@@ -11,10 +11,15 @@ import { QuestionBankToolbar } from "@/components/teacher/question-bank/Question
 import { LevelAccordion } from "@/components/teacher/question-bank/LevelAccordion";
 import { LessonAccordion } from "@/components/teacher/question-bank/LessonAccordion";
 import { SkillGrid } from "@/components/teacher/question-bank/SkillGrid";
+import {
+  AssignHomeworkModal,
+  AssignExamModal,
+  type QuestionBankTopicInfo,
+} from "@/components/teacher/question-bank/QuestionBankModals";
 import { useQuery } from "@tanstack/react-query";
 import { teacherQuestionsApi } from "@/lib/api/teacherQuestions";
 import { mapBackendQuestionToFrontend } from "@/services/questionBankService";
-import type { JLPTLevel, QuestionType, Difficulty } from "@/services/questionBank.types";
+import type { JLPTLevel, QuestionType, Difficulty, Question } from "@/services/questionBank.types";
 
 export const Route = createFileRoute("/teacher/question-bank")({
   head: () => ({ meta: [{ title: "Question Bank — MIDORI Teacher" }] }),
@@ -38,14 +43,12 @@ interface TopicWithLesson {
 
 function QuestionBank() {
   const [viewMode, setViewMode] = useState<"level" | "lesson" | "skill" | any>("level");
-  
+
   // Toolbar Filters State
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("All");
   const [lessonFilter, setLessonFilter] = useState("All");
   const [skillFilter, setSkillFilter] = useState("All");
-  const [difficultyFilter, setDifficultyFilter] = useState("All");
-  const [sortBy, setSortBy] = useState("Newest");
 
   // Breadcrumbs Drilling Navigation State
   const [navLevel, setNavLevel] = useState<string | null>(null);
@@ -60,6 +63,10 @@ function QuestionBank() {
 
   // Preview Dialog State
   const [openPreviewTopicId, setOpenPreviewTopicId] = useState<string | null>(null);
+
+  // Direct Assign Modals State (HW / Exam from Topic Card)
+  const [assignHwTopic, setAssignHwTopic] = useState<QuestionBankTopicInfo | null>(null);
+  const [assignExamTopic, setAssignExamTopic] = useState<QuestionBankTopicInfo | null>(null);
 
   // React Query data fetching from centralized backend
   const { data: rawQuestions = [] } = useQuery({
@@ -118,8 +125,11 @@ function QuestionBank() {
       if (list.length === 0) return;
       const [level, lessonIdStr, type] = key.split("_");
       const lessonId = parseInt(lessonIdStr);
+      if (!lessonId || isNaN(lessonId) || lessonIdStr === "0" || lessonIdStr === "null" || lessonIdStr === "undefined") {
+        return;
+      }
       const lessonName = lessonsMap.get(lessonId) || `Lesson ${lessonId}`;
-      
+
       const easy = list.filter((q) => q.difficulty === "Easy").length;
       const medium = list.filter((q) => q.difficulty === "Medium").length;
       const hard = list.filter((q) => q.difficulty === "Hard").length;
@@ -146,9 +156,10 @@ function QuestionBank() {
 
   // Update available lessons for selector dropdown based on Level filter selection
   const availableLessons = useMemo(() => {
-    const subset = levelFilter === "All" 
-      ? topicsWithLessons 
-      : topicsWithLessons.filter((t) => t.level === levelFilter);
+    const subset =
+      levelFilter === "All"
+        ? topicsWithLessons
+        : topicsWithLessons.filter((t) => t.level === levelFilter);
     const unique = Array.from(new Set(subset.map((t) => t.lesson)));
     return unique.sort();
   }, [topicsWithLessons, levelFilter]);
@@ -204,57 +215,48 @@ function QuestionBank() {
     }
   };
 
-  // Filter topics based on search inputs, difficulty, skill, level, and lesson filters
+  // Convert a virtual topic id (the key in topicsWithLessons) to modal info
+  const findTopicInfo = (id: string): QuestionBankTopicInfo | null => {
+    const t = topicsWithLessons.find((x) => x.id === id);
+    if (!t) return null;
+    return {
+      id: t.id,
+      name: t.name,
+      level: t.level,
+      skill: t.skill,
+      questionCount: t.totalQuestions,
+    };
+  };
+
+  // Filter topics based on search inputs, skill, level, and lesson filters
   const filteredTopics = useMemo(() => {
-    return topicsWithLessons
-      .filter((t) => {
-        // Search Filter
-        const matchesSearch =
-          searchQuery === "" ||
-          t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.jpName.toLowerCase().includes(searchQuery.toLowerCase());
+    return topicsWithLessons.filter((t) => {
+      // Search Filter
+      const matchesSearch =
+        searchQuery === "" ||
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.jpName.toLowerCase().includes(searchQuery.toLowerCase());
 
-        // Level Filter (sync with navLevel if not All)
-        const activeLevel = navLevel ?? levelFilter;
-        const matchesLevel = activeLevel === "All" || t.level === activeLevel;
+      // Level Filter (sync with navLevel if not All)
+      const activeLevel = navLevel ?? levelFilter;
+      const matchesLevel = activeLevel === "All" || t.level === activeLevel;
 
-        // Lesson Filter (sync with navLesson if not All)
-        const activeLesson = navLesson ?? lessonFilter;
-        const matchesLesson = activeLesson === "All" || t.lesson === activeLesson;
+      // Lesson Filter (sync with navLesson if not All)
+      const activeLesson = navLesson ?? lessonFilter;
+      const matchesLesson = activeLesson === "All" || t.lesson === activeLesson;
 
-        // Skill Filter (sync with navSkill if not All)
-        const activeSkill = navSkill ?? skillFilter;
-        const matchesSkill = activeSkill === "All" || t.skill === activeSkill;
+      // Skill Filter (sync with navSkill if not All)
+      const activeSkill = navSkill ?? skillFilter;
+      const matchesSkill = activeSkill === "All" || t.skill === activeSkill;
 
-        // Difficulty Filter
-        let matchesDifficulty = true;
-        if (difficultyFilter === "Easy") {
-          matchesDifficulty = t.easy > 0;
-        } else if (difficultyFilter === "Medium") {
-          matchesDifficulty = t.medium > 0;
-        } else if (difficultyFilter === "Hard") {
-          matchesDifficulty = t.hard > 0;
-        }
-
-        return matchesSearch && matchesLevel && matchesLesson && matchesSkill && matchesDifficulty;
-      })
-      .sort((a, b) => {
-        if (sortBy === "Alphabetical") {
-          return a.name.localeCompare(b.name);
-        } else if (sortBy === "Oldest") {
-          return a.updatedAt.localeCompare(b.updatedAt);
-        } else {
-          return b.updatedAt.localeCompare(a.updatedAt);
-        }
-      });
+      return matchesSearch && matchesLevel && matchesLesson && matchesSkill;
+    });
   }, [
     topicsWithLessons,
     searchQuery,
     levelFilter,
     lessonFilter,
     skillFilter,
-    difficultyFilter,
-    sortBy,
     navLevel,
     navLesson,
     navSkill,
@@ -275,8 +277,8 @@ function QuestionBank() {
   // Group lessons and skills inside the active JLPT Level for Lesson View
   const groupedLessons = useMemo(() => {
     const activeLevel = navLevel !== "All" ? navLevel : null;
-    const subset = activeLevel 
-      ? filteredTopics.filter((t) => t.level === activeLevel) 
+    const subset = activeLevel
+      ? filteredTopics.filter((t) => t.level === activeLevel)
       : filteredTopics;
 
     const data = {} as Record<string, Record<string, TopicWithLesson[]>>;
@@ -325,15 +327,17 @@ function QuestionBank() {
   };
 
   // Preview Sheets Details Fetching
-  const selTopic = openPreviewTopicId ? topicsWithLessons.find((t) => t.id === openPreviewTopicId) : null;
+  const selTopic = openPreviewTopicId
+    ? topicsWithLessons.find((t) => t.id === openPreviewTopicId)
+    : null;
   const selQs = useMemo(() => {
     if (!selTopic) return [];
-    return questions.filter(
-      (q) =>
-        q.level === selTopic.level &&
-        q.lesson === selTopic.lessonId &&
-        q.type === selTopic.skill
-    ).slice(0, 6);
+    return questions
+      .filter(
+        (q) =>
+          q.level === selTopic.level && q.lesson === selTopic.lessonId && q.type === selTopic.skill,
+      )
+      .slice(0, 6);
   }, [selTopic, questions]);
 
   return (
@@ -364,10 +368,6 @@ function QuestionBank() {
         onLessonChange={handleLessonChange}
         skill={skillFilter}
         onSkillChange={setSkillFilter}
-        difficulty={difficultyFilter}
-        onDifficultyChange={setDifficultyFilter}
-        sort={sortBy}
-        onSortChange={setSortBy}
         availableLessons={availableLessons}
       />
 
@@ -394,6 +394,8 @@ function QuestionBank() {
               onToggleLesson={handleToggleLesson}
               onSelectSkill={handleSelectSkill}
               onOpenPreview={setOpenPreviewTopicId}
+              onAssignHomework={(id) => setAssignHwTopic(findTopicInfo(id))}
+              onAssignExam={(id) => setAssignExamTopic(findTopicInfo(id))}
             />
           )}
 
@@ -401,6 +403,8 @@ function QuestionBank() {
             <SkillGrid
               groupedSkills={groupedSkills}
               onOpenPreview={setOpenPreviewTopicId}
+              onAssignHomework={(id) => setAssignHwTopic(findTopicInfo(id))}
+              onAssignExam={(id) => setAssignExamTopic(findTopicInfo(id))}
             />
           )}
         </>
@@ -471,16 +475,46 @@ function QuestionBank() {
                 </li>
               ))}
             </ul>
-            <div className="pt-2">
-              <Button asChild className="w-full">
-                <a href={`/teacher/homework/create?source=question-bank&topicId=${selTopic.id}`}>
-                  Add to homework
-                </a>
+            <div className="pt-2 flex gap-2">
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  if (!selTopic) return;
+                  const info = findTopicInfo(selTopic.id);
+                  setOpenPreviewTopicId(null);
+                  if (info) setAssignHwTopic(info);
+                }}
+              >
+                Add to homework
+              </Button>
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => {
+                  if (!selTopic) return;
+                  const info = findTopicInfo(selTopic.id);
+                  setOpenPreviewTopicId(null);
+                  if (info) setAssignExamTopic(info);
+                }}
+              >
+                Add to exam
               </Button>
             </div>
           </div>
         )}
       </PreviewSheet>
+
+      {/* Direct Assign modals (no redirect) */}
+      <AssignHomeworkModal
+        open={!!assignHwTopic}
+        onOpenChange={(o) => !o && setAssignHwTopic(null)}
+        topic={assignHwTopic}
+      />
+      <AssignExamModal
+        open={!!assignExamTopic}
+        onOpenChange={(o) => !o && setAssignExamTopic(null)}
+        topic={assignExamTopic}
+      />
     </div>
   );
 }

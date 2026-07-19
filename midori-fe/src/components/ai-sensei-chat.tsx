@@ -76,7 +76,12 @@ const studyMaterials: MaterialContent[] = [
       { jp: "書く", reading: "かく", vi: "viết", example: "手紙を書く (viết thư)" },
       { jp: "話す", reading: "はなす", vi: "nói", example: "日本語を話す (nói tiếng Nhật)" },
       { jp: "寝る", reading: "ねる", vi: "ngủ", example: "早く寝る (đi ngủ sớm)" },
-      { jp: "起きる", reading: "おきる", vi: "thức dậy", example: "六時に起きる (thức dậy lúc 6h)" },
+      {
+        jp: "起きる",
+        reading: "おきる",
+        vi: "thức dậy",
+        example: "六時に起きる (thức dậy lúc 6h)",
+      },
       { jp: "買う", reading: "かう", vi: "mua", example: "パンをかう (mua bánh mì)" },
     ] as VocabItem[],
   },
@@ -133,11 +138,31 @@ const studyMaterials: MaterialContent[] = [
     level: "N5",
     content: [
       { jp: "学校", reading: "がっこう", vi: "trường học", example: "学校に行く (đi học)" },
-      { jp: "先生", reading: "せんせい", vi: "giáo viên", example: "日本語先生 (giáo viên tiếng Nhật)" },
-      { jp: "学生", reading: "がくせい", vi: "sinh viên/học sinh", example: "私は学生です (Tôi là học sinh)" },
+      {
+        jp: "先生",
+        reading: "せんせい",
+        vi: "giáo viên",
+        example: "日本語先生 (giáo viên tiếng Nhật)",
+      },
+      {
+        jp: "学生",
+        reading: "がくせい",
+        vi: "sinh viên/học sinh",
+        example: "私は学生です (Tôi là học sinh)",
+      },
       { jp: "友達", reading: "ともだち", vi: "bạn bè", example: "友達と話す (nói chuyện với bạn)" },
-      { jp: "家族", reading: "かぞく", vi: "gia đình", example: "家族は何人ですか (Gia đình có bao nhiêu người?)" },
-      { jp: "会社", reading: "かいしゃ", vi: "công ty", example: "会社で働く (làm việc ở công ty)" },
+      {
+        jp: "家族",
+        reading: "かぞく",
+        vi: "gia đình",
+        example: "家族は何人ですか (Gia đình có bao nhiêu người?)",
+      },
+      {
+        jp: "会社",
+        reading: "かいしゃ",
+        vi: "công ty",
+        example: "会社で働く (làm việc ở công ty)",
+      },
     ] as VocabItem[],
   },
   {
@@ -227,7 +252,11 @@ function toMaterialContextPayload(material: MaterialContent | null | undefined) 
   };
 }
 
-function buildChatRequest(messageText: string, material: MaterialContent | null | undefined, conversationId: string | null) {
+function buildChatRequest(
+  messageText: string,
+  material: MaterialContent | null | undefined,
+  conversationId: string | null,
+) {
   return {
     message: messageText,
     conversationId: conversationId || undefined,
@@ -259,7 +288,7 @@ function highlightJapanese(text: string, tone: "user" | "ai" = "ai"): React.Reac
 function materialToText(material: MaterialContent): string {
   if (material.type === "vocabulary") {
     const items = material.content as VocabItem[];
-    const lines = items.map(item => {
+    const lines = items.map((item) => {
       const parts = [item.jp, item.reading, item.vi];
       if (item.example) parts.push(item.example);
       return `- ${parts.join(" | ")}`;
@@ -268,9 +297,12 @@ function materialToText(material: MaterialContent): string {
   }
   if (material.type === "grammar") {
     const items = material.content as GrammarItem[];
-    return items.map(item =>
-      `${item.pattern} | Nghĩa: ${item.meaning} | Cấu trúc: ${item.formation}\nVí dụ: ${item.examples.map(e => `${e.ja} (${e.vi})`).join(', ')}`
-    ).join("\n\n");
+    return items
+      .map(
+        (item) =>
+          `${item.pattern} | Nghĩa: ${item.meaning} | Cấu trúc: ${item.formation}\nVí dụ: ${item.examples.map((e) => `${e.ja} (${e.vi})`).join(", ")}`,
+      )
+      .join("\n\n");
   }
   return material.content as string;
 }
@@ -283,7 +315,7 @@ function materialToText(material: MaterialContent): string {
 // minimum set of characters that could break JSX/text rendering (<, >) so
 // the content stays safe to inject as React text without dangerouslySetInnerHTML.
 const HTML_ENTITY_DECODE_MAP: Record<string, string> = {
-  "&quot;": "\"",
+  "&quot;": '"',
   "&apos;": "'",
   "&#39;": "'",
   "&#x27;": "'",
@@ -295,7 +327,10 @@ const HTML_ENTITY_DECODE_MAP: Record<string, string> = {
 
 function decodeHtmlEntities(value: string): string {
   if (!value || value.indexOf("&") < 0) return value;
-  return value.replace(/&(?:quot|apos|amp|lt|gt|#39|#x27|#039);/g, (m) => HTML_ENTITY_DECODE_MAP[m] ?? m);
+  return value.replace(
+    /&(?:quot|apos|amp|lt|gt|#39|#x27|#039);/g,
+    (m) => HTML_ENTITY_DECODE_MAP[m] ?? m,
+  );
 }
 
 function escapeHtml(value: string): string {
@@ -312,14 +347,16 @@ function renderInline(inline: string, tone: "user" | "ai" = "ai"): React.ReactNo
   let match: RegExpExecArray | null;
   while ((match = regex.exec(inline)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex, match.index)), tone)}</span>);
+      parts.push(
+        <span key={`inline-${key++}`}>
+          {highlightJapanese(escapeHtml(inline.slice(lastIndex, match.index)), tone)}
+        </span>,
+      );
     }
     const token = match[0];
     if (token.startsWith("**") && token.endsWith("**")) {
       const strongClass =
-        tone === "user"
-          ? "font-bold text-white"
-          : "font-bold text-slate-900 dark:text-slate-50";
+        tone === "user" ? "font-bold text-white" : "font-bold text-slate-900 dark:text-slate-50";
       parts.push(
         <strong key={`inline-${key++}`} className={strongClass}>
           {highlightJapanese(escapeHtml(token.slice(2, -2)), tone)}
@@ -331,10 +368,7 @@ function renderInline(inline: string, tone: "user" | "ai" = "ai"): React.ReactNo
           ? "rounded bg-white/20 text-white px-1 py-0.5 text-xs font-mono border border-white/25"
           : "rounded bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-slate-50 px-1 py-0.5 text-xs font-mono";
       parts.push(
-        <code
-          key={`inline-${key++}`}
-          className={codeClass}
-        >
+        <code key={`inline-${key++}`} className={codeClass}>
           {escapeHtml(token.slice(1, -1))}
         </code>,
       );
@@ -342,7 +376,11 @@ function renderInline(inline: string, tone: "user" | "ai" = "ai"): React.ReactNo
     lastIndex = match.index + token.length;
   }
   if (lastIndex < inline.length || parts.length === 0) {
-    parts.push(<span key={`inline-${key++}`}>{highlightJapanese(escapeHtml(inline.slice(lastIndex)), tone)}</span>);
+    parts.push(
+      <span key={`inline-${key++}`}>
+        {highlightJapanese(escapeHtml(inline.slice(lastIndex)), tone)}
+      </span>,
+    );
   }
   return parts;
 }
@@ -366,7 +404,9 @@ function isTableSeparatorLine(trimmed: string): boolean {
 function isSpaceAlignedSeparator(trimmed: string): boolean {
   if (!trimmed || trimmed.includes("|")) return false;
   // Must contain at least one ---, :---, ---:, or :---: separated by whitespace.
-  return /^(:?-{3,}|:?-{3,}:?)\s+(:?-{3,}|:?-{3,}:?)((\s+)(:?-{3,}|:?-{3,}:?))*(\s*:|-:)?$/.test(trimmed);
+  return /^(:?-{3,}|:?-{3,}:?)\s+(:?-{3,}|:?-{3,}:?)((\s+)(:?-{3,}|:?-{3,}:?))*(\s*:|-:)?$/.test(
+    trimmed,
+  );
 }
 
 function splitTableRow(line: string): string[] {
@@ -378,18 +418,16 @@ function splitTableRow(line: string): string[] {
   return body.split("|").map((cell) => cell.trim());
 }
 
-function renderTable(rows: string[][], tableIndex: number, tone: "user" | "ai" = "ai"): React.ReactNode {
+function renderTable(
+  rows: string[][],
+  tableIndex: number,
+  tone: "user" | "ai" = "ai",
+): React.ReactNode {
   if (rows.length === 0) return null;
   const header = rows[0];
   const body = rows.slice(1);
-  const baseText =
-    tone === "user"
-      ? "text-white"
-      : "text-slate-900 dark:text-slate-100";
-  const thBg =
-    tone === "user"
-      ? "bg-white/15"
-      : "bg-slate-100 dark:bg-slate-800";
+  const baseText = tone === "user" ? "text-white" : "text-slate-900 dark:text-slate-100";
+  const thBg = tone === "user" ? "bg-white/15" : "bg-slate-100 dark:bg-slate-800";
   const thClass =
     tone === "user"
       ? "px-3 py-2 text-left text-xs font-semibold border-b border-white/25 text-white whitespace-nowrap"
@@ -412,10 +450,7 @@ function renderTable(rows: string[][], tableIndex: number, tone: "user" | "ai" =
         <thead className={thBg}>
           <tr>
             {header.map((cell, idx) => (
-              <th
-                key={`${tableIndex}-h-${idx}`}
-                className={thClass}
-              >
+              <th key={`${tableIndex}-h-${idx}`} className={thClass}>
                 {renderInline(cell, tone)}
               </th>
             ))}
@@ -423,15 +458,9 @@ function renderTable(rows: string[][], tableIndex: number, tone: "user" | "ai" =
         </thead>
         <tbody className={baseText}>
           {body.map((row, rowIdx) => (
-            <tr
-              key={`${tableIndex}-r-${rowIdx}`}
-              className={rowClass}
-            >
+            <tr key={`${tableIndex}-r-${rowIdx}`} className={rowClass}>
               {row.map((cell, cellIdx) => (
-                <td
-                  key={`${tableIndex}-${rowIdx}-${cellIdx}`}
-                  className={tdClass}
-                >
+                <td key={`${tableIndex}-${rowIdx}-${cellIdx}`} className={tdClass}>
                   {renderInline(cell, tone)}
                 </td>
               ))}
@@ -562,7 +591,10 @@ function renderMarkdown(markdown: string, tone: "user" | "ai" = "ai"): React.Rea
         return splitTableRow(text);
       }
       // For non-pipe rows, try to split by 2+ spaces
-      return text.split(/\s{2,}/).map(c => c.trim()).filter(Boolean);
+      return text
+        .split(/\s{2,}/)
+        .map((c) => c.trim())
+        .filter(Boolean);
     };
 
     const header = parseRow(pipeRows[0].text);
@@ -587,7 +619,9 @@ function renderMarkdown(markdown: string, tone: "user" | "ai" = "ai"): React.Rea
   //   Kanji   Hiragana   Romaji   Nghĩa
   //   :---    :---       :---     :---
   //   食べる  たべる     taberu   ăn
-  const tryParseSpaceAlignedTable = (start: number): { nextIndex: number; rows: string[][] } | null => {
+  const tryParseSpaceAlignedTable = (
+    start: number,
+  ): { nextIndex: number; rows: string[][] } | null => {
     if (start >= lines.length) return null;
     const firstTrimmed = lines[start].trim();
     if (!firstTrimmed) return null;
@@ -619,12 +653,18 @@ function renderMarkdown(markdown: string, tone: "user" | "ai" = "ai"): React.Rea
     // Second row must be the separator.
     if (!isSpaceAlignedSeparator(rows[1])) return null;
 
-    const headerCells = rows[0].split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
+    const headerCells = rows[0]
+      .split(/\s{2,}/)
+      .map((c) => c.trim())
+      .filter(Boolean);
     if (headerCells.length < 1) return null;
 
     const bodyRows: string[][] = [];
     for (let k = 2; k < rows.length; k++) {
-      const cells = rows[k].split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
+      const cells = rows[k]
+        .split(/\s{2,}/)
+        .map((c) => c.trim())
+        .filter(Boolean);
       if (cells.length > 0) bodyRows.push(cells);
     }
 
@@ -743,11 +783,21 @@ function MaterialSelector({
         ? material.content
             .map((item) => {
               if (material.type === "vocabulary" && "jp" in item && "vi" in item) {
-                const vocab = item as { jp?: string; reading?: string; vi?: string; example?: string };
+                const vocab = item as {
+                  jp?: string;
+                  reading?: string;
+                  vi?: string;
+                  example?: string;
+                };
                 return [vocab.jp, vocab.reading, vocab.vi, vocab.example].filter(Boolean).join(" ");
               }
               if (material.type === "grammar" && "pattern" in item && "meaning" in item) {
-                const grammar = item as { pattern?: string; meaning?: string; formation?: string; notes?: string };
+                const grammar = item as {
+                  pattern?: string;
+                  meaning?: string;
+                  formation?: string;
+                  notes?: string;
+                };
                 return [grammar.pattern, grammar.meaning, grammar.formation, grammar.notes]
                   .filter(Boolean)
                   .join(" ");
@@ -1079,11 +1129,15 @@ function PracticeMode({
         const validQuestions: QuizQuestion[] = response.questions
           .map((q, i) => {
             const type = (q.type || "MULTIPLE_CHOICE").toUpperCase();
-            let question = q.question || q.questionText || "";
+            const question = q.question || q.questionText || "";
             let correctAnswer = q.correctAnswer || "";
             let options = q.options || [];
 
-            if (!correctAnswer && typeof q.correctAnswerIndex === "number" && options[q.correctAnswerIndex]) {
+            if (
+              !correctAnswer &&
+              typeof q.correctAnswerIndex === "number" &&
+              options[q.correctAnswerIndex]
+            ) {
               correctAnswer = options[q.correctAnswerIndex];
             }
 
@@ -1161,9 +1215,13 @@ function PracticeMode({
 
   const handleSubmit = () => {
     if (!quizData) return;
-    const unanswered = quizData.filter((q) => q.userAnswer === undefined || q.userAnswer === null || q.userAnswer === "").length;
+    const unanswered = quizData.filter(
+      (q) => q.userAnswer === undefined || q.userAnswer === null || q.userAnswer === "",
+    ).length;
     if (unanswered > 0) {
-      setError(`Vui lòng trả lời tất cả câu hỏi trước khi nộp. Còn ${unanswered} câu chưa trả lời.`);
+      setError(
+        `Vui lòng trả lời tất cả câu hỏi trước khi nộp. Còn ${unanswered} câu chưa trả lời.`,
+      );
       return;
     }
     setError(null);
@@ -1208,7 +1266,11 @@ function PracticeMode({
   const { score, percent } = computeScore();
 
   const currentQuestion = quizData && quizData.length > 0 ? quizData[currentIndex] : null;
-  const isCurrentAnswered = currentQuestion !== undefined && currentQuestion?.userAnswer !== undefined && currentQuestion?.userAnswer !== null && currentQuestion?.userAnswer !== "";
+  const isCurrentAnswered =
+    currentQuestion !== undefined &&
+    currentQuestion?.userAnswer !== undefined &&
+    currentQuestion?.userAnswer !== null &&
+    currentQuestion?.userAnswer !== "";
 
   const typeOptions = [
     { value: "MULTIPLE_CHOICE", label: "Trắc nghiệm" },
@@ -1224,7 +1286,10 @@ function PracticeMode({
   ];
 
   // Determine if an option is correct/wrong for display
-  const getOptionState = (option: string, index: number): "correct" | "wrong" | "selected" | "default" => {
+  const getOptionState = (
+    option: string,
+    index: number,
+  ): "correct" | "wrong" | "selected" | "default" => {
     if (!submitted || !currentQuestion) return "default";
     const correct = currentQuestion.correctAnswer;
     if (option === correct) return "correct";
@@ -1380,8 +1445,8 @@ function PracticeMode({
                 percent >= 75
                   ? "bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-100 dark:border-emerald-800"
                   : percent >= 50
-                  ? "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-800"
-                  : "bg-red-50 text-red-900 border-red-200 dark:bg-red-950/40 dark:text-red-100 dark:border-red-800"
+                    ? "bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-800"
+                    : "bg-red-50 text-red-900 border-red-200 dark:bg-red-950/40 dark:text-red-100 dark:border-red-800"
               }`}
             >
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -1390,8 +1455,8 @@ function PracticeMode({
                     percent >= 75
                       ? "text-emerald-600 dark:text-emerald-400"
                       : percent >= 50
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-red-600 dark:text-red-400"
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-red-600 dark:text-red-400"
                   }`}
                 />
                 <span className="text-3xl font-bold">{percent}%</span>
@@ -1404,8 +1469,8 @@ function PracticeMode({
                   percent >= 75
                     ? "text-emerald-700 dark:text-emerald-300"
                     : percent >= 50
-                    ? "text-amber-700 dark:text-amber-300"
-                    : "text-red-700 dark:text-red-300"
+                      ? "text-amber-700 dark:text-amber-300"
+                      : "text-red-700 dark:text-red-300"
                 }`}
               >
                 {percent >= 75 ? "Xuất sắc!" : percent >= 50 ? "Khá tốt!" : "Cố gắng hơn nhé!"}
@@ -1421,8 +1486,13 @@ function PracticeMode({
                 <span className="font-medium">{currentQuestion.type.replace("_", " ")}</span>
               </span>
               <span>
-                {quizData.filter((q) => q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== "").length}/
-                {quizData.length} đã trả lời
+                {
+                  quizData.filter(
+                    (q) =>
+                      q.userAnswer !== undefined && q.userAnswer !== null && q.userAnswer !== "",
+                  ).length
+                }
+                /{quizData.length} đã trả lời
               </span>
             </div>
             <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -1445,14 +1515,17 @@ function PracticeMode({
               <div className="space-y-2">
                 {currentQuestion.options.map((option, i) => {
                   const state = getOptionState(option, i);
-                  let className = "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
+                  let className =
+                    "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
                   let icon: React.ReactNode = null;
 
                   if (state === "correct") {
-                    className = "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
+                    className =
+                      "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
                     icon = <CheckCircle2 className="w-4 h-4 text-green-500" />;
                   } else if (state === "wrong") {
-                    className = "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
+                    className =
+                      "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
                     icon = <X className="w-4 h-4 text-red-500" />;
                   } else if (!submitted && currentQuestion.userAnswer === i) {
                     className = "bg-primary/10 border-primary/30 text-primary";
@@ -1466,7 +1539,9 @@ function PracticeMode({
                       className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm transition-all flex items-center justify-between ${className}`}
                     >
                       <span className="flex items-center gap-2">
-                        <span className="font-bold w-5 shrink-0 text-center">{String.fromCharCode(65 + i)}.</span>
+                        <span className="font-bold w-5 shrink-0 text-center">
+                          {String.fromCharCode(65 + i)}.
+                        </span>
                         <span>{option}</span>
                       </span>
                       {icon}
@@ -1482,15 +1557,18 @@ function PracticeMode({
                 {["Đúng", "Sai"].map((opt, i) => {
                   const isCorrect = opt === currentQuestion.correctAnswer;
                   const isSelected = currentQuestion.userAnswer === i;
-                  let className = "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
+                  let className =
+                    "bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100";
                   let icon: React.ReactNode = null;
 
                   if (submitted) {
                     if (isCorrect) {
-                      className = "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
+                      className =
+                        "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700 dark:text-green-300";
                       icon = <CheckCircle2 className="w-5 h-5 text-green-500" />;
                     } else if (isSelected && !isCorrect) {
-                      className = "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
+                      className =
+                        "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700 dark:text-red-300";
                       icon = <X className="w-5 h-5 text-red-500" />;
                     }
                   } else if (isSelected) {
@@ -1525,7 +1603,8 @@ function PracticeMode({
                   placeholder="Nhập đáp án..."
                   className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400 ${
                     submitted
-                      ? fillBlankInput.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase()
+                      ? fillBlankInput.trim().toLowerCase() ===
+                        currentQuestion.correctAnswer.trim().toLowerCase()
                         ? "bg-green-50 border-green-300 text-green-700 dark:bg-green-950/40 dark:border-green-700"
                         : "bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-700"
                       : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 focus:border-primary/50"
@@ -1533,7 +1612,8 @@ function PracticeMode({
                 />
                 {submitted && (
                   <div className="mt-2 flex items-center gap-2">
-                    {fillBlankInput.trim().toLowerCase() === currentQuestion.correctAnswer.trim().toLowerCase() ? (
+                    {fillBlankInput.trim().toLowerCase() ===
+                    currentQuestion.correctAnswer.trim().toLowerCase() ? (
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                     ) : (
                       <X className="w-4 h-4 text-red-500" />
@@ -1561,8 +1641,11 @@ function PracticeMode({
               type="button"
               onClick={() => {
                 setCurrentIndex(Math.max(0, currentIndex - 1));
-                setFillBlankInput(typeof quizData[Math.max(0, currentIndex - 1)]?.userAnswer === "string"
-                  ? String(quizData[Math.max(0, currentIndex - 1)]?.userAnswer || "") : "");
+                setFillBlankInput(
+                  typeof quizData[Math.max(0, currentIndex - 1)]?.userAnswer === "string"
+                    ? String(quizData[Math.max(0, currentIndex - 1)]?.userAnswer || "")
+                    : "",
+                );
               }}
               disabled={currentIndex === 0}
               className="px-4 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-xl disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
@@ -1575,8 +1658,11 @@ function PracticeMode({
                 type="button"
                 onClick={() => {
                   setCurrentIndex(currentIndex + 1);
-                  setFillBlankInput(typeof quizData[currentIndex + 1]?.userAnswer === "string"
-                    ? String(quizData[currentIndex + 1]?.userAnswer || "") : "");
+                  setFillBlankInput(
+                    typeof quizData[currentIndex + 1]?.userAnswer === "string"
+                      ? String(quizData[currentIndex + 1]?.userAnswer || "")
+                      : "",
+                  );
                 }}
                 className="flex-1 px-4 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary/90 transition"
               >
@@ -1694,7 +1780,11 @@ export function AISenseiPage() {
   const [chatBootState, setChatBootState] = useState<"loading" | "ready" | "error">("loading");
 
   // Edit mode state
-  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; materialContext?: MaterialContent } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{
+    id: string;
+    content: string;
+    materialContext?: MaterialContent;
+  } | null>(null);
   const [editInput, setEditInput] = useState("");
   const [isSavingEdit, setSavingEdit] = useState(false);
 
@@ -1818,26 +1908,23 @@ export function AISenseiPage() {
     [activeConversationId],
   );
 
-  const handleRenameConversation = useCallback(
-    async (conversation: AiConversation) => {
-      const newTitle = window.prompt("Nhập tên mới cho đoạn chat:", conversation.title);
-      if (newTitle === null) return;
-      const trimmed = newTitle.trim();
-      if (!trimmed) return;
+  const handleRenameConversation = useCallback(async (conversation: AiConversation) => {
+    const newTitle = window.prompt("Nhập tên mới cho đoạn chat:", conversation.title);
+    if (newTitle === null) return;
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
 
-      setApiError(null);
-      try {
-        const updated = await aiApi.updateConversationTitle(conversation.id, { title: trimmed });
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conversation.id ? { ...c, title: updated.title } : c)),
-        );
-      } catch (error) {
-        console.error("Failed to rename conversation", error);
-        setApiError("Không đổi được tên conversation.");
-      }
-    },
-    [],
-  );
+    setApiError(null);
+    try {
+      const updated = await aiApi.updateConversationTitle(conversation.id, { title: trimmed });
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversation.id ? { ...c, title: updated.title } : c)),
+      );
+    } catch (error) {
+      console.error("Failed to rename conversation", error);
+      setApiError("Không đổi được tên conversation.");
+    }
+  }, []);
 
   const handleEditMessage = useCallback((msg: Message) => {
     setEditingMessage({ id: msg.id, content: msg.content, materialContext: msg.materialContext });
@@ -1916,12 +2003,21 @@ export function AISenseiPage() {
       setIsTyping(false);
       setChatLoadingText(null);
     }
-  }, [editingMessage, editInput, activeConversationId, messages, selectedMaterial, loadConversations]);
+  }, [
+    editingMessage,
+    editInput,
+    activeConversationId,
+    messages,
+    selectedMaterial,
+    loadConversations,
+  ]);
 
   const [chatLoadingText, setChatLoadingText] = useState<string | null>(null);
   const aiLoadingMessages = [
     "AI Sensei đang phân tích câu hỏi...",
-    selectedMaterial ? "Đang tham chiếu tài liệu đã chọn..." : "Đang tổng hợp kiến thức liên quan...",
+    selectedMaterial
+      ? "Đang tham chiếu tài liệu đã chọn..."
+      : "Đang tổng hợp kiến thức liên quan...",
     "Đang soạn câu trả lời...",
   ];
 
@@ -1955,7 +2051,9 @@ export function AISenseiPage() {
       }, 1200);
 
       try {
-        const response = await aiApi.chat(buildChatRequest(trimmed, materialContext, activeConversationId));
+        const response = await aiApi.chat(
+          buildChatRequest(trimmed, materialContext, activeConversationId),
+        );
 
         const success = await loadMessages(response.conversationId);
 
@@ -1966,7 +2064,11 @@ export function AISenseiPage() {
         await loadConversations();
       } catch (error: any) {
         console.error("Failed to send message", error);
-        if (error?.message?.includes("not configured") || error?.message?.includes("OPENROUTER_API_KEY") || error?.message?.includes("GEMINI_API_KEY")) {
+        if (
+          error?.message?.includes("not configured") ||
+          error?.message?.includes("OPENROUTER_API_KEY") ||
+          error?.message?.includes("GEMINI_API_KEY")
+        ) {
           setApiError("AI provider chưa được cấu hình. Vui lòng liên hệ quản trị viên.");
         } else if (error?.message?.includes("429")) {
           setApiError("AI đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
@@ -1981,7 +2083,14 @@ export function AISenseiPage() {
         setChatLoadingText(null);
       }
     },
-    [input, isSendingMessage, activeConversationId, loadConversations, loadMessages, selectedMaterial],
+    [
+      input,
+      isSendingMessage,
+      activeConversationId,
+      loadConversations,
+      loadMessages,
+      selectedMaterial,
+    ],
   );
 
   const handleModeChange = (newMode: Mode) => {
@@ -2008,7 +2117,9 @@ export function AISenseiPage() {
     if (isLoadingConversations || bootInitializedRef.current) return;
 
     const isReload = () => {
-      const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+      const nav = performance.getEntriesByType("navigation")[0] as
+        | PerformanceNavigationTiming
+        | undefined;
       return nav?.type === "reload";
     };
 
@@ -2072,9 +2183,7 @@ export function AISenseiPage() {
           </div>
 
           <div className="space-y-1 max-h-40 overflow-y-auto">
-            {isLoadingConversations && (
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            )}
+            {isLoadingConversations && <p className="text-xs text-muted-foreground">Loading...</p>}
             {!isLoadingConversations && conversations.length === 0 && (
               <p className="text-xs text-muted-foreground">No conversations yet.</p>
             )}
@@ -2195,7 +2304,10 @@ export function AISenseiPage() {
         ) : (
           <>
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-24 lg:pb-0">
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 pb-24 lg:pb-0"
+            >
               {apiError && (
                 <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -2226,7 +2338,11 @@ export function AISenseiPage() {
                 ))}
 
               {isTyping && chatLoadingText && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex"
+                >
                   <div className="max-w-[85%]">
                     <div className="flex items-center gap-2 mb-1 ml-1">
                       <div className="w-6 h-6 rounded-lg bg-gradient-hero flex items-center justify-center">
@@ -2237,9 +2353,18 @@ export function AISenseiPage() {
                     <div className="rounded-2xl px-4 py-3 bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700">
                       <div className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 flex items-center gap-2">
                         <span className="flex gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                            style={{ animationDelay: "0ms" }}
+                          />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                            style={{ animationDelay: "150ms" }}
+                          />
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce"
+                            style={{ animationDelay: "300ms" }}
+                          />
                         </span>
                         {chatLoadingText}
                       </div>
@@ -2249,7 +2374,11 @@ export function AISenseiPage() {
               )}
 
               {!isTyping && apiError && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex"
+                >
                   <div className="max-w-[85%]">
                     <div className="flex items-center gap-2 mb-1 ml-1">
                       <div className="w-6 h-6 rounded-lg bg-gradient-hero flex items-center justify-center">
@@ -2345,9 +2474,7 @@ export function AISenseiPage() {
                   disabled={!input.trim() || isSendingMessage || !!editingMessage}
                   className="px-4 py-3 rounded-xl bg-gradient-hero text-white disabled:opacity-50 hover:opacity-90 transition shadow-md"
                   title={
-                    editingMessage
-                      ? "Lưu hoặc hủy sửa tin nhắn trước"
-                      : "Gửi tin nhắn (Enter)"
+                    editingMessage ? "Lưu hoặc hủy sửa tin nhắn trước" : "Gửi tin nhắn (Enter)"
                   }
                 >
                   <Send className="w-4 h-4" />
@@ -2356,7 +2483,8 @@ export function AISenseiPage() {
 
               <p className="text-[10px] text-muted-foreground text-center mt-2">
                 <Sparkles className="w-3 h-3 inline mr-1" />
-                Enter gửi · Shift+Enter xuống dòng · AI Sensei có thể ưu tiên tài liệu đã chọn khi trả lời.
+                Enter gửi · Shift+Enter xuống dòng · AI Sensei có thể ưu tiên tài liệu đã chọn khi
+                trả lời.
               </p>
             </div>
           </>

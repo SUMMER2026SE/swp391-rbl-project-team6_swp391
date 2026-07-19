@@ -18,7 +18,10 @@ export const Route = createFileRoute("/teacher/jlpt-bank")({
   component: JlptBank,
 });
 
-function mapSectionFromPrompt(prompt: string): { cleanPrompt: string; section: "Vocabulary" | "Grammar" | "Reading" | "Listening" } {
+function mapSectionFromPrompt(prompt: string): {
+  cleanPrompt: string;
+  section: "Vocabulary" | "Grammar" | "Reading" | "Listening";
+} {
   if (prompt.startsWith("[Vocabulary] ")) {
     return { cleanPrompt: prompt.substring(13), section: "Vocabulary" };
   }
@@ -52,9 +55,7 @@ function JlptBank() {
   });
 
   // Filter exams that are in category JLPT and PUBLISHED
-  const sets = rawExams.filter(
-    (e) => e.category === "JLPT" && e.status === "PUBLISHED"
-  );
+  const sets = rawExams.filter((e) => e.category === "JLPT" && e.status === "PUBLISHED");
 
   const filtered = sets.filter(
     (s) =>
@@ -69,17 +70,19 @@ function JlptBank() {
   // Helper to compute stats for a single exam response
   const getExamStats = (exam: ExamResponse) => {
     const qs = exam.questions || [];
-    const vocab = qs.filter(q => mapSectionFromPrompt(q.prompt).section === "Vocabulary").length;
-    const grammar = qs.filter(q => mapSectionFromPrompt(q.prompt).section === "Grammar").length;
-    const reading = qs.filter(q => mapSectionFromPrompt(q.prompt).section === "Reading").length;
-    const listening = qs.filter(q => mapSectionFromPrompt(q.prompt).section === "Listening").length;
-    
+    const vocab = qs.filter((q) => mapSectionFromPrompt(q.prompt).section === "Vocabulary").length;
+    const grammar = qs.filter((q) => mapSectionFromPrompt(q.prompt).section === "Grammar").length;
+    const reading = qs.filter((q) => mapSectionFromPrompt(q.prompt).section === "Reading").length;
+    const listening = qs.filter(
+      (q) => mapSectionFromPrompt(q.prompt).section === "Listening",
+    ).length;
+
     const sections = [
       { name: "Vocabulary", questions: vocab },
       { name: "Grammar", questions: grammar },
       { name: "Reading", questions: reading },
-      { name: "Listening", questions: listening }
-    ].filter(sec => sec.questions > 0);
+      { name: "Listening", questions: listening },
+    ].filter((sec) => sec.questions > 0);
 
     const easyCount = exam.difficultyEasy ?? 0;
     const mediumCount = exam.difficultyMedium ?? 0;
@@ -100,7 +103,8 @@ function JlptBank() {
       sections,
       mix,
       year: exam.createdAt ? new Date(exam.createdAt).getFullYear() : new Date().getFullYear(),
-      description: exam.category === "JLPT" ? `Official JLPT-style exam prepared by the Admin.` : ""
+      description:
+        exam.category === "JLPT" ? `Official JLPT-style exam prepared by the Admin.` : "",
     };
   };
 
@@ -110,7 +114,6 @@ function JlptBank() {
         eyebrow="Center library"
         title="JLPT Exam Bank"
         subtitle="Complete JLPT-style exam sets prepared by the Center. Use them as-is for mock exams."
-
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -160,14 +163,18 @@ function JlptBank() {
                     {s.title}
                   </button>
                   <p className="mt-1 text-sm text-muted-foreground">{stats.description}</p>
-                  <div className={`mt-3 grid gap-2 text-center text-[10px] ${stats.mix ? "grid-cols-4" : "grid-cols-3"}`}>
+                  <div
+                    className={`mt-3 grid gap-2 text-center text-[10px] ${stats.mix ? "grid-cols-4" : "grid-cols-3"}`}
+                  >
                     <div className="rounded-md bg-muted/40 p-2">
                       <div className="text-muted-foreground">Duration</div>
                       <div className="text-sm font-bold">{s.timeLimit}m</div>
                     </div>
                     <div className="rounded-md bg-muted/40 p-2">
                       <div className="text-muted-foreground">Questions</div>
-                      <div className="text-sm font-bold">{s.totalQuestions ?? s.questions?.length ?? 0}</div>
+                      <div className="text-sm font-bold">
+                        {s.totalQuestions ?? s.questions?.length ?? 0}
+                      </div>
                     </div>
                     <div className="rounded-md bg-muted/40 p-2">
                       <div className="text-muted-foreground">Sections</div>
@@ -205,44 +212,50 @@ function JlptBank() {
         open={!!sel}
         onOpenChange={(o) => !o && setOpenId(null)}
         title={sel?.title ?? ""}
-        description={sel ? `${sel.timeLimit} min · ${sel.totalQuestions ?? sel.questions?.length ?? 0} questions` : ""}
+        description={
+          sel
+            ? `${sel.timeLimit} min · ${sel.totalQuestions ?? sel.questions?.length ?? 0} questions`
+            : ""
+        }
       >
-        {sel && (() => {
-          const stats = getExamStats(sel);
-          return (
-            <div className="space-y-3 text-sm">
-              <p>{stats.description}</p>
-              <div>
-                <div className="mb-1 text-xs font-semibold text-muted-foreground">Sections</div>
-                <ul className="space-y-1">
-                  {stats.sections.map((sec, i) => (
-                    <li key={i} className="flex justify-between rounded-md border p-2">
-                      <span>{sec.name}</span>
-                      <span className="text-muted-foreground">{sec.questions} questions</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {stats.mix && (
+        {sel &&
+          (() => {
+            const stats = getExamStats(sel);
+            return (
+              <div className="space-y-3 text-sm">
+                <p>{stats.description}</p>
                 <div>
-                  <div className="mb-1 text-xs font-semibold text-muted-foreground">Difficulty mix</div>
-                  <div className="flex flex-wrap gap-2">
-                    <span>
-                      <DifficultyBadge d="Easy" /> {stats.mix.easy}%
-                    </span>
-                    <span>
-                      <DifficultyBadge d="Medium" /> {stats.mix.medium}%
-                    </span>
-                    <span>
-                      <DifficultyBadge d="Hard" /> {stats.mix.hard}%
-                    </span>
-                  </div>
+                  <div className="mb-1 text-xs font-semibold text-muted-foreground">Sections</div>
+                  <ul className="space-y-1">
+                    {stats.sections.map((sec, i) => (
+                      <li key={i} className="flex justify-between rounded-md border p-2">
+                        <span>{sec.name}</span>
+                        <span className="text-muted-foreground">{sec.questions} questions</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
-
-            </div>
-          );
-        })()}
+                {stats.mix && (
+                  <div>
+                    <div className="mb-1 text-xs font-semibold text-muted-foreground">
+                      Difficulty mix
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span>
+                        <DifficultyBadge d="Easy" /> {stats.mix.easy}%
+                      </span>
+                      <span>
+                        <DifficultyBadge d="Medium" /> {stats.mix.medium}%
+                      </span>
+                      <span>
+                        <DifficultyBadge d="Hard" /> {stats.mix.hard}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
       </PreviewSheet>
     </div>
   );

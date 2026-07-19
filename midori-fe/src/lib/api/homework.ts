@@ -77,27 +77,25 @@ export const homeworkApi = {
     api.post<HomeworkResponse>("/teacher/homeworks", req),
   updateHomework: (id: string, req: UpdateHomeworkRequest) =>
     api.put<HomeworkResponse>(`/teacher/homeworks/${id}`, req),
-  deleteHomework: (id: string) =>
-    api.delete<void>(`/teacher/homeworks/${id}`),
-  getTeacherHomeworks: () =>
-    api.get<HomeworkResponse[]>("/teacher/homeworks"),
-  getTeacherHomeworkById: (id: string) =>
-    api.get<HomeworkResponse>(`/teacher/homeworks/${id}`),
+  deleteHomework: (id: string) => api.delete<void>(`/teacher/homeworks/${id}`),
+  getTeacherHomeworks: () => api.get<HomeworkResponse[]>("/teacher/homeworks"),
+  getTeacherHomeworkById: (id: string) => api.get<HomeworkResponse>(`/teacher/homeworks/${id}`),
   // Class-specific teacher query — powers the Homework tab inside Class Detail
   getHomeworksByClass: (classId: string) =>
     api.get<HomeworkResponse[]>(`/teacher/homeworks/class/${classId}`),
   getHomeworkSubmissions: (id: string) =>
     api.get<HomeworkSubmissionResponse[]>(`/teacher/homeworks/${id}/submissions`),
   gradeSubmission: (submissionId: string, req: GradeHomeworkRequest) =>
-    api.put<HomeworkSubmissionResponse>(`/teacher/homeworks/submissions/${submissionId}/grade`, req),
+    api.put<HomeworkSubmissionResponse>(
+      `/teacher/homeworks/submissions/${submissionId}/grade`,
+      req,
+    ),
 
   // Student APIs
-  getStudentHomeworks: () =>
-    api.get<HomeworkResponse[]>("/student/homeworks"),
+  getStudentHomeworks: () => api.get<HomeworkResponse[]>("/student/homeworks"),
   getStudentHomeworksByClass: (classId: string) =>
     api.get<HomeworkResponse[]>(`/student/homeworks/class/${classId}`),
-  getStudentHomeworkById: (id: string) =>
-    api.get<HomeworkResponse>(`/student/homeworks/${id}`),
+  getStudentHomeworkById: (id: string) => api.get<HomeworkResponse>(`/student/homeworks/${id}`),
   submitHomework: (id: string, req: SubmitHomeworkRequest) =>
     api.post<HomeworkSubmissionResponse>(`/student/homeworks/${id}/submit`, req),
   getStudentSubmission: (id: string) =>

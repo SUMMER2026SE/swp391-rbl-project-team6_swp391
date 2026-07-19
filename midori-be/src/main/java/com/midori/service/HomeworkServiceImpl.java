@@ -29,6 +29,33 @@ public class HomeworkServiceImpl implements HomeworkService {
     private final TeacherQuestionRepository teacherQuestionRepository;
     private final com.midori.repository.ClassRepository classRepository;
 
+    private List<TeacherQuestion> validateAndGetQuestions(List<UUID> questionIds) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        List<TeacherQuestion> questions = teacherQuestionRepository.findAllById(questionIds);
+        
+        // Filter active questions only
+        java.util.Map<UUID, TeacherQuestion> questionMap = new java.util.HashMap<>();
+        for (TeacherQuestion q : questions) {
+            if ("ACTIVE".equals(q.getStatus())) {
+                questionMap.put(q.getId(), q);
+            }
+        }
+
+        List<TeacherQuestion> orderedQuestions = new java.util.ArrayList<>();
+        for (UUID qId : questionIds) {
+            TeacherQuestion q = questionMap.get(qId);
+            if (q == null) {
+                throw new com.midori.exception.BadRequestException(
+                    "One or more questions in the preview are no longer available. Please click \"Generate Again\" to create a new homework preview."
+                );
+            }
+            orderedQuestions.add(q);
+        }
+        return orderedQuestions;
+    }
+
     @Override
     @Transactional
     public Homework createHomework(Homework homework, List<UUID> questionIds) {
@@ -39,17 +66,8 @@ public class HomeworkServiceImpl implements HomeworkService {
                 throw new com.midori.exception.BadRequestException("Class is archived and cannot receive new homework assignments");
             }
         }
-        if (questionIds != null && !questionIds.isEmpty()) {
-            List<TeacherQuestion> questions = teacherQuestionRepository.findAllById(questionIds);
-            java.util.Map<UUID, TeacherQuestion> questionMap = questions.stream()
-                    .collect(java.util.stream.Collectors.toMap(TeacherQuestion::getId, q -> q));
-            List<TeacherQuestion> orderedQuestions = new java.util.ArrayList<>();
-            for (UUID qId : questionIds) {
-                TeacherQuestion q = questionMap.get(qId);
-                if (q != null) {
-                    orderedQuestions.add(q);
-                }
-            }
+        if (questionIds != null) {
+            List<TeacherQuestion> orderedQuestions = validateAndGetQuestions(questionIds);
             homework.setQuestions(orderedQuestions);
         }
         return homeworkRepository.save(homework);
@@ -69,16 +87,7 @@ public class HomeworkServiceImpl implements HomeworkService {
         homework.setStatus(homeworkDetails.getStatus());
         
         if (questionIds != null) {
-            List<TeacherQuestion> questions = teacherQuestionRepository.findAllById(questionIds);
-            java.util.Map<UUID, TeacherQuestion> questionMap = questions.stream()
-                    .collect(java.util.stream.Collectors.toMap(TeacherQuestion::getId, q -> q));
-            List<TeacherQuestion> orderedQuestions = new java.util.ArrayList<>();
-            for (UUID qId : questionIds) {
-                TeacherQuestion q = questionMap.get(qId);
-                if (q != null) {
-                    orderedQuestions.add(q);
-                }
-            }
+            List<TeacherQuestion> orderedQuestions = validateAndGetQuestions(questionIds);
             homework.setQuestions(orderedQuestions);
         }
         

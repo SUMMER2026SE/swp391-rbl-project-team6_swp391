@@ -7,12 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type SortOption =
-  | "Newest"
-  | "Oldest"
-  | "Recently Edited"
-  | "Most Used"
-  | "Alphabetical";
+export type SortOption = "Newest" | "Oldest" | "Recently Edited" | "Most Used" | "Alphabetical";
 
 interface SortDropdownProps {
   value: SortOption;

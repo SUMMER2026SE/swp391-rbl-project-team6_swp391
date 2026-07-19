@@ -1,4 +1,9 @@
-import { BuilderQuestion, QuestionType, QuestionDifficulty, QuestionSkill } from "../types/question";
+import {
+  BuilderQuestion,
+  QuestionType,
+  QuestionDifficulty,
+  QuestionSkill,
+} from "../types/question";
 
 export const mapToBuilderQuestion = (q: any): BuilderQuestion => {
   const typeMap: Record<string, QuestionType> = {
@@ -64,7 +69,7 @@ export const mapToBackendQuestion = (q: BuilderQuestion, order: number) => {
     correctAnswer = correctAns ? correctAns.content : "True";
   } else if (q.type === "MULTIPLE_CHOICE") {
     const correctAns = q.answers.find((a) => a.isCorrect);
-    correctAnswer = correctAns ? correctAns.content : (q.answers[0]?.content || "");
+    correctAnswer = correctAns ? correctAns.content : q.answers[0]?.content || "";
   } else if (q.type === "FILL_BLANK") {
     correctAnswer = q.answers[0]?.content || "";
   } else if (q.type === "MATCHING") {

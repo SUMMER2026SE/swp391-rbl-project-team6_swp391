@@ -30,12 +30,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
   Select,
@@ -79,7 +74,7 @@ function HomeworkPage() {
   });
 
   const { data: templates = [], isLoading: isLoadingTemplates } = useManualHomeworks();
-  
+
   const deleteMutation = useDeleteManualHomework();
   const publishMutation = usePublishManualHomework();
   const draftMutation = useDraftManualHomework();
@@ -239,7 +234,11 @@ function HomeworkPage() {
                   </Card>
                 )}
                 {filteredHw.map((h) => {
-                  const cls = classMap[h.classId] ?? { id: h.classId, name: "Unknown Class", level: "N5" };
+                  const cls = classMap[h.classId] ?? {
+                    id: h.classId,
+                    name: "Unknown Class",
+                    level: "N5",
+                  };
                   return (
                     <Card key={h.id}>
                       <CardContent className="grid items-center gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -260,7 +259,10 @@ function HomeworkPage() {
                           </div>
                         </div>
                         <Button asChild variant="outline" size="sm">
-                          <Link to="/teacher/classes/$classId/homework" params={{ classId: cls.id }}>
+                          <Link
+                            to="/teacher/classes/$classId/homework"
+                            params={{ classId: cls.id }}
+                          >
                             Open
                           </Link>
                         </Button>
@@ -286,9 +288,13 @@ function HomeworkPage() {
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2">
                           <LevelBadge level={t.level} />
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            t.status === "PUBLISHED" ? "bg-[var(--status-approved)]/15 text-[var(--status-approved)]" : "bg-[var(--status-pending)]/15 text-[var(--status-pending)]"
-                          }`}>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              t.status === "PUBLISHED"
+                                ? "bg-[var(--status-approved)]/15 text-[var(--status-approved)]"
+                                : "bg-[var(--status-pending)]/15 text-[var(--status-pending)]"
+                            }`}
+                          >
                             {t.status}
                           </span>
                           <span className="text-[10px] text-muted-foreground bg-[var(--accent)] px-2 py-0.5 rounded font-mono">
@@ -378,11 +384,13 @@ function HomeworkPage() {
                   <SelectValue placeholder="Choose active class..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {rawClasses.filter((c: any) => c.status === "ACTIVE").map((cls: any) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name} ({cls.level})
-                    </SelectItem>
-                  ))}
+                  {rawClasses
+                    .filter((c: any) => c.status === "ACTIVE")
+                    .map((cls: any) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name} ({cls.level})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -401,13 +409,8 @@ function HomeworkPage() {
             <Button variant="ghost" onClick={() => setIsAssignOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleAssignSubmit}
-              disabled={assignMutation.isPending}
-            >
-              {assignMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+            <Button onClick={handleAssignSubmit} disabled={assignMutation.isPending}>
+              {assignMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Assign Class
             </Button>
           </DialogFooter>

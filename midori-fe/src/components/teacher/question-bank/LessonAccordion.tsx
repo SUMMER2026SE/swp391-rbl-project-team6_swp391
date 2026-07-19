@@ -8,6 +8,8 @@ interface LessonAccordionProps {
   onToggleLesson: (lesson: string) => void;
   onSelectSkill: (lesson: string, skill: string) => void;
   onOpenPreview: (id: string) => void;
+  onAssignHomework?: (id: string) => void;
+  onAssignExam?: (id: string) => void;
 }
 
 export function LessonAccordion({
@@ -16,6 +18,8 @@ export function LessonAccordion({
   onToggleLesson,
   onSelectSkill,
   onOpenPreview,
+  onAssignHomework,
+  onAssignExam,
 }: LessonAccordionProps) {
   const lessonKeys = Object.keys(groupedLessons).sort();
 
@@ -27,10 +31,7 @@ export function LessonAccordion({
         if (skillKeys.length === 0) return null;
 
         const isExpanded = !!expandedLessons[les];
-        const totalTopics = Object.values(skillsGroup).reduce(
-          (s, list) => s + list.length,
-          0
-        );
+        const totalTopics = Object.values(skillsGroup).reduce((s, list) => s + list.length, 0);
 
         return (
           <div
@@ -68,9 +69,7 @@ export function LessonAccordion({
                       >
                         <Layers className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>{skill}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({topics.length})
-                        </span>
+                        <span className="text-xs text-muted-foreground">({topics.length})</span>
                       </button>
 
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -79,6 +78,8 @@ export function LessonAccordion({
                             key={topic.id}
                             topic={topic}
                             onOpenPreview={onOpenPreview}
+                            onAssignHomework={onAssignHomework}
+                            onAssignExam={onAssignExam}
                           />
                         ))}
                       </div>

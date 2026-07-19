@@ -21,7 +21,19 @@ import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
 import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
 import {
-  ArrowLeft, ClipboardList, HelpCircle, Save, Send, Eye, Sparkles, Shuffle, Plus, AlertCircle, CheckCircle, Loader2, Upload
+  ArrowLeft,
+  ClipboardList,
+  HelpCircle,
+  Save,
+  Send,
+  Eye,
+  Sparkles,
+  Shuffle,
+  Plus,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -106,8 +118,20 @@ function CreateHomework() {
           onBack={handleBack}
         />
         <div className="grid gap-3 md:grid-cols-2">
-          <MethodCard icon={Sparkles} title="AI PDF Homework" desc="Upload a PDF and let AI generate homework questions automatically." badge="AI Generator" onClick={() => setMethod("ai-pdf")} />
-          <MethodCard icon={HelpCircle} title="From Question Bank" desc="Generate practice questions by difficulty." badge="Generator" onClick={() => setMethod("question-bank")} />
+          <MethodCard
+            icon={Sparkles}
+            title="AI PDF Homework"
+            desc="Upload a PDF and let AI generate homework questions automatically."
+            badge="AI Generator"
+            onClick={() => setMethod("ai-pdf")}
+          />
+          <MethodCard
+            icon={HelpCircle}
+            title="From Question Bank"
+            desc="Generate practice questions by difficulty."
+            badge="Generator"
+            onClick={() => setMethod("question-bank")}
+          />
         </div>
         {lockedClass && (
           <p className="text-center text-xs text-muted-foreground">
@@ -125,7 +149,9 @@ function CreateHomework() {
         Change method
       </Button>
       {method === "ai-pdf" && <HomeworkAiPdfPlaceholder />}
-      {method === "question-bank" && <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />}
+      {method === "question-bank" && (
+        <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
+      )}
     </div>
   );
 }
@@ -239,8 +265,6 @@ function CommonFields({
   );
 }
 
-
-
 function QuestionBankHW({
   lockedClass,
   onDone,
@@ -257,22 +281,34 @@ function QuestionBankHW({
     queryFn: () => classesApi.getSelectableClasses(),
   });
 
+  // Steps state: 1 to 6
+  const [step, setStep] = useState<number>(1);
+
   // Flow State
-  const [level, setLevel] = useState<string>(lockedClass?.level ?? "N5");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [level, setLevel] = useState<string>("");
   const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
-  const [totalQuestions, setTotalQuestions] = useState<number>(20);
-  const [dist, setDist] = useState({ easy: 40, medium: 40, hard: 20 });
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [totalQuestionsInput, setTotalQuestionsInput] = useState<number>(20);
+  const [difficultyPercent, setDifficultyPercent] = useState({ easy: 40, medium: 40, hard: 20 });
 
   // Metadata Form State
   const [metadata, setMetadata] = useState({
     classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: "Question Bank Homework",
+    title: "",
     dueDate: "",
     duration: 45,
     attempts: 2,
     maxScore: 100,
   });
+
+  useEffect(() => {
+    if (!metadata.classId) {
+      const targetId = lockedClass?.id ?? classes[0]?.id;
+      if (targetId) {
+        setMetadata((prev) => ({ ...prev, classId: targetId }));
+      }
+    }
+  }, [lockedClass, classes, metadata.classId]);
 
   const [preview, setPreview] = useState<TeacherQuestionResponse[] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -280,7 +316,11 @@ function QuestionBankHW({
   const [backendError, setBackendError] = useState<string | null>(null);
 
   // 1. Fetch skills from backend
-  const { data: availableSkills = [] } = useQuery({
+  const {
+    data: availableSkills = [],
+    error: skillsError,
+    refetch: refetchSkills,
+  } = useQuery({
     queryKey: ["questionBankSkills"],
     queryFn: async () => {
       const res = await teacherQuestionsApi.getQuestionBankSkills();
@@ -288,34 +328,44 @@ function QuestionBankHW({
     },
   });
 
-  // 2. Fetch lessons by JLPT Level and Skills
-  const { data: lessons = [], isLoading: isLoadingLessons } = useQuery({
-    queryKey: ["questionBankLessonsGenerator", level, selectedSkills],
+  // 2. Fetch lessons by JLPT Level with active counts
+  const {
+    data: lessons = [],
+    isLoading: isLoadingLessons,
+    error: lessonsError,
+    refetch: refetchLessons,
+  } = useQuery({
+    queryKey: ["questionBankLessonsByLevel", level],
     queryFn: async () => {
-      if (!level || selectedSkills.length === 0) return [];
-      const res = await teacherQuestionsApi.getQuestionBankLessons(level, selectedSkills);
+      if (!level) return [];
+      const res = await teacherQuestionsApi.getQuestionBankLessons(level, [
+        "VOCABULARY",
+        "GRAMMAR",
+        "READING",
+      ]);
       return res;
     },
-    enabled: !!level && selectedSkills.length > 0,
-    placeholderData: (prev) => prev,
+    enabled: !!level,
   });
 
-  // Selection Reset: Keep only lessons that still exist in the new response
-  useEffect(() => {
-    if (lessons.length > 0 && selectedLessons.length > 0) {
-      const validIds = new Set(lessons.map((les) => les.id));
-      setSelectedLessons((prev) => prev.filter((id) => validIds.has(id)));
-    } else if (lessons.length === 0 || selectedSkills.length === 0) {
-      setSelectedLessons([]);
-    }
-  }, [lessons, selectedSkills]);
-
-  // Reset lessons selection when level changes
+  // Reset steps & downstream states on level change
   const handleLevelChange = (newLevel: string) => {
     setLevel(newLevel);
     setSelectedLessons([]);
+    setSelectedSkills([]);
     setPreview(null);
     setBackendError(null);
+    setStep(2);
+  };
+
+  const handleLessonToggle = (lessonId: number) => {
+    setSelectedLessons((prev) => {
+      const updated = prev.includes(lessonId) ? [] : [lessonId];
+      setSelectedSkills([]);
+      setPreview(null);
+      setBackendError(null);
+      return updated;
+    });
   };
 
   const handleSkillToggle = (skill: string) => {
@@ -327,84 +377,39 @@ function QuestionBankHW({
     });
   };
 
-  const handleLessonToggle = (lessonId: number) => {
-    setSelectedLessons((prev) => {
-      const updated = prev.includes(lessonId) ? prev.filter((id) => id !== lessonId) : [...prev, lessonId];
-      setPreview(null);
-      setBackendError(null);
-      return updated;
-    });
-  };
+  const easyCount = Math.round((difficultyPercent.easy * totalQuestionsInput) / 100);
+  const mediumCount = Math.round((difficultyPercent.medium * totalQuestionsInput) / 100);
+  const hardCount = Math.max(0, totalQuestionsInput - (easyCount + mediumCount));
 
-  // Calculate live availability & needed counts
-  const { needed, available, isAvailable } = useMemo(() => {
-    // 1. Calculate needed counts exactly as backend does
-    let easyNeeded = Math.round((dist.easy * totalQuestions) / 100.0);
-    let mediumNeeded = Math.round((dist.medium * totalQuestions) / 100.0);
-    let hardNeeded = Math.round((dist.hard * totalQuestions) / 100.0);
-
-    const diff = totalQuestions - (easyNeeded + mediumNeeded + hardNeeded);
-    if (diff !== 0) {
-      const maxRatio = Math.max(dist.easy, Math.max(dist.medium, dist.hard));
-      if (maxRatio === dist.easy) {
-        easyNeeded += diff;
-      } else if (maxRatio === dist.medium) {
-        mediumNeeded += diff;
-      } else {
-        hardNeeded += diff;
-      }
-    }
-
-    // 2. Sum up available counts from selected lessons
-    let easyAvail = 0;
-    let mediumAvail = 0;
-    let hardAvail = 0;
-
-    selectedLessons.forEach((lId) => {
-      const l = lessons.find((les) => les.id === lId);
-      if (l) {
-        easyAvail += l.easy;
-        mediumAvail += l.medium;
-        hardAvail += l.hard;
-      }
-    });
-
-    const meetsEasy = easyAvail >= easyNeeded;
-    const meetsMedium = mediumAvail >= mediumNeeded;
-    const meetsHard = hardAvail >= hardNeeded;
-
-    return {
-      needed: { easy: easyNeeded, medium: mediumNeeded, hard: hardNeeded },
-      available: { easy: easyAvail, medium: mediumAvail, hard: hardAvail },
-      isAvailable: meetsEasy && meetsMedium && meetsHard && (dist.easy + dist.medium + dist.hard === 100),
-    };
-  }, [selectedLessons, lessons, dist, totalQuestions]);
+  const percentSum = difficultyPercent.easy + difficultyPercent.medium + difficultyPercent.hard;
+  const isValidDistribution = percentSum === 100;
 
   const handleGeneratePreview = async () => {
-    if (selectedLessons.length === 0) {
-      toast.error("Please select at least one lesson.");
+    if (selectedLessons.length === 0 || selectedSkills.length === 0) {
+      toast.error("Please complete steps 2 and 3 first.");
       return;
     }
-    if (selectedSkills.length === 0) {
-      toast.error("Please select at least one skill.");
-      return;
-    }
-    if (dist.easy + dist.medium + dist.hard !== 100) {
-      toast.error("Difficulty distribution must equal 100%.");
+
+    if (!isValidDistribution) {
+      toast.error("Difficulty distribution must equal exactly 100%.");
       return;
     }
 
     setIsGenerating(true);
     setBackendError(null);
     try {
-      const res = await teacherQuestionsApi.randomizeQuestions({
+      const res = await teacherQuestionsApi.generatePreview({
         level,
         skills: selectedSkills,
         lessonIds: selectedLessons,
-        difficulty: dist,
-        questionCount: totalQuestions,
+        difficulty: {
+          easy: easyCount,
+          medium: mediumCount,
+          hard: hardCount,
+        },
       });
       setPreview(res);
+      setStep(5);
       toast.success(`Generated preview of ${res.length} questions successfully!`);
     } catch (err: any) {
       const errMsg = err?.message || "Failed to generate randomized questions.";
@@ -436,7 +441,9 @@ function QuestionBankHW({
         questionIds: questionIds,
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", metadata.classId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["teacherHomeworksByClass", metadata.classId],
+      });
       await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", metadata.classId] });
       await queryClient.invalidateQueries({ queryKey: ["teacherClasses"] });
 
@@ -449,475 +456,649 @@ function QuestionBankHW({
     }
   };
 
+  const totalQuestions = totalQuestionsInput;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="From Question Bank · Generator"
+        eyebrow="From Question Bank · Refactored Workflow"
         title="Generate practice homework"
-        subtitle="Step-by-step selection to generate custom homework from Admin Question Bank."
+        subtitle="Generate custom homework sets directly from the Admin Question Bank."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        {/* Left column: Step Selection */}
+      {/* Stepper Wizard Header */}
+      <div className="grid grid-cols-6 gap-2 border-b pb-4">
+        {[
+          { num: 1, label: "JLPT Level", active: step >= 1 },
+          { num: 2, label: "Lessons", active: step >= 2 },
+          { num: 3, label: "Skills", active: step >= 3 },
+          { num: 4, label: "Configure", active: step >= 4 },
+          { num: 5, label: "Preview", active: step >= 5 },
+          { num: 6, label: "Homework Info", active: step >= 6 },
+        ].map((s) => (
+          <button
+            key={s.num}
+            disabled={
+              (s.num === 2 && !level) ||
+              (s.num === 3 && selectedLessons.length === 0) ||
+              (s.num === 4 && selectedSkills.length === 0) ||
+              (s.num === 5 && !preview) ||
+              (s.num === 6 && !preview)
+            }
+            onClick={() => setStep(s.num)}
+            className={cn(
+              "flex flex-col items-center gap-1 py-2 text-center border-b-2 text-xs font-bold transition-all",
+              step === s.num
+                ? "border-primary text-primary"
+                : s.active
+                  ? "border-primary/40 text-primary/70"
+                  : "border-transparent text-muted-foreground opacity-50",
+            )}
+          >
+            <span>Step {s.num}</span>
+            <span className="hidden md:inline text-[10px]">{s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* Main Content Area based on Active Step */}
         <div className="space-y-6">
           {/* Step 1: Select JLPT Level */}
-          <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                Select JLPT Level
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="flex flex-wrap gap-2">
-                {["N5", "N4", "N3", "N2", "N1"].map((lvl) => (
-                  <button
-                    key={lvl}
-                    onClick={() => handleLevelChange(lvl)}
-                    className={cn(
-                      "px-4 py-2.5 rounded-xl border text-sm font-bold transition-all duration-200",
-                      level === lvl
-                        ? "border-primary bg-primary/10 text-primary shadow-sm"
-                        : "border-[var(--border)] hover:border-primary/50 text-secondary-col"
-                    )}
-                  >
-                    {lvl}
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step 2: Select Skills */}
-          <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                Select Skills
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="flex flex-wrap gap-3">
-                {availableSkills.map((skill) => (
-                  <label
-                    key={skill}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer select-none transition-all duration-200",
-                      selectedSkills.includes(skill)
-                        ? "border-primary bg-primary/5 text-primary-col"
-                        : "border-[var(--border)] hover:border-primary/40 text-secondary-col"
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      className="rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4"
-                      checked={selectedSkills.includes(skill)}
-                      onChange={() => handleSkillToggle(skill)}
-                    />
-                    <span className="text-sm font-semibold capitalize">{skill.toLowerCase()}</span>
-                  </label>
-                ))}
-                {availableSkills.length === 0 && (
-                  <div className="text-xs text-muted-col py-2">Loading skills...</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step 3: Choose Lessons */}
-          <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                Select Lessons
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {selectedSkills.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-muted-col">
-                  Please select at least one skill in Step 2 to load lessons.
-                </div>
-              ) : isLoadingLessons ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {[1, 2, 3, 4].map((n) => (
-                    <div key={n} className="rounded-xl border border-[var(--border)] p-3.5 bg-card animate-pulse space-y-3">
-                      <div className="h-4 bg-muted rounded w-3/4"></div>
-                      <div className="flex gap-2">
-                        <div className="h-3 bg-muted rounded w-12"></div>
-                        <div className="h-3 bg-muted rounded w-12"></div>
-                        <div className="h-3 bg-muted rounded w-12"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : lessons.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--status-rejected)] bg-[var(--status-rejected)]/5 font-semibold">
-                  No lessons containing active questions were found for the selected skills.
-                </div>
-              ) : (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {lessons.map((les) => (
+          {step === 1 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    1
+                  </span>
+                  Select JLPT Level
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex flex-wrap gap-2">
+                  {["N5", "N4", "N3", "N2", "N1"].map((lvl) => (
                     <button
-                      key={les.id}
-                      onClick={() => handleLessonToggle(les.id)}
-                      type="button"
+                      key={lvl}
+                      onClick={() => handleLevelChange(lvl)}
                       className={cn(
-                        "rounded-xl border p-3.5 text-left transition-all duration-200",
-                        selectedLessons.includes(les.id)
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                          : "border-[var(--border)] hover:border-primary/40 bg-card"
+                        "px-6 py-4 rounded-xl border text-base font-bold transition-all duration-200",
+                        level === lvl
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-[var(--border)] hover:border-primary/50 text-secondary-col",
                       )}
                     >
-                      <div className="flex items-start justify-between">
-                        <span className="text-sm font-bold text-primary-col line-clamp-1">{les.name}</span>
-                        <input
-                          type="checkbox"
-                          checked={selectedLessons.includes(les.id)}
-                          readOnly
-                          className="rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4 mt-0.5"
-                        />
-                      </div>
-                      <div className="mt-2.5 flex flex-wrap gap-2 text-[10px] text-muted-col font-medium">
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--accent)] border border-[var(--border)] text-[var(--status-draft)] font-semibold">Easy: {les.easy}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--accent)] border border-[var(--border)] text-[var(--status-review)] font-semibold">Medium: {les.medium}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-[var(--accent)] border border-[var(--border)] text-[var(--status-rejected)] font-semibold">Hard: {les.hard}</span>
-                        <span className="ml-auto font-bold text-primary-col">Total: {les.questionCount}</span>
-                      </div>
+                      {lvl}
                     </button>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Right column: Form configurations & live count & Preview actions */}
-        <div className="space-y-4">
-          {/* Step 4: Assignment Configurations */}
-          <Card className="border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-[var(--border)]">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
-                Homework Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Target class</Label>
-                {lockedClass ? (
-                  <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
-                    <LevelBadge level={lockedClass.level} />
-                    <span className="text-sm font-semibold">{lockedClass.name}</span>
-                    <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">Locked</span>
+          {/* Step 2: Select Lessons */}
+          {step === 2 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    2
+                  </span>
+                  Select Lessons (Level {level})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {isLoadingLessons ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-12 bg-muted rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : lessonsError ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-destructive font-semibold mb-2">
+                      Failed to load lessons.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => refetchLessons()}>
+                      Retry
+                    </Button>
+                  </div>
+                ) : lessons.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground border border-dashed rounded-xl p-4">
+                    No questions available.
                   </div>
                 ) : (
-                  <Select
-                    value={metadata.classId}
-                    onValueChange={(v: string) => setMetadata({ ...metadata, classId: v })}
-                  >
-                    <SelectTrigger className="w-full rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm">
-                      <SelectValue placeholder="Select a class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} ({c.level})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {lessons.map((les) => (
+                      <button
+                        key={les.id}
+                        onClick={() => handleLessonToggle(les.id)}
+                        type="button"
+                        className={cn(
+                          "rounded-xl border p-3.5 text-left transition-all duration-200",
+                          selectedLessons.includes(les.id)
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                            : "border-[var(--border)] hover:border-primary/40 bg-card",
+                        )}
+                      >
+                        <div className="flex items-start justify-between">
+                          <span className="text-sm font-bold text-primary-col">
+                            {les.name || (les as any).lessonName || `Lesson ${les.id}`}
+                          </span>
+                          <input
+                            type="radio"
+                            checked={selectedLessons.includes(les.id)}
+                            readOnly
+                            className="rounded-full border-[var(--border)] text-primary focus:ring-primary h-4 w-4 mt-0.5"
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-muted-foreground font-semibold">
+                          <span>Easy: {les.easy ?? 0}</span>
+                          <span>•</span>
+                          <span>Medium: {les.medium ?? 0}</span>
+                          <span>•</span>
+                          <span>Hard: {les.hard ?? 0}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Title</Label>
-                <Input
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                  value={metadata.title}
-                  onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
-                  placeholder="E.g., Kanji N5 Lesson 1"
-                />
-              </div>
+                <div className="flex justify-between mt-4 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(1)}>
+                    Back
+                  </Button>
+                  <Button disabled={selectedLessons.length === 0} onClick={() => setStep(3)}>
+                    Next
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Due date</Label>
-                  <Input
-                    type="datetime-local"
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                    value={metadata.dueDate}
-                    onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
-                  />
+          {/* Step 3: Select Skills */}
+          {step === 3 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    3
+                  </span>
+                  Select Skills
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {skillsError ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-destructive font-semibold mb-2">
+                      Failed to load skills.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => refetchSkills()}>
+                      Retry
+                    </Button>
+                  </div>
+                ) : availableSkills.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    No skills available.
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {availableSkills.map((skill) => (
+                      <label
+                        key={skill}
+                        className={cn(
+                          "flex items-center gap-2 px-5 py-4 rounded-xl border cursor-pointer select-none transition-all duration-200",
+                          selectedSkills.includes(skill)
+                            ? "border-primary bg-primary/5 text-primary-col"
+                            : "border-[var(--border)] hover:border-primary/40 text-secondary-col",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          className="rounded border-[var(--border)] text-primary focus:ring-primary h-4 w-4"
+                          checked={selectedSkills.includes(skill)}
+                          onChange={() => handleSkillToggle(skill)}
+                        />
+                        <span className="text-sm font-semibold capitalize">
+                          {skill.toLowerCase()}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-between mt-6 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(2)}>
+                    Back
+                  </Button>
+                  <Button disabled={selectedSkills.length === 0} onClick={() => setStep(4)}>
+                    Next
+                  </Button>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Duration (min)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                    value={metadata.duration}
-                    onChange={(e) => setMetadata({ ...metadata, duration: Math.max(0, Number(e.target.value) || 0) })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Max score</Label>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Configure Question Generation */}
+          {step === 4 && (
+            <Card className="overflow-hidden border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    4
+                  </span>
+                  Configure Question Generation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-muted-col uppercase">
+                    Total Questions
+                  </Label>
                   <Input
                     type="number"
                     min={1}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                    value={metadata.maxScore}
-                    onChange={(e) => setMetadata({ ...metadata, maxScore: Math.max(1, Number(e.target.value) || 0) })}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm font-bold"
+                    value={totalQuestionsInput}
+                    onChange={(e) => {
+                      setTotalQuestionsInput(Math.max(1, Number(e.target.value) || 0));
+                      setBackendError(null);
+                    }}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Attempts</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                    value={metadata.attempts}
-                    onChange={(e) => setMetadata({ ...metadata, attempts: Math.max(1, Number(e.target.value) || 1) })}
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">Total Questions</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
-                  value={totalQuestions}
-                  onChange={(e) => setTotalQuestions(Math.max(1, Number(e.target.value) || 1))}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-muted-col uppercase block mb-1">
+                    Difficulty Distribution (%)
+                  </Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-col">Easy (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
+                        value={difficultyPercent.easy}
+                        onChange={(e) => {
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            easy: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                          });
+                          setBackendError(null);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-col">Medium (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
+                        value={difficultyPercent.medium}
+                        onChange={(e) => {
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            medium: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                          });
+                          setBackendError(null);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-col">Hard (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
+                        value={difficultyPercent.hard}
+                        onChange={(e) => {
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            hard: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                          });
+                          setBackendError(null);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
 
-          {/* Step 5: Difficulty Distribution */}
-          <Card className="border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="pb-3 border-b border-[var(--border)]">
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">5</span>
-                Difficulty Mix (%)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-bold text-muted-col uppercase">Easy %</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="px-2.5 py-1.5 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center"
-                    value={dist.easy}
-                    onChange={(e) => setDist({ ...dist, easy: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-bold text-muted-col uppercase">Medium %</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="px-2.5 py-1.5 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center"
-                    value={dist.medium}
-                    onChange={(e) => setDist({ ...dist, medium: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-bold text-muted-col uppercase">Hard %</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="px-2.5 py-1.5 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center"
-                    value={dist.hard}
-                    onChange={(e) => setDist({ ...dist, hard: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
-                  />
-                </div>
-              </div>
-
-              {dist.easy + dist.medium + dist.hard !== 100 && (
-                <div className="text-[10px] text-[var(--status-rejected)] font-bold bg-[var(--status-rejected)]/10 p-2 rounded-lg flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span>Sum of percentages must equal 100% (currently {dist.easy + dist.medium + dist.hard}%).</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Live Question Availability status */}
-          <Card className="border-[var(--border)] bg-card shadow-sm">
-            <CardHeader className="pb-2 border-b border-[var(--border)]">
-              <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-secondary-col">
-                Live Question Availability
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-3">
-              <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pb-1 border-b">
-                  <span className="text-left text-muted-col">Difficulty</span>
-                  <span className="text-primary-col">Need</span>
-                  <span className="text-secondary-col">Available</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <span className="text-left font-bold text-[var(--status-draft)]">Easy</span>
-                  <span className="font-bold">{needed.easy}</span>
-                  <span className={cn("font-bold", available.easy >= needed.easy ? "text-green-600" : "text-[var(--status-rejected)]")}>
-                    {available.easy}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <span className="text-left font-bold text-[var(--status-review)]">Medium</span>
-                  <span className="font-bold">{needed.medium}</span>
-                  <span className={cn("font-bold", available.medium >= needed.medium ? "text-green-600" : "text-[var(--status-rejected)]")}>
-                    {available.medium}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs border-b pb-2">
-                  <span className="text-left font-bold text-[var(--status-rejected)]">Hard</span>
-                  <span className="font-bold">{needed.hard}</span>
-                  <span className={cn("font-bold", available.hard >= needed.hard ? "text-green-600" : "text-[var(--status-rejected)]")}>
-                    {available.hard}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold pt-1">
-                  <span className="text-left text-primary-col">Total</span>
-                  <span>{totalQuestions}</span>
-                  <span>{available.easy + available.medium + available.hard}</span>
-                </div>
-              </div>
-
-              {!isAvailable && selectedLessons.length > 0 && (
-                <div className="mt-3 text-[10px] text-[var(--status-rejected)] font-bold bg-[var(--status-rejected)]/10 p-2 rounded-lg flex items-start gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>Not enough questions available. Please reduce total questions, adjust difficulty mix, or select more lessons.</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Generator buttons */}
-          <div className="space-y-2 pt-2">
-            <Button
-              className="w-full flex items-center justify-center gap-1.5"
-              variant="outline"
-              disabled={selectedLessons.length === 0 || selectedSkills.length === 0 || !isAvailable || isGenerating}
-              onClick={handleGeneratePreview}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Shuffle className="w-4 h-4" />
-                  Generate Preview
-                </>
-              )}
-            </Button>
-            <Button
-              className="w-full flex items-center justify-center gap-1.5"
-              disabled={!preview || isSaving}
-              onClick={handleAssign}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Assigning...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  Assign Homework
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Backend API Error Display */}
-      {backendError && (
-        <div className="mt-4 p-4 rounded-xl bg-[var(--status-rejected)]/10 border border-[var(--status-rejected)]/20 text-[var(--status-rejected)] text-sm flex flex-col gap-2 shadow-sm">
-          <div className="flex items-center gap-2 font-bold">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <span>Randomization Failed</span>
-          </div>
-          <p className="whitespace-pre-line text-xs font-semibold leading-relaxed pl-7">{backendError}</p>
-        </div>
-      )}
-
-      {/* Generated Preview questions */}
-      {preview && (
-        <Card className="border-[var(--border)] bg-card shadow-sm mt-6">
-          <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)] flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              Generated questions preview ({preview.length})
-            </CardTitle>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs flex items-center gap-1"
-              disabled={isGenerating}
-              onClick={handleGeneratePreview}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Generate Again
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0 divide-y divide-[var(--border)]">
-            {preview.map((q, i) => (
-              <div key={q.id} className="p-4 flex items-start gap-4 transition-all hover:bg-[var(--accent)]/10">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
-                  {i + 1}
-                </span>
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                      {q.skill}
-                    </span>
-                    <DifficultyBadge d={q.difficulty === "EASY" ? "Easy" : q.difficulty === "HARD" ? "Hard" : "Medium"} />
-                    <span className="ml-auto text-xs text-muted-col font-bold">
-                      {q.points || 1} pt(s)
+                <div className="p-3 bg-muted/40 rounded-xl space-y-2 text-xs font-bold">
+                  <div className="flex justify-between">
+                    <span>Distribution Sum:</span>
+                    <span
+                      className={cn(isValidDistribution ? "text-green-600" : "text-destructive")}
+                    >
+                      {percentSum}% / 100% {isValidDistribution ? "✓" : "✗"}
                     </span>
                   </div>
-                  <p className="text-sm font-semibold text-primary-col leading-relaxed">
-                    {q.prompt}
-                  </p>
-                  {q.jpPrompt && (
-                    <p className="font-jp text-xs text-secondary-col">
-                      {q.jpPrompt}
+                  {!isValidDistribution && (
+                    <p className="text-[10px] text-destructive font-semibold">
+                      Error: The sum of Easy, Medium, and Hard percentages must equal exactly 100%.
                     </p>
                   )}
-                  {q.options && q.options.length > 0 && (
-                    <div className="grid gap-1.5 sm:grid-cols-2 mt-2 pl-2 border-l-2 border-[var(--border)]">
-                      {q.options.map((opt, optIdx) => (
-                        <div
-                          key={optIdx}
-                          className={cn(
-                            "text-xs px-2.5 py-1.5 rounded-md border",
-                            optIdx === q.correctAnswerIndex
-                              ? "bg-green-500/10 border-green-500/30 text-green-700 font-bold"
-                              : "bg-[var(--accent)] border-[var(--border)] text-secondary-col"
-                          )}
-                        >
-                          <span className="font-bold mr-1.5">{String.fromCharCode(65 + optIdx)}.</span>
-                          {opt}
-                        </div>
-                      ))}
+                  <div className="border-t border-[var(--border)] pt-2 space-y-1 text-muted-col font-medium">
+                    <div className="flex justify-between">
+                      <span>Easy:</span>
+                      <span>
+                        {easyCount} question(s) ({difficultyPercent.easy}%)
+                      </span>
                     </div>
+                    <div className="flex justify-between">
+                      <span>Medium:</span>
+                      <span>
+                        {mediumCount} question(s) ({difficultyPercent.medium}%)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Hard:</span>
+                      <span>
+                        {hardCount} question(s) ({difficultyPercent.hard}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mt-6 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(3)}>
+                    Back
+                  </Button>
+                  <Button
+                    disabled={!isValidDistribution || totalQuestionsInput <= 0 || isGenerating}
+                    onClick={handleGeneratePreview}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate Preview"
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 5: Generate Preview */}
+          {step === 5 && preview && (
+            <Card className="border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="bg-[var(--accent)]/10 pb-3 border-b border-[var(--border)] flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  Generated Preview ({preview.length} Questions)
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs flex items-center gap-1"
+                  disabled={isGenerating}
+                  onClick={handleGeneratePreview}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generate Again
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0 divide-y divide-[var(--border)]">
+                {preview.map((q, i) => (
+                  <div
+                    key={q.id}
+                    className="p-4 flex items-start gap-4 transition-all hover:bg-[var(--accent)]/10"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
+                      {i + 1}
+                    </span>
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                          {q.skill}
+                        </span>
+                        <DifficultyBadge
+                          d={
+                            q.difficulty === "EASY"
+                              ? "Easy"
+                              : q.difficulty === "HARD"
+                                ? "Hard"
+                                : "Medium"
+                          }
+                        />
+                        <span className="ml-auto text-xs text-muted-col font-bold">
+                          {q.points || 1} pt(s)
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-primary-col leading-relaxed">
+                        {q.prompt}
+                      </p>
+                      {q.jpPrompt && (
+                        <p className="font-jp text-xs text-secondary-col">{q.jpPrompt}</p>
+                      )}
+                      {q.options && q.options.length > 0 && (
+                        <div className="grid gap-1.5 sm:grid-cols-2 mt-2 pl-2 border-l-2 border-[var(--border)]">
+                          {q.options.map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className={cn(
+                                "text-xs px-2.5 py-1.5 rounded-md border",
+                                optIdx === q.correctAnswerIndex
+                                  ? "bg-green-500/10 border-green-500/30 text-green-700 font-bold"
+                                  : "bg-[var(--accent)] border-[var(--border)] text-secondary-col",
+                              )}
+                            >
+                              <span className="font-bold mr-1.5">
+                                {String.fromCharCode(65 + optIdx)}.
+                              </span>
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex justify-between p-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(4)}>
+                    Back
+                  </Button>
+                  <Button onClick={() => setStep(6)}>Next</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 6: Homework Information */}
+          {step === 6 && (
+            <Card className="border-[var(--border)] bg-card shadow-sm">
+              <CardHeader className="pb-3 border-b border-[var(--border)]">
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    6
+                  </span>
+                  Homework Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Target class
+                  </Label>
+                  {lockedClass ? (
+                    <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
+                      <LevelBadge level={lockedClass.level} />
+                      <span className="text-sm font-semibold">{lockedClass.name}</span>
+                      <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">
+                        Locked
+                      </span>
+                    </div>
+                  ) : (
+                    <Select
+                      value={metadata.classId}
+                      onValueChange={(v: string) => setMetadata({ ...metadata, classId: v })}
+                    >
+                      <SelectTrigger className="w-full rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm">
+                        <SelectValue placeholder="Select a class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} ({c.level})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Title
+                  </Label>
+                  <Input
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.title}
+                    onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
+                    placeholder="E.g., Kanji N5 Lesson 1"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Due date
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.dueDate}
+                      onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Duration (min)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.duration}
+                      onChange={(e) =>
+                        setMetadata({
+                          ...metadata,
+                          duration: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Max score
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.maxScore}
+                      onChange={(e) =>
+                        setMetadata({
+                          ...metadata,
+                          maxScore: Math.max(1, Number(e.target.value) || 0),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                      Attempts
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                      value={metadata.attempts}
+                      onChange={(e) =>
+                        setMetadata({
+                          ...metadata,
+                          attempts: Math.max(1, Number(e.target.value) || 1),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between mt-6 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setStep(5)}>
+                    Back
+                  </Button>
+                  <Button
+                    className="flex items-center gap-1.5"
+                    disabled={!preview || isSaving}
+                    onClick={handleAssign}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Assigning...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Assign Homework
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Backend API Error Display */}
+          {backendError && (
+            <div className="p-4 rounded-xl bg-[var(--status-rejected)]/10 border border-[var(--status-rejected)]/20 text-[var(--status-rejected)] text-sm flex flex-col gap-2 shadow-sm">
+              <div className="flex items-center gap-2 font-bold">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>Randomization Failed</span>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              <p className="whitespace-pre-line text-xs font-semibold leading-relaxed pl-7">
+                {backendError}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right column: Summary */}
+        <div className="space-y-4">
+          <Card className="border-[var(--border)] bg-card shadow-sm p-4">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-secondary-col mb-3">
+              Homework Configuration
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">JLPT Level:</span>
+                <span className="font-bold">{level || "Not selected"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Lessons Selected:</span>
+                <span className="font-bold">{selectedLessons.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Skills:</span>
+                <span className="font-bold">
+                  {selectedSkills.length > 0 ? selectedSkills.join(", ") : "None"}
+                </span>
+              </div>
+              <div className="flex justify-between border-t pt-2 mt-2">
+                <span className="text-muted-foreground font-bold">Generated Questions:</span>
+                <span className="font-extrabold text-primary">{preview ? preview.length : 0}</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -930,7 +1111,8 @@ function HomeworkAiPdfPlaceholder() {
           AI PDF Homework Generator
         </h2>
         <p className="text-sm text-secondary-col">
-          Generate homework automatically by uploading a course syllabus, exam paper, or study material PDF.
+          Generate homework automatically by uploading a course syllabus, exam paper, or study
+          material PDF.
         </p>
       </div>
 
@@ -944,12 +1126,14 @@ function HomeworkAiPdfPlaceholder() {
         ].map((s, idx, arr) => (
           <div key={s.step} className="flex items-center flex-1 last:flex-initial">
             <div className="flex flex-col items-center gap-1.5 z-10">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
-                s.step === 1 
-                  ? "bg-primary border-primary text-primary-foreground" 
-                  : "bg-background border-[var(--border)] text-muted-foreground"
-              )}>
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
+                  s.step === 1
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : "bg-background border-[var(--border)] text-muted-foreground",
+                )}
+              >
                 {s.step}
               </div>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -968,9 +1152,7 @@ function HomeworkAiPdfPlaceholder() {
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
           <Upload className="w-8 h-8 text-primary" />
         </div>
-        <h3 className="font-display font-bold text-lg text-primary-col mb-1">
-          Upload PDF File
-        </h3>
+        <h3 className="font-display font-bold text-lg text-primary-col mb-1">Upload PDF File</h3>
         <p className="text-sm text-secondary-col mb-6">
           Drag and drop your PDF here, or click to browse.
         </p>
@@ -988,7 +1170,11 @@ function HomeworkAiPdfPlaceholder() {
 
       {/* Action footer */}
       <div className="flex justify-end pt-4 border-t border-[var(--border)]">
-        <Button disabled size="lg" className="px-8 py-3 font-bold rounded-xl bg-muted text-muted-foreground border border-[var(--border)]">
+        <Button
+          disabled
+          size="lg"
+          className="px-8 py-3 font-bold rounded-xl bg-muted text-muted-foreground border border-[var(--border)]"
+        >
           AI PDF Homework Coming Soon
         </Button>
       </div>

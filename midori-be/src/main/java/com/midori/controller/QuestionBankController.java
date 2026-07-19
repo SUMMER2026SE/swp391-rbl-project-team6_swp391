@@ -35,7 +35,19 @@ public class QuestionBankController {
     public ResponseEntity<ApiResponse<List<com.midori.dto.questiondto.QuestionBankGeneratorLessonResponse>>> getLessons(
             @RequestParam String level,
             @RequestParam List<String> skills) {
-        return ResponseEntity.ok(ApiResponse.success(questionBankService.getLessons(level, skills)));
+        // Defensive: if the client sent a single comma-separated string, split it
+        List<String> normalizedSkills = skills.stream()
+                .flatMap(s -> java.util.Arrays.stream(s.split(",")))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(questionBankService.getLessons(level, normalizedSkills)));
+    }
+
+    @GetMapping("/levels/{level}/lessons")
+    public ResponseEntity<ApiResponse<List<com.midori.entity.QuestionBankLesson>>> getLessonsByLevel(
+            @PathVariable String level) {
+        return ResponseEntity.ok(ApiResponse.success(questionBankService.getLessonsByLevel(level)));
     }
 
     @PostMapping("/randomize")

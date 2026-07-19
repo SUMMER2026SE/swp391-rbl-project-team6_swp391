@@ -3,6 +3,7 @@ package com.midori.service;
 import com.midori.dto.progress.ProgressResponse;
 import com.midori.dto.progress.ProgressStatsResponse;
 import com.midori.dto.progress.ProgressUpdateRequest;
+import com.midori.dto.progress.StudentProgressResponse;
 import com.midori.entity.ContentType;
 
 import java.util.List;
@@ -16,6 +17,8 @@ public interface StudyProgressService {
     List<ProgressResponse> getProgressListByType(UUID userId, ContentType contentType);
 
     ProgressStatsResponse getProgressStats(UUID userId);
+
+    StudentProgressResponse getStudentProgressForTeacher(UUID classId, UUID studentId, UUID teacherId);
 
     // ===== Student: Upsert progress (create or update) =====
     ProgressResponse updateProgress(UUID userId, ContentType contentType, String contentId, ProgressUpdateRequest request);

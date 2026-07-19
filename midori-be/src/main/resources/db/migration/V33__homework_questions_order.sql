@@ -1,0 +1,1 @@
+ALTER TABLE homework_questions ADD COLUMN IF NOT EXISTS question_order INT NOT NULL DEFAULT 0;
