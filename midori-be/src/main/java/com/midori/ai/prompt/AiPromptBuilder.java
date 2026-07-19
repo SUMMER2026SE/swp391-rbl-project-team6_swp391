@@ -1100,4 +1100,27 @@ public final class AiPromptBuilder {
     public static String noMaterialSelectedFallback() {
         return "Bạn chưa chọn tài liệu nào, nên mình chưa thể trả lời dựa trên tài liệu. Hãy chọn tài liệu trước nhé.";
     }
+
+    /**
+     * Build prompt for explaining a specific word or grammar point in a sentence.
+     */
+    public static String buildExplanationPrompt(String sentence, String word) {
+        String safeSentence = sentence != null ? sentence : "";
+        String safeWord = word != null ? word : "";
+        return String.format("""
+                You are AI Sensei of MIDORI, a Japanese tutor.
+                Your task is to explain a specific word or grammar point in the context of a given sentence.
+
+                Sentence: %s
+                Word/Grammar to explain: %s
+
+                Please output ONLY a single JSON object with the following fields (explain in Vietnamese):
+                - "grammarExplanation": Giải thích ngữ pháp / cấu trúc.
+                - "wordUsage": Ý nghĩa và cách dùng từ trong câu này.
+                - "nuance": Sắc thái (trang trọng, suồng sã, v.v.).
+                - "context": Ngữ cảnh sử dụng phù hợp.
+
+                Output ONLY valid JSON. Do not use markdown code fences.
+                """, safeSentence, safeWord);
+    }
 }

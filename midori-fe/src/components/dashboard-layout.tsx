@@ -12,6 +12,17 @@ import { AdminFooter } from "@/components/layout/AdminFooter";
 import { cn } from "@/lib/utils";
 import { SakuraBg } from "./sakura-bg";
 import { Logo } from "./logo";
+import { useQuery } from "@tanstack/react-query";
+import { classesApi } from "@/lib/api/classes";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   BookOpen,
@@ -72,6 +83,8 @@ type NavItemBase = {
   icon: React.ElementType;
   badge?: number;
   disabled?: boolean;
+  dividerBefore?: boolean;
+  dividerAfter?: boolean;
 };
 type NavSubItem = {
   to: string;
@@ -130,6 +143,9 @@ const guestStudentNavWithLockedLearning: NavItem[] = [
   { to: "/student/profile", label: "Profile", icon: User },
 ];
 
+// All students (both active and guests) see the same navigation structure.
+// Guests will be blocked by StudentStatusGuard when they click on protected features.
+
 const teacherNav: NavItem[] = [
   // 1. Dashboard
   { to: "/teacher", label: "Dashboard", icon: LayoutDashboard },
@@ -186,16 +202,16 @@ const adminNav: NavItem[] = [
   // 6. Content Library
   { to: "/admin/content-library", label: "Content Library", icon: Library },
 
-  // 7. Notification Management
+  // 8. Notification Management
   { to: "/admin/notification", label: "Notification", icon: Bell },
 
-  // 8. Profile
+  // 9. Profile
   { to: "/admin/profile", label: "Profile", icon: User },
 ];
 
-function getNav(role: FrontendRole, isActive: boolean): NavItem[] {
+function getNav(role: FrontendRole, isActive: boolean, hasAssignedLevel: boolean): NavItem[] {
   if (role === "student") {
-    return isActive ? studentNav : guestStudentNavWithLockedLearning;
+    return studentNav;
   }
   return role === "teacher" ? teacherNav : adminNav;
 }
@@ -228,7 +244,17 @@ export function DashboardLayout({
   // Check if student is active (joined a class)
   const isStudentActiveStudent = role === "student" && isStudentActive(user);
   const isStudentGuestStudent = role === "student" && !isStudentActive(user);
-  const rawItems = getNav(role, isStudentActiveStudent);
+  const [showLockedDialog, setShowLockedDialog] = useState(false);
+
+  const { data: dbClasses = [] } = useQuery({
+    queryKey: ["studentJoinedClassesDashboard"],
+    queryFn: () => classesApi.getJoinedClasses(),
+    enabled: role === "student" && !!user,
+  });
+
+  const hasAssignedLevel = role === "student" && dbClasses && dbClasses.length > 0;
+
+  const rawItems = getNav(role, isStudentActiveStudent, hasAssignedLevel);
   const items = rawItems.map((item) => {
     if (item.to === "/student/notifications") {
       return { ...item, badge: unreadCount };
@@ -306,12 +332,11 @@ export function DashboardLayout({
   );
 
   // Handle click on disabled items
-  const handleDisabledClick = (e: React.MouseEvent, item: NavItem | NavSubItem) => {
+  const handleDisabledClick = (e: React.MouseEvent | React.TouchEvent, item: NavItem | NavSubItem) => {
     if (item.disabled) {
       e.preventDefault();
       e.stopPropagation();
-      // Show toast or notification
-      alert("Join a class to access learning content");
+      setShowLockedDialog(true);
     }
   };
 
@@ -436,6 +461,7 @@ export function DashboardLayout({
 
     // Render parent item with expandable children
     if (hasChildren) {
+      const isParentRouteActive = isRouteActive(item.to);
       return (
         <div key={item.to} className="relative">
           <button
@@ -443,20 +469,20 @@ export function DashboardLayout({
             title={isCollapsed ? item.label : undefined}
             className={cn(
               "w-full group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
-              isActive ? "nav-active" : "nav-item",
+              isParentRouteActive ? "nav-active" : "nav-item",
               isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5",
             )}
           >
             <Icon
               className={cn(
                 "w-4 h-4 flex-shrink-0 transition-all duration-300",
-                isActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
+                isParentRouteActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
               )}
             />
             <span
               className={cn(
                 "transition-all duration-300 whitespace-nowrap overflow-hidden flex-1 text-left",
-                isActive ? "text-white font-semibold" : "text-secondary-col",
+                isParentRouteActive ? "text-white font-semibold" : "text-secondary-col",
                 isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100",
               )}
             >
@@ -502,9 +528,26 @@ export function DashboardLayout({
     return (
       <Link
         key={item.to}
-        to={item.to}
+        to={item.to.startsWith("landing-") ? "/student/dashboard" : item.to}
         preload="intent"
         title={isCollapsed ? item.label : undefined}
+        onClick={(e) => {
+          if (item.to.startsWith("landing-")) {
+            e.preventDefault();
+            const id = item.to.replace("landing-", "");
+            if (pathname === "/student/dashboard") {
+              const el = document.getElementById(id);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            } else {
+              nav({ to: "/student/dashboard" }).then(() => {
+                setTimeout(() => {
+                  const el = document.getElementById(id);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 200);
+              });
+            }
+          }
+        }}
         className={cn(
           "group flex items-center rounded-xl text-sm font-medium transition-all duration-300 overflow-hidden relative",
           isActive ? "nav-active" : "nav-item",
@@ -620,36 +663,58 @@ export function DashboardLayout({
                   const Icon = item.icon;
                   const isActive = isItemOrChildActive(item);
                   return (
-                    <Link
-                      key={item.to}
-                      to={item.disabled ? "/" : item.to}
-                      title={item.label}
-                      onClick={
-                        item.disabled
-                          ? (e: React.MouseEvent<HTMLAnchorElement>) => {
-                              e.preventDefault();
-                              alert("Join a class to access learning content");
-                            }
-                          : undefined
-                      }
-                      className={cn(
-                        "flex items-center justify-center rounded-xl transition-all duration-300",
-                        isActive
-                          ? "bg-primary text-white w-10 h-10"
-                          : item.disabled
-                            ? "bg-slate-100 dark:bg-slate-800 text-muted-foreground w-10 h-10 cursor-not-allowed opacity-50"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10",
-                      )}
-                    >
-                      <Icon
-                        className={cn("w-5 h-5", isActive ? "text-white" : "text-muted-foreground")}
-                      />
-                    </Link>
+                    <div key={item.to} className="flex flex-col items-center w-full">
+                      {item.dividerBefore && <hr className="w-8 my-1.5 border-slate-200/60 dark:border-white/5" />}
+                      <Link
+                        to={item.disabled ? "/" : (item.to.startsWith("landing-") ? "/student/dashboard" : item.to)}
+                        title={item.label}
+                        onClick={
+                          item.disabled
+                            ? (e: React.MouseEvent<HTMLAnchorElement>) => handleDisabledClick(e, item)
+                            : (e: React.MouseEvent<HTMLAnchorElement>) => {
+                                if (item.to.startsWith("landing-")) {
+                                  e.preventDefault();
+                                  const id = item.to.replace("landing-", "");
+                                  if (pathname === "/student/dashboard") {
+                                    const el = document.getElementById(id);
+                                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                  } else {
+                                    nav({ to: "/student/dashboard" }).then(() => {
+                                      setTimeout(() => {
+                                        const el = document.getElementById(id);
+                                        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                      }, 200);
+                                    });
+                                  }
+                                }
+                              }
+                        }
+                        className={cn(
+                          "flex items-center justify-center rounded-xl transition-all duration-300",
+                          isActive
+                            ? "bg-primary text-white w-10 h-10"
+                            : item.disabled
+                              ? "bg-slate-100 dark:bg-slate-800 text-muted-foreground w-10 h-10 cursor-not-allowed opacity-50"
+                              : "hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10",
+                        )}
+                      >
+                        <Icon
+                          className={cn("w-5 h-5", isActive ? "text-white" : "text-muted-foreground")}
+                        />
+                      </Link>
+                      {item.dividerAfter && <hr className="w-8 my-1.5 border-slate-200/60 dark:border-white/5" />}
+                    </div>
                   );
                 })}
               </div>
             ) : (
-              items.map((item) => renderNavItem(item))
+              items.map((item) => (
+                <div key={item.to} className="w-full">
+                  {item.dividerBefore && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
+                  {renderNavItem(item)}
+                  {item.dividerAfter && <hr className="my-2 border-slate-200/60 dark:border-white/5 mx-3" />}
+                </div>
+              ))
             )
           ) : // Teacher uses flat navigation
           isCollapsed ? (
@@ -1088,6 +1153,28 @@ export function DashboardLayout({
             })}
           </nav>
         )}
+
+        <Dialog open={showLockedDialog} onOpenChange={setShowLockedDialog}>
+          <DialogContent className="sm:max-w-md rounded-2xl z-[150] fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 shadow-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-500 font-extrabold text-lg">
+                <Lock className="w-5 h-5 text-rose-500" />
+                Tính năng đã khóa
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-300 font-medium pt-2 text-sm">
+                Bạn chưa được phân vào lớp học. Sau khi giáo viên thêm bạn vào lớp, bạn sẽ có thể sử dụng tính năng này.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button
+                onClick={() => setShowLockedDialog(false)}
+                className="bg-primary hover:opacity-95 text-white font-bold w-full rounded-xl cursor-pointer"
+              >
+                Đồng ý
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

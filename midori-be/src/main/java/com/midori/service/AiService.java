@@ -4,6 +4,7 @@ import com.midori.dto.ai.AiConversationResponse;
 import com.midori.dto.ai.ChatRequest;
 import com.midori.dto.ai.ChatResponse;
 import com.midori.dto.ai.ConversationMessagesResponse;
+import com.midori.dto.ai.ExplainResponse;
 import com.midori.dto.ai.GenerateQuestionsResponse;
 import com.midori.entity.AiConversation;
 
@@ -48,6 +49,8 @@ public interface AiService {
                                                 String materialType, UUID materialId,
                                                 String materialContent,
                                                 String materialTitle);
+
+    ExplainResponse explain(String sentence, String word);
 
     void deleteConversation(UUID conversationId, UUID userId);
 

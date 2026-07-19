@@ -26,7 +26,7 @@ try {
     Write-Host ""
     Write-Host "Starting dev server..." -ForegroundColor Cyan
     Write-Host "Config:  .env.local" -ForegroundColor Cyan
-    Write-Host "URL:     http://localhost:5173" -ForegroundColor Cyan
+    Write-Host "URL:     http://localhost:8081" -ForegroundColor Cyan
     Write-Host ""
 
     npm run dev

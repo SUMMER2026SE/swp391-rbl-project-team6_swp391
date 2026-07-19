@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { AdminShadowingManagement } from "@/components/admin/AdminShadowingManagement";
 import {
   BookOpen,
   GraduationCap,
@@ -3094,6 +3095,17 @@ function LegacySkillDetailPage() {
   const navigate = useNavigate();
   const upperLevel = level.toUpperCase() as JLPTLevel;
   const config = SKILL_CONFIG[skill];
+
+  if (skill === "shadowing") {
+    return (
+      <div className="pb-12">
+        <AdminShadowingManagement 
+          defaultLevel={upperLevel} 
+          onBack={() => navigate({ to: "/admin/content-library/$level", params: { level } })}
+        />
+      </div>
+    );
+  }
 
   const { lessons, createLesson, updateLesson, deleteLesson } = useContentLibrary(
     upperLevel,

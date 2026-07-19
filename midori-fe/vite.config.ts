@@ -24,9 +24,40 @@ export default defineConfig({
     server: {
       port: 8081,
       strictPort: true,
+      proxy: {
+        "/api": {
+          target: "http://localhost:8080",
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+      // Improve HMR in development
+      hmr: {
+        overlay: true,  // Show errors in overlay
+      },
+      watch: {
+        ignored: ["**/routeTree.gen.ts"],  // Ignore auto-generated file
+      },
     },
     optimizeDeps: {
       include: ["xlsx"],
+      // Force pre-bundle these dependencies for faster dev startup
+      esbuildOptions: {
+        target: "esnext",
+      },
     },
+    build: {
+      // Disable CSS source map in production for cleaner builds
+      cssSourceMap: true,
+      // Improve build performance
+      minify: "esbuild",
+      target: "esnext",
+    },
+    // Disable cache for faster HMR updates during development
+    cache: false,
+  },
+  // Add cache-busting via content hash in filenames
+  resolve: {
+    extensions: [".tsx", ".ts", ".jsx", ".js"],
   },
 });
