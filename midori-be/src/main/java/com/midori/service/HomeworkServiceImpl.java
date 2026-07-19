@@ -110,16 +110,16 @@ public class HomeworkServiceImpl implements HomeworkService {
 
     @Override
     public List<Homework> findHomeworkByClass(UUID classId) {
-        return homeworkRepository.findByAssignedClassId(classId);
+        return homeworkRepository.findByAssignedClassIdAndStatusNot(classId, Homework.HomeworkStatus.DRAFT);
     }
 
     @Override
     @Transactional
-    public HomeworkSubmission submitHomework(HomeworkSubmission submission, java.util.Map<java.util.UUID, Integer> answers) {
+    public HomeworkSubmission submitHomework(HomeworkSubmission submission, java.util.Map<java.util.UUID, Integer> answers, Integer focusViolationCount) {
         int score = 0;
         Homework homework = homeworkRepository.findById(submission.getHomework().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Homework", "id", submission.getHomework().getId()));
-        
+
         List<TeacherQuestion> questions = homework.getQuestions();
         if (questions != null && answers != null) {
             for (TeacherQuestion question : questions) {
@@ -129,7 +129,7 @@ public class HomeworkServiceImpl implements HomeworkService {
                 }
             }
         }
-        
+
         if (questions != null && !questions.isEmpty()) {
             submission.setScore(score);
             submission.setStatus(HomeworkSubmission.SubmissionStatus.GRADED);
@@ -137,7 +137,9 @@ public class HomeworkServiceImpl implements HomeworkService {
             submission.setScore(null);
             submission.setStatus(HomeworkSubmission.SubmissionStatus.SUBMITTED);
         }
-        
+
+        submission.setFocusViolationCount(focusViolationCount == null ? 0 : Math.max(0, focusViolationCount));
+
         if (answers != null) {
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -147,13 +149,13 @@ public class HomeworkServiceImpl implements HomeworkService {
                 submission.setSubmissionText("{}");
             }
         }
-        
+
         return homeworkSubmissionRepository.save(submission);
     }
 
     @Override
     public HomeworkSubmission findSubmission(UUID homeworkId, UUID studentId) {
-        return homeworkSubmissionRepository.findByHomeworkIdAndStudentId(homeworkId, studentId)
+        return homeworkSubmissionRepository.findFirstByHomeworkIdAndStudentIdOrderBySubmittedAtDesc(homeworkId, studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("HomeworkSubmission", "homeworkId/studentId", homeworkId + "/" + studentId));
     }
 
@@ -217,7 +219,7 @@ public class HomeworkServiceImpl implements HomeworkService {
         if (!isEnrolled) {
             throw new com.midori.exception.AccessDeniedException("You are not enrolled in this class");
         }
-        return homeworkRepository.findByAssignedClassIdOrderByCreatedAtDesc(classId);
+        return homeworkRepository.findByAssignedClassIdAndStatusNotOrderByCreatedAtDesc(classId, Homework.HomeworkStatus.DRAFT);
     }
 }
 

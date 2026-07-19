@@ -6,9 +6,9 @@ import com.midori.dto.questiondto.TeacherQuestionResponse;
 import com.midori.entity.QuestionBankLesson;
 import com.midori.entity.TeacherQuestion;
 import com.midori.exception.BadRequestException;
-import com.midori.repository.QuestionBankLessonRepository;
 import com.midori.repository.TeacherQuestionRepository;
 import com.midori.service.QuestionBankService;
+import com.midori.service.QuestionBankLessonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class QuestionBankServiceImpl implements QuestionBankService {
 
     private final TeacherQuestionRepository teacherQuestionRepository;
-    private final QuestionBankLessonRepository questionBankLessonRepository;
+    private final QuestionBankLessonService questionBankLessonService;
 
     @Override
     public List<String> getLevels() {
@@ -36,7 +36,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 
     @Override
     public List<com.midori.entity.QuestionBankLesson> getLessonsByLevel(String level) {
-        return questionBankLessonRepository.findLessonsWithActiveQuestions(level);
+        // Only return lessons that are ACTIVE so teachers cannot see Draft lessons.
+        return questionBankLessonService.findActiveLessonsByLevel(level);
     }
 
     @Override
