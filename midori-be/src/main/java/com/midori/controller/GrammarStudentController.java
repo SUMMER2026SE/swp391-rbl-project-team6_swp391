@@ -30,17 +30,4 @@ public class GrammarStudentController {
         return ResponseEntity.ok(ApiResponse.success(grammars));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<GrammarDetailResponse>> getGrammarDetail(
-            @PathVariable UUID id) {
-        GrammarDetailResponse detail = grammarLessonService.getGrammarLessonDetail(id);
-        return ResponseEntity.ok(ApiResponse.success(detail));
-    }
-
-    @GetMapping("/level/{jlptLevel}")
-    public ResponseEntity<ApiResponse<List<GrammarLessonResponse>>> getGrammarByLevel(
-            @PathVariable String jlptLevel) {
-        List<GrammarLessonResponse> grammars = grammarLessonService.getActiveGrammarLessonsByLevel(jlptLevel);
-        return ResponseEntity.ok(ApiResponse.success(grammars));
-    }
 }

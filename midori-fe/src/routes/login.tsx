@@ -1,15 +1,24 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth, getDashboardPath } from "@/lib/auth";
 import { ApiError } from "@/lib/api/client";
+import { z } from "zod";
 
-export const Route = createFileRoute("/login")({ component: LoginPage });
+const loginSearchSchema = z.object({
+  redirect: z.string().optional().catch(""),
+});
+
+export const Route = createFileRoute("/login")({
+  validateSearch: loginSearchSchema,
+  component: LoginPage,
+});
 
 function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
   const nav = useNavigate();
+  const { redirect } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +33,7 @@ function LoginPage() {
     setLoading(true);
     try {
       const u = await login(email, password);
-      nav({ to: getDashboardPath(u) });
+      nav({ to: redirect || getDashboardPath(u), replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);
@@ -41,7 +50,7 @@ function LoginPage() {
     setGoogleLoading(true);
     try {
       const u = await loginWithGoogle(credential);
-      nav({ to: getDashboardPath(u) });
+      nav({ to: redirect || getDashboardPath(u), replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);
@@ -59,13 +68,13 @@ function LoginPage() {
 
   return (
     <AuthShell
-      title="Welcome back 🌸"
-      subtitle="Sign in to continue your Japanese journey."
+      title="Chào mừng quay trở lại 🌸"
+      subtitle="Đăng nhập để tiếp tục hành trình học tiếng Nhật của bạn."
       footer={
         <>
-          Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-semibold">
-            Sign up free
+          Chưa có tài khoản?{" "}
+          <Link to="/register" search={{ redirect }} className="text-primary font-semibold">
+            Đăng ký ngay
           </Link>
         </>
       }

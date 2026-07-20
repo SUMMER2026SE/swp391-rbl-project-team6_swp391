@@ -1,81 +1,127 @@
+logging:
+  level:
+    com.midori: DEBUG
+    org.springframework.security: DEBUG
+
+# JMdict Full Dictionary Import Configuration
+midori:
+  jmdict:
+    import:
+      enabled: false
+      batch-size: 500
+      skip-existing: true
+
 spring:
   profiles:
     active: local
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
   servlet:
     multipart:
-      max-file-size: 25MB
-      max-request-size: 30MB
+      max-file-size: 500MB
+      max-request-size: 550MB
+
+  datasource:
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
+    username: postgres.clyuyvdaoprxrpmrcyhd
+    password: "Midori@2026#DbStrong!"
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 0
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: dathatinh2005aa@gmail.com
+    password: gsdosaoxzyvmcewf
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 60000
+          timeout: 60000
+          writetimeout: 60000
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: local-dev-jwt-secret-key-for-midori-backend-at-least-32-chars
+    access-token-expiration: 86400000
+  token:
+    email-verification-expiration: 60
+    password-reset-expiration: 3600
+  google:
+    client-id: 65823123353-je7nstqt77f1l4d0576vijjaklrnfum9.apps.googleusercontent.com
+  mail:
+    enabled: true
+    from: dathatinh2005aa@gmail.com
+  frontend:
+    base-url: http://localhost:8081
 
 supabase:
-  url: ${SUPABASE_URL:}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  url: https://clyuyvdaoprxrpmrcyhd.supabase.co
+  service-role-key: sb_secret_Xhn2klAIVJQ0XrVCcKRT-A_eH-TkGZh
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
+    videos-bucket: ${SUPABASE_VIDEOS_BUCKET:shadowing-videos}
 
-# ============================================================
-# AI Configuration
-# ============================================================
-# At least one provider must be configured for AI features to work.
-# 
-# SUPPORTED PROVIDERS:
-# - GEMINI (Recommended for Japanese - best multimodal support)
-# - OPENAI (Most reliable JSON output)
-# - DEEPSEEK (Cost-effective)
-# - OPENROUTER (Access to multiple models)
-#
-# MULTIPLE API KEYS:
-# For Gemini, you can specify multiple keys separated by commas:
-#   ai.gemini.api-keys: key1,key2,key3
-# Keys are used in rotation with automatic fallback.
-#
+# Groq API Keys
+groq:
+  api-keys: "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,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"
+  api-key: ${GROQ_API_KEY:${groq.api-keys}}
+
+# Gemini API Keys (multiple keys for fallback)
 ai:
-  # Default provider: GEMINI, OPENAI, DEEPSEEK, or OPENROUTER
   provider: ${AI_PROVIDER:gemini}
-  
-  # Global settings
   timeout-seconds: 120
   temperature: 0.1
   max-tokens: 8192
-
-  # Thread pool executor for background AI processing
   executor:
     core-pool-size: ${AI_EXECUTOR_CORE_POOL_SIZE:1}
     max-pool-size: ${AI_EXECUTOR_MAX_POOL_SIZE:1}
     queue-capacity: ${AI_EXECUTOR_QUEUE_CAPACITY:100}
-  
-  # Gemini (Recommended for Japanese text)
-  # Supports MULTIPLE API KEYS for automatic fallback!
   gemini:
-    # Single key (legacy)
-    api-key: ${GEMINI_API_KEY}
-    # Multiple keys (comma-separated) - RECOMMENDED
-    api-keys: ${GEMINI_API_KEYS:}
-    # Primary model — change GEMINI_MODEL env var, no rebuild needed
-    model: ${GEMINI_MODEL:gemini-3.5-flash}
-    # Fallback chain — tried in order when primary model returns 404/429/500/503
-    # Change GEMINI_FALLBACK_MODELS env var to adjust without rebuild
-    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
+    api-key: ${GEMINI_API_KEY:}
+    api-keys: "AQ.Ab8RN6J_uqI-pBJ-Q6KcJT6u2tW_4K5QRmS7t3DLTfSIBb8fnQ,AQ.Ab8RN6IUflU19XeySpgvsKNEND7ECfhIlewFz24CgPNVF6nGqg,AQ.Ab8RN6IMf9quTzsgDPP70RAYUdjJvvtW2FGrBkj8RXbqdXBksg,AIzaSyC4uGSSu8Ueo4n0g3ur0hNPpHxcuqJhJlw"
+    model: ${GEMINI_MODEL:gemini-flash-latest}
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-flash-latest,gemini-2.0-flash,gemini-2.0-flash-lite,gemini-1.5-flash,gemini-1.5-flash-8b}
     base-url: https://generativelanguage.googleapis.com
     enabled: true
-
-  # OpenAI
   openai:
     api-key: ${OPENAI_API_KEY:}
     model: gpt-4o
     base-url: https://api.openai.com/v1
     enabled: false
-
-  # DeepSeek (Cost-effective)
   deepseek:
     api-key: ${DEEPSEEK_API_KEY:}
     model: deepseek-chat
     base-url: https://api.deepseek.com/v1
     enabled: false
-
-  # OpenRouter (Access to multiple models)
   openrouter:
     api-key: ${OPENROUTER_API_KEY:}
-    # Primary model(s) - tried first
     models: openrouter/free
     # Fallback model(s) - tried if primary fails
     # tencent/hy3:free confirmed to produce correct UTF-8 Japanese for N5 quiz tasks
@@ -84,21 +130,37 @@ ai:
     chat-timeout-ms: 15000
     quiz-timeout-ms: 25000
     connect-timeout-ms: 5000
-    # Max output tokens
     chat-max-tokens: 1400
     quiz-max-tokens: 4096
     referer: ${AI_OPENROUTER_REFERER:http://localhost:8081}
-
-  # PDF Processing Configuration
   pdf:
-    max-file-size: 10485760  # 10MB
-    async-threshold: 1048576  # 1MB - files larger than this use async processing
-
-  # OCR Configuration
+    max-file-size: 10485760
+    async-threshold: 1048576
   ocr:
     enabled: true
-    simulated: true  # Set to false and configure real OCR for production
-
-  # Fallback mode: when AI fails, generate questions locally from material content
-  # Set to false for strict mode (AI errors return error to frontend)
+    simulated: true
   fallback-enabled: false
+
+# FFmpeg
+ffmpeg:
+  path: ${FFMPEG_PATH:}
+  probe-path: ${FFPROBE_PATH:}
+
+# Shadowing
+shadowing:
+  speech:
+    provider: ${SHADOWING_SPEECH_PROVIDER:groq}
+    profile: ${SHADOWING_SPEECH_PROFILE:balanced}
+    api-timeout-seconds: ${SHADOWING_SPEECH_API_TIMEOUT_SECONDS:120}
+    models:
+      fast: ${SHADOWING_SPEECH_MODEL_FAST:whisper-large-v3-turbo}
+      balanced: ${SHADOWING_SPEECH_MODEL_BALANCED:whisper-large-v3}
+      accurate: ${SHADOWING_SPEECH_MODEL_ACCURATE:whisper-large-v3}
+  evaluation:
+    similarity-threshold: ${SHADOWING_SIMILARITY_THRESHOLD:0.80}
+    gemini-threshold: ${SHADOWING_GEMINI_THRESHOLD:80}
+    max-recording-duration-seconds: ${SHADOWING_MAX_RECORDING_SECONDS:15}
+    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-3.5-flash}
+    api-timeout-seconds: ${SHADOWING_API_TIMEOUT_SECONDS:120}
+    cache-ttl-minutes: ${SHADOWING_CACHE_TTL_MINUTES:60}
+    cache-max-size: ${SHADOWING_CACHE_MAX_SIZE:10000}
