@@ -180,7 +180,7 @@ function VideoLearningPage() {
   }, [videoId]);
   
   // Use global saved words hook
-  const { savedWords: globalSavedWords, isWordSaved: isGlobalWordSaved, saveWord: globalSaveWord, removeWord: globalRemoveWord } = useSavedWords(videoId);
+  const { savedWords: globalSavedWords, isWordSaved: isGlobalWordSaved, saveWord: globalSaveWord, removeWord: globalRemoveWord } = useSavedWords();
   
   const handleToggleSaveFromList = useCallback((vocabWord: string, vocabReading: string, vocabMeaning: string) => {
     if (isGlobalWordSaved(vocabWord, vocabReading)) {
