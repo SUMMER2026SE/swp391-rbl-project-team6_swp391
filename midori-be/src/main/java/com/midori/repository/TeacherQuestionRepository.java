@@ -63,4 +63,5 @@ public interface TeacherQuestionRepository extends JpaRepository<TeacherQuestion
     List<TeacherQuestion> findActiveByTopicId(
         @org.springframework.data.repository.query.Param("topicId") String topicId
     );
+    List<TeacherQuestion> findByLessonId(Integer lessonId);
 }
