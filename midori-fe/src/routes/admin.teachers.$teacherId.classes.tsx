@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -8,189 +8,58 @@ import {
   CheckCircle,
   Clock,
   BookUser,
-  TrendingUp,
-  Plus,
-  X,
+  AlertTriangle,
   Loader2,
   Eye,
-  RefreshCw,
   Calendar,
+  RefreshCw,
 } from "lucide-react";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { adminApi, type AdminTeacherResponse, type AdminClassResponse } from "@/lib/api/admin";
+import { ApiError } from "@/lib/api/client";
 
 type TeacherClass = {
   id: string;
   name: string;
   level: string;
   students: number;
-  completionRate: number;
-  avgScore: number;
-  status: "active" | "inactive" | "completed";
-  startDate: string;
-  endDate?: string;
+  maxStudents: number;
+  status: "ACTIVE" | "ARCHIVED";
+  createdAt: string;
 };
 
-type TeacherInfo = {
-  id: string;
-  name: string;
-  email: string;
-};
+type StatusFilter = "" | "ACTIVE" | "ARCHIVED";
 
-// Mock classes database
-const MOCK_CLASSES: Record<string, TeacherClass[]> = {
-  "00000000-0000-0000-0000-000000000011": [
-    {
-      id: "cls-001",
-      name: "JLPT N5 Intensive",
-      level: "N5",
-      students: 28,
-      completionRate: 92,
-      avgScore: 85,
-      status: "active",
-      startDate: "Jan 15, 2026",
-    },
-    {
-      id: "cls-002",
-      name: "JLPT N4 Prep Course",
-      level: "N4",
-      students: 22,
-      completionRate: 85,
-      avgScore: 78,
-      status: "active",
-      startDate: "Feb 1, 2026",
-    },
-    {
-      id: "cls-003",
-      name: "Business Japanese",
-      level: "N2",
-      students: 18,
-      completionRate: 78,
-      avgScore: 82,
-      status: "active",
-      startDate: "Mar 10, 2026",
-    },
-    {
-      id: "cls-004",
-      name: "Advanced Grammar",
-      level: "N1",
-      students: 28,
-      completionRate: 88,
-      avgScore: 80,
-      status: "active",
-      startDate: "Apr 5, 2026",
-    },
-  ],
-  "00000000-0000-0000-0000-000000000012": [
-    {
-      id: "cls-005",
-      name: "Conversational Japanese",
-      level: "Mixed",
-      students: 24,
-      completionRate: 95,
-      avgScore: 88,
-      status: "active",
-      startDate: "Jan 20, 2026",
-    },
-    {
-      id: "cls-006",
-      name: "Japanese Culture & Customs",
-      level: "Mixed",
-      students: 20,
-      completionRate: 88,
-      avgScore: 85,
-      status: "active",
-      startDate: "Feb 15, 2026",
-    },
-    {
-      id: "cls-007",
-      name: "Beginner Japanese",
-      level: "N5",
-      students: 28,
-      completionRate: 90,
-      avgScore: 82,
-      status: "active",
-      startDate: "Mar 1, 2026",
-    },
-  ],
-  "00000000-0000-0000-0000-000000000013": [
-    {
-      id: "cls-008",
-      name: "Beginner Japanese A1",
-      level: "N5",
-      students: 24,
-      completionRate: 85,
-      avgScore: 80,
-      status: "active",
-      startDate: "Feb 1, 2026",
-    },
-    {
-      id: "cls-009",
-      name: "Listening Practice",
-      level: "N4",
-      students: 24,
-      completionRate: 80,
-      avgScore: 78,
-      status: "active",
-      startDate: "Mar 15, 2026",
-    },
-  ],
-  "00000000-0000-0000-0000-000000000014": [
-    {
-      id: "cls-010",
-      name: "Grammar Masterclass",
-      level: "N3",
-      students: 18,
-      completionRate: 72,
-      avgScore: 75,
-      status: "completed",
-      startDate: "Oct 1, 2025",
-      endDate: "Dec 31, 2025",
-    },
-    {
-      id: "cls-011",
-      name: "JLPT Reading Prep",
-      level: "N2",
-      students: 18,
-      completionRate: 78,
-      avgScore: 72,
-      status: "completed",
-      startDate: "Oct 1, 2025",
-      endDate: "Dec 31, 2025",
-    },
-  ],
-};
-
-// Mock teachers database
-const MOCK_TEACHERS: Record<string, TeacherInfo> = {
-  "00000000-0000-0000-0000-000000000011": {
-    id: "00000000-0000-0000-0000-000000000011",
-    name: "Minato Watanabe",
-    email: "minato.watanabe@example.com",
-  },
-  "00000000-0000-0000-0000-000000000012": {
-    id: "00000000-0000-0000-0000-000000000012",
-    name: "Rin Nakamura",
-    email: "rin.nakamura@example.com",
-  },
-  "00000000-0000-0000-0000-000000000013": {
-    id: "00000000-0000-0000-0000-000000000013",
-    name: "Haruki Suzuki",
-    email: "haruki.suzuki@example.com",
-  },
-  "00000000-0000-0000-0000-000000000014": {
-    id: "00000000-0000-0000-0000-000000000014",
-    name: "Aoi Kobayashi",
-    email: "aoi.kobayashi@example.com",
-  },
-};
-
-function getTeacherInfo(id: string): TeacherInfo {
-  return MOCK_TEACHERS[id] || { id, name: `Teacher ${id.slice(-4)}`, email: "unknown@example.com" };
+function formatDate(iso?: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(d);
 }
 
-function getTeacherClasses(id: string): TeacherClass[] {
-  return MOCK_CLASSES[id] || [];
+function displayNameOf(t: AdminTeacherResponse): string {
+  const dn = t.displayName?.trim();
+  if (dn) return dn;
+  const emailName = t.email.split("@")[0];
+  return emailName
+    .split(/[._]/)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function classToRow(c: AdminClassResponse): TeacherClass {
+  return {
+    id: c.id,
+    name: c.name,
+    level: c.level,
+    students: c.students,
+    maxStudents: c.maxStudents,
+    status: c.status,
+    createdAt: c.createdAt,
+  };
 }
 
 // Avatar color helper
@@ -219,16 +88,83 @@ export const Route = createFileRoute("/admin/teachers/$teacherId/classes")({
 
 function TeacherClassesPage() {
   const { teacherId } = Route.useParams();
-  const classes = getTeacherClasses(teacherId);
-  const teacher = getTeacherInfo(teacherId);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [teacher, setTeacher] = useState<AdminTeacherResponse | null>(null);
+  const [classes, setClasses] = useState<TeacherClass[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
 
-  const filteredClasses = classes.filter((c) => !statusFilter || c.status === statusFilter);
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const found = await adminApi.getTeacherById(teacherId);
+      if (!found) {
+        setTeacher(null);
+        setError("Teacher not found.");
+        return;
+      }
+      setTeacher(found);
+      const all = await adminApi.getAdminClasses();
+      const teacherClasses = all
+        .filter((c) => c.teacherId === teacherId)
+        .map(classToRow);
+      setClasses(teacherClasses);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to load teacher classes";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [teacherId]);
 
-  const totalStudents = classes.reduce((sum, c) => sum + c.students, 0);
-  const activeClasses = classes.filter((c) => c.status === "active").length;
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
-  const initials = teacher.name
+  const filteredClasses = useMemo(
+    () => (statusFilter === "" ? classes : classes.filter((c) => c.status === statusFilter)),
+    [classes, statusFilter],
+  );
+
+  const totalStudents = useMemo(
+    () => classes.reduce((sum, c) => sum + (c.students ?? 0), 0),
+    [classes],
+  );
+  const activeClasses = useMemo(
+    () => classes.filter((c) => c.status === "ACTIVE").length,
+    [classes],
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-col">Loading teacher classes…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !teacher) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <AlertTriangle className="w-12 h-12 text-[var(--status-rejected)]/50" />
+        <p className="text-primary-col font-bold">{error || "Teacher not found"}</p>
+        <button
+          onClick={fetchAll}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition"
+        >
+          <RefreshCw className="w-4 h-4" /> Try Again
+        </button>
+      </div>
+    );
+  }
+
+  const displayName = displayNameOf(teacher);
+  const initials = displayName
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -290,66 +226,71 @@ function TeacherClassesPage() {
         </div>
         <div className="card-base p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-500/12 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-purple-500" />
+            <BookUser className="w-5 h-5 text-purple-500" />
           </div>
           <div>
             <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
-              Avg Completion
+              Capacity
             </p>
             <p className="font-display font-black text-lg text-primary-col">
-              {Math.round(classes.reduce((sum, c) => sum + c.completionRate, 0) / classes.length)}%
+              {classes.reduce((sum, c) => sum + (c.maxStudents ?? 0), 0)}
             </p>
           </div>
         </div>
       </div>
 
       {/* Teacher Info & Filters */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 p-3 rounded-xl glass-surface">
-          <div
-            className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}
-          >
-            {initials}
-          </div>
+          {teacher.avatarUrl ? (
+            <img
+              src={teacher.avatarUrl}
+              alt={displayName}
+              className="w-10 h-10 rounded-xl object-cover"
+            />
+          ) : (
+            <div
+              className={`w-10 h-10 rounded-xl bg-linear-to-br ${getAvatarColor(teacher.id)} flex items-center justify-center text-white font-bold text-sm shrink-0`}
+            >
+              {initials}
+            </div>
+          )}
           <div>
-            <p className="text-sm font-semibold text-primary-col">{teacher.name}</p>
+            <p className="text-sm font-semibold text-primary-col">{displayName}</p>
             <p className="text-[10px] text-muted-col">{teacher.email}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2.5 rounded-xl search-input text-sm"
-          >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="completed">Completed</option>
-          </select>
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/12 text-primary text-sm font-bold border border-primary/20 hover:bg-primary/20 transition">
-            <Plus className="w-4 h-4" /> Assign Class
-          </button>
-        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+          className="px-3 py-2.5 rounded-xl search-input text-sm"
+        >
+          <option value="">All Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
       </div>
 
       {/* Classes Table */}
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto min-w-[900px]">
-          <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold">
-            <div className="col-span-3">Class Name</div>
-            <div className="col-span-1">Level</div>
-            <div className="col-span-1 text-center">Students</div>
-            <div className="col-span-2 text-center">Avg Score</div>
-            <div className="col-span-2 text-center">Completion</div>
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold min-w-[720px]">
+            <div className="col-span-4">Class Name</div>
+            <div className="col-span-2">Level</div>
+            <div className="col-span-2 text-center">Students</div>
+            <div className="col-span-2">Created</div>
             <div className="col-span-1">Status</div>
-            <div className="col-span-2 text-right">Actions</div>
+            <div className="col-span-1 text-right">Actions</div>
           </div>
 
           {filteredClasses.length === 0 && (
             <div className="py-16 flex flex-col items-center gap-3">
               <BookOpen className="w-10 h-10 text-muted-col/40" />
-              <p className="text-sm font-bold text-secondary-col">No classes found</p>
+              <p className="text-sm font-bold text-secondary-col">
+                {classes.length === 0
+                  ? "This teacher has no classes yet."
+                  : "No classes match the selected filter."}
+              </p>
             </div>
           )}
 
@@ -359,78 +300,52 @@ function TeacherClassesPage() {
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.025 }}
-              className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center"
+              className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--accent)] transition items-center min-w-[720px]"
             >
-              <div className="col-span-3">
+              <div className="col-span-4">
                 <p className="text-sm font-semibold text-primary-col truncate">{cls.name}</p>
-                <div className="flex items-center gap-1 text-[10px] text-muted-col">
-                  <Calendar className="w-3 h-3" />
-                  {cls.startDate} {cls.endDate ? `- ${cls.endDate}` : ""}
-                </div>
               </div>
 
-              <div className="col-span-1">
+              <div className="col-span-2">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/12 text-purple-500 border border-purple-500/20">
                   {cls.level}
                 </span>
               </div>
 
-              <div className="col-span-1 text-center">
-                <span className="text-sm font-semibold text-primary-col">{cls.students}</span>
-              </div>
-
               <div className="col-span-2 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-[oklch(0.62_0.18_270)]" />
-                  <span className="text-xs font-bold text-primary-col">{cls.avgScore}%</span>
-                </div>
+                <span className="text-sm font-semibold text-primary-col">
+                  {cls.students ?? 0}/{cls.maxStudents ?? 0}
+                </span>
               </div>
 
               <div className="col-span-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 glass-surface rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${
-                        cls.completionRate === 100
-                          ? "bg-[var(--status-active)]"
-                          : "bg-[var(--status-pending)]"
-                      }`}
-                      style={{ width: `${cls.completionRate}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-bold text-primary-col w-7">
-                    {cls.completionRate}%
-                  </span>
+                <div className="flex items-center gap-1 text-[10px] text-muted-col">
+                  <Calendar className="w-3 h-3" />
+                  {formatDate(cls.createdAt)}
                 </div>
               </div>
 
               <div className="col-span-1">
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    cls.status === "active"
-                      ? "bg-[var(--status-active)]/12 text-[var(--status-active)] border border-[var(--status-active)]/20"
-                      : cls.status === "completed"
-                        ? "bg-purple-500/12 text-purple-500 border border-purple-500/20"
-                        : "bg-[var(--status-pending)]/12 text-[var(--status-pending)] border border-[var(--status-pending)]/20"
+                    cls.status === "ACTIVE"
+                      ? "bg-[var(--status-active)]/12 text-[var(--status-active)] border-[var(--status-active)]/20"
+                      : "bg-[var(--status-pending)]/12 text-[var(--status-pending)] border-[var(--status-pending)]/20"
                   }`}
                 >
-                  {cls.status.charAt(0).toUpperCase() + cls.status.slice(1)}
+                  {cls.status === "ACTIVE" ? "Active" : "Archived"}
                 </span>
               </div>
 
-              <div className="col-span-2 flex justify-end gap-1">
-                <button
+              <div className="col-span-1 flex justify-end">
+                <Link
+                  to="/admin/class/$classId"
+                  params={{ classId: cls.id }}
                   className="p-2 rounded-xl text-primary/60 hover:text-primary hover:bg-primary/10 transition"
                   title="View Class"
                 >
                   <Eye className="w-4 h-4" />
-                </button>
-                <button
-                  className="p-2 rounded-xl text-secondary-col/60 hover:text-secondary-col hover:bg-accent transition"
-                  title="Reassign"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
+                </Link>
               </div>
             </motion.div>
           ))}

@@ -2,6 +2,7 @@ package com.midori.repository;
 
 import com.midori.entity.ClassEntity;
 import com.midori.entity.GrammarLevel;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,4 +30,7 @@ public interface ClassRepository extends JpaRepository<ClassEntity, UUID> {
 
     @Query(value = "SELECT c.classCode FROM ClassEntity c WHERE c.classCode LIKE :prefix% ORDER BY c.classCode DESC LIMIT 1")
     String findMaxClassCodeByPrefix(@Param("prefix") String prefix);
+
+    @Query("SELECT c FROM ClassEntity c LEFT JOIN FETCH c.teacher ORDER BY c.createdAt DESC")
+    List<ClassEntity> findRecentClasses(Pageable pageable);
 }

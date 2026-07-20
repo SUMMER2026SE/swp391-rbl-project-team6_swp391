@@ -2,6 +2,7 @@ package com.midori.repository;
 
 import com.midori.entity.StudentExam;
 import com.midori.entity.StudentExamStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -36,4 +37,7 @@ public interface StudentExamRepository extends JpaRepository<StudentExam, UUID> 
     long countByStatus(StudentExamStatus status);
 
     List<StudentExam> findByExamAssignedClassId(UUID classId);
+
+    @Query("SELECT se FROM StudentExam se WHERE se.submittedAt IS NOT NULL ORDER BY se.submittedAt DESC")
+    List<StudentExam> findRecentCompletedExams(Pageable pageable);
 }

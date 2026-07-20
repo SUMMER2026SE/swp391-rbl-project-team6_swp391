@@ -28,4 +28,7 @@ public class RegisterRequest {
     private String password;
 
     private String role;
+
+    @Size(max = 100, message = "Display name must not exceed 100 characters")
+    private String displayName;
 }

@@ -1,4 +1,6 @@
 import { api } from "./client";
+import type { HomeworkResponse } from "./homework";
+import type { ExamResponse } from "./exams";
 
 // Align with backend UserStatus enum
 export type AdminUserStatus =
@@ -117,10 +119,44 @@ export interface AdminDashboardSummaryResponse {
   totalProgressRecords: number;
 }
 
+/**
+ * Activity types returned by the real backend API.
+ */
+export type ActivityKind =
+  | "STUDENT_REGISTERED"
+  | "TEACHER_REGISTERED"
+  | "CLASS_CREATED"
+  | "STUDENT_ENROLLED"
+  | "HOMEWORK_SUBMITTED"
+  | "EXAM_COMPLETED"
+  | "CONTENT_APPROVED"
+  | "NOTIFICATION_SENT";
+
+/**
+ * A single activity entry from the real backend.
+ */
+export interface AdminRecentActivity {
+  id: string;
+  type: ActivityKind;
+  title: string;
+  detail: string;
+  timestamp: string;
+  actorEmail?: string | null;
+  entityId?: string | null;
+}
+
+export interface AdminRecentActivitiesResponse {
+  activities: AdminRecentActivity[];
+  total: number;
+}
+
 export const adminApi = {
   getPendingTeachers: () => api.get<AdminTeacherResponse[]>("/admin/users/teachers/pending"),
 
   getDashboardSummary: () => api.get<AdminDashboardSummaryResponse>("/admin/dashboard/summary"),
+
+  getRecentActivities: (limit = 20) =>
+    api.get<AdminRecentActivitiesResponse>(`/admin/dashboard/activities?limit=${limit}`),
 
   approveTeacher: (userId: string) =>
     api.put<AdminTeacherResponse>(`/admin/users/${userId}/approve`),
@@ -147,6 +183,33 @@ export const adminApi = {
 
   getTeacherCertificates: (userId: string) =>
     api.get<AdminTeacherCertificateResponse[]>(`/admin/users/${userId}/certificates`),
+
+  /**
+   * Find a single teacher by id by searching across pending, active and
+   * the full teacher list (covers PENDING_APPROVAL, ACTIVE, SUSPENDED,
+   * REJECTED, BANNED). The backend does not expose a dedicated
+   * `GET /admin/users/{id}` endpoint, so we aggregate existing list calls.
+   */
+  getTeacherById: async (userId: string): Promise<AdminTeacherResponse | null> => {
+    const tryMatch = (list: AdminTeacherResponse[]) =>
+      list.find((t) => t.id === userId) ?? null;
+    try {
+      const [pending, active, pageAll] = await Promise.all([
+        adminApi.getPendingTeachers().catch(() => [] as AdminTeacherResponse[]),
+        adminApi.getActiveTeachers().catch(() => [] as AdminTeacherResponse[]),
+        adminApi
+          .getAllUsers({ role: "TEACHER", size: 100 })
+          .catch(() => ({ content: [] as AdminTeacherResponse[] })),
+      ]);
+      return (
+        tryMatch(pending) ??
+        tryMatch(active) ??
+        tryMatch(pageAll.content ?? [])
+      );
+    } catch {
+      return null;
+    }
+  },
 
   /**
    * Get all users with pagination and optional filters.
@@ -184,12 +247,34 @@ export const adminApi = {
     api.get<AdminQuestionBankLesson[]>(`/admin/question-bank/lessons?level=${level}`),
 
   /**
-   * Update an existing lesson (lesson number, name, status).
+   * Get all classes (admin view).
+   * Backed by `GET /api/admin/classes` which returns the full class list with
+   * teacher info, student counts, JLPT level, status, and timestamps.
    */
-  updateQuestionBankLesson: (
-    id: number,
-    payload: { lessonName?: string; lessonNumber?: number; status?: string },
-  ) => api.put<AdminQuestionBankLesson>(`/admin/question-bank/lessons/${id}`, payload),
+  getAdminClasses: () => api.get<AdminClassResponse[]>("/admin/classes"),
+
+  /**
+   * Get a single class by id (admin view).
+   */
+  getAdminClassById: (id: string) => api.get<AdminClassResponse>(`/admin/classes/${id}`),
+
+  /**
+   * Get students of a specific class (admin view).
+   */
+  getClassStudents: (classId: string) =>
+    api.get<AdminClassStudentResponse[]>(`/admin/classes/${classId}/students`),
+
+  /**
+   * Get homework assignments for a specific class (admin view).
+   */
+  getClassHomeworks: (classId: string) =>
+    api.get<HomeworkResponse[]>(`/admin/classes/${classId}/homeworks`),
+
+  /**
+   * Get exams for a specific class (admin view).
+   */
+  getClassExams: (classId: string) =>
+    api.get<ExamResponse[]>(`/admin/classes/${classId}/exams`),
 };
 
 export interface AdminQuestionBankLesson {
@@ -199,4 +284,44 @@ export interface AdminQuestionBankLesson {
   lessonName: string;
   status: string;
   createdAt: string;
+}
+
+// ============================================================
+// Admin Class Management types
+// ============================================================
+
+/**
+ * Mirrors backend `com.midori.dto.classdto.AdminClassResponse`.
+ * Used by the admin class management page; data comes from
+ * `GET /api/admin/classes`.
+ */
+export interface AdminClassResponse {
+  id: string;
+  name: string;
+  teacher: string;
+  teacherId: string | null;
+  level: string;
+  students: number;
+  maxStudents: number;
+  status: "ACTIVE" | "ARCHIVED";
+  createdAt: string;
+  description: string | null;
+  classCode?: string;
+}
+
+// Admin-specific student response for class detail view
+export interface AdminClassStudentResponse {
+  studentId: string;
+  fullName: string | null;
+  email: string;
+  avatar: string | null;
+  status: string;
+  progressPercent?: number;
+  submittedHomework?: number;
+  totalHomework?: number;
+  completedExams?: number;
+  totalExams?: number;
+  averageScore?: number;
+  lastActivityAt?: string;
+  joinedAt?: string;
 }

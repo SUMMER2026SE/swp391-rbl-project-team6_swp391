@@ -75,6 +75,8 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNotifications } from "@/lib/context/notification-context";
+import { useQuery } from "@tanstack/react-query";
+import { studentProgressApi } from "@/lib/api/studentProgress";
 
 // Hierarchical navigation types
 type NavItemBase = {
@@ -921,14 +923,7 @@ export function DashboardLayout({
             {/* XP + Streak (students) */}
             {role === "student" && (
               <div className="hidden xl:flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>9,820 XP</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--jp-red)]/10 text-[var(--jp-red)] text-xs font-semibold">
-                  <Flame className="w-3.5 h-3.5" />
-                  <span>32</span>
-                </div>
+                <StreakBadge />
               </div>
             )}
 
@@ -1176,6 +1171,42 @@ export function DashboardLayout({
           </DialogContent>
         </Dialog>
       </div>
+    </div>
+  );
+}
+
+function StreakBadge() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["streak-badge"],
+    queryFn: () => studentProgressApi.getProgressStats(),
+    staleTime: 60 * 1000,
+    retry: 1,
+  });
+
+  const streak = typeof stats?.learningStreak === "number" ? stats.learningStreak : null;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--jp-red)]/10 text-[var(--jp-red)] text-xs font-semibold">
+        <Flame className="w-3.5 h-3.5 animate-pulse" />
+        <span className="w-4 h-3 bg-[var(--jp-red)]/20 rounded animate-pulse" />
+      </div>
+    );
+  }
+
+  if (streak === null || streak === 0) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--jp-red)]/10 text-[var(--jp-red)] text-xs font-semibold">
+        <Flame className="w-3.5 h-3.5" />
+        <span>0</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--jp-red)]/10 text-[var(--jp-red)] text-xs font-semibold">
+      <Flame className="w-3.5 h-3.5" />
+      <span>{streak} day{streak !== 1 ? "s" : ""}</span>
     </div>
   );
 }
