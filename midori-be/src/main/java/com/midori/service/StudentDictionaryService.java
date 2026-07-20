@@ -47,10 +47,35 @@ public interface StudentDictionaryService {
     DictionaryLookupResponse saveToFlashcard(SaveFlashcardRequest request);
     
     /**
+     * Check if a word is saved by the current user in a specific lesson.
+     * 
+     * @param word Japanese word
+     * @param lessonId Optional lesson/video ID
+     * @return true if saved, false otherwise
+     */
+    boolean isWordSaved(String word, String lessonId);
+
+    /**
      * Check if a word is saved by the current user.
      * 
      * @param word Japanese word
      * @return true if saved, false otherwise
      */
     boolean isWordSaved(String word);
+
+    /**
+     * Get all saved words for the current user, optionally filtered by lesson ID.
+     * 
+     * @param lessonId Optional lesson/video ID
+     * @return List of saved words
+     */
+    java.util.List<com.midori.entity.StudentSavedWord> getSavedWords(String lessonId);
+
+    /**
+     * Unsave/delete a saved word.
+     * 
+     * @param word Japanese word to unsave
+     * @param lessonId Optional lesson/video ID
+     */
+    void unsaveWord(String word, String lessonId);
 }
