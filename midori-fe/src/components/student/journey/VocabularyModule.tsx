@@ -193,6 +193,121 @@ interface VocabularyListTabProps {
   onToggleFavorite: (wordId: string) => Promise<void>;
 }
 
+interface VocabularyCardProps {
+  word: VocabularyItem;
+  isFavorite: boolean;
+  isToggling: boolean;
+  onToggleFavorite: (wordId: string) => Promise<void>;
+}
+
+function VocabularyCard({
+  word,
+  isFavorite,
+  isToggling,
+  onToggleFavorite,
+}: VocabularyCardProps) {
+  const [showExample, setShowExample] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card rounded-xl border border-border/60 p-4 hover:shadow-md hover:border-primary/20 dark:hover:border-primary/30 transition-all duration-200 flex flex-col justify-between relative group"
+    >
+      <div>
+        {/* Top Header Row: Order & Part of Speech & Favorite Star */}
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-[10px] font-black tracking-wide border border-border/30">
+              {word.itemOrder.toString().padStart(2, "0")}
+            </span>
+            {word.partOfSpeech && (
+              <span className="px-1.5 py-0.5 rounded-md bg-primary/5 text-primary text-[9px] font-bold uppercase tracking-wider">
+                {word.partOfSpeech}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => onToggleFavorite(word.id)}
+            disabled={isToggling}
+            className={cn(
+              "p-1 rounded-lg transition-all duration-205 hover:bg-slate-50 dark:hover:bg-slate-800/80 active:scale-95",
+              isToggling && "animate-pulse",
+              isFavorite
+                ? "text-amber-500"
+                : "text-slate-300 dark:text-slate-650 hover:text-slate-450 dark:hover:text-slate-400"
+            )}
+          >
+            <Star className={cn("w-4 h-4 transition-transform duration-200 group-hover:scale-105", isFavorite && "fill-amber-400 text-amber-500")} />
+          </button>
+        </div>
+
+        {/* Word Display Section */}
+        <div className="mb-2">
+          <h3
+            className="text-xl font-bold text-slate-850 dark:text-slate-50 tracking-tight leading-tight"
+            style={{ fontFamily: "var(--font-japanese, serif)" }}
+          >
+            {word.word}
+          </h3>
+          {(word.furigana || word.romaji) && (
+            <p 
+              className="text-xs text-slate-550 dark:text-slate-400 font-medium mt-0.5 tracking-wide"
+              style={{ fontFamily: "var(--font-japanese, serif)" }}
+            >
+              {word.furigana || word.romaji}
+            </p>
+          )}
+        </div>
+
+        {/* Meaning Section */}
+        <div className="mb-2.5">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-snug">
+            {word.meaning}
+          </p>
+        </div>
+      </div>
+
+      {/* Example Collapsible Section */}
+      {word.example && (
+        <div className="mt-2.5 pt-2.5 border-t border-border/50">
+          <button
+            onClick={() => setShowExample(!showExample)}
+            className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 uppercase tracking-wider transition-colors duration-150 focus:outline-none cursor-pointer"
+          >
+            <ChevronRight className={cn("w-3 h-3 transition-transform duration-200", showExample && "rotate-90")} />
+            <span>{showExample ? "Hide Example" : "Show Example"}</span>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {showExample && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="overflow-hidden mt-2 space-y-1 bg-slate-50/50 dark:bg-slate-800/30 rounded-lg p-2 border border-border/30"
+              >
+                <p
+                  className="text-xs font-semibold text-slate-850 dark:text-slate-200 leading-normal"
+                  style={{ fontFamily: "var(--font-japanese, serif)" }}
+                >
+                  {word.example}
+                </p>
+                {word.exampleMeaning && (
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-normal">
+                    {word.exampleMeaning}
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 const VocabularyListTab = memo(function VocabularyListTab({
   vocabulary,
   favoriteIds,
@@ -211,80 +326,13 @@ const VocabularyListTab = memo(function VocabularyListTab({
       {vocabulary.map((word) => {
         const isFavorite = favoriteIds.includes(word.id);
         return (
-          <motion.div
+          <VocabularyCard
             key={word.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                  {word.itemOrder}
-                </span>
-                {word.partOfSpeech && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-medium">
-                    {word.partOfSpeech}
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => onToggleFavorite(word.id)}
-                disabled={isToggling}
-                className={cn(
-                  "p-1.5 rounded-lg transition-all",
-                  isToggling && "animate-pulse",
-                  isFavorite
-                    ? "text-amber-500"
-                    : "text-slate-300 dark:text-slate-600 hover:text-amber-500"
-                )}
-              >
-                <Star className={cn("w-4 h-4", isFavorite && "fill-amber-500")} />
-              </button>
-            </div>
-
-            <div className="flex items-start gap-2 mb-2">
-              <div className="flex-1">
-                <h3
-                  className="text-xl font-bold text-foreground"
-                  style={{ fontFamily: "var(--font-japanese, serif)" }}
-                >
-                  {word.word}
-                </h3>
-                {(word.furigana || word.romaji) && (
-                  <p className="text-xs text-muted-foreground">
-                    {word.furigana || word.romaji}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-              Meaning
-            </p>
-            <p className="text-sm font-medium text-foreground mb-3">
-              {word.meaning}
-            </p>
-
-            {word.example && (
-              <div className="pt-3 border-t border-border/50">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Example
-                </p>
-                <p
-                  className="text-xs font-medium text-foreground mb-0.5"
-                  style={{ fontFamily: "var(--font-japanese, serif)" }}
-                >
-                  {word.example}
-                </p>
-                {word.exampleMeaning && (
-                  <p className="text-[10px] text-muted-foreground">
-                    {word.exampleMeaning}
-                  </p>
-                )}
-              </div>
-            )}
-          </motion.div>
+            word={word}
+            isFavorite={isFavorite}
+            isToggling={isToggling}
+            onToggleFavorite={onToggleFavorite}
+          />
         );
       })}
     </motion.div>

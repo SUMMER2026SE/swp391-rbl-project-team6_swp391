@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { useRouter, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { BookOpenText, Loader2, Pencil, Plus, Search, Trash2, Edit3 } from "lucide-react";
+import { BookOpenText, Loader2, Pencil, Plus, Search, Trash2, Edit3, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
   adminGrammarApi,
@@ -28,6 +28,7 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
   const normalizedLevel = level.toUpperCase();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -200,6 +201,14 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
     }
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate({ to: "/admin/content-library" });
+    }
+  };
+
   const isLoading = lessonsQuery.isLoading;
   const error = lessonsQuery.error;
 
@@ -207,12 +216,20 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
     <div className="space-y-5">
       {/* Header with Back Button */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 md:gap-4">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--card)] hover:bg-[var(--border)] border border-[var(--border)] text-secondary-col hover:text-primary-col text-xs font-bold transition shadow-sm cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+          <div className="h-6 w-px bg-[var(--border)] hidden sm:block" />
           <div>
-            <h1 className="text-2xl font-display font-black text-primary-col">
+            <h1 className="text-2xl font-display font-black text-primary-col leading-tight">
               Grammar Library
             </h1>
-            <p className="text-sm text-secondary-col mt-0.5">{normalizedLevel} Level</p>
+            <p className="text-xs text-muted-col mt-0.5">{normalizedLevel} Level</p>
           </div>
         </div>
         <button
