@@ -196,10 +196,7 @@ const adminNav: NavItem[] = [
   // 4. Question Bank
   { to: "/admin/question-bank", label: "Question Bank", icon: ClipboardCheck },
 
-  // 5. JLPT Exam Management
-  { to: "/admin/jlpt-exam", label: "JLPT Exam", icon: FileText },
-
-  // 6. Content Library
+  // 5. Content Library
   { to: "/admin/content-library", label: "Content Library", icon: Library },
 
   // 8. Notification Management

@@ -706,17 +706,7 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                         <Bell className="w-3.5 h-3.5" />
                         Remind
                       </button>
-                    ) : sub.status === "Submitted" ? (
-                      <button
-                        onClick={() => handleOpenDetail(sub)}
-                        className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-white font-bold text-[10px] uppercase tracking-wider hover:bg-amber-600 transition shadow-sm flex items-center gap-1 font-display"
-                      >
-                        Grade
-                      </button>
                     ) : (
-                      // Graded → display backend-authoritative focus violations instead of
-                      // the old "View submission" button. The grading form is still
-                      // reachable via the Status / Detail dialog from the open detail page.
                       <div className="flex flex-col items-start gap-0.5 min-w-[110px]">
                         <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black">
                           Focus Violations
@@ -900,14 +890,6 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                     </span>
                     <span className="font-semibold text-foreground dark:text-white">
                       {assignment.totalSubmissions} / {totalStudents} ({compRate}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5 text-emerald-500" /> Average score
-                    </span>
-                    <span className="font-semibold text-emerald-500">
-                      {assignment.avgScore ? `${assignment.avgScore}/10` : "—"}
                     </span>
                   </div>
                 </div>

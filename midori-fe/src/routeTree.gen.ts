@@ -33,7 +33,6 @@ import { Route as TeacherNotificationsRouteImport } from './routes/teacher.notif
 import { Route as TeacherMyQuestionsRouteImport } from './routes/teacher.my-questions'
 import { Route as TeacherListeningRouteImport } from './routes/teacher.listening'
 import { Route as TeacherLessonsRouteImport } from './routes/teacher.lessons'
-import { Route as TeacherJlptBankRouteImport } from './routes/teacher.jlpt-bank'
 import { Route as TeacherHomeworkRouteImport } from './routes/teacher.homework'
 import { Route as TeacherGrammarRouteImport } from './routes/teacher.grammar'
 import { Route as TeacherFlashcardsRouteImport } from './routes/teacher.flashcards'
@@ -79,7 +78,6 @@ import { Route as AdminQuestionBankLessonDetailRouteImport } from './routes/admi
 import { Route as AdminQuestionBankImportExcelRouteImport } from './routes/admin.question-bank.import-excel'
 import { Route as AdminQuestionBankIndexRouteImport } from './routes/admin.question-bank._index'
 import { Route as AdminQuestionBankLevelRouteImport } from './routes/admin.question-bank.$level'
-import { Route as AdminJlptExamIndexRouteImport } from './routes/admin.jlpt-exam._index'
 import { Route as AdminContentLibraryIndexRouteImport } from './routes/admin.content-library._index'
 import { Route as AdminContentLibraryLevelRouteImport } from './routes/admin.content-library.$level'
 import { Route as AdminClassClassIdRouteImport } from './routes/admin.class.$classId'
@@ -108,8 +106,6 @@ import { Route as StudentGrammarGrammarIdStructureIdRouteImport } from './routes
 import { Route as AdminTeachersApprovalTeacherIdRouteImport } from './routes/admin.teachers.approval.$teacherId'
 import { Route as AdminTeachersTeacherIdClassesRouteImport } from './routes/admin.teachers.$teacherId.classes'
 import { Route as AdminTeachersTeacherIdAnalyticsRouteImport } from './routes/admin.teachers.$teacherId.analytics'
-import { Route as AdminJlptExamLevelCreateRouteImport } from './routes/admin.jlpt-exam.$level.create'
-import { Route as AdminJlptExamLevelIndexRouteImport } from './routes/admin.jlpt-exam.$level._index'
 import { Route as TeacherClassesClassIdStudentsIndexRouteImport } from './routes/teacher.classes.$classId.students.index'
 import { Route as StudentLearningJapaneseLessonLessonIdRouteImport } from './routes/student.learning.japanese.lesson.$lessonId'
 import { Route as StudentLearningAlphabetKatakanaDakutenRouteImport } from './routes/student.learning.alphabet.katakana.dakuten'
@@ -118,7 +114,6 @@ import { Route as StudentLearningAlphabetKatakanaBasicRouteImport } from './rout
 import { Route as StudentLearningAlphabetHiraganaDakutenRouteImport } from './routes/student.learning.alphabet.hiragana.dakuten'
 import { Route as StudentLearningAlphabetHiraganaCombinationRouteImport } from './routes/student.learning.alphabet.hiragana.combination'
 import { Route as StudentLearningAlphabetHiraganaBasicRouteImport } from './routes/student.learning.alphabet.hiragana.basic'
-import { Route as AdminJlptExamLevelExamIdEditRouteImport } from './routes/admin.jlpt-exam.$level.$examId.edit'
 import { Route as AdminContentLibraryLevelSkillIndexRouteImport } from './routes/admin.content-library.$level.$skill._index'
 import { Route as TeacherClassesClassIdStudentsStudentIdProgressRouteImport } from './routes/teacher.classes.$classId.students.$studentId.progress'
 
@@ -240,11 +235,6 @@ const TeacherListeningRoute = TeacherListeningRouteImport.update({
 const TeacherLessonsRoute = TeacherLessonsRouteImport.update({
   id: '/lessons',
   path: '/lessons',
-  getParentRoute: () => TeacherRoute,
-} as any)
-const TeacherJlptBankRoute = TeacherJlptBankRouteImport.update({
-  id: '/jlpt-bank',
-  path: '/jlpt-bank',
   getParentRoute: () => TeacherRoute,
 } as any)
 const TeacherHomeworkRoute = TeacherHomeworkRouteImport.update({
@@ -476,11 +466,6 @@ const AdminQuestionBankLevelRoute = AdminQuestionBankLevelRouteImport.update({
   path: '/question-bank/$level',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminJlptExamIndexRoute = AdminJlptExamIndexRouteImport.update({
-  id: '/jlpt-exam/_index',
-  path: '/jlpt-exam',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminContentLibraryIndexRoute =
   AdminContentLibraryIndexRouteImport.update({
     id: '/content-library/_index',
@@ -648,17 +633,6 @@ const AdminTeachersTeacherIdAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => AdminTeachersTeacherIdRoute,
   } as any)
-const AdminJlptExamLevelCreateRoute =
-  AdminJlptExamLevelCreateRouteImport.update({
-    id: '/jlpt-exam/$level/create',
-    path: '/jlpt-exam/$level/create',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminJlptExamLevelIndexRoute = AdminJlptExamLevelIndexRouteImport.update({
-  id: '/jlpt-exam/$level/_index',
-  path: '/jlpt-exam/$level',
-  getParentRoute: () => AdminRoute,
-} as any)
 const TeacherClassesClassIdStudentsIndexRoute =
   TeacherClassesClassIdStudentsIndexRouteImport.update({
     id: '/',
@@ -706,12 +680,6 @@ const StudentLearningAlphabetHiraganaBasicRoute =
     id: '/basic',
     path: '/basic',
     getParentRoute: () => StudentLearningAlphabetHiraganaRoute,
-  } as any)
-const AdminJlptExamLevelExamIdEditRoute =
-  AdminJlptExamLevelExamIdEditRouteImport.update({
-    id: '/jlpt-exam/$level/$examId/edit',
-    path: '/jlpt-exam/$level/$examId/edit',
-    getParentRoute: () => AdminRoute,
   } as any)
 const AdminContentLibraryLevelSkillIndexRoute =
   AdminContentLibraryLevelSkillIndexRouteImport.update({
@@ -761,7 +729,6 @@ export interface FileRoutesByFullPath {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
-  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/my-questions': typeof TeacherMyQuestionsRoute
@@ -779,7 +746,6 @@ export interface FileRoutesByFullPath {
   '/admin/class/$classId': typeof AdminClassClassIdRoute
   '/admin/content-library/$level': typeof AdminContentLibraryLevelRouteWithChildren
   '/admin/content-library': typeof AdminContentLibraryIndexRoute
-  '/admin/jlpt-exam': typeof AdminJlptExamIndexRoute
   '/admin/question-bank/$level': typeof AdminQuestionBankLevelRoute
   '/admin/question-bank': typeof AdminQuestionBankIndexRoute
   '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
@@ -801,8 +767,6 @@ export interface FileRoutesByFullPath {
   '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
   '/teacher/lessons/create': typeof TeacherLessonsCreateRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
-  '/admin/jlpt-exam/$level': typeof AdminJlptExamLevelIndexRoute
-  '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
   '/admin/teachers/$teacherId/analytics': typeof AdminTeachersTeacherIdAnalyticsRoute
   '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
   '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
@@ -828,7 +792,6 @@ export interface FileRoutesByFullPath {
   '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
   '/teacher/classes/$classId/': typeof TeacherClassesClassIdIndexRoute
   '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
-  '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
   '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
   '/student/learning/alphabet/hiragana/combination': typeof StudentLearningAlphabetHiraganaCombinationRoute
   '/student/learning/alphabet/hiragana/dakuten': typeof StudentLearningAlphabetHiraganaDakutenRoute
@@ -871,7 +834,6 @@ export interface FileRoutesByTo {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
-  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/my-questions': typeof TeacherMyQuestionsRoute
@@ -888,7 +850,6 @@ export interface FileRoutesByTo {
   '/admin/class-management': typeof AdminClassManagementIndexRoute
   '/admin/class/$classId': typeof AdminClassClassIdRoute
   '/admin/content-library': typeof AdminContentLibraryIndexRoute
-  '/admin/jlpt-exam': typeof AdminJlptExamIndexRoute
   '/admin/question-bank/$level': typeof AdminQuestionBankLevelRoute
   '/admin/question-bank': typeof AdminQuestionBankIndexRoute
   '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
@@ -909,8 +870,6 @@ export interface FileRoutesByTo {
   '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
   '/teacher/lessons/create': typeof TeacherLessonsCreateRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
-  '/admin/jlpt-exam/$level': typeof AdminJlptExamLevelIndexRoute
-  '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
   '/admin/teachers/$teacherId/analytics': typeof AdminTeachersTeacherIdAnalyticsRoute
   '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
   '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
@@ -935,7 +894,6 @@ export interface FileRoutesByTo {
   '/admin/content-library/$level': typeof AdminContentLibraryLevelIndexRoute
   '/teacher/classes/$classId': typeof TeacherClassesClassIdIndexRoute
   '/admin/content-library/$level/$skill': typeof AdminContentLibraryLevelSkillIndexRoute
-  '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
   '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
   '/student/learning/alphabet/hiragana/combination': typeof StudentLearningAlphabetHiraganaCombinationRoute
   '/student/learning/alphabet/hiragana/dakuten': typeof StudentLearningAlphabetHiraganaDakutenRoute
@@ -982,7 +940,6 @@ export interface FileRoutesById {
   '/teacher/flashcards': typeof TeacherFlashcardsRoute
   '/teacher/grammar': typeof TeacherGrammarRoute
   '/teacher/homework': typeof TeacherHomeworkRouteWithChildren
-  '/teacher/jlpt-bank': typeof TeacherJlptBankRoute
   '/teacher/lessons': typeof TeacherLessonsRouteWithChildren
   '/teacher/listening': typeof TeacherListeningRoute
   '/teacher/my-questions': typeof TeacherMyQuestionsRoute
@@ -1000,7 +957,6 @@ export interface FileRoutesById {
   '/admin/class/$classId': typeof AdminClassClassIdRoute
   '/admin/content-library/$level': typeof AdminContentLibraryLevelRouteWithChildren
   '/admin/content-library/_index': typeof AdminContentLibraryIndexRoute
-  '/admin/jlpt-exam/_index': typeof AdminJlptExamIndexRoute
   '/admin/question-bank/$level': typeof AdminQuestionBankLevelRoute
   '/admin/question-bank/_index': typeof AdminQuestionBankIndexRoute
   '/admin/question-bank/import-excel': typeof AdminQuestionBankImportExcelRoute
@@ -1023,8 +979,6 @@ export interface FileRoutesById {
   '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
   '/teacher/lessons/create': typeof TeacherLessonsCreateRoute
   '/teacher/vocabulary/$lessonId': typeof TeacherVocabularyLessonIdRoute
-  '/admin/jlpt-exam/$level/_index': typeof AdminJlptExamLevelIndexRoute
-  '/admin/jlpt-exam/$level/create': typeof AdminJlptExamLevelCreateRoute
   '/admin/teachers/$teacherId/analytics': typeof AdminTeachersTeacherIdAnalyticsRoute
   '/admin/teachers/$teacherId/classes': typeof AdminTeachersTeacherIdClassesRoute
   '/admin/teachers/approval/$teacherId': typeof AdminTeachersApprovalTeacherIdRoute
@@ -1050,7 +1004,6 @@ export interface FileRoutesById {
   '/admin/content-library/$level/': typeof AdminContentLibraryLevelIndexRoute
   '/teacher/classes/$classId/': typeof TeacherClassesClassIdIndexRoute
   '/admin/content-library/$level/$skill/_index': typeof AdminContentLibraryLevelSkillIndexRoute
-  '/admin/jlpt-exam/$level/$examId/edit': typeof AdminJlptExamLevelExamIdEditRoute
   '/student/learning/alphabet/hiragana/basic': typeof StudentLearningAlphabetHiraganaBasicRoute
   '/student/learning/alphabet/hiragana/combination': typeof StudentLearningAlphabetHiraganaCombinationRoute
   '/student/learning/alphabet/hiragana/dakuten': typeof StudentLearningAlphabetHiraganaDakutenRoute
@@ -1098,7 +1051,6 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/homework'
-    | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/my-questions'
@@ -1116,7 +1068,6 @@ export interface FileRouteTypes {
     | '/admin/class/$classId'
     | '/admin/content-library/$level'
     | '/admin/content-library'
-    | '/admin/jlpt-exam'
     | '/admin/question-bank/$level'
     | '/admin/question-bank'
     | '/admin/question-bank/import-excel'
@@ -1138,8 +1089,6 @@ export interface FileRouteTypes {
     | '/teacher/homework/create'
     | '/teacher/lessons/create'
     | '/teacher/vocabulary/$lessonId'
-    | '/admin/jlpt-exam/$level'
-    | '/admin/jlpt-exam/$level/create'
     | '/admin/teachers/$teacherId/analytics'
     | '/admin/teachers/$teacherId/classes'
     | '/admin/teachers/approval/$teacherId'
@@ -1165,7 +1114,6 @@ export interface FileRouteTypes {
     | '/admin/content-library/$level/'
     | '/teacher/classes/$classId/'
     | '/admin/content-library/$level/$skill'
-    | '/admin/jlpt-exam/$level/$examId/edit'
     | '/student/learning/alphabet/hiragana/basic'
     | '/student/learning/alphabet/hiragana/combination'
     | '/student/learning/alphabet/hiragana/dakuten'
@@ -1208,7 +1156,6 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/homework'
-    | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/my-questions'
@@ -1225,7 +1172,6 @@ export interface FileRouteTypes {
     | '/admin/class-management'
     | '/admin/class/$classId'
     | '/admin/content-library'
-    | '/admin/jlpt-exam'
     | '/admin/question-bank/$level'
     | '/admin/question-bank'
     | '/admin/question-bank/import-excel'
@@ -1246,8 +1192,6 @@ export interface FileRouteTypes {
     | '/teacher/homework/create'
     | '/teacher/lessons/create'
     | '/teacher/vocabulary/$lessonId'
-    | '/admin/jlpt-exam/$level'
-    | '/admin/jlpt-exam/$level/create'
     | '/admin/teachers/$teacherId/analytics'
     | '/admin/teachers/$teacherId/classes'
     | '/admin/teachers/approval/$teacherId'
@@ -1272,7 +1216,6 @@ export interface FileRouteTypes {
     | '/admin/content-library/$level'
     | '/teacher/classes/$classId'
     | '/admin/content-library/$level/$skill'
-    | '/admin/jlpt-exam/$level/$examId/edit'
     | '/student/learning/alphabet/hiragana/basic'
     | '/student/learning/alphabet/hiragana/combination'
     | '/student/learning/alphabet/hiragana/dakuten'
@@ -1318,7 +1261,6 @@ export interface FileRouteTypes {
     | '/teacher/flashcards'
     | '/teacher/grammar'
     | '/teacher/homework'
-    | '/teacher/jlpt-bank'
     | '/teacher/lessons'
     | '/teacher/listening'
     | '/teacher/my-questions'
@@ -1336,7 +1278,6 @@ export interface FileRouteTypes {
     | '/admin/class/$classId'
     | '/admin/content-library/$level'
     | '/admin/content-library/_index'
-    | '/admin/jlpt-exam/_index'
     | '/admin/question-bank/$level'
     | '/admin/question-bank/_index'
     | '/admin/question-bank/import-excel'
@@ -1359,8 +1300,6 @@ export interface FileRouteTypes {
     | '/teacher/homework/create'
     | '/teacher/lessons/create'
     | '/teacher/vocabulary/$lessonId'
-    | '/admin/jlpt-exam/$level/_index'
-    | '/admin/jlpt-exam/$level/create'
     | '/admin/teachers/$teacherId/analytics'
     | '/admin/teachers/$teacherId/classes'
     | '/admin/teachers/approval/$teacherId'
@@ -1386,7 +1325,6 @@ export interface FileRouteTypes {
     | '/admin/content-library/$level/'
     | '/teacher/classes/$classId/'
     | '/admin/content-library/$level/$skill/_index'
-    | '/admin/jlpt-exam/$level/$examId/edit'
     | '/student/learning/alphabet/hiragana/basic'
     | '/student/learning/alphabet/hiragana/combination'
     | '/student/learning/alphabet/hiragana/dakuten'
@@ -1580,13 +1518,6 @@ declare module '@tanstack/react-router' {
       path: '/lessons'
       fullPath: '/teacher/lessons'
       preLoaderRoute: typeof TeacherLessonsRouteImport
-      parentRoute: typeof TeacherRoute
-    }
-    '/teacher/jlpt-bank': {
-      id: '/teacher/jlpt-bank'
-      path: '/jlpt-bank'
-      fullPath: '/teacher/jlpt-bank'
-      preLoaderRoute: typeof TeacherJlptBankRouteImport
       parentRoute: typeof TeacherRoute
     }
     '/teacher/homework': {
@@ -1904,13 +1835,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminQuestionBankLevelRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/jlpt-exam/_index': {
-      id: '/admin/jlpt-exam/_index'
-      path: '/jlpt-exam'
-      fullPath: '/admin/jlpt-exam'
-      preLoaderRoute: typeof AdminJlptExamIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/content-library/_index': {
       id: '/admin/content-library/_index'
       path: '/content-library'
@@ -2107,20 +2031,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTeachersTeacherIdAnalyticsRouteImport
       parentRoute: typeof AdminTeachersTeacherIdRoute
     }
-    '/admin/jlpt-exam/$level/create': {
-      id: '/admin/jlpt-exam/$level/create'
-      path: '/jlpt-exam/$level/create'
-      fullPath: '/admin/jlpt-exam/$level/create'
-      preLoaderRoute: typeof AdminJlptExamLevelCreateRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/jlpt-exam/$level/_index': {
-      id: '/admin/jlpt-exam/$level/_index'
-      path: '/jlpt-exam/$level'
-      fullPath: '/admin/jlpt-exam/$level'
-      preLoaderRoute: typeof AdminJlptExamLevelIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/teacher/classes/$classId/students/': {
       id: '/teacher/classes/$classId/students/'
       path: '/'
@@ -2176,13 +2086,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/student/learning/alphabet/hiragana/basic'
       preLoaderRoute: typeof StudentLearningAlphabetHiraganaBasicRouteImport
       parentRoute: typeof StudentLearningAlphabetHiraganaRoute
-    }
-    '/admin/jlpt-exam/$level/$examId/edit': {
-      id: '/admin/jlpt-exam/$level/$examId/edit'
-      path: '/jlpt-exam/$level/$examId/edit'
-      fullPath: '/admin/jlpt-exam/$level/$examId/edit'
-      preLoaderRoute: typeof AdminJlptExamLevelExamIdEditRouteImport
-      parentRoute: typeof AdminRoute
     }
     '/admin/content-library/$level/$skill/_index': {
       id: '/admin/content-library/$level/$skill/_index'
@@ -2257,15 +2160,11 @@ interface AdminRouteChildren {
   AdminClassClassIdRoute: typeof AdminClassClassIdRoute
   AdminContentLibraryLevelRoute: typeof AdminContentLibraryLevelRouteWithChildren
   AdminContentLibraryIndexRoute: typeof AdminContentLibraryIndexRoute
-  AdminJlptExamIndexRoute: typeof AdminJlptExamIndexRoute
   AdminQuestionBankLevelRoute: typeof AdminQuestionBankLevelRoute
   AdminQuestionBankIndexRoute: typeof AdminQuestionBankIndexRoute
   AdminQuestionBankImportExcelRoute: typeof AdminQuestionBankImportExcelRoute
   AdminQuestionBankLessonDetailRoute: typeof AdminQuestionBankLessonDetailRoute
   AdminQuestionBankQuestionBuilderRoute: typeof AdminQuestionBankQuestionBuilderRoute
-  AdminJlptExamLevelIndexRoute: typeof AdminJlptExamLevelIndexRoute
-  AdminJlptExamLevelCreateRoute: typeof AdminJlptExamLevelCreateRoute
-  AdminJlptExamLevelExamIdEditRoute: typeof AdminJlptExamLevelExamIdEditRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -2277,15 +2176,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminClassClassIdRoute: AdminClassClassIdRoute,
   AdminContentLibraryLevelRoute: AdminContentLibraryLevelRouteWithChildren,
   AdminContentLibraryIndexRoute: AdminContentLibraryIndexRoute,
-  AdminJlptExamIndexRoute: AdminJlptExamIndexRoute,
   AdminQuestionBankLevelRoute: AdminQuestionBankLevelRoute,
   AdminQuestionBankIndexRoute: AdminQuestionBankIndexRoute,
   AdminQuestionBankImportExcelRoute: AdminQuestionBankImportExcelRoute,
   AdminQuestionBankLessonDetailRoute: AdminQuestionBankLessonDetailRoute,
   AdminQuestionBankQuestionBuilderRoute: AdminQuestionBankQuestionBuilderRoute,
-  AdminJlptExamLevelIndexRoute: AdminJlptExamLevelIndexRoute,
-  AdminJlptExamLevelCreateRoute: AdminJlptExamLevelCreateRoute,
-  AdminJlptExamLevelExamIdEditRoute: AdminJlptExamLevelExamIdEditRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -2654,7 +2549,6 @@ interface TeacherRouteChildren {
   TeacherFlashcardsRoute: typeof TeacherFlashcardsRoute
   TeacherGrammarRoute: typeof TeacherGrammarRoute
   TeacherHomeworkRoute: typeof TeacherHomeworkRouteWithChildren
-  TeacherJlptBankRoute: typeof TeacherJlptBankRoute
   TeacherLessonsRoute: typeof TeacherLessonsRouteWithChildren
   TeacherListeningRoute: typeof TeacherListeningRoute
   TeacherMyQuestionsRoute: typeof TeacherMyQuestionsRoute
@@ -2675,7 +2569,6 @@ const TeacherRouteChildren: TeacherRouteChildren = {
   TeacherFlashcardsRoute: TeacherFlashcardsRoute,
   TeacherGrammarRoute: TeacherGrammarRoute,
   TeacherHomeworkRoute: TeacherHomeworkRouteWithChildren,
-  TeacherJlptBankRoute: TeacherJlptBankRoute,
   TeacherLessonsRoute: TeacherLessonsRouteWithChildren,
   TeacherListeningRoute: TeacherListeningRoute,
   TeacherMyQuestionsRoute: TeacherMyQuestionsRoute,

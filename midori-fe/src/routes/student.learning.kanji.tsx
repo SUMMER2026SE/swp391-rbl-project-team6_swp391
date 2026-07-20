@@ -190,7 +190,8 @@ function KanjiLearningPage() {
         onyomi: d.onyomi || "-",
         kunyomi: d.kunyomi || "-",
         radical: d.radical || "-",
-        mnemonic: `Dữ liệu gốc từ KANJIDIC2 hệ thống (Trình độ: ${d.jlpt || "N/A"}).`,
+        // Use backend mnemonic directly - no mock data fallback
+        mnemonic: d.mnemonic || "Chưa có mẹo ghi nhớ cho kanji này.",
         svgPaths,
         svgAvailable: d.svgAvailable === true,
         examples: [],

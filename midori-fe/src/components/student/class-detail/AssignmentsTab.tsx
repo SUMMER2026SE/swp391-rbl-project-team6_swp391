@@ -143,9 +143,10 @@ export function AssignmentsTab({ classInfo }: AssignmentsTabProps) {
           setReviewingAssignment(null);
         }}
         onSubmit={(id) => {
+          const submitted = doingAssignment;
           if (doingAssignment) doingAssignment.status = "Submitted";
           setDoingAssignment(null);
-          setReviewingAssignment(null);
+          if (submitted) setReviewingAssignment(submitted);
           void queryClient.invalidateQueries({ queryKey: ["classExams", classInfo.id] });
           void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
         }}

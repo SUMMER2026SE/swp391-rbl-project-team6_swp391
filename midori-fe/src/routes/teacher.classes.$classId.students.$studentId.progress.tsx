@@ -148,7 +148,7 @@ function StudentProgressPage() {
                   </span>
                 )}
               </p>
-              <p className="text-xs text-muted-foreground">Homework Completed</p>
+              <p className="text-xs text-muted-foreground">Homework Submitted</p>
             </div>
           </div>
         </Card>
@@ -167,7 +167,7 @@ function StudentProgressPage() {
                   </span>
                 )}
               </p>
-              <p className="text-xs text-muted-foreground">Exams Completed</p>
+              <p className="text-xs text-muted-foreground">Exams Taken</p>
             </div>
           </div>
         </Card>
@@ -184,7 +184,6 @@ function StudentProgressPage() {
                   <span className="text-sm font-normal text-muted-foreground">%</span>
                 )}
               </p>
-              <p className="text-xs text-muted-foreground">Average Score</p>
             </div>
           </div>
         </Card>

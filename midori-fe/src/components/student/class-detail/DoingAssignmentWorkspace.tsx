@@ -402,18 +402,6 @@ export function DoingAssignmentWorkspace({
     }, 600);
   };
 
-  const restartPractice = () => {
-    setAnswers({});
-    setFlagged({});
-    setViolations(0);
-    setTimeLeft(1200);
-    setCurrentQuestion(0);
-    setIsSubmitted(false);
-    setExamStarted(true);
-    // Enter fullscreen
-    document.documentElement.requestFullscreen().catch(() => {});
-  };
-
   // Start exam function
   const startExam = useCallback(() => {
     setExamStarted(true);
@@ -836,26 +824,18 @@ export function DoingAssignmentWorkspace({
               >
                 Return to Class
               </button>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    const firstWrong = questions.findIndex(
-                      (q, i) =>
-                        q && typeof q.correctIdx === "number" && answers[i] !== q.correctIdx,
-                    );
-                    setCurrentReviewIndex(firstWrong >= 0 ? firstWrong : 0);
-                  }}
-                  className="py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition"
-                >
-                  Review Mistakes
-                </button>
-                <button
-                  onClick={restartPractice}
-                  className="py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider shadow hover:opacity-95 transition"
-                >
-                  Practice Again
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  const firstWrong = questions.findIndex(
+                    (q, i) =>
+                      q && typeof q.correctIdx === "number" && answers[i] !== q.correctIdx,
+                  );
+                  setCurrentReviewIndex(firstWrong >= 0 ? firstWrong : 0);
+                }}
+                className="py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition"
+              >
+                Review Mistakes
+              </button>
             </div>
           </Card>
 
@@ -976,22 +956,16 @@ export function DoingAssignmentWorkspace({
                       </div>
 
                       <div className="flex gap-2 items-center shrink-0">
-                        {wasChosen && (
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                              isCorrect
-                                ? "bg-green-500/20 text-green-700 dark:text-green-400"
-                                : "bg-red-500/20 text-red-700 dark:text-red-400"
-                            }`}
-                          >
-                            {isCorrect ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                        {wasChosen && !isCorrect && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-red-500/20 text-red-700 dark:text-red-400">
+                            <X className="w-3 h-3" />
                             Your Answer
                           </span>
                         )}
                         {isCorrect && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400 text-[9px] font-black uppercase">
                             <Check className="w-3 h-3" />
-                            Correct Answer
+                            {wasChosen ? "Correct" : "Correct Answer"}
                           </span>
                         )}
                       </div>
