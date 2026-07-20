@@ -40,6 +40,7 @@ export interface CreateClassRequest {
   level: string;
   maxStudents: number;
   description?: string;
+  teacherId?: string;
 }
 
 export interface UpdateClassRequest {
@@ -92,11 +93,11 @@ export const classesApi = {
   },
 
   archiveClass(id: string): Promise<ClassResponse> {
-    return api.put<ClassResponse>(`/teacher/classes/${id}/archive`);
+    return api.patch<ClassResponse>(`/classes/${id}/archive`);
   },
 
   restoreClass(id: string): Promise<ClassResponse> {
-    return api.put<ClassResponse>(`/teacher/classes/${id}/restore`);
+    return api.patch<ClassResponse>(`/classes/${id}/restore`);
   },
 
   getClassStudents(id: string): Promise<StudentClassResponse[]> {
