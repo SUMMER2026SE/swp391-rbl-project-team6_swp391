@@ -128,7 +128,10 @@ function QuestionBank() {
       if (!lessonId || isNaN(lessonId) || lessonIdStr === "0" || lessonIdStr === "null" || lessonIdStr === "undefined") {
         return;
       }
-      const lessonName = lessonsMap.get(lessonId) || `Lesson ${lessonId}`;
+      const lessonName = lessonsMap.get(lessonId);
+      if (!lessonName) {
+        return;
+      }
 
       const easy = list.filter((q) => q.difficulty === "Easy").length;
       const medium = list.filter((q) => q.difficulty === "Medium").length;

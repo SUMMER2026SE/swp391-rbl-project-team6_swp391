@@ -55,6 +55,14 @@ public class HomeworkSubmission {
     @JoinColumn(name = "graded_by")
     private User gradedBy;
 
+    @Column(name = "focus_violation_count")
+    @Builder.Default
+    private Integer focusViolationCount = 0;
+
+    public Integer getFocusViolationCount() {
+        return focusViolationCount == null ? 0 : focusViolationCount;
+    }
+
     public enum SubmissionStatus {
         SUBMITTED,
         GRADED

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Card, Progress } from "@/components/page-ui";
 import { Award, Flame, LineChart, TrendingUp, CheckCircle } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
@@ -8,43 +8,102 @@ interface ProgressTabProps {
   classInfo: DetailedClassInfo;
 }
 
+const MODULE_ORDER = [
+  { key: "Vocabulary", label: "Vocab" },
+  { key: "Grammar", label: "Grammar" },
+  { key: "Listening", label: "Listening" },
+  { key: "Reading", label: "Reading" },
+  { key: "Shadowing", label: "Shadowing" },
+  { key: "Writing", label: "Writing" },
+] as const;
+
+const moduleCounts = (classInfo: DetailedClassInfo) => {
+  const counts: Record<string, { completed: number; total: number }> = {};
+  for (const m of MODULE_ORDER) counts[m.key] = { completed: 0, total: 0 };
+
+  for (const a of classInfo.assignments) {
+    const key = a.moduleType as string;
+    if (!counts[key]) continue;
+    counts[key].total += 1;
+    if (a.status === "Submitted" || a.status === "Graded") {
+      counts[key].completed += 1;
+    }
+  }
+  return counts;
+};
+
+const computeProgress = (classInfo: DetailedClassInfo) => {
+  const total = classInfo.assignments.length;
+  if (total === 0) {
+    return { percent: 0, completed: 0, total: 0 };
+  }
+  const completed = classInfo.assignments.filter(
+    (a) => a.status === "Submitted" || a.status === "Graded",
+  ).length;
+  return {
+    percent: Math.round((completed / total) * 100),
+    completed,
+    total,
+  };
+};
+
+// Average Score = mean of (score / maxScore * 100) across all Graded assignments.
+// Falls back to "--" when there is no graded work yet.
+const computeAverageScore = (classInfo: DetailedClassInfo): number | null => {
+  const graded = classInfo.assignments.filter(
+    (a) => a.status === "Graded" && typeof a.score === "number" && a.maxScore > 0,
+  );
+  if (graded.length === 0) return null;
+  const sum = graded.reduce((s, a) => s + (a.score! / a.maxScore) * 100, 0);
+  return sum / graded.length;
+};
+
+const formatAverageScore = (avg: number | null) => {
+  if (avg === null) return "--";
+  return `${avg.toFixed(1)} / 100`;
+};
+
 export function ProgressTab({ classInfo }: ProgressTabProps) {
-  // Stats
-  const avgScore = 8.5; // system context mock
-  const currentStreak = 32; // system context mock
+  const { percent, completed, total } = useMemo(() => computeProgress(classInfo), [classInfo]);
+  const avgScore = useMemo(() => computeAverageScore(classInfo), [classInfo]);
+  const counts = useMemo(() => moduleCounts(classInfo), [classInfo]);
 
-  const skillData = [
-    { name: "Vocab", val: classInfo.progress.vocabulary },
-    { name: "Grammar", val: classInfo.progress.grammar },
-    { name: "Listening", val: classInfo.progress.listening },
-    { name: "Reading", val: classInfo.progress.reading },
-    { name: "Shadowing", val: classInfo.progress.shadowing },
-    { name: "Writing", val: classInfo.progress.writing },
-  ];
+  const skillData = MODULE_ORDER.map((m) => {
+    const c = counts[m.key];
+    const val = c.total > 0 ? Math.round((c.completed / c.total) * 100) : 0;
+    return { name: m.label, val };
+  });
 
-  const modules = [
-    { name: "Vocabulary", val: classInfo.progress.vocabulary, completed: "12/15 lessons" },
-    { name: "Grammar", val: classInfo.progress.grammar, completed: "6/10 lessons" },
-    { name: "Listening", val: classInfo.progress.listening, completed: "3/8 lessons" },
-    { name: "Reading", val: classInfo.progress.reading, completed: "3/6 lessons" },
-    { name: "Shadowing", val: classInfo.progress.shadowing, completed: "4/12 lessons" },
-    { name: "Writing", val: classInfo.progress.writing, completed: "1/5 lessons" },
-  ];
+  const modules = MODULE_ORDER.map((m) => {
+    const c = counts[m.key];
+    const val = c.total > 0 ? Math.round((c.completed / c.total) * 100) : 0;
+    return {
+      name: m.key,
+      val,
+      completed: c.total > 0 ? `${c.completed}/${c.total} lessons` : "0/0 lessons",
+    };
+  });
+
+  const syllabusLabel = total > 0 ? `${percent}% Completed` : "No assignments yet";
+  const avgScoreLabel = formatAverageScore(avgScore);
 
   return (
     <div className="space-y-6">
       {/* KPI stats row */}
       <div className="grid sm:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center gap-3.5 border-orange-500/20 bg-orange-500/[0.005]">
-          <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 grid place-items-center shrink-0">
-            <Flame className="w-5 h-5 fill-current" />
+        <Card className="p-4 flex items-center gap-3.5 border-blue-500/20 bg-blue-500/[0.005]">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 grid place-items-center shrink-0">
+            <LineChart className="w-5 h-5" />
           </div>
           <div>
             <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
-              Learning Streak
+              Syllabus Completion
             </div>
             <div className="font-display font-black text-lg text-foreground mt-0.5">
-              {currentStreak} Days
+              {syllabusLabel}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              {completed} of {total} assignments
             </div>
           </div>
         </Card>
@@ -58,21 +117,27 @@ export function ProgressTab({ classInfo }: ProgressTabProps) {
               Average Score
             </div>
             <div className="font-display font-black text-lg text-foreground mt-0.5">
-              {avgScore} / 10
+              {avgScoreLabel}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              Mean of graded assignments
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 flex items-center gap-3.5 border-blue-500/20 bg-blue-500/[0.005]">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 grid place-items-center shrink-0">
-            <LineChart className="w-5 h-5" />
+        <Card className="p-4 flex items-center gap-3.5 border-orange-500/20 bg-orange-500/[0.005]">
+          <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 grid place-items-center shrink-0">
+            <Flame className="w-5 h-5 fill-current" />
           </div>
           <div>
             <div className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">
-              Syllabus Completion
+              Completion Rate
             </div>
             <div className="font-display font-black text-lg text-foreground mt-0.5">
-              54% Completed
+              {percent}%
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              Submitted or graded
             </div>
           </div>
         </Card>

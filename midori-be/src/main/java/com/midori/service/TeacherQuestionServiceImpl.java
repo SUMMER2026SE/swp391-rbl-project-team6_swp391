@@ -2,6 +2,7 @@ package com.midori.service;
 
 import com.midori.entity.TeacherQuestion;
 import com.midori.exception.ResourceNotFoundException;
+import com.midori.repository.HomeworkQuestionRepository;
 import com.midori.repository.TeacherQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
 
     private final TeacherQuestionRepository teacherQuestionRepository;
     private final com.midori.repository.UserRepository userRepository;
+    private final HomeworkQuestionRepository homeworkQuestionRepository;
 
     @Override
     @Transactional
@@ -71,6 +73,8 @@ public class TeacherQuestionServiceImpl implements TeacherQuestionService {
         if (!question.getTeacher().getId().equals(teacherId) && !isAdmin) {
             throw new com.midori.exception.AccessDeniedException("You do not own this question");
         }
+        // Remove references from homework_questions before deleting the question
+        homeworkQuestionRepository.deleteByQuestionId(id);
         teacherQuestionRepository.delete(question);
     }
 

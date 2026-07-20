@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/page-ui";
 import {
-  AlertCircle,
   Clock,
   CheckCircle2,
   ShieldAlert,
@@ -10,20 +9,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
-  Save,
   Maximize,
   Minimize,
-  Brain,
-  BookOpen,
   Check,
   X,
   Award,
-  HelpCircle,
   FileText,
-  CheckCircle,
-  XCircle,
-  Sparkles,
-  BookOpen as LessonIcon,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { TEACHER_NOTIFICATIONS } from "@/data/teacher-notifications";
@@ -100,9 +92,14 @@ export function DoingAssignmentWorkspace({
     }
     setSubmittingManual(true);
     try {
-      const req = {
+      const req: {
+        submissionText: string;
+        attachmentUrl: string;
+        focusViolationCount: number;
+      } = {
         submissionText: manualText,
         attachmentUrl: manualAttachment,
+        focusViolationCount: violations,
       };
       const res = await homeworkApi.submitHomework(assignment.id, req);
       setSubmission(res);
@@ -146,17 +143,15 @@ export function DoingAssignmentWorkspace({
             q.correctAnswerIndex !== undefined && q.correctAnswerIndex !== null
               ? q.correctAnswerIndex
               : undefined,
+          selectedIdx:
+            q.selectedAnswerIndex !== undefined && q.selectedAnswerIndex !== null
+              ? q.selectedAnswerIndex
+              : undefined,
+          isCorrect:
+            typeof q.isCorrect === "boolean" ? q.isCorrect : undefined,
           type: q.questionType || "MULTIPLE_CHOICE",
           points: q.points || 1,
-          skill: q.topicId || "General",
-          weakness: q.difficulty || "Medium",
-          aiFeedback: {
-            explanation: q.explanation || "No explanation available.",
-            grammar: "Focus on topic grammar points.",
-            vocabulary: "Review vocabulary matching this question.",
-            commonMistake: "Verify answer option choices carefully.",
-            suggestion: "Keep practicing related grammar and vocabulary.",
-          },
+          explanation: q.explanation || "",
         }));
 
         console.log("MAPPED_QUESTIONS_TABLE:");
@@ -462,11 +457,16 @@ export function DoingAssignmentWorkspace({
       const isExam = assignment.type === "Exam";
       let res: any;
       if (isExam) {
-        res = await examsApi.submitExam(studentExamId!, { answers: submitAnswersMap });
+        // Backend expects List<Integer> representing answers ordered by questions display order
+        const submitAnswersList = questions.map((_, idx) => {
+          return answers[idx] !== undefined ? answers[idx] : null;
+        });
+        res = await examsApi.submitExam(studentExamId!, { answers: submitAnswersList as any });
       } else {
         const req = {
           submissionText: JSON.stringify(submitAnswersMap),
           answers: submitAnswersMap,
+          focusViolationCount: violations,
         };
         res = await homeworkApi.submitHomework(assignment.id, req);
       }
@@ -714,43 +714,61 @@ export function DoingAssignmentWorkspace({
   const remainingCount = questions.length - answeredCount;
   const flaggedCount = Object.values(flagged).filter(Boolean).length;
 
-  const scoreEarned = questions.reduce((acc, q, idx) => {
+  const correctCount = questions.reduce((acc, q, idx) => {
+    const backendFlag = typeof q.isCorrect === "boolean" ? q.isCorrect : null;
+    if (backendFlag !== null) return acc + (backendFlag ? 1 : 0);
     return (
-      acc + (q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx ? q.points : 0)
+      acc +
+      (q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx ? 1 : 0)
     );
   }, 0);
-  const correctCount = questions.filter(
-    (q, idx) => q && typeof q.correctIdx === "number" && answers[idx] === q.correctIdx,
-  ).length;
   const wrongCount = questions.length - correctCount;
-  const isPassed = scoreEarned >= assignment.maxScore * 0.5;
+
+  // Percentage: prefer backend value (backend returns `correctPercentage`, the rounded
+  // percentage of correct answers out of total questions). Falling back to the local
+  // calculation keeps the UI usable only when the backend hasn't computed one yet.
+  const backendPercentage =
+    submission && typeof submission.correctPercentage === "number"
+      ? submission.correctPercentage
+      : null;
+  const computedPercentage =
+    questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
+  const displayPercentage =
+    backendPercentage !== null ? backendPercentage : computedPercentage;
+  const roundedPercentage = Math.round(displayPercentage);
+
+  // Time taken: prefer backend fields, otherwise fall back to local timer.
+  const backendTimeTaken =
+    submission && submission.startedAt && submission.submittedAt
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(submission.submittedAt).getTime() -
+              new Date(submission.startedAt).getTime()) /
+              1000,
+          ),
+        )
+      : null;
+  const displayTimeTakenSeconds =
+    backendTimeTaken !== null ? backendTimeTaken : Math.max(0, 1200 - timeLeft);
+
+  const isPassed = roundedPercentage >= 50;
 
   const selectedReviewQuestion = questions[currentReviewIndex] || null;
   const isReviewCorrect =
-    selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number"
-      ? answers[currentReviewIndex] === selectedReviewQuestion.correctIdx
-      : false;
-
-  // Weak areas statistics calculation
-  const weakAreasStats = questions.reduce(
-    (acc, q, idx) => {
-      if (q && answers[idx] !== q.correctIdx) {
-        acc[q.skill] = (acc[q.skill] || 0) + 1;
-      }
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
+    typeof selectedReviewQuestion?.isCorrect === "boolean"
+      ? selectedReviewQuestion.isCorrect
+      : selectedReviewQuestion && typeof selectedReviewQuestion.correctIdx === "number"
+        ? answers[currentReviewIndex] === selectedReviewQuestion.correctIdx
+        : false;
 
   if (isSubmitted) {
-    // ----------------------------------------------------
-    // NEW PREMIUM INTERACTIVE AI REVIEW WORKSPACE
-    // ----------------------------------------------------
+    // Post-submission review screen
     return (
       <div className="space-y-6 max-w-7xl mx-auto py-2 flex flex-col lg:flex-row gap-6 items-start text-slate-700 dark:text-slate-200">
-        {/* Left Side: Summary Card, Navigator, Weak Areas & Analytics */}
+        {/* Left Side: Summary Card & Question Navigator */}
         <div className="w-full lg:w-96 space-y-6 shrink-0 lg:sticky lg:top-24">
-          {/* Section 1: Exam Summary Card */}
+          {/* Summary Card */}
           <Card className="p-5 border border-slate-200/50 dark:border-white/5 bg-white/70 dark:bg-[#0d1020]/45 shadow-sm space-y-4 relative overflow-hidden">
             <div
               className={`absolute top-0 left-0 right-0 h-1 ${isPassed ? "bg-green-500" : "bg-red-500"}`}
@@ -776,33 +794,36 @@ export function DoingAssignmentWorkspace({
               </span>
             </div>
 
-            <div className="flex items-baseline gap-1.5 justify-center py-2">
-              <span className="text-3xl font-black text-primary">{scoreEarned}</span>
-              <span className="text-muted-foreground text-xs">/ {assignment.maxScore} pts</span>
-              <span className="text-xs font-black text-muted-foreground ml-2">
-                ({Math.round((scoreEarned / assignment.maxScore) * 100)}%)
+            <div className="flex flex-col items-center justify-center py-2 gap-0.5">
+              <span className="text-4xl sm:text-5xl font-black text-primary leading-none tabular-nums">
+                {roundedPercentage}%
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mt-1">
+                Correct
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center text-[10px] border-y border-slate-200/40 dark:border-white/5 py-3 mt-1">
               <div>
-                <div className="font-black text-green-500">{correctCount}</div>
+                <div className="font-black text-green-500 text-sm tabular-nums">
+                  {correctCount} / {questions.length}
+                </div>
                 <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">
                   Correct
                 </div>
               </div>
               <div>
-                <div className="font-black text-red-500">{wrongCount}</div>
+                <div className="font-black text-red-500 text-sm tabular-nums">{wrongCount}</div>
                 <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">
-                  Incorrect
+                  Wrong
                 </div>
               </div>
               <div>
-                <div className="font-black text-slate-700 dark:text-slate-300">
-                  {formatTime(1200 - timeLeft)}
+                <div className="font-black text-slate-700 dark:text-slate-300 text-sm tabular-nums">
+                  {formatTime(displayTimeTakenSeconds)}
                 </div>
                 <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[8px] mt-0.5">
-                  Time
+                  Time Taken
                 </div>
               </div>
             </div>
@@ -838,7 +859,7 @@ export function DoingAssignmentWorkspace({
             </div>
           </Card>
 
-          {/* Section 2: Question Review Navigator Panel */}
+          {/* Question Review Navigator */}
           <Card className="p-4 border border-slate-200/50 dark:border-white/5 bg-white/50 dark:bg-[#0d1020]/45 space-y-3">
             <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
               Select Question
@@ -879,9 +900,9 @@ export function DoingAssignmentWorkspace({
           </Card>
         </div>
 
-        {/* Right Side: Section 3, 4, 5, 6, 7 Detailed Panel */}
+        {/* Right Side: Question Detail */}
         <div className="flex-1 w-full space-y-6">
-          {/* Section 3: Question Detail Panel */}
+          {/* Question Detail Panel */}
           <Card className="p-6 border border-slate-200/50 dark:border-white/5 bg-white shadow-sm space-y-5">
             <div className="flex justify-between items-start gap-4 flex-wrap">
               <div>
@@ -921,45 +942,56 @@ export function DoingAssignmentWorkspace({
             <div className="space-y-3">
               {selectedReviewQuestion &&
                 selectedReviewQuestion.options &&
-                selectedReviewQuestion.options.map((opt, optIdx) => {
+                selectedReviewQuestion.options.map((opt: string, optIdx: number) => {
                   const wasChosen = answers[currentReviewIndex] === optIdx;
                   const isCorrect =
-                    selectedReviewQuestion &&
                     typeof selectedReviewQuestion.correctIdx === "number" &&
                     selectedReviewQuestion.correctIdx === optIdx;
+                  const optionLetter = String.fromCharCode(65 + optIdx);
+
                   return (
                     <div
                       key={optIdx}
-                      className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-150 text-xs sm:text-sm font-semibold ${
+                      className={`flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all duration-150 text-xs sm:text-sm font-semibold ${
                         isCorrect
-                          ? "bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400"
+                          ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400"
                           : wasChosen
-                            ? "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
+                            ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400"
                             : "bg-white/50 dark:bg-slate-900/40 border-slate-200/50 dark:border-white/5"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="w-5 h-5 rounded-full flex items-center justify-center font-bold border text-[10px]">
-                          {String.fromCharCode(65 + optIdx)}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`w-6 h-6 rounded-full flex items-center justify-center font-bold border text-[11px] shrink-0 ${
+                            isCorrect
+                              ? "bg-green-500/20 border-green-500/40 text-green-600 dark:text-green-400"
+                              : wasChosen
+                                ? "bg-red-500/20 border-red-500/40 text-red-600 dark:text-red-400"
+                                : "border-slate-200/60 dark:border-white/10 text-muted-foreground"
+                          }`}
+                        >
+                          {optionLetter}
                         </span>
-                        <span>{opt}</span>
+                        <span className="truncate">{opt}</span>
                       </div>
 
                       <div className="flex gap-2 items-center shrink-0">
-                        {isCorrect && (
-                          <span className="px-2 py-0.5 rounded bg-green-500/20 text-green-600 text-[8px] font-black uppercase">
-                            Correct Answer
-                          </span>
-                        )}
                         {wasChosen && (
                           <span
-                            className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                              isReviewCorrect
-                                ? "bg-green-500/20 text-green-600"
-                                : "bg-red-500/20 text-red-600"
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                              isCorrect
+                                ? "bg-green-500/20 text-green-700 dark:text-green-400"
+                                : "bg-red-500/20 text-red-700 dark:text-red-400"
                             }`}
                           >
-                            Your Choice
+                            {isCorrect ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            Your Answer
+                          </span>
+                        )}
+                        {isCorrect && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-500/20 text-green-700 dark:text-green-400 text-[9px] font-black uppercase">
+                            <Check className="w-3 h-3" />
+                            Correct Answer
                           </span>
                         )}
                       </div>
@@ -967,94 +999,18 @@ export function DoingAssignmentWorkspace({
                   );
                 })}
             </div>
-          </Card>
 
-          {/* Section 4 & 5: AI Explanation & Knowledge Breakdown */}
-          <Card className="p-6 border border-slate-200/50 dark:border-white/5 space-y-5">
-            <div className="flex items-center gap-2 text-indigo-500">
-              <Sparkles className="w-5 h-5 animate-pulse" />
-              <h4 className="font-display font-black text-sm uppercase tracking-wider">
-                AI tutor analysis
-              </h4>
-            </div>
-
-            <div className="space-y-4 text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-              {/* Question Mistake Card Difference details */}
-              {!isReviewCorrect && selectedReviewQuestion && selectedReviewQuestion.options && (
-                <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-xs flex flex-col gap-1.5">
-                  <div className="font-bold text-red-500">Difference Highlight:</div>
-                  <p>
-                    You confused{" "}
-                    <strong className="text-red-500">
-                      "{selectedReviewQuestion.options[answers[currentReviewIndex]] || ""}"
-                    </strong>{" "}
-                    with the correct option{" "}
-                    <strong className="text-green-500">
-                      "
-                      {typeof selectedReviewQuestion.correctIdx === "number" &&
-                      selectedReviewQuestion.options[selectedReviewQuestion.correctIdx]
-                        ? selectedReviewQuestion.options[selectedReviewQuestion.correctIdx]
-                        : ""}
-                      "
-                    </strong>
-                    .
-                  </p>
-                </div>
-              )}
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
-                      Why correct
-                    </span>
-                    {selectedReviewQuestion.aiFeedback.explanation}
-                  </p>
-                  <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
-                      Grammar Focus
-                    </span>
-                    {selectedReviewQuestion.aiFeedback.grammar}
-                  </p>
-                  <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
-                      Vocabulary Break-down
-                    </span>
-                    {selectedReviewQuestion.aiFeedback.vocabulary}
-                  </p>
-                </div>
-
-                <div className="space-y-3 border-t sm:border-t-0 sm:border-l border-slate-200/50 dark:border-white/5 sm:pl-4 pt-3 sm:pt-0">
-                  <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
-                      Common Student Mistakes
-                    </span>
-                    {selectedReviewQuestion.aiFeedback.commonMistake}
-                  </p>
-                  <p>
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider">
-                      AI Sensei Suggestion
-                    </span>
-                    {selectedReviewQuestion.aiFeedback.suggestion}
-                  </p>
-
-                  {/* Section 5: Knowledge Breakdown tag */}
-                  <div className="pt-2">
-                    <span className="font-black text-indigo-500 block text-[10px] uppercase tracking-wider mb-1">
-                      Knowledge Classification
-                    </span>
-                    <div className="flex gap-2">
-                      <span className="px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-500 text-[10px] font-bold border border-indigo-500/20">
-                        {selectedReviewQuestion.skill}
-                      </span>
-                      <span className="px-2.5 py-1 rounded bg-amber-500/10 text-amber-500 text-[10px] font-bold border border-amber-500/20">
-                        {selectedReviewQuestion.weakness}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+            {/* Backend-provided explanation (only render when present, no mock data) */}
+            {selectedReviewQuestion.explanation && (
+              <div className="mt-5 p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/5">
+                <span className="text-[9px] uppercase font-black tracking-wider text-muted-foreground block mb-1.5">
+                  Explanation
+                </span>
+                <p className="text-xs sm:text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                  {selectedReviewQuestion.explanation}
+                </p>
               </div>
-            </div>
+            )}
           </Card>
         </div>
       </div>
@@ -1193,7 +1149,7 @@ export function DoingAssignmentWorkspace({
             {violations > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold">
                 <ShieldAlert className="w-3.5 h-3.5" />
-                {violations} / 3
+                {violations}
               </div>
             )}
 
@@ -1303,7 +1259,7 @@ export function DoingAssignmentWorkspace({
               <div className="flex justify-between">
                 <span>Violations</span>
                 <span className={`font-bold ${violations > 0 ? "text-red-500" : "text-green-500"}`}>
-                  {violations} / 3
+                  {violations}
                 </span>
               </div>
             </div>
@@ -1497,7 +1453,7 @@ export function DoingAssignmentWorkspace({
             </p>
             <div className="p-3 bg-red-500/10 rounded-xl text-xs text-red-600 dark:text-red-400 font-semibold space-y-1">
               <p>• Trigger: {lastViolationType}</p>
-              <p>• Focus Violations: {violations} / 3</p>
+              <p>• Focus Violations: {violations}</p>
             </div>
             <button
               onClick={() => setShowViolationWarning(false)}

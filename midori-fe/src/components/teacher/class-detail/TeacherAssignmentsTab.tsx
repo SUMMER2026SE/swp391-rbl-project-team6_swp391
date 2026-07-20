@@ -49,10 +49,16 @@ interface Submission {
   studentAvatar: string;
   status: "Submitted" | "Not submitted" | "Graded";
   submittedAt?: string;
+  /** Raw auto-graded score for backward compatibility (manual grading form still uses this). */
   score?: number;
   feedback?: string;
   studentAnswer?: string;
   duration?: string;
+  /** Backend-authored rounded percentage of correct answers. Displayed in SCORE column and
+   *  must be identical to what the student sees on their View Result page. */
+  correctPercentage?: number;
+  /** Backend count of focus / window-blur / tab-switch / anti-cheat violations. */
+  focusViolationCount?: number;
 }
 
 export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAssignmentsTabProps) {
@@ -235,6 +241,10 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
         feedback: s.feedback,
         studentAnswer: s.submissionText,
         duration: undefined,
+        correctPercentage:
+          typeof s.correctPercentage === "number" ? s.correctPercentage : undefined,
+        focusViolationCount:
+          typeof s.focusViolationCount === "number" ? s.focusViolationCount : 0,
       }));
       setSubmissions(mapped);
     } catch {
@@ -296,7 +306,9 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
     toast.success(`Reminder sent to ${studentName} for this overdue assignment.`);
   };
 
-  // Filtered submissions list in Step 2
+  // Filtered submissions list in Step 2.
+  // Backend is the single source of truth for status (SUBMITTED vs GRADED).
+  // We never fabricate a status on the frontend.
   const filteredSubmissions = useMemo(() => {
     if (subFilter === "OverDue") {
       const submittedStudentIds = new Set(submissions.map((s) => s.studentId));
@@ -308,15 +320,15 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
           studentEmail: s.email,
           studentAvatar: s.name && s.name.length > 0 ? s.name[0].toUpperCase() : s.avatar || "?",
           status: "Not submitted" as const,
+          focusViolationCount: 0,
         }));
       return overdueStudents;
     }
     if (subFilter === "All") return submissions;
-    return submissions.filter((sub) => {
-      if (subFilter === "Submitted") return sub.status === "Submitted";
-      if (subFilter === "Graded") return sub.status === "Graded";
-      return true;
-    });
+    if (subFilter === "Graded") {
+      return submissions.filter((sub) => sub.status === "Graded");
+    }
+    return submissions;
   }, [submissions, subFilter, classInfo.students]);
 
   // ----------------------------------------------------
@@ -479,13 +491,19 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
   // STEP 2: ASSIGNMENT SUBMISSIONS LIST
   // ----------------------------------------------------
   if (viewStep === "submissions" && selectedAssignment) {
-    const totalStudents = classInfo.students?.length ?? submissions.length;
+    // All statistics below are derived purely from backend payloads
+    // (`submissions` from `/teacher/homeworks/{id}/submissions` and
+    // `classInfo.students` from the class detail endpoint).
+    // Nothing here is hardcoded.
+    const totalStudents = classInfo.students?.length ?? 0;
     const submittedCount = submissions.filter(
       (s) => s.status === "Submitted" || s.status === "Graded",
     ).length;
-    const gradedCount = submissions.filter((s) => s.status === "Graded").length;
-    const overdueCount = totalStudents > submittedCount ? totalStudents - submittedCount : 0;
-    const compRate = totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0;
+    const overdueCount = Math.max(0, totalStudents - submittedCount);
+    const submissionRate =
+      totalStudents > 0
+        ? Math.round((submittedCount / totalStudents) * 100)
+        : 0;
 
     return (
       <div className="space-y-5">
@@ -550,7 +568,7 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                   </div>
                 </div>
                 <div className="bg-white dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-100 dark:border-white/5 min-w-[85px]">
-                  <div className="text-sm font-black text-emerald-500">{compRate}%</div>
+                  <div className="text-sm font-black text-emerald-500">{submissionRate}%</div>
                   <div className="text-[8px] text-emerald-500 font-bold uppercase tracking-wider mt-0.5">
                     Rate
                   </div>
@@ -558,13 +576,14 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
               </div>
             </div>
 
-            {/* Status filtering tabs */}
+            {/* Status filtering tabs — values come directly from backend submission status.
+                SUBMITTED is intentionally not its own tab; it's implicit in "All Students"
+                and only GRADED / OVERDUE get dedicated buckets. */}
             <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-white/5 pb-3">
               {[
                 { id: "All", label: "All Students" },
-                { id: "Submitted", label: "Submitted" },
                 { id: "Graded", label: "Graded" },
-                { id: "OverDue", label: "OverDue" },
+                { id: "OverDue", label: "Overdue" },
               ].map((tab) => {
                 const isActive = subFilter === tab.id;
                 return (
@@ -645,8 +664,10 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                         Score
                       </div>
                       <div className="text-xs font-black text-foreground dark:text-white">
-                        {sub.score !== undefined ? (
-                          <span className="text-emerald-500 font-bold">{sub.score}/10</span>
+                        {typeof sub.correctPercentage === "number" ? (
+                          <span className="text-emerald-500 font-bold">
+                            {sub.correctPercentage}%
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -654,7 +675,10 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                     </div>
                   </div>
 
-                  {/* Actions button */}
+                  {/* Last column — focus violations replaces the old "View Submission" button.
+                     * Remind (Not submitted) and Grade (Submitted) actions are preserved,
+                     * they remain teacher-side actions while Graded rows now show the
+                     * focus-violations count directly sourced from the backend. */}
                   <div className="self-end sm:self-center shrink-0">
                     {sub.status === "Not submitted" ? (
                       <button
@@ -672,12 +696,28 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                         Grade
                       </button>
                     ) : (
-                      <button
-                        onClick={() => handleOpenDetail(sub)}
-                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-[10px] font-bold text-foreground dark:text-white uppercase tracking-wider transition border border-border/40 font-display"
-                      >
-                        View submission
-                      </button>
+                      // Graded → display backend-authoritative focus violations instead of
+                      // the old "View submission" button. The grading form is still
+                      // reachable via the Status / Detail dialog from the open detail page.
+                      <div className="flex flex-col items-start gap-0.5 min-w-[110px]">
+                        <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black">
+                          Focus Violations
+                        </div>
+                        <div
+                          className={`text-xs font-bold ${
+                            (sub.focusViolationCount ?? 0) > 0
+                              ? "text-rose-500"
+                              : "text-emerald-500"
+                          }`}
+                          data-testid="focus-violations-cell"
+                        >
+                          {(sub.focusViolationCount ?? 0) === 0
+                            ? "No violations"
+                            : sub.focusViolationCount === 1
+                              ? "1 time"
+                              : `${sub.focusViolationCount} times`}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </Card>

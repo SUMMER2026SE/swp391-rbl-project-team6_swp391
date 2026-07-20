@@ -33,7 +33,7 @@ function isValidEmail(email: string): boolean {
 
 function parseEmails(input: string): { valid: string[]; invalid: string[] } {
   const parts = input
-    .split(",")
+    .split(/[,;\n\r\t]+/)
     .map((e) => e.trim())
     .filter(Boolean);
   const seen = new Set<string>();
@@ -182,7 +182,7 @@ export function InviteStudentsDialog({
               onChange={(e) => setEmailsInput(e.target.value)}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground">Separate multiple emails with commas.</p>
+            <p className="text-xs text-muted-foreground">Separate emails with commas, newlines, or paste from Excel.</p>
           </div>
 
           {/* Invalid emails warning */}

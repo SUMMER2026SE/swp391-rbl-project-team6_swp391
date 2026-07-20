@@ -242,9 +242,6 @@ export function ExamGradeDrawer({
                       <p className="text-sm font-medium text-warning-foreground">
                         {stats.pending} student{stats.pending !== 1 ? "s" : ""} have not submitted
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Send reminders to encourage completion.
-                      </p>
                     </div>
                   </div>
                 )}
@@ -324,17 +321,6 @@ export function ExamGradeDrawer({
                                   <CheckCircle2 className="h-4 w-4 text-success" />
                                   Submitted
                                 </span>
-                              )}
-                              {!attempt.submitted && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-warning border-warning/40 hover:bg-warning/10"
-                                  onClick={() => handleRemind(attempt.studentId)}
-                                >
-                                  <Bell className="h-3.5 w-3.5 mr-1" />
-                                  Remind
-                                </Button>
                               )}
                             </div>
                           </div>

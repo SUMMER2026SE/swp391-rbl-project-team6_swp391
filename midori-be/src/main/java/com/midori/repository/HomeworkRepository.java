@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface HomeworkRepository extends JpaRepository<Homework, UUID> {
     List<Homework> findByAssignedClassId(UUID classId);
     List<Homework> findByAssignedClassIdOrderByCreatedAtDesc(UUID classId);
+    List<Homework> findByAssignedClassIdAndStatusNot(UUID classId, Homework.HomeworkStatus status);
+    List<Homework> findByAssignedClassIdAndStatusNotOrderByCreatedAtDesc(UUID classId, Homework.HomeworkStatus status);
     long countByAssignedClassId(UUID classId);
     List<Homework> findByAssignedClassTeacherId(UUID teacherId);
 

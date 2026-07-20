@@ -30,6 +30,13 @@ function ClassHomeworkPage() {
     enabled: !!classId,
   });
 
+  // Fetch actual class students
+  const { data: studentsList = [], isLoading: isLoadingStudents } = useQuery({
+    queryKey: ["classStudents", classId],
+    queryFn: () => classesApi.getClassStudents(classId),
+    enabled: !!classId,
+  });
+
   // Fetch homework for this specific class from the real backend endpoint
   const { data: homeworkList = [], isLoading: isLoadingHomework } = useQuery({
     queryKey: ["teacherHomeworksByClass", classId],
@@ -37,12 +44,12 @@ function ClassHomeworkPage() {
     enabled: !!classId,
   });
 
-  const isLoading = isLoadingClass || isLoadingHomework;
+  const isLoading = isLoadingClass || isLoadingHomework || isLoadingStudents;
 
   const classInfo = useMemo(() => {
     if (!classDetail) return undefined;
 
-    const rawStudents = (classDetail as any).students ?? [];
+    const rawStudents = studentsList;
 
     const students = rawStudents.map((s: any) => ({
       id: s.studentId,
@@ -51,7 +58,7 @@ function ClassHomeworkPage() {
       avatar: s.fullName ? s.fullName[0].toUpperCase() : "U",
       joinedAt: classDetail.createdAt ? classDetail.createdAt.split("T")[0] : "",
       status: s.status || "active",
-      progress: 0,
+      progress: s.progressPercent ?? 0,
       grammarProgress: 0,
       vocabularyProgress: 0,
       listeningProgress: 0,

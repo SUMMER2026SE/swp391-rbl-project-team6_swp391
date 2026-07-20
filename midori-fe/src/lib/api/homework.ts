@@ -35,6 +35,17 @@ export interface HomeworkSubmissionResponse {
   submittedAt: string;
   gradedAt?: string;
   gradedById?: string;
+  /**
+   * Backend-computed correct-answer count for an auto-graded homework attempt.
+   * Used together with `totalQuestions` so the percentage displayed in the Student
+   * View Result and the Teacher "View Submission" page is identical.
+   */
+  correctCount?: number;
+  totalQuestions?: number;
+  /** Rounded percentage = round(correctCount / totalQuestions * 100). */
+  correctPercentage?: number;
+  /** Anti-cheat / focus / window-blur / tab-switch violation count from the student attempt. */
+  focusViolationCount?: number;
 }
 
 export interface CreateHomeworkRequest {
