@@ -513,44 +513,6 @@ public class StudyProgressServiceImpl implements StudyProgressService {
         return streak;
     }
 
-    private int calculateStreak(List<UserLearningProgress> allProgress) {
-        if (allProgress.isEmpty()) {
-            return 0;
-        }
-        Instant now = Instant.now();
-        LocalDate today = now.atZone(ZoneOffset.UTC).toLocalDate();
-
-        List<LocalDate> studyDates = allProgress.stream()
-                .map(p -> {
-                    Instant studiedAt = p.getLastStudiedAt();
-                    return studiedAt != null ? studiedAt : p.getUpdatedAt();
-                })
-                .filter(Objects::nonNull)
-                .map(a -> a.atZone(ZoneOffset.UTC).toLocalDate())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
-
-        if (studyDates.isEmpty()) {
-            return 0;
-        }
-
-        int streak = 0;
-        LocalDate checkDate = today;
-
-        for (int i = 0; i < 365; i++) {
-            LocalDate dateToCheck = checkDate.minus(i, ChronoUnit.DAYS);
-            boolean studiedOnDate = studyDates.stream()
-                    .anyMatch(d -> d.equals(dateToCheck));
-            if (studiedOnDate) {
-                streak++;
-            } else if (i > 0) {
-                break;
-            }
-        }
-        return streak;
-    }
-
     private List<WeeklyStudyData> buildWeeklyStudyData(List<UserLearningProgress> allProgress) {
         if (allProgress.isEmpty()) {
             return new ArrayList<>();
