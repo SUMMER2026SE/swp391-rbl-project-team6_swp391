@@ -348,6 +348,10 @@ function QuestionBankExam({
       toast.error("Please fill in target class, title, and due date.");
       return;
     }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -884,6 +888,11 @@ function QuestionBankExam({
                       className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
                       value={metadata.dueDate}
                       onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                      min={(() => {
+                        const now = new Date();
+                        const tzOffset = now.getTimezoneOffset() * 60000;
+                        return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+                      })()}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1151,6 +1160,10 @@ function ExamAiPdfFlow({
       toast.error("Please fill in all required fields.");
       return;
     }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
     if (questions.length === 0) {
       toast.error("No questions to assign.");
       return;
@@ -1415,6 +1428,11 @@ function ExamAiPdfFlow({
                     className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
                     value={metadata.dueDate}
                     onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                    min={(() => {
+                      const now = new Date();
+                      const tzOffset = now.getTimezoneOffset() * 60000;
+                      return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+                    })()}
                   />
                 </div>
                 <div className="space-y-1.5">

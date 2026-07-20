@@ -1020,9 +1020,9 @@ export function DoingAssignmentWorkspace({
   // Show pre-exam screen if exam hasn't started
   if (!examStarted && !isSubmitted) {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-50/95 dark:bg-[#0a0c14]/95 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-50 dark:bg-[#0a0c14] backdrop-blur-sm">
         <div className="max-w-lg w-full mx-4">
-          <Card className="p-8 border border-slate-200/50 dark:border-white/10 shadow-xl bg-white dark:bg-[#0d1020]/80">
+          <Card className="p-8 border border-slate-200/50 dark:border-white/10 shadow-xl bg-white dark:bg-[#0d1020]">
             {/* Exam Info */}
             <div className="text-center mb-8">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -1113,10 +1113,10 @@ export function DoingAssignmentWorkspace({
   // Main Exam Interface (Fullscreen Mode)
   return (
     <div
-      className={`fixed inset-0 z-[100] flex flex-col text-slate-700 dark:text-slate-200 bg-slate-50/95 dark:bg-[#0a0c14]/98 ${isFullscreen ? "pt-0" : "pt-0"}`}
+      className={`fixed inset-0 z-[100] flex flex-col text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-[#0a0c14] ${isFullscreen ? "pt-0" : "pt-0"}`}
     >
       {/* 1. FOCUS HEADER - Sticky Top Bar with Timer */}
-      <header className="shrink-0 bg-white/95 dark:bg-[#0c0d12]/98 border-b border-slate-200 dark:border-white/10 shadow-sm">
+      <header className="shrink-0 bg-white dark:bg-[#0c0d12] border-b border-slate-200 dark:border-white/10 shadow-sm">
         <div className="flex items-center justify-between px-6 py-3">
           {/* Left: Assignment Info */}
           <div className="flex items-center gap-4">
@@ -1181,7 +1181,7 @@ export function DoingAssignmentWorkspace({
       {/* 2. MAIN FOCUS LAYOUT - Left Navigator + Right Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT SIDEBAR: Question Navigator */}
-        <aside className="w-64 shrink-0 bg-white/80 dark:bg-[#0d1020]/60 border-r border-slate-200/50 dark:border-white/5 p-4 overflow-y-auto">
+        <aside className="w-64 shrink-0 bg-white dark:bg-[#0d1020] border-r border-slate-200/50 dark:border-white/5 p-4 overflow-y-auto">
           {/* Stats Summary */}
           <div className="mb-4 p-3 rounded-xl bg-linear-to-br from-primary/5 to-pink-500/5 border border-primary/10">
             <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
@@ -1316,7 +1316,7 @@ export function DoingAssignmentWorkspace({
                     className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
                       isSelected
                         ? "bg-primary/5 border-primary shadow-md shadow-primary/10"
-                        : "bg-white/70 dark:bg-slate-900/40 border-slate-200/60 dark:border-white/10 hover:border-primary/40 hover:bg-white/90 dark:hover:bg-slate-900/60"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-slate-800/80"
                     }`}
                   >
                     <div className="flex items-center gap-4 flex-1">

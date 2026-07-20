@@ -49,7 +49,8 @@ public class ClassController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ClassResponse>>> getAllClasses(
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<ClassEntity> allEntities = classService.getAllClasses(status);
 
         // Perform exactly 3 aggregated GROUP BY queries to get all counts
@@ -78,6 +79,7 @@ public class ClassController {
                 ));
 
         List<ClassResponse> classes = allEntities.stream()
+                .filter(c -> !"TEACHER".equals(userDetails.getRole()) || (c.getTeacher() != null && c.getTeacher().getId().equals(userDetails.getId())))
                 .map(c -> mapToClassResponse(c, studentCounts, homeworkCounts, examCounts))
                 .toList();
 
@@ -103,9 +105,16 @@ public class ClassController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ClassResponse>> getClassById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<ClassResponse>> getClassById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         ClassEntity classEntity = classService.getClassById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class", "id", id));
+        
+        if ("TEACHER".equals(userDetails.getRole()) && 
+                (classEntity.getTeacher() == null || !classEntity.getTeacher().getId().equals(userDetails.getId()))) {
+            throw new com.midori.exception.UnauthorizedException("You are not authorized to view this class");
+        }
         
         // Single detail fetch fallback maps
         Map<UUID, Long> studentCounts = userRepository.countStudentsPerClass().stream()

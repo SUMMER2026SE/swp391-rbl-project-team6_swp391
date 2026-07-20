@@ -45,7 +45,7 @@ import { InviteStudentsDialog, EditClassDialog } from "@/components/teacher/dial
 import { cn } from "@/lib/utils";
 
 const LEVELS = ["All", "N5", "N4", "N3", "N2", "N1"] as const;
-const STATUSES = ["All", "Draft", "Active", "Archived"] as const;
+const STATUSES = ["All", "Active", "Archived"] as const;
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; dot: string; text: string }> = {
@@ -356,13 +356,7 @@ function ClassesLayout() {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <div className="mb-1 flex justify-between text-xs">
-                    <span className="text-muted-foreground">Class progress</span>
-                    <span className="font-semibold">{c.progress}%</span>
-                  </div>
-                  <Progress value={c.progress} className="h-2" />
-                </div>
+
 
                 <div className="flex gap-2">
                   <Button asChild className="flex-1">
