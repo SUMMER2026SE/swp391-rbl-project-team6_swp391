@@ -2,6 +2,9 @@ package com.midori.controller;
 
 import com.midori.common.ApiResponse;
 import com.midori.dto.classdto.AdminClassResponse;
+import com.midori.dto.classdto.StudentClassResponse;
+import com.midori.dto.homeworkdto.HomeworkResponse;
+import com.midori.dto.response.ExamResponse;
 import com.midori.service.AdminClassService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,5 +33,23 @@ public class AdminClassController {
     public ResponseEntity<ApiResponse<AdminClassResponse>> getAdminClassById(@PathVariable UUID id) {
         AdminClassResponse classResponse = adminClassService.getAdminClassById(id);
         return ResponseEntity.ok(ApiResponse.success(classResponse));
+    }
+
+    @GetMapping("/{id}/students")
+    public ResponseEntity<ApiResponse<List<StudentClassResponse>>> getClassStudents(@PathVariable UUID id) {
+        List<StudentClassResponse> students = adminClassService.getClassStudents(id);
+        return ResponseEntity.ok(ApiResponse.success(students));
+    }
+
+    @GetMapping("/{id}/homeworks")
+    public ResponseEntity<ApiResponse<List<HomeworkResponse>>> getClassHomeworks(@PathVariable UUID id) {
+        List<HomeworkResponse> homeworks = adminClassService.getClassHomeworks(id);
+        return ResponseEntity.ok(ApiResponse.success(homeworks));
+    }
+
+    @GetMapping("/{id}/exams")
+    public ResponseEntity<ApiResponse<List<ExamResponse>>> getClassExams(@PathVariable UUID id) {
+        List<ExamResponse> exams = adminClassService.getClassExams(id);
+        return ResponseEntity.ok(ApiResponse.success(exams));
     }
 }
