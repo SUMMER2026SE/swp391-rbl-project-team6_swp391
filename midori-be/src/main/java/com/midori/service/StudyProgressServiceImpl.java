@@ -22,6 +22,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -40,6 +41,7 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     private final ClassRepository classRepository;
     private final HomeworkRepository homeworkRepository;
     private final ExamRepository examRepository;
+    private final com.midori.repository.UserLoginHistoryRepository userLoginHistoryRepository;
 
     // ============================================================
     // Upsert Helper
@@ -453,9 +455,11 @@ public class StudyProgressServiceImpl implements StudyProgressService {
             overallPercent = Math.min(100, overallPercent);
         }
 
-        List<UserLearningProgress> allProgress = progressRepository.findAllByUserIdOrdered(userId);
-        int learningStreak = calculateStreak(allProgress);
+        // Calculate streak from login history
+        int learningStreak = calculateStreakFromLoginHistory(userId);
 
+        // Build weekly study data from learning progress (not login history)
+        List<UserLearningProgress> allProgress = progressRepository.findAllByUserIdOrdered(userId);
         List<WeeklyStudyData> weeklyStudyData = buildWeeklyStudyData(allProgress);
 
         return ProgressStatsResponse.builder()
@@ -475,6 +479,38 @@ public class StudyProgressServiceImpl implements StudyProgressService {
                 .grammarCompleted(grammarCompleted)
                 .grammarFavorite(grammarFavorite)
                 .build();
+    }
+
+    private int calculateStreakFromLoginHistory(UUID userId) {
+        java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+        java.util.List<java.time.LocalDate> loginDates = userLoginHistoryRepository.findLoginDatesByUserId(userId);
+
+        if (loginDates.isEmpty()) {
+            return 0;
+        }
+
+        // Convert to set for fast lookup
+        java.util.Set<java.time.LocalDate> loginDateSet = new java.util.HashSet<>(loginDates);
+
+        int streak = 0;
+        java.time.LocalDate checkDate = today;
+
+        // Check today first
+        if (!loginDateSet.contains(checkDate)) {
+            // If today hasn't logged in yet, check from yesterday
+            checkDate = checkDate.minusDays(1);
+        }
+
+        for (int i = 0; i < 365; i++) {
+            if (loginDateSet.contains(checkDate)) {
+                streak++;
+                checkDate = checkDate.minusDays(1);
+            } else {
+                break;
+            }
+        }
+
+        return streak;
     }
 
     private int calculateStreak(List<UserLearningProgress> allProgress) {
