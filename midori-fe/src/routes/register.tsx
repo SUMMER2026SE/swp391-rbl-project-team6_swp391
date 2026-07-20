@@ -86,6 +86,7 @@ function createRegisterPayload(form: RegisterForm, selectedRole: Role): Register
     password: form.password,
     confirmPassword: form.confirm,
     role: selectedRole,
+    displayName: form.name.trim() || undefined,
   };
 }
 

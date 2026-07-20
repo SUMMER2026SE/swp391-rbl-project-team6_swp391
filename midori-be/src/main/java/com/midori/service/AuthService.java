@@ -32,6 +32,7 @@ public class AuthService {
     private final UserProfileRepository userProfileRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final com.midori.repository.UserLoginHistoryRepository userLoginHistoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
@@ -63,7 +64,7 @@ public class AuthService {
 
         UserProfile profile = UserProfile.builder()
                 .user(user)
-                .displayName(extractNameFromEmail(request.getEmail()))
+                .displayName(resolveDisplayName(request))
                 .build();
         userProfileRepository.save(profile);
 
@@ -90,6 +91,7 @@ public class AuthService {
         }
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
@@ -110,10 +112,30 @@ public class AuthService {
         }
         // Teacher accounts with PENDING_APPROVAL can log in but are redirected to /teacher-pending
 
+        // Record login activity for streak tracking
+        recordLoginActivity(user);
+
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
         String token = jwtTokenProvider.generateTokenFromUserDetails(userDetails);
 
         return AuthResponse.of(token, toUserResponse(user));
+    }
+
+    private void recordLoginActivity(User user) {
+        try {
+            java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+            boolean alreadyLoggedInToday = userLoginHistoryRepository.existsByUserIdAndLoginDate(user.getId(), today);
+            if (!alreadyLoggedInToday) {
+                UserLoginHistory loginHistory = UserLoginHistory.builder()
+                        .user(user)
+                        .loginDate(today)
+                        .build();
+                userLoginHistoryRepository.save(loginHistory);
+                log.debug("Recorded login activity for user {} on {}", user.getId(), today);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to record login activity for user {}: {}", user.getId(), e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -270,5 +292,15 @@ public class AuthService {
             return email.substring(0, atIndex);
         }
         return "User";
+    }
+
+    private String resolveDisplayName(RegisterRequest request) {
+        if (request.getDisplayName() != null) {
+            String trimmed = request.getDisplayName().trim();
+            if (!trimmed.isEmpty()) {
+                return trimmed;
+            }
+        }
+        return extractNameFromEmail(request.getEmail());
     }
 }
