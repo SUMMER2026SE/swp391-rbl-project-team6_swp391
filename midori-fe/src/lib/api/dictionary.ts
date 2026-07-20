@@ -177,11 +177,34 @@ export const dictionaryApi = {
   /**
    * Check if a word is saved by current user.
    */
-  isWordSaved: async (word: string): Promise<boolean> => {
+  isWordSaved: async (word: string, lessonId?: string): Promise<boolean> => {
+    const params = new URLSearchParams({ word });
+    if (lessonId) params.append("lessonId", lessonId);
     const response = await api.get<boolean>(
-      `/student/dictionary/saved?word=${encodeURIComponent(word)}`
+      `/student/dictionary/saved?${params}`
     );
     return response;
+  },
+
+  /**
+   * Get all saved words for current user.
+   */
+  getSavedWords: async (lessonId?: string): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (lessonId) params.append("lessonId", lessonId);
+    const response = await api.get<any[]>(
+      `/student/dictionary/saved/list?${params}`
+    );
+    return response;
+  },
+
+  /**
+   * Unsave a word.
+   */
+  unsaveWord: async (word: string, lessonId?: string): Promise<void> => {
+    const params = new URLSearchParams({ word });
+    if (lessonId) params.append("lessonId", lessonId);
+    await api.delete<void>(`/student/dictionary/unsave?${params}`);
   },
 
   getHoverInfo: async (word: string): Promise<DictionaryHoverResponse> => {

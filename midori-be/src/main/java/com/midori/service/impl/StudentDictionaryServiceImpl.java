@@ -65,15 +65,12 @@ public class StudentDictionaryServiceImpl implements StudentDictionaryService {
         String cacheKey = LOOKUP_CACHE_PREFIX + surface + ":" + 
                 (sentence != null ? sentence.hashCode() : "none");
 
-        return cacheService.getOrFetch(cacheKey, DictionaryLookupResponse.class, () -> {
+        DictionaryLookupResponse response = cacheService.getOrFetch(cacheKey, DictionaryLookupResponse.class, () -> {
             // 1. Try database lookup — JMdict (English meanings included as fallback)
             DictionaryLookupResponse dbResult = lookupFromDatabaseFull(targetWord, surface, sentence);
             if (dbResult != null && hasValidMeaning(dbResult)) {
                 dbResult.setFromCache(false);
                 dbResult.setFromAi(false);
-
-                // Check if word is saved by user
-                checkSavedStatus(dbResult);
 
                 log.debug("Word '{}' found in database ({} meanings)", targetWord,
                         dbResult.getMeanings() != null ? dbResult.getMeanings().size() : 0);
@@ -85,7 +82,6 @@ public class StudentDictionaryServiceImpl implements StudentDictionaryService {
             if (phraseResult != null && hasValidMeaning(phraseResult)) {
                 phraseResult.setFromCache(false);
                 phraseResult.setFromAi(false);
-                checkSavedStatus(phraseResult);
                 log.debug("Phrase '{}' matched as sub-word '{}'", targetWord, phraseResult.getSurface());
                 return phraseResult;
             }
@@ -111,7 +107,6 @@ public class StudentDictionaryServiceImpl implements StudentDictionaryService {
                         .fromCache(false)
                         .fromAi(false)
                         .build();
-                checkSavedStatus(localResult);
                 log.debug("Word '{}' found in local XML dictionary memory ({} meanings)", targetWord, localEntry.getMeanings().size());
                 return localResult;
             }
@@ -120,6 +115,11 @@ public class StudentDictionaryServiceImpl implements StudentDictionaryService {
             log.debug("Word '{}' not in database or local XML dictionary, calling AI fallback", targetWord);
             return enrichWithAi(targetWord, surface, sentence, null);
         }, CACHE_TTL_HOURS, TimeUnit.HOURS);
+
+        if (response != null) {
+            checkSavedStatus(response, request.getLessonId());
+        }
+        return response;
     }
 
 private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surface, String sentence) {
@@ -772,7 +772,9 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
         String userId = getCurrentUserId();
 
         // Check if already saved
-        Optional<StudentSavedWord> existing = studentSavedWordRepository.findByUserIdAndSurface(userId, word);
+        Optional<StudentSavedWord> existing = (request.getLessonId() != null && !request.getLessonId().isBlank())
+                ? studentSavedWordRepository.findByUserIdAndSurfaceAndLessonId(userId, word, request.getLessonId())
+                : studentSavedWordRepository.findByUserIdAndSurface(userId, word);
         if (existing.isPresent()) {
             return DictionaryLookupResponse.builder()
                     .surface(word)
@@ -809,19 +811,59 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
 
     @Override
     @Transactional(readOnly = true)
-    public boolean isWordSaved(String word) {
+    public boolean isWordSaved(String word, String lessonId) {
         if (word == null) return false;
         String userId = getCurrentUserId();
+        if (lessonId != null && !lessonId.isBlank()) {
+            return studentSavedWordRepository.existsByUserIdAndSurfaceAndLessonId(userId, word.trim(), lessonId);
+        }
         return studentSavedWordRepository.existsByUserIdAndSurface(userId, word.trim());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isWordSaved(String word) {
+        return isWordSaved(word, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<StudentSavedWord> getSavedWords(String lessonId) {
+        String userId = getCurrentUserId();
+        if (lessonId != null && !lessonId.isBlank()) {
+            return studentSavedWordRepository.findByUserIdAndLessonIdOrderByCreatedAtDesc(userId, lessonId);
+        }
+        return studentSavedWordRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    @Override
+    @Transactional
+    public void unsaveWord(String word, String lessonId) {
+        if (word == null) return;
+        String userId = getCurrentUserId();
+        if (lessonId != null && !lessonId.isBlank()) {
+            studentSavedWordRepository.deleteByUserIdAndSurfaceAndLessonId(userId, word.trim(), lessonId);
+        } else {
+            studentSavedWordRepository.deleteByUserIdAndSurface(userId, word.trim());
+        }
+    }
+
     private void checkSavedStatus(DictionaryLookupResponse response) {
+        checkSavedStatus(response, null);
+    }
+
+    private void checkSavedStatus(DictionaryLookupResponse response, String lessonId) {
         if (response == null) return;
         String userId = getCurrentUserId();
-        Optional<StudentSavedWord> saved = studentSavedWordRepository.findByUserIdAndSurface(userId, response.getSurface());
+        Optional<StudentSavedWord> saved = (lessonId != null && !lessonId.isBlank())
+                ? studentSavedWordRepository.findByUserIdAndSurfaceAndLessonId(userId, response.getSurface(), lessonId)
+                : studentSavedWordRepository.findByUserIdAndSurface(userId, response.getSurface());
         if (saved.isPresent()) {
             response.setSaved(true);
             response.setSaveId(saved.get().getId().toString());
+        } else {
+            response.setSaved(false);
+            response.setSaveId(null);
         }
     }
 

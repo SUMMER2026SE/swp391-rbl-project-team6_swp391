@@ -15,8 +15,10 @@ export interface SavedWord {
 const STORAGE_KEY = "midori_saved_words";
 
 // Hook to manage saved words
-export function useSavedWords() {
+// Hook to manage saved words
+export function useSavedWords(videoId?: string) {
   const [savedWords, setSavedWords] = useState<SavedWord[]>(() => {
+    if (videoId) return [];
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
@@ -25,40 +27,100 @@ export function useSavedWords() {
     }
   });
 
-  const saveWord = useCallback((word: SavedWord) => {
-    setSavedWords((prev) => {
-      const exists = prev.some(
-        (w) => w.word === word.word && w.reading === word.reading
-      );
-      if (exists) return prev;
-      const updated = [word, ...prev].slice(0, 500); // Keep max 500 words
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event("midori_saved_words_changed"));
-      return updated;
-    });
-  }, []);
+  const mapBackendToSavedWord = useCallback((w: any): SavedWord => ({
+    word: w.surface,
+    reading: w.reading || w.surface,
+    meaning: w.meaning,
+    context: w.context || "",
+    savedAt: w.createdAt || new Date().toISOString()
+  }), []);
 
-  const removeWord = useCallback((word: string, reading: string) => {
-    setSavedWords((prev) => {
-      const updated = prev.filter(
-        (w) => !(w.word === word && w.reading === reading)
-      );
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event("midori_saved_words_changed"));
-      return updated;
-    });
-  }, []);
+  useEffect(() => {
+    if (!videoId) return;
+
+    let active = true;
+    dictionaryApi.getSavedWords(videoId)
+      .then(data => {
+        if (active && Array.isArray(data)) {
+          setSavedWords(data.map(mapBackendToSavedWord));
+        }
+      })
+      .catch(err => {
+        console.error("[SavedWords] Error fetching saved words from backend:", err);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [videoId, mapBackendToSavedWord]);
+
+  const saveWord = useCallback(async (word: SavedWord) => {
+    if (videoId) {
+      try {
+        await dictionaryApi.saveWord({
+          word: word.word,
+          reading: word.reading,
+          meaning: word.meaning,
+          context: word.context,
+          lessonId: videoId
+        });
+        setSavedWords((prev) => {
+          const exists = prev.some(
+            (w) => w.word === word.word && w.reading === word.reading
+          );
+          if (exists) return prev;
+          return [word, ...prev];
+        });
+      } catch (err) {
+        console.error("[SavedWords] Failed to save word to backend:", err);
+      }
+    } else {
+      setSavedWords((prev) => {
+        const exists = prev.some(
+          (w) => w.word === word.word && w.reading === word.reading
+        );
+        if (exists) return prev;
+        const updated = [word, ...prev].slice(0, 500); // Keep max 500 words
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event("midori_saved_words_changed"));
+        return updated;
+      });
+    }
+  }, [videoId]);
+
+  const removeWord = useCallback(async (word: string, reading: string) => {
+    if (videoId) {
+      try {
+        await dictionaryApi.unsaveWord(word, videoId);
+        setSavedWords((prev) =>
+          prev.filter((w) => !(w.word === word && w.reading === reading))
+        );
+      } catch (err) {
+        console.error("[SavedWords] Failed to remove word from backend:", err);
+      }
+    } else {
+      setSavedWords((prev) => {
+        const updated = prev.filter(
+          (w) => !(w.word === word && w.reading === reading)
+        );
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        window.dispatchEvent(new Event("midori_saved_words_changed"));
+        return updated;
+      });
+    }
+  }, [videoId]);
 
   const isWordSaved = useCallback(
     (word: string, reading: string) => {
       return savedWords.some(
-        (w) => w.word === word && w.reading === reading
+        (w) => w.word === word && (w.reading === reading || !reading)
       );
     },
     [savedWords]
   );
 
   useEffect(() => {
+    if (videoId) return;
     const handleStorageChange = () => {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -81,7 +143,7 @@ export function useSavedWords() {
       window.removeEventListener("midori_saved_words_changed", handleStorageChange);
       window.removeEventListener("storage", handleWindowStorage);
     };
-  }, []);
+  }, [videoId]);
 
   return { savedWords, saveWord, removeWord, isWordSaved };
 }

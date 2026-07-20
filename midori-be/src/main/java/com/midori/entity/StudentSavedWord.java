@@ -18,8 +18,8 @@ import java.util.UUID;
            @Index(name = "idx_saved_words_created", columnList = "created_at")
        },
        uniqueConstraints = {
-           @UniqueConstraint(name = "uk_saved_word_user_surface", 
-                          columnNames = {"user_id", "surface"})
+           @UniqueConstraint(name = "uk_saved_word_user_surface_lesson", 
+                          columnNames = {"user_id", "surface", "lesson_id"})
        })
 @Getter
 @Setter

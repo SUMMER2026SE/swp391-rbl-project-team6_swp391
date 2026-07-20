@@ -24,9 +24,19 @@ public interface StudentSavedWordRepository extends JpaRepository<StudentSavedWo
     Optional<StudentSavedWord> findByUserIdAndSurface(String userId, String surface);
 
     /**
+     * Find a saved word by user ID, surface form, and lesson ID.
+     */
+    Optional<StudentSavedWord> findByUserIdAndSurfaceAndLessonId(String userId, String surface, String lessonId);
+
+    /**
      * Check if a word is saved by a user.
      */
     boolean existsByUserIdAndSurface(String userId, String surface);
+
+    /**
+     * Check if a word is saved by a user in a specific lesson.
+     */
+    boolean existsByUserIdAndSurfaceAndLessonId(String userId, String surface, String lessonId);
 
     /**
      * Find all saved words by a user.
@@ -62,6 +72,11 @@ public interface StudentSavedWordRepository extends JpaRepository<StudentSavedWo
      * Delete a saved word.
      */
     void deleteByUserIdAndSurface(String userId, String surface);
+
+    /**
+     * Delete a saved word by user ID, surface form, and lesson ID.
+     */
+    void deleteByUserIdAndSurfaceAndLessonId(String userId, String surface, String lessonId);
 
     /**
      * Find saved words by user that include a specific lesson.
