@@ -135,6 +135,9 @@ export const examsApi = {
   getStudentExamResultsByClass: (classId: string) =>
     api.get<StudentExamResponse[]>(`/exams/class/${classId}/results`),
 
+  generateAiExam: (req: AiExamGenerateRequest) =>
+    api.post<AiExamGenerateResponse>("/teacher/exams/ai-generate", req),
+
   importExamFromPdf: (file: File, classId: string, level?: string, status?: string) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -164,4 +167,27 @@ export interface StudentExamResponse {
   score?: number;
   totalPoints?: number;
   percentage?: number;
+}
+
+export interface AiExamGenerateRequest {
+  level: string;
+  lessonId: number;
+  skills: string[];
+  difficulty: string;
+  questionCount: number;
+}
+
+export interface AiQuestionDto {
+  type?: string;
+  content?: string;
+  difficulty?: string;
+  explanation?: string;
+  category?: string;
+  answers?: { content?: string; isCorrect?: boolean }[];
+}
+
+export interface AiExamGenerateResponse {
+  title?: string;
+  description?: string;
+  questions: AiQuestionDto[];
 }

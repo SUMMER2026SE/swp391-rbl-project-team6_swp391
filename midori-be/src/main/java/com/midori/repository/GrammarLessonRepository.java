@@ -34,4 +34,6 @@ public interface GrammarLessonRepository extends JpaRepository<GrammarLesson, UU
     long countByJlptLevel(String jlptLevel);
 
     long countByLessonId(UUID lessonId);
+
+    Optional<GrammarLesson> findByJlptLevelAndLessonNumber(String jlptLevel, Integer lessonNumber);
 }

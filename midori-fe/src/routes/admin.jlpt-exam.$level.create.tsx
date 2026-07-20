@@ -57,6 +57,11 @@ function CreateExamPage() {
       throw new Error("Please import at least one question");
     }
 
+    const hasUnresolved = importedQuestions.some(q => q.answers.findIndex(ans => ans.isCorrect) === -1);
+    if (hasUnresolved) {
+      throw new Error("One or more questions are missing a correct answer. Please resolve them first.");
+    }
+
     const backendStatus = status === "Active" ? "PUBLISHED" : "DRAFT";
     const examRes = await examsApi.createExam({
       title: examName,
