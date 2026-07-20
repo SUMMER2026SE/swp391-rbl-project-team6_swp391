@@ -116,45 +116,13 @@ public class StudentDictionaryController {
      * Check if a word is saved by current user.
      * 
      * @param word Japanese word
-     * @param lessonId Optional lesson/video ID
      * @return Whether the word is saved
      */
     @GetMapping("/saved")
     public ResponseEntity<ApiResponse<Boolean>> isWordSaved(
-            @RequestParam("word") @NotBlank String word,
-            @RequestParam(value = "lessonId", required = false) String lessonId) {
+            @RequestParam("word") @NotBlank String word) {
         
-        boolean saved = studentDictionaryService.isWordSaved(word, lessonId);
+        boolean saved = studentDictionaryService.isWordSaved(word);
         return ResponseEntity.ok(ApiResponse.success(saved));
-    }
-
-    /**
-     * Get list of saved words for current user.
-     * 
-     * @param lessonId Optional lesson/video ID
-     * @return List of saved words
-     */
-    @GetMapping("/saved/list")
-    public ResponseEntity<ApiResponse<java.util.List<com.midori.entity.StudentSavedWord>>> getSavedWords(
-            @RequestParam(value = "lessonId", required = false) String lessonId) {
-        
-        java.util.List<com.midori.entity.StudentSavedWord> list = studentDictionaryService.getSavedWords(lessonId);
-        return ResponseEntity.ok(ApiResponse.success(list));
-    }
-
-    /**
-     * Unsave a word.
-     * 
-     * @param word Japanese word to unsave
-     * @param lessonId Optional lesson/video ID
-     * @return Success message
-     */
-    @DeleteMapping("/unsave")
-    public ResponseEntity<ApiResponse<Void>> unsaveWord(
-            @RequestParam("word") @NotBlank String word,
-            @RequestParam(value = "lessonId", required = false) String lessonId) {
-        
-        studentDictionaryService.unsaveWord(word, lessonId);
-        return ResponseEntity.ok(ApiResponse.success("Word unsaved successfully", null));
     }
 }
