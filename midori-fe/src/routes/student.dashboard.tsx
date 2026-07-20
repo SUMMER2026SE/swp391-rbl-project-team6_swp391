@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { PageHeader, Card, StatCard, LevelBadge, Progress } from "@/components/page-ui";
 import {
   Flame,
@@ -17,12 +17,33 @@ import { useQuery } from "@tanstack/react-query";
 import { studentProgressApi } from "@/lib/api/studentProgress";
 import { classesApi } from "@/lib/api/classes";
 import { ApiError } from "@/lib/api/client";
-import { useAuth } from "@/lib/auth";
+import { useAuth, isStudentActive } from "@/lib/auth";
+import { useEffect, useState } from "react";
 
-export const Route = createFileRoute("/student/dashboard")({ component: StudentHome });
+export const Route = createFileRoute("/student/dashboard")({
+  beforeLoad: async () => {
+    // Read user from localStorage (same as auth.tsx)
+    const stored = localStorage.getItem("midori_user");
+    if (!stored) return;
+
+    try {
+      const user = JSON.parse(stored) as User;
+      if (user.role !== "student") return;
+
+      // Only check if student is active (has joined at least one class)
+      if (!isStudentActive(user)) {
+        throw redirect({ to: "/student/landing" });
+      }
+    } catch (e) {
+      // If parse fails, just continue
+    }
+  },
+  component: StudentHome
+});
 
 function StudentHome() {
-  const { user } = useAuth();
+  const { user, refreshCurrentUser, router, loaded } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: stats,
@@ -38,21 +59,60 @@ function StudentHome() {
     data: dbClasses = [],
     isLoading: isLoadingClasses,
     error: classesError,
+    refetch: refetchClasses,
   } = useQuery({
     queryKey: ["studentJoinedClassesDashboard"],
     queryFn: () => classesApi.getJoinedClasses(),
   });
 
+  // Redirect to landing page if user has no assigned class
+  useEffect(() => {
+    if (!isLoadingClasses && (!dbClasses || dbClasses.length === 0)) {
+      router.navigate({ to: "/student/landing" });
+    }
+  }, [isLoadingClasses, dbClasses, router]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refreshCurrentUser(), refetchClasses()]);
+    } catch (err) {
+      console.error("Failed to refresh status:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const isLoading = isLoadingStats || isLoadingClasses;
   const error = statsError || classesError;
   const errorMessage = "Failed to load dashboard progress.";
+
+  const hasAssignedLevel = dbClasses && dbClasses.length > 0;
+
+  // Show loading while checking class status
+  if (isLoadingClasses) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If no class assigned, the useEffect will redirect - show loading state
+  if (!hasAssignedLevel) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const streak = stats?.learningStreak ?? 0;
   const totalXp = stats?.progressPercent ? Math.round(stats.progressPercent * 100) : 0;
 
   const joinedClasses = dbClasses.map((c) => ({
     name: c.name,
-    teacher: "Teacher",
+    teacher: c.teacherName || "Teacher",
     level: c.level || "N5",
   }));
 
@@ -77,7 +137,7 @@ function StudentHome() {
                 Welcome back
               </span>
               <h2 className="font-display font-black text-2xl mt-1 text-white">
-                Xin chào {user?.name ?? "Nguyễn Văn A"}
+                Xin chào {user?.name}
               </h2>
               <div className="mt-4 flex items-center gap-2">
                 <span className="text-sm font-semibold opacity-90">Current Level:</span>

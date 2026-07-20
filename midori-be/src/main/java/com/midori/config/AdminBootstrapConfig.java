@@ -33,16 +33,27 @@ public class AdminBootstrapConfig {
                 return;
             }
 
-            if (!userRepository.findByRoleAndStatus(Role.ADMIN, UserStatus.ACTIVE).isEmpty()) {
-                log.info("[AdminBootstrap] Active admin already exists. Skip local bootstrap.");
+            String adminEmail = adminProperties.getEmail();
+            String adminPassword = adminProperties.getPassword();
+
+            java.util.Optional<User> existingUserOpt = userRepository.findByEmail(adminEmail);
+            if (existingUserOpt.isPresent()) {
+                User existingUser = existingUserOpt.get();
+                if (existingUser.getRole() == Role.ADMIN) {
+                    log.info("[AdminBootstrap] Admin {} already exists. Syncing/updating password to match configuration...", adminEmail);
+                    existingUser.setPasswordHash(passwordEncoder.encode(adminPassword));
+                    existingUser.setStatus(UserStatus.ACTIVE);
+                    existingUser.setEmailVerified(true);
+                    userRepository.save(existingUser);
+                } else {
+                    log.warn("[AdminBootstrap] Configured admin email {} already exists but is associated with role: {}. Skipping password update.",
+                            adminEmail, existingUser.getRole());
+                }
                 return;
             }
 
-            String adminEmail = adminProperties.getEmail();
-
-            if (userRepository.existsByEmail(adminEmail)) {
-                log.warn("[AdminBootstrap] Configured admin email {} already exists but no active admin found. "
-                        + "Skip bootstrap to avoid overwriting existing user.", adminEmail);
+            if (!userRepository.findByRoleAndStatus(Role.ADMIN, UserStatus.ACTIVE).isEmpty()) {
+                log.info("[AdminBootstrap] Active admin already exists under a different email. Skip local bootstrap.");
                 return;
             }
 

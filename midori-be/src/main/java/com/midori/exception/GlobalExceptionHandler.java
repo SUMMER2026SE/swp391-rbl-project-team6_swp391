@@ -1,7 +1,9 @@
 package com.midori.exception;
 
 import com.midori.common.ApiResponse;
+import com.midori.service.AiRateLimitService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -44,6 +46,17 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(AiRateLimitService.RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceeded(AiRateLimitService.RateLimitExceededException ex) {
+        log.warn("[GlobalExceptionHandler] Rate limit exceeded: {}", ex.getMessage());
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -77,9 +90,30 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("PDF processing failed: " + ex.getMessage()));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
         log.error("Illegal state: {}", ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParams(org.springframework.web.bind.MissingServletRequestParameterException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolations(jakarta.validation.ConstraintViolationException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage()));

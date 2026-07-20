@@ -47,6 +47,7 @@ import { Route as StudentProfileRouteImport } from './routes/student.profile'
 import { Route as StudentNotificationsRouteImport } from './routes/student.notifications'
 import { Route as StudentListeningRouteImport } from './routes/student.listening'
 import { Route as StudentLearningRouteImport } from './routes/student.learning'
+import { Route as StudentLandingRouteImport } from './routes/student.landing'
 import { Route as StudentJourneyRouteImport } from './routes/student.journey'
 import { Route as StudentIntroRouteImport } from './routes/student.intro'
 import { Route as StudentGrammarRouteImport } from './routes/student.grammar'
@@ -111,7 +112,6 @@ import { Route as AdminJlptExamLevelCreateRouteImport } from './routes/admin.jlp
 import { Route as AdminJlptExamLevelIndexRouteImport } from './routes/admin.jlpt-exam.$level._index'
 import { Route as TeacherClassesClassIdStudentsIndexRouteImport } from './routes/teacher.classes.$classId.students.index'
 import { Route as StudentLearningJapaneseLessonLessonIdRouteImport } from './routes/student.learning.japanese.lesson.$lessonId'
-import { Route as StudentLearningAlphabetKatakanaLoanwordsRouteImport } from './routes/student.learning.alphabet.katakana.loanwords'
 import { Route as StudentLearningAlphabetKatakanaDakutenRouteImport } from './routes/student.learning.alphabet.katakana.dakuten'
 import { Route as StudentLearningAlphabetKatakanaCombinationRouteImport } from './routes/student.learning.alphabet.katakana.combination'
 import { Route as StudentLearningAlphabetKatakanaBasicRouteImport } from './routes/student.learning.alphabet.katakana.basic'
@@ -310,6 +310,11 @@ const StudentListeningRoute = StudentListeningRouteImport.update({
 const StudentLearningRoute = StudentLearningRouteImport.update({
   id: '/learning',
   path: '/learning',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentLandingRoute = StudentLandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
   getParentRoute: () => StudentRoute,
 } as any)
 const StudentJourneyRoute = StudentJourneyRouteImport.update({
@@ -666,12 +671,6 @@ const StudentLearningJapaneseLessonLessonIdRoute =
     path: '/lesson/$lessonId',
     getParentRoute: () => StudentLearningJapaneseRoute,
   } as any)
-const StudentLearningAlphabetKatakanaLoanwordsRoute =
-  StudentLearningAlphabetKatakanaLoanwordsRouteImport.update({
-    id: '/loanwords',
-    path: '/loanwords',
-    getParentRoute: () => StudentLearningAlphabetKatakanaRoute,
-  } as any)
 const StudentLearningAlphabetKatakanaDakutenRoute =
   StudentLearningAlphabetKatakanaDakutenRouteImport.update({
     id: '/dakuten',
@@ -748,6 +747,7 @@ export interface FileRoutesByFullPath {
   '/student/grammar': typeof StudentGrammarRouteWithChildren
   '/student/intro': typeof StudentIntroRoute
   '/student/journey': typeof StudentJourneyRouteWithChildren
+  '/student/landing': typeof StudentLandingRoute
   '/student/learning': typeof StudentLearningRouteWithChildren
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
@@ -835,7 +835,6 @@ export interface FileRoutesByFullPath {
   '/student/learning/alphabet/katakana/basic': typeof StudentLearningAlphabetKatakanaBasicRoute
   '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
   '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
-  '/student/learning/alphabet/katakana/loanwords': typeof StudentLearningAlphabetKatakanaLoanwordsRoute
   '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
   '/teacher/classes/$classId/students/': typeof TeacherClassesClassIdStudentsIndexRoute
   '/teacher/classes/$classId/students/$studentId/progress': typeof TeacherClassesClassIdStudentsStudentIdProgressRoute
@@ -858,6 +857,7 @@ export interface FileRoutesByTo {
   '/student/grammar': typeof StudentGrammarRouteWithChildren
   '/student/intro': typeof StudentIntroRoute
   '/student/journey': typeof StudentJourneyRouteWithChildren
+  '/student/landing': typeof StudentLandingRoute
   '/student/learning': typeof StudentLearningRouteWithChildren
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
@@ -942,7 +942,6 @@ export interface FileRoutesByTo {
   '/student/learning/alphabet/katakana/basic': typeof StudentLearningAlphabetKatakanaBasicRoute
   '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
   '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
-  '/student/learning/alphabet/katakana/loanwords': typeof StudentLearningAlphabetKatakanaLoanwordsRoute
   '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
   '/teacher/classes/$classId/students': typeof TeacherClassesClassIdStudentsIndexRoute
   '/teacher/classes/$classId/students/$studentId/progress': typeof TeacherClassesClassIdStudentsStudentIdProgressRoute
@@ -969,6 +968,7 @@ export interface FileRoutesById {
   '/student/grammar': typeof StudentGrammarRouteWithChildren
   '/student/intro': typeof StudentIntroRoute
   '/student/journey': typeof StudentJourneyRouteWithChildren
+  '/student/landing': typeof StudentLandingRoute
   '/student/learning': typeof StudentLearningRouteWithChildren
   '/student/listening': typeof StudentListeningRoute
   '/student/notifications': typeof StudentNotificationsRoute
@@ -1057,7 +1057,6 @@ export interface FileRoutesById {
   '/student/learning/alphabet/katakana/basic': typeof StudentLearningAlphabetKatakanaBasicRoute
   '/student/learning/alphabet/katakana/combination': typeof StudentLearningAlphabetKatakanaCombinationRoute
   '/student/learning/alphabet/katakana/dakuten': typeof StudentLearningAlphabetKatakanaDakutenRoute
-  '/student/learning/alphabet/katakana/loanwords': typeof StudentLearningAlphabetKatakanaLoanwordsRoute
   '/student/learning/japanese/lesson/$lessonId': typeof StudentLearningJapaneseLessonLessonIdRoute
   '/teacher/classes/$classId/students/': typeof TeacherClassesClassIdStudentsIndexRoute
   '/teacher/classes/$classId/students/$studentId/progress': typeof TeacherClassesClassIdStudentsStudentIdProgressRoute
@@ -1085,6 +1084,7 @@ export interface FileRouteTypes {
     | '/student/grammar'
     | '/student/intro'
     | '/student/journey'
+    | '/student/landing'
     | '/student/learning'
     | '/student/listening'
     | '/student/notifications'
@@ -1172,7 +1172,6 @@ export interface FileRouteTypes {
     | '/student/learning/alphabet/katakana/basic'
     | '/student/learning/alphabet/katakana/combination'
     | '/student/learning/alphabet/katakana/dakuten'
-    | '/student/learning/alphabet/katakana/loanwords'
     | '/student/learning/japanese/lesson/$lessonId'
     | '/teacher/classes/$classId/students/'
     | '/teacher/classes/$classId/students/$studentId/progress'
@@ -1195,6 +1194,7 @@ export interface FileRouteTypes {
     | '/student/grammar'
     | '/student/intro'
     | '/student/journey'
+    | '/student/landing'
     | '/student/learning'
     | '/student/listening'
     | '/student/notifications'
@@ -1279,7 +1279,6 @@ export interface FileRouteTypes {
     | '/student/learning/alphabet/katakana/basic'
     | '/student/learning/alphabet/katakana/combination'
     | '/student/learning/alphabet/katakana/dakuten'
-    | '/student/learning/alphabet/katakana/loanwords'
     | '/student/learning/japanese/lesson/$lessonId'
     | '/teacher/classes/$classId/students'
     | '/teacher/classes/$classId/students/$studentId/progress'
@@ -1305,6 +1304,7 @@ export interface FileRouteTypes {
     | '/student/grammar'
     | '/student/intro'
     | '/student/journey'
+    | '/student/landing'
     | '/student/learning'
     | '/student/listening'
     | '/student/notifications'
@@ -1393,7 +1393,6 @@ export interface FileRouteTypes {
     | '/student/learning/alphabet/katakana/basic'
     | '/student/learning/alphabet/katakana/combination'
     | '/student/learning/alphabet/katakana/dakuten'
-    | '/student/learning/alphabet/katakana/loanwords'
     | '/student/learning/japanese/lesson/$lessonId'
     | '/teacher/classes/$classId/students/'
     | '/teacher/classes/$classId/students/$studentId/progress'
@@ -1679,6 +1678,13 @@ declare module '@tanstack/react-router' {
       path: '/learning'
       fullPath: '/student/learning'
       preLoaderRoute: typeof StudentLearningRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/landing': {
+      id: '/student/landing'
+      path: '/landing'
+      fullPath: '/student/landing'
+      preLoaderRoute: typeof StudentLandingRouteImport
       parentRoute: typeof StudentRoute
     }
     '/student/journey': {
@@ -2129,13 +2135,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentLearningJapaneseLessonLessonIdRouteImport
       parentRoute: typeof StudentLearningJapaneseRoute
     }
-    '/student/learning/alphabet/katakana/loanwords': {
-      id: '/student/learning/alphabet/katakana/loanwords'
-      path: '/loanwords'
-      fullPath: '/student/learning/alphabet/katakana/loanwords'
-      preLoaderRoute: typeof StudentLearningAlphabetKatakanaLoanwordsRouteImport
-      parentRoute: typeof StudentLearningAlphabetKatakanaRoute
-    }
     '/student/learning/alphabet/katakana/dakuten': {
       id: '/student/learning/alphabet/katakana/dakuten'
       path: '/dakuten'
@@ -2369,7 +2368,6 @@ interface StudentLearningAlphabetKatakanaRouteChildren {
   StudentLearningAlphabetKatakanaBasicRoute: typeof StudentLearningAlphabetKatakanaBasicRoute
   StudentLearningAlphabetKatakanaCombinationRoute: typeof StudentLearningAlphabetKatakanaCombinationRoute
   StudentLearningAlphabetKatakanaDakutenRoute: typeof StudentLearningAlphabetKatakanaDakutenRoute
-  StudentLearningAlphabetKatakanaLoanwordsRoute: typeof StudentLearningAlphabetKatakanaLoanwordsRoute
 }
 
 const StudentLearningAlphabetKatakanaRouteChildren: StudentLearningAlphabetKatakanaRouteChildren =
@@ -2380,8 +2378,6 @@ const StudentLearningAlphabetKatakanaRouteChildren: StudentLearningAlphabetKatak
       StudentLearningAlphabetKatakanaCombinationRoute,
     StudentLearningAlphabetKatakanaDakutenRoute:
       StudentLearningAlphabetKatakanaDakutenRoute,
-    StudentLearningAlphabetKatakanaLoanwordsRoute:
-      StudentLearningAlphabetKatakanaLoanwordsRoute,
   }
 
 const StudentLearningAlphabetKatakanaRouteWithChildren =
@@ -2516,6 +2512,7 @@ interface StudentRouteChildren {
   StudentGrammarRoute: typeof StudentGrammarRouteWithChildren
   StudentIntroRoute: typeof StudentIntroRoute
   StudentJourneyRoute: typeof StudentJourneyRouteWithChildren
+  StudentLandingRoute: typeof StudentLandingRoute
   StudentLearningRoute: typeof StudentLearningRouteWithChildren
   StudentListeningRoute: typeof StudentListeningRoute
   StudentNotificationsRoute: typeof StudentNotificationsRoute
@@ -2533,6 +2530,7 @@ const StudentRouteChildren: StudentRouteChildren = {
   StudentGrammarRoute: StudentGrammarRouteWithChildren,
   StudentIntroRoute: StudentIntroRoute,
   StudentJourneyRoute: StudentJourneyRouteWithChildren,
+  StudentLandingRoute: StudentLandingRoute,
   StudentLearningRoute: StudentLearningRouteWithChildren,
   StudentListeningRoute: StudentListeningRoute,
   StudentNotificationsRoute: StudentNotificationsRoute,

@@ -17,7 +17,6 @@ export interface AlphabetProgress {
   katakanaBasic: LessonProgress;
   katakanaDakuten: LessonProgress;
   katakanaCombination: LessonProgress;
-  katakanaLoanwords: LessonProgress;
 }
 
 export interface OverallProgress {
@@ -51,7 +50,7 @@ export const createDefaultOverallProgress = (): OverallProgress => ({
   totalCharactersLearned: 0,
   totalCharactersMastered: 0,
   lessonsCompleted: 0,
-  totalLessons: 7,
+  totalLessons: 6,
   quizzesTaken: 0,
   averageScore: 0,
   streak: 0,
@@ -64,7 +63,7 @@ export function loadLessonProgress(lessonId: string): LessonProgress {
   if (typeof window === "undefined") return createDefaultLessonProgress(lessonId);
 
   try {
-    const saved = localStorage.getItem(`${PROGRESS_STORAGE_KEY}_${lessonId}`);
+    const saved = localStorage.getItem(`alphabet-progress-${lessonId}`);
     if (saved) {
       return JSON.parse(saved);
     }
@@ -79,7 +78,7 @@ export function saveLessonProgress(progress: LessonProgress): void {
   if (typeof window === "undefined") return;
 
   try {
-    localStorage.setItem(`${PROGRESS_STORAGE_KEY}_${progress.lessonId}`, JSON.stringify(progress));
+    localStorage.setItem(`alphabet-progress-${progress.lessonId}`, JSON.stringify(progress));
   } catch (e) {
     console.error("Failed to save progress:", e);
   }

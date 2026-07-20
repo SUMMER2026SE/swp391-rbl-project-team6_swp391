@@ -17,8 +17,12 @@ import org.springframework.stereotype.Component;
  *   provider: gemini
  *   gemini:
  *     api-keys: key1,key2,key3  # Multiple keys for fallback
- *     model: ${GEMINI_MODEL:gemini-3.5-flash}      # configurable — no hardcoded default in Java
- *     fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
+ *     model: AUTO              # AUTO for task-based selection, or specific model name
+ *     models: gemini-2.5-flash,gemini-2.5-pro,gemini-3.5-flash  # Available models
+ *     fallback-models: gemini-2.5-flash,gemini-2.5-pro
+ *     task-model-mapping:       # Optional task-specific overrides
+ *       DEFAULT: gemini-2.5-flash
+ *       COMPLEX_REASONING: gemini-2.5-pro
  *   openai:
  *     api-key: sk-xxx
  *     model: gpt-4o
@@ -98,19 +102,33 @@ public class AiConfigProperties {
         private String apiKeys;  // Comma-separated: key1,key2,key3
         private String singleApiKey;  // Legacy single key support
         private String baseUrl = "https://generativelanguage.googleapis.com";
-        // No Java-level default — YAML / env-var is the single source of truth.
-        // If null, validateConfig() will fail-fast before any API call.
-        private String model = null;
-        // Comma-separated fallback model names tried in order when primary fails.
-        // e.g. "gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro"
+        
+        /** 
+         * Primary model selection. 
+         * Set to "AUTO" for automatic task-based selection, or a specific model name.
+         * Default: "AUTO" - lets the resolver pick based on task type.
+         */
+        private String model = "AUTO";
+        
+        /** 
+         * Comma-separated fallback model names tried in order when primary fails.
+         * Example: "gemini-2.5-flash,gemini-2.5-pro"
+         */
         private String fallbackModels = null;
-        // Available models allowed for automatic task-based selection.
-        // When blank, the system falls back to primary/fallback models.
+        
+        /**
+         * Available models for AUTO mode task-based selection.
+         * Example: "gemini-2.5-flash,gemini-2.5-pro,gemini-3.5-flash"
+         */
         private String models = null;
-        // Task-specific model mapping. Keys must match AiTaskType names.
-        // Example: SIMPLE_TRANSLATION=gemini-3.5-flash,COMPLEX_REASONING=gemini-2.5-pro
+        
+        /**
+         * Task-specific model mapping. Keys must match AiTaskType names.
+         * Example: SIMPLE_TRANSLATION=gemini-2.5-flash,COMPLEX_REASONING=gemini-2.5-pro
+         */
         private java.util.Map<String, String> taskModelMapping = new java.util.LinkedHashMap<>();
-        // Optional fallback chain used when a task-selected model is unavailable.
+        
+        /** Optional fallback chain used when a task-selected model is unavailable. */
         private String taskModelFallbacks = null;
 
         /**

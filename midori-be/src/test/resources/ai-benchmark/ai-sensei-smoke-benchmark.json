@@ -1,0 +1,417 @@
+[
+  {
+    "id": "SMOKE-01",
+    "category": "GRAMMAR",
+    "level": "N5",
+    "prompt": "「です」は普通の動詞ですか？",
+    "expectedFacts": [
+      "です is not an ordinary verb",
+      "です is the polite copula",
+      "です is an auxiliary verb (助動詞)"
+    ],
+    "forbiddenClaims": [
+      "です is an ordinary verb",
+      "です is a 接続詞"
+    ],
+    "evaluationCriteria": [
+      "Correctly classifies です as copula/auxiliary, not as an ordinary verb",
+      "Mentions politeness register (丁寧語 / polite copula)"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-02",
+    "category": "GRAMMAR",
+    "level": "N5",
+    "prompt": "「だ」は普通の動詞ですか？",
+    "expectedFacts": [
+      "だ is not an ordinary verb",
+      "だ is the plain copula",
+      "だ is an auxiliary verb (助動詞)"
+    ],
+    "forbiddenClaims": [
+      "だ is an ordinary godan verb",
+      "だ is a 接続詞"
+    ],
+    "evaluationCriteria": [
+      "States that だ is the plain copula, not an ordinary verb",
+      "Distinguishes だ (plain) from です (polite)"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-03",
+    "category": "PARTICLES",
+    "level": "N4",
+    "prompt": "「は」と「が」の違いを教えてください。",
+    "expectedFacts": [
+      "は marks the topic",
+      "が marks the subject / new information",
+      "Contrastive は can mark a contrast"
+    ],
+    "forbiddenClaims": [
+      "は always means topic",
+      "が always marks the subject"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes topic-marking は from subject-marking が",
+      "Gives at least one example sentence"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-04",
+    "category": "PARTICLES",
+    "level": "N5",
+    "prompt": "「に」と「へ」の違いは何ですか？",
+    "expectedFacts": [
+      "に marks direction / destination",
+      "へ emphasises direction / movement",
+      "Both can mark a destination in modern Japanese"
+    ],
+    "forbiddenClaims": [
+      "に and へ are always different",
+      "へ cannot mark a destination"
+    ],
+    "evaluationCriteria": [
+      "Explains the direction-vs-endpoint nuance",
+      "States that both work for destinations in modern Japanese"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-05",
+    "category": "PARTICLES",
+    "level": "N4",
+    "prompt": "「公園を歩く」の「を」は何を表していますか？",
+    "expectedFacts": [
+      "を marks the route / path of motion",
+      "It is used with movement verbs",
+      "It does NOT mark a direct object here"
+    ],
+    "forbiddenClaims": [
+      "を here always marks the direct object",
+      "を cannot mark a route"
+    ],
+    "evaluationCriteria": [
+      "Identifies を as a route/through marker, not direct object",
+      "Mentions movement verbs that take this を"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-06",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "すべての「る」で終わる動詞は ichidan ですか？",
+    "expectedFacts": [
+      "No, not all -iru / -eru verbs are ichidan",
+      "Some are godan (走る、帰る、知る、切る etc.)",
+      "Identification depends on conjugation, not just the ending"
+    ],
+    "forbiddenClaims": [
+      "All -iru / -eru verbs are ichidan",
+      "Godan verbs cannot end in -eru"
+    ],
+    "evaluationCriteria": [
+      "States that the ending alone is not sufficient",
+      "Names at least two godan verbs ending in -iru / -eru"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-07",
+    "category": "VERB_BEHAVIOR",
+    "level": "N4",
+    "prompt": "「ている」の「進行中」と「結果の状態」の違いを教えてください。",
+    "expectedFacts": [
+      "Action verbs: ている = ongoing action",
+      "Change / state verbs: ている = resulting state",
+      "Example: 食べている (eating) vs 結婚している (married / state)"
+    ],
+    "forbiddenClaims": [
+      "ている always means progressive",
+      "ている always means state"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes progressive from result-state readings",
+      "Gives example verbs illustrating each"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-08",
+    "category": "TRANSLATION",
+    "level": "N4",
+    "prompt": "「I'm sorry for replying late.」を丁寧な日本語に翻訳してください。",
+    "expectedFacts": [
+      "お返事が遅くなり申し訳ございません",
+      "返信が遅くなり申し訳ありません",
+      "Preserves apology and lateness",
+      "Uses polite apology form"
+    ],
+    "forbiddenClaims": [
+      "Casual register (ごめん)",
+      "Apology is omitted"
+    ],
+    "evaluationCriteria": [
+      "Uses polite apology form (申し訳ございません / 申し訳ありません)",
+      "Preserves apology and lateness"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-09",
+    "category": "TRANSLATION",
+    "level": "N3",
+    "prompt": "「I don't think he will come.」を自然な日本語に翻訳してください。",
+    "expectedFacts": [
+      "彼は来ないと思います",
+      "彼は来ないだろうと思います",
+      "Preserves the negation",
+      "Preserves the opinion marker (思う)"
+    ],
+    "forbiddenClaims": [
+      "Negation is omitted",
+      "彼は来ると思います"
+    ],
+    "evaluationCriteria": [
+      "Preserves the negation",
+      "Preserves the speaker's opinion"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-10",
+    "category": "WRITING_CONVERSATION",
+    "level": "N3",
+    "prompt": "「Please excuse me from work tomorrow because I have a fever.」を上司宛てに丁寧な日本語のメールで書いてください。",
+    "expectedFacts": [
+      "Polite business register",
+      "States reason (熱 / 発熱)",
+      "Includes apology for inconvenience",
+      "Mentions date (明日)",
+      "Includes closing (よろしくお願いいたします)"
+    ],
+    "forbiddenClaims": [
+      "Casual register",
+      "Reason is omitted",
+      "Closing is omitted"
+    ],
+    "evaluationCriteria": [
+      "Uses polite business register",
+      "Includes date, reason, apology",
+      "Sounds natural for a sick-leave email"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-11",
+    "category": "CORRECTION",
+    "level": "N5",
+    "prompt": "次の文を訂正してください：「私は日本へ住んでいます。」",
+    "expectedFacts": [
+      "Corrected: 「私は日本に住んでいます。」",
+      "に is correct for a static location",
+      "へ emphasises direction; に is appropriate for residence"
+    ],
+    "forbiddenClaims": [
+      "へ is always wrong here",
+      "に and へ are identical"
+    ],
+    "evaluationCriteria": [
+      "Corrects the particle to に",
+      "Explains why に is appropriate"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-12",
+    "category": "CORRECTION",
+    "level": "N4",
+    "prompt": "次の文を訂正してください：「昨日、映画を見ています。」",
+    "expectedFacts": [
+      "Tense mismatch: 'yesterday' implies past",
+      "Corrected: 「昨日、映画を見ました。」",
+      "ている is present-progressive; past is required"
+    ],
+    "forbiddenClaims": [
+      "The original sentence is correct",
+      "Tense is irrelevant"
+    ],
+    "evaluationCriteria": [
+      "Identifies the tense mismatch",
+      "Provides a corrected sentence"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-13",
+    "category": "CORRECTION",
+    "level": "N4",
+    "prompt": "「私は毎日日本語を勉強することが好きです。」は自然ですか？直すとどうなりますか？",
+    "expectedFacts": [
+      "Grammatically possible but slightly stiff",
+      "More natural: 「私は毎日日本語を勉強するのが好きです。」",
+      "の is preferred for habitual / personal preference"
+    ],
+    "forbiddenClaims": [
+      "Original is fully natural and needs no change",
+      "Always use こと for nominalisation"
+    ],
+    "evaluationCriteria": [
+      "Identifies the naturalness issue",
+      "Provides a more natural alternative"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-14",
+    "category": "KANJI",
+    "level": "N4",
+    "prompt": "「開く」と「開ける」の違いを教えてください。",
+    "expectedFacts": [
+      "開く (あく) = intransitive",
+      "開ける (あける) = transitive",
+      "Both contain the same kanji",
+      "Difference is the verb class / transitivity"
+    ],
+    "forbiddenClaims": [
+      "Both are read the same way (あける)",
+      "Both are transitive"
+    ],
+    "evaluationCriteria": [
+      "States the two readings (あく / あける)",
+      "Distinguishes transitive from intransitive"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-15",
+    "category": "KANJI",
+    "level": "N5",
+    "prompt": "「生」の主な読み方を教えてください。",
+    "expectedFacts": [
+      "い(きる) - kun reading",
+      "う(まれる) - kun reading",
+      "なま - kun reading",
+      "セイ - on reading",
+      "ショウ - on reading"
+    ],
+    "forbiddenClaims": [
+      "生 is read only as せい",
+      "生 has no on readings"
+    ],
+    "evaluationCriteria": [
+      "Lists at least three readings (kun + on)",
+      "Provides example compounds"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-16",
+    "category": "KEIGO",
+    "level": "N3",
+    "prompt": "「おっしゃる」と「申す」の違いを教えてください。",
+    "expectedFacts": [
+      "おっしゃる = 尊敬語 (elevates respected party)",
+      "申す / 申上げる = 謙譲語 (lowers speaker)",
+      "Both mean 'to say' but from different perspectives"
+    ],
+    "forbiddenClaims": [
+      "おっしゃる and 申す are identical",
+      "Confuses 尊敬語 and 謙譲語"
+    ],
+    "evaluationCriteria": [
+      "Classifies おっしゃる as 尊敬語",
+      "Classifies 申す as 謙譲語",
+      "Provides example sentences"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-17",
+    "category": "WRITING_CONVERSATION",
+    "level": "N4",
+    "prompt": "友達からの誘いを丁寧に断る返信を書いてください。",
+    "expectedFacts": [
+      "Polite register (です / ます)",
+      "States appreciation for the invitation",
+      "Gives a reason",
+      "Politely declines"
+    ],
+    "forbiddenClaims": [
+      "Casual decline (だめ、むり)",
+      "No apology"
+    ],
+    "evaluationCriteria": [
+      "Polite register",
+      "Acknowledges and declines with reason"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-18",
+    "category": "WRITING_CONVERSATION",
+    "level": "N3",
+    "prompt": "お客様宛てのお詫びメールを書いてください。",
+    "expectedFacts": [
+      "Polite business keigo",
+      "Includes apology (お詫び申し上げます)",
+      "States the issue / cause",
+      "Promises corrective action",
+      "Polite closing"
+    ],
+    "forbiddenClaims": [
+      "Casual register (ごめん)",
+      "Apology is omitted"
+    ],
+    "evaluationCriteria": [
+      "Uses polite business keigo",
+      "Includes apology and corrective action"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-19",
+    "category": "GRAMMAR",
+    "level": "N3",
+    "prompt": "「そうだ」「ようだ」「らしい」の違いを教えてください。",
+    "expectedFacts": [
+      "そうだ (様態) = appearance / looks like",
+      "そうだ (伝聞) = hearsay",
+      "ようだ = conjecture / similarity",
+      "らしい = conjecture / hearsay"
+    ],
+    "forbiddenClaims": [
+      "そうだ always means hearsay",
+      "ようだ and らしい are identical"
+    ],
+    "evaluationCriteria": [
+      "Distinguishes the two そうだ",
+      "Distinguishes ようだ from らしい"
+    ],
+    "maxScore": 10
+  },
+  {
+    "id": "SMOKE-20",
+    "category": "GRAMMAR",
+    "level": "N2",
+    "prompt": "「わけではない」の使い方と、自然な例文を教えてください。",
+    "expectedFacts": [
+      "わけではない expresses 'it's not the case that ...'",
+      "It conveys a partial / soft negation",
+      "It softens or corrects a possible misunderstanding"
+    ],
+    "forbiddenClaims": [
+      "わけではない is a complete negation",
+      "わけではない is the same as ない"
+    ],
+    "evaluationCriteria": [
+      "Explains the partial-negation nuance",
+      "Distinguishes it from full negation",
+      "Gives a natural example sentence"
+    ],
+    "maxScore": 10
+  }
+]
