@@ -52,7 +52,6 @@ const teacherGroups: NavGroup[] = [
   {
     label: "Support",
     items: [
-      { to: "/teacher/reports", label: "Reports", icon: MessageSquare },
       { to: "/teacher/notifications", label: "Notifications", icon: Bell },
     ],
   },

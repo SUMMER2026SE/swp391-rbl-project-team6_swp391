@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
 import { examsApi } from "@/lib/api/exams";
+import { AiExamGenerate } from "@/components/teacher/AiExamGenerate";
 import {
   Select,
   SelectContent,
@@ -35,7 +36,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Method = "ai-pdf" | "question-bank";
+type Method = "ai-pdf" | "question-bank" | "ai-generate";
 
 export const Route = createFileRoute("/teacher/exams/create")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -120,6 +121,13 @@ function CreateExam() {
             onClick={() => setMethod("ai-pdf")}
           />
           <MethodCard
+            icon={Sparkles}
+            title="AI Generate Exam"
+            desc="Select a lesson and AI will generate exam questions from the content library."
+            badge="AI · Smart"
+            onClick={() => setMethod("ai-generate")}
+          />
+          <MethodCard
             icon={HelpCircle}
             title="From Question Bank"
             desc="Generate exam questions by selecting topics and difficulty."
@@ -143,6 +151,9 @@ function CreateExam() {
         Change method
       </Button>
       {method === "ai-pdf" && <ExamAiPdfFlow lockedClass={lockedClass} onDone={handleDone} />}
+      {method === "ai-generate" && (
+        <AiExamGenerate lockedClass={lockedClass} onDone={handleDone} />
+      )}
       {method === "question-bank" && (
         <QuestionBankExam lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
       )}
@@ -1145,6 +1156,12 @@ function ExamAiPdfFlow({
       return;
     }
 
+    const hasUnresolved = questions.some(q => q.answers.findIndex(ans => ans.isCorrect) === -1);
+    if (hasUnresolved) {
+      toast.error("One or more questions are missing a correct answer. Please resolve them first.");
+      return;
+    }
+
     const selectedClass = lockedClass || classes.find((c) => c.id === metadata.classId);
     const targetLevel = selectedClass?.level || "N5";
 
@@ -1156,7 +1173,7 @@ function ExamAiPdfFlow({
         const res = await teacherQuestionsApi.createQuestion({
           prompt: q.content,
           options: q.answers.map((ans) => ans.content),
-          correctAnswerIndex: correctIndex >= 0 ? correctIndex : 0,
+          correctAnswerIndex: correctIndex,
           points: 1,
           questionType: "MULTIPLE_CHOICE",
           difficulty: q.difficulty as "EASY" | "MEDIUM" | "HARD",

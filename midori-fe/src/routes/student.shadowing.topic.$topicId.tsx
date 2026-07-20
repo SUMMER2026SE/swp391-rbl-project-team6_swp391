@@ -1,20 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, Play, Clock, BookOpen, FileText, Mic, XCircle } from "lucide-react";
+import { ChevronLeft, Play, Clock, BookOpen, XCircle, Loader2 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import { getTopicById, type JLPTLevel } from "@/mock/shadowing-student";
+import { studentShadowingApi, type ShadowingVideoSummaryResponse } from "@/lib/api/shadowing";
+
+type JLPTLevel = "N5" | "N4" | "N3" | "N2" | "N1";
 
 const levelColors: Record<JLPTLevel, string> = {
   N5: "bg-blue-500/20 text-blue-400 border-blue-400/30",
   N4: "bg-green-500/20 text-green-400 border-green-400/30",
   N3: "bg-yellow-500/20 text-yellow-400 border-yellow-400/30",
+  N2: "bg-purple-500/20 text-purple-400 border-purple-400/30",
+  N1: "bg-red-500/20 text-red-400 border-red-400/30",
 };
 
-const difficultyColors = {
-  Beginner: "bg-green-500/20 text-green-400",
-  Intermediate: "bg-yellow-500/20 text-yellow-400",
-  Advanced: "bg-red-500/20 text-red-400",
+const difficultyColors: Record<string, string> = {
+  N5: "bg-green-100 text-green-700",
+  N4: "bg-blue-100 text-blue-700",
+  N3: "bg-yellow-100 text-yellow-700",
+  N2: "bg-orange-100 text-orange-700",
+  N1: "bg-red-100 text-red-700",
 };
 
 export const Route = createFileRoute("/student/shadowing/topic/$topicId")({
@@ -25,7 +31,85 @@ function TopicDetailPage() {
   const params = Route.useParams();
   const topicId = params.topicId;
 
-  const topic = useMemo(() => getTopicById(topicId), [topicId]);
+  const [realVideos, setRealVideos] = useState<ShadowingVideoSummaryResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadVideos = async () => {
+      setIsLoading(true);
+      try {
+        const list = await studentShadowingApi.getVideos();
+        setRealVideos(list);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadVideos();
+  }, []);
+
+  const formatDuration = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const topic = useMemo(() => {
+    // Group all real videos by topic name slugified
+    const topicsMap = new Map<string, ShadowingVideoSummaryResponse[]>();
+    realVideos.forEach(v => {
+      const tName = v.topic || "General";
+      if (!topicsMap.has(tName)) {
+        topicsMap.set(tName, []);
+      }
+      topicsMap.get(tName)!.push(v);
+    });
+
+    let foundTopic: any = null;
+    topicsMap.forEach((videos, tName) => {
+      const slug = tName.toLowerCase().replace(/\s+/g, "-");
+      if (slug === topicId) {
+        const firstVideo = videos[0];
+        const totalSecs = videos.reduce((acc, v) => acc + (v.duration || 0), 0);
+        const mins = Math.floor(totalSecs / 60);
+        const secs = totalSecs % 60;
+        const durationStr = `${mins}:${secs.toString().padStart(2, "0")}`;
+
+        foundTopic = {
+          id: slug,
+          title: tName,
+          thumbnail: firstVideo.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=225&fit=crop",
+          jlptLevel: firstVideo.jlptLevel || "N5",
+          description: `Luyện phát âm chủ đề ${tName}`,
+          videoCount: videos.length,
+          totalDuration: durationStr,
+          videos: videos.map(v => ({
+            id: v.id,
+            title: v.title,
+            description: v.description || "",
+            videoUrl: v.videoUrl,
+            thumbnail: v.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=225&fit=crop",
+            duration: formatDuration(v.duration || 0),
+            jlptLevel: v.jlptLevel,
+            topic: v.topic,
+            difficulty: v.difficulty,
+            status: v.status
+          }))
+        };
+      }
+    });
+    return foundTopic;
+  }, [realVideos, topicId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={14} />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   if (!topic) {
     return (
@@ -67,7 +151,7 @@ function TopicDetailPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[topic.jlptLevel]}`}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-sm ${levelColors[topic.jlptLevel as JLPTLevel] || ""}`}
                   >
                     JLPT {topic.jlptLevel}
                   </span>
@@ -75,7 +159,6 @@ function TopicDetailPage() {
                     {topic.title}
                   </h1>
                 </div>
-                <p className="text-sm text-muted-foreground">{topic.titleVn}</p>
               </div>
             </div>
           </div>
@@ -149,25 +232,16 @@ function TopicDetailPage() {
                             <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-pink-500 transition-colors">
                               {video.title}
                             </h3>
-                            <p className="text-sm text-muted-foreground">{video.titleVn}</p>
                           </div>
                         </div>
 
                         {/* Badges */}
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${difficultyColors[video.difficulty]}`}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${difficultyColors[video.difficulty || ""]}`}
                           >
                             {video.difficulty}
                           </span>
-                          {video.transcriptAvailable && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-400">
-                              <span className="flex items-center gap-1">
-                                <FileText className="w-3 h-3" />
-                                Transcript
-                              </span>
-                            </span>
-                          )}
                         </div>
                       </div>
 

@@ -129,14 +129,17 @@ ai:
   openrouter:
     api-key: ${OPENROUTER_API_KEY:}
     # Primary model: tried first. Keep this list short.
-    # Default: openrouter/free (observed to be stable)
+    # Default: openrouter/free (observed to be stable, routes to least-loaded free model)
     # Avoid: deepseek/deepseek-chat-v3-0324:free (404),
-    #        nvidia/nemotron-3-ultra-550b-a55b:free (hangs)
+    #        nvidia/nemotron-3-ultra-550b-a55b:free (hangs),
+    #        openai/gpt-oss-120b:free (retired from free tier 2026-07).
     models: >
       openrouter/free
     # Optional: at most 1 fallback. Will be tried only after primary fails.
+    # tencent/hy3:free is a small multilingual model that has been observed
+    # to produce correct UTF-8 Japanese + Vietnamese for N5 quiz tasks.
     fallback-models: >
-      openai/gpt-oss-120b:free
+      tencent/hy3:free
     # Per-call timeouts (ms). Cap read timeouts to keep UX responsive.
     chat-timeout-ms: 15000
     quiz-timeout-ms: 25000
@@ -155,3 +158,4 @@ supabase:
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
+    videos-bucket: ${SUPABASE_VIDEOS_BUCKET:shadowing-videos}

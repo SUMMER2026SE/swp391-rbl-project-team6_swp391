@@ -1,0 +1,8 @@
+        AiExistingQuestionParser.GenerateSanitizeResult sanitized =
+                AiExistingQuestionParser.sanitizeGeneratedQuestions(
+                        parsed.getQuestions(),
+                        selectedSkills,
+                        sourcePassage
+                );
+
+        applyBalancedRandomization(sanitized.questions);

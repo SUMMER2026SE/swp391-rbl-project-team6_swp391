@@ -1,13 +1,18 @@
 package com.midori.service;
 
 import com.midori.entity.QuestionBankLesson;
+import com.midori.entity.TeacherQuestion;
 import com.midori.exception.ResourceNotFoundException;
+import com.midori.repository.HomeworkQuestionRepository;
 import com.midori.repository.QuestionBankLessonRepository;
+import com.midori.repository.TeacherQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +20,8 @@ import java.util.List;
 public class QuestionBankLessonServiceImpl implements QuestionBankLessonService {
 
     private final QuestionBankLessonRepository lessonRepository;
+    private final TeacherQuestionRepository teacherQuestionRepository;
+    private final HomeworkQuestionRepository homeworkQuestionRepository;
 
     @Override
     public List<QuestionBankLesson> findLessonsByLevel(String level) {
@@ -63,6 +70,15 @@ public class QuestionBankLessonServiceImpl implements QuestionBankLessonService 
     public void deleteLesson(Integer id) {
         QuestionBankLesson lesson = lessonRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("QuestionBankLesson", "id", id));
+        // Remove homework_questions referencing this lesson's questions, then remove the questions
+        List<TeacherQuestion> questions = teacherQuestionRepository.findByLessonId(id);
+        if (!questions.isEmpty()) {
+            List<UUID> questionIds = questions.stream()
+                    .map(TeacherQuestion::getId)
+                    .collect(Collectors.toList());
+            homeworkQuestionRepository.deleteByQuestionIdIn(questionIds);
+            teacherQuestionRepository.deleteAll(questions);
+        }
         lessonRepository.delete(lesson);
     }
 

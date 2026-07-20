@@ -247,10 +247,16 @@ public class ClassServiceImpl implements ClassService {
             throw new com.midori.exception.AccessDeniedException("You do not have permission to view students of this class");
         }
 
+        // Query through the owning side of the @ManyToMany (User.assignedClasses)
+        // to avoid relying on the inverse side (ClassEntity.students) lazy load,
+        // which can return stale or empty data when the join table has rows
+        // added through addStudentToClass.
+        List<User> students = userRepository.findByAssignedClassIdWithProfile(classId);
+
         List<StudentClassResponse> list = new ArrayList<>();
-        classEntity.getStudents().forEach(student -> {
+        for (User student : students) {
             list.add(mapToStudentClassResponse(student, classEntity));
-        });
+        }
 
         return list;
     }
@@ -401,30 +407,43 @@ public class ClassServiceImpl implements ClassService {
                 .filter(e -> e.getSubmittedAt() != null)
                 .count();
 
-        // Calculate average score from all graded submissions and exams
-        double totalScore = 0;
+        // Calculate average score (in %) from all graded submissions and exams.
+        // Homework and exam scores live on different scales, so we normalize
+        // each item to a 0-100 percentage before averaging.
+        double totalPercent = 0;
         int scoreCount = 0;
 
-        // Homework scores
+        // Homework scores → percentage of max score
         for (HomeworkSubmission sub : submissions) {
-            if (sub.getStatus() == HomeworkSubmission.SubmissionStatus.GRADED && sub.getScore() != null) {
-                totalScore += sub.getScore();
+            if (sub.getStatus() == HomeworkSubmission.SubmissionStatus.GRADED
+                    && sub.getScore() != null
+                    && sub.getHomework() != null
+                    && sub.getHomework().getMaxScore() != null
+                    && sub.getHomework().getMaxScore() > 0) {
+                double itemPercent = (sub.getScore() * 100.0) / sub.getHomework().getMaxScore();
+                totalPercent += itemPercent;
                 scoreCount++;
             }
         }
 
-        // Exam scores
+        // Exam scores → use percentage if available, else compute from score / totalPoints
         for (StudentExam exam : studentExams) {
+            Double itemPercent = null;
             if (exam.getPercentage() != null) {
-                totalScore += exam.getPercentage();
+                itemPercent = exam.getPercentage();
+            } else if (exam.getScore() != null && exam.getTotalPoints() != null && exam.getTotalPoints() > 0) {
+                itemPercent = (exam.getScore() * 100.0) / exam.getTotalPoints();
+            }
+            if (itemPercent != null) {
+                totalPercent += itemPercent;
                 scoreCount++;
             }
         }
 
-        double averageScore = scoreCount > 0 ? (totalScore / scoreCount) : 0;
+        double averageScore = scoreCount > 0 ? (totalPercent / scoreCount) : 0;
 
         // Calculate overall progress percentage (homework + exams)
-        int totalItems = totalHomework + completedExams;
+        int totalItems = totalHomework + classExams.size();
         int completedItems = submittedHomework + completedExams;
         int progressPercent = totalItems > 0 ? (int) ((completedItems * 100) / totalItems) : 0;
 
@@ -570,7 +589,7 @@ public class ClassServiceImpl implements ClassService {
             long count = homeworkSubmissionRepository.countByHomeworkIdAndStudentId(homework.getId(), studentId);
             remainingAttempts = Math.max(0, homework.getAttempts() - (int) count);
 
-            java.util.Optional<HomeworkSubmission> subOpt = homeworkSubmissionRepository.findByHomeworkIdAndStudentId(homework.getId(), studentId);
+            java.util.Optional<HomeworkSubmission> subOpt = homeworkSubmissionRepository.findFirstByHomeworkIdAndStudentIdOrderBySubmittedAtDesc(homework.getId(), studentId);
             if (subOpt.isPresent()) {
                 HomeworkSubmission sub = subOpt.get();
                 submissionStatus = sub.getStatus().name();
@@ -608,6 +627,48 @@ public class ClassServiceImpl implements ClassService {
     public List<ClassResponse> getSelectableClasses(UUID teacherId) {
         List<ClassEntity> classes = classRepository.findActiveByTeacherId(teacherId);
         return classes.stream().map(this::mapToClassResponse).toList();
+    }
+
+    @Override
+    public boolean isStudentEnrolledInLevel(UUID studentId, String level) {
+        if (level == null || level.trim().isEmpty()) {
+            return false;
+        }
+        User student = userRepository.findById(studentId).orElse(null);
+        if (student == null) {
+            return false;
+        }
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        if (assignedClasses == null) {
+            return false;
+        }
+        for (ClassEntity classEntity : assignedClasses) {
+            if (classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE
+                    && classEntity.getLevel() != null
+                    && classEntity.getLevel().name().equalsIgnoreCase(level.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public java.util.Set<String> getStudentActiveLevels(UUID studentId) {
+        User student = userRepository.findById(studentId).orElse(null);
+        if (student == null) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<ClassEntity> assignedClasses = student.getAssignedClasses();
+        if (assignedClasses == null) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<String> levels = new java.util.HashSet<>();
+        for (ClassEntity classEntity : assignedClasses) {
+            if (classEntity.getStatus() == ClassEntity.ClassStatus.ACTIVE && classEntity.getLevel() != null) {
+                levels.add(classEntity.getLevel().name());
+            }
+        }
+        return levels;
     }
 }
 

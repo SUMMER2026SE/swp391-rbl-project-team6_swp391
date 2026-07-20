@@ -1,21 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home } from "lucide-react";
+import { ChevronLeft, Play, Volume2, CheckCircle, Mic, ChevronRight, Home, Loader2 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
-import {
-  getVideoById,
-  getTopicForVideo,
-  generateMockAIFeedback,
-  type ShadowingSentence,
-} from "@/mock/shadowing-student";
+import { studentShadowingApi } from "@/lib/api/shadowing";
+import { dictionaryApi } from "@/lib/api/dictionary";
+import { type ShadowingEvaluationResponse } from "@/lib/api/shadowingEvaluation";
+import { getTopicVn } from "./student.shadowing";
+import { ClickableTranscript } from "@/components/clickable-transcript";
+import { SavedWordsButton } from "@/components/saved-words-panel";
 
 export const Route = createFileRoute("/student/shadowing/review/$videoId")({
   component: ReviewPage,
 });
 
 interface SentenceReview {
-  sentence: ShadowingSentence;
+  sentence: {
+    id: string;
+    startTime: number;
+    endTime: number;
+    text: string;
+    translation: string;
+  };
   score: number;
   feedback: {
     pronunciation: number;
@@ -32,24 +38,196 @@ function ReviewPage() {
   const params = Route.useParams();
   const videoId = params.videoId;
 
-  const video = useMemo(() => getVideoById(videoId), [videoId]);
-  const topic = useMemo(() => getTopicForVideo(videoId), [videoId]);
+  const [rawVideo, setRawVideo] = useState<any>(null);
+  const [transcript, setTranscript] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [reviewData, setReviewData] = useState<SentenceReview[]>([]);
+  const [resolvedMeanings, setResolvedMeanings] = useState<Record<string, string>>({});
 
-  // Generate mock review data
-  const [reviewData] = useState<SentenceReview[]>(() => {
-    if (!video) return [];
-    return video.sentences.map((sentence) => {
-      const feedback = generateMockAIFeedback(sentence.text);
-      return {
-        sentence,
-        score: feedback.overallScore,
-        feedback,
-      };
-    });
-  });
+  useEffect(() => {
+    const loadVideoAndTranscript = async () => {
+      setIsLoading(true);
+      try {
+        const v = await studentShadowingApi.getVideo(videoId);
+        const t = await studentShadowingApi.getTranscript(videoId);
+        setRawVideo(v);
+        setTranscript(t);
+
+        const sentences = (t?.segments ?? []).map((s: any, idx: number) => {
+          const listVocab = (s.vocabList ?? []).map((v: any) => ({
+            word: v.word,
+            reading: v.reading || v.furigana || "",
+            meaning: v.meaning,
+            partOfSpeech: v.partOfSpeech || "",
+            example: v.example || "",
+            exampleMeaning: v.exampleMeaning || "",
+          }));
+          const tokenVocab = (s.tokens ?? [])
+            .filter((t: any) => {
+              const surface = t.surface || "";
+              const isPunctuation = /^[\s\p{P}\p{S}、。！？「」『』（）]+$/u.test(surface);
+              return !isPunctuation;
+            })
+            .map((t: any) => ({
+              word: t.surface || t.lemma || "",
+              reading: t.reading || t.lemma || "",
+              meaning: "",
+              partOfSpeech: t.partOfSpeech || "",
+              example: "",
+              exampleMeaning: "",
+            }));
+          const seen = new Set<string>();
+          const vocabulary: any[] = [];
+          for (const v of [...listVocab, ...tokenVocab]) {
+            if (!seen.has(v.word)) {
+              seen.add(v.word);
+              vocabulary.push(v);
+            }
+          }
+
+          return {
+            id: s.id || idx.toString(),
+            startTime: s.startTime,
+            endTime: s.endTime,
+            text: s.jpText,
+            translation: s.vnText || "",
+            tokens: Array.isArray(s.tokens) ? s.tokens : [],
+            vocabulary
+          };
+        });
+
+        const review = sentences.map((sentence: any) => ({
+          sentence,
+          score: 0,
+          feedback: {
+            pronunciation: 0,
+            pitchAccent: 0,
+            fluency: 0,
+            speed: 0,
+            overallScore: 0,
+            feedback: "Chưa có dữ liệu chấm điểm.",
+            tips: []
+          }
+        }));
+        setReviewData(review);
+        loadReviewScores(review);
+      } catch (err) {
+        console.error("Error loading video details:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const loadReviewScores = async (initialReview: typeof reviewData) => {
+      // Try to load real evaluation scores from localStorage (saved by practice page)
+      const stored = localStorage.getItem(`shadowing-practice-${videoId}`);
+      if (!stored) return;
+      try {
+        const { savedResults } = JSON.parse(stored) as { savedIndex: number; savedResults: any[] };
+        if (!Array.isArray(savedResults)) return;
+
+        setReviewData((prev) =>
+          prev.map((review) => {
+            const found = savedResults.find((r) => r.sentenceId === review.sentence.id);
+            if (!found) return review;
+            const ev = found.evaluation as ShadowingEvaluationResponse | undefined;
+            if (!ev) return review;
+            return {
+              ...review,
+              score: ev.overall ?? 0,
+              feedback: {
+                pronunciation: ev.accuracy ?? 0,
+                pitchAccent: ev.similarity ? Math.round(ev.similarity * 0.8) : 0,
+                fluency: ev.accuracy ? Math.round(ev.accuracy * 0.85) : 0,
+                speed: ev.overall ? Math.round(ev.overall * 0.9) : 0,
+                overallScore: ev.overall ?? 0,
+                feedback: Array.isArray(ev.feedback) && ev.feedback.length > 0
+                  ? ev.feedback.join(" ")
+                  : "Chưa có dữ liệu chấm điểm.",
+                tips: Array.isArray(ev.practiceSuggestions) ? ev.practiceSuggestions : [],
+              },
+            };
+          })
+        );
+      } catch (e) {
+        console.error("Failed to load shadowing review scores:", e);
+      }
+    };
+    loadVideoAndTranscript();
+  }, [videoId]);
+
+  const video = useMemo(() => {
+    if (!rawVideo) return null;
+    return {
+      id: rawVideo.id,
+      title: rawVideo.title,
+      description: rawVideo.description || "",
+      videoUrl: rawVideo.videoUrl,
+      thumbnail: rawVideo.thumbnailUrl || "",
+      duration: rawVideo.duration,
+      jlptLevel: rawVideo.jlptLevel || "N5",
+      topic: rawVideo.topic || "General"
+    };
+  }, [rawVideo]);
+
+  const topic = useMemo(() => {
+    if (!rawVideo) return null;
+    return {
+      id: (rawVideo.topic || "General").toLowerCase().replace(/\s+/g, "-"),
+      title: rawVideo.topic || "General",
+      titleVn: getTopicVn(rawVideo.topic || "General"),
+      jlptLevel: rawVideo.jlptLevel || "N5"
+    };
+  }, [rawVideo]);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const currentReview = reviewData[selectedIndex];
+
+  useEffect(() => {
+    if (!currentReview || !currentReview.sentence) return;
+    
+    currentReview.sentence.vocabulary.forEach(async (vocab) => {
+      const wordKey = vocab.word;
+      try {
+        const result = await dictionaryApi.lookupWord({
+          word: wordKey
+        });
+        
+        if (result) {
+          let meaning = "";
+          if (result.contextMeaning && result.contextMeaning.trim()) {
+            meaning = result.contextMeaning;
+          } else if (result.primaryMeaning && result.primaryMeaning.trim()) {
+            meaning = result.primaryMeaning;
+          } else if (result.meanings && result.meanings.length > 0) {
+            meaning = result.meanings.join("; ");
+          }
+          
+          if (meaning.trim()) {
+            setResolvedMeanings(prev => {
+              if (prev[wordKey] === meaning) return prev;
+              return {
+                ...prev,
+                [wordKey]: meaning
+              };
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to lookup word in shadowing review popup:", wordKey, err);
+      }
+    });
+  }, [currentReview]);
+
+  // Close loader early if loading is done
+  if (isLoading) {
+    return (
+      <div className="min-h-screen relative flex flex-col items-center justify-center">
+        <SakuraBg count={14} />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   if (!video || !topic) {
     return (
@@ -105,9 +283,12 @@ function ReviewPage() {
               </div>
 
               {/* Overall Score */}
-              <div className="text-right">
-                <div className="text-2xl font-black text-pink-500">{overallScore}%</div>
-                <div className="text-xs text-muted-foreground">Điểm trung bình</div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-2xl font-black text-pink-500">{overallScore}%</div>
+                  <div className="text-xs text-muted-foreground">Điểm trung bình</div>
+                </div>
+                <SavedWordsButton />
               </div>
             </div>
           </div>
@@ -147,16 +328,16 @@ function ReviewPage() {
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p
+                        <ClickableTranscript
+                          text={review.sentence.text}
+                          contextSentence={review.sentence.text}
+                          tokens={review.sentence.tokens}
                           className={`text-sm font-medium truncate ${
                             selectedIndex === index
                               ? "text-white"
                               : "text-slate-800 dark:text-white"
                           }`}
-                          style={{ fontFamily: "var(--font-japanese, serif)" }}
-                        >
-                          {review.sentence.text}
-                        </p>
+                        />
                         <p
                           className={`text-xs truncate ${
                             selectedIndex === index ? "text-white/70" : "text-muted-foreground"
@@ -241,12 +422,12 @@ function ReviewPage() {
 
                     {/* Japanese */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl mb-4">
-                      <p
+                      <ClickableTranscript
+                        text={currentReview.sentence.text}
+                        contextSentence={currentReview.sentence.text}
+                        tokens={currentReview.sentence.tokens}
                         className="text-xl text-slate-800 dark:text-white leading-relaxed"
-                        style={{ fontFamily: "var(--font-japanese, serif)" }}
-                      >
-                        {currentReview.sentence.text}
-                      </p>
+                      />
                     </div>
 
                     {/* Translation */}
@@ -346,7 +527,7 @@ function ReviewPage() {
                               </span>
                             </div>
                             <span className="text-xs text-slate-500 dark:text-slate-400">
-                              {vocab.meaning}
+                              {resolvedMeanings[vocab.word] || vocab.meaning}
                             </span>
                           </div>
                         ))}

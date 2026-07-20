@@ -45,3 +45,9 @@ logs/
 
 # Local uploads (Supabase Storage now used)
 uploads/
+
+# Dictionary data files (large third-party data, not needed in Git)
+# These files are downloaded locally by team members as described in docs/setup/
+dictionary/*.xml
+dictionary/*.dic
+dictionary/sudachi/

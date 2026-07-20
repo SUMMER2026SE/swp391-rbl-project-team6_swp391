@@ -141,7 +141,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     setStep("upload");
   };
 
-  const handleFileUpload = useCallback(async (file: File) => {
+  const handleSelectFile = useCallback((file: File) => {
     if (!enabled || !selectedMode) {
       setError("This feature is currently disabled.");
       return;
@@ -152,22 +152,29 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       return;
     }
 
-    // Defense in depth: never call the API without at least one target skill.
-    if (!targetSkills || targetSkills.length === 0) {
+    if (targetSkills.length === 0) {
       const msg = "Please select at least one skill before uploading a PDF.";
       setError(msg);
       toast.error(msg);
       return;
     }
 
-    // CRITICAL: drop any preview/questions from a previous upload BEFORE
-    // starting the new request. Without this, a stale Tanaka reading passage
-    // could keep showing up on the new file.
     setQuestions([]);
     setError(null);
     setWarning(null);
     setSelectedFile(file);
+  }, [enabled, selectedMode, targetSkills]);
 
+  const handleGenerate = useCallback(async () => {
+    if (!selectedFile || !selectedMode) {
+      setError("Please select a PDF file before generating questions.");
+      return;
+    }
+
+    const file = selectedFile;
+    setQuestions([]);
+    setError(null);
+    setWarning(null);
     setStep("loading");
     setLoadingMessage("Extracting text from PDF...");
 
@@ -185,7 +192,6 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       setLoadingMessage("AI is analyzing questions...");
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Check for error in response
       if (response.errorMessage) {
         setError(response.errorMessage);
         setStep("upload");
@@ -196,7 +202,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       const rawQuestions = Array.isArray(response.questions) ? response.questions : [];
       if (rawQuestions.length === 0) {
         const fallback =
-          "No questions could be extracted from this PDF. Please check that the file contains a readable question bank and try again.";
+          "No questions could be extracted from this PDF. Please check that the file contains readable learning content and try again.";
         setError(fallback);
         setStep("upload");
         toast.error(fallback);
@@ -224,9 +230,8 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
 
       setQuestions(importedQuestions);
       setStep("preview");
-      toast.success(`Extracted ${importedQuestions.length} questions from PDF`);
+      toast.success(`Generated ${importedQuestions.length} questions from PDF`);
 
-      // Show warning if any (persist in state so it stays visible on preview)
       if (response.warning) {
         setWarning(response.warning);
         toast.warning(response.warning);
@@ -234,13 +239,13 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     } catch (err: any) {
       const raw = err?.message || "Failed to process PDF. Please try again.";
       const friendly = raw.includes("aiResult") || raw.includes("Cannot invoke")
-        ? "AI could not extract questions from this PDF. Please try a different file."
+        ? "AI could not generate questions from this PDF. Please try a different file."
         : raw;
       setError(friendly);
       setStep("upload");
       toast.error(friendly);
     }
-  }, [enabled, selectedMode, questionCount, questionType, difficulty, level, targetSkills]);
+  }, [selectedFile, selectedMode, questionCount, questionType, difficulty, level, targetSkills]);
 
   /** Valid Question Bank category values (canonical PascalCase). */
   const VALID_CATEGORIES = ["Vocabulary", "Grammar", "Reading", "Listening"];
@@ -348,10 +353,13 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     if (targetSkills.length > 0) {
       const nonMatchingQuestions = questions.filter((q) => {
         if (!q.category) return false;
-        return !targetSkills.some(skill =>
-          q.category.toUpperCase() === skill.toUpperCase() ||
-          q.category.toUpperCase() === skill.substring(0, 1).toUpperCase() + skill.substring(1).toLowerCase()
-        );
+        const cat = q.category.toUpperCase();
+        return !targetSkills.some((skill) => {
+          const upper = skill.toUpperCase();
+          const titleCase =
+            skill.substring(0, 1).toUpperCase() + skill.substring(1).toLowerCase();
+          return cat === upper || cat === titleCase;
+        });
       });
 
       if (nonMatchingQuestions.length > 0) {
@@ -765,7 +773,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
                 return;
               }
               const file = e.dataTransfer.files[0];
-              if (file) handleFileUpload(file);
+              if (file) handleSelectFile(file);
             }}
           >
             <input
@@ -775,7 +783,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
+                if (file) handleSelectFile(file);
               }}
             />
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 ${
@@ -819,8 +827,34 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
             <div className="px-4 py-3 rounded-xl bg-primary/10 text-primary text-sm flex items-center gap-2">
               <CheckCircle className="w-5 h-5 shrink-0" />
               <span>Selected: {selectedFile.name}</span>
+              <span className="text-xs text-primary/70">
+                ({Math.round(selectedFile.size / 1024)} KB)
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedFile(null)}
+                className="ml-auto text-xs font-semibold text-primary hover:underline"
+              >
+                Remove
+              </button>
             </div>
           )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={!selectedFile}
+              data-testid="ai-pdf-generate-button"
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold shadow-md transition ${
+                !selectedFile
+                  ? "bg-muted text-muted-foreground cursor-not-allowed"
+                  : "bg-gradient-hero text-white hover:opacity-90"
+              }`}
+            >
+              Generate Questions
+            </button>
+          </div>
 
           {error && (
             <div className="px-4 py-3 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-center gap-2">
@@ -865,6 +899,11 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
                 <span className="font-semibold">Skills:</span>{" "}
                 {targetSkills.join(", ") || "(none)"}
               </p>
+              {selectedMode === "IMPORT_EXISTING_QUESTIONS" && (
+                <p className="text-xs text-muted-col mt-1">
+                  <span className="font-semibold">Note:</span> All valid questions from the PDF were extracted. The requested count applies only to Generate from Content mode.
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <button

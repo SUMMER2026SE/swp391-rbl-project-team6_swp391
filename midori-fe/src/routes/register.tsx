@@ -1,13 +1,21 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { AuthShell, Field, PrimaryBtn, GoogleBtn } from "@/components/auth-shell";
 import { useState, useRef } from "react";
 import { Eye, EyeOff, Upload, X, FileText, Image as ImageIcon, File, Check } from "lucide-react";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "@/lib/api/auth";
-import { useAuth } from "@/lib/auth";
+import { useAuth, getDashboardPath } from "@/lib/auth";
 import type { RegisterRequest } from "@/lib/api/types";
+import { z } from "zod";
 
-export const Route = createFileRoute("/register")({ component: RegisterPage });
+const registerSearchSchema = z.object({
+  redirect: z.string().optional().catch(""),
+});
+
+export const Route = createFileRoute("/register")({
+  validateSearch: registerSearchSchema,
+  component: RegisterPage,
+});
 
 type Role = "STUDENT" | "TEACHER";
 
@@ -92,6 +100,7 @@ function createRegisterPayload(form: RegisterForm, selectedRole: Role): Register
 
 function RegisterPage() {
   const nav = useNavigate();
+  const { redirect } = Route.useSearch();
   const [selectedRole, setSelectedRole] = useState<Role>("STUDENT");
   const [form, setForm] = useState<RegisterForm>({
     name: "",
@@ -269,7 +278,7 @@ function RegisterPage() {
     setGoogleLoading(true);
     try {
       const u = await loginWithGoogle(credential, selectedRole);
-      nav({ to: getDashboardPath(u) });
+      nav({ to: redirect || getDashboardPath(u), replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setErr(err.message);
@@ -287,13 +296,13 @@ function RegisterPage() {
 
   return (
     <AuthShell
-      title="Create your account 🌸"
+      title="Tạo tài khoản 🌸"
       subtitle={subtitle}
       footer={
         <>
-          Already have an account?{" "}
-          <Link to="/login" className="text-primary font-semibold">
-            Sign in
+          Đã có tài khoản?{" "}
+          <Link to="/login" search={{ redirect }} className="text-primary font-semibold">
+            Đăng nhập
           </Link>
         </>
       }

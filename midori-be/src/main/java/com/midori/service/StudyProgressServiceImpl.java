@@ -291,27 +291,40 @@ public class StudyProgressServiceImpl implements StudyProgressService {
                 .filter(s -> s.getStatus() == com.midori.entity.HomeworkSubmission.SubmissionStatus.GRADED)
                 .count();
 
-        // Calculate average score from all graded submissions and exams
-        double totalScore = 0;
+        // Calculate average score (in %) from all graded submissions and exams.
+        // Homework and exam scores live on different scales, so we normalize
+        // each item to a 0-100 percentage before averaging.
+        double totalPercent = 0;
         int scoreCount = 0;
 
-        // Homework scores
+        // Homework scores → percentage of max score
         for (com.midori.entity.HomeworkSubmission sub : submissions) {
-            if (sub.getStatus() == com.midori.entity.HomeworkSubmission.SubmissionStatus.GRADED && sub.getScore() != null) {
-                totalScore += sub.getScore();
+            if (sub.getStatus() == com.midori.entity.HomeworkSubmission.SubmissionStatus.GRADED
+                    && sub.getScore() != null
+                    && sub.getHomework() != null
+                    && sub.getHomework().getMaxScore() != null
+                    && sub.getHomework().getMaxScore() > 0) {
+                double itemPercent = (sub.getScore() * 100.0) / sub.getHomework().getMaxScore();
+                totalPercent += itemPercent;
                 scoreCount++;
             }
         }
 
-        // Exam scores
+        // Exam scores → use percentage if available, else compute from score / totalPoints
         for (com.midori.entity.StudentExam exam : studentExams) {
+            Double itemPercent = null;
             if (exam.getPercentage() != null) {
-                totalScore += exam.getPercentage();
+                itemPercent = exam.getPercentage();
+            } else if (exam.getScore() != null && exam.getTotalPoints() != null && exam.getTotalPoints() > 0) {
+                itemPercent = (exam.getScore() * 100.0) / exam.getTotalPoints();
+            }
+            if (itemPercent != null) {
+                totalPercent += itemPercent;
                 scoreCount++;
             }
         }
 
-        double averageScore = scoreCount > 0 ? (totalScore / scoreCount) : 0;
+        double averageScore = scoreCount > 0 ? (totalPercent / scoreCount) : 0;
 
         StudentProgressResponse.StudentInfo studentInfo = StudentProgressResponse.StudentInfo.builder()
                 .id(student.getId().toString())

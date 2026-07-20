@@ -15,11 +15,11 @@ function StudentLayout() {
 
   return (
     <AuthGuard role="student">
-      <StudentStatusGuard>
-        <DashboardLayout role="student" hideFooter={hideFooter}>
+      <DashboardLayout role="student" hideFooter={hideFooter}>
+        <StudentStatusGuard>
           <Outlet />
-        </DashboardLayout>
-      </StudentStatusGuard>
+        </StudentStatusGuard>
+      </DashboardLayout>
     </AuthGuard>
   );
 }

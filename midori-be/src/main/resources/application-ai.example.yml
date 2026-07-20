@@ -1,5 +1,6 @@
-# AI PDF Exam Generator - Example Configuration
+# AI Configuration - Example Configuration
 # Copy this file to application-local.yml and configure your AI provider
+# ============================================================
 
 # ========================
 # AI PROVIDER CONFIGURATION
@@ -12,13 +13,49 @@
 # Cost: ~$0.000125 per 1K tokens (very cheap)
 # Get API key: https://makersuite.google.com/app/apikey
 ai:
+  provider: gemini
+  
   gemini:
-    api-key: YOUR_GEMINI_API_KEY_HERE
-    # Primary model — set GEMINI_MODEL env var to change without rebuild
-    model: ${GEMINI_MODEL:gemini-3.5-flash}
-    # Fallback chain — set GEMINI_FALLBACK_MODELS env var to customize
-    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-pro}
+    # API Keys (comma-separated for multiple keys with automatic fallback)
+    api-keys: YOUR_GEMINI_API_KEY_HERE
+    
+    # ============================================================
+    # MODEL SELECTION - Choose one of these modes:
+    # ============================================================
+    
+    # MODE 1: AUTO (RECOMMENDED)
+    # Automatically selects the best model based on task type:
+    #   - Translation, simple tasks → gemini-2.5-flash (fast, cheap)
+    #   - Complex reasoning → gemini-2.5-pro (powerful, moderate cost)
+    #   - Long documents → gemini-3.5-flash (balance of speed and quality)
+    model: AUTO
+    
+    # Available models for AUTO mode (optional - uses all known models if not specified)
+    # models: gemini-2.5-flash,gemini-2.5-pro,gemini-3.5-flash
+    
+    # Task-specific model overrides (optional)
+    # Uncomment to customize which model is used for specific tasks
+    # task-model-mapping:
+    #   DEFAULT: gemini-2.5-flash
+    #   COMPLEX_REASONING: gemini-2.5-pro
+    #   LONG_DOCUMENT_ANALYSIS: gemini-3.5-flash
+    #   SHADOWING_EVALUATION: gemini-2.5-flash
+    
+    # Fallback models if primary fails
+    # fallback-models: gemini-2.5-flash,gemini-2.5-pro
+    
     enabled: true
+  
+  # MODE 2: Specific Model (override AUTO mode)
+  # Uncomment and set a specific model to disable AUTO mode
+  # gemini:
+  #   model: gemini-2.5-flash
+  #   model: gemini-2.5-pro
+  #   model: gemini-3.5-flash
+
+  timeout-seconds: 120
+  temperature: 0.1
+  max-tokens: 8192
 
 # OPTION 2: OpenAI GPT
 # Best for: Reliable JSON output, general purpose
@@ -42,21 +79,68 @@ ai:
 #     enabled: true
 
 # ========================
+# SHADOWING EVALUATION CONFIG
+# ========================
+# Configuration for Japanese shadowing/speaking practice evaluation
+shadowing:
+  evaluation:
+    # Gemini model for evaluation (supports enum-based config)
+    # Options: gemini-2.5-flash, gemini-2.5-pro, gemini-3.5-flash
+    gemini-model: gemini-3.5-flash
+    
+    # Evaluation thresholds
+    similarity-threshold: 0.80
+    gemini-threshold: 80.0
+    confidence-threshold: 0.55
+    
+    # Timing constraints
+    max-recording-duration-seconds: 15
+    min-recording-duration-ms: 200
+    
+    # Caching
+    cache-ttl-minutes: 60
+    cache-max-size: 10000
+
+# ========================
 # PDF PROCESSING CONFIG
 # ========================
-  pdf:
-    max-file-size: 10485760   # 10MB in bytes
-    async-threshold: 1048576   # 1MB - files larger than this use async processing
+pdf:
+  max-file-size: 10485760   # 10MB in bytes
+  async-threshold: 1048576   # 1MB - files larger than this use async processing
 
 # ========================
 # OCR CONFIGURATION
 # ========================
-  ocr:
-    enabled: true
-    # simulated: true  # Uncomment for real OCR integration
-    
+ocr:
+  enabled: true
+  # simulated: true  # Uncomment for real OCR integration
+
 # For production OCR, consider:
 # 1. Tesseract OCR (local installation)
 # 2. Google Cloud Vision API
 # 3. AWS Textract
 # 4. Azure Computer Vision
+
+# ============================================================
+# SUPPORTED MODELS REFERENCE
+# ============================================================
+# The following models are supported by GeminiModel enum:
+#
+# gemini-2.5-flash:
+#   - Fast, cost-effective
+#   - Best for: Translation, simple tasks, high-volume requests
+#   - Capability: 2/5, Cost: 1/5
+#
+# gemini-2.5-pro:
+#   - Balanced for complex reasoning
+#   - Best for: Complex reasoning, analysis, nuanced understanding
+#   - Capability: 4/5, Cost: 3/5
+#
+# gemini-3.5-flash:
+#   - Next-generation fast model
+#   - Best for: When available, replaces 2.5 Flash
+#   - Capability: 3/5, Cost: 2/5
+#
+# gemini-2.0-flash:
+#   - Legacy model (not recommended)
+#   - Capability: 1/5, Cost: 1/5

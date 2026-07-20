@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { vocabularyFavoriteApi, type VocabularyFavoriteResponse } from "@/lib/api/vocabularyFavorite";
 
@@ -40,6 +38,11 @@ export function useVocabularyFavorites(
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
+  const lessonIdRef = useRef(lessonId);
+  useEffect(() => {
+    lessonIdRef.current = lessonId;
+  }, [lessonId]);
+
   // Query for favorite IDs (lightweight)
   const {
     data: favoriteIds = [],
@@ -74,7 +77,6 @@ export function useVocabularyFavorites(
 
   const isLoading = isLoadingIds || isLoadingFavorites;
 
-  // Toggle favorite mutation
   const toggleMutation = useMutation({
     mutationFn: async (vocabularyItemId: string) => {
       setTogglingId(vocabularyItemId);
@@ -87,23 +89,24 @@ export function useVocabularyFavorites(
       }
     },
     onMutate: async (vocabularyItemId: string) => {
+      const currentLessonId = lessonIdRef.current;
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: lessonId
-          ? ["vocabulary-favorites", "lesson", lessonId, "ids"]
+        queryKey: currentLessonId
+          ? ["vocabulary-favorites", "lesson", currentLessonId, "ids"]
           : ["vocabulary-favorites", "ids"]
       });
 
       // Snapshot previous value
       const previousIds = queryClient.getQueryData<string[]>(
-        lessonId
-          ? ["vocabulary-favorites", "lesson", lessonId, "ids"]
+        currentLessonId
+          ? ["vocabulary-favorites", "lesson", currentLessonId, "ids"]
           : ["vocabulary-favorites", "ids"]
       );
 
       // Optimistically update cache
-      const queryKey = lessonId
-        ? ["vocabulary-favorites", "lesson", lessonId, "ids"]
+      const queryKey = currentLessonId
+        ? ["vocabulary-favorites", "lesson", currentLessonId, "ids"]
         : ["vocabulary-favorites", "ids"];
 
       if (previousIds) {
@@ -117,25 +120,27 @@ export function useVocabularyFavorites(
       return { previousIds };
     },
     onSuccess: () => {
+      const currentLessonId = lessonIdRef.current;
       // Invalidate to ensure fresh data
       queryClient.invalidateQueries({
-        queryKey: lessonId
-          ? ["vocabulary-favorites", "lesson", lessonId]
+        queryKey: currentLessonId
+          ? ["vocabulary-favorites", "lesson", currentLessonId]
           : ["vocabulary-favorites"]
       });
       queryClient.invalidateQueries({
-        queryKey: lessonId
-          ? ["vocabulary-favorites", "lesson", lessonId, "ids"]
+        queryKey: currentLessonId
+          ? ["vocabulary-favorites", "lesson", currentLessonId, "ids"]
           : ["vocabulary-favorites", "ids"]
       });
     },
     onError: (err: Error, _variables, context) => {
+      const currentLessonId = lessonIdRef.current;
       setError(err);
       // Rollback on error
       if (context?.previousIds) {
         queryClient.setQueryData(
-          lessonId
-            ? ["vocabulary-favorites", "lesson", lessonId, "ids"]
+          currentLessonId
+            ? ["vocabulary-favorites", "lesson", currentLessonId, "ids"]
             : ["vocabulary-favorites", "ids"],
           context.previousIds
         );

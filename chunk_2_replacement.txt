@@ -1,0 +1,62 @@
+    public AiExamParseResponse sanitizeAndWrap(String materialTitle,
+                                              AiExistingQuestionParser.GenerateSanitizeResult sanitized) {
+        AiExamParseResponse result = new AiExamParseResponse();
+        result.setTitle(materialTitle);
+        result.setDescription("AI-generated questions from " + materialTitle);
+        result.setQuestions(sanitized.questions);
+        return result;
+    }
+
+    private void applyBalancedRandomization(List<AiExamParseResponse.AiQuestionDto> questions) {
+        if (questions == null || questions.isEmpty()) return;
+
+        List<Integer> targetPositions = new java.util.ArrayList<>();
+        for (int i = 0; i < questions.size(); i++) {
+            targetPositions.add(i % 4);
+        }
+        java.util.Collections.shuffle(targetPositions, new java.util.Random());
+
+        for (int i = 0; i < questions.size(); i++) {
+            AiExamParseResponse.AiQuestionDto q = questions.get(i);
+            if (q.getAnswers() == null || q.getAnswers().size() < 4) continue;
+
+            int targetCorrectIndex = targetPositions.get(i);
+
+            AiExamParseResponse.AiAnswerDto correctOpt = null;
+            List<AiExamParseResponse.AiAnswerDto> incorrectOpts = new java.util.ArrayList<>();
+            for (AiExamParseResponse.AiAnswerDto opt : q.getAnswers()) {
+                if (Boolean.TRUE.equals(opt.getIsCorrect())) {
+                    if (correctOpt == null) correctOpt = opt;
+                    else {
+                        opt.setIsCorrect(false);
+                        incorrectOpts.add(opt);
+                    }
+                } else {
+                    incorrectOpts.add(opt);
+                }
+            }
+
+            if (correctOpt == null) {
+                correctOpt = q.getAnswers().get(0);
+                correctOpt.setIsCorrect(true);
+                incorrectOpts = new java.util.ArrayList<>(q.getAnswers().subList(1, q.getAnswers().size()));
+            }
+
+            java.util.Collections.shuffle(incorrectOpts, new java.util.Random());
+
+            List<AiExamParseResponse.AiAnswerDto> newAnswers = new java.util.ArrayList<>(4);
+            for(int j = 0; j < 4; j++) newAnswers.add(null);
+
+            newAnswers.set(targetCorrectIndex, correctOpt);
+            int incIdx = 0;
+            for(int j = 0; j < 4; j++) {
+                if (j != targetCorrectIndex) {
+                    if (incIdx < incorrectOpts.size()) {
+                        newAnswers.set(j, incorrectOpts.get(incIdx++));
+                    }
+                }
+            }
+
+            q.setAnswers(newAnswers);
+        }
+    }

@@ -258,6 +258,11 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
         )}
 
         {/* Options */}
+        {correctIndex === -1 && (
+          <div className="text-red-500 text-xs font-semibold my-2">
+            Warning: Please select a correct answer.
+          </div>
+        )}
         {question.type !== "TRUE_FALSE" ? (
           <OptionEditor
             options={question.answers.map((a) => a.content)}
