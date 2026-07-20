@@ -75,6 +75,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             "GROUP BY un.notification.id")
     List<NotificationLatestSent> findLatestSentByNotificationIds(@Param("notificationIds") Collection<Long> notificationIds);
 
+    /**
+     * Returns the most recently sent notifications (those with at least one recipient).
+     */
+    @Query("SELECT DISTINCT n FROM Notification n " +
+            "JOIN UserNotification un ON un.notification = n " +
+            "ORDER BY un.createdAt DESC")
+    List<Notification> findRecentNotifications(Pageable pageable);
+
     interface NotificationRecipientCount {
         Long getId();
         Long getTotal();

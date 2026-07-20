@@ -1,7 +1,10 @@
 package com.midori.repository;
 
 import com.midori.entity.HomeworkSubmission;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -18,4 +21,7 @@ public interface HomeworkSubmissionRepository extends JpaRepository<HomeworkSubm
     List<HomeworkSubmission> findAllByHomeworkIdAndStudentId(UUID homeworkId, UUID studentId);
     long countByHomeworkId(UUID homeworkId);
     long countByHomeworkIdAndStatus(UUID homeworkId, HomeworkSubmission.SubmissionStatus status);
+
+    @Query("SELECT hs FROM HomeworkSubmission hs ORDER BY hs.submittedAt DESC")
+    List<HomeworkSubmission> findRecentSubmissions(Pageable pageable);
 }

@@ -1,7 +1,6 @@
 package com.midori.dto.classdto;
 
 import com.midori.entity.ClassEntity.ClassStatus;
-import com.midori.entity.GrammarLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,10 +18,11 @@ public class AdminClassResponse {
     private String name;
     private String teacher;
     private UUID teacherId;
-    private GrammarLevel level;
+    private String level; // Changed from GrammarLevel to String for easier JSON serialization
     private Integer students;
     private Integer maxStudents;
     private ClassStatus status;
     private Instant createdAt;
     private String description;
+    private String classCode;
 }
