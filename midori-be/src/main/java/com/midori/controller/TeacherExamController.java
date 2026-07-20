@@ -1,16 +1,19 @@
 package com.midori.controller;
 
 import com.midori.common.ApiResponse;
+import com.midori.dto.request.AiExamGenerateRequest;
 import com.midori.dto.request.GenerateExamFromQuestionBankRequest;
 import com.midori.dto.response.ExamResponse;
 import com.midori.service.ExamGenerationService;
+import com.midori.service.TeacherExamAiService;
+import com.midori.ai.dto.AiExamParseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +23,15 @@ import org.springframework.web.bind.annotation.*;
 public class TeacherExamController {
 
     private final ExamGenerationService examGenerationService;
+    private final TeacherExamAiService teacherExamAiService;
+
+    @PostMapping("/ai-generate")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<AiExamParseResponse>> generateAiExam(
+            @Valid @RequestBody AiExamGenerateRequest request) {
+        AiExamParseResponse response = teacherExamAiService.generateExamQuestions(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
     @PostMapping("/generate-from-question-bank")
     public ResponseEntity<ApiResponse<ExamResponse>> generateExamFromQuestionBank(

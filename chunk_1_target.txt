@@ -1,0 +1,5 @@
+        AiExistingQuestionParser.GenerateSanitizeResult sanitized =
+                AiExistingQuestionParser.sanitizeGeneratedQuestions(
+                        parsed.getQuestions(),
+                        selectedSkills
+                );

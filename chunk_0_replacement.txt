@@ -1,0 +1,13 @@
+    public AiExamParseResponse generateQuestions(String materialTitle, String learningContent,
+                                                int questionCount, String difficulty,
+                                                List<String> selectedSkills) {
+        return generateQuestions(materialTitle, learningContent, questionCount, difficulty, selectedSkills, null);
+    }
+
+    /**
+     * Call AI to generate questions from the provided learning content, with optional source passage.
+     */
+    public AiExamParseResponse generateQuestions(String materialTitle, String learningContent,
+                                                int questionCount, String difficulty,
+                                                List<String> selectedSkills, String sourcePassage) {
+        if (learningContent == null || learningContent.isBlank()) {

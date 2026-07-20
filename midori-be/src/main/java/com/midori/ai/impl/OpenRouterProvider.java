@@ -62,7 +62,12 @@ public class OpenRouterProvider implements AiProvider {
      */
     private static final List<String> KNOWN_BAD_MODELS = List.of(
             "deepseek/deepseek-chat-v3-0324:free",
-            "nvidia/nemotron-3-ultra-550b-a55b:free"
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            // 2026-07-19: openai/gpt-oss-120b:free was retired from the
+            // free tier by OpenRouter. The paid slug is openai/gpt-oss-120b.
+            // Hard-coding it here ensures the chain builder skips it even
+            // when example/local configs still reference it.
+            "openai/gpt-oss-120b:free"
     );
 
     private final AiConfigProperties config;
@@ -632,8 +637,22 @@ public class OpenRouterProvider implements AiProvider {
 
         RestTemplate rt = new RestTemplate(factory);
         try {
-            ResponseEntity<String> response = rt.postForEntity(OPENROUTER_API_URL, request, String.class);
-            return extractTextFromResponse(response.getBody(), model);
+            // Read the response as raw bytes so we can decode it as UTF-8 ourselves.
+            // OpenRouter's Content-Type is `application/json` with no `charset=utf-8`,
+            // so Spring's default StringHttpMessageConverter falls back to ISO-8859-1
+            // and silently mangles Japanese / Vietnamese into mojibake ("T? có ngh?a là gì?"
+            // instead of "Từ có nghĩa là gì?", "???" instead of "こんにちは").
+            // Using byte[] + StandardCharsets.UTF_8 makes the decoding explicit and
+            // matches the safe approach already used by callChat above.
+            ResponseEntity<byte[]> response = rt.postForEntity(OPENROUTER_API_URL, request, byte[].class);
+            byte[] rawBytes = response.getBody();
+            String rawText;
+            try {
+                rawText = decodeUtf8Strict(rawBytes);
+            } catch (CharacterCodingException e) {
+                throw new RetryableException("Malformed UTF-8 in OpenRouter HTTP response for model " + model);
+            }
+            return extractTextFromResponse(rawText, model);
         } catch (HttpClientErrorException e) {
             handleHttpError(e, model);
             throw new RetryableException("HTTP error: " + e.getStatusCode());

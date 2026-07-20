@@ -2587,6 +2587,8 @@ public final class AiExistingQuestionParser {
         List<String[]> rawOptions = new ArrayList<>();
         Matcher ol = OPTION_LINE.matcher(block);
         while (ol.find()) {
+            // Skip answer annotation lines (e.g., "Correct answer: A", "Answer: B", "Đáp án: C")
+            if (isAnswerAnnotationLine(ol.group(0))) continue;
             String letter = ol.group(1);
             // Normalize fullwidth and Japanese hiragana to ASCII
             letter = normalizeOptionLetter(letter);
@@ -2764,6 +2766,32 @@ public final class AiExistingQuestionParser {
             case "エ": return "D";
             default: return l;
         }
+    }
+
+    // Answer annotation patterns to exclude from options
+    private static final Pattern ANSWER_ANNOTATION = Pattern.compile(
+            "(?im)^\\s*(?:Correct\\s*(?:answer)?|Answer|Đáp\\s*án|正解|答え)\\s*[:.]?\\s*(.+)$"
+    );
+
+    /**
+     * Check if a line is an answer annotation (e.g., "Correct answer: A", "Answer: B", "Đáp án: C").
+     * These lines should not be treated as options.
+     */
+    private static boolean isAnswerAnnotationLine(String line) {
+        return line != null && ANSWER_ANNOTATION.matcher(line).matches();
+    }
+
+    /**
+     * Get the line number (0-based) containing the given character offset within the text.
+     * Returns -1 if offset is out of bounds.
+     */
+    private static int getLineContainingOffset(String text, int offset) {
+        if (text == null || offset < 0 || offset > text.length()) return -1;
+        int lineNum = 0;
+        for (int i = 0; i < offset; i++) {
+            if (text.charAt(i) == '\n') lineNum++;
+        }
+        return lineNum;
     }
 
     // =============================================================

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+// touched: 2026-07-20
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,22 +18,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { teacherQuestionsApi, type TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
+import { AiPdfImportWorkflow } from "@/components/admin/AiPdfImportWorkflow";
+import type { ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { PreviewSheet, SuccessBanner } from "@/components/teacher/dialogs";
 import { DifficultyDistribution, isDistValid } from "@/components/teacher/difficulty-distribution";
 import {
   ArrowLeft,
   ClipboardList,
+  Loader2,
+  CheckCircle,
+  Sparkles,
+  Send,
   HelpCircle,
   Save,
-  Send,
   Eye,
-  Sparkles,
   Shuffle,
   Plus,
   AlertCircle,
-  CheckCircle,
-  Loader2,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -148,7 +151,13 @@ function CreateHomework() {
         <ArrowLeft className="mr-1 h-4 w-4" />
         Change method
       </Button>
-      {method === "ai-pdf" && <HomeworkAiPdfPlaceholder />}
+      {method === "ai-pdf" && (
+        <HomeworkAiPdf
+          classes={classes}
+          lockedClass={lockedClass}
+          onDone={handleDone}
+        />
+      )}
       {method === "question-bank" && (
         <QuestionBankHW lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
       )}
@@ -1103,80 +1112,316 @@ function QuestionBankHW({
   );
 }
 
-function HomeworkAiPdfPlaceholder() {
-  return (
-    <div className="mx-auto max-w-4xl space-y-8">
-      <div className="card-base p-6 border border-[var(--border)] bg-card rounded-2xl shadow-sm text-center">
-        <h2 className="font-display font-black text-2xl text-primary-col mb-2">
-          AI PDF Homework Generator
-        </h2>
-        <p className="text-sm text-secondary-col">
-          Generate homework automatically by uploading a course syllabus, exam paper, or study
-          material PDF.
-        </p>
-      </div>
+function HomeworkAiPdf({
+  classes,
+  lockedClass,
+  onDone,
+}: {
+  classes: { id: string; name: string; level: string }[];
+  lockedClass: { id: string; name: string; level: string } | null;
+  onDone: (title: string, classId: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-      {/* Stepper UI */}
-      <div className="flex items-center justify-between max-w-xl mx-auto px-4">
-        {[
-          { step: 1, label: "Upload PDF" },
-          { step: 2, label: "AI Parsing" },
-          { step: 3, label: "Preview & Edit" },
-          { step: 4, label: "Assign" },
-        ].map((s, idx, arr) => (
-          <div key={s.step} className="flex items-center flex-1 last:flex-initial">
-            <div className="flex flex-col items-center gap-1.5 z-10">
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
-                  s.step === 1
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : "bg-background border-[var(--border)] text-muted-foreground",
-                )}
-              >
-                {s.step}
-              </div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                {s.label}
-              </span>
+  const [questions, setQuestions] = useState<ImportedQuestion[]>([]);
+  const [metadata, setMetadata] = useState({
+    classId: lockedClass?.id ?? classes[0]?.id ?? "",
+    title: "",
+    dueDate: "",
+    duration: 45,
+    attempts: 2,
+    maxScore: 100,
+    level: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!metadata.classId) {
+      const targetId = lockedClass?.id ?? classes[0]?.id;
+      if (targetId) {
+        setMetadata((prev) => ({ ...prev, classId: targetId }));
+      }
+    }
+  }, [lockedClass, classes, metadata.classId]);
+
+  const selectedClass = lockedClass ?? classes.find((c) => c.id === metadata.classId) ?? null;
+  const targetLevel = selectedClass?.level || "N5";
+
+  const [savedQuestionIds, setSavedQuestionIds] = useState<string[]>([]);
+  const [savingQuestions, setSavingQuestions] = useState(false);
+
+  const persistQuestionsToBank = async (items: ImportedQuestion[]): Promise<string[]> => {
+    if (items.length === 0) {
+      throw new Error("No questions to save.");
+    }
+
+    const hasUnresolved = items.some(q => q.answers.findIndex(a => a.isCorrect) === -1);
+    if (hasUnresolved) {
+      toast({
+        title: "Validation Error",
+        description: "One or more questions are missing a correct answer. Please resolve them first.",
+        variant: "destructive",
+      });
+      throw new Error("Unresolved correct answers");
+    }
+
+    const savedIds: string[] = [];
+    for (const q of items) {
+      const correctIndex = q.answers.findIndex((a) => a.isCorrect);
+      const res = await teacherQuestionsApi.createQuestion({
+        prompt: q.content,
+        options: q.answers.map((a) => a.content),
+        correctAnswerIndex: correctIndex,
+        points: 1,
+        questionType: "MULTIPLE_CHOICE",
+        difficulty: q.difficulty as "EASY" | "MEDIUM" | "HARD",
+        explanation: q.explanation || "",
+        level: targetLevel,
+        skill: (q.category || "Vocabulary").toUpperCase(),
+        source: "HOMEWORK",
+      });
+      savedIds.push(res.id);
+    }
+    return savedIds;
+  };
+
+  const handleCreateQuestions = async (items: ImportedQuestion[]) => {
+    setQuestions(items);
+    setAssignError(null);
+    setSavingQuestions(true);
+    try {
+      const ids = await persistQuestionsToBank(items);
+      setSavedQuestionIds(ids);
+      toast.success(`Saved ${items.length} questions to your question bank.`);
+    } catch (err: any) {
+      setAssignError(err?.message || "Failed to save questions to your question bank.");
+      toast.error(err?.message || "Failed to save questions to your question bank.");
+      setSavedQuestionIds([]);
+    } finally {
+      setSavingQuestions(false);
+    }
+  };
+
+  const handleAssign = async () => {
+    setAssignError(null);
+    let idsToUse = savedQuestionIds;
+
+    if (idsToUse.length === 0 && questions.length > 0) {
+      setSavingQuestions(true);
+      try {
+        idsToUse = await persistQuestionsToBank(questions);
+        setSavedQuestionIds(idsToUse);
+      } catch (err: any) {
+        setSavingQuestions(false);
+        setAssignError(err?.message || "Failed to save questions to your question bank.");
+        toast.error(err?.message || "Failed to save questions to your question bank.");
+        return;
+      }
+      setSavingQuestions(false);
+    }
+
+    if (idsToUse.length === 0) {
+      const msg = "Generate and save at least one question before assigning.";
+      setAssignError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    if (!metadata.classId || !metadata.title || !metadata.dueDate) {
+      const msg = "Please fill in target class, title, and due date before assigning.";
+      setAssignError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const homeworkTitle = metadata.title || `AI PDF Homework - ${idsToUse.length} questions`;
+      await homeworkApi.createHomework({
+        classId: metadata.classId,
+        title: homeworkTitle,
+        instructions: `Generated from AI PDF homework. Skills: ${questions
+          .map((q) => q.category || "Vocabulary")
+          .filter((v, i, self) => self.indexOf(v) === i)
+          .join(", ")}.`,
+        dueDate: new Date(metadata.dueDate).toISOString(),
+        maxScore: metadata.maxScore,
+        attempts: metadata.attempts,
+        timeLimit: metadata.duration,
+        questionIds: idsToUse,
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass", metadata.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", metadata.classId] });
+      await queryClient.invalidateQueries({ queryKey: ["teacherClasses"] });
+
+      toast.success("Homework assigned successfully!");
+      onDone(homeworkTitle, metadata.classId);
+    } catch (err: any) {
+      setAssignError(err?.message || "Failed to assign homework.");
+      toast.error(err?.message || "Failed to assign homework.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="AI PDF Homework · Refactored Workflow"
+        title="Generate homework from a PDF"
+        subtitle="Upload any PDF (vocabulary lists, grammar notes, reading passages) and let AI generate homework questions."
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-4">
+          <AiPdfImportWorkflow
+            onCreate={async (items) => {
+              await handleCreateQuestions(items);
+            }}
+            title="AI PDF Homework"
+            subtitle="Upload a PDF and let AI generate homework questions automatically."
+            backHref="/teacher/homework"
+            backLabel="Back to homework"
+            enabled={true}
+            disabledReason=""
+          />
+
+          {questions.length > 0 && (
+            <div className="card-base p-4 border border-[var(--border)]">
+              <p className="text-xs text-muted-foreground">
+                Saved <strong>{questions.length}</strong> questions to the teacher's question bank.
+                Configure the homework details and click <strong>Assign Homework</strong> to publish.
+              </p>
             </div>
-            {idx < arr.length - 1 && (
-              <div className="h-[2px] bg-[var(--border)] flex-1 -mx-2 -mt-4" />
+          )}
+        </div>
+
+        <Card className="border-[var(--border)] bg-card shadow-sm p-4 space-y-4 h-fit">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-secondary-col">
+            Homework Settings
+          </h3>
+
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+              Target class
+            </Label>
+            {lockedClass ? (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-sm">
+                <LevelBadge level={lockedClass.level} />
+                <span>{lockedClass.name}</span>
+                <span className="ml-auto text-[10px] uppercase text-muted-foreground">Locked</span>
+              </div>
+            ) : (
+              <Select
+                value={metadata.classId}
+                onValueChange={(v) => setMetadata({ ...metadata, classId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
-        ))}
-      </div>
 
-      {/* Upload area UI */}
-      <div className="card-base p-12 border-2 border-dashed border-[var(--border)] text-center bg-card/50 rounded-2xl">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-          <Upload className="w-8 h-8 text-primary" />
-        </div>
-        <h3 className="font-display font-bold text-lg text-primary-col mb-1">Upload PDF File</h3>
-        <p className="text-sm text-secondary-col mb-6">
-          Drag and drop your PDF here, or click to browse.
-        </p>
-        <Button disabled variant="outline" className="px-6 py-2.5 rounded-xl font-bold">
-          Choose PDF File
-        </Button>
-      </div>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+              Title
+            </Label>
+            <Input
+              value={metadata.title}
+              onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
+              placeholder="E.g., N5 Homework - Daily Vocabulary"
+            />
+          </div>
 
-      {/* Empty Preview area UI */}
-      <div className="card-base p-8 border border-[var(--border)] bg-card/30 rounded-2xl text-center">
-        <p className="text-sm text-muted-col italic">
-          No questions generated yet. Upload a PDF above to preview questions.
-        </p>
-      </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+                Due date
+              </Label>
+              <Input
+                type="date"
+                value={metadata.dueDate}
+                onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+                Duration (min)
+              </Label>
+              <Input
+                type="number"
+                value={metadata.duration}
+                onChange={(e) =>
+                  setMetadata({ ...metadata, duration: Math.max(0, Number(e.target.value) || 0) })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+                Max score
+              </Label>
+              <Input
+                type="number"
+                value={metadata.maxScore}
+                onChange={(e) =>
+                  setMetadata({ ...metadata, maxScore: Math.max(0, Number(e.target.value) || 0) })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
+                Attempts
+              </Label>
+              <Input
+                type="number"
+                value={metadata.attempts}
+                onChange={(e) =>
+                  setMetadata({ ...metadata, attempts: Math.max(1, Number(e.target.value) || 1) })
+                }
+              />
+            </div>
+          </div>
 
-      {/* Action footer */}
-      <div className="flex justify-end pt-4 border-t border-[var(--border)]">
-        <Button
-          disabled
-          size="lg"
-          className="px-8 py-3 font-bold rounded-xl bg-muted text-muted-foreground border border-[var(--border)]"
-        >
-          AI PDF Homework Coming Soon
-        </Button>
+          {assignError && (
+            <div className="px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
+              {assignError}
+            </div>
+          )}
+
+          <Button
+            disabled={submitting || savingQuestions || questions.length === 0}
+            className="w-full"
+            data-testid="ai-pdf-assign-button"
+            onClick={handleAssign}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Assigning…
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Assign Homework
+              </>
+            )}
+          </Button>
+          <p className="text-[10px] text-muted-foreground">
+            Questions are persisted as HOMEWORK items in your teacher question bank before
+            publishing to the selected class.
+          </p>
+        </Card>
       </div>
     </div>
   );

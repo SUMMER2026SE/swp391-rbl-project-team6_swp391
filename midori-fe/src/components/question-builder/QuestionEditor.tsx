@@ -78,7 +78,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
     const handleOptionsChange = (newOptions: string[]) => {
       const answers = newOptions.map((opt, i) => ({
         content: opt,
-        isCorrect: correctIndex === i || (correctIndex === -1 && i === 0),
+        isCorrect: correctIndex === i,
       }));
       onUpdateQuestion(index, { answers });
     };
@@ -145,6 +145,11 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
         </div>
 
         {/* Options */}
+        {correctIndex === -1 && (
+          <div className="text-red-500 text-xs font-semibold my-2">
+            Warning: Please select a correct answer.
+          </div>
+        )}
         {question.type !== "TRUE_FALSE" && question.type !== "FILL_BLANK" ? (
           <OptionEditor
             options={question.answers.map((a) => a.content)}

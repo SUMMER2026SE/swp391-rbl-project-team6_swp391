@@ -34,4 +34,6 @@ public interface ListeningLessonRepository extends JpaRepository<ListeningLesson
     long countByJlptLevel(String jlptLevel);
 
     long countByLessonId(UUID lessonId);
+
+    Optional<ListeningLesson> findByJlptLevelAndLessonNumber(String jlptLevel, Integer lessonNumber);
 }

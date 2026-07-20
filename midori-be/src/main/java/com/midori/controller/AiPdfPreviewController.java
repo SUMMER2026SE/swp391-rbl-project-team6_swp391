@@ -8,6 +8,7 @@ import com.midori.ai.util.AiExistingQuestionParser;
 import com.midori.common.ApiResponse;
 import com.midori.dto.response.AiPdfPreviewResponse;
 import com.midori.service.PdfTextExtractor;
+import com.midori.service.AiLearningContentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -35,11 +36,13 @@ public class AiPdfPreviewController {
 
     private final PdfTextExtractor pdfTextExtractor;
     private final AiCoreService aiCoreService;
+    private final AiLearningContentService aiLearningContentService;
     private final ObjectMapper objectMapper;
 
-    public AiPdfPreviewController(PdfTextExtractor pdfTextExtractor, AiCoreService aiCoreService) {
+    public AiPdfPreviewController(PdfTextExtractor pdfTextExtractor, AiCoreService aiCoreService, AiLearningContentService aiLearningContentService) {
         this.pdfTextExtractor = pdfTextExtractor;
         this.aiCoreService = aiCoreService;
+        this.aiLearningContentService = aiLearningContentService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -172,8 +175,11 @@ public class AiPdfPreviewController {
 
         } catch (Exception e) {
             log.error("PDF preview failed: {}", e.getMessage(), e);
+            String errorPrefix = "GENERATE_FROM_CONTENT".equals(mode)
+                    ? "Failed to generate questions. Please try again. (" + e.getMessage() + ")"
+                    : "Failed to process PDF: " + e.getMessage();
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to process PDF: " + e.getMessage()));
+                    .body(ApiResponse.error(errorPrefix));
         }
     }
 
@@ -205,78 +211,31 @@ public class AiPdfPreviewController {
             String level,
             List<String> selectedSkills) throws Exception {
 
-        String jsonResult = aiCoreService.generateQuestions(
-                filename,
-                extraction.fullText(),
-                count,
-                questionType,
-                difficulty,
-                selectedSkills
-        );
-
-        // Safe metadata only — never log question content or raw AI response.
-        log.info("[generate-parse] rawResponseLength={} selectedSkills={}",
-                jsonResult == null ? 0 : jsonResult.length(),
-                selectedSkills);
-
-        // Tolerant parse: strip markdown fences, preamble ("We need to
-        // generate..."), trailing prose ("Hope this helps"), top-level
-        // arrays, BOM, etc. Falls back to a friendly error.
-        com.midori.ai.dto.AiQuizGenerationResponse quizResponse;
-        try {
-            quizResponse = com.midori.ai.util.AiExistingQuestionParser
-                    .parseQuizGenerationResponse(jsonResult, objectMapper);
-        } catch (IllegalArgumentException e) {
-            log.warn("[generate-parse] parseFailed rawResponseLength={} reason={}",
-                    jsonResult == null ? 0 : jsonResult.length(), e.getMessage());
-            throw new IllegalArgumentException(e.getMessage(), e);
-        }
-
-        int cleanedJsonLength = jsonResult == null ? 0 : jsonResult.length();
-        log.info("[generate-parse] parseSuccess=true cleanedJsonLength={} questionCount={}",
-                cleanedJsonLength,
-                quizResponse.getQuestions() == null ? 0 : quizResponse.getQuestions().size());
-
         // Extract a Reading passage from the uploaded source PDF so we can
-        // attach it to every AI-generated Reading question. If no passage
-        // block was found in the source, the sanitizer will drop any
-        // generated Reading question (it must not be shown without one).
+        // attach it to every AI-generated Reading question.
         String sourcePassage = com.midori.ai.util.AiExistingQuestionParser
                 .extractReadingPassageFromSource(extraction.fullText());
         if (sourcePassage == null || sourcePassage.isBlank()) {
             log.warn("[generate-sanitize] no Reading passage detected in source PDF (filename={})", filename);
         }
 
-        // Convert each raw AI question into our normalized AiQuestionDto so
-        // we can run it through sanitizeGeneratedQuestions.
-        List<com.midori.ai.dto.AiExamParseResponse.AiQuestionDto> rawQuestions = new ArrayList<>();
-        if (quizResponse.getQuestions() != null) {
-            for (AiQuizGenerationResponse.QuizQuestion q : quizResponse.getQuestions()) {
-                rawQuestions.add(toNormalizedQuestion(q, questionType, difficulty));
-            }
-        }
-
-        // Defense in depth: re-infer category, drop off-skill, dupes, romaji, bad-correct-count,
-        // and inject/require Reading passage.
-        com.midori.ai.util.AiExistingQuestionParser.GenerateSanitizeResult sanitized =
-                com.midori.ai.util.AiExistingQuestionParser.sanitizeGeneratedQuestions(
-                        rawQuestions, selectedSkills, sourcePassage);
-
-        // Log safe metadata only — never log question content.
-        log.info("[generate-sanitize] selectedSkills={} raw={} afterNormalize={} afterFilter={} dropped={}",
+        // Delegate to the robust AiLearningContentService
+        AiExamParseResponse parseResponse = aiLearningContentService.generateQuestions(
+                filename,
+                extraction.fullText(),
+                count,
+                difficulty,
                 selectedSkills,
-                sanitized.rawGeneratedCount,
-                sanitized.finalCount,
-                sanitized.finalCount,
-                sanitized.droppedByReason);
-        log.info("[generate-sanitize] categoryCountsAfterNormalize={} categoryCountsAfterFilter={} sourcePassageLen={}",
-                sanitized.categoryCountsAfterNormalize,
-                sanitized.categoryCountsAfterFilter,
-                sourcePassage == null ? 0 : sourcePassage.length());
+                sourcePassage
+        );
+
+        if (parseResponse.getQuestions() == null || parseResponse.getQuestions().isEmpty()) {
+            throw new IllegalArgumentException("AI returned an invalid or empty response. Please try again.");
+        }
 
         // Map sanitized questions to the preview response shape.
         List<AiPdfPreviewResponse.QuestionPreview> questions = new ArrayList<>();
-        for (var q : sanitized.questions) {
+        for (var q : parseResponse.getQuestions()) {
             questions.add(toPreviewQuestion(q, questionType, difficulty));
         }
 

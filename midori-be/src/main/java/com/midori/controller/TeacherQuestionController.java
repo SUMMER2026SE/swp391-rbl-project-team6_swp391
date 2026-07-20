@@ -40,7 +40,7 @@ public class TeacherQuestionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TeacherQuestionResponse>> createQuestion(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateTeacherQuestionRequest request) {
