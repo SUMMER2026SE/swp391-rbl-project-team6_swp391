@@ -10,7 +10,7 @@ const levels = [
   {
     id: "N5",
     name: "Beginner",
-    desc: "Basic vocabulary & grammar",
+    desc: "Basic expressions",
     gradient: "from-sakura/40 to-lavender/50",
     iconBg: "bg-sakura/30",
     iconText: "text-sakura",
@@ -69,7 +69,7 @@ function ContentLibraryIndexPage() {
       </div>
 
       {/* Level Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 items-stretch">
         {levels.map((level, index) => (
           <motion.div
             key={level.id}
@@ -83,7 +83,7 @@ function ContentLibraryIndexPage() {
               params={{ level: level.id.toLowerCase() }}
               className="group block h-full"
             >
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--card)] to-[var(--card)] border border-[var(--border)] p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30 h-full flex flex-col justify-between">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--card)] to-[var(--card)] border border-[var(--border)] p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/30 h-full flex flex-col justify-between min-h-[250px]">
                 {/* Gradient Accent */}
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${level.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
@@ -126,7 +126,7 @@ function ContentLibraryIndexPage() {
 
                     {/* Description */}
                     <div>
-                      <span className="text-xs text-muted-col group-hover:text-white/80 transition-colors">
+                      <span className="text-xs text-muted-col group-hover:text-white/80 transition-colors line-clamp-1">
                         {level.desc}
                       </span>
                     </div>

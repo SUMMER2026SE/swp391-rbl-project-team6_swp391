@@ -26,7 +26,7 @@ public class PublicTeacherServiceImpl implements PublicTeacherService {
 
     @Override
     public List<PublicTeacherResponse> getActiveTeachers() {
-        List<User> teachers = userRepository.findByRoleAndStatusWithProfile(Role.TEACHER, UserStatus.ACTIVE);
+        List<User> teachers = userRepository.findByRoleWithProfile(Role.TEACHER);
         return teachers.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
@@ -35,7 +35,7 @@ public class PublicTeacherServiceImpl implements PublicTeacherService {
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Teacher not found"));
 
-        if (teacher.getRole() != Role.TEACHER || teacher.getStatus() != UserStatus.ACTIVE) {
+        if (teacher.getRole() != Role.TEACHER) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Teacher not found");
         }
 
@@ -43,6 +43,30 @@ public class PublicTeacherServiceImpl implements PublicTeacherService {
     }
 
     private PublicTeacherResponse mapToResponse(User user) {
+        String displayName = (user.getProfile() != null && user.getProfile().getDisplayName() != null && !user.getProfile().getDisplayName().isBlank())
+                ? user.getProfile().getDisplayName()
+                : (user.getEmail() != null ? user.getEmail().split("@")[0] : "Giáo viên MIDORI");
+
+        String professionalTitle = (user.getProfile() != null && user.getProfile().getProfessionalTitle() != null && !user.getProfile().getProfessionalTitle().isBlank())
+                ? user.getProfile().getProfessionalTitle()
+                : "Giảng viên Tiếng Nhật MIDORI";
+
+        String teachingLevels = (user.getProfile() != null && user.getProfile().getTeachingLevels() != null && !user.getProfile().getTeachingLevels().isBlank())
+                ? user.getProfile().getTeachingLevels()
+                : "N5, N4, N3";
+
+        String specializations = (user.getProfile() != null && user.getProfile().getSpecializations() != null && !user.getProfile().getSpecializations().isBlank())
+                ? user.getProfile().getSpecializations()
+                : "Luyện thi JLPT, Ngữ pháp & Giao tiếp";
+
+        Integer years = (user.getProfile() != null && user.getProfile().getYearsOfExperience() != null)
+                ? user.getProfile().getYearsOfExperience()
+                : 3;
+
+        String bio = (user.getProfile() != null && user.getProfile().getBio() != null && !user.getProfile().getBio().isBlank())
+                ? user.getProfile().getBio()
+                : "Giảng viên nhiệt tình, tận tâm hỗ trợ học viên đạt mục tiêu JLPT.";
+
         List<PublicTeacherCertificateResponse> certificates = certificateRepository.findByTeacherIdOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(cert -> PublicTeacherCertificateResponse.builder()
@@ -55,13 +79,13 @@ public class PublicTeacherServiceImpl implements PublicTeacherService {
 
         return PublicTeacherResponse.builder()
                 .id(user.getId())
-                .fullName(user.getProfile() != null ? user.getProfile().getDisplayName() : null)
+                .fullName(displayName)
                 .avatarUrl(user.getProfile() != null ? user.getProfile().getAvatarUrl() : null)
-                .professionalTitle(user.getProfile() != null ? user.getProfile().getProfessionalTitle() : null)
-                .teachingLevels(user.getProfile() != null ? user.getProfile().getTeachingLevels() : null)
-                .specializations(user.getProfile() != null ? user.getProfile().getSpecializations() : null)
-                .yearsOfExperience(user.getProfile() != null ? user.getProfile().getYearsOfExperience() : null)
-                .shortBiography(user.getProfile() != null ? user.getProfile().getBio() : null)
+                .professionalTitle(professionalTitle)
+                .teachingLevels(teachingLevels)
+                .specializations(specializations)
+                .yearsOfExperience(years)
+                .shortBiography(bio)
                 .certificates(certificates)
                 .build();
     }

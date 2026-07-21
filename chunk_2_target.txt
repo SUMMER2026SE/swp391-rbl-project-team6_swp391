@@ -1,8 +1,0 @@
-    public AiExamParseResponse sanitizeAndWrap(String materialTitle,
-                                              AiExistingQuestionParser.GenerateSanitizeResult sanitized) {
-        AiExamParseResponse result = new AiExamParseResponse();
-        result.setTitle(materialTitle);
-        result.setDescription("AI-generated questions from " + materialTitle);
-        result.setQuestions(sanitized.questions);
-        return result;
-    }

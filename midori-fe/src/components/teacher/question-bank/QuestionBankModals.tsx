@@ -387,6 +387,11 @@ export function AssignExamModal({
       toast.error("Please select a valid due date and time.");
       return;
     }
+    const today = new Date().toISOString().split("T")[0];
+    if (values.dueDate < today) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
     mutation.mutate({
       title: values.title,
       instructions: values.instructions || undefined,
@@ -471,7 +476,12 @@ export function AssignExamModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="ex-due-date">Due Date</Label>
-              <Input id="ex-due-date" type="date" {...register("dueDate")} />
+              <Input
+                id="ex-due-date"
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                {...register("dueDate")}
+              />
               {errors.dueDate && (
                 <p className="text-xs text-destructive">{errors.dueDate.message}</p>
               )}

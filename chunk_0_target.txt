@@ -1,4 +1,0 @@
-    public AiExamParseResponse generateQuestions(String materialTitle, String learningContent,
-                                                int questionCount, String difficulty,
-                                                List<String> selectedSkills) {
-        if (learningContent == null || learningContent.isBlank()) {

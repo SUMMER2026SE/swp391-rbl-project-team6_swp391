@@ -20,6 +20,6 @@ export interface PublicTeacherResponse {
 }
 
 export const publicTeacherApi = {
-  getActiveTeachers: () => api.get<PublicTeacherResponse[]>("/api/public/teachers"),
-  getTeacherDetail: (id: string) => api.get<PublicTeacherResponse>(`/api/public/teachers/${id}`),
+  getActiveTeachers: () => api.get<PublicTeacherResponse[]>("/public/teachers"),
+  getTeacherDetail: (id: string) => api.get<PublicTeacherResponse>(`/public/teachers/${id}`),
 };

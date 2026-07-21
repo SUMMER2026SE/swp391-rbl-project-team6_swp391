@@ -160,7 +160,7 @@ shadowing:
     similarity-threshold: ${SHADOWING_SIMILARITY_THRESHOLD:0.80}
     gemini-threshold: ${SHADOWING_GEMINI_THRESHOLD:80}
     max-recording-duration-seconds: ${SHADOWING_MAX_RECORDING_SECONDS:15}
-    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-3.5-flash}
+    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-2.0-flash}
     api-timeout-seconds: ${SHADOWING_API_TIMEOUT_SECONDS:120}
     cache-ttl-minutes: ${SHADOWING_CACHE_TTL_MINUTES:60}
     cache-max-size: ${SHADOWING_CACHE_MAX_SIZE:10000}
