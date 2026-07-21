@@ -110,16 +110,37 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
       onUpdateQuestion(index, { difficulty: diff });
     };
 
-    const handleTypeChange = (type: string) => {
-      let answers = [...question.answers];
-      if (type === "TRUE_FALSE") {
+  const handleTypeChange = (type: string) => {
+    let answers = [...question.answers];
+    if (type === "TRUE_FALSE") {
+      answers = [
+        { content: "True", isCorrect: true },
+        { content: "False", isCorrect: false },
+      ];
+    } else if (type === "FILL_BLANK" || type === "SHORT_ANSWER") {
+      // Single free-text answer; do not render multiple-choice options.
+      if (answers.length === 0) {
+        answers = [{ content: "", isCorrect: true }];
+      } else {
+        const first = answers[0];
+        answers = [{ content: first?.content ?? "", isCorrect: true }];
+      }
+      // Make sure the question text actually has a blank marker for FILL_BLANK.
+      if (type === "FILL_BLANK" && question.content && !/_{3,}|\(blank\)|【答え】|fill in/i.test(question.content)) {
+        onUpdateQuestion(index, { content: `${question.content} ___` });
+      }
+    } else if (type === "MULTIPLE_CHOICE") {
+      // If we're switching away from FILL/SHORT to MCQ, make sure we have
+      // at least two distinct options.
+      if (answers.length < 2) {
         answers = [
-          { content: "True", isCorrect: true },
-          { content: "False", isCorrect: false },
+          { content: answers[0]?.content ?? "", isCorrect: true },
+          { content: "", isCorrect: false },
         ];
       }
-      onUpdateQuestion(index, { type, answers });
-    };
+    }
+    onUpdateQuestion(index, { type, answers });
+  };
 
     const handleCategoryChange = (category: string) => {
       onUpdateQuestion(index, { category });
@@ -257,13 +278,37 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
           </div>
         )}
 
-        {/* Options */}
-        {correctIndex === -1 && (
+        {/* Options / Answer field */}
+        {correctIndex === -1 && question.type !== "FILL_BLANK" && question.type !== "SHORT_ANSWER" && (
           <div className="text-red-500 text-xs font-semibold my-2">
             Warning: Please select a correct answer.
           </div>
         )}
-        {question.type !== "TRUE_FALSE" ? (
+        {question.type === "FILL_BLANK" || question.type === "SHORT_ANSWER" ? (
+          <div className="space-y-2 mt-3">
+            <label className="text-[10px] font-bold text-secondary-col uppercase tracking-wider">
+              {question.type === "FILL_BLANK" ? "Correct Text (Fill in the Blank)" : "Reference Answer (Short Answer)"}
+            </label>
+            <input
+              type="text"
+              data-testid={question.type === "FILL_BLANK" ? "fill-blank-input" : "short-answer-input"}
+              value={question.answers[0]?.content ?? ""}
+              onChange={(e) =>
+                handleCorrectIndexChange === undefined
+                  ? undefined
+                  : onUpdateQuestion(index, {
+                      answers: [{ content: e.target.value, isCorrect: true }],
+                    })
+              }
+              placeholder={
+                question.type === "FILL_BLANK"
+                  ? "Type the expected fill-in text..."
+                  : "Type the reference answer..."
+              }
+              className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none focus:ring-1 focus:ring-primary/40 transition"
+            />
+          </div>
+        ) : question.type !== "TRUE_FALSE" ? (
           <OptionEditor
             options={question.answers.map((a) => a.content)}
             correctIndex={correctIndex}
@@ -271,7 +316,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = React.memo(
             onChangeCorrectIndex={handleCorrectIndexChange}
           />
         ) : (
-          <div className="space-y-2 mt-3">
+          <div className="space-y-2 mt-3" data-testid="true-false-choices">
             <label className="text-[10px] font-bold text-secondary-col uppercase tracking-wider">
               True / False
             </label>

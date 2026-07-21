@@ -125,7 +125,7 @@ ai:
     models: openrouter/free
     # Fallback model(s) - tried if primary fails
     # tencent/hy3:free confirmed to produce correct UTF-8 Japanese for N5 quiz tasks
-    fallback-models: tencent/hy3:free
+    fallback-models: google/gemini-2.5-flash
     # Per-call timeouts (ms)
     chat-timeout-ms: 15000
     quiz-timeout-ms: 25000

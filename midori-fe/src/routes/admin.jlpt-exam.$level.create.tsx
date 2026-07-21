@@ -184,7 +184,7 @@ function CreateExamPage() {
         <AiPdfImportWorkflow
           onCreate={handleCreateExam}
           title="Import Exam Questions"
-          subtitle="Select PDF file to extract exam questions automatically"
+          subtitle="Choose how AI should process your PDF — generate from content or import existing questions."
           backHref={`/admin/jlpt-exam/${level.toLowerCase()}`}
           backLabel={`Back to ${upperLevel} Exams`}
         />

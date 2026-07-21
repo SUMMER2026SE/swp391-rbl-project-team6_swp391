@@ -6,11 +6,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.dto.AiQuizGenerationResponse;
+import com.midori.entity.Difficulty;
+import com.midori.entity.QuestionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1434,6 +1437,10 @@ public final class AiExistingQuestionParser {
             return "Grammar";
         }
 
+        if (containsAny(c, "difference between") && (containsAny(c, "は", "が", "に", "で", "を", "と", "も") || containsAny(c, "particle", "particles"))) {
+            return "Grammar";
+        }
+
         // Reading check FIRST and with the broadest Vietnamese/English/Japanese
         // markers — Reading must take priority over Vocabulary when a question
         // asks "Theo bài đọc / Theo passage / Theo đoạn văn ..." etc.
@@ -1775,6 +1782,295 @@ public final class AiExistingQuestionParser {
             List<AiExamParseResponse.AiQuestionDto> rawQuestions,
             List<String> selectedSkills) {
         return sanitizeGeneratedQuestions(rawQuestions, selectedSkills, null);
+    }
+
+    /**
+     * Sanitize AI-generated quiz questions against an explicit
+     * {@code expectedType} and an explicit
+     * {@code expectedDistribution} ({@code {EASY, MEDIUM, HARD}}).
+     *
+     * <p>This is the new strict-mode entry point used by the PDF
+     * "Generate from Content" workflow. In addition to the rules enforced
+     * by {@link #sanitizeGeneratedQuestions(List, List, String)}:
+     * <ol>
+     *   <li>Every surviving question is forced to have {@code type} equal to
+     *       {@code expectedType} (after alias normalization). Questions whose
+     *       declared type cannot be normalized to the expected type are
+     *       dropped with reason {@code wrong_question_type}.</li>
+     *   <li>Every surviving question is validated against the type contract
+     *       via {@link QuestionTypeValidator#isValid(com.midori.ai.dto.AiExamParseResponse.AiQuestionDto)};
+     *       questions that fail are dropped with reason
+     *       {@code invalid_type_structure}.</li>
+     *   <li>Every surviving question is re-classified into a difficulty bucket
+     *       (EASY / MEDIUM / HARD). The result is partitioned by difficulty
+     *       and trimmed to exactly {@code expectedDistribution} questions per
+     *       bucket — questions in excess of the requested bucket count are
+     *       dropped with reason {@code excess_difficulty}.</li>
+     *   <li>Questions whose difficulty cannot be normalized are repaired by
+     *       assigning a difficulty bucket that still has free capacity, then
+     *       falling back to MEDIUM when the bucket is already full.</li>
+     * </ol>
+     *
+     * <p>The returned {@link GenerateSanitizeResult#getQuestions()} list may
+     * be SHORTER than the requested total when the AI response did not
+     * contain enough valid questions. The caller is expected to retry
+     * (supplementation) when the count falls short.
+     *
+     * @param rawQuestions         the AI's raw quiz questions
+     * @param selectedSkills       user-selected skills; null/empty means
+     *                             accept any of Vocabulary / Grammar / Reading
+     * @param sourcePassage        optional Reading source passage
+     * @param expectedType         the strict type requested by the teacher
+     * @param expectedDistribution per-difficulty target counts (must sum to
+     *                             the caller's expected total)
+     */
+    public static GenerateSanitizeResult sanitizeGeneratedQuestionsWithTypeAndDistribution(
+            List<AiExamParseResponse.AiQuestionDto> rawQuestions,
+            List<String> selectedSkills,
+            String sourcePassage,
+            QuestionType expectedType,
+            Map<Difficulty, Integer> expectedDistribution) {
+
+        // The base sanitize() requires ≥ 2 options and ≥ 1 correct answer, which
+        // is too strict for FILL_BLANK / SHORT_ANSWER / SINGLE-ANSWER types
+        // (the AI's response for these is normally a single correct-answer slot).
+        // Run a relaxed version of the base sanitize so the type-specific layer
+        // can do its own repairs below.
+        GenerateSanitizeResult base = sanitizeWithStructuralAwareness(
+                rawQuestions, selectedSkills, sourcePassage, expectedType);
+
+        Map<String, Integer> dropped = new LinkedHashMap<>(base.droppedByReason);
+        for (String reason : new String[]{
+                "wrong_question_type", "invalid_type_structure",
+                "excess_difficulty", "missing_difficulty"}) {
+            dropped.put(reason, 0);
+        }
+
+        List<AiExamParseResponse.AiQuestionDto> filtered = new ArrayList<>();
+        Map<Difficulty, Integer> remaining = new EnumMap<>(Difficulty.class);
+        if (expectedDistribution != null) {
+            for (Map.Entry<Difficulty, Integer> e : expectedDistribution.entrySet()) {
+                remaining.put(e.getKey(), Math.max(0, e.getValue()));
+            }
+        }
+
+        for (AiExamParseResponse.AiQuestionDto q : base.questions) {
+            if (q == null) continue;
+            // 1. Enforce strict question type.
+            if (expectedType != null) {
+                QuestionType declared = QuestionTypeValidator.normalize(q.getType());
+                if (declared == null) {
+                    q.setType(expectedType.name());
+                    declared = expectedType;
+                } else if (declared != expectedType) {
+                    dropped.merge("wrong_question_type", 1, Integer::sum);
+                    continue;
+                }
+                // 2. Apply structural repair and re-validate the type contract.
+                List<String> repairs = QuestionTypeValidator.repair(q);
+                QuestionTypeValidator.applyRepairs(q, repairs);
+                if (!QuestionTypeValidator.isValid(q)) {
+                    dropped.merge("invalid_type_structure", 1, Integer::sum);
+                    continue;
+                }
+            }
+            // 3. Resolve difficulty bucket.
+            Difficulty bucket = resolveDifficulty(q.getDifficulty());
+            if (bucket == null) {
+                // Repair: assign to first bucket with remaining capacity,
+                // falling back to MEDIUM if all buckets are full.
+                bucket = pickRepairBucket(remaining);
+                if (bucket == null) bucket = Difficulty.MEDIUM;
+                q.setDifficulty(toCanonicalDifficultyString(bucket));
+                dropped.merge("missing_difficulty", 1, Integer::sum);
+            }
+            // 4. Enforce per-difficulty capacity.
+            if (expectedDistribution != null && !expectedDistribution.isEmpty()) {
+                int left = remaining.getOrDefault(bucket, 0);
+                if (left <= 0) {
+                    dropped.merge("excess_difficulty", 1, Integer::sum);
+                    continue;
+                }
+                remaining.put(bucket, left - 1);
+            }
+            q.setDifficulty(toCanonicalDifficultyString(bucket));
+            filtered.add(q);
+        }
+
+        return new GenerateSanitizeResult(
+                filtered,
+                base.rawGeneratedCount,
+                filtered.size(),
+                dropped,
+                base.categoryCountsAfterNormalize,
+                base.categoryCountsAfterFilter,
+                sourcePassage);
+    }
+
+    /**
+     * Structurally-aware pre-sanitizer used by the strict type-aware pipeline.
+     * Behaves like {@link #sanitizeGeneratedQuestions(List, List, String)} but
+     * relaxes the {@code too_few_options}, {@code no_correct_answer} and
+     * {@code duplicate_options} gates for {@code FILL_BLANK} and
+     * {@code SHORT_ANSWER} so a single-text-answer question can survive long
+     * enough for the type-repair layer to apply the correct normalization.
+     */
+    private static GenerateSanitizeResult sanitizeWithStructuralAwareness(
+            List<AiExamParseResponse.AiQuestionDto> rawQuestions,
+            List<String> selectedSkills,
+            String sourcePassage,
+            QuestionType expectedType) {
+
+        Map<String, Integer> dropped = new LinkedHashMap<>();
+        Map<String, Integer> countsAfterNormalize = new LinkedHashMap<>();
+        Map<String, Integer> countsAfterFilter = new LinkedHashMap<>();
+        for (String s : new String[]{"Vocabulary", "Grammar", "Reading", "unknown"}) {
+            countsAfterNormalize.put(s, 0);
+            countsAfterFilter.put(s, 0);
+        }
+        for (String reason : new String[]{
+                "duplicate_options", "romaji_content", "no_correct_answer",
+                "too_few_options", "blank_content", "off_skill",
+                "missing_reading_passage", "invalid_type_structure"}) {
+            dropped.put(reason, 0);
+        }
+
+        int rawCount = rawQuestions == null ? 0 : rawQuestions.size();
+        List<AiExamParseResponse.AiQuestionDto> out = new ArrayList<>();
+        Set<String> allowedSkills = new HashSet<>();
+        if (selectedSkills != null) {
+            for (String s : selectedSkills) {
+                if (s == null) continue;
+                String lc = s.trim().toLowerCase();
+                if (lc.equals("vocabulary") || lc.equals("grammar") || lc.equals("reading")) {
+                    allowedSkills.add(lc.substring(0, 1).toUpperCase() + lc.substring(1));
+                }
+            }
+        }
+        if (rawQuestions == null) {
+            return new GenerateSanitizeResult(out, rawCount, 0, dropped,
+                    countsAfterNormalize, countsAfterFilter, sourcePassage);
+        }
+
+        boolean relaxedTypes = expectedType == QuestionType.FILL_BLANK
+                || expectedType == QuestionType.SHORT_ANSWER;
+
+        for (AiExamParseResponse.AiQuestionDto q : rawQuestions) {
+            if (q == null) continue;
+            QuestionType declared = QuestionTypeValidator.normalize(q.getType());
+            boolean questionIsRelaxed = (declared == null) ? relaxedTypes : (declared == QuestionType.FILL_BLANK || declared == QuestionType.SHORT_ANSWER);
+
+            if (q.getContent() == null || q.getContent().isBlank()) {
+                dropped.merge("blank_content", 1, Integer::sum);
+                continue;
+            }
+
+            String inferred = inferCategorySemantic(q.getContent());
+            q.setCategory(inferred);
+            countsAfterNormalize.merge(inferred, 1, Integer::sum);
+
+            if (!allowedSkills.isEmpty() && !allowedSkills.contains(inferred)) {
+                dropped.merge("off_skill", 1, Integer::sum);
+                continue;
+            }
+
+            if ("Reading".equals(inferred)) {
+                String[] split = splitQuestionContentForReading(q.getContent());
+                String existingPassage = split[0];
+                String questionOnly = split[1];
+                String chosenPassage = existingPassage;
+                if (chosenPassage == null || chosenPassage.isBlank()) {
+                    chosenPassage = sourcePassage;
+                }
+                if (chosenPassage == null || chosenPassage.isBlank()) {
+                    dropped.merge("missing_reading_passage", 1, Integer::sum);
+                    continue;
+                }
+                q.setContent(composeReadingContent(chosenPassage, questionOnly));
+            }
+
+            if (q.getAnswers() == null || q.getAnswers().isEmpty()) {
+                dropped.merge("too_few_options", 1, Integer::sum);
+                continue;
+            }
+            // For MCQ / TRUE_FALSE require ≥ 2 distinct options and exactly 1
+            // correct answer. FILL_BLANK / SHORT_ANSWER relax these so a
+            // single-text answer slot can survive to the type-repair layer.
+            if (!questionIsRelaxed) {
+                if (q.getAnswers().size() < 2) {
+                    dropped.merge("too_few_options", 1, Integer::sum);
+                    continue;
+                }
+                List<String> optionTexts = new ArrayList<>();
+                for (var a : q.getAnswers()) {
+                    optionTexts.add(a == null ? "" : a.getContent() == null ? "" : a.getContent());
+                }
+                List<Integer> dups = findDuplicateOptionIndices(optionTexts);
+                if (!dups.isEmpty()) {
+                    dropped.merge("duplicate_options", 1, Integer::sum);
+                    continue;
+                }
+                long correctCount = q.getAnswers().stream()
+                        .filter(a -> a != null && Boolean.TRUE.equals(a.getIsCorrect()))
+                        .count();
+                if (correctCount != 1) {
+                    dropped.merge("no_correct_answer", 1, Integer::sum);
+                    continue;
+                }
+            }
+
+            // Romaji guard applies to all types including FILL_BLANK.
+            StringBuilder blob = new StringBuilder();
+            blob.append(q.getContent()).append('\n');
+            for (var a : q.getAnswers()) {
+                if (a != null && a.getContent() != null) blob.append(a.getContent()).append('\n');
+            }
+            if (q.getExplanation() != null) blob.append(q.getExplanation()).append('\n');
+            if (containsRomaji(blob.toString())) {
+                dropped.merge("romaji_content", 1, Integer::sum);
+                continue;
+            }
+
+            countsAfterFilter.merge(inferred, 1, Integer::sum);
+            out.add(q);
+        }
+
+        return new GenerateSanitizeResult(
+                out, rawCount, out.size(), dropped,
+                countsAfterNormalize, countsAfterFilter, sourcePassage);
+    }
+
+    private static Difficulty resolveDifficulty(String raw) {
+        if (raw == null) return null;
+        String norm = raw.trim();
+        if (norm.equalsIgnoreCase("easy"))   return Difficulty.EASY;
+        if (norm.equalsIgnoreCase("medium")) return Difficulty.MEDIUM;
+        if (norm.equalsIgnoreCase("hard"))   return Difficulty.HARD;
+        return null;
+    }
+
+    private static Difficulty pickRepairBucket(
+            Map<Difficulty, Integer> remaining) {
+        for (Difficulty d : new Difficulty[]{
+                Difficulty.EASY,
+                Difficulty.MEDIUM,
+                Difficulty.HARD}) {
+            Integer left = remaining.get(d);
+            if (left != null && left > 0) return d;
+        }
+        return null;
+    }
+
+    /** Map an enum value to the canonical "Easy" / "Medium" / "Hard" string
+     *  used by the FE renderer and DB columns. */
+    public static String toCanonicalDifficultyString(Difficulty d) {
+        if (d == null) return "Medium";
+        switch (d) {
+            case EASY:   return "Easy";
+            case MEDIUM: return "Medium";
+            case HARD:   return "Hard";
+            default: return "Medium";
+        }
     }
 
     /**

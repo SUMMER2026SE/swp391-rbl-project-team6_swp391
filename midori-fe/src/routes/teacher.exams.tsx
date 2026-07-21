@@ -1,33 +1,56 @@
 import { createFileRoute, useNavigate, Outlet, useRouterState } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { AiPdfImportWorkflow } from "@/components/admin/AiPdfImportWorkflow";
 import { Sparkles, HelpCircle } from "lucide-react";
 
 export const Route = createFileRoute("/teacher/exams")({
   component: ExamsPage,
 });
 
-type Method = "ai-pdf" | "question-bank";
+type Method = "ai-exam" | "question-bank";
 
+/**
+ * Outer Exam creation screen.
+ *
+ * This route owns ONLY the method-selection step. The actual creation
+ * wizard (including the AI sub-screen and Question Bank flow) lives at
+ * `/teacher/exams/create`. Both cards here simply navigate there with
+ * a `source` query param so the create route can render the appropriate
+ * workflow.
+ *
+ * Two-card layout per the current product spec:
+ *   1. AI Exam            -> /teacher/exams/create?source=ai-pdf
+ *      (the create route then shows an inner sub-screen with two
+ *       options: "Generate from Content" via the lesson library, and
+ *       "Import Existing Questions" via PDF)
+ *   2. From Question Bank -> /teacher/exams/create?source=question-bank
+ */
 function ExamsPage() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [method, setMethod] = useState<Method | null>(null);
 
+  // Effect-driven navigation. Must run on every render, so it lives
+  // above the early return — React hooks must always be called in the
+  // same order.
+  useEffect(() => {
+    if (method === "question-bank") {
+      navigate({
+        to: "/teacher/exams/create",
+        search: { classId: undefined, source: "question-bank", topicId: undefined },
+      });
+    } else if (method === "ai-exam") {
+      navigate({
+        to: "/teacher/exams/create",
+        search: { classId: undefined, source: "ai-pdf", topicId: undefined },
+      });
+    }
+  }, [method, navigate]);
+
+  // Render the child create route as-is when we're on /teacher/exams/create.
   if (pathname !== "/teacher/exams") {
     return <Outlet />;
   }
-
-  const [method, setMethod] = useState<Method | null>(null);
-
-  // Question Bank Flow - navigate to the create page with source param
-  useEffect(() => {
-    if (method === "question-bank") {
-      navigate({ to: "/teacher/exams/create", search: { source: "question-bank" } });
-    }
-  }, [method, navigate]);
 
   const handleBack = () => {
     if (method) {
@@ -37,7 +60,7 @@ function ExamsPage() {
     }
   };
 
-  // Show method selection screen
+  // Show method selection screen — exactly two cards.
   if (!method) {
     return (
       <div className="mx-auto max-w-5xl space-y-6">
@@ -51,10 +74,10 @@ function ExamsPage() {
         <div className="grid gap-3 md:grid-cols-2">
           <MethodCard
             icon={Sparkles}
-            title="AI PDF Exam"
-            desc="Upload a PDF and let AI generate exam questions automatically."
+            title="AI Exam"
+            desc="Upload a PDF and let AI generate or extract exam questions automatically."
             badge="AI Generator"
-            onClick={() => setMethod("ai-pdf")}
+            onClick={() => setMethod("ai-exam")}
           />
           <MethodCard
             icon={HelpCircle}
@@ -68,36 +91,13 @@ function ExamsPage() {
     );
   }
 
-  // AI PDF Flow
-  if (method === "ai-pdf") {
-    return (
-      <div className="mx-auto max-w-6xl space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => setMethod(null)} className="-ml-2">
-          ← Change method
-        </Button>
-        <AiPdfImportWorkflow
-          title="AI PDF Exam Generator"
-          subtitle="Upload a PDF and let AI generate exam questions automatically."
-          backHref="/teacher/exams"
-          backLabel="Back to Exam Selection"
-          onCreate={(questions) => {
-            toast.success(`${questions.length} questions imported from PDF!`);
-            navigate({ to: "/teacher/exams/create" });
-          }}
-        />
-      </div>
-    );
-  }
-
-
-
+  // The two cards above trigger navigation via the effect, so we never
+  // reach this branch with a non-null method. The fallback below keeps
+  // React Router happy if navigation is somehow interrupted.
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => setMethod(null)} className="-ml-2">
-        ← Change method
-      </Button>
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Redirecting to Question Bank exam creator...</p>
+        <p className="text-muted-foreground">Redirecting to the exam wizard...</p>
       </div>
     </div>
   );
@@ -119,6 +119,7 @@ function MethodCard({
   return (
     <button
       onClick={onClick}
+      data-testid={`exam-method-${title.toLowerCase().replace(/\s+/g, "-")}`}
       className="group rounded-2xl border bg-card p-5 text-left transition-all hover:border-primary/50 hover:shadow-md"
     >
       <div className="mb-3 flex items-center gap-2">

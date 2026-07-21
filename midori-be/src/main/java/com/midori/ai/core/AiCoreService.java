@@ -89,6 +89,33 @@ public class AiCoreService {
     }
 
     /**
+     * Generate quiz questions using a strict per-difficulty distribution and a
+     * strict question type. The prompt explicitly asks for the exact
+     * distribution line (e.g. {@code "EASY=3, MEDIUM=5, HARD=2"}); the BE
+     * layer is responsible for validating and repairing the AI's response so
+     * the caller always receives exactly {@code distributionTotal} questions
+     * with the requested per-difficulty split and a strict question type.
+     *
+     * @param topic              material title for logging
+     * @param materialContent    the source content string
+     * @param distributionTotal  total number of questions to produce
+     * @param questionType       strict question type (e.g. MULTIPLE_CHOICE)
+     * @param distributionLine   formatted distribution
+     *                           (e.g. {@code "EASY=3, MEDIUM=5, HARD=2"})
+     * @param selectedSkills     target skills (may be null)
+     */
+    public String generateQuestionsWithDistribution(String topic, String materialContent,
+                                                    int distributionTotal, String questionType,
+                                                    String distributionLine,
+                                                    java.util.List<String> selectedSkills) {
+        AiProvider provider = resolveProvider();
+        return provider.generateQuestionsWithDistribution(
+                topic, materialContent, distributionTotal, questionType,
+                distributionLine, selectedSkills,
+                com.midori.ai.AiTaskType.COMPLEX_REASONING);
+    }
+
+    /**
      * Backwards-compatible overload without {@code selectedSkills}.
      */
     public String generateQuestions(String topic, String materialContent,
