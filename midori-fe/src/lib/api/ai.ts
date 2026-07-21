@@ -18,13 +18,35 @@ export type PdfImportMode = "IMPORT_EXISTING_QUESTIONS" | "GENERATE_FROM_CONTENT
 
 export type TargetSkill = "VOCABULARY" | "GRAMMAR" | "READING";
 
+export type PdfImportQuestionType =
+  | "MULTIPLE_CHOICE"
+  | "TRUE_FALSE"
+  | "FILL_BLANK"
+  | "SHORT_ANSWER";
+
+export interface DifficultyPercentages {
+  easy: number;
+  medium: number;
+  hard: number;
+}
+
 export interface AiPdfPreviewRequest {
   file: File;
   mode: PdfImportMode;
   level?: string;
   count?: number;
-  questionType?: string;
+  questionType?: PdfImportQuestionType;
+  /**
+   * Legacy single-difficulty hint (only used in IMPORT_EXISTING_QUESTIONS
+   * or when the caller does not supply percentage breakdowns). For new
+   * GENERATE_FROM_CONTENT requests, use {@link #difficultyPercent} instead.
+   */
   difficulty?: string;
+  /**
+   * Per-difficulty percentage breakdown used by GENERATE_FROM_CONTENT.
+   * Easy + Medium + Hard MUST equal exactly 100.
+   */
+  difficultyPercent?: DifficultyPercentages;
   targetSkills?: TargetSkill[];
 }
 
@@ -86,6 +108,13 @@ export const aiApi = {
     if (request.count !== undefined) formData.append("count", String(request.count));
     if (request.questionType) formData.append("questionType", request.questionType);
     if (request.difficulty) formData.append("difficulty", request.difficulty);
+    if (request.difficultyPercent) {
+      // Strict distribution path — always send all three so the BE has a
+      // complete picture for validation.
+      formData.append("easyPct", String(request.difficultyPercent.easy));
+      formData.append("mediumPct", String(request.difficultyPercent.medium));
+      formData.append("hardPct", String(request.difficultyPercent.hard));
+    }
     if (request.targetSkills && request.targetSkills.length > 0) {
       request.targetSkills.forEach(skill => {
         formData.append("targetSkills", skill);

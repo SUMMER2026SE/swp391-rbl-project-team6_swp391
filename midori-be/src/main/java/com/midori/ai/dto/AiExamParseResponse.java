@@ -9,6 +9,9 @@ public class AiExamParseResponse {
     private String title;
     private String description;
     private List<AiQuestionDto> questions;
+    /** Optional non-fatal message surfaced by the controller when the AI
+     *  response was partial (e.g. fewer valid questions than requested). */
+    private String errorMessage;
 
     public String getTitle() { return title; }
     public void setTitle(String v) { this.title = v; }
@@ -16,6 +19,8 @@ public class AiExamParseResponse {
     public void setDescription(String v) { this.description = v; }
     public List<AiQuestionDto> getQuestions() { return questions; }
     public void setQuestions(List<AiQuestionDto> v) { this.questions = v; }
+    public String getErrorMessage() { return errorMessage; }
+    public void setErrorMessage(String v) { this.errorMessage = v; }
 
     /**
      * Build an empty response — used when the LLM returns a body that could
