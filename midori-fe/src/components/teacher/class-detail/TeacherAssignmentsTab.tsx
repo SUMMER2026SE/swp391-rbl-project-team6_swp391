@@ -92,14 +92,13 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
     queryFn: () => homeworkApi.getTeacherHomeworkById(editHwId!),
     enabled: !!editHwId,
   });
-
   const handleSaveEdit = async (updated: any) => {
     if (!editHwId) return;
     toast.promise(
       homeworkApi.updateHomework(editHwId, {
         title: updated.title,
         instructions: updated.instructions,
-        dueDate: updated.dueDate,
+        dueDate: updated.dueDate ? new Date(updated.dueDate).toISOString() : "",
         maxScore: updated.maxScore,
         attempts: updated.attempts,
         status: updated.status,
@@ -128,8 +127,10 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
     toast.promise(homeworkApi.deleteHomework(id), {
       loading: "Deleting homework...",
       success: () => {
-        void queryClient.invalidateQueries({ queryKey: ["classHomework", classInfo.id] });
+        void queryClient.invalidateQueries({ queryKey: ["classHomework"] });
+        void queryClient.invalidateQueries({ queryKey: ["teacherHomeworksByClass"] });
         void queryClient.invalidateQueries({ queryKey: ["teacherAllHomeworks"] });
+        void queryClient.invalidateQueries({ queryKey: ["classDetail"] });
         return "Homework deleted successfully.";
       },
       error: (err: any) => `Failed to delete homework: ${err.message || "Unknown error"}`,
@@ -211,12 +212,22 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
           </span>
         );
       case "Not submitted":
-      default:
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200/50 dark:border-rose-500/20 flex items-center gap-1 w-fit">
-            <AlertCircle className="w-3 h-3" /> OverDue
-          </span>
-        );
+      default: {
+        const isOverdue = selectedAssignment?.deadline ? new Date(selectedAssignment.deadline).getTime() < new Date().getTime() : false;
+        if (isOverdue) {
+          return (
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20 dark:hover:bg-rose-500/20 flex items-center gap-1 w-fit">
+              <AlertCircle className="w-3 h-3" /> OverDue
+            </span>
+          );
+        } else {
+          return (
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20 dark:hover:bg-blue-500/20 flex items-center gap-1 w-fit">
+              <Clock className="w-3 h-3" /> Pending
+            </span>
+          );
+        }
+      }
     }
   };
 
@@ -310,26 +321,31 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
   // Backend is the single source of truth for status (SUBMITTED vs GRADED).
   // We never fabricate a status on the frontend.
   const filteredSubmissions = useMemo(() => {
-    if (subFilter === "OverDue") {
-      const submittedStudentIds = new Set(submissions.map((s) => s.studentId));
-      const overdueStudents = (classInfo.students ?? [])
-        .filter((s) => !submittedStudentIds.has(s.id))
-        .map<Submission>((s) => ({
-          studentId: s.id,
-          studentName: s.name,
-          studentEmail: s.email,
-          studentAvatar: s.name && s.name.length > 0 ? s.name[0].toUpperCase() : s.avatar || "?",
-          status: "Not submitted" as const,
-          focusViolationCount: 0,
-        }));
-      return overdueStudents;
-    }
+    const isOverdue = selectedAssignment?.deadline ? new Date(selectedAssignment.deadline).getTime() < new Date().getTime() : false;
+    const submittedStudentIds = new Set(submissions.map((s) => s.studentId));
+    const unsubmittedStudents = (classInfo.students ?? [])
+      .filter((s) => !submittedStudentIds.has(s.id))
+      .map<Submission>((s) => ({
+        studentId: s.id,
+        studentName: s.name,
+        studentEmail: s.email,
+        studentAvatar: s.name && s.name.length > 0 ? s.name[0].toUpperCase() : s.avatar || "?",
+        status: "Not submitted" as const,
+        focusViolationCount: 0,
+      }));
+
     if (subFilter === "All") return submissions;
-    if (subFilter === "Graded") {
-      return submissions.filter((sub) => sub.status === "Graded");
+    if (subFilter === "Submitted") {
+      return submissions.filter((sub) => sub.status === "Graded" || sub.status === "Submitted");
+    }
+    if (subFilter === "Overdue") {
+      return isOverdue ? unsubmittedStudents : [];
+    }
+    if (subFilter === "Pending") {
+      return !isOverdue ? unsubmittedStudents : [];
     }
     return submissions;
-  }, [submissions, subFilter, classInfo.students]);
+  }, [submissions, subFilter, classInfo.students, selectedAssignment]);
 
   // ----------------------------------------------------
   // STEP 3: SUBMISSION DETAIL
@@ -491,6 +507,7 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
   // STEP 2: ASSIGNMENT SUBMISSIONS LIST
   // ----------------------------------------------------
   if (viewStep === "submissions" && selectedAssignment) {
+    const isOverdue = selectedAssignment?.deadline ? new Date(selectedAssignment.deadline).getTime() < new Date().getTime() : false;
     // All statistics below are derived purely from backend payloads
     // (`submissions` from `/teacher/homeworks/{id}/submissions` and
     // `classInfo.students` from the class detail endpoint).
@@ -499,7 +516,7 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
     const submittedCount = submissions.filter(
       (s) => s.status === "Submitted" || s.status === "Graded",
     ).length;
-    const overdueCount = Math.max(0, totalStudents - submittedCount);
+    const overdueCount = isOverdue ? Math.max(0, totalStudents - submittedCount) : 0;
     const submissionRate =
       totalStudents > 0
         ? Math.round((submittedCount / totalStudents) * 100)
@@ -581,9 +598,10 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                 and only GRADED / OVERDUE get dedicated buckets. */}
             <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-white/5 pb-3">
               {[
-                { id: "All", label: "All Students" },
-                { id: "Graded", label: "Graded" },
-                { id: "OverDue", label: "Overdue" },
+                { id: "All", label: "All" },
+                { id: "Submitted", label: "Đã làm" },
+                { id: "Overdue", label: "Quá hạn" },
+                { id: "Pending", label: "Chưa làm" },
               ].map((tab) => {
                 const isActive = subFilter === tab.id;
                 return (
@@ -688,17 +706,7 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                         <Bell className="w-3.5 h-3.5" />
                         Remind
                       </button>
-                    ) : sub.status === "Submitted" ? (
-                      <button
-                        onClick={() => handleOpenDetail(sub)}
-                        className="px-3.5 py-1.5 rounded-xl bg-amber-500 text-white font-bold text-[10px] uppercase tracking-wider hover:bg-amber-600 transition shadow-sm flex items-center gap-1 font-display"
-                      >
-                        Grade
-                      </button>
                     ) : (
-                      // Graded → display backend-authoritative focus violations instead of
-                      // the old "View submission" button. The grading form is still
-                      // reachable via the Status / Detail dialog from the open detail page.
                       <div className="flex flex-col items-start gap-0.5 min-w-[110px]">
                         <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-black">
                           Focus Violations
@@ -882,14 +890,6 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
                     </span>
                     <span className="font-semibold text-foreground dark:text-white">
                       {assignment.totalSubmissions} / {totalStudents} ({compRate}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="flex items-center gap-1">
-                      <Award className="w-3.5 h-3.5 text-emerald-500" /> Average score
-                    </span>
-                    <span className="font-semibold text-emerald-500">
-                      {assignment.avgScore ? `${assignment.avgScore}/10` : "—"}
                     </span>
                   </div>
                 </div>

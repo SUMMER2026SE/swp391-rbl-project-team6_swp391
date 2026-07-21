@@ -13,7 +13,6 @@ import {
   School,
   BookOpen,
   HelpCircle,
-  FileBadge,
   MessageSquare,
   LogOut,
   User,
@@ -46,7 +45,6 @@ const teacherGroups: NavGroup[] = [
     items: [
       { to: "/teacher/my-questions", label: "My Questions", icon: HelpCircle },
       { to: "/teacher/question-bank", label: "Question Bank", icon: HelpCircle },
-      { to: "/teacher/jlpt-bank", label: "JLPT Exam Bank", icon: FileBadge },
     ],
   },
   {

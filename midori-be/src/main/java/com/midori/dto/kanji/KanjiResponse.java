@@ -21,5 +21,6 @@ public class KanjiResponse {
     private String jlpt;
     private String meaning;
     private String svgFile;
+    private String mnemonic;
     private boolean svgAvailable;
 }

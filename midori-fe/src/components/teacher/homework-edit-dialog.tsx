@@ -107,6 +107,13 @@ export function HomeworkEditDialog({
 
   const handleSave = () => {
     if (!homework) return;
+    if (dueDate) {
+      const todayDate = new Date().toISOString().split("T")[0];
+      if (dueDate < todayDate) {
+        toast.error("Due date cannot be in the past.");
+        return;
+      }
+    }
     const updated: HomeworkResponse = {
       ...homework,
       title,
@@ -333,6 +340,7 @@ export function HomeworkEditDialog({
                       type="date"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
                       className="rounded-xl bg-muted/30 focus:bg-background transition"
                     />
                   </div>

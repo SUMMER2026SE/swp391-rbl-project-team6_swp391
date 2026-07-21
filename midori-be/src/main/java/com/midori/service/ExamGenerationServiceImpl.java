@@ -635,6 +635,7 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
             try {
                 String promptText = eq.getQuestionText() != null ? eq.getQuestionText().trim() : "";
                 if (!promptText.isEmpty() && !savedPrompts.contains(promptText) &&
+                        exam.getCreatedBy() != null &&
                         !teacherQuestionRepository.existsByTeacherIdAndPrompt(exam.getCreatedBy().getId(), promptText)) {
                     
                     savedPrompts.add(promptText);

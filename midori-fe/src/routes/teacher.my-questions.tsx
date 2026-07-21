@@ -454,11 +454,11 @@ function MyQuestionsPage() {
           return (
             <div
               key={lvl}
-              className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[20px] shadow-sm overflow-hidden"
+              className="bg-transparent overflow-hidden"
             >
               {/* Level Header */}
               <div
-                className="flex items-center justify-between p-5 cursor-pointer bg-gray-50/40 dark:bg-slate-800/20 border-b border-gray-100/50 dark:border-slate-800"
+                className="flex items-center justify-between py-4 cursor-pointer border-b border-slate-200/60 dark:border-white/5 bg-transparent"
                 onClick={() => toggleLevel(lvl)}
               >
                 <div className="flex items-center gap-3">
@@ -476,7 +476,7 @@ function MyQuestionsPage() {
 
               {/* Nested Structure: Lesson -> Skill -> Homeworks */}
               {isExpanded && (
-                <div className="p-6 space-y-6 divide-y divide-gray-50 dark:divide-slate-800/50">
+                <div className="py-6 space-y-6 divide-y divide-gray-100/40 dark:divide-slate-800/40">
                   {Object.entries(lessonsObj).map(([lessonName, skillsObj], lessonIdx) => (
                     <div key={lessonName} className={cn("space-y-4", lessonIdx > 0 && "pt-6")}>
                       {/* Lesson Title */}
@@ -506,21 +506,21 @@ function MyQuestionsPage() {
                                 return (
                                   <Card
                                     key={hw.id}
-                                    className="hover:shadow-md transition-shadow duration-150 border-gray-100 dark:border-slate-800 relative group flex flex-col justify-between"
+                                    className="hover:-translate-y-1.5 hover:shadow-[0_12px_24px_-10px_rgba(99,102,241,0.15)] transition-all duration-300 border border-slate-100 dark:border-white/5 relative group flex flex-col justify-between bg-white dark:bg-slate-900/60 rounded-2xl overflow-hidden"
                                   >
                                     <CardContent className="p-5 flex flex-col justify-between flex-1">
                                       <div className="mb-4">
-                                        <div className="flex items-center justify-between gap-2 mb-2">
-                                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        <div className="flex items-center justify-between gap-2 mb-3">
+                                          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md border border-indigo-100/40 dark:border-indigo-950/20">
                                             {cls?.name || "Unknown Class"}
                                           </span>
                                           <div className="flex items-center gap-2 relative">
                                             <span
                                               className={cn(
-                                                "px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wide uppercase",
+                                                "px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider uppercase border",
                                                 hw.status === "ASSIGNED"
-                                                  ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                                                  : "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                                  ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-950/20"
+                                                  : "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-950/20"
                                               )}
                                             >
                                               {hw.status}
@@ -532,9 +532,9 @@ function MyQuestionsPage() {
                                                 e.stopPropagation();
                                                 setActiveDropdownId(isDropdownOpen ? null : hw.id);
                                               }}
-                                              className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                                              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                                             >
-                                              <MoreVertical className="w-3.5 h-3.5" />
+                                              <MoreVertical className="w-4 h-4" />
                                             </button>
 
                                             {/* Dropdown Menu */}
@@ -563,25 +563,25 @@ function MyQuestionsPage() {
                                             )}
                                           </div>
                                         </div>
-                                        <h3 className="font-display font-bold text-sm text-gray-900 dark:text-slate-100 line-clamp-2 mb-3">
+                                        <h3 className="font-display font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 mb-3">
                                           {hw.title}
                                         </h3>
                                       </div>
 
-                                      <div className="space-y-1.5 border-t border-gray-50 dark:border-slate-800/50 pt-2.5">
+                                      <div className="space-y-1.5 border-t border-slate-100/50 dark:border-slate-800/40 pt-3">
                                         <div className="flex justify-between items-center text-[11px] text-muted-foreground">
                                           <span className="flex items-center gap-1">
-                                            <Calendar className="w-3 h-3" /> Due date
+                                            <Calendar className="w-3 h-3 text-slate-400" /> Due date
                                           </span>
-                                          <span className="font-semibold text-gray-700 dark:text-slate-300">
+                                          <span className="font-bold text-slate-700 dark:text-slate-300">
                                             {formatDateTime(hw.dueDate)}
                                           </span>
                                         </div>
                                         <div className="flex justify-between items-center text-[11px] text-muted-foreground">
                                           <span className="flex items-center gap-1">
-                                            <BookOpen className="w-3 h-3" /> Questions
+                                            <BookOpen className="w-3 h-3 text-slate-400" /> Questions
                                           </span>
-                                          <span className="font-semibold text-gray-700 dark:text-slate-300">
+                                          <span className="font-bold text-slate-700 dark:text-slate-300">
                                             {hw.totalQuestions || hw.questions?.length || 0}
                                           </span>
                                         </div>
@@ -633,11 +633,11 @@ function MyQuestionsPage() {
           return (
             <div
               key={lvl}
-              className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[20px] shadow-sm overflow-hidden"
+              className="bg-transparent overflow-hidden"
             >
               {/* Level Header */}
               <div
-                className="flex items-center justify-between p-5 cursor-pointer bg-gray-50/40 dark:bg-slate-800/20 border-b border-gray-100/50 dark:border-slate-800"
+                className="flex items-center justify-between py-4 cursor-pointer border-b border-slate-200/60 dark:border-white/5 bg-transparent"
                 onClick={() => toggleLevel(lvl)}
               >
                 <div className="flex items-center gap-3">
@@ -655,30 +655,30 @@ function MyQuestionsPage() {
 
               {/* Exam Cards Grid */}
               {isExpanded && (
-                <div className="p-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="py-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {list.map((ex) => {
                     const cls = ex.assignedClassId ? classMap.get(ex.assignedClassId) : null;
                     const isDropdownOpen = activeDropdownId === ex.id;
                     return (
                       <Card
                         key={ex.id}
-                        className="hover:shadow-md transition-shadow duration-150 border-gray-100 dark:border-slate-800 relative group flex flex-col justify-between"
+                        className="hover:-translate-y-1.5 hover:shadow-[0_12px_24px_-10px_rgba(99,102,241,0.15)] transition-all duration-300 border border-slate-100 dark:border-white/5 relative group flex flex-col justify-between bg-white dark:bg-slate-900/60 rounded-2xl overflow-hidden"
                       >
                         <CardContent className="p-5 flex flex-col justify-between flex-1">
                           <div className="mb-4">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            <div className="flex items-center justify-between gap-2 mb-3">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md border border-indigo-100/40 dark:border-indigo-950/20">
                                 {cls?.name || ex.className || "Not Assigned"}
                               </span>
                               <div className="flex items-center gap-2 relative">
                                 <span
                                   className={cn(
-                                    "px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wide uppercase",
+                                    "px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider uppercase border",
                                     ex.status === "PUBLISHED"
-                                      ? "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-950/20"
                                       : ex.status === "DRAFT"
-                                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                                        : "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                                        ? "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-950/20"
+                                        : "bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700/50"
                                   )}
                                 >
                                   {ex.status}
@@ -690,9 +690,9 @@ function MyQuestionsPage() {
                                     e.stopPropagation();
                                     setActiveDropdownId(isDropdownOpen ? null : ex.id);
                                   }}
-                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                                 >
-                                  <MoreVertical className="w-3.5 h-3.5" />
+                                  <MoreVertical className="w-4 h-4" />
                                 </button>
 
                                 {/* Dropdown Menu */}
@@ -721,25 +721,25 @@ function MyQuestionsPage() {
                                 )}
                               </div>
                             </div>
-                            <h3 className="font-display font-bold text-sm text-gray-900 dark:text-slate-100 line-clamp-2 mb-3">
+                            <h3 className="font-display font-bold text-sm text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 mb-3">
                               {ex.title}
                             </h3>
                           </div>
 
-                          <div className="space-y-2 border-t border-gray-50 dark:border-slate-800/50 pt-3">
-                            <div className="flex justify-between items-center text-xs text-muted-foreground">
+                          <div className="space-y-1.5 border-t border-slate-100/50 dark:border-slate-800/40 pt-3">
+                            <div className="flex justify-between items-center text-[11px] text-muted-foreground">
                               <span className="flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5" /> Duration
+                                <Calendar className="w-3 h-3 text-slate-400" /> Duration
                               </span>
-                              <span className="font-semibold text-gray-700 dark:text-slate-300">
+                              <span className="font-bold text-slate-700 dark:text-slate-300">
                                 {ex.timeLimit ? `${ex.timeLimit} mins` : "Unlimited"}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center text-xs text-muted-foreground">
+                            <div className="flex justify-between items-center text-[11px] text-muted-foreground">
                               <span className="flex items-center gap-1">
-                                <BookOpen className="w-3.5 h-3.5" /> Questions
+                                <BookOpen className="w-3 h-3 text-slate-400" /> Questions
                               </span>
-                              <span className="font-semibold text-gray-700 dark:text-slate-300">
+                              <span className="font-bold text-slate-700 dark:text-slate-300">
                                 {ex.totalQuestions || 0}
                               </span>
                             </div>

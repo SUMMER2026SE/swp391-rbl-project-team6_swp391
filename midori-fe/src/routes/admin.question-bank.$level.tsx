@@ -217,17 +217,6 @@ function QuestionBankLessonListPage() {
             </p>
           </div>
         </div>
-        <div className="card-base p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/12 flex items-center justify-center shrink-0">
-            <BookOpen className="w-5 h-5 text-purple-500" />
-          </div>
-          <div>
-            <p className="text-[10px] text-muted-col uppercase tracking-wider font-bold">
-              Memory Only
-            </p>
-            <p className="font-display font-black text-lg text-primary-col">No DB</p>
-          </div>
-        </div>
       </div>
 
       {/* Lesson List */}

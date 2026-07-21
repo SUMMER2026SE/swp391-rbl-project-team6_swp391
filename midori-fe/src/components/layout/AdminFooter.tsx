@@ -15,7 +15,6 @@ const managementLinks: FooterLink[] = [
 
 const contentLinks: FooterLink[] = [
   { label: "Question Bank", href: "/admin/question-bank" },
-  { label: "JLPT Exam", href: "/admin/jlpt-exam" },
   { label: "Content Library", href: "/admin/content-library" },
 ];
 

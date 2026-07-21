@@ -72,11 +72,14 @@ public class Homework {
     }
 
     public void setQuestions(java.util.List<TeacherQuestion> questions) {
-        if (questions == null) {
+        if (this.homeworkQuestions == null) {
             this.homeworkQuestions = new java.util.ArrayList<>();
+        } else {
+            this.homeworkQuestions.clear();
+        }
+        if (questions == null) {
             return;
         }
-        this.homeworkQuestions = new java.util.ArrayList<>();
         for (int i = 0; i < questions.size(); i++) {
             TeacherQuestion q = questions.get(i);
             HomeworkQuestionId hqId = new HomeworkQuestionId(this.id, q.getId());

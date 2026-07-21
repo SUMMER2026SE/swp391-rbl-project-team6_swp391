@@ -435,6 +435,10 @@ function QuestionBankHW({
       toast.error("Please fill in target class, title, and due date.");
       return;
     }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -984,6 +988,11 @@ function QuestionBankHW({
                       className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
                       value={metadata.dueDate}
                       onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                      min={(() => {
+                        const now = new Date();
+                        const tzOffset = now.getTimezoneOffset() * 60000;
+                        return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+                      })()}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1235,6 +1244,12 @@ function HomeworkAiPdf({
       toast.error(msg);
       return;
     }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      const msg = "Due date cannot be in the past.";
+      setAssignError(msg);
+      toast.error(msg);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -1353,6 +1368,7 @@ function HomeworkAiPdf({
                 type="date"
                 value={metadata.dueDate}
                 onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                min={new Date().toISOString().split("T")[0]}
               />
             </div>
             <div className="space-y-1.5">

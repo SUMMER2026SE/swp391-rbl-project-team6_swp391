@@ -151,11 +151,14 @@ export function AssignmentsDashboard({
   };
 
   const handleSubmit = (id: string) => {
+    const submitted = assignments.find((a) => a.id === id);
     setAssignments((prev) =>
       prev.map((asg) => (asg.id === id ? { ...asg, status: "Submitted" } : asg)),
     );
     setDoingAssignment(null);
-    setSelectedAssignment(null);
+    if (submitted) {
+      setSelectedAssignment(submitted);
+    }
   };
 
   const getStatusStyle = (status: AssignmentStatus) => {
