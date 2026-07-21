@@ -2,6 +2,7 @@ package com.midori.service;
 
 import com.midori.entity.ClassEntity;
 import com.midori.entity.ClassMembership;
+import com.midori.entity.ClassStatusEvent;
 import com.midori.entity.User;
 import com.midori.dto.classdto.ClassResponse;
 import com.midori.dto.classdto.CreateClassRequest;
@@ -22,6 +23,7 @@ import com.midori.repository.ClassRepository;
 import com.midori.repository.UserRepository;
 import com.midori.repository.HomeworkRepository;
 import com.midori.repository.ExamRepository;
+import com.midori.repository.ClassStatusEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +49,7 @@ public class ClassServiceImpl implements ClassService {
     private final com.midori.repository.HomeworkSubmissionRepository homeworkSubmissionRepository;
     private final StudentExamRepository studentExamRepository;
     private final com.midori.repository.ClassMembershipRepository classMembershipRepository;
+    private final ClassStatusEventRepository classStatusEventRepository;
 
     @Override
     public List<ClassEntity> getAllClasses(String status) {
@@ -147,6 +150,14 @@ public class ClassServiceImpl implements ClassService {
                 .build();
 
         ClassEntity savedClass = classRepository.save(classEntity);
+
+        ClassStatusEvent event = ClassStatusEvent.builder()
+                .classEntity(savedClass)
+                .eventType(ClassStatusEvent.ClassEventType.CREATED)
+                .performedBy(teacher)
+                .build();
+        classStatusEventRepository.save(event);
+
         return mapToClassResponse(savedClass);
     }
 
@@ -213,6 +224,14 @@ public class ClassServiceImpl implements ClassService {
 
         classEntity.setStatus(ClassEntity.ClassStatus.ARCHIVED);
         ClassEntity updatedClass = classRepository.save(classEntity);
+
+        ClassStatusEvent event = ClassStatusEvent.builder()
+                .classEntity(updatedClass)
+                .eventType(ClassStatusEvent.ClassEventType.ARCHIVED)
+                .performedBy(user)
+                .build();
+        classStatusEventRepository.save(event);
+
         return mapToClassResponse(updatedClass);
     }
 
@@ -235,6 +254,14 @@ public class ClassServiceImpl implements ClassService {
 
         classEntity.setStatus(ClassEntity.ClassStatus.ACTIVE);
         ClassEntity updatedClass = classRepository.save(classEntity);
+
+        ClassStatusEvent event = ClassStatusEvent.builder()
+                .classEntity(updatedClass)
+                .eventType(ClassStatusEvent.ClassEventType.RESTORED)
+                .performedBy(user)
+                .build();
+        classStatusEventRepository.save(event);
+
         return mapToClassResponse(updatedClass);
     }
 

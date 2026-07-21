@@ -31,8 +31,19 @@ public class DashboardServiceImpl implements DashboardService {
     private final StudentExamRepository studentExamRepository;
     private final NotificationRepository notificationRepository;
     private final ClassRepository classRepository;
+    private final TeacherStatusEventRepository teacherStatusEventRepository;
+    private final ClassStatusEventRepository classStatusEventRepository;
 
-    private static final int DEFAULT_LIMIT = 20;
+    /**
+     * Recent Activities card surfaces the 6 newest platform events. Anything
+     * beyond the 6th row is dropped at the API layer so the FE does not have
+     * to scroll inside a fixed-height card. The card sits at its own intrinsic
+     * height (one row per activity) so the JLPT card on the same row is
+     * never stretched by a long list. The constant lives here so the
+     * controller default, the no-arg service overload, and any future
+     * caller stay in lockstep.
+     */
+    private static final int DEFAULT_LIMIT = 6;
 
     @Override
     public AdminDashboardSummaryResponse getSummary() {
@@ -92,122 +103,84 @@ public class DashboardServiceImpl implements DashboardService {
         PageRequest pageRequest = PageRequest.of(0, limit);
         List<RecentActivityEntry> allActivities = new ArrayList<>();
 
-        // 1. Student registrations
-        List<User> recentStudents = userRepository.findRecentUsersByRole(Role.STUDENT, pageRequest);
-        for (User student : recentStudents) {
+        // 1. Teacher status events (registered, approved, rejected)
+        List<TeacherStatusEvent> teacherEvents = teacherStatusEventRepository.findRecentEvents(pageRequest);
+        for (TeacherStatusEvent event : teacherEvents) {
+            String teacherName = getDisplayName(event.getTeacher());
+            String actorName = event.getPerformedBy() != null ? getDisplayName(event.getPerformedBy()) : "System";
+
+            ActivityType activityType;
+            String title;
+            String detail;
+
+            switch (event.getEventType()) {
+                case REGISTERED:
+                    activityType = ActivityType.TEACHER_REGISTERED;
+                    title = "Teacher " + teacherName + " registered";
+                    detail = "Waiting for approval";
+                    break;
+                case APPROVED:
+                    activityType = ActivityType.TEACHER_APPROVED;
+                    title = "Teacher " + teacherName + " was approved";
+                    detail = "by " + actorName;
+                    break;
+                case REJECTED:
+                    activityType = ActivityType.TEACHER_REJECTED;
+                    title = "Teacher " + teacherName + " was rejected";
+                    detail = "by " + actorName;
+                    if (event.getReason() != null && !event.getReason().isBlank()) {
+                        detail += ": " + event.getReason();
+                    }
+                    break;
+                default:
+                    continue;
+            }
+
             allActivities.add(RecentActivityEntry.builder()
-                    .id("student-" + student.getId())
-                    .type(ActivityType.STUDENT_REGISTERED)
-                    .title("New student registered")
-                    .detail(student.getEmail())
-                    .timestamp(student.getCreatedAt())
-                    .actorEmail(student.getEmail())
-                    .entityId(student.getId().toString())
+                    .id("teacher-event-" + event.getId())
+                    .type(activityType)
+                    .title(title)
+                    .detail(detail)
+                    .timestamp(event.getCreatedAt())
+                    .actorEmail(event.getPerformedBy() != null ? event.getPerformedBy().getEmail() : null)
+                    .entityId(event.getTeacher().getId().toString())
                     .build());
         }
 
-        // 2. Teacher registrations
-        List<User> recentTeachers = userRepository.findRecentUsersByRole(Role.TEACHER, pageRequest);
-        for (User teacher : recentTeachers) {
-            allActivities.add(RecentActivityEntry.builder()
-                    .id("teacher-" + teacher.getId())
-                    .type(ActivityType.TEACHER_REGISTERED)
-                    .title("Teacher account created")
-                    .detail(teacher.getEmail())
-                    .timestamp(teacher.getCreatedAt())
-                    .actorEmail(teacher.getEmail())
-                    .entityId(teacher.getId().toString())
-                    .build());
-        }
+        // 2. Class status events (created, archived, restored)
+        List<ClassStatusEvent> classEvents = classStatusEventRepository.findRecentEvents(pageRequest);
+        for (ClassStatusEvent event : classEvents) {
+            String className = event.getClassEntity().getName();
+            String actorName = getDisplayName(event.getPerformedBy());
 
-        // 3. Class creations
-        List<ClassEntity> recentClasses = classRepository.findRecentClasses(pageRequest);
-        for (ClassEntity cls : recentClasses) {
-            String teacherEmail = cls.getTeacher() != null ? cls.getTeacher().getEmail() : "Unknown";
-            allActivities.add(RecentActivityEntry.builder()
-                    .id("class-" + cls.getId())
-                    .type(ActivityType.CLASS_CREATED)
-                    .title("Class \"" + cls.getName() + "\" created")
-                    .detail(cls.getLevel() + " · Teacher: " + teacherEmail)
-                    .timestamp(cls.getCreatedAt())
-                    .actorEmail(teacherEmail)
-                    .entityId(cls.getId().toString())
-                    .build());
-        }
+            ActivityType activityType;
+            String title;
 
-        // 4. Student enrollments in classes
-        List<ClassMembership> recentEnrollments = classMembershipRepository.findRecentEnrollments(pageRequest);
-        for (ClassMembership enrollment : recentEnrollments) {
-            String studentEmail = enrollment.getStudent() != null ? enrollment.getStudent().getEmail() : "Unknown";
-            String className = enrollment.getClassEntity() != null ? enrollment.getClassEntity().getName() : "Unknown class";
-            allActivities.add(RecentActivityEntry.builder()
-                    .id("enrollment-" + enrollment.getId())
-                    .type(ActivityType.STUDENT_ENROLLED)
-                    .title("Student joined class")
-                    .detail(studentEmail + " joined \"" + className + "\"")
-                    .timestamp(enrollment.getJoinedAt())
-                    .actorEmail(studentEmail)
-                    .entityId(enrollment.getId().toString())
-                    .build());
-        }
+            switch (event.getEventType()) {
+                case CREATED:
+                    activityType = ActivityType.CLASS_CREATED;
+                    title = "Class \"" + className + "\" was created";
+                    break;
+                case ARCHIVED:
+                    activityType = ActivityType.CLASS_ARCHIVED;
+                    title = "Class \"" + className + "\" was archived";
+                    break;
+                case RESTORED:
+                    activityType = ActivityType.CLASS_RESTORED;
+                    title = "Class \"" + className + "\" was restored";
+                    break;
+                default:
+                    continue;
+            }
 
-        // 5. Homework submissions
-        List<HomeworkSubmission> recentSubmissions = homeworkSubmissionRepository.findRecentSubmissions(pageRequest);
-        for (HomeworkSubmission submission : recentSubmissions) {
-            String studentEmail = submission.getStudent() != null ? submission.getStudent().getEmail() : "Unknown";
-            String homeworkTitle = submission.getHomework() != null ? submission.getHomework().getTitle() : "Unknown homework";
-            String statusDetail = submission.getStatus() == HomeworkSubmission.SubmissionStatus.GRADED
-                    ? "Graded: " + submission.getScore() + " pts"
-                    : "Pending grading";
             allActivities.add(RecentActivityEntry.builder()
-                    .id("hw-" + submission.getId())
-                    .type(ActivityType.HOMEWORK_SUBMITTED)
-                    .title("Homework submitted: " + homeworkTitle)
-                    .detail(statusDetail + " by " + studentEmail)
-                    .timestamp(submission.getSubmittedAt())
-                    .actorEmail(studentEmail)
-                    .entityId(submission.getId().toString())
-                    .build());
-        }
-
-        // 6. Exam completions
-        List<StudentExam> recentExams = studentExamRepository.findRecentCompletedExams(pageRequest);
-        for (StudentExam exam : recentExams) {
-            String studentEmail = exam.getStudent() != null ? exam.getStudent().getEmail() : "Unknown";
-            String examTitle = exam.getExam() != null ? exam.getExam().getTitle() : "Unknown exam";
-            String scoreDetail = exam.getPercentage() != null
-                    ? "Score: " + String.format("%.1f", exam.getPercentage()) + "%"
-                    : "Completed";
-            allActivities.add(RecentActivityEntry.builder()
-                    .id("exam-" + exam.getId())
-                    .type(ActivityType.EXAM_COMPLETED)
-                    .title("Exam completed: " + examTitle)
-                    .detail(scoreDetail + " by " + studentEmail)
-                    .timestamp(exam.getSubmittedAt())
-                    .actorEmail(studentEmail)
-                    .entityId(exam.getId().toString())
-                    .build());
-        }
-
-        // 7. Notifications sent
-        List<Notification> recentNotifications = notificationRepository.findRecentNotifications(pageRequest);
-        Map<Long, Long> recipientCounts = new HashMap<>();
-        List<Long> notificationIds = recentNotifications.stream()
-                .map(Notification::getId)
-                .toList();
-        if (!notificationIds.isEmpty()) {
-            notificationRepository.countRecipientsByNotificationIds(notificationIds)
-                    .forEach(rc -> recipientCounts.put(rc.getId(), rc.getTotal()));
-        }
-        for (Notification notification : recentNotifications) {
-            String recipientCount = recipientCounts.getOrDefault(notification.getId(), 0L) + " recipients";
-            allActivities.add(RecentActivityEntry.builder()
-                    .id("notif-" + notification.getId())
-                    .type(ActivityType.NOTIFICATION_SENT)
-                    .title("Notification sent: " + notification.getTitle())
-                    .detail(notification.getType() + " · " + recipientCount)
-                    .timestamp(notification.getCreatedAt())
-                    .entityId(notification.getId().toString())
+                    .id("class-event-" + event.getId())
+                    .type(activityType)
+                    .title(title)
+                    .detail("by " + actorName)
+                    .timestamp(event.getCreatedAt())
+                    .actorEmail(event.getPerformedBy().getEmail())
+                    .entityId(event.getClassEntity().getId().toString())
                     .build());
         }
 
@@ -227,5 +200,13 @@ public class DashboardServiceImpl implements DashboardService {
                 .activities(trimmed)
                 .total(allActivities.size())
                 .build();
+    }
+
+    private String getDisplayName(User user) {
+        if (user == null) return "Unknown";
+        if (user.getProfile() != null && user.getProfile().getDisplayName() != null) {
+            return user.getProfile().getDisplayName();
+        }
+        return user.getEmail();
     }
 }
