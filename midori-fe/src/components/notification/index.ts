@@ -9,3 +9,4 @@ export { NotificationTypeTabs } from "./notification-type-tabs";
 export { NOTIFICATION_TYPE_VISUALS, getNotificationTypeVisual } from "./notification-type-visuals";
 export type { NotificationTypeVisual } from "./notification-type-visuals";
 export type { NotificationTabDescriptor, NotificationTabId } from "./notification-type-tabs";
+export { PushNotificationToggle } from "./push-notification-toggle";

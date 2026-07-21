@@ -198,7 +198,7 @@ export function TeacherShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const { unreadCount, notifications } = useNotifications();
+  const { unreadCount, notifications, markRead } = useNotifications();
   const unread = unreadCount;
 
   const avatar = getUserAvatar(user);
@@ -500,8 +500,27 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                           {notifications.slice(0, 5).map((n) => {
                             const Icon = n.icon;
                             return (
-                              <div
+                              <button
                                 key={n.id}
+                                type="button"
+                                onClick={() => {
+                                  setNotifOpen(false);
+                                  // Clicking a notification from the bell
+                                  // popup must take the user straight to the
+                                  // detail view of that notification, not
+                                  // just stop on the list page. We navigate
+                                  // to the inbox with `?id=` so the route
+                                  // handler opens the detail drawer for the
+                                  // right notification and then strips the
+                                  // param.
+                                  navigate({
+                                    to: "/teacher/notifications",
+                                    search: { q: "", id: n.id },
+                                  });
+                                  if (n.unread) {
+                                    void markRead(n.id);
+                                  }
+                                }}
                                 className={cn(
                                   "w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150",
                                   n.unread
@@ -535,7 +554,7 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                                     {n.time}
                                   </span>
                                 </div>
-                              </div>
+                              </button>
                             );
                           })}
                         </div>
@@ -544,7 +563,15 @@ export function TeacherShell({ children }: { children: ReactNode }) {
                         <button
                           onClick={() => {
                             setNotifOpen(false);
-                            navigate({ to: "/teacher/notifications", search: { q: "" } });
+                            // "View all" is purely a navigation shortcut to
+                            // the inbox list page; it must NOT auto-open any
+                            // detail drawer. We explicitly pass `id: null`
+                            // so the inbox renders the regular list and the
+                            // user picks a notification themselves.
+                            navigate({
+                              to: "/teacher/notifications",
+                              search: { q: "", id: null },
+                            });
                           }}
                           className="w-full block py-2.5 text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition"
                         >
@@ -663,11 +690,18 @@ function TeacherSearchBar() {
     return pathname;
   };
 
-  // Read current q from URL
+  // Read current q from URL. The shape of `routerState.search` is inferred
+  // from the active route's `validateSearch`, which is now an object (we
+  // added `id` to the teacher notifications page). We coerce it back to a
+  // string so URLSearchParams always receives the raw querystring.
+  const searchStr =
+    typeof routerState.search === "string"
+      ? routerState.search
+      : (routerState.searchStr ?? "");
   const urlQ = useMemo(() => {
-    const params = new URLSearchParams(routerState.search || "");
+    const params = new URLSearchParams(searchStr || "");
     return params.get("q") || "";
-  }, [routerState.search]);
+  }, [searchStr]);
 
   const [inputVal, setInputVal] = useState(urlQ);
 
