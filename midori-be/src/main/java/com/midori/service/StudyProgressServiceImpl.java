@@ -45,6 +45,7 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     private final ExamRepository examRepository;
     private final GrammarPatternRepository grammarPatternRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final UserLoginHistoryRepository userLoginHistoryRepository;
 
     // ============================================================
     // Upsert Helper
