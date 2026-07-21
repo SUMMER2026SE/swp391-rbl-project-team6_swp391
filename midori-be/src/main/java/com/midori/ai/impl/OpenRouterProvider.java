@@ -221,6 +221,11 @@ public class OpenRouterProvider implements AiProvider {
         this.chatModels = buildCappedChain(primary, fallbacks, 2);
         this.quizModels = buildCappedChain(primary, fallbacks, 2);
 
+        log.info("[OpenRouterProvider] Startup - Configured primary model(s): {}", primary);
+        log.info("[OpenRouterProvider] Startup - Configured fallback model(s): {}", fallbacks);
+        log.info("[OpenRouterProvider] Startup - Resolved active chat model: {}", this.chatModels.isEmpty() ? "none" : this.chatModels.get(0));
+        log.info("[OpenRouterProvider] Startup - Resolved active quiz model: {}", this.quizModels.isEmpty() ? "none" : this.quizModels.get(0));
+
         log.info("[OpenRouterProvider] Initialized chat chain (size={}, timeoutMs={}, maxTokens={}): {}",
                 this.chatModels.size(), this.chatTimeoutMs, this.chatMaxTokens, this.chatModels);
         log.info("[OpenRouterProvider] Initialized quiz chain (size={}, timeoutMs={}, maxTokens={}): {}",
@@ -403,6 +408,67 @@ public class OpenRouterProvider implements AiProvider {
             long start = System.currentTimeMillis();
             try {
                 String response = callGenerateQuestions(model, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE, 
+                        createFactory(quizTimeoutMs));
+                String cleaned = cleanJsonResponse(response);
+                lastModelUsed = model;
+                return cleaned;
+            } catch (AuthException e) {
+                long duration = System.currentTimeMillis() - start;
+                log.error("OpenRouter model={} durationMs={} status=AUTH kind=quiz reason={}", model, duration, e.getMessage());
+                throw e;
+            } catch (InvalidJsonException e) {
+                long duration = System.currentTimeMillis() - start;
+                log.warn("OpenRouter model={} durationMs={} status=INVALID_JSON kind=quiz reason={}",
+                        model, duration, e.getMessage());
+                lastError = e;
+            } catch (NonRetryableException e) {
+                long duration = System.currentTimeMillis() - start;
+                log.error("OpenRouter model={} durationMs={} status=NON_RETRYABLE kind=quiz reason={}",
+                        model, duration, e.getMessage());
+                throw new RuntimeException("AI không phản hồi được: " + e.getMessage());
+            } catch (RuntimeException e) {
+                long duration = System.currentTimeMillis() - start;
+                log.warn("OpenRouter model={} durationMs={} status=RETRY kind=quiz reason={}",
+                        model, duration, e.getMessage());
+                lastError = e;
+            } catch (Exception e) {
+                long duration = System.currentTimeMillis() - start;
+                log.warn("OpenRouter model={} durationMs={} status=UNEXPECTED kind=quiz reason={}",
+                        model, duration, e.getMessage());
+                lastError = e;
+            }
+        }
+
+        log.error("OpenRouter all quiz models exhausted (chainSize={})", quizModels.size());
+        String msg = lastError != null ? lastError.getMessage() : "Không rõ";
+        if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout")) {
+            throw new RuntimeException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
+        }
+        if (msg.toLowerCase().contains("invalid") || msg.toLowerCase().contains("json")) {
+            throw new RuntimeException("AI trả dữ liệu không hợp lệ. Đang dùng quiz local.");
+        }
+        throw new RuntimeException("AI không phản hồi được. Vui lòng thử lại sau.");
+    }
+
+    @Override
+    public String generateQuestionsWithDistribution(String materialTitle, String materialContent,
+                                                     int distributionTotal, String questionType,
+                                                     String distributionLine,
+                                                     java.util.List<String> selectedSkills,
+                                                     com.midori.ai.AiTaskType taskType) {
+        if (!isConfigured()) {
+            throw new IllegalStateException("OpenRouter API key is not configured.");
+        }
+
+        String prompt = AiPromptBuilder.buildQuizGenerationPromptWithDistribution(
+                materialTitle, materialContent, distributionTotal, questionType, distributionLine, selectedSkills);
+
+        Throwable lastError = null;
+        for (int attempt = 0; attempt < quizModels.size(); attempt++) {
+            String model = quizModels.get(attempt);
+            long start = System.currentTimeMillis();
+            try {
+                String response = callGenerateQuestions(model, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
                         createFactory(quizTimeoutMs));
                 String cleaned = cleanJsonResponse(response);
                 lastModelUsed = model;

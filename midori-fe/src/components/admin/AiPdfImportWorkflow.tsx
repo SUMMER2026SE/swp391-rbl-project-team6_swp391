@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useEvent } from "./useEvent";
 import { Upload, Loader2, AlertCircle, Plus, CheckCircle, FileText, Sparkles } from "lucide-react";
 import { QuestionEditor, ImportedQuestion } from "./pdf-import/QuestionEditor";
-import { aiApi, type PdfImportMode, type TargetSkill } from "@/lib/api/ai";
+import { aiApi, type PdfImportMode, type TargetSkill, type PdfImportQuestionType, type DifficultyPercentages } from "@/lib/api/ai";
 import { toast } from "sonner";
 
 interface AiPdfImportWorkflowProps {
@@ -12,6 +13,17 @@ interface AiPdfImportWorkflowProps {
   backLabel: string;
   enabled?: boolean;
   disabledReason?: string;
+  /**
+   * When provided, the workflow skips the mode-selection screen and locks the
+   * caller into the specified mode. Each wrapper MUST declare its mode
+   * explicitly so we never silently fall back to IMPORT_EXISTING_QUESTIONS:
+   *
+   * - Question Bank PDF AI: omit defaultMode (user selects explicitly)
+   *
+   * <p>For Homework + Exam flows we now want the user to pick a mode first,
+   * so {@code defaultMode} should NOT be set on those wrappers.
+   */
+  defaultMode?: PdfImportMode;
 }
 
 export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
@@ -22,8 +34,13 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   backLabel,
   enabled = false,
   disabledReason = "This feature is not available yet",
+  defaultMode,
 }) => {
-  const [step, setStep] = useState<"select-mode" | "configure" | "upload" | "loading" | "preview">("select-mode");
+  const [step, setStep] = useState<"select-mode" | "configure" | "upload" | "loading" | "preview">(() => {
+    if (defaultMode === "IMPORT_EXISTING_QUESTIONS") return "upload";
+    if (defaultMode === "GENERATE_FROM_CONTENT") return "configure";
+    return "select-mode";
+  });
   const [loadingMessage, setLoadingMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -32,16 +49,39 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   const [reAnalyzingIndexes] = useState<Record<number, boolean>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Guards against duplicate requests (StrictMode double-mount, double onChange,
+  // double drop, etc). The string is a stable request key.
+  const inFlightKeyRef = useRef<string | null>(null);
+
+  // Stable handle for the (re-created on every config change)
+  // handleGenerateInternal function. handleSelectFile — declared further
+  // down — invokes THIS ref rather than the inline function so that
+  // handleSelectFile's identity never changes when configuration state
+  // (skills, question count, etc.) changes. Without this indirection we
+  // get a stale closure warning OR an infinite re-render loop.
+  const handleGenerateInternalRef = useRef<(file: File) => Promise<void>>(
+    async () => {},
+  );
 
   // Generation options state
-  const [selectedMode, setSelectedMode] = useState<PdfImportMode | null>(null);
+  const [selectedMode, setSelectedMode] = useState<PdfImportMode | null>(
+    defaultMode ?? null,
+  );
   const [questionCount, setQuestionCount] = useState(10);
-  const [questionType, setQuestionType] = useState("MULTIPLE_CHOICE");
+  const [questionType, setQuestionType] = useState<PdfImportQuestionType>("MULTIPLE_CHOICE");
   const [difficulty, setDifficulty] = useState("MEDIUM");
   const [level, setLevel] = useState("");
   const [targetSkills, setTargetSkills] = useState<TargetSkill[]>([]);
+  const [difficultyPercent, setDifficultyPercent] = useState<DifficultyPercentages>({
+    easy: 30,
+    medium: 50,
+    hard: 20,
+  });
 
   const AVAILABLE_SKILLS: TargetSkill[] = ["VOCABULARY", "GRAMMAR", "READING"];
+
+  const isSkillRequired = selectedMode === "GENERATE_FROM_CONTENT";
+  const disableUpload = isSkillRequired && targetSkills.length === 0;
 
   const handleSkillToggle = (skill: TargetSkill) => {
     setTargetSkills(prev => {
@@ -122,28 +162,61 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     setWarning(null);
     setQuestions([]);
     setSelectedFile(null);
+    // Reset the file input so the user can re-pick the same file later
+    // (browsers silently skip onChange otherwise).
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    // Reset the in-flight guard so a fresh upload can fire after switching modes.
+    inFlightKeyRef.current = null;
   };
 
   const handleBackToModeSelection = () => {
+    // When defaultMode is supplied by the wrapper, the user cannot switch modes.
+    if (defaultMode) return;
     setStep("select-mode");
     setSelectedMode(null);
     setError(null);
+    setWarning(null);
     setQuestions([]);
     setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    inFlightKeyRef.current = null;
   };
 
   const handleStartUpload = () => {
-    if (targetSkills.length === 0) {
+    if (disableUpload) {
       setError("Please select at least one skill.");
       return;
+    }
+    if (selectedMode === "GENERATE_FROM_CONTENT") {
+      const total =
+        difficultyPercent.easy + difficultyPercent.medium + difficultyPercent.hard;
+      if (total !== 100) {
+        setError("Difficulty percentages must sum to exactly 100%.");
+        return;
+      }
+      if (questionCount < 1 || questionCount > 100) {
+        setError("Number of Questions must be between 1 and 100.");
+        return;
+      }
     }
     setError(null);
     setStep("upload");
   };
 
-  const handleSelectFile = useCallback((file: File) => {
-    if (!enabled || !selectedMode) {
+  const handleSelectFile = useEvent((file: File) => {
+    if (!enabled) {
       setError("This feature is currently disabled.");
+      return;
+    }
+
+    if (!selectedMode) {
+      const msg = "Please choose an import mode before uploading a PDF.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -152,7 +225,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       return;
     }
 
-    if (targetSkills.length === 0) {
+    if (disableUpload) {
       const msg = "Please select at least one skill before uploading a PDF.";
       setError(msg);
       toast.error(msg);
@@ -163,16 +236,35 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
     setError(null);
     setWarning(null);
     setSelectedFile(file);
-  }, [enabled, selectedMode, targetSkills]);
 
-  const handleGenerate = useCallback(async () => {
-    if (!selectedFile || !selectedMode) {
-      setError("Please select a PDF file before generating questions.");
+    // STEP 5 fix: Auto-generate immediately after selecting a valid PDF.
+    // No need for a separate "Generate" button click.
+    // handleGenerateInternal reads from closure — call it directly so it uses the new file.
+    handleGenerateInternalRef.current(file);
+  });
+
+  // Shared internal generation logic that accepts the File directly so it
+  // always uses the freshly-selected file (not a stale closure snapshot).
+  const handleGenerateInternal = useCallback(async (file: File) => {
+    // Hard guard: refuse to call without an explicit mode. No hidden fallback.
+    if (!selectedMode) {
+      const msg = "Please choose an import mode before generating questions.";
+      setError(msg);
+      toast.error(msg);
+      setStep("select-mode");
       return;
     }
 
-    const file = selectedFile;
-    setQuestions([]);
+    // De-dupe: same file + same mode cannot trigger two parallel requests.
+    // This guards against React StrictMode double-mount, double onChange,
+    // double drop events, and any other re-entry that would otherwise fire
+    // the backend twice for a single user upload.
+    const requestKey = `${file.name}:${file.size}:${file.lastModified}:${selectedMode}`;
+    if (inFlightKeyRef.current === requestKey) {
+      return;
+    }
+    inFlightKeyRef.current = requestKey;
+
     setError(null);
     setWarning(null);
     setStep("loading");
@@ -186,6 +278,8 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
         count: selectedMode === "GENERATE_FROM_CONTENT" ? questionCount : undefined,
         questionType: selectedMode === "GENERATE_FROM_CONTENT" ? questionType : undefined,
         difficulty: selectedMode === "GENERATE_FROM_CONTENT" ? difficulty : undefined,
+        difficultyPercent:
+          selectedMode === "GENERATE_FROM_CONTENT" ? difficultyPercent : undefined,
         targetSkills: targetSkills.length > 0 ? targetSkills : undefined,
       });
 
@@ -193,10 +287,16 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       await new Promise(resolve => setTimeout(resolve, 500));
 
       if (response.errorMessage) {
-        setError(response.errorMessage);
-        setStep("upload");
-        toast.error(response.errorMessage);
-        return;
+        const rawQuestions = Array.isArray(response.questions) ? response.questions : [];
+        if (rawQuestions.length === 0) {
+          setError(response.errorMessage);
+          setStep("upload");
+          toast.error(response.errorMessage);
+          return;
+        } else {
+          setWarning(response.errorMessage);
+          toast.warning(response.errorMessage);
+        }
       }
 
       const rawQuestions = Array.isArray(response.questions) ? response.questions : [];
@@ -213,28 +313,48 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
         const rawAnswers = Array.isArray(q.answers) ? q.answers : [];
         const correctIndex = rawAnswers.findIndex(a => a && a.isCorrect);
         const mappedCategory = mapCategory(q.category, q.content);
+        const resolvedType = normalizePreviewType(q.type);
+        let mappedAnswers: { content: string; isCorrect: boolean }[];
+        if (resolvedType === "FILL_BLANK" || resolvedType === "SHORT_ANSWER") {
+          // For text-only questions the BE may return zero or many options;
+          // collapse them to a single text answer the editor can render.
+          const firstAnswer = rawAnswers[0];
+          mappedAnswers = [{ content: firstAnswer?.content ?? "", isCorrect: true }];
+        } else {
+          mappedAnswers = rawAnswers.map((a, aIdx) => ({
+            content: a?.content || "",
+            isCorrect: aIdx === correctIndex || (correctIndex === -1 && aIdx === 0),
+          }));
+        }
         return {
           id: `extracted-${Date.now()}-${idx}`,
-          type: q.type === "TRUE_FALSE" ? "TRUE_FALSE" : "MULTIPLE_CHOICE",
+          type: resolvedType,
           content: q.content || "",
           difficulty: q.difficulty?.toUpperCase() || "MEDIUM",
           explanation: q.explanation || "",
-          answers: rawAnswers.map((a, aIdx) => ({
-            content: a?.content || "",
-            isCorrect: aIdx === correctIndex || (correctIndex === -1 && aIdx === 0),
-          })),
+          answers: mappedAnswers,
           category: mappedCategory,
           needsReview: false,
         };
       });
 
+      const expectedCount = selectedMode === "GENERATE_FROM_CONTENT" ? questionCount : null;
+      const isShortfall = expectedCount !== null && importedQuestions.length < expectedCount;
+
+      const beWarning = response.warning || response.errorMessage;
+      if (beWarning) {
+        setWarning(beWarning);
+        toast.warning(beWarning);
+      } else if (isShortfall) {
+        const shortMsg = `AI generated ${importedQuestions.length} of ${expectedCount} valid questions. Please retry.`;
+        setWarning(shortMsg);
+        toast.warning(shortMsg);
+      }
+
       setQuestions(importedQuestions);
       setStep("preview");
-      toast.success(`Generated ${importedQuestions.length} questions from PDF`);
-
-      if (response.warning) {
-        setWarning(response.warning);
-        toast.warning(response.warning);
+      if (!isShortfall) {
+        toast.success(`Generated ${importedQuestions.length} questions from PDF`);
       }
     } catch (err: any) {
       const raw = err?.message || "Failed to process PDF. Please try again.";
@@ -244,11 +364,66 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       setError(friendly);
       setStep("upload");
       toast.error(friendly);
+    } finally {
+      // Release the in-flight guard so Retry / Generate Again / re-selecting the
+      // same file after a reset can re-trigger generation.
+      inFlightKeyRef.current = null;
     }
-  }, [selectedFile, selectedMode, questionCount, questionType, difficulty, level, targetSkills]);
+  }, [selectedMode, questionCount, questionType, difficulty, level, targetSkills, difficultyPercent]);
+
+  // Stable ref that always points at the LATEST handleGenerateInternal.
+  // handleSelectFile (a useEvent) reads through this ref so it does NOT
+  // need to declare handleGenerateInternal as a dependency — that would
+  // create a loop where handleSelectFile's identity changes every time
+  // the configuration state changes, which would re-render every
+  // consumer. Reading through a ref gives us "always the newest closure,
+  // never a stale one, never a render storm".
+  useEffect(() => {
+    handleGenerateInternalRef.current = handleGenerateInternal;
+  }, [handleGenerateInternal]);
+
+  // Legacy button-triggered generation — kept for retry / "Generate Again" use cases.
+  const handleGenerate = useCallback(async () => {
+    if (!selectedFile || !selectedMode) {
+      setError("Please select a PDF file before generating questions.");
+      return;
+    }
+    await handleGenerateInternal(selectedFile);
+  }, [selectedFile, selectedMode, handleGenerateInternal]);
 
   /** Valid Question Bank category values (canonical PascalCase). */
   const VALID_CATEGORIES = ["Vocabulary", "Grammar", "Reading", "Listening"];
+
+  /**
+   * Normalize a free-form question type string from the BE preview response
+   * to the canonical value the FE {@link QuestionEditor} can render.
+   * Falls back to MULTIPLE_CHOICE so the editor never crashes on a typo.
+   */
+  const normalizePreviewType = (raw: string | undefined | null): PdfImportQuestionType => {
+    if (!raw) return "MULTIPLE_CHOICE";
+    const norm = raw.trim().toUpperCase().replace("-", "_");
+    switch (norm) {
+      case "TRUE_FALSE":
+      case "TRUEFALSE":
+      case "TF":
+        return "TRUE_FALSE";
+      case "FILL_BLANK":
+      case "FILL_IN_BLANK":
+      case "FILLINTHEBLANK":
+      case "FILL":
+      case "BLANK":
+        return "FILL_BLANK";
+      case "SHORT_ANSWER":
+      case "SHORTANSWER":
+      case "ESSAY":
+        return "SHORT_ANSWER";
+      case "MULTIPLE_CHOICE":
+      case "MCQ":
+      case "MC":
+      default:
+        return "MULTIPLE_CHOICE";
+    }
+  };
 
   /**
    * Normalize any category string (PascalCase / UPPER / lower / blank) to the
@@ -339,6 +514,13 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
   const handleCreate = async () => {
     const invalidQuestions = questions.filter((q) => {
       if (!q.content.trim()) return true;
+      const isTextOnly = q.type === "FILL_BLANK" || q.type === "SHORT_ANSWER";
+      if (isTextOnly) {
+        // Text-only questions need exactly one non-blank answer slot.
+        if (q.answers.length !== 1) return true;
+        if (!q.answers[0].content || !q.answers[0].content.trim()) return true;
+        return false;
+      }
       if (q.answers.length < 2) return true;
       const correctCount = q.answers.filter((a) => a.isCorrect).length;
       return correctCount !== 1;
@@ -432,6 +614,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
             {/* Generate from Content Mode */}
             <button
               type="button"
+              data-testid="mode-generate-from-content"
               onClick={() => handleSelectMode("GENERATE_FROM_CONTENT")}
               className="card-base p-6 border-2 border-primary/20 hover:border-primary/50 transition text-left group"
             >
@@ -453,6 +636,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
             {/* Import Existing Questions Mode */}
             <button
               type="button"
+              data-testid="mode-import-existing-questions"
               onClick={() => handleSelectMode("IMPORT_EXISTING_QUESTIONS")}
               className="card-base p-6 border-2 border-primary/20 hover:border-primary/50 transition text-left group"
             >
@@ -484,15 +668,17 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       {/* Configuration View */}
       {step === "configure" && (
         <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleBackToModeSelection}
-              className="text-sm text-muted-col hover:text-primary-col transition"
-            >
-              ← Back to mode selection
-            </button>
-          </div>
+          {!defaultMode && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBackToModeSelection}
+                className="text-sm text-muted-col hover:text-primary-col transition"
+              >
+                ← Back to mode selection
+              </button>
+            </div>
+          )}
 
           {selectedMode === "GENERATE_FROM_CONTENT" && (
             <div className="card-base p-6 border border-[var(--border)] space-y-4">
@@ -539,29 +725,98 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
                   </label>
                   <select
                     value={questionType}
-                    onChange={(e) => setQuestionType(e.target.value)}
+                    onChange={(e) => setQuestionType(e.target.value as PdfImportQuestionType)}
                     className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
                   >
                     <option value="MULTIPLE_CHOICE">Multiple Choice</option>
                     <option value="TRUE_FALSE">True/False</option>
                     <option value="FILL_BLANK">Fill in Blank</option>
-                    <option value="MIXED">Mixed</option>
+                    <option value="SHORT_ANSWER">Short Answer</option>
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-2">
                   <label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
-                    Difficulty
+                    Difficulty Distribution (must total 100%)
                   </label>
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-primary-col focus:outline-none cursor-pointer"
-                  >
-                    <option value="EASY">Easy</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HARD">Hard</option>
-                  </select>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-secondary-col">Easy %</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={difficultyPercent.easy}
+                        data-testid="difficulty-easy"
+                        onChange={(e) =>
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            easy: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)),
+                          })
+                        }
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-secondary-col">Medium %</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={difficultyPercent.medium}
+                        data-testid="difficulty-medium"
+                        onChange={(e) =>
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            medium: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)),
+                          })
+                        }
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-secondary-col">Hard %</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={difficultyPercent.hard}
+                        data-testid="difficulty-hard"
+                        onChange={(e) =>
+                          setDifficultyPercent({
+                            ...difficultyPercent,
+                            hard: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)),
+                          })
+                        }
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center text-primary-col focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                      />
+                    </div>
+                  </div>
+                  {(() => {
+                    const total = difficultyPercent.easy + difficultyPercent.medium + difficultyPercent.hard;
+                    const valid = total === 100;
+                    return (
+                      <p
+                        data-testid="difficulty-total"
+                        className={
+                          "text-[11px] font-semibold " +
+                          (valid ? "text-emerald-600" : "text-[var(--status-rejected)]")
+                        }
+                      >
+                        Total: {total}% {valid ? "✓" : "(must equal 100%)"}
+                      </p>
+                    );
+                  })()}
+                  {(() => {
+                    const easy = Math.round((difficultyPercent.easy * questionCount) / 100);
+                    const medium = Math.round((difficultyPercent.medium * questionCount) / 100);
+                    const hard = Math.max(0, questionCount - easy - medium);
+                    return (
+                      <p className="text-[11px] text-muted-col">
+                        Planned split: Easy {easy} • Medium {medium} • Hard {hard}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 <div className="space-y-3">
@@ -705,15 +960,17 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
       {/* Upload View */}
       {step === "upload" && (
         <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleBackToModeSelection}
-              className="text-sm text-muted-col hover:text-primary-col transition"
-            >
-              ← Back to mode selection
-            </button>
-          </div>
+          {!defaultMode && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleBackToModeSelection}
+                className="text-sm text-muted-col hover:text-primary-col transition"
+              >
+                ← Back to mode selection
+              </button>
+            </div>
+          )}
 
           {/* Selected Skills Summary */}
           <div className="px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-sm">
@@ -753,12 +1010,12 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
 
           <div
             className={`card-base p-12 border-2 text-center transition ${
-              targetSkills.length === 0
+              disableUpload
                 ? "border-dashed border-muted cursor-not-allowed opacity-60"
                 : "border-dashed border-[var(--border)] hover:border-primary/50 cursor-pointer"
             }`}
             onClick={() => {
-              if (targetSkills.length === 0) {
+              if (disableUpload) {
                 toast.error("Please select at least one skill before uploading a PDF.");
                 return;
               }
@@ -768,7 +1025,7 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (targetSkills.length === 0) {
+              if (disableUpload) {
                 toast.error("Please select at least one skill before uploading a PDF.");
                 return;
               }
@@ -780,16 +1037,21 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
               ref={fileInputRef}
               type="file"
               accept=".pdf"
+              data-testid="pdf-file-input"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
+                // Reset the input so the user can re-select the same file later
+                // (e.g. after a Retry or Generate Again). Without this, browsers
+                // silently skip the onChange when the same file is picked twice.
+                if (e.target) e.target.value = "";
                 if (file) handleSelectFile(file);
               }}
             />
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 ${
-              targetSkills.length === 0 ? "bg-muted" : "bg-primary/10"
+              disableUpload ? "bg-muted" : "bg-primary/10"
             }`}>
-              <Upload className={`w-8 h-8 ${targetSkills.length === 0 ? "text-muted-foreground" : "text-primary"}`} />
+              <Upload className={`w-8 h-8 ${disableUpload ? "text-muted-foreground" : "text-primary"}`} />
             </div>
             <h3 className="font-display font-bold text-lg text-primary-col mb-1">
               Upload PDF to Extract Questions
@@ -801,22 +1063,22 @@ export const AiPdfImportWorkflow: React.FC<AiPdfImportWorkflowProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (targetSkills.length === 0) {
+                if (disableUpload) {
                   toast.error("Please select at least one skill before uploading a PDF.");
                   return;
                 }
                 fileInputRef.current?.click();
               }}
-              disabled={targetSkills.length === 0}
+              disabled={disableUpload}
               className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition ${
-                targetSkills.length === 0
+                disableUpload
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-gradient-hero text-white hover:opacity-90"
               }`}
             >
               Select PDF File
             </button>
-            {targetSkills.length === 0 && (
+            {disableUpload && (
               <p className="text-xs text-[var(--status-rejected)] mt-3">
                 Please select at least one skill above before uploading.
               </p>

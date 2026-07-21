@@ -102,6 +102,25 @@ public interface AiProvider {
         return generateQuestions(materialTitle, materialContent, questionCount, questionType, difficulty);
     }
 
+    /**
+     * Generate questions with a strict per-difficulty distribution and a
+     * strict question type. The {@code distributionLine} argument is a
+     * pre-formatted string (e.g. {@code "EASY=3, MEDIUM=5, HARD=2"}) that the
+     * provider passes directly into the AI prompt so the model is told the
+     * exact split before it generates anything.
+     *
+     * <p>The default implementation falls back to the legacy
+     * single-difficulty prompt so existing providers keep working.
+     */
+    default String generateQuestionsWithDistribution(String materialTitle, String materialContent,
+                                                     int distributionTotal, String questionType,
+                                                     String distributionLine,
+                                                     java.util.List<String> selectedSkills,
+                                                     AiTaskType taskType) {
+        return generateQuestions(materialTitle, materialContent, distributionTotal,
+                questionType, "Medium", selectedSkills, taskType);
+    }
+
     // ============================================================
     // Exam Parsing (PDF to structured questions)
     // ============================================================

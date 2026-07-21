@@ -5,8 +5,12 @@ import com.midori.ai.core.AiCoreService;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.dto.AiQuizGenerationResponse;
 import com.midori.ai.util.AiExistingQuestionParser;
+import com.midori.ai.util.DifficultyDistribution;
+import com.midori.ai.util.QuestionTypeValidator;
 import com.midori.common.ApiResponse;
 import com.midori.dto.response.AiPdfPreviewResponse;
+import com.midori.entity.Difficulty;
+import com.midori.entity.QuestionType;
 import com.midori.service.PdfTextExtractor;
 import com.midori.service.AiLearningContentService;
 import org.slf4j.Logger;
@@ -54,7 +58,10 @@ public class AiPdfPreviewController {
             @RequestParam(value = "level", required = false) String level,
             @RequestParam(value = "count", defaultValue = "10") Integer count,
             @RequestParam(value = "questionType", defaultValue = "MULTIPLE_CHOICE") String questionType,
-            @RequestParam(value = "difficulty", defaultValue = "MEDIUM") String difficulty,
+            @RequestParam(value = "difficulty", required = false) String difficulty,
+            @RequestParam(value = "easyPct", required = false) Integer easyPct,
+            @RequestParam(value = "mediumPct", required = false) Integer mediumPct,
+            @RequestParam(value = "hardPct", required = false) Integer hardPct,
             HttpServletRequest request) {
 
         // Robustly resolve targetSkills: support multiple naming conventions
@@ -71,25 +78,36 @@ public class AiPdfPreviewController {
         log.info("PDF preview request: file={}, size={}, mode={}, level={}, count={}, targetSkills={}",
                 filename, file != null ? file.getSize() : 0, mode, level, count, targetSkills);
 
-        // Validate targetSkills - at least one skill is required
-        if (targetSkills == null || targetSkills.isEmpty()) {
+        // Validate mode first
+        String normalizedMode = mode == null ? null : mode.trim().toUpperCase();
+        if (normalizedMode == null || (!"IMPORT_EXISTING_QUESTIONS".equals(normalizedMode) && !"GENERATE_FROM_CONTENT".equals(normalizedMode))) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("At least one target skill is required."));
+                    .body(ApiResponse.error("Invalid or missing mode. Must be IMPORT_EXISTING_QUESTIONS or GENERATE_FROM_CONTENT"));
         }
 
-        // Validate each skill
-        Set<String> normalizedSkills = new HashSet<>();
-        for (String skill : targetSkills) {
-            if (skill == null || skill.isBlank()) continue;
-            String normalized = skill.toUpperCase().trim();
-            if (!VALID_SKILLS.contains(normalized)) {
+        // Validate targetSkills - at least one skill is required ONLY for GENERATE_FROM_CONTENT
+        if ("GENERATE_FROM_CONTENT".equals(normalizedMode)) {
+            if (targetSkills == null || targetSkills.isEmpty()) {
                 return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("Invalid target skill: " + skill + ". Must be one of: VOCABULARY, GRAMMAR, READING"));
+                        .body(ApiResponse.error("At least one target skill is required."));
             }
-            normalizedSkills.add(normalized);
         }
 
-        if (normalizedSkills.isEmpty()) {
+        // Validate each skill if present
+        Set<String> normalizedSkills = new HashSet<>();
+        if (targetSkills != null && !targetSkills.isEmpty()) {
+            for (String skill : targetSkills) {
+                if (skill == null || skill.isBlank()) continue;
+                String normalized = skill.toUpperCase().trim();
+                if (!VALID_SKILLS.contains(normalized)) {
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.error("Invalid target skill: " + skill + ". Must be one of: VOCABULARY, GRAMMAR, READING"));
+                }
+                normalizedSkills.add(normalized);
+            }
+        }
+
+        if ("GENERATE_FROM_CONTENT".equals(normalizedMode) && normalizedSkills.isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("At least one target skill is required."));
         }
@@ -106,12 +124,6 @@ public class AiPdfPreviewController {
         if (filename == null || !filename.toLowerCase().endsWith(".pdf")) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("Only PDF files are accepted"));
-        }
-
-        // Validate mode
-        if (!mode.equals("IMPORT_EXISTING_QUESTIONS") && !mode.equals("GENERATE_FROM_CONTENT")) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Invalid mode. Must be IMPORT_EXISTING_QUESTIONS or GENERATE_FROM_CONTENT"));
         }
 
         try {
@@ -133,9 +145,43 @@ public class AiPdfPreviewController {
             AiPdfPreviewResponse response;
 
             if ("GENERATE_FROM_CONTENT".equals(mode)) {
-                // Generate new questions from learning content
-                log.info("Generating questions from content, count={}, type={}, difficulty={}, selectedSkills={}", count, questionType, difficulty, selectedSkills);
-                response = generateFromContent(extraction, mode, filename, count, questionType, difficulty, level, selectedSkills);
+                log.info("Generating questions from content, count={}, type={}, difficulty={}, "
+                                + "easyPct={}, mediumPct={}, hardPct={}, selectedSkills={}",
+                        count, questionType, difficulty, easyPct, mediumPct, hardPct, selectedSkills);
+
+                QuestionType normalizedType = QuestionTypeValidator.normalize(questionType);
+                if (normalizedType == null) {
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.error("Unsupported questionType: " + questionType
+                                    + ". Must be MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK, SHORT_ANSWER, or MATCHING."));
+                }
+
+                boolean hasDistribution = easyPct != null || mediumPct != null || hardPct != null;
+                if (hasDistribution) {
+                    // Strict distribution path: validate percentages, allocate
+                    // counts, retry on shortfall.
+                    if (easyPct == null || mediumPct == null || hardPct == null) {
+                        return ResponseEntity.badRequest()
+                                .body(ApiResponse.error("Difficulty percentages must be supplied together "
+                                        + "(easyPct, mediumPct, hardPct)."));
+                    }
+                    try {
+                        DifficultyDistribution.validateCount(count);
+                        DifficultyDistribution.validatePercentages(easyPct, mediumPct, hardPct);
+                    } catch (IllegalArgumentException ex) {
+                        return ResponseEntity.badRequest()
+                                .body(ApiResponse.error(ex.getMessage()));
+                    }
+                    response = generateFromContentWithDistribution(
+                            extraction, mode, filename, count,
+                            normalizedType.name(), easyPct, mediumPct, hardPct,
+                            level, selectedSkills);
+                } else {
+                    // Legacy path: single-difficulty prompt for backwards
+                    // compatibility with callers that don't yet send percentages.
+                    response = generateFromContent(extraction, mode, filename, count,
+                            questionType, difficulty, level, selectedSkills);
+                }
             } else {
                 // Import existing questions from PDF — uses the language-neutral prompt so
                 // a generic English/MCQ file parses correctly. Robust against null/empty
@@ -161,7 +207,9 @@ public class AiPdfPreviewController {
                             .errorMessage(msg)
                             .build();
                 } else {
-                    log.info("Importing existing questions from PDF (provider={}, selectedSkills={})", aiCoreService.getCurrentProvider().getName(), selectedSkills);
+                    log.info("Importing existing questions from PDF (provider={}, selectedSkills={})",
+                            aiCoreService.getCurrentProvider() != null ? aiCoreService.getCurrentProvider().getName() : "unknown",
+                            selectedSkills);
                     response = importExistingQuestions(extraction, mode, filename, selectedSkills);
                 }
             }
@@ -219,35 +267,116 @@ public class AiPdfPreviewController {
             log.warn("[generate-sanitize] no Reading passage detected in source PDF (filename={})", filename);
         }
 
+        String resolvedDifficulty = (difficulty == null || difficulty.isBlank()) ? "MEDIUM" : difficulty;
+
         // Delegate to the robust AiLearningContentService
         AiExamParseResponse parseResponse = aiLearningContentService.generateQuestions(
                 filename,
                 extraction.fullText(),
                 count,
-                difficulty,
+                resolvedDifficulty,
                 selectedSkills,
                 sourcePassage
         );
 
-        if (parseResponse.getQuestions() == null || parseResponse.getQuestions().isEmpty()) {
-            throw new IllegalArgumentException("AI returned an invalid or empty response. Please try again.");
-        }
-
-        // Map sanitized questions to the preview response shape.
-        List<AiPdfPreviewResponse.QuestionPreview> questions = new ArrayList<>();
-        for (var q : parseResponse.getQuestions()) {
-            questions.add(toPreviewQuestion(q, questionType, difficulty));
-        }
-
-        return AiPdfPreviewResponse.builder()
+        AiPdfPreviewResponse response = AiPdfPreviewResponse.builder()
                 .mode(mode)
                 .title(filename)
                 .description("Generated from learning content")
                 .pageCount(extraction.pageCount())
                 .extractedTextLength(extraction.fullText().length())
                 .likelyScanned(extraction.likelyScanned())
-                .questions(questions)
+                .questions(new ArrayList<>())
                 .build();
+
+        if (parseResponse.getQuestions() == null || parseResponse.getQuestions().isEmpty()) {
+            response.setErrorMessage("AI returned an invalid or empty response. Please try again.");
+            return response;
+        }
+
+        // Map sanitized questions to the preview response shape.
+        for (var q : parseResponse.getQuestions()) {
+            response.getQuestions().add(toPreviewQuestion(q, questionType, resolvedDifficulty));
+        }
+
+        if (response.getQuestions().size() < count) {
+            String shortMsg = "AI generated " + response.getQuestions().size()
+                    + " of " + count + " valid questions. Please retry.";
+            response.setWarning(shortMsg);
+        }
+
+        return response;
+    }
+
+    /**
+     * Handle GENERATE_FROM_CONTENT mode with an explicit
+     * {@code easyPct / mediumPct / hardPct} distribution.
+     *
+     * <p>This is the strict path used by the new "Generate from Content" UI:
+     * <ol>
+     *   <li>Validate that the percentages sum to 100.</li>
+     *   <li>Compute deterministic per-difficulty counts via
+     *       {@link DifficultyDistribution#allocate(int, int, int, int)}.</li>
+     *   <li>Call {@link AiLearningContentService#generateQuestionsWithDistribution}
+     *       so the prompt explicitly requests the exact split.</li>
+     *   <li>Map the response into the preview shape; surface
+     *       {@code errorMessage} when the AI could not produce the requested
+     *       total.</li>
+     * </ol>
+     */
+    private AiPdfPreviewResponse generateFromContentWithDistribution(
+            PdfTextExtractor.ExtractionResult extraction,
+            String mode,
+            String filename,
+            int count,
+            String questionType,
+            int easyPct, int mediumPct, int hardPct,
+            String level,
+            List<String> selectedSkills) {
+
+        String sourcePassage = AiExistingQuestionParser
+                .extractReadingPassageFromSource(extraction.fullText());
+        if (sourcePassage == null || sourcePassage.isBlank()) {
+            log.warn("[generate-distribution] no Reading passage detected in source PDF (filename={})",
+                    filename);
+        }
+
+        AiExamParseResponse parseResponse = aiLearningContentService.generateQuestionsWithDistribution(
+                filename,
+                extraction.fullText(),
+                count,
+                questionType,
+                easyPct, mediumPct, hardPct,
+                selectedSkills,
+                sourcePassage);
+
+        AiPdfPreviewResponse response = AiPdfPreviewResponse.builder()
+                .mode(mode)
+                .title(filename)
+                .description("Generated from learning content")
+                .pageCount(extraction.pageCount())
+                .extractedTextLength(extraction.fullText().length())
+                .likelyScanned(extraction.likelyScanned())
+                .questions(new ArrayList<>())
+                .build();
+
+        if (parseResponse.getQuestions() == null || parseResponse.getQuestions().isEmpty()) {
+            response.setErrorMessage(parseResponse.getErrorMessage() != null
+                    ? parseResponse.getErrorMessage()
+                    : "AI returned an invalid or empty response. Please try again.");
+            return response;
+        }
+
+        for (var q : parseResponse.getQuestions()) {
+            response.getQuestions().add(toPreviewQuestion(q, questionType, /* defaultDifficulty */ null));
+        }
+        // Surface a warning (non-fatal) when the AI fell short.
+        if (response.getQuestions().size() < count) {
+            String shortMsg = "AI generated " + response.getQuestions().size()
+                    + " of " + count + " valid questions. Please retry.";
+            response.setWarning(shortMsg);
+        }
+        return response;
     }
 
     /**
@@ -304,7 +433,14 @@ public class AiPdfPreviewController {
         AiPdfPreviewResponse.QuestionPreview qp = new AiPdfPreviewResponse.QuestionPreview();
         qp.setType(q.getType() != null ? q.getType() : questionType);
         qp.setContent(q.getContent());
-        qp.setDifficulty(difficulty);
+        // Prefer the per-question difficulty coming back from the AI / sanitizer
+        // (especially important for the distribution-aware path). Fall back
+        // to the request default when the AI didn't supply one.
+        if (q.getDifficulty() != null && !q.getDifficulty().isBlank()) {
+            qp.setDifficulty(q.getDifficulty());
+        } else {
+            qp.setDifficulty(difficulty);
+        }
         qp.setExplanation(q.getExplanation());
         qp.setCategory(q.getCategory());
         List<AiPdfPreviewResponse.AnswerPreview> answers = new ArrayList<>();
@@ -379,7 +515,7 @@ public class AiPdfPreviewController {
 
         log.info("AI parsed: {} questions from provider {}",
                 aiResult.getQuestions() != null ? aiResult.getQuestions().size() : 0,
-                aiCoreService.getCurrentProvider().getName());
+                aiCoreService.getCurrentProvider() != null ? aiCoreService.getCurrentProvider().getName() : "unknown");
 
         // EVIDENCE GUARD: drop any question that did not actually come from
         // the PDF. Without this, an LLM can fabricate a passage (e.g. a

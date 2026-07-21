@@ -188,6 +188,11 @@ export const AiContentGenerate: React.FC<{
 
       const generated = mapResponseToQuestions(response);
 
+      if (generated.length === 0) {
+        toast.error("AI generated 0 valid questions. Please retry.");
+        return;
+      }
+
       setQuestions(generated);
       setStep("preview");
       toast.success(

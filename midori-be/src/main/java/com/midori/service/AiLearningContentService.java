@@ -2,6 +2,8 @@ package com.midori.service;
 
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.util.AiExistingQuestionParser;
+import com.midori.ai.util.DifficultyDistribution;
+import com.midori.ai.util.QuestionTypeValidator;
 import com.midori.entity.*;
 import com.midori.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,7 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Reusable AI content generation service.
@@ -228,30 +234,295 @@ public class AiLearningContentService {
 
         log.info("[AiLearningContent] Generating {} questions for: {}", questionCount, materialTitle);
 
-        String rawResponse = aiCoreService.generateQuestions(
-                materialTitle,
-                learningContent,
-                questionCount,
-                "MULTIPLE_CHOICE",
-                difficulty,
-                selectedSkills
-        );
+        List<AiExamParseResponse.AiQuestionDto> merged = new ArrayList<>();
+        int attempt = 0;
+        int maxAttempts = 5;
+        while (attempt < maxAttempts) {
+            int needed = questionCount - merged.size();
+            if (needed <= 0) break;
 
-        AiExamParseResponse parsed = parseAiResponse(rawResponse);
+            String attemptPromptContent = learningContent;
+            if (attempt > 0 && !merged.isEmpty()) {
+                StringBuilder sb = new StringBuilder(learningContent);
+                sb.append("\n\nGenerate exactly ").append(needed).append(" NEW questions.\n");
+                sb.append("Do not repeat or paraphrase any of the following existing questions:\n");
+                int limit = Math.min(merged.size(), 15);
+                for (int i = 0; i < limit; i++) {
+                    sb.append("- ").append(merged.get(i).getContent()).append("\n");
+                }
+                sb.append("Return only the requested JSON question array.\n");
+                attemptPromptContent = sb.toString();
+            }
 
-        AiExistingQuestionParser.GenerateSanitizeResult sanitized =
-                AiExistingQuestionParser.sanitizeGeneratedQuestions(
-                        parsed.getQuestions(),
-                        selectedSkills,
-                        sourcePassage
-                );
+            String rawResponse = aiCoreService.generateQuestions(
+                    materialTitle,
+                    attemptPromptContent,
+                    needed,
+                    "MULTIPLE_CHOICE",
+                    difficulty,
+                    selectedSkills
+            );
 
-        applyBalancedRandomization(sanitized.questions);
+            AiExamParseResponse parsed = parseAiResponse(rawResponse);
 
-        log.info("[AiLearningContent] AI generated {} raw questions, sanitized to {} questions. Dropped: {}",
-                sanitized.rawGeneratedCount, sanitized.finalCount, sanitized.droppedByReason);
+            AiExistingQuestionParser.GenerateSanitizeResult sanitized =
+                    AiExistingQuestionParser.sanitizeGeneratedQuestions(
+                            parsed.getQuestions(),
+                            selectedSkills,
+                            sourcePassage
+                    );
 
-        return sanitizeAndWrap(materialTitle, sanitized);
+            Set<String> seen = new HashSet<>();
+            for (AiExamParseResponse.AiQuestionDto existing : merged) {
+                seen.add(fingerprint(existing));
+            }
+
+            int added = 0;
+            for (AiExamParseResponse.AiQuestionDto q : sanitized.questions) {
+                String fp = fingerprint(q);
+                if (!seen.add(fp)) continue;
+                merged.add(q);
+                added++;
+                if (merged.size() >= questionCount) break;
+            }
+
+            log.info("[AiDiagnostic] Flow: SINGLE_DIFFICULTY, Attempt: {}, Total Requested: {}, Missing Requested: {}, Raw/Parsed: {}, Sanitized/Validated: {}, Unique New: {}, Merged Total: {}/{}, Rejected By Reason: {}",
+                    attempt + 1,
+                    questionCount,
+                    needed,
+                    parsed.getQuestions() != null ? parsed.getQuestions().size() : 0,
+                    sanitized.finalCount,
+                    added,
+                    merged.size(),
+                    questionCount,
+                    sanitized.droppedByReason);
+
+            if (merged.size() >= questionCount) break;
+            attempt++;
+        }
+
+        applyBalancedRandomization(merged);
+
+        AiExamParseResponse response = new AiExamParseResponse();
+        response.setTitle(materialTitle);
+        response.setDescription("AI-generated questions from " + materialTitle);
+        response.setQuestions(merged);
+
+        if (merged.size() < questionCount) {
+            String msg = "AI generated " + merged.size() + " of " + questionCount
+                    + " valid questions. Please retry.";
+            if (merged.isEmpty()) {
+                response.setErrorMessage(msg);
+            }
+            log.warn("[AiLearningContent] Shortfall on {}: {}", materialTitle, msg);
+        } else {
+            log.info("[AiLearningContent] Successfully generated {} questions for {}", merged.size(), materialTitle);
+        }
+        return response;
+    }
+
+    /**
+     * Strict distribution-aware generation entry point.
+     *
+     * <p>Behavior:
+     * <ol>
+     *   <li>Validates {@code totalCount} (1..{@link DifficultyDistribution#MAX_QUESTIONS})
+     *       and {@code easyPct}/{@code mediumPct}/{@code hardPct} (must sum to exactly 100).</li>
+     *   <li>Computes the deterministic per-difficulty counts via
+     *       {@link DifficultyDistribution#allocate(int, int, int, int)}.</li>
+     *   <li>Calls {@link AiCoreService#generateQuestionsWithDistribution} so
+     *       the prompt explicitly requests the exact split.</li>
+     *   <li>Sanitizes the AI response through
+     *       {@link AiExistingQuestionParser#sanitizeGeneratedQuestionsWithTypeAndDistribution}
+     *       which enforces the strict question type and the per-difficulty
+     *       capacity. Excess questions are dropped; missing questions are
+     *       recovered by retrying with the missing bucket counts only.</li>
+     *   <li>Stops after {@link #MAX_SUPPLEMENT_ATTEMPTS} attempts and surfaces
+     *       a clear error message when the requested total cannot be reached.</li>
+     * </ol>
+     *
+     * @return a response whose {@code questions.size() == totalCount} on success,
+     *         or whose {@code errorMessage} explains the shortfall.
+     */
+    public AiExamParseResponse generateQuestionsWithDistribution(
+            String materialTitle,
+            String learningContent,
+            int totalCount,
+            String questionTypeRaw,
+            int easyPct, int mediumPct, int hardPct,
+            List<String> selectedSkills,
+            String sourcePassage) {
+
+        if (learningContent == null || learningContent.isBlank()) {
+            log.warn("[AiLearningContent] No content to generate questions from");
+            AiExamParseResponse empty = AiExamParseResponse.empty();
+            empty.setErrorMessage("Learning content is empty. Please upload a different PDF.");
+            return empty;
+        }
+
+        DifficultyDistribution.validateCount(totalCount);
+        DifficultyDistribution.validatePercentages(easyPct, mediumPct, hardPct);
+        QuestionType expectedType = QuestionTypeValidator.normalize(questionTypeRaw);
+        if (expectedType == null) {
+            throw new IllegalArgumentException("Unsupported question type: " + questionTypeRaw);
+        }
+        Map<Difficulty, Integer> distribution =
+                DifficultyDistribution.allocate(totalCount, easyPct, mediumPct, hardPct);
+
+        log.info("[AiLearningContent] Generating {} questions (type={}, distribution={}) for: {}",
+                totalCount, expectedType, DifficultyDistribution.formatForPrompt(distribution),
+                materialTitle);
+
+        // Strategy: ask for the full distribution on the first attempt.
+        // If we are short, supplement per-difficulty for the missing buckets only.
+        Map<Difficulty, Integer> remaining = new java.util.EnumMap<>(Difficulty.class);
+        remaining.put(Difficulty.EASY, distribution.getOrDefault(Difficulty.EASY, 0));
+        remaining.put(Difficulty.MEDIUM, distribution.getOrDefault(Difficulty.MEDIUM, 0));
+        remaining.put(Difficulty.HARD, distribution.getOrDefault(Difficulty.HARD, 0));
+
+        List<AiExamParseResponse.AiQuestionDto> merged = new ArrayList<>();
+        int attempt = 0;
+        while (attempt <= MAX_SUPPLEMENT_ATTEMPTS) {
+            Map<Difficulty, Integer> request = cloneMap(remaining);
+            int requestTotal = sumValues(request);
+            if (requestTotal <= 0) break;
+
+            String attemptPromptContent = learningContent;
+            if (attempt > 0 && !merged.isEmpty()) {
+                StringBuilder sb = new StringBuilder(learningContent);
+                sb.append("\n\nGenerate exactly ").append(requestTotal).append(" NEW questions.\n");
+                sb.append("Do not repeat or paraphrase any of the following existing questions:\n");
+                int limit = Math.min(merged.size(), 15);
+                for (int i = 0; i < limit; i++) {
+                    sb.append("- ").append(merged.get(i).getContent()).append("\n");
+                }
+                sb.append("Return only the requested JSON question array.\n");
+                attemptPromptContent = sb.toString();
+            }
+
+            String distributionLine = DifficultyDistribution.formatForPrompt(request);
+            String rawResponse = aiCoreService.generateQuestionsWithDistribution(
+                    materialTitle,
+                    attemptPromptContent,
+                    requestTotal,
+                    expectedType.name(),
+                    distributionLine,
+                    selectedSkills);
+
+            AiExamParseResponse parsed = parseAiResponse(rawResponse);
+            AiExistingQuestionParser.GenerateSanitizeResult sanitized =
+                    AiExistingQuestionParser.sanitizeGeneratedQuestionsWithTypeAndDistribution(
+                            parsed.getQuestions(),
+                            selectedSkills,
+                            sourcePassage,
+                            expectedType,
+                            request);
+
+            // Merge while preserving order; dedupe by content+type+correct answer.
+            Set<String> seen = new HashSet<>();
+            for (AiExamParseResponse.AiQuestionDto existing : merged) {
+                seen.add(fingerprint(existing));
+            }
+            int added = 0;
+            for (AiExamParseResponse.AiQuestionDto q : sanitized.questions) {
+                String fp = fingerprint(q);
+                if (!seen.add(fp)) continue;
+                merged.add(q);
+                added++;
+                Difficulty bucket = bucketOf(q);
+                if (bucket != null) {
+                    remaining.put(bucket, Math.max(0, remaining.getOrDefault(bucket, 0) - 1));
+                }
+                if (merged.size() >= totalCount) break;
+            }
+
+            log.info("[AiDiagnostic] Flow: DISTRIBUTION, Attempt: {}, Total Requested: {}, Missing Requested: {}, Raw/Parsed: {}, Sanitized/Validated: {}, Unique New: {}, Merged Total: {}/{}, Rejected By Reason: {}",
+                    attempt + 1,
+                    totalCount,
+                    requestTotal,
+                    parsed.getQuestions() != null ? parsed.getQuestions().size() : 0,
+                    sanitized.finalCount,
+                    added,
+                    merged.size(),
+                    totalCount,
+                    sanitized.droppedByReason);
+
+            int shortfall = totalCount - merged.size();
+            if (shortfall <= 0) break;
+            attempt++;
+        }
+
+        // Trim any overflow (defense in depth: should not happen given the
+        // per-bucket capacity enforcement in sanitize, but we want a hard
+        // guarantee that preview never shows more than the requested total).
+        if (merged.size() > totalCount) {
+            merged = new ArrayList<>(merged.subList(0, totalCount));
+        }
+
+        applyBalancedRandomization(merged);
+
+        AiExamParseResponse response = new AiExamParseResponse();
+        response.setTitle(materialTitle);
+        response.setDescription("AI-generated questions from " + materialTitle);
+        response.setQuestions(merged);
+
+        if (merged.size() < totalCount) {
+            String msg = "AI generated " + merged.size() + " of " + totalCount
+                    + " valid questions. Please retry.";
+            if (merged.isEmpty()) {
+                response.setErrorMessage(msg);
+            }
+            log.warn("[AiLearningContent] Shortfall on {}: {}", materialTitle, msg);
+        } else {
+            log.info("[AiLearningContent] Successfully generated {} questions for {}", merged.size(), materialTitle);
+        }
+        return response;
+    }
+
+    /** Hard upper bound on the number of retry/supplementation rounds. */
+    private static final int MAX_SUPPLEMENT_ATTEMPTS = 4;
+
+    private static Map<Difficulty, Integer> cloneMap(Map<Difficulty, Integer> src) {
+        Map<Difficulty, Integer> out = new java.util.EnumMap<>(Difficulty.class);
+        out.put(Difficulty.EASY,   src.getOrDefault(Difficulty.EASY, 0));
+        out.put(Difficulty.MEDIUM, src.getOrDefault(Difficulty.MEDIUM, 0));
+        out.put(Difficulty.HARD,   src.getOrDefault(Difficulty.HARD, 0));
+        return out;
+    }
+
+    private static int sumValues(Map<Difficulty, Integer> m) {
+        int s = 0;
+        for (Integer v : m.values()) if (v != null && v > 0) s += v;
+        return s;
+    }
+
+    private static String fingerprint(AiExamParseResponse.AiQuestionDto q) {
+        if (q == null) return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append(q.getType() == null ? "" : q.getType().trim().toUpperCase());
+        sb.append('|');
+        sb.append(q.getContent() == null ? "" : q.getContent().trim().toLowerCase());
+        sb.append('|');
+        if (q.getAnswers() != null) {
+            for (AiExamParseResponse.AiAnswerDto a : q.getAnswers()) {
+                if (a == null) continue;
+                sb.append(a.getContent() == null ? "" : a.getContent().trim().toLowerCase());
+                if (Boolean.TRUE.equals(a.getIsCorrect())) sb.append('*');
+                sb.append(';');
+            }
+        }
+        return sb.toString();
+    }
+
+    private static Difficulty bucketOf(AiExamParseResponse.AiQuestionDto q) {
+        if (q == null || q.getDifficulty() == null) return null;
+        String d = q.getDifficulty().trim().toLowerCase();
+        switch (d) {
+            case "easy":   return Difficulty.EASY;
+            case "medium": return Difficulty.MEDIUM;
+            case "hard":   return Difficulty.HARD;
+            default: return null;
+        }
     }
 
     /**

@@ -148,4 +148,149 @@ public class AiLearningContentServiceTest {
             assertEquals(1, correctIndicesCount[i], "Correct answers should be perfectly balanced across 0,1,2,3 for 4 questions");
         }
     }
+
+    @Test
+    void testGenerateQuestions_automaticSupplementationSuccess() {
+        // Mocking: 10 requested. First attempt returns 6 questions. Second attempt returns 4 questions.
+        String firstRawJson = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q1\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A1\", \"isCorrect\": true}, {\"content\": \"B1\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q2\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A2\", \"isCorrect\": true}, {\"content\": \"B2\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q3\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A3\", \"isCorrect\": true}, {\"content\": \"B3\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q4\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A4\", \"isCorrect\": true}, {\"content\": \"B4\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q5\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A5\", \"isCorrect\": true}, {\"content\": \"B5\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q6\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A6\", \"isCorrect\": true}, {\"content\": \"B6\", \"isCorrect\": false}]}\n" +
+                "  ]\n" +
+                "}";
+        String secondRawJson = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q7\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A7\", \"isCorrect\": true}, {\"content\": \"B7\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q8\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A8\", \"isCorrect\": true}, {\"content\": \"B8\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q9\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A9\", \"isCorrect\": true}, {\"content\": \"B9\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q10\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A10\", \"isCorrect\": true}, {\"content\": \"B10\", \"isCorrect\": false}]}\n" +
+                "  ]\n" +
+                "}";
+
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(10), anyString(), anyString(), anyList()))
+                .thenReturn(firstRawJson);
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(4), anyString(), anyString(), anyList()))
+                .thenReturn(secondRawJson);
+
+        // When
+        AiExamParseResponse response = aiLearningContentService.generateQuestions(
+                "Test Material", "Some content", 10, "MEDIUM", Arrays.asList("Vocabulary"));
+
+        // Then
+        assertNotNull(response);
+        assertNull(response.getErrorMessage());
+        assertEquals(10, response.getQuestions().size());
+
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(10), anyString(), anyString(), anyList());
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(4), anyString(), anyString(), anyList());
+    }
+
+    @Test
+    void testGenerateQuestions_automaticSupplementationPartialExhausted() {
+        // Mocking: 10 requested.
+        // First attempt (asks 10) -> returns 3
+        // Second attempt (asks 7) -> returns 2
+        // Third attempt (asks 5) -> returns 1
+        String firstRaw = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q1\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A1\", \"isCorrect\": true}, {\"content\": \"B1\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q2\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A2\", \"isCorrect\": true}, {\"content\": \"B2\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q3\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A3\", \"isCorrect\": true}, {\"content\": \"B3\", \"isCorrect\": false}]}\n" +
+                "  ]\n" +
+                "}";
+        String secondRaw = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q4\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A4\", \"isCorrect\": true}, {\"content\": \"B4\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q5\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A5\", \"isCorrect\": true}, {\"content\": \"B5\", \"isCorrect\": false}]}\n" +
+                "  ]\n" +
+                "}";
+        String thirdRaw = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q6\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A6\", \"isCorrect\": true}, {\"content\": \"B6\", \"isCorrect\": false}]}\n" +
+                "  ]\n" +
+                "}";
+
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(10), anyString(), anyString(), anyList()))
+                .thenReturn(firstRaw);
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(7), anyString(), anyString(), anyList()))
+                .thenReturn(secondRaw);
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(5), anyString(), anyString(), anyList()))
+                .thenReturn(thirdRaw);
+
+        // When
+        AiExamParseResponse response = aiLearningContentService.generateQuestions(
+                "Test Material", "Some content", 10, "MEDIUM", Arrays.asList("Vocabulary"));
+
+        // Then
+        assertNotNull(response);
+        // Should NOT have error message since we generated 6 valid questions (non-fatal warning is controller concern)
+        assertNull(response.getErrorMessage());
+        assertEquals(6, response.getQuestions().size());
+
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(10), anyString(), anyString(), anyList());
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(7), anyString(), anyString(), anyList());
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(5), anyString(), anyString(), anyList());
+    }
+
+    @Test
+    void testGenerateQuestions_realisticMultiAttemptRejectionReachesRequestedCount() {
+        // Attempt 1: Asks 10. AI returns 10 raw, but 6 have invalid/empty options so only 4 survive.
+        String attempt1Raw = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q1\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A1\", \"isCorrect\": true}, {\"content\": \"B1\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q2\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A2\", \"isCorrect\": true}, {\"content\": \"B2\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q3\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A3\", \"isCorrect\": true}, {\"content\": \"B3\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q4\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A4\", \"isCorrect\": true}, {\"content\": \"B4\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q_invalid1\", \"category\": \"Vocabulary\", \"answers\": []}\n" +
+                "    ,{\"content\": \"Q_invalid2\", \"category\": \"Vocabulary\", \"answers\": []}\n" +
+                "    ,{\"content\": \"Q_invalid3\", \"category\": \"Vocabulary\", \"answers\": []}\n" +
+                "    ,{\"content\": \"Q_invalid4\", \"category\": \"Vocabulary\", \"answers\": []}\n" +
+                "    ,{\"content\": \"Q_invalid5\", \"category\": \"Vocabulary\", \"answers\": []}\n" +
+                "    ,{\"content\": \"Q_invalid6\", \"category\": \"Vocabulary\", \"answers\": []}\n" +
+                "  ]\n" +
+                "}";
+
+        // Attempt 2: Asks missing 6. AI returns 6, 4 are duplicates of Q1-Q4, so only 2 new unique (Q5, Q6) survive.
+        String attempt2Raw = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q1\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A1\", \"isCorrect\": true}, {\"content\": \"B1\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q2\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A2\", \"isCorrect\": true}, {\"content\": \"B2\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q5\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A5\", \"isCorrect\": true}, {\"content\": \"B5\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q6\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A6\", \"isCorrect\": true}, {\"content\": \"B6\", \"isCorrect\": false}]}\n" +
+                "  ]\n" +
+                "}";
+
+        // Attempt 3: Asks missing 4. AI returns 4 new unique (Q7, Q8, Q9, Q10).
+        String attempt3Raw = "{\n" +
+                "  \"questions\": [\n" +
+                "    {\"content\": \"Q7\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A7\", \"isCorrect\": true}, {\"content\": \"B7\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q8\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A8\", \"isCorrect\": true}, {\"content\": \"B8\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q9\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A9\", \"isCorrect\": true}, {\"content\": \"B9\", \"isCorrect\": false}]}\n" +
+                "    ,{\"content\": \"Q10\", \"category\": \"Vocabulary\", \"answers\": [{\"content\": \"A10\", \"isCorrect\": true}, {\"content\": \"B10\", \"isCorrect\": false}]}\n" +
+                "  ]\n" +
+                "}";
+
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(10), anyString(), anyString(), anyList()))
+                .thenReturn(attempt1Raw);
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(6), anyString(), anyString(), anyList()))
+                .thenReturn(attempt2Raw);
+        when(aiCoreService.generateQuestions(anyString(), anyString(), eq(4), anyString(), anyString(), anyList()))
+                .thenReturn(attempt3Raw);
+
+        // When
+        AiExamParseResponse response = aiLearningContentService.generateQuestions(
+                "Test Material", "Some content", 10, "MEDIUM", Arrays.asList("Vocabulary"));
+
+        // Then
+        assertNotNull(response);
+        assertEquals(10, response.getQuestions().size());
+
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(10), anyString(), anyString(), anyList());
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(6), anyString(), anyString(), anyList());
+        verify(aiCoreService).generateQuestions(anyString(), anyString(), eq(4), anyString(), anyString(), anyList());
+    }
 }

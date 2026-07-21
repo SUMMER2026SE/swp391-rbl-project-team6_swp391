@@ -340,6 +340,121 @@ public final class AiPromptBuilder {
     }
 
     /**
+     * Build prompt for quiz generation when the teacher supplies an exact
+     * per-difficulty distribution (Easy / Medium / Hard percentages summing
+     * to exactly 100). The prompt instructs the AI to return exactly
+     * {@code distributionTotal} questions with the requested split and a
+     * strict question type, so the BE can validate against the requested
+     * counts deterministically.
+     *
+     * @param materialTitle      human-readable title
+     * @param materialContent    the source content string
+     * @param distributionTotal  total number of questions (sum of the
+     *                           distribution buckets)
+     * @param questionType       strict type for every generated question
+     * @param distributionLine   pre-formatted distribution like
+     *                           {@code "EASY=3, MEDIUM=5, HARD=2"}
+     * @param selectedSkills     selected target skills
+     */
+    public static String buildQuizGenerationPromptWithDistribution(
+            String materialTitle,
+            String materialContent,
+            int distributionTotal,
+            String questionType,
+            String distributionLine,
+            List<String> selectedSkills) {
+
+        String safeTitle = materialTitle == null ? "" : materialTitle;
+        String safeContent = materialContent == null ? "" : materialContent;
+        String safeType = questionType == null ? "MULTIPLE_CHOICE" : questionType;
+        String safeDist = distributionLine == null ? "" : distributionLine;
+        String skillsLine = (selectedSkills == null || selectedSkills.isEmpty())
+                ? "(no skill filter — any of Vocabulary / Grammar / Reading is acceptable)"
+                : String.join(", ", selectedSkills);
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are AI Sensei of MIDORI, a Japanese tutor for Vietnamese learners.\n\n");
+        prompt.append("Generate EXACTLY ").append(distributionTotal)
+                .append(" ").append(safeType).append(" quiz questions from the learning material below.\n\n");
+        prompt.append("MATERIAL TITLE: ").append(safeTitle).append("\n\n");
+
+        if (!safeContent.isBlank()) {
+            prompt.append("MATERIAL CONTENT:\n").append(safeContent).append("\n\n");
+        }
+
+        prompt.append("USER-SELECTED SKILLS (every question MUST belong to exactly ONE of these): ")
+                .append(skillsLine).append("\n\n");
+
+        prompt.append("DIFFICULTY DISTRIBUTION (MANDATORY — produce EXACTLY these counts):\n");
+        prompt.append("  ").append(safeDist).append("\n");
+        prompt.append("Sum of counts MUST equal ").append(distributionTotal).append(".\n\n");
+
+        prompt.append("STRICT RULES — every one of these is mandatory:\n");
+        prompt.append("1. Output ONLY a single raw JSON object. NO ```json fences. NO markdown. NO prose.\n");
+        prompt.append("1a. The response MUST start with '{' and end with '}'. Do NOT write anything before or after the JSON.\n");
+        prompt.append("2. The \"questions\" array MUST contain EXACTLY ").append(distributionTotal).append(" objects.\n");
+        prompt.append("3. Every question object MUST have: id, type, question, options, correctAnswer, explanation, category, difficulty.\n");
+        prompt.append("4. type MUST be \"").append(safeType).append("\" for EVERY question — no exceptions, no MIXED.\n");
+        prompt.append("5. difficulty MUST be exactly one of \"Easy\", \"Medium\", \"Hard\".\n");
+        prompt.append("6. The COUNT of questions with each difficulty MUST match the DIFFICULTY DISTRIBUTION line above. No bucket may be empty when its required count is > 0.\n");
+        prompt.append("7. category MUST be exactly one of the SELECTED SKILLS. Use the canonical capitalized form (Vocabulary / Grammar / Reading).\n");
+
+        switch (safeType) {
+            case "MULTIPLE_CHOICE":
+                prompt.append("8. options MUST be exactly 4 strings. ALL 4 options MUST be DISTINCT — no duplicates, no whitespace-only differences, no case-only differences.\n");
+                prompt.append("9. correctAnswer MUST equal EXACTLY one of the 4 options (string equality, not substring).\n");
+                break;
+            case "TRUE_FALSE":
+                prompt.append("8. options MUST be exactly [\"True\", \"False\"].\n");
+                prompt.append("9. correctAnswer MUST be \"True\" or \"False\".\n");
+                break;
+            case "FILL_BLANK":
+                prompt.append("8. The question text MUST contain a visible blank marker — use \"___\" (three or more underscores) or the literal text \"(blank)\".\n");
+                prompt.append("9. options MUST be a single-element array whose content is the correct text answer (no multiple-choice options).\n");
+                prompt.append("10. correctAnswer MUST equal that single option.\n");
+                break;
+            case "SHORT_ANSWER":
+                prompt.append("8. options MUST be a single-element array whose content is the reference answer text used for grading.\n");
+                prompt.append("9. correctAnswer MUST equal that single option.\n");
+                prompt.append("10. Do NOT include any multiple-choice options.\n");
+                break;
+            default:
+                prompt.append("8. options MUST be exactly 4 strings. ALL 4 options MUST be DISTINCT — no duplicates, no whitespace-only differences, no case-only differences.\n");
+                prompt.append("9. correctAnswer MUST equal EXACTLY one of the 4 options (string equality, not substring).\n");
+                break;
+        }
+
+        prompt.append("\nLANGUAGE RULES — Japanese content must use real kana/kanji, NOT romaji or Latin renderings:\n");
+        prompt.append("- For Japanese words, write the kanji/hiragana/katakana form (e.g. 図書館, 田中さん, がくせい).\n");
+        prompt.append("- Do NOT use romaji like 'Toshokan', 'Tanaka', 'Tanaka-san', 'shukudai', 'gakusei' anywhere.\n");
+        prompt.append("- Do NOT Latinize Japanese names. Use 田中さん, never 'Tanaka' or 'Tanaka-san'.\n");
+        prompt.append("- When a reading (cách đọc) is asked, the options MUST be hiragana, NOT romaji.\n");
+
+        prompt.append("\nCATEGORY RULES:\n");
+        prompt.append("- Vocabulary: asks about meaning, reading, or word choice.\n");
+        prompt.append("- Grammar: asks about particles, sentence patterns, sentence endings, conjugation, or grammar structure.\n");
+        prompt.append("- Reading: every Reading question MUST reference a passage included in MATERIAL CONTENT.\n");
+
+        prompt.append("\nEXACT JSON SHAPE:\n");
+        prompt.append("{\n");
+        prompt.append("  \"questions\": [\n");
+        prompt.append("    {\n");
+        prompt.append("      \"id\": \"q_0\",\n");
+        prompt.append("      \"type\": \"").append(safeType).append("\",\n");
+        prompt.append("      \"question\": \"Câu hỏi\",\n");
+        prompt.append("      \"options\": [\"Đáp án A\", \"Đáp án B\", \"Đáp án C\", \"Đáp án D\"],\n");
+        prompt.append("      \"correctAnswer\": \"Đáp án B\",\n");
+        prompt.append("      \"explanation\": \"Giải thích\",\n");
+        prompt.append("      \"category\": \"Vocabulary\",\n");
+        prompt.append("      \"difficulty\": \"Medium\"\n");
+        prompt.append("    }\n");
+        prompt.append("  ]\n");
+        prompt.append("}\n");
+
+        return prompt.toString();
+    }
+
+    /**
      * Backwards-compatible overload for callers that don't yet pass
      * {@code selectedSkills}.
      */
