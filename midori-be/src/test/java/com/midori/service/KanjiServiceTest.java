@@ -25,6 +25,9 @@ class KanjiServiceTest {
     @Mock
     private KanjiEntryRepository kanjiEntryRepository;
 
+    @Mock
+    private KanjiMnemonicService kanjiMnemonicService;
+
     @InjectMocks
     private KanjiServiceImpl kanjiService;
 
