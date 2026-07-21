@@ -10,8 +10,8 @@ import com.midori.dto.notification.SendNotificationResponse;
 import com.midori.dto.notification.UpdateNotificationRequest;
 import com.midori.entity.UserStatus;
 import com.midori.exception.BadRequestException;
-import com.midori.repository.ClassRepository;
 import com.midori.repository.UserRepository;
+import com.midori.service.NotificationHelperService;
 import com.midori.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +30,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/admin/notifications")
 @RequiredArgsConstructor
@@ -39,24 +37,27 @@ import java.util.UUID;
 public class AdminNotificationController {
 
     private final NotificationService notificationService;
-    private final ClassRepository classRepository;
+    private final NotificationHelperService notificationHelperService;
     private final UserRepository userRepository;
 
     /**
-     * Look up a class by its UUID ("class code"). Used by the admin notification
-     * form so the creator can verify the class exists before submitting.
+     * Look up a class by its human-friendly {@code classCode} (e.g. "N5-A1").
+     * Used by the admin notification form so the creator can verify the class
+     * exists before submitting. UUID-shaped values are accepted as a fallback
+     * for legacy data and for the rare case where an admin still has the UUID
+     * at hand, but the recommended input is the class code exposed everywhere
+     * else in the product.
      */
     @GetMapping("/classes/lookup")
     public ResponseEntity<ApiResponse<ClassLookupResponse>> lookupClass(@RequestParam("classCode") String classCode) {
-        UUID classId;
-        try {
-            classId = UUID.fromString(classCode.trim());
-        } catch (IllegalArgumentException ex) {
-            throw new BadRequestException("Invalid classCode format. Expected a UUID.");
+        if (classCode == null || classCode.isBlank()) {
+            throw new BadRequestException("classCode is required");
         }
-        var entity = classRepository.findById(classId)
-                .orElseThrow(() -> new BadRequestException("Class not found for classCode: " + classCode));
-        long studentCount = userRepository.countByAssignedClassIdAndStatus(classId, UserStatus.ACTIVE);
+        var entity = notificationHelperService.findClassByCodeOrId(classCode);
+        if (entity == null) {
+            throw new BadRequestException("Class not found for classCode: " + classCode);
+        }
+        long studentCount = userRepository.countByAssignedClassIdAndStatus(entity.getId(), UserStatus.ACTIVE);
         return ResponseEntity.ok(ApiResponse.success(ClassLookupResponse.from(entity, studentCount)));
     }
 

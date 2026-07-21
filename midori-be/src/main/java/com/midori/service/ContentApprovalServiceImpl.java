@@ -204,7 +204,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                     grammar.getCreatedBy(),
                     "Content Approved",
                     "Your grammar submission has been approved.",
-                    NotificationType.CONTENT_APPROVED
+                    NotificationType.APPROVED
             );
 
             return toGrammarSummary(grammar);
@@ -231,7 +231,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                     grammar.getCreatedBy(),
                     "Content Update Approved",
                     "Your grammar update has been approved and is now live for students.",
-                    NotificationType.CONTENT_APPROVED
+                    NotificationType.APPROVED
             );
 
             return toGrammarSummary(grammar);
@@ -257,7 +257,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 set.getTeacher(),
                 "Content Approved",
                 "Your content has been approved.",
-                NotificationType.CONTENT_APPROVED
+                NotificationType.APPROVED
         );
 
         return toFlashcardSetSummary(set);
@@ -291,7 +291,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                     grammar.getCreatedBy(),
                     "Content Rejected",
                     content,
-                    NotificationType.CONTENT_REJECTED
+                    NotificationType.CONTEXT
             );
 
             return toGrammarSummary(grammar);
@@ -311,7 +311,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                     grammar.getCreatedBy(),
                     "Update Rejected",
                     content,
-                    NotificationType.CONTENT_REJECTED
+                    NotificationType.CONTEXT
             );
 
             return toGrammarSummary(grammar);
@@ -340,7 +340,7 @@ public class ContentApprovalServiceImpl implements ContentApprovalService {
                 set.getTeacher(),
                 "Content Rejected",
                 content,
-                NotificationType.CONTENT_REJECTED
+                NotificationType.CONTEXT
         );
 
         return toFlashcardSetSummary(set);
