@@ -370,6 +370,7 @@ export function TeacherClassExamsTab({ classId, urlQ, isArchived }: TeacherClass
                       </div>
                       <span className="font-bold text-slate-700 dark:text-slate-300">
                         {e.duration} mins ({e.totalQuestions} Qs)
+                      </span>
                     </div>
                   </div>
                 </div>
