@@ -1491,13 +1491,19 @@ function TeachersPage() {
         size: number;
       } = {
         role: "TEACHER",
-        // Teacher List should only show ACTIVE teachers by default
-        status: listStatusFilter === "inactive" ? "SUSPENDED" : "ACTIVE",
         page: 0,
         size: 100,
       };
       const trimmed = searchQuery.trim();
       if (trimmed) params.keyword = trimmed;
+      // "all" = no status filter (null/undefined = all statuses)
+      // "active" = ACTIVE
+      // "inactive" = INACTIVE (SUSPENDED or BANNED, handled by backend)
+      if (listStatusFilter === "active") {
+        params.status = "ACTIVE";
+      } else if (listStatusFilter === "inactive") {
+        params.status = "INACTIVE";
+      }
       const [page, classes] = await Promise.all([
         adminApi.getAllUsers(params),
         adminApi.getAdminClasses().catch(() => [] as AdminClassResponse[]),

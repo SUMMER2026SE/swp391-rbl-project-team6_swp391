@@ -33,6 +33,7 @@ public class AuthService {
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final com.midori.repository.UserLoginHistoryRepository userLoginHistoryRepository;
+    private final com.midori.repository.TeacherStatusEventRepository teacherStatusEventRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
@@ -67,6 +68,15 @@ public class AuthService {
                 .displayName(resolveDisplayName(request))
                 .build();
         userProfileRepository.save(profile);
+
+        if (role == Role.TEACHER) {
+            TeacherStatusEvent event = TeacherStatusEvent.builder()
+                    .teacher(user)
+                    .eventType(TeacherStatusEvent.TeacherEventType.REGISTERED)
+                    .performedBy(user)
+                    .build();
+            teacherStatusEventRepository.save(event);
+        }
 
         EmailVerificationToken verificationToken = createEmailVerificationToken(user);
         emailService.sendVerificationOtp(user.getEmail(), verificationToken.getToken());

@@ -18,6 +18,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -46,16 +55,19 @@ public class AdminController {
     }
 
     @PutMapping("/{userId}/approve")
-    public ResponseEntity<ApiResponse<AdminTeacherResponse>> approveTeacher(@PathVariable UUID userId) {
-        AdminTeacherResponse teacher = adminUserService.approveTeacher(userId);
+    public ResponseEntity<ApiResponse<AdminTeacherResponse>> approveTeacher(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal CustomUserDetails admin) {
+        AdminTeacherResponse teacher = adminUserService.approveTeacher(userId, admin.getId());
         return ResponseEntity.ok(ApiResponse.success("Teacher approved successfully", teacher));
     }
 
     @PutMapping("/{userId}/reject")
     public ResponseEntity<ApiResponse<AdminTeacherResponse>> rejectTeacher(
             @PathVariable UUID userId,
-            @Valid @RequestBody RejectTeacherRequest request) {
-        AdminTeacherResponse teacher = adminUserService.rejectTeacher(userId, request.reason().trim());
+            @Valid @RequestBody RejectTeacherRequest request,
+            @AuthenticationPrincipal CustomUserDetails admin) {
+        AdminTeacherResponse teacher = adminUserService.rejectTeacher(userId, request.reason().trim(), admin.getId());
         return ResponseEntity.ok(ApiResponse.success("Teacher rejected successfully", teacher));
     }
 
@@ -88,12 +100,19 @@ public class AdminController {
             }
         }
 
+        // Support special "INACTIVE" filter = SUSPENDED or BANNED
         UserStatus statusFilter = null;
+        List<UserStatus> inactiveStatuses = null;
         if (status != null && !status.isBlank()) {
-            try {
-                statusFilter = UserStatus.valueOf(status.toUpperCase().trim());
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException("Invalid status value");
+            String upperStatus = status.toUpperCase().trim();
+            if ("INACTIVE".equals(upperStatus)) {
+                inactiveStatuses = List.of(UserStatus.SUSPENDED, UserStatus.BANNED);
+            } else {
+                try {
+                    statusFilter = UserStatus.valueOf(upperStatus);
+                } catch (IllegalArgumentException e) {
+                    throw new BadRequestException("Invalid status value");
+                }
             }
         }
 
@@ -102,7 +121,7 @@ public class AdminController {
         int pageNumber = Math.max(page, 0);
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<AdminTeacherResponse> result = adminUserService.getAllUsers(roleFilter, statusFilter, searchKeyword, pageable);
+        Page<AdminTeacherResponse> result = adminUserService.getAllUsers(roleFilter, statusFilter, inactiveStatuses, searchKeyword, pageable);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
