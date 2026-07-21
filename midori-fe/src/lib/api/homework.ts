@@ -16,6 +16,12 @@ export interface HomeworkResponse {
   status: "DRAFT" | "ASSIGNED" | "CLOSED";
   totalQuestions?: number;
   submissionCount?: number;
+  /**
+   * Average score across every graded submission of this homework, in the
+   * same unit as `maxScore`. Null when there are no graded submissions
+   * yet; the UI renders "N/A" so the row is unambiguous.
+   */
+  averageScore?: number | null;
   createdAt: string;
   updatedAt: string;
   questions?: TeacherQuestionResponse[];
