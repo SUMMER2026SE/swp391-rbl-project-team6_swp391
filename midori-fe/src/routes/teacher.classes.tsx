@@ -382,6 +382,7 @@ function ClassesLayout() {
         onOpenChange={(o) => !o && setInviteFor(null)}
         classId={inviteFor ?? undefined}
         className={all.find((c) => c.id === inviteFor)?.name}
+        classLevel={all.find((c) => c.id === inviteFor)?.level}
       />
 
       <EditClassDialog

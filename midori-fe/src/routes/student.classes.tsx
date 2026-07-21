@@ -88,10 +88,27 @@ function StatusBadge({ status }: { status: ClassStatus }) {
 // ==================== ACTIVE CLASS CARD ====================
 
 function ActiveClassCard({ cls }: { cls: DetailedClassInfo }) {
-  const pendingCount = getPendingAssignments(cls);
-  const progressPercent = getProgressPercentage(cls);
-  const completedCount = getCompletedAssignments(cls);
-  const totalCount = cls.assignments.length;
+  const { data: homeworkList = [] } = useQuery({
+    queryKey: ["classHomework", cls.id],
+    queryFn: () => classesApi.getClassHomework(cls.id),
+    enabled: !!cls.id,
+  });
+
+  const { data: examList = [] } = useQuery({
+    queryKey: ["classExams", cls.id],
+    queryFn: () => classesApi.getClassExams(cls.id),
+    enabled: !!cls.id,
+  });
+
+  const pendingHw = homeworkList.filter(
+    (hw: any) => hw.submissionStatus !== "SUBMITTED" && hw.submissionStatus !== "GRADED",
+  ).length;
+
+  const pendingEx = examList.filter(
+    (ex: any) => ex.status !== "SUBMITTED" && ex.status !== "GRADED",
+  ).length;
+
+  const pendingCount = pendingHw + pendingEx;
 
   return (
     <Link to="/student/classes/$classId" params={{ classId: cls.id }} className="block">

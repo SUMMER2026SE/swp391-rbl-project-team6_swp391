@@ -179,8 +179,8 @@ function VideoLearningPage() {
     }
   }, [videoId]);
   
-  // Use global saved words hook
-  const { savedWords: globalSavedWords, isWordSaved: isGlobalWordSaved, saveWord: globalSaveWord, removeWord: globalRemoveWord } = useSavedWords();
+  // Use per-video saved words hook
+  const { savedWords: globalSavedWords, isWordSaved: isGlobalWordSaved, saveWord: globalSaveWord, removeWord: globalRemoveWord } = useSavedWords(videoId);
   
   const handleToggleSaveFromList = useCallback((vocabWord: string, vocabReading: string, vocabMeaning: string) => {
     if (isGlobalWordSaved(vocabWord, vocabReading)) {
@@ -979,6 +979,7 @@ function VideoLearningPage() {
                                   text={segment.text}
                                   contextSentence={segment.text}
                                   tokens={segment.tokens}
+                                  videoId={videoId}
                                   className="text-[13px] font-bold text-slate-800 dark:text-slate-100 leading-relaxed"
                                 />
                               )}

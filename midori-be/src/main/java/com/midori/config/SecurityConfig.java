@@ -68,6 +68,7 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/levels").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
                         // WebSocket endpoint - authentication is performed inside
                         // NotificationWebSocketHandler using the ?token= query
                         // parameter, so the security chain must let the upgrade

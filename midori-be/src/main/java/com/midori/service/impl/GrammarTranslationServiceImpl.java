@@ -88,7 +88,7 @@ public class GrammarTranslationServiceImpl implements GrammarTranslationService 
 
         try {
             String userMessage = buildTranslationPrompt(gp);
-            String aiResponse = aiCoreService.chat(SYSTEM_PROMPT, userMessage, Collections.emptyList());
+            String aiResponse = aiCoreService.chatWithProvider(com.midori.ai.AiProviderType.GEMINI, SYSTEM_PROMPT, userMessage, Collections.emptyList());
 
             // Parse strict JSON response
             String cleanedResponse = stripMarkdown(aiResponse);
