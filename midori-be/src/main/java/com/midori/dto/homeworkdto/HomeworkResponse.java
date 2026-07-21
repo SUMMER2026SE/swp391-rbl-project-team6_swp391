@@ -36,4 +36,12 @@ public class HomeworkResponse {
     private String feedback;
     private Instant gradedAt;
     private Instant submittedAt;
+    /**
+     * Average score across every graded submission of this homework, in the
+     * same unit as `maxScore`. Null when there are no graded submissions
+     * yet (no row should render as "—" or "N/A"). The number of graded
+     * submissions is `submissionCount`; submissions without a grade are
+     * filtered out so the average is not skewed by ungraded attempts.
+     */
+    private Double averageScore;
 }
