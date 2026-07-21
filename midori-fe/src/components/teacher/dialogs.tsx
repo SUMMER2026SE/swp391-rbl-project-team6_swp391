@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +74,12 @@ export function InviteStudentsDialog({
   const [emailsInput, setEmailsInput] = useState("");
   const [sending, setSending] = useState(false);
 
+  const { data: fetchedClass } = useQuery({
+    queryKey: ["teacherClassDetail", classId],
+    queryFn: () => classesApi.getClassById(classId!),
+    enabled: !!classId && open && (!className || !classLevel),
+  });
+
   const { valid, invalid } = useMemo(() => parseEmails(emailsInput), [emailsInput]);
 
   const canSend = valid.length > 0 && invalid.length === 0 && !!classId;
@@ -89,6 +95,9 @@ export function InviteStudentsDialog({
     void queryClient.invalidateQueries({ queryKey: ["studentJoinedClassesDashboard"] });
     void queryClient.invalidateQueries({ queryKey: ["studentJoinedClasses"] });
   };
+
+  const displayClassName = className ?? fetchedClass?.name ?? "the class";
+  const displayLevel = classLevel ?? fetchedClass?.level ?? "";
 
   const handleSend = async () => {
     if (!canSend) {
@@ -124,8 +133,8 @@ export function InviteStudentsDialog({
     setSending(false);
 
     if (failed.length === 0) {
-      const levelDisplay = classLevel ? ` ${classLevel}` : "";
-      const classDisplay = className ?? "this class";
+      const levelDisplay = displayLevel ? ` ${displayLevel}` : "";
+      const classDisplay = displayClassName !== "the class" ? displayClassName : "this class";
       if (successCount === 1) {
         toast.success(`Added ${valid[0]} to${levelDisplay} ${classDisplay}.`);
       } else {
@@ -153,9 +162,6 @@ export function InviteStudentsDialog({
     if (sending) return;
     onOpenChange(false);
   };
-
-  const displayClassName = className ?? "the class";
-  const displayLevel = classLevel ?? "N5";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,7 +232,7 @@ export function InviteStudentsDialog({
                 <Hash className="w-3.5 h-3.5" />
                 <span>Level:</span>
               </div>
-              <div className="font-medium text-foreground">{displayLevel}</div>
+              <div className="font-medium text-foreground">{displayLevel || "—"}</div>
 
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <UserPlus className="w-3.5 h-3.5" />

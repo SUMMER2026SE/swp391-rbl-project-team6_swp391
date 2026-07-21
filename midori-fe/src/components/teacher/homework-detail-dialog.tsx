@@ -46,7 +46,7 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
             Could not load homework details.
           </div>
         ) : (
-          <ScrollArea className="flex-1 pr-3 mt-4">
+          <div className="flex-1 min-h-0 max-h-[60vh] overflow-y-auto pr-3 mt-4 space-y-6">
             <div className="space-y-6">
               {/* Header Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-muted/40 p-4 rounded-2xl border border-border/55">
@@ -99,13 +99,35 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
               {/* Questions List */}
               {homework.questions && homework.questions.length > 0 && (
                 <div className="space-y-3 mt-4">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
-                    Questions list
-                  </h4>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                      Questions list ({homework.questions.length})
+                    </h4>
+                    {homework.questions.length > 1 && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground font-semibold">Jump to:</span>
+                        {homework.questions.map((_: any, qIdx: number) => (
+                          <button
+                            key={qIdx}
+                            type="button"
+                            onClick={() => {
+                              document
+                                .getElementById(`hw-q-${qIdx}`)
+                                ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                            }}
+                            className="px-2 py-0.5 rounded text-[11px] font-bold bg-muted hover:bg-primary/20 hover:text-primary transition-colors border"
+                          >
+                            Q{qIdx + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-3">
                     {homework.questions.map((q: any, idx: number) => (
                       <div
                         key={`${q.id || ""}-${idx}`}
+                        id={`hw-q-${idx}`}
                         className="p-4 rounded-xl border border-border bg-card space-y-3"
                       >
                         <div className="flex justify-between items-start gap-2">
@@ -160,7 +182,7 @@ export function ViewHomeworkDialog({ open, onOpenChange, homeworkId }: ViewHomew
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         )}
 
         <DialogFooter className="mt-4 pt-4 border-t">

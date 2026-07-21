@@ -43,7 +43,7 @@ export function TeacherClassProgressPage() {
           <BarChart3 className="w-4 h-4" />
           Class Overview
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-2xl font-black text-primary">{classDetail?.studentCount || 0}</div>
             <div className="text-xs text-muted-foreground">Students</div>
@@ -55,10 +55,6 @@ export function TeacherClassProgressPage() {
           <div className="text-center">
             <div className="text-2xl font-black text-blue-600">{classDetail?.examCount || 0}</div>
             <div className="text-xs text-muted-foreground">Exams</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-black text-purple-600">{avgScore}</div>
-            <div className="text-xs text-muted-foreground">Avg Score</div>
           </div>
         </div>
       </Card>

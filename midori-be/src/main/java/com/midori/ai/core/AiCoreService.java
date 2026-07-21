@@ -53,6 +53,14 @@ public class AiCoreService {
     }
 
     /**
+     * Send a chat message using a specific AI provider type (e.g. GEMINI for Kanji/Shadowing translation).
+     */
+    public String chatWithProvider(AiProviderType providerType, String systemPrompt, String userMessage, List<String[]> history) {
+        AiProvider provider = providerFactory.resolveOrDefault(providerType);
+        return provider.chat(systemPrompt, userMessage, history, com.midori.ai.AiTaskType.COMPLEX_REASONING);
+    }
+
+    /**
      * Send a chat message with material context.
      */
     public String chatWithMaterial(String materialTitle, String materialType,

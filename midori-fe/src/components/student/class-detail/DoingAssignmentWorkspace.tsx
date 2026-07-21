@@ -52,8 +52,12 @@ export function DoingAssignmentWorkspace({
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [violations, setViolations] = useState(0);
   const [showViolationWarning, setShowViolationWarning] = useState(false);
-  const [lastViolationType, setLastViolationType] = useState("");
-  const [timeLeft, setTimeLeft] = useState(reviewMode ? 0 : 1200); // default 20 mins
+  const [lastViolationType, setLastViolationType] = useState<string>("");
+  const initialDurationMins = Number(assignment.timeLimit) > 0 ? Number(assignment.timeLimit) : 20;
+  const [totalDurationSeconds, setTotalDurationSeconds] = useState(initialDurationMins * 60);
+  const [timeLeft, setTimeLeft] = useState(reviewMode ? 0 : initialDurationMins * 60);
+  const startTimeRef = React.useRef<number>(Date.now());
+  const [actualTimeTaken, setActualTimeTaken] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"Saving..." | "Saved">("Saved");
@@ -102,6 +106,8 @@ export function DoingAssignmentWorkspace({
         focusViolationCount: violations,
       };
       const res = await homeworkApi.submitHomework(assignment.id, req);
+      const elapsedSecs = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+      setActualTimeTaken(elapsedSecs);
       setSubmission(res);
       setIsSubmitted(true);
       toast.success("Homework submitted successfully!");
@@ -160,10 +166,14 @@ export function DoingAssignmentWorkspace({
 
         const limit = hw.timeLimit || assignment.timeLimit;
         if (limit && Number(limit) > 0) {
-          setTimeLeft(Number(limit) * 60);
+          const limitSecs = Number(limit) * 60;
+          setTotalDurationSeconds(limitSecs);
+          setTimeLeft(limitSecs);
         } else {
+          setTotalDurationSeconds(1200);
           setTimeLeft(999999);
         }
+        startTimeRef.current = Date.now();
 
         if (isExam) {
           if (hw.status === "SUBMITTED" || hw.status === "GRADED") {
@@ -405,14 +415,15 @@ export function DoingAssignmentWorkspace({
   // Start exam function
   const startExam = useCallback(() => {
     setExamStarted(true);
-    setTimeLeft(1200);
+    startTimeRef.current = Date.now();
+    setTimeLeft(totalDurationSeconds);
     // Auto enter fullscreen
     setTimeout(() => {
       document.documentElement.requestFullscreen().catch(() => {
         console.log("Fullscreen not supported or blocked");
       });
     }, 100);
-  }, []);
+  }, [totalDurationSeconds]);
 
   // Exit exam / close exam
   const exitExam = useCallback(() => {
@@ -425,10 +436,10 @@ export function DoingAssignmentWorkspace({
     setAnswers({});
     setFlagged({});
     setViolations(0);
-    setTimeLeft(1200);
+    setTimeLeft(totalDurationSeconds);
     setCurrentQuestion(0);
     setIsSubmitted(false);
-  }, []);
+  }, [totalDurationSeconds]);
 
   const handleSubmitExam = async () => {
     try {
@@ -459,6 +470,8 @@ export function DoingAssignmentWorkspace({
         res = await homeworkApi.submitHomework(assignment.id, req);
       }
 
+      const elapsedSecs = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+      setActualTimeTaken(elapsedSecs);
       setSubmission(res);
       setIsSubmitted(true);
       if (document.fullscreenElement) {
@@ -725,7 +738,7 @@ export function DoingAssignmentWorkspace({
     backendPercentage !== null ? backendPercentage : computedPercentage;
   const roundedPercentage = Math.round(displayPercentage);
 
-  // Time taken: prefer backend fields, otherwise fall back to local timer.
+  // Time taken: prefer backend fields, otherwise fall back to local recorded time or dynamic duration timer.
   const backendTimeTaken =
     submission && submission.startedAt && submission.submittedAt
       ? Math.max(
@@ -736,9 +749,16 @@ export function DoingAssignmentWorkspace({
               1000,
           ),
         )
-      : null;
+      : submission && typeof submission.timeTakenSeconds === "number"
+        ? submission.timeTakenSeconds
+        : null;
+
   const displayTimeTakenSeconds =
-    backendTimeTaken !== null ? backendTimeTaken : Math.max(0, 1200 - timeLeft);
+    backendTimeTaken !== null && backendTimeTaken > 0
+      ? backendTimeTaken
+      : actualTimeTaken !== null && actualTimeTaken > 0
+        ? actualTimeTaken
+        : Math.max(0, totalDurationSeconds - timeLeft);
 
   const isPassed = roundedPercentage >= 50;
 

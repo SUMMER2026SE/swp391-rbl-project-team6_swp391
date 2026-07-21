@@ -61,6 +61,14 @@ export function ExamAssignDialog({ open, onOpenChange, exam, onSuccess }: ExamAs
       return;
     }
 
+    if (scheduledAt) {
+      const today = new Date().toISOString().split("T")[0];
+      if (scheduledAt < today) {
+        toast.error("Scheduled date cannot be in the past.");
+        return;
+      }
+    }
+
     setIsAssigning(true);
     try {
       await examsApi.assignExamToClass(exam.id, selectedClassId);

@@ -24,7 +24,7 @@ public class ShadowingEvaluationConfig {
     private int minRecordingDurationMs = 200;
     
     /** String-based model name (e.g., "gemini-2.5-flash") */
-    private String geminiModel = "gemini-3.5-flash";
+    private String geminiModel = "gemini-2.0-flash";
     
     private String aiProvider = "gemini";
     private long apiTimeoutSeconds = 120;
