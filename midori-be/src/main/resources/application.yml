@@ -24,9 +24,9 @@ spring:
       max-request-size: 550MB
 
   datasource:
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
-    username: postgres.clyuyvdaoprxrpmrcyhd
-    password: "Midori@2026#DbStrong!"
+    url: ${DATABASE_URL:jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require}
+    username: ${DATABASE_USERNAME:postgres.clyuyvdaoprxrpmrcyhd}
+    password: ${DATABASE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 1
@@ -51,8 +51,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: dathatinh2005aa@gmail.com
-    password: gsdosaoxzyvmcewf
+    username: ${SPRING_MAIL_USERNAME:dathatinh2005aa@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -67,6 +67,10 @@ server:
   port: 8080
 
 app:
+  admin:
+    bootstrap-enabled: true
+    email: ${ADMIN_BOOTSTRAP_EMAIL:admin@midori.local}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
   jwt:
     secret: local-dev-jwt-secret-key-for-midori-backend-at-least-32-chars
     access-token-expiration: 86400000
@@ -83,15 +87,15 @@ app:
 
 supabase:
   url: https://clyuyvdaoprxrpmrcyhd.supabase.co
-  service-role-key: sb_secret_Xhn2klAIVJQ0XrVCcKRT-A_eH-TkGZh
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
     videos-bucket: ${SUPABASE_VIDEOS_BUCKET:shadowing-videos}
 
 # Groq API Keys
 groq:
-  api-keys: "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,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"
-  api-key: ${GROQ_API_KEY:${groq.api-keys}}
+  api-keys: ${GROQ_API_KEYS:}
+  api-key: ${GROQ_API_KEY:}
 
 # Gemini API Keys (multiple keys for fallback)
 ai:
@@ -105,7 +109,7 @@ ai:
     queue-capacity: ${AI_EXECUTOR_QUEUE_CAPACITY:100}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    api-keys: "AQ.Ab8RN6J_uqI-pBJ-Q6KcJT6u2tW_4K5QRmS7t3DLTfSIBb8fnQ,AQ.Ab8RN6IUflU19XeySpgvsKNEND7ECfhIlewFz24CgPNVF6nGqg,AQ.Ab8RN6IMf9quTzsgDPP70RAYUdjJvvtW2FGrBkj8RXbqdXBksg,AIzaSyC4uGSSu8Ueo4n0g3ur0hNPpHxcuqJhJlw"
+    api-keys: ${GEMINI_API_KEYS:}
     model: ${GEMINI_MODEL:gemini-flash-latest}
     fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-flash-latest,gemini-2.0-flash,gemini-2.0-flash-lite,gemini-1.5-flash,gemini-1.5-flash-8b}
     base-url: https://generativelanguage.googleapis.com
