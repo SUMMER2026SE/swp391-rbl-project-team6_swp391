@@ -153,3 +153,15 @@ midori-fe/browser-screenshots/
 *.pem
 *.key
 service-account*.json
+
+# =============================================
+# Local Debug / Verification Artifacts
+# =============================================
+admin_token.txt
+login_req.json
+**/backend_log.txt
+**/backend_err.txt
+verify_*.py
+verify_*.ps1
+test.pdf
+test.txt
