@@ -39,6 +39,7 @@ public class AiConfigProperties {
 
     private String provider = "OPENAI";
     private String model = "gpt-4o";
+    private String providerOrder = "gemini,openrouter";
     private int timeoutSeconds = 120;
     private double temperature = 0.1;
     private int maxTokens = 8192;
@@ -53,6 +54,7 @@ public class AiConfigProperties {
     // ============================================================
 
     public String getProvider() { return provider; }
+    public String getProviderOrder() { return providerOrder; }
     public String getModel() { return model; }
     public int getTimeoutSeconds() { return timeoutSeconds; }
     public double getTemperature() { return temperature; }
@@ -67,6 +69,7 @@ public class AiConfigProperties {
     // ============================================================
 
     public void setProvider(String provider) { this.provider = provider; }
+    public void setProviderOrder(String v) { this.providerOrder = v; }
     public void setModel(String model) { this.model = model; }
     public void setTimeoutSeconds(int v) { this.timeoutSeconds = v; }
     public void setTemperature(double v) { this.temperature = v; }
@@ -249,18 +252,37 @@ public class AiConfigProperties {
     // ============================================================
 
     public static class OpenRouterConfig {
-        private String apiKey;
+        private String apiKey;   // Legacy single key
+        private String apiKeys;  // Comma-separated: key1,key2
         private String models = "openrouter/free";
-        private String fallbackModels = "openai/gpt-oss-120b:free";
+        private String fallbackModels;
         private String referer = "http://localhost:8081";
         private String appTitle = "MIDORI AI Sensei";
         private int chatTimeoutMs = 15000;
         private int quizTimeoutMs = 25000;
         private int connectTimeoutMs = 5000;
-        private int chatMaxTokens = 1400;
+        private int chatMaxTokens = 4096;
         private int quizMaxTokens = 4096;
 
         public String getApiKey() { return apiKey; }
+        public String getApiKeys() { return apiKeys; }
+
+        /**
+         * Returns all API keys as an array, supporting comma-separated multi-key.
+         */
+        public String[] getApiKeysArray() {
+            if (apiKeys != null && !apiKeys.isBlank()) {
+                String[] keys = apiKeys.split(",");
+                for (int i = 0; i < keys.length; i++) keys[i] = keys[i].trim();
+                return keys;
+            }
+            return apiKey != null && !apiKey.isBlank()
+                    ? new String[]{apiKey.trim()}
+                    : new String[0];
+        }
+
+        public int getKeyCount() { return getApiKeysArray().length; }
+
         public String getModels() { return models; }
         public String getFallbackModels() { return fallbackModels; }
         public String getReferer() { return referer; }
@@ -272,6 +294,7 @@ public class AiConfigProperties {
         public int getQuizMaxTokens() { return quizMaxTokens; }
 
         public void setApiKey(String v) { this.apiKey = v; }
+        public void setApiKeys(String v) { this.apiKeys = v; }
         public void setModels(String v) { this.models = v; }
         public void setFallbackModels(String v) { this.fallbackModels = v; }
         public void setReferer(String v) { this.referer = v; }
@@ -282,6 +305,30 @@ public class AiConfigProperties {
         public void setChatMaxTokens(int v) { this.chatMaxTokens = v; }
         public void setQuizMaxTokens(int v) { this.quizMaxTokens = v; }
 
-        public boolean isConfigured() { return apiKey != null && !apiKey.isBlank(); }
+        /**
+         * True when at least one non-blank key is available.
+         * Treats a placeholder starting with "PASTE_" as not-configured.
+         */
+        public boolean isConfigured() {
+            for (String k : getApiKeysArray()) {
+                if (k != null && !k.isBlank() && !k.startsWith("PASTE_")) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Parses the fallback models string into an ordered List.
+         */
+        public java.util.List<String> getFallbackModelsList() {
+            if (fallbackModels == null || fallbackModels.isBlank()) {
+                return java.util.List.of();
+            }
+            return java.util.Arrays.stream(fallbackModels.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .collect(java.util.stream.Collectors.toList());
+        }
     }
 }

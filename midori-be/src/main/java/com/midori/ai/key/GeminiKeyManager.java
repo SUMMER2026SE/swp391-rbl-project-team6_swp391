@@ -19,8 +19,8 @@ public class GeminiKeyManager {
     private final Object lock = new Object();
     private volatile int currentIndex = 0;
 
-    // Cooldown duration: 60 seconds
-    private static final long COOLDOWN_DURATION_MS = 60000;
+    // Cooldown duration: 15 seconds (per-key backoff on 429)
+    private static final long COOLDOWN_DURATION_MS = 15000;
 
     public GeminiKeyManager(String keysConfig) {
         if (keysConfig == null || keysConfig.isBlank()) {

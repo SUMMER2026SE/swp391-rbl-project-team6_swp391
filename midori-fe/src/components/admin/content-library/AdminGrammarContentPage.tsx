@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { BookOpenText, Loader2, Pencil, Plus, Search, Trash2, Edit3, ArrowLeft } from "lucide-react";
+import { BookOpenText, Loader2, Pencil, Plus, Search, Trash2, Edit3, ArrowLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   adminGrammarApi,
@@ -19,6 +19,8 @@ import {
   GrammarDetailModal,
   GrammarBackendEditForm,
 } from "../grammar";
+import { AdminAiGenerateModal } from "./AdminAiGenerateModal";
+import { AdminGrammarAiDraft } from "@/services/adminAiContentService";
 
 interface AdminGrammarContentPageProps {
   level: string;
@@ -33,6 +35,7 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
   const [editMode, setEditMode] = useState<"create" | "edit" | "view" | undefined>("create");
   const [selectedLesson, setSelectedLesson] = useState<GrammarLessonResponse | null>(null);
   const [selectedLessonDetail, setSelectedLessonDetail] = useState<GrammarDetailResponse | null>(null);
@@ -139,6 +142,37 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
     }
   };
 
+  const handleApplyAiDraft = (draft: {
+    title: string;
+    description: string;
+    grammarDraft?: AdminGrammarAiDraft;
+  }) => {
+    if (!draft.grammarDraft) return;
+
+    const contents: GrammarContentRequest[] = draft.grammarDraft.items.map((item, idx) => ({
+      grammarPoint: item.grammarPoint,
+      meaningVietnamese: item.meaningVietnamese,
+      meaningJapanese: item.meaningJapanese || "",
+      explanation: item.explanation || "",
+      exampleSentence: item.exampleSentence || "",
+      notes: item.notes || "",
+      contentOrder: idx + 1,
+    }));
+
+    setSelectedLesson(null);
+    setSelectedLessonDetail({
+      id: "",
+      lessonNumber: nextLessonNumber,
+      title: draft.title || "AI Generated Grammar Lesson",
+      level: normalizedLevel,
+      status: "draft",
+      difficulty: "MEDIUM",
+      contents: contents,
+    } as any);
+    setEditMode("create");
+    setShowEditModal(true);
+  };
+
   const handleCreate = () => {
     setSelectedLesson(null);
     setSelectedLessonDetail(null);
@@ -232,12 +266,20 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
             <p className="text-xs text-muted-col mt-0.5">{normalizedLevel} Level</p>
           </div>
         </div>
-        <button
-          onClick={handleCreate}
-          className="px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> Create Lesson
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAiModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" /> Generate with AI
+          </button>
+          <button
+            onClick={handleCreate}
+            className="px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Create Manually
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -352,6 +394,15 @@ export function AdminGrammarContentPage({ level }: AdminGrammarContentPageProps)
             ? `Are you sure you want to delete "${selectedLesson.title}"? This action cannot be undone.`
             : ""
         }
+      />
+
+      {/* AI Generate Modal */}
+      <AdminAiGenerateModal
+        open={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        skillType="GRAMMAR"
+        currentLevel={normalizedLevel}
+        onApplyDraft={handleApplyAiDraft}
       />
     </div>
   );

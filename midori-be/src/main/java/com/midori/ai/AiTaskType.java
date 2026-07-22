@@ -32,6 +32,9 @@ public enum AiTaskType {
     /** Shadowing/speaking practice evaluation. */
     SHADOWING_EVALUATION("Japanese shadowing pronunciation evaluation"),
 
+    /** Admin content library generation for Vocabulary, Grammar, Reading. */
+    ADMIN_CONTENT_LIBRARY_GENERATION("Admin content library generation"),
+
     /** Default/fallback for any task. */
     DEFAULT("Default task type, use balanced model");
 

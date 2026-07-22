@@ -1,0 +1,7978 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.midori:midori-be >------------------------
+[INFO] Building midori-be 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.3.1:run (default-cli) > test-compile @ midori-be >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ midori-be ---
+[INFO] Copying 5 resources from src\main\resources to target\classes
+[INFO] Copying 6769 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ midori-be ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 594 source files with javac [debug parameters release 17] to target\classes
+[INFO] /D:/Codedu_an_SWP391/swp391-rbl-project-team6_swp391/midori-be/src/main/java/com/midori/service/impl/GroqSpeechProvider.java: Some input files use or override a deprecated API.
+[INFO] /D:/Codedu_an_SWP391/swp391-rbl-project-team6_swp391/midori-be/src/main/java/com/midori/service/impl/GroqSpeechProvider.java: Recompile with -Xlint:deprecation for details.
+[INFO] /D:/Codedu_an_SWP391/swp391-rbl-project-team6_swp391/midori-be/src/main/java/com/midori/ai/impl/GeminiProvider.java: Some input files use unchecked or unsafe operations.
+[INFO] /D:/Codedu_an_SWP391/swp391-rbl-project-team6_swp391/midori-be/src/main/java/com/midori/ai/impl/GeminiProvider.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ midori-be ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ midori-be ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 55 source files with javac [debug parameters release 17] to target\test-classes
+[INFO] /D:/Codedu_an_SWP391/swp391-rbl-project-team6_swp391/midori-be/src/test/java/com/midori/service/DictionaryCacheServiceTest.java: D:\Codedu_an_SWP391\swp391-rbl-project-team6_swp391\midori-be\src\test\java\com\midori\service\DictionaryCacheServiceTest.java uses unchecked or unsafe operations.
+[INFO] /D:/Codedu_an_SWP391/swp391-rbl-project-team6_swp391/midori-be/src/test/java/com/midori/service/DictionaryCacheServiceTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] <<< spring-boot:3.3.1:run (default-cli) < test-compile @ midori-be <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.3.1:run (default-cli) @ midori-be ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.1)
+
+2026-07-22T06:40:34.050+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.MidoriBeApplication           : Starting MidoriBeApplication using Java 17.0.12 with PID 12316 (D:\Codedu_an_SWP391\swp391-rbl-project-team6_swp391\midori-be\target\classes started by HP in D:\Codedu_an_SWP391\swp391-rbl-project-team6_swp391\midori-be)
+2026-07-22T06:40:34.054+07:00 DEBUG 12316 --- [midori-be] [  restartedMain] com.midori.MidoriBeApplication           : Running with Spring Boot v3.3.1, Spring v6.1.10
+2026-07-22T06:40:34.055+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.MidoriBeApplication           : The following 1 profile is active: "local"
+2026-07-22T06:40:34.110+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.s.b.devtools.restart.ChangeableUrls    : The Class-Path manifest attribute in C:\Users\HP\.m2\repository\com\worksap\nlp\sudachi\0.8.0\sudachi-0.8.0.jar referenced one or more files that do not exist: file:/C:/Users/HP/.m2/repository/com/worksap/nlp/sudachi/0.8.0/javax.json-1.1.4.jar,file:/C:/Users/HP/.m2/repository/com/worksap/nlp/sudachi/0.8.0/jdartsclone-1.2.0.jar
+2026-07-22T06:40:34.111+07:00  INFO 12316 --- [midori-be] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-07-22T06:40:34.111+07:00  INFO 12316 --- [midori-be] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-07-22T06:40:35.652+07:00  INFO 12316 --- [midori-be] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-22T06:40:35.656+07:00  INFO 12316 --- [midori-be] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-22T06:40:35.989+07:00  INFO 12316 --- [midori-be] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 324 ms. Found 54 JPA repository interfaces.
+2026-07-22T06:40:36.014+07:00  INFO 12316 --- [midori-be] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-07-22T06:40:36.016+07:00  INFO 12316 --- [midori-be] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-07-22T06:40:36.052+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.AiConversationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.052+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.AiImportJobRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.053+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.AiMessageRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.054+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ClassMembershipRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.054+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ClassRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.056+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.DictionaryEntryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.056+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.DictionaryExampleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.057+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.DictionaryMeaningRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.057+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.EmailVerificationTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.058+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ExamQuestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.059+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ExamRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.059+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.FlashcardCardRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.059+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.FlashcardSetRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.061+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.GrammarContentRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.062+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.GrammarExampleRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.063+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.GrammarLessonRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.063+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.GrammarPatternRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.063+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.GrammarRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.064+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.HomeworkQuestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.065+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.HomeworkRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.065+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.HomeworkSubmissionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.066+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.KanjiEntryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.067+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.LessonRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.068+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ListeningItemRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.068+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ListeningLessonRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.069+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ManualHomeworkQuestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.069+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ManualHomeworkRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.069+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.NotificationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.071+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.OAuthAccountRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.071+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.PasswordResetTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.072+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.QuestionBankLessonRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.072+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ReadingLessonRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.073+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ReadingPassageRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.073+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ReadingQuestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.073+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ShadowingProcessingLogRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.074+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ShadowingTranscriptRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.074+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.ShadowingVideoRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.075+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.StudentExamQuestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.076+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.StudentExamRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.077+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.StudentSavedWordRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.079+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.StudentVocabularyFavoriteRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.079+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.TeacherCertificateRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.080+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.TeacherQuestionRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.080+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.TranscriptTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.080+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.UserLearningProgressRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.081+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.UserLoginHistoryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.082+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.UserNotificationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.082+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.UserProfileRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.083+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.083+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.VideoGrammarPatternRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.083+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.VocabularyItemRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.085+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.VocabularyLessonRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.085+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.VocabularyLessonV2Repository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.086+07:00  INFO 12316 --- [midori-be] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.midori.repository.VocabularyWordRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-07-22T06:40:36.086+07:00  INFO 12316 --- [midori-be] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 61 ms. Found 0 Redis repository interfaces.
+2026-07-22T06:40:37.345+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-07-22T06:40:37.361+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-07-22T06:40:37.362+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.25]
+2026-07-22T06:40:37.454+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-07-22T06:40:37.455+07:00  INFO 12316 --- [midori-be] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3342 ms
+2026-07-22T06:40:37.685+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-07-22T06:40:37.765+07:00  INFO 12316 --- [midori-be] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.2.Final
+2026-07-22T06:40:37.814+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-07-22T06:40:38.211+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-22T06:40:38.244+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-07-22T06:40:39.121+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@318bdf59
+2026-07-22T06:40:39.124+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-07-22T06:40:39.208+07:00  WARN 12316 --- [midori-be] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-07-22T06:40:42.010+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+Hibernate: 
+    alter table if exists ai_import_jobs 
+       alter column ai_raw_response set data type TEXT
+Hibernate: 
+    alter table if exists ai_import_jobs 
+       alter column error_message set data type TEXT
+Hibernate: 
+    alter table if exists ai_import_jobs 
+       alter column extracted_text set data type TEXT
+Hibernate: 
+    alter table if exists ai_messages 
+       alter column content set data type TEXT
+Hibernate: 
+    alter table if exists classes 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists dictionary_entries 
+       alter column jmdict_raw_xml set data type TEXT
+Hibernate: 
+    alter table if exists dictionary_examples 
+       alter column japanese set data type TEXT
+Hibernate: 
+    alter table if exists dictionary_examples 
+       alter column translation set data type TEXT
+Hibernate: 
+    alter table if exists dictionary_meanings 
+       alter column meaning set data type TEXT
+Hibernate: 
+    alter table if exists exam_question_options 
+       alter column option_text set data type TEXT
+Hibernate: 
+    alter table if exists exam_questions 
+       alter column explanation set data type TEXT
+Hibernate: 
+    alter table if exists exam_questions 
+       alter column question_text set data type TEXT
+Hibernate: 
+    alter table if exists exams 
+       alter column lesson_ids set data type TEXT
+Hibernate: 
+    alter table if exists flashcard_cards 
+       alter column example set data type TEXT
+Hibernate: 
+    alter table if exists flashcard_sets 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists grammar_contents 
+       alter column meaning set data type TEXT
+Hibernate: 
+    alter table if exists grammar_contents 
+       alter column pattern set data type TEXT
+Hibernate: 
+    alter table if exists grammar_contents 
+       alter column structure set data type TEXT
+Hibernate: 
+    alter table if exists grammar_contents 
+       alter column usage set data type TEXT
+Hibernate: 
+    alter table if exists grammar_examples 
+       alter column japanese set data type TEXT
+Hibernate: 
+    alter table if exists grammar_examples 
+       alter column vietnamese_meaning set data type TEXT
+Hibernate: 
+    alter table if exists grammar_lessons 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column description_en set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column description_vi set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column example_english set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column example_japanese set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column example_vietnamese set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column meaning_en set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column meaning_vi set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column note set data type TEXT
+Hibernate: 
+    alter table if exists grammar_patterns 
+       alter column structure set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column example_meanings set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column examples set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column meaning set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column pattern set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column pending_example_meanings set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column pending_examples set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column pending_meaning set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column pending_pattern set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column pending_structure set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column pending_usage set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column structure set data type TEXT
+Hibernate: 
+    alter table if exists grammars 
+       alter column usage set data type TEXT
+Hibernate: 
+    alter table if exists homework 
+       alter column instructions set data type TEXT
+Hibernate: 
+    alter table if exists homework_submissions 
+       alter column feedback set data type TEXT
+Hibernate: 
+    alter table if exists homework_submissions 
+       alter column submission_text set data type TEXT
+Hibernate: 
+    alter table if exists kanji_entries 
+       alter column kunyomi set data type TEXT
+Hibernate: 
+    alter table if exists kanji_entries 
+       alter column meaning set data type TEXT
+Hibernate: 
+    alter table if exists kanji_entries 
+       alter column onyomi set data type TEXT
+Hibernate: 
+    alter table if exists lessons 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists listening_items 
+       alter column audio_url set data type TEXT
+Hibernate: 
+    alter table if exists listening_items 
+       alter column explanation set data type TEXT
+Hibernate: 
+    alter table if exists listening_items 
+       alter column option_a set data type TEXT
+Hibernate: 
+    alter table if exists listening_items 
+       alter column option_b set data type TEXT
+Hibernate: 
+    alter table if exists listening_items 
+       alter column option_c set data type TEXT
+Hibernate: 
+    alter table if exists listening_items 
+       alter column option_d set data type TEXT
+Hibernate: 
+    alter table if exists listening_items 
+       alter column question set data type TEXT
+Hibernate: 
+    alter table if exists listening_lessons 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists listening_lessons 
+       alter column transcript set data type TEXT
+Hibernate: 
+    alter table if exists manual_homework_questions 
+       alter column content set data type TEXT
+Hibernate: 
+    alter table if exists manual_homework_questions 
+       alter column correct_answer set data type TEXT
+Hibernate: 
+    alter table if exists manual_homework_questions 
+       alter column explanation set data type TEXT
+Hibernate: 
+    alter table if exists manual_homeworks 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists notifications 
+       alter column content set data type TEXT
+Hibernate: 
+    alter table if exists reading_lessons 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists reading_lessons 
+       alter column passage set data type TEXT
+Hibernate: 
+    alter table if exists reading_lessons 
+       alter column vietnamese_translation set data type TEXT
+Hibernate: 
+    alter table if exists reading_passages 
+       alter column passage set data type TEXT
+Hibernate: 
+    alter table if exists reading_passages 
+       alter column vietnamese_translation set data type TEXT
+Hibernate: 
+    alter table if exists reading_questions 
+       alter column explanation set data type TEXT
+Hibernate: 
+    alter table if exists reading_questions 
+       alter column option_a set data type TEXT
+Hibernate: 
+    alter table if exists reading_questions 
+       alter column option_b set data type TEXT
+Hibernate: 
+    alter table if exists reading_questions 
+       alter column option_c set data type TEXT
+Hibernate: 
+    alter table if exists reading_questions 
+       alter column option_d set data type TEXT
+Hibernate: 
+    alter table if exists reading_questions 
+       alter column question set data type TEXT
+Hibernate: 
+    alter table if exists shadowing_processing_logs 
+       alter column error_message set data type TEXT
+Hibernate: 
+    alter table if exists shadowing_transcripts 
+       alter column jp_text set data type TEXT
+Hibernate: 
+    alter table if exists shadowing_transcripts 
+       alter column vn_text set data type TEXT
+Hibernate: 
+    alter table if exists shadowing_videos 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists shadowing_videos 
+       alter column thumbnail_url set data type TEXT
+Hibernate: 
+    alter table if exists shadowing_videos 
+       alter column video_url set data type TEXT
+Hibernate: 
+    alter table if exists student_exam_question_options 
+       alter column option_text set data type TEXT
+Hibernate: 
+    alter table if exists student_exam_questions 
+       alter column question_text set data type TEXT
+Hibernate: 
+    alter table if exists student_saved_words 
+       alter column context set data type TEXT
+Hibernate: 
+    alter table if exists student_saved_words 
+       alter column notes set data type TEXT
+Hibernate: 
+    alter table if exists teacher_certificates 
+       alter column certificate_url set data type TEXT
+Hibernate: 
+    alter table if exists teacher_certificates 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists teacher_certificates 
+       alter column image_url set data type TEXT
+Hibernate: 
+    alter table if exists teacher_questions 
+       alter column audio_url set data type TEXT
+Hibernate: 
+    alter table if exists teacher_questions 
+       alter column explanation set data type TEXT
+Hibernate: 
+    alter table if exists teacher_questions 
+       alter column prompt set data type TEXT
+Hibernate: 
+    alter table if exists user_profiles 
+       alter column bio set data type TEXT
+Hibernate: 
+    alter table if exists video_grammar_patterns 
+       alter column example_sentence set data type TEXT
+Hibernate: 
+    alter table if exists vocabulary_items 
+       alter column example_sentence set data type TEXT
+Hibernate: 
+    alter table if exists vocabulary_items 
+       alter column example_translation set data type TEXT
+Hibernate: 
+    alter table if exists vocabulary_lessons 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists vocabulary_lessons_v2 
+       alter column description set data type TEXT
+Hibernate: 
+    alter table if exists vocabulary_words_v2 
+       alter column example_japanese set data type TEXT
+Hibernate: 
+    alter table if exists vocabulary_words_v2 
+       alter column example_meaning set data type TEXT
+2026-07-22T06:40:56.049+07:00  INFO 12316 --- [midori-be] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-22T06:40:56.437+07:00  INFO 12316 --- [midori-be] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-07-22T06:40:57.586+07:00 DEBUG 12316 --- [midori-be] [  restartedMain] c.m.security.JwtAuthenticationFilter     : Filter 'jwtAuthenticationFilter' configured for use
+2026-07-22T06:40:57.804+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        : ==============================================
+2026-07-22T06:40:57.806+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        : [GeminiProvider] INITIALIZED
+2026-07-22T06:40:57.806+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        : ==============================================
+2026-07-22T06:40:57.808+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Configured Model: gemini-flash-latest
+2026-07-22T06:40:57.808+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Resolved Model: Gemini Flash (Latest) (gemini-flash-latest)
+2026-07-22T06:40:57.808+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Model Capability: 3/5
+2026-07-22T06:40:57.808+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Model Cost Level: 1/5
+2026-07-22T06:40:57.808+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Base URL: https://generativelanguage.googleapis.com
+2026-07-22T06:40:57.810+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   API Keys configured: 5
+2026-07-22T06:40:57.810+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Timeout: 120s
+2026-07-22T06:40:57.810+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Temperature: 0.1
+2026-07-22T06:40:57.812+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Max Tokens: 8192
+2026-07-22T06:40:57.812+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Auto Mode: false
+2026-07-22T06:40:57.813+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        :   Available Models: gemini-flash-latest
+2026-07-22T06:40:57.813+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.GeminiProvider        : ==============================================
+2026-07-22T06:40:57.824+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.OpenRouterProvider    : [OpenRouterProvider] Startup - Configured primary model(s): [google/gemma-4-31b-it:free]
+2026-07-22T06:40:57.824+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.OpenRouterProvider    : [OpenRouterProvider] Startup - Configured fallback model(s): [google/gemma-4-26b-a4b-it:free, openai/gpt-oss-20b:free]
+2026-07-22T06:40:57.826+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.OpenRouterProvider    : [OpenRouterProvider] Startup - Resolved active chat model: google/gemma-4-31b-it:free
+2026-07-22T06:40:57.826+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.OpenRouterProvider    : [OpenRouterProvider] Startup - Resolved active quiz model: google/gemma-4-31b-it:free
+2026-07-22T06:40:57.826+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.OpenRouterProvider    : [OpenRouterProvider] Initialized chat chain (size=2, timeoutMs=15000, maxTokens=1400): [google/gemma-4-31b-it:free, google/gemma-4-26b-a4b-it:free]
+2026-07-22T06:40:57.826+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.OpenRouterProvider    : [OpenRouterProvider] Initialized quiz chain (size=2, timeoutMs=25000, maxTokens=4096): [google/gemma-4-31b-it:free, google/gemma-4-26b-a4b-it:free]
+2026-07-22T06:40:57.826+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.ai.impl.OpenRouterProvider    : [OpenRouterProvider] API key present: true
+2026-07-22T06:40:59.526+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] Found 5 grammar JSON file(s). Starting import...
+2026-07-22T06:40:59.536+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] Processing file: grammar_ja_N1_full_alphabetical_0001.json (level=N1)
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+2026-07-22T06:41:10.172+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] grammar_ja_N1_full_alphabetical_0001.json ? 0 new patterns imported.
+2026-07-22T06:41:10.173+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] Processing file: grammar_ja_N2_full_alphabetical_0001.json (level=N2)
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+2026-07-22T06:41:18.195+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] grammar_ja_N2_full_alphabetical_0001.json ? 0 new patterns imported.
+2026-07-22T06:41:18.197+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] Processing file: grammar_ja_N3_full_alphabetical_0001.json (level=N3)
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+2026-07-22T06:41:23.711+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] grammar_ja_N3_full_alphabetical_0001.json ? 0 new patterns imported.
+2026-07-22T06:41:23.713+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] Processing file: grammar_ja_N4_full_alphabetical_0001.json (level=N4)
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+2026-07-22T06:41:28.880+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] grammar_ja_N4_full_alphabetical_0001.json ? 0 new patterns imported.
+2026-07-22T06:41:28.880+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] Processing file: grammar_ja_N5_full_alphabetical_0001.json (level=N5)
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        gp1_0.id 
+    from
+        grammar_patterns gp1_0 
+    where
+        gp1_0.pattern=? 
+    fetch
+        first ? rows only
+2026-07-22T06:41:34.529+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] grammar_ja_N5_full_alphabetical_0001.json ? 0 new patterns imported.
+2026-07-22T06:41:34.529+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarImporterServiceImpl    : [GrammarImporter] Auto-import: all patterns already up to date.
+2026-07-22T06:41:34.715+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.midori.service.FileStorageServiceImpl  : [FileStorage] Supabase config loaded: urlConfigured=true, keyConfigured=true, bucket=listening-audios
+2026-07-22T06:41:34.993+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.midori.service.impl.AiServiceImpl    : [AiService] AI Service initialized with AiCoreService, AiMaterialService, fallbackEnabled: false
+2026-07-22T06:41:35.471+07:00  INFO 12316 --- [midori-be] [cal-dict-loader] c.m.s.impl.LocalDictionaryRegistry       : Loading local JMdict.xml from resources in background...
+2026-07-22T06:41:35.473+07:00  WARN 12316 --- [midori-be] [cal-dict-loader] c.m.s.impl.LocalDictionaryRegistry       : Local JMdict.xml not found at classpath:dictionary/JMdict.xml. Local lookup will be unavailable.
+2026-07-22T06:41:35.565+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.service.impl.KanjiSvgServiceImpl     : [KanjiSvgService] KanjiVG dataset detected and successfully loaded.
+2026-07-22T06:41:35.784+07:00  WARN 12316 --- [midori-be] [  restartedMain] c.m.s.impl.JapaneseTokenizerServiceImpl  : Sudachi system.dic not found at dictionary/sudachi/sudachi-dictionary-20240409/system_core.dic (fallback rule-based will be used).
+2026-07-22T06:41:35.862+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.VideoStorageServiceImpl       : [VideoStorage] Config: urlConfigured=true, keyConfigured=true, bucket=shadowing-videos
+Hibernate: 
+    select
+        gp1_0.id,
+        gp1_0.created_at,
+        gp1_0.description_en,
+        gp1_0.description_vi,
+        gp1_0.example_english,
+        gp1_0.example_japanese,
+        gp1_0.example_vietnamese,
+        gp1_0.jlpt_level,
+        gp1_0.meaning_en,
+        gp1_0.meaning_vi,
+        gp1_0.note,
+        gp1_0.pattern,
+        gp1_0.status,
+        gp1_0.structure,
+        gp1_0.translated_at,
+        gp1_0.updated_at 
+    from
+        grammar_patterns gp1_0
+2026-07-22T06:41:36.391+07:00  INFO 12316 --- [midori-be] [  restartedMain] c.m.s.impl.GrammarDetectorServiceImpl    : [GrammarDetector] Pattern index built with 522 entries.
+2026-07-22T06:41:36.911+07:00  WARN 12316 --- [midori-be] [  restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-22T06:41:36.963+07:00  INFO 12316 --- [midori-be] [  restartedMain] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-07-22T06:41:36.965+07:00  WARN 12316 --- [midori-be] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used for username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider.
+2026-07-22T06:41:37.516+07:00 DEBUG 12316 --- [midori-be] [  restartedMain] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, JwtAuthenticationFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2026-07-22T06:41:38.673+07:00  WARN 12316 --- [midori-be] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : Unable to start LiveReload server
+2026-07-22T06:41:38.884+07:00  WARN 12316 --- [midori-be] [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'
+2026-07-22T06:41:38.908+07:00  INFO 12316 --- [midori-be] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-22T06:41:38.913+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-07-22T06:41:39.039+07:00  INFO 12316 --- [midori-be] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-07-22T06:41:39.064+07:00  INFO 12316 --- [midori-be] [  restartedMain] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-07-22T06:41:39.092+07:00 ERROR 12316 --- [midori-be] [  restartedMain] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Web server failed to start. Port 8080 was already in use.
+
+Action:
+
+Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:40 min
+[INFO] Finished at: 2026-07-22T06:41:40+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.3.1:run (default-cli) on project midori-be: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
