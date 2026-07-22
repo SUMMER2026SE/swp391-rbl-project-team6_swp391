@@ -53,4 +53,21 @@ public interface StudentDictionaryService {
      * @return true if saved, false otherwise
      */
     boolean isWordSaved(String word);
+
+    /**
+     * Get saved words for the current student with optional filters.
+     */
+    java.util.List<com.midori.dto.dictionary.SavedWordResponse> getSavedWords(
+            String sourceVideoId, String status, Boolean difficult, String sort);
+
+    /**
+     * Update spaced repetition learning progress for a saved word.
+     */
+    com.midori.dto.dictionary.SavedWordResponse updateProgress(
+            java.util.UUID savedWordId, com.midori.dto.dictionary.SavedWordProgressRequest request);
+
+    /**
+     * Unsave a word for the current student.
+     */
+    void unsaveWord(String word);
 }

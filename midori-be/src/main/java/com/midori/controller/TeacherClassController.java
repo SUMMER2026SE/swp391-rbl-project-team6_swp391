@@ -5,16 +5,21 @@ import com.midori.dto.classdto.ClassResponse;
 import com.midori.dto.classdto.CreateClassRequest;
 import com.midori.dto.classdto.UpdateClassRequest;
 import com.midori.dto.classdto.StudentClassResponse;
+import com.midori.dto.classdto.StudentImportResponse;
 import com.midori.dto.progress.StudentProgressResponse;
 import com.midori.security.CustomUserDetails;
 import com.midori.service.ClassService;
+import com.midori.service.StudentImportService;
 import com.midori.service.StudyProgressService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +32,7 @@ public class TeacherClassController {
 
     private final ClassService classService;
     private final StudyProgressService studyProgressService;
+    private final StudentImportService studentImportService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ClassResponse>> createClass(
@@ -85,6 +91,24 @@ public class TeacherClassController {
             @RequestParam String email) {
         StudentClassResponse response = classService.addStudentToClass(id, email, userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success("Student added to class successfully", response));
+    }
+
+    @PostMapping("/{id}/students/import")
+    public ResponseEntity<ApiResponse<StudentImportResponse>> importStudents(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        StudentImportResponse response = studentImportService.importStudents(id, file, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success("Import completed", response));
+    }
+
+    @GetMapping("/import/template")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        byte[] excelContent = studentImportService.generateTemplate();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=student_import_template.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excelContent);
     }
 
     @GetMapping("/selectable")

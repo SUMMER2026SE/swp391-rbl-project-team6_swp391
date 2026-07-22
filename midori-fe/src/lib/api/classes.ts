@@ -122,6 +122,12 @@ export const classesApi = {
     );
   },
 
+  importStudents(classId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post<any>(`/teacher/classes/${classId}/students/import`, formData);
+  },
+
   getStudentProgress(classId: string, studentId: string): Promise<any> {
     return api.get<any>(`/teacher/classes/${classId}/students/${studentId}/progress`);
   },

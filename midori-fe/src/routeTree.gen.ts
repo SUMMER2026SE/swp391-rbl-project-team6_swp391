@@ -62,6 +62,7 @@ import { Route as TeacherHomeworkCreateRouteImport } from './routes/teacher.home
 import { Route as TeacherExamsCreateRouteImport } from './routes/teacher.exams.create'
 import { Route as TeacherClassesCreateRouteImport } from './routes/teacher.classes.create'
 import { Route as TeacherClassesClassIdRouteImport } from './routes/teacher.classes.$classId'
+import { Route as StudentVocabularyFlashcardsRouteImport } from './routes/student.vocabulary.flashcards'
 import { Route as StudentVocabularyLessonIdRouteImport } from './routes/student.vocabulary.$lessonId'
 import { Route as StudentReadingReadingIdRouteImport } from './routes/student.reading.$readingId'
 import { Route as StudentLearningReadingRouteImport } from './routes/student.learning.reading'
@@ -383,6 +384,12 @@ const TeacherClassesClassIdRoute = TeacherClassesClassIdRouteImport.update({
   path: '/$classId',
   getParentRoute: () => TeacherClassesRoute,
 } as any)
+const StudentVocabularyFlashcardsRoute =
+  StudentVocabularyFlashcardsRouteImport.update({
+    id: '/flashcards',
+    path: '/flashcards',
+    getParentRoute: () => StudentVocabularyRoute,
+  } as any)
 const StudentVocabularyLessonIdRoute =
   StudentVocabularyLessonIdRouteImport.update({
     id: '/$lessonId',
@@ -761,6 +768,7 @@ export interface FileRoutesByFullPath {
   '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/student/vocabulary/flashcards': typeof StudentVocabularyFlashcardsRoute
   '/teacher/classes/$classId': typeof TeacherClassesClassIdRouteWithChildren
   '/teacher/classes/create': typeof TeacherClassesCreateRoute
   '/teacher/exams/create': typeof TeacherExamsCreateRoute
@@ -865,6 +873,7 @@ export interface FileRoutesByTo {
   '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/student/vocabulary/flashcards': typeof StudentVocabularyFlashcardsRoute
   '/teacher/classes/create': typeof TeacherClassesCreateRoute
   '/teacher/exams/create': typeof TeacherExamsCreateRoute
   '/teacher/homework/create': typeof TeacherHomeworkCreateRoute
@@ -973,6 +982,7 @@ export interface FileRoutesById {
   '/student/learning/reading': typeof StudentLearningReadingRouteWithChildren
   '/student/reading/$readingId': typeof StudentReadingReadingIdRoute
   '/student/vocabulary/$lessonId': typeof StudentVocabularyLessonIdRoute
+  '/student/vocabulary/flashcards': typeof StudentVocabularyFlashcardsRoute
   '/teacher/classes/$classId': typeof TeacherClassesClassIdRouteWithChildren
   '/teacher/classes/create': typeof TeacherClassesCreateRoute
   '/teacher/exams/create': typeof TeacherExamsCreateRoute
@@ -1083,6 +1093,7 @@ export interface FileRouteTypes {
     | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/vocabulary/$lessonId'
+    | '/student/vocabulary/flashcards'
     | '/teacher/classes/$classId'
     | '/teacher/classes/create'
     | '/teacher/exams/create'
@@ -1187,6 +1198,7 @@ export interface FileRouteTypes {
     | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/vocabulary/$lessonId'
+    | '/student/vocabulary/flashcards'
     | '/teacher/classes/create'
     | '/teacher/exams/create'
     | '/teacher/homework/create'
@@ -1294,6 +1306,7 @@ export interface FileRouteTypes {
     | '/student/learning/reading'
     | '/student/reading/$readingId'
     | '/student/vocabulary/$lessonId'
+    | '/student/vocabulary/flashcards'
     | '/teacher/classes/$classId'
     | '/teacher/classes/create'
     | '/teacher/exams/create'
@@ -1722,6 +1735,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/teacher/classes/$classId'
       preLoaderRoute: typeof TeacherClassesClassIdRouteImport
       parentRoute: typeof TeacherClassesRoute
+    }
+    '/student/vocabulary/flashcards': {
+      id: '/student/vocabulary/flashcards'
+      path: '/flashcards'
+      fullPath: '/student/vocabulary/flashcards'
+      preLoaderRoute: typeof StudentVocabularyFlashcardsRouteImport
+      parentRoute: typeof StudentVocabularyRoute
     }
     '/student/vocabulary/$lessonId': {
       id: '/student/vocabulary/$lessonId'
@@ -2391,10 +2411,12 @@ const StudentShadowingRouteWithChildren =
 
 interface StudentVocabularyRouteChildren {
   StudentVocabularyLessonIdRoute: typeof StudentVocabularyLessonIdRoute
+  StudentVocabularyFlashcardsRoute: typeof StudentVocabularyFlashcardsRoute
 }
 
 const StudentVocabularyRouteChildren: StudentVocabularyRouteChildren = {
   StudentVocabularyLessonIdRoute: StudentVocabularyLessonIdRoute,
+  StudentVocabularyFlashcardsRoute: StudentVocabularyFlashcardsRoute,
 }
 
 const StudentVocabularyRouteWithChildren =

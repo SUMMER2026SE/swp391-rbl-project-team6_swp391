@@ -815,6 +815,140 @@ private DictionaryLookupResponse lookupFromDatabaseFull(String word, String surf
         return studentSavedWordRepository.existsByUserIdAndSurface(userId, word.trim());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<SavedWordResponse> getSavedWords(String sourceVideoId, String status, Boolean difficult, String sort) {
+        String userId = getCurrentUserId();
+        String repoStatus = status;
+        if ("NOT_LEARNED".equalsIgnoreCase(status)) {
+            repoStatus = "NEW";
+        }
+        
+        List<StudentSavedWord> list;
+        if ("NEED_REVIEW".equalsIgnoreCase(status)) {
+            List<StudentSavedWord> allWords = studentSavedWordRepository.findFiltered(userId, sourceVideoId, null, difficult);
+            java.time.Instant now = java.time.Instant.now();
+            list = allWords.stream()
+                    .filter(w -> !"MASTERED".equals(w.getLearningStatus()) || (w.getNextReviewAt() != null && w.getNextReviewAt().isBefore(now)))
+                    .collect(Collectors.toList());
+        } else {
+            list = studentSavedWordRepository.findFiltered(userId, sourceVideoId, repoStatus, difficult);
+        }
+
+        if (sort != null) {
+            if ("random".equalsIgnoreCase(sort)) {
+                Collections.shuffle(list);
+            } else if ("newest".equalsIgnoreCase(sort)) {
+                list.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+            } else if ("oldest".equalsIgnoreCase(sort)) {
+                list.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+            } else if ("need_review".equalsIgnoreCase(sort)) {
+                list.sort((a, b) -> {
+                    java.time.Instant nextA = a.getNextReviewAt();
+                    java.time.Instant nextB = b.getNextReviewAt();
+                    if (nextA == null && nextB == null) return 0;
+                    if (nextA == null) return -1;
+                    if (nextB == null) return 1;
+                    return nextA.compareTo(nextB);
+                });
+            }
+        }
+
+        return list.stream()
+                .map(this::mapToSavedWordResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public SavedWordResponse updateProgress(UUID savedWordId, SavedWordProgressRequest request) {
+        String userId = getCurrentUserId();
+        StudentSavedWord sw = studentSavedWordRepository.findById(savedWordId)
+                .orElseThrow(() -> new IllegalArgumentException("Saved word not found"));
+        
+        if (!sw.getUserId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied: You do not own this word");
+        }
+
+        java.time.Instant now = java.time.Instant.now();
+        sw.setLastReviewedAt(now);
+        sw.setReviewCount(sw.getReviewCount() + 1);
+
+        String result = request.getResult().toUpperCase();
+        switch (result) {
+            case "AGAIN":
+                sw.setLearningStatus("LEARNING");
+                sw.setNextReviewAt(now.plus(java.time.Duration.ofMinutes(10)));
+                sw.setLapseCount(sw.getLapseCount() + 1);
+                break;
+            case "HARD":
+                if ("NEW".equals(sw.getLearningStatus())) {
+                    sw.setLearningStatus("LEARNING");
+                }
+                sw.setNextReviewAt(now.plus(java.time.Duration.ofDays(1)));
+                sw.setIsDifficult(true);
+                break;
+            case "GOOD":
+                sw.setLearningStatus("REVIEW");
+                sw.setCorrectCount(sw.getCorrectCount() + 1);
+                
+                int correct = sw.getCorrectCount();
+                if (correct == 1) {
+                    sw.setNextReviewAt(now.plus(java.time.Duration.ofDays(3)));
+                } else if (correct == 2) {
+                    sw.setNextReviewAt(now.plus(java.time.Duration.ofDays(7)));
+                } else {
+                    sw.setNextReviewAt(now.plus(java.time.Duration.ofDays(14)));
+                }
+                break;
+            case "MASTERED":
+                sw.setLearningStatus("MASTERED");
+                sw.setCorrectCount(sw.getCorrectCount() + 1);
+                sw.setNextReviewAt(now.plus(java.time.Duration.ofDays(30)));
+                sw.setMasteredAt(now);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid progress result: " + result);
+        }
+
+        StudentSavedWord saved = studentSavedWordRepository.save(sw);
+        return mapToSavedWordResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void unsaveWord(String word) {
+        if (word == null || word.trim().isEmpty()) return;
+        String userId = getCurrentUserId();
+        studentSavedWordRepository.deleteByUserIdAndSurface(userId, word.trim());
+    }
+
+    private SavedWordResponse mapToSavedWordResponse(StudentSavedWord sw) {
+        if (sw == null) return null;
+        return SavedWordResponse.builder()
+                .id(sw.getId())
+                .surface(sw.getSurface())
+                .reading(sw.getReading())
+                .dictionaryForm(sw.getDictionaryForm())
+                .meaning(sw.getMeaning())
+                .context(sw.getContext())
+                .wordType(sw.getWordType())
+                .jlptLevel(sw.getJlptLevel())
+                .lessonId(sw.getLessonId())
+                .audioUrl(sw.getAudioUrl())
+                .notes(sw.getNotes())
+                .createdAt(sw.getCreatedAt())
+                .learningStatus(sw.getLearningStatus())
+                .isDifficult(sw.getIsDifficult())
+                .lastReviewedAt(sw.getLastReviewedAt())
+                .nextReviewAt(sw.getNextReviewAt())
+                .reviewCount(sw.getReviewCount())
+                .correctCount(sw.getCorrectCount())
+                .lapseCount(sw.getLapseCount())
+                .masteredAt(sw.getMasteredAt())
+                .build();
+    }
+
     private void checkSavedStatus(DictionaryLookupResponse response) {
         if (response == null) return;
         String userId = getCurrentUserId();

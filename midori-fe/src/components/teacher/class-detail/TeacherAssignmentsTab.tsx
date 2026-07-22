@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/page-ui";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ClipboardList,
   Calendar,
@@ -61,8 +61,9 @@ interface Submission {
   focusViolationCount?: number;
 }
 
-export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAssignmentsTabProps) {
+export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived = false }: TeacherAssignmentsTabProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   // Navigation state: "list" | "submissions" | "detail"
   const [viewStep, setViewStep] = useState<"list" | "submissions" | "detail">("list");
   const [selectedAssignment, setSelectedAssignment] = useState<TeacherAssignment | null>(null);
@@ -247,7 +248,16 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
         studentEmail: s.studentEmail,
         studentAvatar: s.studentName ? s.studentName[0].toUpperCase() : "?",
         status: s.status === "GRADED" ? "Graded" : "Submitted",
-        submittedAt: s.submittedAt ? s.submittedAt.replace("T", " ").slice(0, 16) : undefined,
+        submittedAt: s.submittedAt
+          ? new Date(s.submittedAt)
+              .toLocaleString("sv-SE", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+          : undefined,
         score: s.score,
         feedback: s.feedback,
         studentAnswer: s.submissionText,
@@ -760,18 +770,22 @@ export function TeacherAssignmentsTab({ classInfo, urlQ, isArchived }: TeacherAs
           Class Homework ({processedAssignments.length} Assignments)
         </h3>
         {!isArchived && (
-          <Link
-            to="/teacher/homework/create"
-            search={{
-              classId: classInfo.id,
-              source: undefined,
-              resourceId: undefined,
-              topicId: undefined,
+          <button
+            onClick={() => {
+              void navigate({
+                to: "/teacher/homework/create",
+                search: {
+                  classId: classInfo.id,
+                  source: undefined,
+                  resourceId: undefined,
+                  topicId: undefined,
+                },
+              });
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-black text-xs hover:opacity-90 transition-all shadow-sm font-display uppercase tracking-wider"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-black text-xs hover:opacity-90 transition-all shadow-sm font-display uppercase tracking-wider cursor-pointer border-0"
           >
             <Plus className="w-3.5 h-3.5" /> Assign Homework
-          </Link>
+          </button>
         )}
       </div>
 

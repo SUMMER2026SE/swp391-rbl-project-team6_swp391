@@ -64,6 +64,23 @@ export function DoingAssignmentWorkspace({
   const [lastSavedSec, setLastSavedSec] = useState(0);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(reviewMode);
+  const [integrityLocked, setIntegrityLocked] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
+
+  const hasActiveFullscreenViolationRef = React.useRef(false);
+  const isIntentionalFullscreenExitRef = React.useRef(false);
+
+  const examStartedRef = React.useRef(examStarted);
+  const isSubmittedRef = React.useRef(isSubmitted);
+  const violationsRef = React.useRef(violations);
+  const assignmentTitleRef = React.useRef(assignment.title);
+  const userNameRef = React.useRef(userName);
+
+  React.useEffect(() => { examStartedRef.current = examStarted; }, [examStarted]);
+  React.useEffect(() => { isSubmittedRef.current = isSubmitted; }, [isSubmitted]);
+  React.useEffect(() => { violationsRef.current = violations; }, [violations]);
+  React.useEffect(() => { assignmentTitleRef.current = assignment.title; }, [assignment.title]);
+  React.useEffect(() => { userNameRef.current = userName; }, [userName]);
 
   // Review screen states
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
@@ -107,9 +124,20 @@ export function DoingAssignmentWorkspace({
       };
       const res = await homeworkApi.submitHomework(assignment.id, req);
       const elapsedSecs = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+      const durationKey = `homework_duration_${user?.id || 'guest'}_${assignment.id}`;
+      localStorage.setItem(durationKey, elapsedSecs.toString());
       setActualTimeTaken(elapsedSecs);
       setSubmission(res);
       setIsSubmitted(true);
+      isIntentionalFullscreenExitRef.current = true;
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      try {
+        await loadHomeworkData(false);
+      } catch (err) {
+        console.error("Failed to reload homework details after submission", err);
+      }
       toast.success("Homework submitted successfully!");
       onSubmit(assignment.id);
     } catch (err: any) {
@@ -165,15 +193,67 @@ export function DoingAssignmentWorkspace({
         setQuestions(mappedQuestions);
 
         const limit = hw.timeLimit || assignment.timeLimit;
-        if (limit && Number(limit) > 0) {
-          const limitSecs = Number(limit) * 60;
-          setTotalDurationSeconds(limitSecs);
-          setTimeLeft(limitSecs);
+        const limitSecs = (limit && Number(limit) > 0) ? Number(limit) * 60 : 1200;
+        setTotalDurationSeconds(limitSecs);
+
+        let isHwSubmitted = false;
+        let sub: any = null;
+
+        if (isExam) {
+          isHwSubmitted = hw.status === "SUBMITTED" || hw.status === "GRADED";
+          sub = hw;
         } else {
-          setTotalDurationSeconds(1200);
-          setTimeLeft(999999);
+          try {
+            const subResponse = await homeworkApi.getStudentSubmission(assignment.id);
+            if (subResponse) {
+              sub = subResponse;
+              isHwSubmitted = sub.status === "GRADED" || sub.status === "SUBMITTED";
+            }
+          } catch (subErr) {
+            console.log("No submission found yet or error fetching submission", subErr);
+          }
         }
-        startTimeRef.current = Date.now();
+
+        if (!isExam) {
+          const startKey = `homework_start_${user?.id || 'guest'}_${assignment.id}`;
+          const durationKey = `homework_duration_${user?.id || 'guest'}_${assignment.id}`;
+          
+          if (isHwSubmitted) {
+            const savedDuration = localStorage.getItem(durationKey);
+            if (savedDuration) {
+              setActualTimeTaken(parseInt(savedDuration));
+            } else if (sub && sub.submittedAt) {
+              const subAt = sub.submittedAt;
+              const createdVal = hw.createdAt || assignment.createdAt;
+              if (subAt && createdVal) {
+                const diff = Math.max(1, Math.round((new Date(subAt).getTime() - new Date(createdVal).getTime()) / 1000));
+                setActualTimeTaken(diff);
+              }
+            }
+            setTimeLeft(0);
+          } else {
+            let savedStart = localStorage.getItem(startKey);
+            if (!savedStart) {
+              savedStart = Date.now().toString();
+              localStorage.setItem(startKey, savedStart);
+            }
+            const startTime = parseInt(savedStart);
+            startTimeRef.current = startTime;
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const remaining = Math.max(0, limitSecs - elapsed);
+            setTimeLeft(limit ? remaining : 999999);
+          }
+        } else {
+          // Exam flow
+          startTimeRef.current = hw.startedAt ? new Date(hw.startedAt).getTime() : Date.now();
+          if (isHwSubmitted) {
+            setTimeLeft(0);
+          } else {
+            const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+            const remaining = Math.max(0, limitSecs - elapsed);
+            setTimeLeft(limit ? remaining : 999999);
+          }
+        }
 
         if (isExam) {
           if (hw.status === "SUBMITTED" || hw.status === "GRADED") {
@@ -260,6 +340,7 @@ export function DoingAssignmentWorkspace({
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
+          isIntentionalFullscreenExitRef.current = true;
           setIsSubmitted(true);
           // Exit fullscreen when time runs out
           if (document.fullscreenElement) {
@@ -275,10 +356,10 @@ export function DoingAssignmentWorkspace({
 
   // Anti-cheat setup - chỉ hoạt động khi exam đã bắt đầu
   useEffect(() => {
-    if (!examStarted || isSubmitted) return;
+    if (!examStarted) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isSubmitted) return;
+      if (isSubmittedRef.current) return;
       const msg =
         "Are you sure you want to leave? Your exam progress may be lost and this attempt will be reported.";
       e.preventDefault();
@@ -287,16 +368,15 @@ export function DoingAssignmentWorkspace({
     };
 
     const reportViolation = (type: string) => {
-      if (isSubmitted) return;
+      if (isSubmittedRef.current) return;
       setViolations((prev) => {
         const nextViolations = prev + 1;
         setLastViolationType(type);
-        setShowViolationWarning(true);
 
         TEACHER_NOTIFICATIONS.unshift({
           id: Date.now() + nextViolations,
           title: "Exam Violation Alert",
-          desc: `${userName} left the active test workspace (${type}) during "${assignment.title}". (Violation #${nextViolations})`,
+          desc: `${userNameRef.current} left the active test workspace (${type}) during "${assignmentTitleRef.current}". (Violation #${nextViolations})`,
           time: "Just now",
           unread: true,
           icon: ShieldAlert,
@@ -307,13 +387,13 @@ export function DoingAssignmentWorkspace({
     };
 
     const handleVisibilityChange = () => {
-      if (document.hidden && !isSubmitted) {
+      if (document.hidden && !isSubmittedRef.current) {
         reportViolation("Tab Switch / Minimized");
       }
     };
 
     const handleBlur = () => {
-      if (!isSubmitted) {
+      if (!isSubmittedRef.current) {
         reportViolation("Lost Window Focus");
       }
     };
@@ -321,18 +401,29 @@ export function DoingAssignmentWorkspace({
     const handleFullscreenChange = () => {
       const isNowFullscreen = !!document.fullscreenElement;
       setIsFullscreen(isNowFullscreen);
-      // If user exits fullscreen during exam, show warning
-      if (!isNowFullscreen && !isSubmitted) {
-        reportViolation("Exited Fullscreen Mode");
+
+      if (isSubmittedRef.current) return;
+
+      if (!isNowFullscreen) {
+        if (isIntentionalFullscreenExitRef.current) {
+          return;
+        }
+        if (!hasActiveFullscreenViolationRef.current) {
+          hasActiveFullscreenViolationRef.current = true;
+          setIntegrityLocked(true);
+          reportViolation("Exited Fullscreen Mode");
+        }
+      } else {
+        hasActiveFullscreenViolationRef.current = false;
+        setIntegrityLocked(false);
       }
     };
 
     // Prevent Escape key from exiting fullscreen during exam
     const handleEscapeKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isSubmitted) {
+      if (e.key === "Escape" && !isSubmittedRef.current) {
         e.preventDefault();
         e.stopPropagation();
-        reportViolation("Escape Key Pressed");
       }
     };
 
@@ -342,6 +433,12 @@ export function DoingAssignmentWorkspace({
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("keydown", handleEscapeKey, true);
 
+    // Initial check if exam started but not in fullscreen
+    if (!document.fullscreenElement) {
+      setIntegrityLocked(true);
+      hasActiveFullscreenViolationRef.current = true;
+    }
+
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -349,12 +446,12 @@ export function DoingAssignmentWorkspace({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("keydown", handleEscapeKey, true);
     };
-  }, [examStarted, assignment.title, userName, isSubmitted]);
+  }, [examStarted]);
 
   // Keyboard support: 1, 2, 3, 4 for selections
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!examStarted || showViolationWarning || showSubmitDialog || isSubmitted) return;
+      if (!examStarted || showViolationWarning || showSubmitDialog || isSubmitted || integrityLocked) return;
       if (["1", "2", "3", "4"].includes(e.key)) {
         const optionIdx = parseInt(e.key) - 1;
         if (optionIdx < questions[currentQuestion].options.length) {
@@ -364,27 +461,42 @@ export function DoingAssignmentWorkspace({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentQuestion, examStarted, showViolationWarning, showSubmitDialog, isSubmitted]);
+  }, [currentQuestion, examStarted, showViolationWarning, showSubmitDialog, isSubmitted, integrityLocked]);
 
   const handleSelectOption = (qIdx: number, optIdx: number) => {
+    if (integrityLocked) return;
     setAnswers((prev) => ({ ...prev, [qIdx]: optIdx }));
   };
 
   const toggleFlag = (qIdx: number) => {
+    if (integrityLocked) return;
     setFlagged((prev) => ({ ...prev, [qIdx]: !prev[qIdx] }));
   };
 
   const handleScrollToQuestion = (idx: number) => {
+    if (integrityLocked) return;
     setCurrentQuestion(idx);
   };
 
+  const handleRestoreFullscreen = async () => {
+    setFullscreenError(null);
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch (err) {
+      console.error("Failed to restore fullscreen:", err);
+      setFullscreenError("Không thể bật chế độ toàn màn hình. Vui lòng cho phép toàn màn hình trong trình duyệt và thử lại.");
+    }
+  };
+
   const toggleFullscreen = () => {
+    if (integrityLocked) return;
     if (!document.fullscreenElement) {
       document.documentElement
         .requestFullscreen()
         .then(() => setIsFullscreen(true))
         .catch(() => {});
     } else {
+      isIntentionalFullscreenExitRef.current = true;
       document
         .exitFullscreen()
         .then(() => setIsFullscreen(false))
@@ -414,6 +526,9 @@ export function DoingAssignmentWorkspace({
 
   // Start exam function
   const startExam = useCallback(() => {
+    isIntentionalFullscreenExitRef.current = false;
+    hasActiveFullscreenViolationRef.current = false;
+    setIntegrityLocked(false);
     setExamStarted(true);
     startTimeRef.current = Date.now();
     setTimeLeft(totalDurationSeconds);
@@ -427,6 +542,7 @@ export function DoingAssignmentWorkspace({
 
   // Exit exam / close exam
   const exitExam = useCallback(() => {
+    isIntentionalFullscreenExitRef.current = true;
     // Exit fullscreen first
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
@@ -471,6 +587,10 @@ export function DoingAssignmentWorkspace({
       }
 
       const elapsedSecs = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
+      if (assignment.type !== "Exam") {
+        const durationKey = `homework_duration_${user?.id || 'guest'}_${assignment.id}`;
+        localStorage.setItem(durationKey, elapsedSecs.toString());
+      }
       setActualTimeTaken(elapsedSecs);
       setSubmission(res);
       setIsSubmitted(true);
@@ -1106,10 +1226,12 @@ export function DoingAssignmentWorkspace({
 
   // Main Exam Interface (Fullscreen Mode)
   return (
-    <div
-      className={`fixed inset-0 z-[100] flex flex-col text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-[#0a0c14] ${isFullscreen ? "pt-0" : "pt-0"}`}
-    >
-      {/* 1. FOCUS HEADER - Sticky Top Bar with Timer */}
+    <>
+      <div
+        className={`fixed inset-0 z-[100] flex flex-col text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-[#0a0c14] ${isFullscreen ? "pt-0" : "pt-0"} ${integrityLocked ? "filter blur-lg pointer-events-none select-none opacity-40" : ""}`}
+        aria-hidden={integrityLocked ? "true" : "false"}
+      >
+        {/* 1. FOCUS HEADER - Sticky Top Bar with Timer */}
       <header className="shrink-0 bg-white dark:bg-[#0c0d12] border-b border-slate-200 dark:border-white/10 shadow-sm">
         <div className="flex items-center justify-between px-6 py-3">
           {/* Left: Assignment Info */}
@@ -1432,32 +1554,58 @@ export function DoingAssignmentWorkspace({
         </div>
       )}
 
-      {/* Violation Alert Modal Popup (Tab Switching Guard) */}
-      {showViolationWarning && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <Card className="max-w-md w-full p-6 space-y-4 border border-red-500/30 dark:border-red-500/40 shadow-2xl relative overflow-hidden bg-white dark:bg-[#0f1118]">
+      </div>
+
+      {/* Fullscreen Integrity Lock Overlay */}
+      {integrityLocked && examStarted && !isSubmitted && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 dark:bg-black/95 backdrop-blur-md p-4">
+          <Card className="max-w-md w-full p-8 space-y-6 border border-red-500/30 dark:border-red-500/40 shadow-2xl relative overflow-hidden bg-white dark:bg-[#0f1118] text-center">
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-red-500" />
-            <div className="flex items-center gap-3 text-red-500">
-              <ShieldAlert className="w-8 h-8 animate-bounce" />
-              <h3 className="font-display font-black text-lg">Integrity Warning</h3>
+            
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-2">
+                <ShieldAlert className="w-9 h-9 animate-pulse" />
+              </div>
+              <h3 className="font-display font-black text-xl text-slate-800 dark:text-white">
+                Bạn đã thoát chế độ toàn màn hình
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
+                Bài kiểm tra yêu cầu duy trì chế độ toàn màn hình để đảm bảo tính trung thực. Bài làm đã được tạm khóa. Hãy quay lại toàn màn hình để tiếp tục.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              You switched tabs or clicked outside the test window. This action violates test
-              guidelines and has been logged and reported to your teacher.
-            </p>
-            <div className="p-3 bg-red-500/10 rounded-xl text-xs text-red-600 dark:text-red-400 font-semibold space-y-1">
-              <p>• Trigger: {lastViolationType}</p>
-              <p>• Focus Violations: {violations}</p>
+
+            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 text-xs text-left space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Số lần vi phạm:</span>
+                <span className="px-2.5 py-0.5 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold">
+                  {violations}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                * Lưu ý: Mọi hành động rời khỏi khu vực làm bài đều được ghi nhận và báo cáo tới giáo viên.
+              </p>
             </div>
-            <button
-              onClick={() => setShowViolationWarning(false)}
-              className="w-full py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs shadow transition"
-            >
-              Acknowledge & Resume Test
-            </button>
+
+            {fullscreenError && (
+              <div className="p-3 bg-rose-500/10 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                {fullscreenError}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <button
+                onClick={handleRestoreFullscreen}
+                className="w-full py-3.5 rounded-2xl bg-gradient-hero hover:opacity-90 active:scale-95 text-white font-black text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 cursor-pointer border-0"
+              >
+                Quay lại toàn màn hình
+              </button>
+              <p className="text-[10px] text-slate-400">
+                Bạn cần nhấn nút bên trên để có thể tiếp tục bài kiểm tra.
+              </p>
+            </div>
           </Card>
         </div>
       )}
-    </div>
+    </>
   );
 }
