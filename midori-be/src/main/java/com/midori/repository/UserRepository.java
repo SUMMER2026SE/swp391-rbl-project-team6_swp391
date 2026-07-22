@@ -52,6 +52,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.profile WHERE u.role = :role AND u.status = :status ORDER BY u.createdAt DESC")
     List<User> findByRoleAndStatusWithProfile(@Param("role") Role role, @Param("status") UserStatus status);
 
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.profile WHERE u.role = :role ORDER BY u.createdAt DESC")
+    List<User> findByRoleWithProfile(@Param("role") Role role);
+
     @Query(value = "SELECT u FROM User u LEFT JOIN FETCH u.profile " +
             "WHERE (:#{#role} IS NULL OR u.role = :role) " +
             "AND (:#{#status} IS NULL OR u.status = :status) " +
@@ -66,6 +69,21 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                                    @Param("status") UserStatus status,
                                    @Param("keyword") String keyword,
                                    Pageable pageable);
+
+    @Query(value = "SELECT u FROM User u LEFT JOIN FETCH u.profile " +
+            "WHERE (:#{#role} IS NULL OR u.role = :role) " +
+            "AND u.status IN :statuses " +
+            "AND (:#{#keyword} IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR (u.profile IS NOT NULL AND LOWER(u.profile.displayName) LIKE LOWER(CONCAT('%', :keyword, '%'))))",
+            countQuery = "SELECT COUNT(u) FROM User u " +
+                    "WHERE (:#{#role} IS NULL OR u.role = :role) " +
+                    "AND u.status IN :statuses " +
+                    "AND (:#{#keyword} IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "OR (u.profile IS NOT NULL AND LOWER(u.profile.displayName) LIKE LOWER(CONCAT('%', :keyword, '%'))))")
+    Page<User> findAllWithInactiveStatuses(@Param("role") Role role,
+                                           @Param("statuses") List<UserStatus> statuses,
+                                           @Param("keyword") String keyword,
+                                           Pageable pageable);
 
     @Query("SELECT c.id, COUNT(u) FROM User u JOIN u.assignedClasses c GROUP BY c.id")
     List<Object[]> countStudentsPerClass();

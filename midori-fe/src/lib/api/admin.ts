@@ -125,7 +125,11 @@ export interface AdminDashboardSummaryResponse {
 export type ActivityKind =
   | "STUDENT_REGISTERED"
   | "TEACHER_REGISTERED"
+  | "TEACHER_APPROVED"
+  | "TEACHER_REJECTED"
   | "CLASS_CREATED"
+  | "CLASS_ARCHIVED"
+  | "CLASS_RESTORED"
   | "STUDENT_ENROLLED"
   | "HOMEWORK_SUBMITTED"
   | "EXAM_COMPLETED"

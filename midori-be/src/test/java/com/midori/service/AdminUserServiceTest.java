@@ -8,6 +8,7 @@ import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.UserRepository;
 import com.midori.repository.TeacherCertificateRepository;
+import com.midori.repository.TeacherStatusEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,6 +39,9 @@ class AdminUserServiceTest {
     private TeacherCertificateRepository teacherCertificateRepository;
 
     @Mock
+    private TeacherStatusEventRepository teacherStatusEventRepository;
+
+    @Mock
     private NotificationHelperService notificationHelper;
 
     @InjectMocks
@@ -47,10 +51,12 @@ class AdminUserServiceTest {
     private User sampleTeacherActive;
     private User sampleTeacherSuspended;
     private User sampleStudent;
+    private User sampleAdmin;
     private UUID teacherId;
     private UUID teacherActiveId;
     private UUID teacherSuspendedId;
     private UUID studentId;
+    private UUID adminId;
 
     @BeforeEach
     void setUp() {
@@ -58,8 +64,15 @@ class AdminUserServiceTest {
         teacherActiveId = UUID.randomUUID();
         teacherSuspendedId = UUID.randomUUID();
         studentId = UUID.randomUUID();
+        adminId = UUID.randomUUID();
 
-        // Teacher pending approval — for approve/reject tests
+        sampleAdmin = User.builder()
+                .id(adminId)
+                .email("admin@midori.local")
+                .role(Role.ADMIN)
+                .status(UserStatus.ACTIVE)
+                .build();
+
         sampleTeacher = User.builder()
                 .id(teacherId)
                 .email("teacher@example.com")
@@ -71,7 +84,6 @@ class AdminUserServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        // Teacher active — for suspend test
         sampleTeacherActive = User.builder()
                 .id(teacherActiveId)
                 .email("teacher-active@example.com")
@@ -83,7 +95,6 @@ class AdminUserServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        // Teacher suspended — for activate test
         sampleTeacherSuspended = User.builder()
                 .id(teacherSuspendedId)
                 .email("teacher-suspended@example.com")
@@ -149,13 +160,16 @@ class AdminUserServiceTest {
         @DisplayName("should approve teacher successfully")
         void approveTeacher_success() {
             when(userRepository.findById(teacherId)).thenReturn(Optional.of(sampleTeacher));
+            when(userRepository.findById(adminId)).thenReturn(Optional.of(sampleAdmin));
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            AdminTeacherResponse result = adminUserService.approveTeacher(teacherId);
+            AdminTeacherResponse result = adminUserService.approveTeacher(teacherId, adminId);
 
             assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
             verify(userRepository).findById(teacherId);
+            verify(userRepository).findById(adminId);
             verify(userRepository).save(sampleTeacher);
+            verify(teacherStatusEventRepository).save(any());
         }
 
         @Test
@@ -163,7 +177,7 @@ class AdminUserServiceTest {
         void approveTeacher_userNotFound() {
             when(userRepository.findById(teacherId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> adminUserService.approveTeacher(teacherId))
+            assertThatThrownBy(() -> adminUserService.approveTeacher(teacherId, adminId))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("User not found");
 
@@ -176,7 +190,7 @@ class AdminUserServiceTest {
         void approveTeacher_notTeacher() {
             when(userRepository.findById(studentId)).thenReturn(Optional.of(sampleStudent));
 
-            assertThatThrownBy(() -> adminUserService.approveTeacher(studentId))
+            assertThatThrownBy(() -> adminUserService.approveTeacher(studentId, adminId))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessage("Only teacher accounts can be managed here");
 
@@ -190,7 +204,7 @@ class AdminUserServiceTest {
             sampleTeacher.setStatus(UserStatus.ACTIVE);
             when(userRepository.findById(teacherId)).thenReturn(Optional.of(sampleTeacher));
 
-            assertThatThrownBy(() -> adminUserService.approveTeacher(teacherId))
+            assertThatThrownBy(() -> adminUserService.approveTeacher(teacherId, adminId))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessage("Teacher account is not pending approval");
 

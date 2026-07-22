@@ -6,16 +6,21 @@ import com.midori.dto.response.AdminTeacherResponse;
 import com.midori.entity.NotificationType;
 import com.midori.entity.Role;
 import com.midori.entity.TeacherCertificate;
+import com.midori.entity.TeacherStatusEvent;
 import com.midori.entity.User;
 import com.midori.entity.UserStatus;
 import com.midori.exception.AccessDeniedException;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.TeacherCertificateRepository;
+import com.midori.repository.TeacherStatusEventRepository;
 import com.midori.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +36,7 @@ public class AdminUserService {
 
     private final UserRepository userRepository;
     private final TeacherCertificateRepository teacherCertificateRepository;
+    private final TeacherStatusEventRepository teacherStatusEventRepository;
     private final NotificationHelperService notificationHelper;
 
     @Transactional(readOnly = true)
@@ -50,54 +56,73 @@ public class AdminUserService {
     }
 
     @Transactional
-    public AdminTeacherResponse approveTeacher(UUID userId) {
-        User user = getTeacherById(userId);
+    public AdminTeacherResponse approveTeacher(UUID userId, UUID adminId) {
+        User teacher = getTeacherById(userId);
 
-        if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
+        if (teacher.getStatus() != UserStatus.PENDING_APPROVAL) {
             throw new BadRequestException("Teacher account is not pending approval");
         }
 
-        user.setStatus(UserStatus.ACTIVE);
-        user.setRejectionReason(null);
-        User savedUser = userRepository.save(user);
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin", "id", adminId));
 
-        // Notify teacher about account approval
+        teacher.setStatus(UserStatus.ACTIVE);
+        teacher.setRejectionReason(null);
+        User savedTeacher = userRepository.save(teacher);
+
+        TeacherStatusEvent event = TeacherStatusEvent.builder()
+                .teacher(savedTeacher)
+                .eventType(TeacherStatusEvent.TeacherEventType.APPROVED)
+                .performedBy(admin)
+                .build();
+        teacherStatusEventRepository.save(event);
+
         notificationHelper.createNotification(
-                savedUser,
+                savedTeacher,
                 "Teacher Approved",
                 "Your teacher account has been approved.",
-                NotificationType.TEACHER_APPROVED
+                NotificationType.APPROVED
         );
 
-        log.info("Approved teacher: {} ({})", savedUser.getEmail(), userId);
-        return toAdminTeacherResponse(savedUser);
+        log.info("Admin {} approved teacher: {} ({})", adminId, savedTeacher.getEmail(), userId);
+        return toAdminTeacherResponse(savedTeacher);
     }
 
     @Transactional
-    public AdminTeacherResponse rejectTeacher(UUID userId, String reason) {
-        User user = getTeacherById(userId);
+    public AdminTeacherResponse rejectTeacher(UUID userId, String reason, UUID adminId) {
+        User teacher = getTeacherById(userId);
 
-        if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
+        if (teacher.getStatus() != UserStatus.PENDING_APPROVAL) {
             throw new BadRequestException("Only pending teacher applications can be rejected");
         }
 
-        user.setStatus(UserStatus.REJECTED);
-        user.setRejectionReason(reason.trim());
-        User savedUser = userRepository.save(user);
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin", "id", adminId));
 
-        // Notify teacher about account rejection (include the reason)
+        teacher.setStatus(UserStatus.REJECTED);
+        teacher.setRejectionReason(reason.trim());
+        User savedTeacher = userRepository.save(teacher);
+
+        TeacherStatusEvent event = TeacherStatusEvent.builder()
+                .teacher(savedTeacher)
+                .eventType(TeacherStatusEvent.TeacherEventType.REJECTED)
+                .performedBy(admin)
+                .reason(reason.trim())
+                .build();
+        teacherStatusEventRepository.save(event);
+
         String content = reason != null && !reason.isBlank()
                 ? "Your teacher account application was rejected. Reason: " + reason.trim()
                 : "Your teacher account application was rejected.";
         notificationHelper.createNotification(
-                savedUser,
+                savedTeacher,
                 "Teacher Rejected",
                 content,
-                NotificationType.TEACHER_REJECTED
+                NotificationType.CONTEXT
         );
 
-        log.info("Rejected teacher application: {} ({})", savedUser.getEmail(), userId);
-        return toAdminTeacherResponse(savedUser);
+        log.info("Admin {} rejected teacher application: {} ({})", adminId, savedTeacher.getEmail(), userId);
+        return toAdminTeacherResponse(savedTeacher);
     }
 
     @Transactional
@@ -132,8 +157,13 @@ public class AdminUserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AdminTeacherResponse> getAllUsers(Role role, UserStatus status, String keyword, Pageable pageable) {
-        Page<User> userPage = userRepository.findAllWithFilters(role, status, keyword, pageable);
+    public Page<AdminTeacherResponse> getAllUsers(Role role, UserStatus status, List<UserStatus> inactiveStatuses, String keyword, Pageable pageable) {
+        Page<User> userPage;
+        if (inactiveStatuses != null) {
+            userPage = userRepository.findAllWithInactiveStatuses(role, inactiveStatuses, keyword, pageable);
+        } else {
+            userPage = userRepository.findAllWithFilters(role, status, keyword, pageable);
+        }
         return userPage.map(this::toAdminTeacherResponse);
     }
 

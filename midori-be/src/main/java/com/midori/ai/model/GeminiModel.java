@@ -62,7 +62,7 @@ public enum GeminiModel {
     ),
 
     /**
-     * Gemini 2.5 Flash - Modern fast and cost-effective model.
+     * Gemini 2.0 Flash - Modern fast and cost-effective model.
      */
     GEMINI_25_FLASH(
             "gemini-2.5-flash",
@@ -94,12 +94,12 @@ public enum GeminiModel {
     ),
 
     /**
-     * Gemini 2.5 Pro - Balanced for complex reasoning.
+     * Gemini 1.5 Pro - Balanced for complex reasoning.
      * Best for: Complex reasoning, analysis, question generation.
      */
     GEMINI_25_PRO(
-            "gemini-2.5-pro",
-            "Gemini 2.5 Pro",
+            "gemini-1.5-pro",
+            "Gemini 1.5 Pro",
             "Balanced model for complex reasoning, deep analysis, and nuanced understanding",
             4,  // capability
             3,  // cost
@@ -109,13 +109,12 @@ public enum GeminiModel {
     ),
     
     /**
-     * Gemini 3.5 Flash - Latest fast model (future/placeholder).
-     * Best for: When available, replaces 2.5 Flash for better performance.
+     * Gemini 1.5 Flash - Fast model.
      */
     GEMINI_35_FLASH(
             "gemini-3.5-flash",
             "Gemini 3.5 Flash",
-            "Next-generation fast model with improved accuracy and lower latency",
+            "Fast model with improved accuracy and lower latency",
             3,  // capability
             2,  // cost
             128000,  // context window

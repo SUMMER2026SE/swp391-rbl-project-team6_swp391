@@ -11,7 +11,6 @@ import { NotificationErrorState } from "./notification-error-state";
 import { NotificationLoadingState } from "./notification-loading-state";
 import { NotificationPageHeader } from "./notification-page-header";
 import { NotificationPreviewSheet } from "./notification-preview-sheet";
-import { NotificationTypeTabs, type NotificationTabId } from "./notification-type-tabs";
 
 interface NotificationListViewProps {
   /**
@@ -32,6 +31,19 @@ interface NotificationListViewProps {
    * its own header (kept here for future reuse, not currently used).
    */
   hideHeader?: boolean;
+  /**
+   * Optional notification ID that the inbox should immediately open in
+   * the preview drawer. Used when arriving from the bell dropdown so the
+   * user lands directly on the detail view of the notification they
+   * clicked. Passing `null`/`undefined` keeps the drawer closed.
+   */
+  initialPreviewId?: number | null;
+  /**
+   * Callback fired once the inbox has consumed the `initialPreviewId`.
+   * The parent route uses this to clear its search-param so the drawer
+   * does not re-open on subsequent re-renders.
+   */
+  onInitialPreviewConsumed?: () => void;
 }
 
 /**
@@ -45,11 +57,12 @@ export function NotificationListView({
   subtitle,
   className,
   hideHeader = false,
+  initialPreviewId,
+  onInitialPreviewConsumed,
 }: NotificationListViewProps) {
   const { notifications, unreadCount, loading, error, refresh, markRead, markAllRead } =
     useNotifications();
 
-  const [activeTab, setActiveTab] = useState<NotificationTabId>("all");
   const [previewNotification, setPreviewNotification] = useState<Notification | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -65,13 +78,22 @@ export function NotificationListView({
     }
   }, [notifications, previewNotification]);
 
-  const filteredNotifications = useMemo(() => {
-    return notifications.filter((n) => {
-      if (activeTab === "all") return true;
-      if (activeTab === "unread") return n.unread;
-      return n.type === activeTab;
-    });
-  }, [notifications, activeTab]);
+  // When arriving from the bell dropdown with a notification id in the URL,
+  // open the detail drawer for that notification as soon as it is loaded.
+  // We deliberately ignore the inbox-level filter UI (which has been
+  // removed) so the only way to land on a detail view is by arriving via
+  // this prop or by clicking a card in the list below.
+  useEffect(() => {
+    if (initialPreviewId == null) return;
+    if (notifications.length === 0) return;
+
+    const target = notifications.find((n) => n.id === initialPreviewId);
+    if (target) {
+      setPreviewNotification(target);
+      setPreviewOpen(true);
+      onInitialPreviewConsumed?.();
+    }
+  }, [initialPreviewId, notifications, onInitialPreviewConsumed]);
 
   const handlePreview = useCallback((notification: Notification) => {
     setPreviewNotification(notification);
@@ -117,29 +139,15 @@ export function NotificationListView({
         />
       )}
 
-      <NotificationTypeTabs
-        notifications={notifications}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-      />
-
       <div aria-live="polite" aria-busy={loading} className="space-y-3">
         {loading && notifications.length === 0 ? (
           <NotificationLoadingState />
         ) : error ? (
           <NotificationErrorState message={error} onRetry={refresh} />
-        ) : filteredNotifications.length === 0 ? (
-          <NotificationEmptyState
-            description={
-              activeTab === "unread"
-                ? "You've read all your notifications."
-                : activeTab === "all"
-                  ? "You're all caught up!"
-                  : `No ${activeTab.toLowerCase().replace(/_/g, " ")} notifications right now.`
-            }
-          />
+        ) : notifications.length === 0 ? (
+          <NotificationEmptyState description="You're all caught up!" />
         ) : (
-          filteredNotifications.map((notification) => (
+          notifications.map((notification) => (
             <NotificationCard
               key={notification.id}
               notification={notification}

@@ -10,7 +10,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -27,7 +26,7 @@ public class CreateNotificationRequest {
     private String content;
 
     @NotNull(message = "Type is required")
-    @Pattern(regexp = "LESSON|CONTENT_APPROVED|CONTENT_REJECTED|TEACHER_APPROVED|TEACHER_REJECTED|SYSTEM",
+    @Pattern(regexp = "LESSON|CONTEXT|EXAM|APPROVED|SYSTEM",
             message = "Invalid notification type")
     private String type;
 
@@ -43,5 +42,13 @@ public class CreateNotificationRequest {
 
     private String targetRole;
 
-    private UUID targetClassId;
+    /**
+     * Optional class identifier used when {@link #targetType} is
+     * {@code SPECIFIC_CLASS}. Accepts either a {@code classCode} (e.g.
+     * "N5-A1") or a class UUID as a string; the service resolves it via
+     * {@code ClassRepository.findByClassCode} (falling back to
+     * {@code findById} when a UUID-shaped value is supplied) so admins do
+     * not need to know the underlying UUID.
+     */
+    private String classCode;
 }

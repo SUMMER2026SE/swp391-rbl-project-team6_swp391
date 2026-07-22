@@ -10,6 +10,7 @@ import com.midori.dto.notification.NotificationResponse;
 import com.midori.dto.notification.SendNotificationRequest;
 import com.midori.dto.notification.SendNotificationResponse;
 import com.midori.dto.notification.UpdateNotificationRequest;
+import com.midori.entity.ClassEntity;
 import com.midori.entity.Notification;
 import com.midori.entity.Role;
 import com.midori.entity.User;
@@ -17,7 +18,6 @@ import com.midori.entity.UserNotification;
 import com.midori.entity.UserStatus;
 import com.midori.exception.BadRequestException;
 import com.midori.exception.ResourceNotFoundException;
-import com.midori.repository.ClassRepository;
 import com.midori.repository.NotificationRepository;
 import com.midori.repository.NotificationRepository.NotificationLatestSent;
 import com.midori.repository.NotificationRepository.NotificationRecipientCount;
@@ -52,8 +52,8 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationHelperService notificationHelperService;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
-    private final ClassRepository classRepository;
     private final NotificationPushService notificationPushService;
+    private final WebPushService webPushService;
 
     @Override
     public NotificationListResponse getCurrentUserNotifications(UUID userId) {
@@ -202,6 +202,7 @@ public class NotificationServiceImpl implements NotificationService {
             // methods, but we guard anyway): push inline.
             try {
                 notificationPushService.pushToUsers(newLinks);
+                webPushService.sendPushToUsers(newLinks);
             } catch (Exception ex) {
                 log.warn("Inline push failed: {}", ex.getMessage());
             }
@@ -211,13 +212,17 @@ public class NotificationServiceImpl implements NotificationService {
             @Override
             public void afterCommit() {
                 try {
-                    int delivered = notificationPushService.pushToUsers(newLinks);
-                    log.debug("afterCommit push: {} frame(s) delivered for {} new link(s)",
-                            delivered, newLinks.size());
+                    // WebSocket push for users currently online
+                    int wsDelivered = notificationPushService.pushToUsers(newLinks);
+                    log.debug("afterCommit WS push: {} frame(s) delivered for {} new link(s)",
+                            wsDelivered, newLinks.size());
+                    
+                    // Web Push for all subscribed users (works even if offline/closed browser)
+                    webPushService.sendPushToUsers(newLinks);
                 } catch (Exception ex) {
                     // The push is best-effort: a failure here must never
                     // affect the already-committed notification rows.
-                    log.warn("WS push afterCommit failed: {}", ex.getMessage());
+                    log.warn("Push afterCommit failed: {}", ex.getMessage());
                 }
             }
         });
@@ -231,21 +236,22 @@ public class NotificationServiceImpl implements NotificationService {
             throw new BadRequestException("targetType is required");
         }
 
-        // SPECIFIC_CLASS branch is intentionally left untouched per current scope.
-        // The validation below only enforces the *inverse* invariant: any non-ALL
-        // audience that is not SPECIFIC_CLASS must not carry a targetClassId.
+        // SPECIFIC_CLASS branch: the admin enters a human-friendly classCode
+        // (e.g. "N5-A1"). We resolve it through the helper which falls back
+        // to UUID for legacy values, so older data without a true class_code
+        // still resolves cleanly. Only enforce the *inverse* invariant on
+        // non-SPECIFIC_CLASS audiences: they must not carry a classCode.
         boolean isSpecificClass = "SPECIFIC_CLASS".equalsIgnoreCase(targetType);
-        if (!isSpecificClass && request.getTargetClassId() != null) {
+        if (!isSpecificClass && request.getClassCode() != null && !request.getClassCode().isBlank()) {
             throw new BadRequestException(
-                    "targetClassId must be null when targetType is " + targetType);
+                    "classCode must be null when targetType is " + targetType);
         }
         if (isSpecificClass) {
-            if (request.getTargetClassId() == null) {
-                throw new BadRequestException("classCode (class id) is required when target is SPECIFIC_CLASS");
+            String code = request.getClassCode();
+            if (code == null || code.isBlank()) {
+                throw new BadRequestException("classCode is required when target is SPECIFIC_CLASS");
             }
-            if (!classRepository.existsById(request.getTargetClassId())) {
-                throw new BadRequestException("Class not found for classCode: " + request.getTargetClassId());
-            }
+            notificationHelperService.requireClassByCodeOrId(code);
         }
 
         Notification notification = Notification.builder()
@@ -255,7 +261,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .scheduledAt(request.getScheduledAt())
                 .targetType(request.getTargetType())
                 .targetRole(request.getTargetRole())
-                .targetClassId(request.getTargetClassId())
+                .targetClassCode(isSpecificClass ? request.getClassCode().trim() : null)
                 .build();
 
         notification = notificationRepository.save(notification);
@@ -282,26 +288,24 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         // SPECIFIC_CLASS branch: same validation as create. Reset targetRole
-        // and targetClassId when the audience is not SPECIFIC_CLASS so the
-        // previous selection does not leak through.
+        // and classCode when the audience is not SPECIFIC_CLASS so the previous
+        // selection does not leak through.
         String targetType = request.getTargetType();
         if (targetType == null || targetType.isBlank()) {
             throw new BadRequestException("targetType is required");
         }
         boolean isSpecificClass = "SPECIFIC_CLASS".equalsIgnoreCase(targetType);
-        if (!isSpecificClass && request.getTargetClassId() != null) {
+        if (!isSpecificClass && request.getClassCode() != null && !request.getClassCode().isBlank()) {
             throw new BadRequestException(
-                    "targetClassId must be null when targetType is " + targetType);
+                    "classCode must be null when targetType is " + targetType);
         }
         if (isSpecificClass) {
-            if (request.getTargetClassId() == null) {
+            String code = request.getClassCode();
+            if (code == null || code.isBlank()) {
                 throw new BadRequestException(
-                        "classCode (class id) is required when target is SPECIFIC_CLASS");
+                        "classCode is required when target is SPECIFIC_CLASS");
             }
-            if (!classRepository.existsById(request.getTargetClassId())) {
-                throw new BadRequestException(
-                        "Class not found for classCode: " + request.getTargetClassId());
-            }
+            notificationHelperService.requireClassByCodeOrId(code);
         }
 
         notification.setTitle(request.getTitle());
@@ -310,7 +314,7 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setScheduledAt(request.getScheduledAt());
         notification.setTargetType(request.getTargetType());
         notification.setTargetRole(request.getTargetRole());
-        notification.setTargetClassId(request.getTargetClassId());
+        notification.setTargetClassCode(isSpecificClass ? request.getClassCode().trim() : null);
 
         notification = notificationRepository.save(notification);
 
@@ -389,7 +393,7 @@ public class NotificationServiceImpl implements NotificationService {
                     }
                     case "SPECIFIC_CLASS" -> {
                         req.setTargetType("CLASS");
-                        req.setClassId(notification.getTargetClassId());
+                        req.setClassCode(notification.getTargetClassCode());
                     }
                     default -> req.setTargetType("ALL");
                 }
@@ -424,14 +428,18 @@ public class NotificationServiceImpl implements NotificationService {
                 yield userRepository.findByRoleAndStatus(role, UserStatus.ACTIVE);
             }
             case "CLASS" -> {
-                if (request.getClassId() == null) {
-                    throw new BadRequestException("classId is required for targetType CLASS");
+                String code = request.getClassCode();
+                if (code == null || code.isBlank()) {
+                    throw new BadRequestException("classCode is required for targetType CLASS");
                 }
-                if (!notificationHelperService.classExists(request.getClassId())) {
-                    throw new BadRequestException("Class not found for the supplied classId");
+                ClassEntity classEntity = notificationHelperService.requireClassByCodeOrId(code);
+                List<User> members = userRepository.findAllMembersByClassIdAndStatus(
+                        classEntity.getId(), UserStatus.ACTIVE);
+                if (members.isEmpty()) {
+                    throw new BadRequestException(
+                            "Class '" + code + "' has no active members; nothing to notify");
                 }
-                yield userRepository.findAllMembersByClassIdAndStatus(
-                        request.getClassId(), UserStatus.ACTIVE);
+                yield members;
             }
             default -> throw new BadRequestException("Unsupported targetType: " + rawTargetType);
         };
@@ -463,7 +471,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .scheduledAt(n.getScheduledAt())
                 .targetType(n.getTargetType())
                 .targetRole(n.getTargetRole())
-                .targetClassId(n.getTargetClassId())
+                .classCode(n.getTargetClassCode())
                 .displayStatus(n.resolveDisplayStatus(recipientCount))
                 .createdAt(n.getCreatedAt())
                 .updatedAt(n.getUpdatedAt())
@@ -481,7 +489,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .scheduledAt(n.getScheduledAt())
                 .targetType(n.getTargetType())
                 .targetRole(n.getTargetRole())
-                .targetClassId(n.getTargetClassId())
+                .classCode(n.getTargetClassCode())
                 .displayStatus(n.resolveDisplayStatus(recipientCount))
                 .createdAt(n.getCreatedAt())
                 .updatedAt(n.getUpdatedAt())

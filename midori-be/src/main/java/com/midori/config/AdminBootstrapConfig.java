@@ -36,19 +36,14 @@ public class AdminBootstrapConfig {
             String adminEmail = adminProperties.getEmail();
             String adminPassword = adminProperties.getPassword();
 
+            if (adminPassword == null || adminPassword.trim().isEmpty()) {
+                log.warn("[AdminBootstrap] Admin password is blank. Skipping administrator bootstrap.");
+                return;
+            }
+
             java.util.Optional<User> existingUserOpt = userRepository.findByEmail(adminEmail);
             if (existingUserOpt.isPresent()) {
-                User existingUser = existingUserOpt.get();
-                if (existingUser.getRole() == Role.ADMIN) {
-                    log.info("[AdminBootstrap] Admin {} already exists. Syncing/updating password to match configuration...", adminEmail);
-                    existingUser.setPasswordHash(passwordEncoder.encode(adminPassword));
-                    existingUser.setStatus(UserStatus.ACTIVE);
-                    existingUser.setEmailVerified(true);
-                    userRepository.save(existingUser);
-                } else {
-                    log.warn("[AdminBootstrap] Configured admin email {} already exists but is associated with role: {}. Skipping password update.",
-                            adminEmail, existingUser.getRole());
-                }
+                log.info("[AdminBootstrap] Admin {} already exists. Skipping bootstrap.", adminEmail);
                 return;
             }
 

@@ -589,7 +589,7 @@ public class ShadowingAiProcessingServiceImpl implements ShadowingAiProcessingSe
         sb.append("- Include the index number for each translation\n");
         sb.append("- Output ONLY the JSON array, no explanation\n");
 
-        return aiCoreService.chat(systemPrompt, sb.toString(), java.util.Collections.emptyList());
+        return aiCoreService.chatWithProvider(com.midori.ai.AiProviderType.GEMINI, systemPrompt, sb.toString(), java.util.Collections.emptyList());
     }
 
     /**

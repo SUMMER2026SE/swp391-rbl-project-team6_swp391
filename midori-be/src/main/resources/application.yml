@@ -24,9 +24,9 @@ spring:
       max-request-size: 550MB
 
   datasource:
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require
-    username: postgres.clyuyvdaoprxrpmrcyhd
-    password: "Midori@2026#DbStrong!"
+    url: ${DATABASE_URL:jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require}
+    username: ${DATABASE_USERNAME:postgres.clyuyvdaoprxrpmrcyhd}
+    password: ${DATABASE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 1
@@ -51,8 +51,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: dathatinh2005aa@gmail.com
-    password: gsdosaoxzyvmcewf
+    username: ${SPRING_MAIL_USERNAME:dathatinh2005aa@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -67,6 +67,10 @@ server:
   port: 8080
 
 app:
+  admin:
+    bootstrap-enabled: true
+    email: ${ADMIN_BOOTSTRAP_EMAIL:admin@midori.local}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
   jwt:
     secret: local-dev-jwt-secret-key-for-midori-backend-at-least-32-chars
     access-token-expiration: 86400000
@@ -83,14 +87,14 @@ app:
 
 supabase:
   url: https://clyuyvdaoprxrpmrcyhd.supabase.co
-  service-role-key: sb_secret_Xhn2klAIVJQ0XrVCcKRT-A_eH-TkGZh
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
   storage:
     bucket: ${SUPABASE_STORAGE_BUCKET:listening-audios}
     videos-bucket: ${SUPABASE_VIDEOS_BUCKET:shadowing-videos}
 
 # Groq API Keys
 groq:
-  api-keys: "${GROQ_API_KEY_1:},${GROQ_API_KEY_2:}"
+  api-keys: ${GROQ_API_KEYS:${GROQ_API_KEY_1:},${GROQ_API_KEY_2:}}
   api-key: ${GROQ_API_KEY:${groq.api-keys}}
 
 # AI Configuration
@@ -106,7 +110,7 @@ ai:
     queue-capacity: ${AI_EXECUTOR_QUEUE_CAPACITY:100}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    api-keys: ${GEMINI_API_KEY_1:},${GEMINI_API_KEY_2:},${GEMINI_API_KEY_3:}
+    api-keys: ${GEMINI_API_KEYS:${GEMINI_API_KEY_1:},${GEMINI_API_KEY_2:},${GEMINI_API_KEY_3:}}
     model: ${GEMINI_MODEL:gemini-flash-latest}
     fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-2.0-flash,gemini-2.0-flash-lite}
     base-url: https://generativelanguage.googleapis.com
@@ -160,7 +164,7 @@ shadowing:
     similarity-threshold: ${SHADOWING_SIMILARITY_THRESHOLD:0.80}
     gemini-threshold: ${SHADOWING_GEMINI_THRESHOLD:80}
     max-recording-duration-seconds: ${SHADOWING_MAX_RECORDING_SECONDS:15}
-    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-3.5-flash}
+    gemini-model: ${SHADOWING_GEMINI_MODEL:gemini-2.0-flash}
     api-timeout-seconds: ${SHADOWING_API_TIMEOUT_SECONDS:120}
     cache-ttl-minutes: ${SHADOWING_CACHE_TTL_MINUTES:60}
     cache-max-size: ${SHADOWING_CACHE_MAX_SIZE:10000}

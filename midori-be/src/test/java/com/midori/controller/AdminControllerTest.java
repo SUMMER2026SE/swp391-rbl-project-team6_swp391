@@ -4,6 +4,7 @@ import com.midori.dto.response.AdminTeacherResponse;
 import com.midori.entity.Role;
 import com.midori.entity.UserStatus;
 import com.midori.exception.ResourceNotFoundException;
+import com.midori.security.CustomUserDetails;
 import com.midori.service.AdminUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -46,10 +50,12 @@ class AdminControllerTest {
 
     private AdminTeacherResponse sampleTeacher;
     private UUID teacherId;
+    private UUID adminId;
 
     @BeforeEach
     void setUp() {
         teacherId = UUID.randomUUID();
+        adminId = UUID.randomUUID();
         sampleTeacher = AdminTeacherResponse.builder()
                 .id(teacherId)
                 .email("teacher@example.com")
@@ -58,6 +64,15 @@ class AdminControllerTest {
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
+
+        CustomUserDetails adminDetails = mock(CustomUserDetails.class);
+        when(adminDetails.getId()).thenReturn(adminId);
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(adminDetails);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
     }
 
     @Nested
@@ -110,7 +125,7 @@ class AdminControllerTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            when(adminUserService.approveTeacher(teacherId)).thenReturn(approvedTeacher);
+            when(adminUserService.approveTeacher(teacherId, adminId)).thenReturn(approvedTeacher);
 
             mockMvc.perform(put("/api/admin/users/{userId}/approve", teacherId))
                     .andExpect(status().isOk())
@@ -118,20 +133,20 @@ class AdminControllerTest {
                     .andExpect(jsonPath("$.message", is("Teacher approved successfully")))
                     .andExpect(jsonPath("$.data.status", is("ACTIVE")));
 
-            verify(adminUserService).approveTeacher(teacherId);
+            verify(adminUserService).approveTeacher(teacherId, adminId);
         }
 
         @Test
         @DisplayName("should return 404 when teacher not found")
         void approveTeacher_notFound() throws Exception {
             UUID randomId = UUID.randomUUID();
-            when(adminUserService.approveTeacher(randomId))
+            when(adminUserService.approveTeacher(randomId, adminId))
                     .thenThrow(new ResourceNotFoundException("User", "id", randomId));
 
             mockMvc.perform(put("/api/admin/users/{userId}/approve", randomId))
                     .andExpect(status().isNotFound());
 
-            verify(adminUserService).approveTeacher(randomId);
+            verify(adminUserService).approveTeacher(randomId, adminId);
         }
     }
 
@@ -152,7 +167,7 @@ class AdminControllerTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            when(adminUserService.rejectTeacher(teacherId, "Certificate not valid")).thenReturn(rejectedTeacher);
+            when(adminUserService.rejectTeacher(teacherId, "Certificate not valid", adminId)).thenReturn(rejectedTeacher);
 
             mockMvc.perform(put("/api/admin/users/{userId}/reject", teacherId)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -167,7 +182,7 @@ class AdminControllerTest {
                     .andExpect(jsonPath("$.data.status", is("REJECTED")))
                     .andExpect(jsonPath("$.data.rejectionReason", is("Certificate not valid")));
 
-            verify(adminUserService).rejectTeacher(teacherId, "Certificate not valid");
+            verify(adminUserService).rejectTeacher(teacherId, "Certificate not valid", adminId);
         }
 
         @Test
@@ -182,7 +197,7 @@ class AdminControllerTest {
                                     """))
                     .andExpect(status().isBadRequest());
 
-            verify(adminUserService, never()).rejectTeacher(any(), any());
+            verify(adminUserService, never()).rejectTeacher(any(), any(), any());
         }
     }
 

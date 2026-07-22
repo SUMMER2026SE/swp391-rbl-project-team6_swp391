@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -21,7 +20,11 @@ public class AdminNotificationDetailResponse {
     private Instant scheduledAt;
     private String targetType;
     private String targetRole;
-    private UUID targetClassId;
+    /**
+     * Class code (e.g. "N5-A1") for SPECIFIC_CLASS notifications. See
+     * {@link AdminNotificationResponse#getClassCode()} for the rationale.
+     */
+    private String classCode;
     private String displayStatus;
     private Instant createdAt;
     private Instant updatedAt;

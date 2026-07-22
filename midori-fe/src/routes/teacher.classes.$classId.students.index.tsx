@@ -232,31 +232,13 @@ function StudentsPage() {
                     Last active {selected.lastActive}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="grid grid-cols-1 gap-2 text-center">
                   <div className="rounded-lg bg-muted/50 p-2">
                     <div className="text-xs text-muted-foreground">Progress</div>
                     <div className="text-lg font-bold">{selected.progress}%</div>
                   </div>
-                  <div className="rounded-lg bg-muted/50 p-2">
-                    <div className="text-xs text-muted-foreground">Avg score</div>
-                    <div className="text-lg font-bold">
-                      {selected.averageScore && selected.averageScore !== "—"
-                        ? `${selected.averageScore}%`
-                        : selected.averageScore}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 p-2">
-                    <div className="text-xs text-muted-foreground">Attendance</div>
-                    <div className="text-lg font-bold">{selected.attendance}%</div>
-                  </div>
                 </div>
               </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Weak skill</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm">{selected.weakSkill}</CardContent>
             </Card>
             <div className="flex gap-2">
               <Button
@@ -285,7 +267,13 @@ function StudentsPage() {
         )}
       </PreviewSheet>
 
-      <InviteStudentsDialog open={invite} onOpenChange={setInvite} classId={classId} />
+      <InviteStudentsDialog
+        open={invite}
+        onOpenChange={setInvite}
+        classId={classId}
+        className={classDetail?.name}
+        classLevel={classDetail?.level}
+      />
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}

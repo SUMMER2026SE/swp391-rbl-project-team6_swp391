@@ -18,6 +18,7 @@ interface ClickableTranscriptProps {
   onWordClick?: (word: string, position: { x: number; y: number }) => void;
   interactive?: boolean;
   tokens?: any[];
+  videoId?: string;
 }
 
 interface SelectionState {
@@ -149,6 +150,7 @@ export const ClickableTranscript = memo(function ClickableTranscript({
   onWordClick,
   interactive = true,
   tokens,
+  videoId,
 }: ClickableTranscriptProps) {
   const [selection, setSelection] = useState<SelectionState | null>(null);
 
@@ -336,6 +338,7 @@ export const ClickableTranscript = memo(function ClickableTranscript({
               position={selection.position}
               onClose={handleClosePopup}
               contextSentence={selection.contextSentence}
+              videoId={videoId}
             />
           )}
         </AnimatePresence>,
@@ -358,6 +361,7 @@ export const InteractiveTranscript = memo(function InteractiveTranscript({
   onSentenceClick,
   interactive = true,
   tokens,
+  videoId,
 }: InteractiveTranscriptProps) {
   const [selection, setSelection] = useState<SelectionState | null>(null);
 
@@ -513,6 +517,7 @@ export const InteractiveTranscript = memo(function InteractiveTranscript({
               position={selection.position}
               onClose={handleClosePopup}
               contextSentence={selection.contextSentence}
+              videoId={videoId}
             />
           )}
         </AnimatePresence>,

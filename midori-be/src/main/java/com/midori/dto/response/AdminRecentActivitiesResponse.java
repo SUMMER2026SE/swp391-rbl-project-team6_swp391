@@ -43,9 +43,16 @@ public class AdminRecentActivitiesResponse {
     }
 
     public enum ActivityType {
-        STUDENT_REGISTERED,
+        // Teacher events
         TEACHER_REGISTERED,
+        TEACHER_APPROVED,
+        TEACHER_REJECTED,
+        // Class events
         CLASS_CREATED,
+        CLASS_ARCHIVED,
+        CLASS_RESTORED,
+        // Legacy events (kept for compatibility)
+        STUDENT_REGISTERED,
         STUDENT_ENROLLED,
         HOMEWORK_SUBMITTED,
         EXAM_COMPLETED,

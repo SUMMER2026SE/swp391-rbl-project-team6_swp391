@@ -88,7 +88,11 @@ function AdminDashboard() {
         )}
       </div>
 
-      {/* Row 2: Activities (2/3) + JLPT (1/3) */}
+      {/* Row 2: Activities (2/3) + JLPT (1/3).
+          `lg:items-start` keeps the two cards at their natural heights instead
+          of stretching whichever is taller. The Recent Activities card no
+          longer scrolls internally (we cap at 10 rows) so it sits at its
+          own intrinsic height, and the JLPT card keeps its `min-h-[380px]`. */}
       {isError ? (
         <DashboardErrorCard
           message={outcome && !outcome.ok ? outcome.error : ""}
@@ -96,7 +100,7 @@ function AdminDashboard() {
           height={380}
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 lg:items-start gap-4">
           <div className="lg:col-span-2">
             <RecentActivitiesCard
               items={data?.recentActivities ?? []}

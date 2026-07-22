@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/teacher/teacher-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { classesApi } from "@/lib/api/classes";
 import { examsApi } from "@/lib/api/exams";
+import { AiExamGenerate } from "@/components/teacher/AiExamGenerate";
 import {
   Select,
   SelectContent,
@@ -16,81 +17,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { teacherQuestionsApi, type TeacherQuestionResponse } from "@/lib/api/teacherQuestions";
-import { JLPTLevel } from "@/types/teacher-exam";
-import {
-  mapImportedQuestionToBankRequest,
-  findUnresolvedQuestions,
-} from "@/lib/teacherQuestionMapping";
 import { LevelBadge, DifficultyBadge } from "@/components/teacher/badges";
 import { SuccessBanner } from "@/components/teacher/dialogs";
-import { AiPdfImportWorkflow } from "@/components/admin/AiPdfImportWorkflow";
-import type { ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
-import { AiExamGenerate } from "@/components/teacher/AiExamGenerate";
+import { QuestionEditor, ImportedQuestion } from "@/components/admin/pdf-import/QuestionEditor";
 import {
   ArrowLeft,
+  FileText,
   HelpCircle,
   Send,
   Sparkles,
   AlertCircle,
   CheckCircle,
   Loader2,
-  FileText,
-  Library,
+  Upload,
+  ArrowRight,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type Method = "ai-pdf" | "question-bank";
-type AiSubMode = "ai-generate" | "ai-pdf";
+type Method = "ai-pdf" | "question-bank" | "ai-generate";
 
 export const Route = createFileRoute("/teacher/exams/create")({
   validateSearch: (s: Record<string, unknown>) => ({
     classId: typeof s.classId === "string" ? s.classId : undefined,
-    source:
-      s.source === "question-bank"
-        ? ("question-bank" as const)
-        : s.source === "ai-pdf"
-          ? ("ai-pdf" as const)
-          : undefined,
+    source: s.source === "question-bank" ? ("question-bank" as const) : undefined,
     topicId: typeof s.topicId === "string" ? s.topicId : undefined,
   }),
   component: CreateExam,
 });
 
-/**
- * Canonical Exam creation wizard.
- *
- * The outer screen shows TWO method cards per current product spec:
- *   1. AI Exam            -> method = "ai-pdf"  (opens an AI sub-screen)
- *   2. From Question Bank -> method = "question-bank"
- *
- * The AI sub-screen itself shows TWO inner cards so that the original
- * three Exam creation flows remain accessible without bloating the outer
- * pick-list:
- *   1a. Generate from Content       -> renders <AiExamGenerate />
- *       (lesson-library AI via POST /teacher/exams/ai-generate)
- *   1b. Import Existing Questions   -> renders <AiPdfImportWorkflow />
- *       (PDF upload/import via POST /ai/exams/import)
- *
- * Selecting a different inner card clears any in-flight AI draft so the
- * teacher does not see a half-built exam from a previous flow.
- *
- * Questions are persisted in two phases for the PDF flow:
- *   1. `handleCreateQuestions` saves them to the teacher's question
- *      bank (TeacherQuestion) immediately when the workflow's "Create"
- *      button fires. We keep the IDs in parent state.
- *   2. `handleAssign` posts the Exam metadata plus the saved IDs to
- *      `/exams`. The exact same questions are reused, so they cannot
- *      be lost between steps.
- *
- * The lesson-library flow is self-contained inside <AiExamGenerate />
- * which calls `examsApi.createExam()` and then `onDone(title, examId)`
- * — we just route that back to `handleDone` for the success banner.
- *
- * Question type is preserved end-to-end (no MULTIPLE_CHOICE coercion).
- * Skill/category is normalized to PascalCase to match what the
- * Question Bank UI already displays.
- */
 function CreateExam() {
   const { classId, source, topicId } = Route.useSearch();
   const navigate = useNavigate();
@@ -99,32 +55,10 @@ function CreateExam() {
     queryFn: () => classesApi.getSelectableClasses(),
   });
   const lockedClass = classId ? classes.find((c) => c.id === classId) : null;
-  const lockedClassLite: { id: string; name: string; level: string } | null = lockedClass
-    ? { id: lockedClass.id, name: lockedClass.name, level: lockedClass.level }
-    : null;
   const init: Method | null = (source as Method) ?? null;
   const [method, setMethod] = useState<Method | null>(init);
   const [done, setDone] = useState<string | null>(null);
   const [createdClassId, setCreatedClassId] = useState<string | null>(null);
-
-  // AI Exam flow state. Owned by the parent so questions persist between
-  // the AI workflow's preview step and the Exam settings step.
-  // `aiSubMode` selects which of the two inner AI modes is active:
-  //   - "ai-generate"  -> <AiExamGenerate />        (lesson-library)
-  //   - "ai-pdf"       -> <AiPdfImportWorkflow />   (PDF upload/import)
-  // It starts as null so the outer AI sub-screen is shown first.
-  const [aiSubMode, setAiSubMode] = useState<AiSubMode | null>(null);
-  const [aiQuestions, setAiQuestions] = useState<ImportedQuestion[]>([]);
-  const [savedQuestionIds, setSavedQuestionIds] = useState<string[]>([]);
-  const [savingQuestions, setSavingQuestions] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [assignError, setAssignError] = useState<string | null>(null);
-  const [aiExamMetadata, setAiExamMetadata] = useState({
-    classId: lockedClass?.id ?? classes[0]?.id ?? "",
-    title: "",
-    dueDate: "",
-    duration: 60,
-  });
 
   const handleBack = () => {
     if (classId) {
@@ -134,16 +68,8 @@ function CreateExam() {
     }
   };
 
-  const handleDone = (title: string, examIdOrClassId?: string) => {
-    // `handleDone` is called from three flows with slightly different
-    // payloads:
-    //   - QuestionBankExam + ExamAiPdfFlow pass `(title, classId)`
-    //   - AiExamGenerate (lesson-library) passes `(title, examId)`
-    // For the success banner we just need the title; the second arg is
-    // optional context that we stash as `createdClassId` when present
-    // (so the "View class" button still works after lesson-library flow
-    // we still try to derive the class from the locked/selected one).
-    setCreatedClassId(examIdOrClassId ?? lockedClass?.id ?? null);
+  const handleDone = (title: string, assignedClassId: string) => {
+    setCreatedClassId(assignedClassId);
     setDone(title);
   };
 
@@ -155,10 +81,7 @@ function CreateExam() {
           <Button
             onClick={() => {
               setMethod(null);
-              setAiSubMode(null);
               setDone(null);
-              setAiQuestions([]);
-              setSavedQuestionIds([]);
             }}
           >
             <FileText className="mr-2 h-4 w-4" />
@@ -166,12 +89,8 @@ function CreateExam() {
           </Button>
           {createdClassId && (
             <Button asChild variant="outline">
-              <Link
-                to="/teacher/classes/$classId"
-                params={{ classId: createdClassId }}
-                search={{ q: "" }}
-              >
-                View class
+              <Link to="/teacher/classes/$classId/homework" params={{ classId: createdClassId }} search={{ q: "" }}>
+                View class exams
               </Link>
             </Button>
           )}
@@ -196,10 +115,17 @@ function CreateExam() {
         <div className="grid gap-3 md:grid-cols-2">
           <MethodCard
             icon={Sparkles}
-            title="AI Exam"
-            desc="Upload a PDF and let AI generate or extract exam questions automatically."
+            title="AI PDF Exam"
+            desc="Upload a PDF and let AI generate exam questions automatically."
             badge="AI Generator"
             onClick={() => setMethod("ai-pdf")}
+          />
+          <MethodCard
+            icon={Sparkles}
+            title="AI Generate Exam"
+            desc="Select a lesson and AI will generate exam questions from the content library."
+            badge="AI · Smart"
+            onClick={() => setMethod("ai-generate")}
           />
           <MethodCard
             icon={HelpCircle}
@@ -218,88 +144,18 @@ function CreateExam() {
     );
   }
 
-  const resetAiDraft = () => {
-    // Switching AI sub-mode or leaving the AI flow entirely must clear any
-    // half-built AI draft so the teacher does not see stale questions.
-    setAiQuestions([]);
-    setSavedQuestionIds([]);
-    setAssignError(null);
-  };
-
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {!(method === "ai-pdf" && aiSubMode !== null) && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            // Changing method intentionally drops the in-flight AI draft so
-            // the teacher does not see a half-built exam from the previous
-            // flow.
-            setMethod(null);
-            setAiSubMode(null);
-            resetAiDraft();
-          }}
-          className="-ml-2"
-        >
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Change method
-        </Button>
-      )}
-      {method === "ai-pdf" && aiSubMode === null && (
-        <AiSubModeSelector
-          onSelect={(mode) => {
-            resetAiDraft();
-            setAiSubMode(mode);
-          }}
-          lockedClass={lockedClassLite}
-        />
-      )}
-      {method === "ai-pdf" && aiSubMode === "ai-generate" && (
-        <>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              // Returning to the AI sub-mode selector clears any draft from
-              // the previous inner flow so we never leak questions across
-              // unrelated flows.
-              setAiSubMode(null);
-              resetAiDraft();
-            }}
-            className="-ml-2"
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Change method
-          </Button>
-          <AiExamGenerate lockedClass={lockedClassLite} onDone={handleDone} />
-        </>
-      )}
-      {method === "ai-pdf" && aiSubMode === "ai-pdf" && (
-        <ExamAiPdfFlow
-          classes={classes}
-          lockedClass={lockedClassLite}
-          questions={aiQuestions}
-          setQuestions={setAiQuestions}
-          savedQuestionIds={savedQuestionIds}
-          setSavedQuestionIds={setSavedQuestionIds}
-          savingQuestions={savingQuestions}
-          setSavingQuestions={setSavingQuestions}
-          submitting={submitting}
-          setSubmitting={setSubmitting}
-          assignError={assignError}
-          setAssignError={setAssignError}
-          metadata={aiExamMetadata}
-          setMetadata={setAiExamMetadata}
-          onDone={handleDone}
-          onChangeInnerMode={() => {
-            setAiSubMode(null);
-            resetAiDraft();
-          }}
-        />
+      <Button variant="ghost" size="sm" onClick={() => setMethod(null)} className="-ml-2">
+        <ArrowLeft className="mr-1 h-4 w-4" />
+        Change method
+      </Button>
+      {method === "ai-pdf" && <ExamAiPdfFlow lockedClass={lockedClass} onDone={handleDone} />}
+      {method === "ai-generate" && (
+        <AiExamGenerate lockedClass={lockedClass} onDone={handleDone} />
       )}
       {method === "question-bank" && (
-        <QuestionBankExam lockedClass={lockedClassLite} topicId={topicId} onDone={handleDone} />
+        <QuestionBankExam lockedClass={lockedClass} topicId={topicId} onDone={handleDone} />
       )}
     </div>
   );
@@ -321,7 +177,6 @@ function MethodCard({
   return (
     <button
       onClick={onClick}
-      data-testid={`exam-create-method-${title.toLowerCase().replace(/\s+/g, "-")}`}
       className="group rounded-2xl border bg-card p-5 text-left transition-all hover:border-primary/50 hover:shadow-md"
     >
       <div className="mb-3 flex items-center gap-2">
@@ -335,382 +190,6 @@ function MethodCard({
       <h3 className="font-display text-base font-semibold">{title}</h3>
       <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
     </button>
-  );
-}
-
-/**
- * Inner AI sub-mode selector. Shown once the teacher clicks the outer
- * "AI Exam" card. Offers two options that together cover the three
- * original Exam creation flows:
- *   1. Generate from Content      -> AiExamGenerate (lesson library)
- *   2. Import Existing Questions  -> AiPdfImportWorkflow (PDF)
- *
- * Picking one clears any in-flight AI draft so questions cannot leak
- * between unrelated flows.
- */
-function AiSubModeSelector({
-  onSelect,
-  lockedClass,
-}: {
-  onSelect: (mode: AiSubMode) => void;
-  lockedClass: { id: string; name: string; level: string } | null;
-}) {
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        eyebrow="AI Exam"
-        title="How should AI build your exam?"
-        subtitle={
-          lockedClass
-            ? `Class locked: ${lockedClass.name}. Pick an AI source below.`
-            : "Pick an AI source below. You can switch later."
-        }
-      />
-      <div className="grid gap-3 md:grid-cols-2">
-        <MethodCard
-          icon={Library}
-          title="Generate from Content"
-          desc="Pick a lesson from the content library. AI will draft exam questions from it."
-          badge="AI · Library"
-          onClick={() => onSelect("ai-generate")}
-        />
-        <MethodCard
-          icon={Sparkles}
-          title="Import Existing Questions"
-          desc="Upload a PDF. AI will either generate new questions from it or extract the ones already inside."
-          badge="AI · PDF"
-          onClick={() => onSelect("ai-pdf")}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ExamAiPdfFlow({
-  classes,
-  lockedClass,
-  questions,
-  setQuestions,
-  savedQuestionIds,
-  setSavedQuestionIds,
-  savingQuestions,
-  setSavingQuestions,
-  submitting,
-  setSubmitting,
-  assignError,
-  setAssignError,
-  metadata,
-  setMetadata,
-  onDone,
-  onChangeInnerMode,
-}: {
-  classes: { id: string; name: string; level: string }[];
-  lockedClass: { id: string; name: string; level: string } | null;
-  questions: ImportedQuestion[];
-  setQuestions: (q: ImportedQuestion[]) => void;
-  savedQuestionIds: string[];
-  setSavedQuestionIds: (ids: string[]) => void;
-  savingQuestions: boolean;
-  setSavingQuestions: (b: boolean) => void;
-  submitting: boolean;
-  setSubmitting: (b: boolean) => void;
-  assignError: string | null;
-  setAssignError: (s: string | null) => void;
-  metadata: { classId: string; title: string; dueDate: string; duration: number };
-  setMetadata: (m: { classId: string; title: string; dueDate: string; duration: number }) => void;
-  onDone: (title: string, classId: string) => void;
-  onChangeInnerMode?: () => void;
-}) {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!metadata.classId) {
-      const targetId = lockedClass?.id ?? classes[0]?.id;
-      if (targetId) {
-        setMetadata({ ...metadata, classId: targetId });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lockedClass, classes]);
-
-  const selectedClass = lockedClass ?? classes.find((c) => c.id === metadata.classId) ?? null;
-  const targetLevel = selectedClass?.level || "N5";
-
-  /**
-   * Persist the AI workflow's questions to the teacher's question bank.
-   * Returns the saved IDs in the same order as the input array so the
-   * caller can persist them onto an Exam in preview order.
-   *
-   * This intentionally runs BEFORE the teacher fills in exam metadata so
-   * the questions are durable even if the teacher refreshes mid-way.
-   */
-  const persistQuestionsToBank = async (items: ImportedQuestion[]): Promise<string[]> => {
-    if (items.length === 0) {
-      throw new Error("No questions to save.");
-    }
-
-    const unresolved = findUnresolvedQuestions(items);
-    if (unresolved.length > 0) {
-      throw new Error(
-        "One or more questions are missing a correct answer or have a blank text answer. Please resolve them first.",
-      );
-    }
-
-    const savedIds: string[] = [];
-    // Sequential to preserve preview order — the backend list sorts by
-    // createdAt DESC, so parallel inserts with the same timestamp can
-    // surface the LAST inserted question first.
-    for (const q of items) {
-      const req = mapImportedQuestionToBankRequest(q, targetLevel);
-      const res = await teacherQuestionsApi.createQuestion(req);
-      savedIds.push(res.id);
-    }
-    return savedIds;
-  };
-
-  const handleCreateQuestions = async (items: ImportedQuestion[]) => {
-    // Cache the items so they survive even if the bank save fails (the
-    // teacher can retry Create without re-uploading the PDF).
-    setQuestions(items);
-    setAssignError(null);
-    setSavingQuestions(true);
-    try {
-      const ids = await persistQuestionsToBank(items);
-      setSavedQuestionIds(ids);
-      toast.success(`Saved ${items.length} questions to your question bank.`);
-    } catch (err: any) {
-      setAssignError(err?.message || "Failed to save questions to your question bank.");
-      toast.error(err?.message || "Failed to save questions to your question bank.");
-      setSavedQuestionIds([]);
-    } finally {
-      setSavingQuestions(false);
-    }
-  };
-
-  const handleAssign = async () => {
-    setAssignError(null);
-    let idsToUse = savedQuestionIds;
-
-    // Lazy save: if the teacher skipped straight to Assign without going
-    // through the AI workflow's Create, persist first.
-    if (idsToUse.length === 0 && questions.length > 0) {
-      setSavingQuestions(true);
-      try {
-        idsToUse = await persistQuestionsToBank(questions);
-        setSavedQuestionIds(idsToUse);
-      } catch (err: any) {
-        setSavingQuestions(false);
-        setAssignError(err?.message || "Failed to save questions to your question bank.");
-        toast.error(err?.message || "Failed to save questions to your question bank.");
-        return;
-      }
-      setSavingQuestions(false);
-    }
-
-    if (idsToUse.length === 0) {
-      const msg = "Generate and save at least one question before assigning.";
-      setAssignError(msg);
-      toast.error(msg);
-      return;
-    }
-
-    if (!metadata.classId || !metadata.title || !metadata.dueDate) {
-      const msg = "Please fill in target class, title, and due date before assigning.";
-      setAssignError(msg);
-      toast.error(msg);
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const examTitle = metadata.title || `AI Exam - ${idsToUse.length} questions`;
-      await examsApi.createExam({
-        title: examTitle,
-        level: targetLevel,
-        totalQuestions: idsToUse.length,
-        timeLimit: metadata.duration,
-        classIds: metadata.classId ? [metadata.classId] : [],
-        questionIds: idsToUse,
-        status: "PUBLISHED",
-      });
-
-      await queryClient.invalidateQueries({ queryKey: ["exams"] });
-      if (metadata.classId) {
-        await queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] });
-        await queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] });
-      }
-
-      toast.success("Exam published successfully!");
-      onDone(examTitle, metadata.classId);
-    } catch (err: any) {
-      setAssignError(err?.message || "Failed to assign exam.");
-      toast.error(err?.message || "Failed to assign exam.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {onChangeInnerMode && (
-        <Button variant="ghost" size="sm" onClick={onChangeInnerMode} className="-ml-2">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Back to AI mode selection
-        </Button>
-      )}
-      <PageHeader
-        eyebrow="AI Exam · Unified Workflow"
-        title="Create exam from PDF"
-        subtitle="Upload a PDF and let AI generate or extract exam questions automatically."
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-4">
-          <AiPdfImportWorkflow
-            onCreate={async (items) => {
-              await handleCreateQuestions(items);
-            }}
-            title="AI Exam"
-            subtitle="Choose how AI should process your PDF."
-            backHref="/teacher/exams"
-            backLabel="Back to Exam Selection"
-            enabled={true}
-            disabledReason=""
-            defaultMode="IMPORT_EXISTING_QUESTIONS"
-          />
-
-          {questions.length > 0 && (
-            <div className="card-base p-4 border border-[var(--border)]">
-              <p className="text-xs text-muted-foreground">
-                {savedQuestionIds.length > 0 ? (
-                  <>
-                    Saved <strong>{questions.length}</strong> question
-                    {questions.length === 1 ? "" : "s"} to the teacher's question bank. Configure
-                    the exam details below and click <strong>Publish Exam</strong> to schedule it
-                    for the class.
-                  </>
-                ) : (
-                  <>
-                    Generated <strong>{questions.length}</strong> question
-                    {questions.length === 1 ? "" : "s"} from the PDF. Click <strong>Create</strong>{" "}
-                    in the workflow above to save them to your question bank before publishing.
-                  </>
-                )}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <Card className="border-[var(--border)] bg-card shadow-sm p-4 space-y-4 h-fit">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-secondary-col">
-            Exam Settings
-          </h3>
-
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
-              Target class
-            </Label>
-            {lockedClass ? (
-              <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-sm">
-                <LevelBadge level={lockedClass.level as JLPTLevel} />
-                <span>{lockedClass.name}</span>
-                <span className="ml-auto text-[10px] uppercase text-muted-foreground">Locked</span>
-              </div>
-            ) : (
-              <Select
-                value={metadata.classId}
-                onValueChange={(v) => setMetadata({ ...metadata, classId: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
-              Title
-            </Label>
-            <Input
-              value={metadata.title}
-              onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
-              placeholder="E.g., N5 Grammar Assessment"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
-                Due date
-              </Label>
-              <Input
-                type="datetime-local"
-                value={metadata.dueDate}
-                onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold uppercase tracking-wider text-secondary-col">
-                Duration (min)
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                value={metadata.duration}
-                onChange={(e) =>
-                  setMetadata({
-                    ...metadata,
-                    duration: Math.max(0, Number(e.target.value) || 0),
-                  })
-                }
-              />
-            </div>
-          </div>
-
-          {assignError && (
-            <div className="px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
-              {assignError}
-            </div>
-          )}
-
-          <Button
-            disabled={
-              submitting ||
-              savingQuestions ||
-              questions.length === 0 ||
-              savedQuestionIds.length === 0
-            }
-            className="w-full"
-            data-testid="ai-pdf-publish-button"
-            onClick={handleAssign}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Publishing…
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Publish Exam
-              </>
-            )}
-          </Button>
-          <p className="text-[10px] text-muted-foreground">
-            Questions are persisted as EXAM items in your teacher question bank before being
-            scheduled for the selected class.
-          </p>
-        </Card>
-      </div>
-    </div>
   );
 }
 
@@ -867,6 +346,10 @@ function QuestionBankExam({
     if (!preview || preview.length === 0) return;
     if (!metadata.classId || !metadata.dueDate || !metadata.title) {
       toast.error("Please fill in target class, title, and due date.");
+      return;
+    }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      toast.error("Due date cannot be in the past.");
       return;
     }
 
@@ -1134,10 +617,19 @@ function QuestionBankExam({
                     type="number"
                     min={1}
                     className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm font-bold"
-                    value={totalQuestionsInput}
+                    value={totalQuestionsInput === 0 ? "" : totalQuestionsInput}
                     onChange={(e) => {
-                      setTotalQuestionsInput(Math.max(1, Number(e.target.value) || 0));
+                      const val = e.target.value;
+                      if (val === "") {
+                        setTotalQuestionsInput(0);
+                      } else {
+                        const parsed = parseInt(val, 10);
+                        setTotalQuestionsInput(isNaN(parsed) ? 0 : Math.max(0, parsed));
+                      }
                       setBackendError(null);
+                    }}
+                    onBlur={() => {
+                      if (totalQuestionsInput < 1) setTotalQuestionsInput(1);
                     }}
                   />
                 </div>
@@ -1154,11 +646,14 @@ function QuestionBankExam({
                         min={0}
                         max={100}
                         className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
-                        value={difficultyPercent.easy}
+                        value={difficultyPercent.easy === 0 ? "" : difficultyPercent.easy}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = val === "" ? 0 : parseInt(val, 10);
+                          const num = isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
                           setDifficultyPercent({
                             ...difficultyPercent,
-                            easy: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                            easy: num,
                           });
                           setBackendError(null);
                         }}
@@ -1171,11 +666,14 @@ function QuestionBankExam({
                         min={0}
                         max={100}
                         className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
-                        value={difficultyPercent.medium}
+                        value={difficultyPercent.medium === 0 ? "" : difficultyPercent.medium}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = val === "" ? 0 : parseInt(val, 10);
+                          const num = isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
                           setDifficultyPercent({
                             ...difficultyPercent,
-                            medium: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                            medium: num,
                           });
                           setBackendError(null);
                         }}
@@ -1188,11 +686,14 @@ function QuestionBankExam({
                         min={0}
                         max={100}
                         className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
-                        value={difficultyPercent.hard}
+                        value={difficultyPercent.hard === 0 ? "" : difficultyPercent.hard}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = val === "" ? 0 : parseInt(val, 10);
+                          const num = isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
                           setDifficultyPercent({
                             ...difficultyPercent,
-                            hard: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                            hard: num,
                           });
                           setBackendError(null);
                         }}
@@ -1358,7 +859,7 @@ function QuestionBankExam({
                   </Label>
                   {lockedClass ? (
                     <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
-                      <LevelBadge level={lockedClass.level as JLPTLevel} />
+                      <LevelBadge level={lockedClass.level} />
                       <span className="text-sm font-semibold">{lockedClass.name}</span>
                       <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">
                         Locked
@@ -1405,6 +906,11 @@ function QuestionBankExam({
                       className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
                       value={metadata.dueDate}
                       onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                      min={(() => {
+                        const now = new Date();
+                        const tzOffset = now.getTimezoneOffset() * 60000;
+                        return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+                      })()}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1527,6 +1033,503 @@ function QuestionBankExam({
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ExamAiPdfFlow({
+  lockedClass,
+  onDone,
+}: {
+  lockedClass: any | null;
+  onDone: (t: string, classId: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const { data: classes = [] } = useQuery({
+    queryKey: ["teacherAllClasses"],
+    queryFn: () => classesApi.getSelectableClasses(),
+  });
+
+  const [step, setStep] = useState<"upload" | "preview" | "assign">("upload");
+  const [error, setError] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<ImportedQuestion[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [fileName, setFileName] = useState<string>("");
+
+  const [metadata, setMetadata] = useState({
+    classId: lockedClass?.id ?? classes[0]?.id ?? "",
+    title: "",
+    dueDate: "",
+    duration: 60,
+  });
+
+  const handleUpdateQuestion = (idx: number, updatedFields: Partial<ImportedQuestion>) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], ...updatedFields };
+      return copy;
+    });
+  };
+
+  const handleDeleteQuestion = (idx: number) => {
+    setQuestions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleDuplicateQuestion = (idx: number) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      const target = copy[idx];
+      const duplicated = {
+        ...target,
+        id: `extracted-${Date.now()}-dup`,
+        content: `${target.content} (Copy)`,
+        answers: target.answers.map((ans: { content: string; isCorrect: boolean }) => ({ ...ans })),
+      };
+      copy.splice(idx + 1, 0, duplicated);
+      return copy;
+    });
+  };
+
+  const handleMoveQuestion = (idx: number, direction: "up" | "down") => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= copy.length) return prev;
+      const temp = copy[idx];
+      copy[idx] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy;
+    });
+  };
+
+  const handleReAnalyze = (_idx: number) => {
+    // Disabled (Coming Soon)
+  };
+
+  const handleAddQuestion = () => {
+    const newQuestion: ImportedQuestion = {
+      id: `extracted-${Date.now()}-manual`,
+      type: "MULTIPLE_CHOICE",
+      content: "",
+      difficulty: "MEDIUM",
+      explanation: "",
+      answers: [
+        { content: "", isCorrect: true },
+        { content: "", isCorrect: false },
+      ],
+      category: "Vocabulary",
+    };
+    setQuestions((prev) => [...prev, newQuestion]);
+  };
+
+  const handleFileUpload = () => {
+    // Simulate AI parsing with sample questions
+    const sampleQuestions: ImportedQuestion[] = [
+      {
+        id: "sample-1",
+        type: "MULTIPLE_CHOICE",
+        content: "What is the meaning of 学校 (がっこう)?",
+        difficulty: "EASY",
+        explanation: "School in Japanese",
+        answers: [
+          { content: "School", isCorrect: true },
+          { content: "Hospital", isCorrect: false },
+          { content: "Library", isCorrect: false },
+          { content: "Park", isCorrect: false },
+        ],
+        category: "Vocabulary",
+      },
+      {
+        id: "sample-2",
+        type: "MULTIPLE_CHOICE",
+        content: "Which particle is used to mark the topic of a sentence?",
+        difficulty: "MEDIUM",
+        explanation: "は (wa) is the topic marker particle",
+        answers: [
+          { content: "は (wa)", isCorrect: true },
+          { content: "を (wo)", isCorrect: false },
+          { content: "で (de)", isCorrect: false },
+          { content: "に (ni)", isCorrect: false },
+        ],
+        category: "Grammar",
+      },
+      {
+        id: "sample-3",
+        type: "MULTIPLE_CHOICE",
+        content: "Choose the correct reading for 山 (mountain):",
+        difficulty: "EASY",
+        explanation: "The kanji 山 can be read as やま (yama) or さん (san)",
+        answers: [
+          { content: "やま (yama)", isCorrect: true },
+          { content: "かわ (kawa)", isCorrect: false },
+          { content: "そら (sora)", isCorrect: false },
+          { content: "うみ (umi)", isCorrect: false },
+        ],
+        category: "Vocabulary",
+      },
+    ];
+    setFileName("sample-jlpt-n5.pdf");
+    setQuestions(sampleQuestions);
+    setStep("preview");
+  };
+
+  const handleAssign = async () => {
+    if (!metadata.classId || !metadata.title || !metadata.dueDate) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
+    if (questions.length === 0) {
+      toast.error("No questions to assign.");
+      return;
+    }
+
+    const hasUnresolved = questions.some(q => q.answers.findIndex(ans => ans.isCorrect) === -1);
+    if (hasUnresolved) {
+      toast.error("One or more questions are missing a correct answer. Please resolve them first.");
+      return;
+    }
+
+    const selectedClass = lockedClass || classes.find((c) => c.id === metadata.classId);
+    const targetLevel = selectedClass?.level || "N5";
+
+    setSubmitting(true);
+    try {
+      const savedQuestionIds: string[] = [];
+      for (const q of questions) {
+        const correctIndex = q.answers.findIndex((ans) => ans.isCorrect);
+        const res = await teacherQuestionsApi.createQuestion({
+          prompt: q.content,
+          options: q.answers.map((ans) => ans.content),
+          correctAnswerIndex: correctIndex,
+          points: 1,
+          questionType: "MULTIPLE_CHOICE",
+          difficulty: q.difficulty as "EASY" | "MEDIUM" | "HARD",
+          explanation: q.explanation || "",
+          level: targetLevel,
+          skill: q.category?.toUpperCase() || "VOCABULARY",
+          source: "EXAM",
+        });
+        savedQuestionIds.push(res.id);
+      }
+
+      await examsApi.createExam({
+        title: metadata.title,
+        level: targetLevel,
+        totalQuestions: questions.length,
+        timeLimit: metadata.duration,
+        classIds: metadata.classId ? [metadata.classId] : [],
+        questionIds: savedQuestionIds,
+        status: "PUBLISHED",
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ["exams"] });
+      if (metadata.classId) {
+        await queryClient.invalidateQueries({ queryKey: ["examsByClass", metadata.classId] });
+        await queryClient.invalidateQueries({ queryKey: ["classExams", metadata.classId] });
+      }
+
+      toast.success("Exam published successfully!");
+      onDone(metadata.title, metadata.classId);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to assign exam.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const stepItems = [
+    { num: 1, label: "Upload PDF" },
+    { num: 2, label: "Preview & Edit" },
+    { num: 3, label: "Assign" },
+  ];
+  const currentStepNum = step === "upload" ? 1 : step === "preview" ? 2 : 3;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="AI PDF Exam Generator"
+        title="Create exam from PDF"
+        subtitle="Upload a PDF and let AI generate exam questions automatically."
+      />
+
+      {/* Stepper UI */}
+      <div className="flex items-center justify-between max-w-xl mx-auto px-4">
+        {stepItems.map((s, idx, arr) => (
+          <div key={s.num} className="flex items-center flex-1 last:flex-initial">
+            <div className="flex flex-col items-center gap-1.5 z-10">
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-display border",
+                  currentStepNum === s.num
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : currentStepNum > s.num
+                      ? "bg-green-500 border-green-500 text-white"
+                      : "bg-background border-[var(--border)] text-muted-foreground",
+                )}
+              >
+                {currentStepNum > s.num ? <CheckCircle className="w-4 h-4" /> : s.num}
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {s.label}
+              </span>
+            </div>
+            {idx < arr.length - 1 && (
+              <div className={cn("h-[2px] flex-1 -mx-2 -mt-4", currentStepNum > s.num ? "bg-green-500" : "bg-[var(--border)]")} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Upload View */}
+      {step === "upload" && (
+        <div className="space-y-6">
+          <div className="card-base p-12 border-2 border-dashed text-center transition border-[var(--border)] hover:border-primary/50">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+              <Upload className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="font-display font-bold text-lg text-primary-col mb-1">
+              Upload PDF File
+            </h3>
+            <p className="text-sm text-secondary-col mb-6">
+              Drag and drop your PDF here, or click to browse.
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Supported: PDF files with text content
+            </p>
+            <Button onClick={handleFileUpload} className="px-6 py-2.5 rounded-xl font-bold">
+              <Upload className="w-4 h-4 mr-2" />
+              Choose PDF File
+            </Button>
+          </div>
+
+          {error && (
+            <div className="p-4 rounded-xl bg-[var(--status-rejected)]/10 text-[var(--status-rejected)] text-sm flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preview View */}
+      {step === "preview" && (
+        <div className="space-y-6">
+          {/* Header bar */}
+          <div className="flex items-center justify-between flex-wrap gap-4 bg-[var(--accent)]/50 p-4 rounded-xl border border-[var(--border)] sticky top-0 z-30 backdrop-blur-md">
+            <div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <h3 className="font-display font-bold text-primary-col">
+                  {questions.length} Questions Extracted
+                </h3>
+              </div>
+              <p className="text-xs text-muted-col mt-0.5">
+                From: {fileName || "PDF Document"}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStep("upload");
+                  setQuestions([]);
+                }}
+              >
+                Upload Another
+              </Button>
+              <Button onClick={() => setStep("assign")}>
+                Continue to Assign
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Add Question Button */}
+          <div className="flex justify-center">
+            <Button variant="outline" onClick={handleAddQuestion} className="rounded-xl">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Question
+            </Button>
+          </div>
+
+          {/* Questions List */}
+          <div className="space-y-4">
+            {questions.map((q, idx) => (
+              <QuestionEditor
+                key={q.id}
+                question={q}
+                index={idx}
+                totalQuestions={questions.length}
+                onUpdateQuestion={handleUpdateQuestion}
+                onDeleteQuestion={handleDeleteQuestion}
+                onDuplicateQuestion={handleDuplicateQuestion}
+                onMoveQuestion={handleMoveQuestion}
+                onReAnalyze={handleReAnalyze}
+                isReAnalyzing={false}
+              />
+            ))}
+          </div>
+
+          {questions.length === 0 && (
+            <div className="card-base p-12 text-center border border-[var(--border)]">
+              <p className="text-sm text-muted-foreground">No questions yet. Click "Add Question" to start.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Assign View */}
+      {step === "assign" && (
+        <div className="space-y-6">
+          <Card className="border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                {questions.length} Questions Ready
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                  Target class <span className="text-red-500">*</span>
+                </Label>
+                {lockedClass ? (
+                  <div className="flex items-center gap-2 rounded-lg border bg-[var(--accent)]/50 p-2.5">
+                    <LevelBadge level={lockedClass.level} />
+                    <span className="text-sm font-semibold">{lockedClass.name}</span>
+                    <span className="ml-auto text-[10px] font-bold uppercase text-muted-col bg-muted border px-1.5 py-0.5 rounded">
+                      Locked
+                    </span>
+                  </div>
+                ) : (
+                  <Select
+                    value={metadata.classId}
+                    onValueChange={(v: string) => setMetadata({ ...metadata, classId: v })}
+                  >
+                    <SelectTrigger className="w-full rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm">
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} ({c.level})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                  Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                  value={metadata.title}
+                  onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
+                  placeholder="E.g., N5 Grammar Assessment"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Due date <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.dueDate}
+                    onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                    min={(() => {
+                      const now = new Date();
+                      const tzOffset = now.getTimezoneOffset() * 60000;
+                      return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+                    })()}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-secondary-col uppercase tracking-wider">
+                    Duration (min)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
+                    value={metadata.duration}
+                    onChange={(e) =>
+                      setMetadata({
+                        ...metadata,
+                        duration: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between mt-6 pt-4 border-t">
+                <Button variant="outline" onClick={() => setStep("preview")}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <Button
+                  className="flex items-center gap-1.5"
+                  disabled={submitting}
+                  onClick={handleAssign}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Publish Exam
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Questions Preview */}
+          <Card className="border-[var(--border)] bg-card shadow-sm">
+            <CardHeader className="pb-3 border-b border-[var(--border)]">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-secondary-col">
+                Questions Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 divide-y divide-[var(--border)]">
+              {questions.slice(0, 5).map((q, i) => (
+                <div key={q.id || i} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground text-xs font-bold">
+                      {i + 1}
+                    </span>
+                    <div className="space-y-1 flex-1">
+                      <p className="text-sm font-semibold text-primary-col">{q.content || "(Empty question)"}</p>
+                      <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
+                        {q.category || "Vocabulary"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {questions.length > 5 && (
+                <div className="p-3 text-center text-xs text-muted-foreground">
+                  +{questions.length - 5} more questions
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

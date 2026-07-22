@@ -28,7 +28,7 @@ public class AdminDashboardController {
 
     @GetMapping("/activities")
     public ResponseEntity<ApiResponse<AdminRecentActivitiesResponse>> getRecentActivities(
-            @RequestParam(defaultValue = "20") int limit) {
+            @RequestParam(defaultValue = "6") int limit) {
         AdminRecentActivitiesResponse activities = dashboardService.getRecentActivities(limit);
         return ResponseEntity.ok(ApiResponse.success(activities));
     }

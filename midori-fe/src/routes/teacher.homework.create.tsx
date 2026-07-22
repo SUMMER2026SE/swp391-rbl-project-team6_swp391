@@ -435,6 +435,10 @@ function QuestionBankHW({
       toast.error("Please fill in target class, title, and due date.");
       return;
     }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -708,10 +712,19 @@ function QuestionBankHW({
                     type="number"
                     min={1}
                     className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm font-bold"
-                    value={totalQuestionsInput}
+                    value={totalQuestionsInput === 0 ? "" : totalQuestionsInput}
                     onChange={(e) => {
-                      setTotalQuestionsInput(Math.max(1, Number(e.target.value) || 0));
+                      const val = e.target.value;
+                      if (val === "") {
+                        setTotalQuestionsInput(0);
+                      } else {
+                        const parsed = parseInt(val, 10);
+                        setTotalQuestionsInput(isNaN(parsed) ? 0 : Math.max(0, parsed));
+                      }
                       setBackendError(null);
+                    }}
+                    onBlur={() => {
+                      if (totalQuestionsInput < 1) setTotalQuestionsInput(1);
                     }}
                   />
                 </div>
@@ -728,11 +741,14 @@ function QuestionBankHW({
                         min={0}
                         max={100}
                         className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
-                        value={difficultyPercent.easy}
+                        value={difficultyPercent.easy === 0 ? "" : difficultyPercent.easy}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = val === "" ? 0 : parseInt(val, 10);
+                          const num = isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
                           setDifficultyPercent({
                             ...difficultyPercent,
-                            easy: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                            easy: num,
                           });
                           setBackendError(null);
                         }}
@@ -745,11 +761,14 @@ function QuestionBankHW({
                         min={0}
                         max={100}
                         className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
-                        value={difficultyPercent.medium}
+                        value={difficultyPercent.medium === 0 ? "" : difficultyPercent.medium}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = val === "" ? 0 : parseInt(val, 10);
+                          const num = isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
                           setDifficultyPercent({
                             ...difficultyPercent,
-                            medium: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                            medium: num,
                           });
                           setBackendError(null);
                         }}
@@ -762,11 +781,14 @@ function QuestionBankHW({
                         min={0}
                         max={100}
                         className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm text-center font-bold"
-                        value={difficultyPercent.hard}
+                        value={difficultyPercent.hard === 0 ? "" : difficultyPercent.hard}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = val === "" ? 0 : parseInt(val, 10);
+                          const num = isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
                           setDifficultyPercent({
                             ...difficultyPercent,
-                            hard: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                            hard: num,
                           });
                           setBackendError(null);
                         }}
@@ -984,6 +1006,11 @@ function QuestionBankHW({
                       className="w-full px-3 py-2 rounded-lg bg-[var(--accent)] border border-[var(--border)] text-sm"
                       value={metadata.dueDate}
                       onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                      min={(() => {
+                        const now = new Date();
+                        const tzOffset = now.getTimezoneOffset() * 60000;
+                        return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+                      })()}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -1235,6 +1262,12 @@ function HomeworkAiPdf({
       toast.error(msg);
       return;
     }
+    if (new Date(metadata.dueDate).getTime() < new Date().getTime()) {
+      const msg = "Due date cannot be in the past.";
+      setAssignError(msg);
+      toast.error(msg);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -1353,6 +1386,7 @@ function HomeworkAiPdf({
                 type="date"
                 value={metadata.dueDate}
                 onChange={(e) => setMetadata({ ...metadata, dueDate: e.target.value })}
+                min={new Date().toISOString().split("T")[0]}
               />
             </div>
             <div className="space-y-1.5">

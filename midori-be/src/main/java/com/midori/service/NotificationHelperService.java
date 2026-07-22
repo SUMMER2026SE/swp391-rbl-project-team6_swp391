@@ -1,11 +1,13 @@
 package com.midori.service;
 
+import com.midori.entity.ClassEntity;
 import com.midori.entity.Notification;
 import com.midori.entity.NotificationType;
 import com.midori.entity.Role;
 import com.midori.entity.User;
 import com.midori.entity.UserNotification;
 import com.midori.entity.UserStatus;
+import com.midori.exception.BadRequestException;
 import com.midori.repository.ClassRepository;
 import com.midori.repository.NotificationRepository;
 import com.midori.repository.UserNotificationRepository;
@@ -21,6 +23,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -40,6 +43,44 @@ public class NotificationHelperService {
      */
     public boolean classExists(UUID classId) {
         return classId != null && classRepository.existsById(classId);
+    }
+
+    /**
+     * Resolve a class identifier supplied by an admin (either a human-friendly
+     * {@code classCode} like "N5-A1" or a UUID-shaped value) to a
+     * {@link ClassEntity}. Returns {@code null} when the input is blank or no
+     * matching class can be found. The lookup tries {@code findByClassCode}
+     * first (the new canonical lookup) and falls back to {@code findById} for
+     * UUID inputs to keep legacy callers working.
+     */
+    public ClassEntity findClassByCodeOrId(String codeOrId) {
+        if (codeOrId == null || codeOrId.isBlank()) {
+            return null;
+        }
+        String trimmed = codeOrId.trim();
+        Optional<ClassEntity> byCode = classRepository.findByClassCode(trimmed);
+        if (byCode.isPresent()) {
+            return byCode.get();
+        }
+        try {
+            UUID asUuid = UUID.fromString(trimmed);
+            return classRepository.findById(asUuid).orElse(null);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    /**
+     * Convenience wrapper that throws a {@link BadRequestException} when the
+     * supplied identifier cannot be resolved. Used by services that must
+     * surface a clear error to the admin UI instead of a generic 500.
+     */
+    public ClassEntity requireClassByCodeOrId(String codeOrId) {
+        ClassEntity entity = findClassByCodeOrId(codeOrId);
+        if (entity == null) {
+            throw new BadRequestException("Class not found for classCode: " + codeOrId);
+        }
+        return entity;
     }
 
     /**

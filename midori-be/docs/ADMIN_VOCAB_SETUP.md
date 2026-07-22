@@ -85,7 +85,7 @@ The frontend is hosted at: **http://localhost:8081**
 When the backend starts in the `local` profile, if no active administrator exists in the database, the system automatically bootstraps a default account using parameters in [AdminBootstrapProperties.java](../src/main/java/com/midori/config/AdminBootstrapProperties.java) and [AdminBootstrapConfig.java](../src/main/java/com/midori/config/AdminBootstrapConfig.java):
 
 *   **Email**: `admin@midori.local`
-*   **Password**: `MidoriAdmin2026!`
+*   **Password**: *Set through the `ADMIN_BOOTSTRAP_PASSWORD` environment variable*
 *   **Role**: `ADMIN`
 *   **Status**: `ACTIVE`
 

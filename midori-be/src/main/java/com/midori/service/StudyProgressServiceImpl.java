@@ -10,6 +10,8 @@ import com.midori.entity.ContentType;
 import com.midori.entity.Exam;
 import com.midori.entity.User;
 import com.midori.entity.UserLearningProgress;
+import com.midori.entity.GrammarPattern;
+import com.midori.entity.FlashcardSet;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +43,9 @@ public class StudyProgressServiceImpl implements StudyProgressService {
     private final ClassRepository classRepository;
     private final HomeworkRepository homeworkRepository;
     private final ExamRepository examRepository;
-    private final com.midori.repository.UserLoginHistoryRepository userLoginHistoryRepository;
+    private final GrammarPatternRepository grammarPatternRepository;
+    private final FlashcardSetRepository flashcardSetRepository;
+    private final UserLoginHistoryRepository userLoginHistoryRepository;
 
     // ============================================================
     // Upsert Helper
@@ -397,13 +401,38 @@ public class StudyProgressServiceImpl implements StudyProgressService {
                 } else {
                     timestamp = DateTimeFormatter.ofPattern("MMM d").format(progress.getUpdatedAt().atZone(ZoneOffset.UTC));
                 }
-                String contentTitle = progress.getContentType().name() + " - " + progress.getContentId();
+                
+                String contentTitle = progress.getContentId();
+                if (progress.getContentType() == ContentType.VOCABULARY) {
+                    if (contentTitle.contains("::")) {
+                        contentTitle = contentTitle.substring(contentTitle.indexOf("::") + 2);
+                    }
+                } else if (progress.getContentType() == ContentType.GRAMMAR) {
+                    try {
+                        UUID gpId = UUID.fromString(contentTitle);
+                        contentTitle = grammarPatternRepository.findById(gpId)
+                                .map(GrammarPattern::getPattern)
+                                .orElse(progress.getContentId());
+                    } catch (Exception e) {
+                        // fallback
+                    }
+                } else if (progress.getContentType() == ContentType.FLASHCARD) {
+                    try {
+                        UUID fsId = UUID.fromString(contentTitle);
+                        contentTitle = flashcardSetRepository.findById(fsId)
+                                .map(FlashcardSet::getTitle)
+                                .orElse(progress.getContentId());
+                    } catch (Exception e) {
+                        // fallback
+                    }
+                }
+                
                 String description = progress.getCompleted() ? "Completed" :
                         progress.getMastered() ? "Mastered" :
                         progress.getLearned() ? "Learning" : "Started";
                 recentActivities.add(StudentProgressResponse.RecentActivity.builder()
                         .type(progress.getContentType().name())
-                        .title("Studied " + contentTitle)
+                        .title("Studied " + progress.getContentType().name() + " - " + contentTitle)
                         .description(description)
                         .timestamp(timestamp)
                         .completedAt(progress.getUpdatedAt().toString())

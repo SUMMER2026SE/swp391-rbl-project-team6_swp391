@@ -99,7 +99,7 @@ public class DictionaryTranslationServiceImpl implements DictionaryTranslationSe
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 log.info("Sending translation batch to Gemini (Attempt {}/{})...", attempt, maxRetries);
-                response = aiCoreService.chat(systemPrompt, inputJson, Collections.emptyList());
+                response = aiCoreService.chatWithProvider(com.midori.ai.AiProviderType.GEMINI, systemPrompt, inputJson, Collections.emptyList());
                 if (response != null && !response.trim().isEmpty()) {
                     break;
                 }

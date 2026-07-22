@@ -163,6 +163,14 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
       return;
     }
 
+    if (scheduledAt) {
+      const today = new Date().toISOString().split("T")[0];
+      if (scheduledAt < today) {
+        toast.error("Scheduled date cannot be in the past.");
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       // 1. Update basic info and status
@@ -229,7 +237,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
             </TabsList>
 
             {/* Basic Info Tab */}
-            <TabsContent value="basic" className="space-y-4 py-4 flex-1 overflow-y-auto">
+            <TabsContent value="basic" className="space-y-4 py-4 flex-1 overflow-y-auto focus:ring-0 focus:outline-none focus-visible:ring-0">
               <div className="space-y-2">
                 <Label htmlFor="exam-title">Title</Label>
                 <Input
@@ -291,6 +299,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
                   <Input
                     id="exam-scheduled"
                     type="date"
+                    min={new Date().toISOString().split("T")[0]}
                     value={scheduledAt}
                     onChange={(e) => setScheduledAt(e.target.value)}
                   />
@@ -299,8 +308,8 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
             </TabsContent>
 
             {/* Questions Tab */}
-            <TabsContent value="questions" className="flex-1 flex flex-col min-h-0 py-4">
-              <div className="flex justify-between items-center mb-3">
+            <TabsContent value="questions" className="flex-1 flex flex-col min-h-0 py-4 focus:ring-0 focus:outline-none focus-visible:ring-0">
+              <div className="flex justify-between items-center mb-3 shrink-0">
                 <span className="text-xs text-muted-foreground">
                   Manage exam questions & options
                 </span>
@@ -309,10 +318,29 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
                 </Button>
               </div>
 
-              <ScrollArea className="flex-1 pr-3">
+              {questions.length > 1 && (
+                <div className="flex flex-wrap items-center gap-1.5 mb-3 p-2 rounded-lg bg-muted/40 border border-border shrink-0">
+                  <span className="text-xs font-semibold text-muted-foreground mr-1">Jump to:</span>
+                  {questions.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        document.getElementById(`question-card-${idx}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                      }}
+                      className="px-2.5 py-1 text-xs font-medium rounded-md bg-background border border-border hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      Q{idx + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex-1 min-h-0 max-h-[55vh] overflow-y-auto pr-3 space-y-4">
                 <div className="space-y-4">
                   {questions.map((q, qIdx) => (
                     <div
+                      id={`question-card-${qIdx}`}
                       key={q.id || qIdx}
                       className="p-4 rounded-xl border border-border bg-card space-y-4"
                     >
@@ -425,7 +453,7 @@ export function ExamEditDialog({ open, onOpenChange, exam, onSave }: ExamEditDia
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </TabsContent>
           </Tabs>
         )}

@@ -150,6 +150,10 @@ function HomeworkPage() {
       toast.error("Please select a due date.");
       return;
     }
+    if (new Date(assignDueDate).getTime() < new Date().getTime()) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
 
     try {
       await assignMutation.mutateAsync({
@@ -401,6 +405,11 @@ function HomeworkPage() {
                 type="datetime-local"
                 value={assignDueDate}
                 onChange={(e) => setAssignDueDate(e.target.value)}
+                min={(() => {
+                  const now = new Date();
+                  const tzOffset = now.getTimezoneOffset() * 60000;
+                  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+                })()}
                 className="w-full"
               />
             </div>

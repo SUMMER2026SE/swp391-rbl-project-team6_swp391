@@ -94,9 +94,7 @@ export function QuestionBankToolbar({
               <SelectItem value="All">All Skills</SelectItem>
               <SelectItem value="Vocabulary">Vocabulary</SelectItem>
               <SelectItem value="Grammar">Grammar</SelectItem>
-              <SelectItem value="Kanji">Kanji</SelectItem>
               <SelectItem value="Reading">Reading</SelectItem>
-              <SelectItem value="Listening">Listening</SelectItem>
             </SelectContent>
           </Select>
         </div>

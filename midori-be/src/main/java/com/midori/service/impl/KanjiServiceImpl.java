@@ -4,6 +4,7 @@ import com.midori.dto.kanji.KanjiResponse;
 import com.midori.entity.KanjiEntry;
 import com.midori.exception.ResourceNotFoundException;
 import com.midori.repository.KanjiEntryRepository;
+import com.midori.service.KanjiMnemonicService;
 import com.midori.service.KanjiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class KanjiServiceImpl implements KanjiService {
 
     private final KanjiEntryRepository kanjiEntryRepository;
+    private final KanjiMnemonicService kanjiMnemonicService;
 
     @Override
     @Transactional(readOnly = true)
@@ -26,6 +28,13 @@ public class KanjiServiceImpl implements KanjiService {
         KanjiEntry entry = kanjiEntryRepository.findByCharacter(target)
                 .orElseThrow(() -> new ResourceNotFoundException("KanjiEntry", "character", target));
 
+        // Get mnemonic from service (real etymology-based mnemonics, no mock data)
+        String mnemonic = entry.getMnemonic();
+        if (mnemonic == null || mnemonic.isBlank()) {
+            // Fall back to dynamic generation from KanjiMnemonicService
+            mnemonic = kanjiMnemonicService.getMnemonic(target).orElse(null);
+        }
+
         return KanjiResponse.builder()
                 .id(entry.getId())
                 .character(entry.getCharacter())
@@ -37,6 +46,7 @@ public class KanjiServiceImpl implements KanjiService {
                 .meaning(entry.getMeaning())
                 .svgFile(entry.getSvgFile())
                 .svgAvailable(entry.getSvgFile() != null && !entry.getSvgFile().isBlank())
+                .mnemonic(mnemonic)
                 .build();
     }
 }

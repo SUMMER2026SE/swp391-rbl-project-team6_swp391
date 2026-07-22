@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { NotificationType } from "@/types/notification";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -10,7 +11,12 @@ export interface NotificationResponse {
    * column), so consumers should fall back to an empty string when missing.
    */
   content: string | null;
-  type: string;
+  /**
+   * Notification category from the canonical set
+   * {@link NotificationType} (LESSON, CONTEXT, EXAM, APPROVED, SYSTEM).
+   * Kept as the union for compile-time safety in the inbox UI.
+   */
+  type: NotificationType;
   isRead: boolean;
   createdAt: string;
 }

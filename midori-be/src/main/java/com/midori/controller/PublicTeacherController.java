@@ -1,5 +1,6 @@
 package com.midori.controller;
 
+import com.midori.common.ApiResponse;
 import com.midori.dto.response.PublicTeacherResponse;
 import com.midori.service.PublicTeacherService;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +18,12 @@ public class PublicTeacherController {
     private final PublicTeacherService teacherService;
 
     @GetMapping
-    public ResponseEntity<List<PublicTeacherResponse>> getActiveTeachers() {
-        return ResponseEntity.ok(teacherService.getActiveTeachers());
+    public ResponseEntity<ApiResponse<List<PublicTeacherResponse>>> getActiveTeachers() {
+        return ResponseEntity.ok(ApiResponse.success(teacherService.getActiveTeachers()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PublicTeacherResponse> getTeacherDetail(@PathVariable UUID id) {
-        return ResponseEntity.ok(teacherService.getTeacherDetail(id));
+    public ResponseEntity<ApiResponse<PublicTeacherResponse>> getTeacherDetail(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(teacherService.getTeacherDetail(id)));
     }
 }

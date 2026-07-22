@@ -43,7 +43,12 @@ export interface AdminNotificationResponse {
   scheduledAt: string | null;
   targetType: string | null;
   targetRole: string | null;
-  targetClassId: string | null;
+  /**
+   * Class identifier for SPECIFIC_CLASS notifications. The admin enters a
+   * human-friendly classCode (e.g. "N5-A1"); the BE accepts the same
+   * string and resolves it server-side via ClassRepository.findByClassCode.
+   */
+  classCode: string | null;
   displayStatus: string;
   createdAt: string;
   updatedAt: string;
@@ -59,7 +64,7 @@ export interface AdminNotificationDetailResponse {
   scheduledAt: string | null;
   targetType: string | null;
   targetRole: string | null;
-  targetClassId: string | null;
+  classCode: string | null;
   displayStatus: string;
   createdAt: string;
   updatedAt: string;
@@ -74,7 +79,13 @@ export interface CreateNotificationRequest {
   scheduledAt?: string;
   targetType?: TargetAudience;
   targetRole?: "TEACHER" | "STUDENT";
-  targetClassId?: string;
+  /**
+   * Class identifier for SPECIFIC_CLASS notifications. The admin types a
+   * classCode (e.g. "N5-A1"); the BE resolves it via
+   * ClassRepository.findByClassCode (with a UUID fallback) so admins do
+   * not need to know the underlying UUID.
+   */
+  classCode?: string;
 }
 
 export interface UpdateNotificationRequest {
@@ -84,7 +95,7 @@ export interface UpdateNotificationRequest {
   scheduledAt?: string;
   targetType?: TargetAudience;
   targetRole?: "TEACHER" | "STUDENT";
-  targetClassId?: string;
+  classCode?: string;
 }
 
 export interface ClassLookupResponse {
@@ -108,7 +119,12 @@ export interface NotificationListParams {
 export interface SendNotificationRequest {
   targetType: "ALL" | "ROLE" | "CLASS";
   role?: "TEACHER" | "STUDENT";
-  classId?: string;
+  /**
+   * Class identifier for targetType=CLASS. Same value as
+   * {@link CreateNotificationRequest#classCode} — admin types a classCode
+   * string and the BE resolves it.
+   */
+  classCode?: string;
 }
 
 export interface SendNotificationResponse {
