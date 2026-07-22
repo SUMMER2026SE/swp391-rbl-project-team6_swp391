@@ -191,7 +191,7 @@ public class GeminiProvider implements AiProvider {
                 int status = e.getStatusCode().value();
                 String responseBody = e.getResponseBodyAsString();
                 log.error("[GeminiProvider] HTTP ERROR - Status: {}, Response: {}", status, responseBody);
-                if ((status == 429 || status == 401 || status == 403) && attempt < maxRetries - 1) {
+                if ((status == 429 || status == 401 || status == 403 || status == 400) && attempt < maxRetries - 1) {
                     log.warn("[GeminiProvider] HTTP {} received on {} with key {}/{} — rotating to next key", status, operationLabel, attempt + 1, maxRetries);
                     keyManager.markKeyFailedAndGetNext();
                     continue;

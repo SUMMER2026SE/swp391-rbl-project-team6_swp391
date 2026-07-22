@@ -65,8 +65,8 @@ public enum GeminiModel {
      * Gemini 2.0 Flash - Modern fast and cost-effective model.
      */
     GEMINI_25_FLASH(
-            "gemini-2.0-flash",
-            "Gemini 2.0 Flash",
+            "gemini-2.5-flash",
+            "Gemini 2.5 Flash",
             "Fast and cost-effective model, recommended for general tasks",
             3,  // capability
             1,  // cost
@@ -112,8 +112,8 @@ public enum GeminiModel {
      * Gemini 1.5 Flash - Fast model.
      */
     GEMINI_35_FLASH(
-            "gemini-1.5-flash",
-            "Gemini 1.5 Flash",
+            "gemini-3.5-flash",
+            "Gemini 3.5 Flash",
             "Fast model with improved accuracy and lower latency",
             3,  // capability
             2,  // cost

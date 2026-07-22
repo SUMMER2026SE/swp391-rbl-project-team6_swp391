@@ -74,7 +74,12 @@ function CreateClass() {
 
   const canNext = () => {
     if (step === 0) return form.name.trim().length > 2;
-    if (step === 1) return form.schedule.trim().length > 2 && form.startDate;
+    if (step === 1) {
+      if (!form.startDate) return false;
+      const todayStr = new Date().toLocaleDateString("en-CA");
+      if (form.startDate < todayStr) return false;
+      return form.schedule.trim().length > 2;
+    }
     if (step === 2) return form.capacity > 0;
     return true;
   };
@@ -169,6 +174,7 @@ function CreateClass() {
                 <Label>Start date *</Label>
                 <Input
                   type="date"
+                  min={new Date().toLocaleDateString("en-CA")}
                   value={form.startDate}
                   onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                 />
