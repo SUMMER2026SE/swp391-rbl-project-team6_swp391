@@ -1238,4 +1238,319 @@ public final class AiPromptBuilder {
                 Output ONLY valid JSON. Do not use markdown code fences.
                 """, safeSentence, safeWord);
     }
+
+    // ============================================================
+    // ADMIN CONTENT LIBRARY GENERATION PROMPTS (Enhanced with Lesson Context)
+    // ============================================================
+
+    /**
+     * Build prompt for vocabulary generation with lesson context and optional document.
+     */
+    public static String buildAdminVocabularyGenerationPrompt(
+            String level,
+            String lessonTitle,
+            Integer lessonNumber,
+            String lessonDescription,
+            String topic,
+            Integer itemCount,
+            String customInstructions,
+            String documentText,
+            String lessonContext) {
+        
+        int count = (itemCount != null && itemCount > 0) ? itemCount : 10;
+        String safeTopic = (topic != null && !topic.isBlank()) ? topic : "General Vocabulary";
+        String safeTitle = (lessonTitle != null && !lessonTitle.isBlank()) ? lessonTitle : "";
+        String safeDescription = (lessonDescription != null && !lessonDescription.isBlank()) ? lessonDescription : "";
+        String safeInstructions = (customInstructions != null && !customInstructions.isBlank()) ? customInstructions : "";
+        String safeContext = (lessonContext != null && !lessonContext.isBlank()) ? lessonContext : "";
+        String docContext = (documentText != null && !documentText.isBlank()) ? documentText : "";
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are AI Sensei of MIDORI, creating Japanese vocabulary learning content for JLPT ").append(level).append(" level.\n\n");
+        
+        // Lesson Context Section
+        if (!safeContext.isEmpty() || !safeTitle.isEmpty()) {
+            prompt.append("## LESSON CONTEXT\n");
+            if (lessonNumber != null) {
+                prompt.append("Lesson Number: ").append(lessonNumber).append("\n");
+            }
+            if (!safeTitle.isEmpty()) {
+                prompt.append("Lesson Title: ").append(safeTitle).append("\n");
+            }
+            if (!safeDescription.isEmpty()) {
+                prompt.append("Lesson Description: ").append(safeDescription).append("\n");
+            }
+            prompt.append("\n");
+        }
+        
+        prompt.append("## TASK\n");
+        prompt.append("Generate EXACTLY ").append(count).append(" vocabulary items on the topic: \"").append(safeTopic).append("\"\n\n");
+        
+        // Reference Document Section
+        if (!docContext.isEmpty()) {
+            prompt.append("## REFERENCE DOCUMENT\n");
+            prompt.append("Use the following content from the teacher's reference document as context for generation:\n\n");
+            prompt.append(docContext).append("\n\n");
+        }
+        
+        // Additional Instructions
+        if (!safeInstructions.isEmpty()) {
+            prompt.append("## ADDITIONAL INSTRUCTIONS FROM TEACHER\n");
+            prompt.append(safeInstructions).append("\n\n");
+        }
+        
+        prompt.append("## STRICT RULES\n");
+        prompt.append("1. Return ONLY one valid JSON object.\n");
+        prompt.append("2. Do not use markdown.\n");
+        prompt.append("3. Do not use code fences.\n");
+        prompt.append("4. Do not use backticks.\n");
+        prompt.append("5. Do not add explanations before or after the JSON.\n");
+        prompt.append("6. Use double quotes for every field name and every string value.\n");
+        prompt.append("7. The response must be directly parseable by Jackson ObjectMapper.\n");
+        prompt.append("8. Base all generated content only on the provided PDF text.\n");
+        prompt.append("9. Do NOT repeat or echo back the PDF content itself in your response.\n");
+        prompt.append("10. Keep the 'meaning' field very brief (at most 1 short sentence or phrase).\n");
+        prompt.append("11. Keep the 'exampleSentence' and 'exampleTranslation' short (max 10-15 words).\n");
+        prompt.append("12. Output compact raw JSON with NO pretty-printing whitespace/newlines to save output tokens.\n");
+        prompt.append("13. Japanese words must use real Japanese kanji/kana. Furigana MUST be hiragana only.\n");
+        prompt.append("14. Each item MUST have non-empty \"japanese\", \"furigana\", and \"meaning\".\n");
+        prompt.append("15. Do NOT include \"status\" field.\n\n");
+        
+        prompt.append("## OUTPUT FORMAT\n");
+        prompt.append("Use this exact JSON structure:\n");
+        prompt.append("""
+                {
+                  "title": "Lesson title matching the teacher's input",
+                  "description": "Lesson description matching the teacher's input",
+                  "items": [
+                    {
+                      "japanese": "日本語",
+                      "furigana": "にほんご",
+                      "romaji": "nihongo",
+                      "meaning": "Tiếng Nhật",
+                      "exampleSentence": "私は日本語を勉強しています。",
+                      "exampleTranslation": "Tôi đang học tiếng Nhật.",
+                      "partOfSpeech": "Danh từ"
+                    }
+                  ]
+                }
+                """);
+        
+        return prompt.toString();
+    }
+
+    /**
+     * Build prompt for grammar generation with lesson context and optional document.
+     */
+    public static String buildAdminGrammarGenerationPrompt(
+            String level,
+            String lessonTitle,
+            Integer lessonNumber,
+            String lessonDescription,
+            String grammarTopic,
+            Integer itemCount,
+            String customInstructions,
+            String documentText,
+            String lessonContext) {
+        
+        int count = (itemCount != null && itemCount > 0) ? itemCount : 5;
+        String safeTopic = (grammarTopic != null && !grammarTopic.isBlank()) ? grammarTopic : "General Grammar";
+        String safeTitle = (lessonTitle != null && !lessonTitle.isBlank()) ? lessonTitle : "";
+        String safeDescription = (lessonDescription != null && !lessonDescription.isBlank()) ? lessonDescription : "";
+        String safeInstructions = (customInstructions != null && !customInstructions.isBlank()) ? customInstructions : "";
+        String docContext = (documentText != null && !documentText.isBlank()) ? documentText : "";
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are AI Sensei of MIDORI, creating Japanese grammar learning content for JLPT ").append(level).append(" level.\n\n");
+        
+        // Lesson Context Section
+        if (!safeTitle.isEmpty() || lessonNumber != null) {
+            prompt.append("## LESSON CONTEXT\n");
+            if (lessonNumber != null) {
+                prompt.append("Lesson Number: ").append(lessonNumber).append("\n");
+            }
+            if (!safeTitle.isEmpty()) {
+                prompt.append("Lesson Title: ").append(safeTitle).append("\n");
+            }
+            if (!safeDescription.isEmpty()) {
+                prompt.append("Lesson Description: ").append(safeDescription).append("\n");
+            }
+            prompt.append("\n");
+        }
+        
+        prompt.append("## TASK\n");
+        prompt.append("Generate EXACTLY ").append(count).append(" grammar points on the topic: \"").append(safeTopic).append("\"\n\n");
+        
+        // Reference Document Section
+        if (!docContext.isEmpty()) {
+            prompt.append("## REFERENCE DOCUMENT\n");
+            prompt.append("Use the following content from the teacher's reference document as context for generation:\n\n");
+            prompt.append(docContext).append("\n\n");
+        }
+        
+        // Additional Instructions
+        if (!safeInstructions.isEmpty()) {
+            prompt.append("## ADDITIONAL INSTRUCTIONS FROM TEACHER\n");
+            prompt.append(safeInstructions).append("\n\n");
+        }
+        
+        prompt.append("## STRICT RULES\n");
+        prompt.append("1. Output ONLY a single raw JSON object. NO markdown fences (```json), NO commentary.\n");
+        prompt.append("2. The response MUST start with '{' and end with '}'.\n");
+        prompt.append("3. Each item MUST have non-empty \"grammarPoint\", \"meaningVietnamese\", \"explanation\", and \"exampleSentence\".\n");
+        prompt.append("4. Do NOT include \"status\" field.\n\n");
+        
+        prompt.append("## OUTPUT FORMAT\n");
+        prompt.append("Use this exact JSON structure:\n");
+        prompt.append("""
+                {
+                  "title": "Lesson title matching the teacher's input",
+                  "description": "Lesson description matching the teacher's input",
+                  "items": [
+                    {
+                      "grammarPoint": "〜てはいけない",
+                      "meaningVietnamese": "Không được làm...",
+                      "meaningJapanese": "禁止を表す",
+                      "explanation": "Dùng để cấm đoán, không cho phép ai đó làm gì.",
+                      "exampleSentence": "教室で話してはいけません。",
+                      "notes": "Trang trọng hơn 〜ちゃダメ"
+                    }
+                  ]
+                }
+                """);
+        
+        return prompt.toString();
+    }
+
+    /**
+     * Build prompt for reading comprehension generation with lesson context and optional document.
+     */
+    public static String buildAdminReadingGenerationPrompt(
+            String level,
+            String lessonTitle,
+            Integer lessonNumber,
+            String lessonDescription,
+            String topic,
+            Integer passageCount,
+            Integer questionsPerPassage,
+            String difficulty,
+            String passageLength,
+            String customInstructions,
+            String documentText,
+            String lessonContext) {
+
+        int pCount = (passageCount != null && passageCount > 0) ? passageCount : 1;
+        int qCount = (questionsPerPassage != null && questionsPerPassage > 0) ? questionsPerPassage : 3;
+        String safeTopic = (topic != null && !topic.isBlank()) ? topic : "Reading Comprehension";
+        String safeDifficulty = (difficulty != null && !difficulty.isBlank()) ? difficulty : "Medium";
+        String safeLength = (passageLength != null && !passageLength.isBlank()) ? passageLength : "Medium";
+        String safeInstructions = (customInstructions != null && !customInstructions.isBlank()) ? customInstructions : "";
+        String safeTitle = (lessonTitle != null && !lessonTitle.isBlank()) ? lessonTitle : "";
+        String safeDescription = (lessonDescription != null && !lessonDescription.isBlank()) ? lessonDescription : "";
+        String docContext = (documentText != null && !documentText.isBlank()) ? documentText : "";
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are AI Sensei of MIDORI, creating Japanese reading comprehension content for JLPT ").append(level).append(" level.\n\n");
+        
+        // Lesson Context Section
+        if (!safeTitle.isEmpty() || lessonNumber != null) {
+            prompt.append("## LESSON CONTEXT\n");
+            if (lessonNumber != null) {
+                prompt.append("Lesson Number: ").append(lessonNumber).append("\n");
+            }
+            if (!safeTitle.isEmpty()) {
+                prompt.append("Lesson Title: ").append(safeTitle).append("\n");
+            }
+            if (!safeDescription.isEmpty()) {
+                prompt.append("Lesson Description: ").append(safeDescription).append("\n");
+            }
+            prompt.append("\n");
+        }
+        
+        prompt.append("## TASK\n");
+        prompt.append("Generate EXACTLY ").append(pCount).append(" reading passage(s), each with EXACTLY ").append(qCount).append(" question(s).\n");
+        prompt.append("Topic: \"").append(safeTopic).append("\", Difficulty: ").append(safeDifficulty).append(", Length: ").append(safeLength).append("\n\n");
+        
+        // Reference Document Section
+        if (!docContext.isEmpty()) {
+            prompt.append("## REFERENCE DOCUMENT\n");
+            prompt.append("Use the following content from the teacher's reference document to create relevant reading passages and questions:\n\n");
+            prompt.append(docContext).append("\n\n");
+        }
+        
+        // Additional Instructions
+        if (!safeInstructions.isEmpty()) {
+            prompt.append("## ADDITIONAL INSTRUCTIONS FROM TEACHER\n");
+            prompt.append(safeInstructions).append("\n\n");
+        }
+        
+        prompt.append("## STRICT RULES\n");
+        prompt.append("1. Output ONLY a single raw JSON object. NO markdown fences (```json), NO commentary.\n");
+        prompt.append("2. The response MUST start with '{' and end with '}'.\n");
+        prompt.append("3. Passage text (\"content\") MUST be written in natural, clear Japanese appropriate for JLPT ").append(level).append(".\n");
+        prompt.append("4. Every question MUST have 4 options, with EXACTLY ONE option having isCorrect = true.\n");
+        prompt.append("5. Do NOT include \"status\" field.\n\n");
+        
+        prompt.append("## OUTPUT FORMAT\n");
+        prompt.append("Use this exact JSON structure:\n");
+        prompt.append("""
+                {
+                  "title": "Lesson title matching the teacher's input",
+                  "description": "Lesson description matching the teacher's input",
+                  "passages": [
+                    {
+                      "title": "Passage 1",
+                      "content": "Nội dung bài đọc bằng tiếng Nhật...",
+                      "passageOrder": 1,
+                      "questions": [
+                        {
+                          "questionText": "Câu hỏi về đoạn văn bằng tiếng Việt",
+                          "questionType": "MULTIPLE_CHOICE",
+                          "explanation": "Giải thích vì sao đáp án đúng",
+                          "options": [
+                            { "optionText": "Đáp án A", "isCorrect": false },
+                            { "optionText": "Đáp án B", "isCorrect": true },
+                            { "optionText": "Đáp án C", "isCorrect": false },
+                            { "optionText": "Đáp án D", "isCorrect": false }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """);
+        
+        return prompt.toString();
+    }
+
+    // ============================================================
+    // LEGACY PROMPTS (For backward compatibility - deprecated)
+    // ============================================================
+
+    /**
+     * @deprecated Use buildAdminVocabularyGenerationPrompt with lesson context
+     */
+    @Deprecated
+    public static String buildAdminVocabularyGenerationPrompt(String level, String topic, Integer itemCount, String customInstructions) {
+        return buildAdminVocabularyGenerationPrompt(level, null, null, null, topic, itemCount, customInstructions, null, null);
+    }
+
+    /**
+     * @deprecated Use buildAdminGrammarGenerationPrompt with lesson context
+     */
+    @Deprecated
+    public static String buildAdminGrammarGenerationPrompt(String level, String topic, Integer itemCount, String customInstructions) {
+        return buildAdminGrammarGenerationPrompt(level, null, null, null, topic, itemCount, customInstructions, null, null);
+    }
+
+    /**
+     * @deprecated Use buildAdminReadingGenerationPrompt with lesson context
+     */
+    @Deprecated
+    public static String buildAdminReadingGenerationPrompt(
+            String level, String topic, Integer passageCount, Integer questionsPerPassage,
+            String difficulty, String passageLength, String customInstructions) {
+        return buildAdminReadingGenerationPrompt(level, null, null, null, topic, passageCount, questionsPerPassage, difficulty, passageLength, customInstructions, null, null);
+    }
 }
+

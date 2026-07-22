@@ -4,28 +4,32 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderFactory;
 import com.midori.ai.AiProviderType;
+import com.midori.ai.AiTaskType;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.exception.AiProcessingException;
+import com.midori.ai.impl.OpenRouterProvider.TemporaryFailureException;
 import com.midori.ai.prompt.AiPromptBuilder;
 import com.midori.ai.util.AiExistingQuestionParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
 
 /**
  * Central AI orchestration service.
- * 
- * All AI operations MUST go through this service.
+ *
+ * <p>All AI operations MUST go through this service.
  * Business modules should NEVER call providers directly.
- * 
- * Features:
- * - Unified interface for all AI operations
- * - Automatic provider selection and fallback
- * - Transparent key rotation for multi-key providers
- * - Centralized error handling and logging
+ *
+ * <p>Features:
+ * <ul>
+ *   <li>Unified interface for all AI operations</li>
+ *   <li>Automatic cross-provider fallback (configurable via {@code ai.provider-order})</li>
+ *   <li>Transparent key rotation within each provider</li>
+ *   <li>Centralized failure classification and safe logging</li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -36,25 +40,236 @@ public class AiCoreService {
     private final AiConfigProperties config;
 
     // ============================================================
-    // Chat / Conversation
+    // Cross-Provider Orchestration
     // ============================================================
 
     /**
-     * Send a chat message using the configured AI provider.
-     *
-     * @param systemPrompt  the system prompt
-     * @param userMessage   the user message
-     * @param history      conversation history as [role, content] pairs
-     * @return the AI response text
+     * Parse the configured provider order string into a list of provider types.
      */
-    public String chat(String systemPrompt, String userMessage, List<String[]> history) {
-        AiProvider provider = resolveProvider();
-        return provider.chat(systemPrompt, userMessage, history, com.midori.ai.AiTaskType.COMPLEX_REASONING);
+    private List<AiProviderType> getProviderOrder() {
+        String orderStr = config.getProviderOrder();
+        if (orderStr == null || orderStr.isBlank()) {
+            return List.of(AiProviderType.GEMINI, AiProviderType.OPENROUTER);
+        }
+        List<AiProviderType> result = new ArrayList<>();
+        for (String token : orderStr.split(",")) {
+            String trimmed = token.trim().toUpperCase();
+            if (!trimmed.isEmpty()) {
+                try {
+                    result.add(AiProviderType.valueOf(trimmed));
+                } catch (IllegalArgumentException e) {
+                    log.warn("[AiCoreService] Unknown provider in provider-order: '{}'", trimmed);
+                }
+            }
+        }
+        if (result.isEmpty()) {
+            return List.of(AiProviderType.GEMINI, AiProviderType.OPENROUTER);
+        }
+        return result;
     }
 
     /**
-     * Send a chat message with material context.
+     * Classify whether an exception represents a temporary/provider failure that
+     * warrants trying the next provider, or a permanent configuration/application
+     * error that should not cross providers.
+     *
+     * <p>Temporary failures trigger fallback:
+     * <ul>
+     *   <li>HTTP 429 — rate limit</li>
+     *   <li>HTTP 500/502/503/504 — upstream/server errors</li>
+     *   <li>timeout / network errors</li>
+     *   <li>Provider-specific temporary errors</li>
+     * </ul>
+     *
+     * <p>Permanent failures do NOT trigger fallback:
+     * <ul>
+     *   <li>API_KEY_INVALID / auth errors</li>
+     *   <li>HTTP 400 Bad Request caused by application code</li>
+     *   <li>Validation/DTO errors</li>
+     *   <li>Malformed request from MIDORI</li>
+     *   <li>AIProcessingException with business-logic messages</li>
+     * </ul>
      */
+    private boolean isTemporaryFailure(Throwable t) {
+        if (t == null) return false;
+
+        // Explicit type check — this takes priority over message parsing.
+        // TemporaryFailureException is thrown by OpenRouterProvider when all
+        // models/keys are temporarily unavailable (timeouts, 429s), even when
+        // the wrapped message doesn't contain a recognizable keyword.
+        if (t instanceof TemporaryFailureException) return true;
+
+        // Check the root cause for HTTP status codes
+        Throwable root = t;
+        while (root != null && !(root instanceof org.springframework.web.client.HttpClientErrorException)
+                && !(root instanceof com.fasterxml.jackson.core.JsonProcessingException)) {
+            root = root.getCause();
+        }
+        if (root instanceof org.springframework.web.client.HttpClientErrorException hce) {
+            int code = hce.getStatusCode().value();
+            // 429/500/502/503/504 = temporary across all providers
+            if (code == 429 || code == 500 || code == 502 || code == 503 || code == 504) return true;
+            // 403 from Gemini can be rate-limit (not auth) — treat as temporary
+            if (code == 403) return true;
+        }
+
+        String msg = t.getMessage() != null ? t.getMessage().toLowerCase() : "";
+
+        // HTTP status codes in message text — temporary
+        for (int code : List.of(429, 500, 502, 503, 504, 403)) {
+            if (msg.contains(String.valueOf(code))) return true;
+        }
+
+        // Network / timeout keywords — temporary
+        if (msg.contains("timeout") || msg.contains("connection") || msg.contains("network")
+                || msg.contains("unavailable") || msg.contains("rate limit") || msg.contains("quota")
+                || msg.contains("too many requests") || msg.contains("service unavailable")
+                || msg.contains("upstream error") || msg.contains("resource has been exhausted")
+                || msg.contains("all gemini") || msg.contains("exhausted")) {
+            return true;
+        }
+
+        // Model not found keywords — temporary (try next model/provider)
+        if (msg.contains("model not found") || msg.contains("model unavailable") || msg.contains("model does not exist")) {
+            return true;
+        }
+
+        // Permanent failure indicators — do NOT fallback across providers
+        if (msg.contains("api_key_invalid") || msg.contains("invalid api key")
+                || msg.contains("api key not valid") || msg.contains("unauthorized")
+                || msg.contains("authentication") || msg.contains("validation")
+                || msg.contains("invalid request") || msg.contains("malformed request")
+                || msg.contains("bad request") || msg.contains("dto")
+                || msg.contains("illegalargument") || msg.contains("not configured")
+                || msg.contains("no content") || msg.contains("forbidden")) {
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Try a provider operation, returning on the first success, or falling back
+     * to the next provider in the configured order for temporary failures.
+     *
+     * @param taskType  Human-readable task name for logging (e.g. "chat", "question-generation")
+     * @param operation The callable operation on a provider
+     * @return The successful result string
+     * @throws AiProcessingException wrapped final error after all providers exhausted
+     */
+    public record AiResponse(
+        String content, 
+        String providerName, 
+        String modelName,
+        String finishReason,
+        Integer promptTokens,
+        Integer completionTokens,
+        Integer totalTokens
+    ) {}
+
+    private String executeWithFallback(String taskType, ProviderOperation operation) throws AiProcessingException {
+        return executeWithFallbackDetailed(taskType, operation).content();
+    }
+
+    private AiResponse executeWithFallbackDetailed(String taskType, ProviderOperation operation) throws AiProcessingException {
+        try {
+            List<AiProviderType> order = getProviderOrder();
+            List<ProviderFailure> allFailures = new ArrayList<>();
+
+            for (AiProviderType providerType : order) {
+                AiProvider provider;
+                try {
+                    provider = providerFactory.resolve(providerType);
+                } catch (Exception resolveEx) {
+                    log.debug("[AiCoreService] Provider {} not available: {}", providerType, resolveEx.getMessage());
+                    continue;
+                }
+
+                if (!provider.isConfigured()) {
+                    log.debug("[AiCoreService] Provider {} not configured, skipping", providerType);
+                    continue;
+                }
+
+                String model = provider.getLastModelUsed();
+                if (model == null) model = provider.getModels().isEmpty() ? "unknown" : provider.getModels().get(0);
+
+                log.info("[AiCoreService] Attempting task={} with provider={} (model={})", taskType, providerType, model);
+
+                try {
+                    String result = operation.execute(provider);
+                    String actualModel = provider.getLastModelUsed();
+                    if (actualModel == null) actualModel = model;
+                    log.info("[AiCoreService] SUCCESS — task={} provider={} model={}", taskType, providerType, actualModel);
+                    return new AiResponse(
+                            result,
+                            provider.getName(),
+                            actualModel,
+                            provider.getLastFinishReason(),
+                            provider.getLastPromptTokens(),
+                            provider.getLastCompletionTokens(),
+                            provider.getLastTotalTokens()
+                    );
+                } catch (Throwable t) {
+                    boolean temporary = isTemporaryFailure(t);
+                    String reason = t.getMessage() != null ? t.getMessage() : t.getClass().getSimpleName();
+                    allFailures.add(new ProviderFailure(providerType, model, reason, temporary));
+                    if (temporary) {
+                        log.warn("[AiCoreService] task={} provider={} failed TEMPORARILY ({}) — falling back to next provider",
+                                taskType, providerType, reason);
+                    } else {
+                        log.warn("[AiCoreService] task={} provider={} failed PERMANENTLY ({}) — NOT falling back across providers",
+                                taskType, providerType, reason);
+                        // Aggregate all failures into final exception
+                        throw wrapFailure(taskType, allFailures);
+                    }
+                }
+            }
+
+            throw wrapFailure(taskType, allFailures);
+        } finally {
+            try {
+                for (AiProvider p : providerFactory.getAllAvailable()) {
+                    p.clearMetrics();
+                }
+            } catch (Exception clearEx) {
+                log.debug("[AiCoreService] Failed to clear metrics: {}", clearEx.getMessage());
+            }
+        }
+    }
+
+    private AiProcessingException wrapFailure(String taskType, List<ProviderFailure> failures) {
+        StringBuilder sb = new StringBuilder("All AI providers failed for task: ").append(taskType);
+        for (ProviderFailure f : failures) {
+            sb.append(String.format(" | %s(model=%s): %s [%s]",
+                    f.provider, f.model, f.reason, f.temporary ? "temp" : "permanent"));
+        }
+        return new AiProcessingException(sb.toString());
+    }
+
+    private record ProviderFailure(AiProviderType provider, String model, String reason, boolean temporary) {}
+    @FunctionalInterface
+    private interface ProviderOperation { String execute(AiProvider provider) throws Exception; }
+
+    // ============================================================
+    // Chat / Conversation
+    // ============================================================
+
+    public String chat(String systemPrompt, String userMessage, List<String[]> history) {
+        return chat(systemPrompt, userMessage, history, AiTaskType.COMPLEX_REASONING);
+    }
+
+    public String chat(String systemPrompt, String userMessage, List<String[]> history, AiTaskType taskType) {
+        AiTaskType effectiveType = taskType != null ? taskType : AiTaskType.COMPLEX_REASONING;
+        return executeWithFallback("chat:" + effectiveType.name(), (provider) ->
+                provider.chat(systemPrompt, userMessage, history, effectiveType));
+    }
+
+    public AiResponse chatWithDetails(String systemPrompt, String userMessage, List<String[]> history, AiTaskType taskType) {
+        AiTaskType effectiveType = taskType != null ? taskType : AiTaskType.COMPLEX_REASONING;
+        return executeWithFallbackDetailed("chat:" + effectiveType.name(), (provider) ->
+                provider.chat(systemPrompt, userMessage, history, effectiveType));
+    }
+
     public String chatWithMaterial(String materialTitle, String materialType,
                                   String materialLevel, String materialContent,
                                   String userMessage, List<String[]> history) {
@@ -67,57 +282,25 @@ public class AiCoreService {
     // Question Generation
     // ============================================================
 
-    /**
-     * Generate quiz questions using AI.
-     *
-     * <p>Variants:
-     * <ul>
-     *   <li>{@code selectedSkills} non-null/non-empty: Generate from Learning
-     *       Content flow. The prompt asks the AI to set each question's
-     *       {@code category} to one of the selected skills, forbids romaji in
-     *       Japanese readings, and forbids duplicate options.</li>
-     *   <li>{@code selectedSkills} null/empty: legacy chat-style flow used by
-     *       the AI Sensei chat surface.</li>
-     * </ul>
-     */
     public String generateQuestions(String topic, String materialContent,
                                    int count, String type, String difficulty,
                                    java.util.List<String> selectedSkills) {
-        AiProvider provider = resolveProvider();
-        return provider.generateQuestions(topic, materialContent, count, type, difficulty,
-                selectedSkills, com.midori.ai.AiTaskType.COMPLEX_REASONING);
+        return executeWithFallback("question-generation", (provider) ->
+                provider.generateQuestions(topic, materialContent, count, type, difficulty,
+                        selectedSkills, AiTaskType.COMPLEX_REASONING));
     }
 
-    /**
-     * Generate quiz questions using a strict per-difficulty distribution and a
-     * strict question type. The prompt explicitly asks for the exact
-     * distribution line (e.g. {@code "EASY=3, MEDIUM=5, HARD=2"}); the BE
-     * layer is responsible for validating and repairing the AI's response so
-     * the caller always receives exactly {@code distributionTotal} questions
-     * with the requested per-difficulty split and a strict question type.
-     *
-     * @param topic              material title for logging
-     * @param materialContent    the source content string
-     * @param distributionTotal  total number of questions to produce
-     * @param questionType       strict question type (e.g. MULTIPLE_CHOICE)
-     * @param distributionLine   formatted distribution
-     *                           (e.g. {@code "EASY=3, MEDIUM=5, HARD=2"})
-     * @param selectedSkills     target skills (may be null)
-     */
     public String generateQuestionsWithDistribution(String topic, String materialContent,
-                                                    int distributionTotal, String questionType,
-                                                    String distributionLine,
-                                                    java.util.List<String> selectedSkills) {
-        AiProvider provider = resolveProvider();
-        return provider.generateQuestionsWithDistribution(
-                topic, materialContent, distributionTotal, questionType,
-                distributionLine, selectedSkills,
-                com.midori.ai.AiTaskType.COMPLEX_REASONING);
+                                                   int distributionTotal, String questionType,
+                                                   String distributionLine,
+                                                   java.util.List<String> selectedSkills) {
+        return executeWithFallback("question-generation-dist", (provider) ->
+                provider.generateQuestionsWithDistribution(
+                        topic, materialContent, distributionTotal, questionType,
+                        distributionLine, selectedSkills,
+                        AiTaskType.COMPLEX_REASONING));
     }
 
-    /**
-     * Backwards-compatible overload without {@code selectedSkills}.
-     */
     public String generateQuestions(String topic, String materialContent,
                                    int count, String type, String difficulty) {
         return generateQuestions(topic, materialContent, count, type, difficulty, null);
@@ -127,134 +310,110 @@ public class AiCoreService {
     // Exam Parsing (PDF)
     // ============================================================
 
-    /**
-     * Parse exam from PDF text using AI.
-     */
     public AiExamParseResponse parseExam(String extractedText, String filename)
             throws AiProcessingException {
-        AiProvider provider = providerFactory.resolve();
-        return provider.parseExamFromText(extractedText, filename, com.midori.ai.AiTaskType.LONG_DOCUMENT_ANALYSIS);
+        return executeWithFallbackExam("exam-parsing", extractedText, filename, AiTaskType.LONG_DOCUMENT_ANALYSIS);
     }
 
-    /**
-     * Parse already-written questions from extracted PDF text using the
-     * configured AI provider, then return a structured
-     * {@link AiExamParseResponse} suitable for the IMPORT_EXISTING_QUESTIONS
-     * preview flow.
-     *
-     * <p>Unlike {@link #parseExam(String, String)} this path uses the provider's
-     * generic {@code chat()} capability with a language-neutral prompt
-     * ({@link AiPromptBuilder#buildExistingQuestionsParsingPrompt(String, String, String)}).
-     * The previous JLPT-biased prompt often returned an empty
-     * {@code questions} array for plain English PDFs, which the providers'
-     * strict {@code validateResult} converted into an exception that surfaced
-     * to the UI as "AI could not extract questions…".
-     *
-     * <p>This method is more defensive on three axes:
-     * <ol>
-     *   <li>The prompt itself is language-neutral and demands a strict JSON shape.</li>
-     *   <li>The LLM response is cleaned via {@link #cleanJsonResponse(String)}
-     *       which strips markdown fences and tries a second pass on the last
-     *       balanced {@code {…}} block when the first parse fails.</li>
-     *   <li>An empty {@code questions} array is NOT converted to an exception
-     *       here — the controller maps it to a clear preview response.</li>
-     * </ol>
-     *
-     * @param selectedSkills list of target skills to filter questions (can be null)
-     * @return parsed response (may have empty questions list when the LLM
-     *         genuinely cannot find any questions; never null from this method).
-     * @throws AiProcessingException only when no provider is configured or
-     *         every model failed AND the response cannot be parsed as JSON.
-     */
-    public AiExamParseResponse parseExistingQuestionsFromText(String extractedText, String filename, List<String> selectedSkills)
+    public AiExamParseResponse parseExistingQuestionsFromText(String extractedText, String filename,
+                                                               List<String> selectedSkills)
             throws AiProcessingException {
         if (extractedText == null || extractedText.isBlank()) {
             throw new AiProcessingException("Cannot parse empty PDF text.");
-        }
-
-        AiProvider provider = providerFactory.resolve();
-        if (provider == null || !provider.isConfigured()) {
-            throw new AiProcessingException("No AI provider is configured for IMPORT_EXISTING_QUESTIONS.");
         }
 
         String systemPrompt = "You are an exam-digitization assistant. "
                 + "You always reply with a single valid JSON object. "
                 + "Never include markdown fences or commentary around the JSON.";
 
-        // Convert selectedSkills list to comma-separated string
         String skillsParam = null;
         if (selectedSkills != null && !selectedSkills.isEmpty()) {
             skillsParam = String.join(",", selectedSkills);
         }
         String userPrompt = AiPromptBuilder.buildExistingQuestionsParsingPrompt(extractedText, filename, skillsParam);
 
-        String raw;
-        try {
-            raw = provider.chat(systemPrompt, userPrompt, null, com.midori.ai.AiTaskType.LONG_DOCUMENT_ANALYSIS);
-        } catch (Exception e) {
-            throw new AiProcessingException("AI chat failed: " + e.getMessage(), e);
-        }
+        String raw = executeWithFallback("import-existing-questions", (provider) ->
+                provider.chat(systemPrompt, userPrompt, null, AiTaskType.LONG_DOCUMENT_ANALYSIS));
 
         if (raw == null || raw.isBlank()) {
-            log.warn("[AiCoreService.parseExistingQuestionsFromText] Provider {} returned empty body",
-                    provider.getName());
+            log.warn("[AiCoreService.parseExistingQuestionsFromText] Provider returned empty body");
             return AiExamParseResponse.empty();
         }
 
-        log.info("[AiCoreService.parseExistingQuestionsFromText] {} returned {} chars",
-                provider.getName(), raw.length());
+        log.info("[AiCoreService.parseExistingQuestionsFromText] Provider returned {} chars", raw.length());
 
         try {
             return parseExamResponseFromChat(raw);
         } catch (AiProcessingException e) {
             log.warn("[AiCoreService.parseExistingQuestionsFromText] AI JSON parse failed ({}). "
-                    + "Falling back to rule-based parser. First 200 chars: {}",
-                    e.getMessage(), abbreviate(AiExistingQuestionParser.cleanJsonResponse(raw), 200));
+                    + "Falling back to rule-based parser.", e.getMessage());
             AiExamParseResponse fallbackResult = AiExistingQuestionParser.parseFromSourceText(extractedText);
             if (fallbackResult.getQuestions() != null && !fallbackResult.getQuestions().isEmpty()) {
                 log.info("[AiCoreService.parseExistingQuestionsFromText] Rule-based fallback extracted {} questions",
                         fallbackResult.getQuestions().size());
                 return fallbackResult;
             }
-            throw new AiProcessingException("AI could not parse the PDF content, and rule-based fallback also found no questions. "
+            throw new AiProcessingException(
+                    "AI could not parse the PDF content, and rule-based fallback also found no questions. "
                     + "Please check that the PDF contains readable multiple-choice questions with labeled options (A/B/C/D).", e);
         } catch (Exception e) {
             log.warn("[AiCoreService.parseExistingQuestionsFromText] Unexpected parse failure ({}). "
-                    + "Falling back to rule-based parser. First 200 chars: {}",
-                    e.getMessage(), abbreviate(AiExistingQuestionParser.cleanJsonResponse(raw), 200));
+                    + "Falling back to rule-based parser.", e.getMessage());
             AiExamParseResponse fallbackResult = AiExistingQuestionParser.parseFromSourceText(extractedText);
             if (fallbackResult.getQuestions() != null && !fallbackResult.getQuestions().isEmpty()) {
                 log.info("[AiCoreService.parseExistingQuestionsFromText] Rule-based fallback extracted {} questions",
                         fallbackResult.getQuestions().size());
                 return fallbackResult;
             }
-            throw new AiProcessingException("AI response was not parseable, and rule-based fallback also found no questions. "
+            throw new AiProcessingException(
+                    "AI response was not parseable, and rule-based fallback also found no questions. "
                     + "Please check that the PDF contains readable multiple-choice questions.", e);
         }
     }
 
-    /**
-     * Clean the LLM's chat output and deserialize it as
-     * {@link AiExamParseResponse}.
-     *
-     * <p>Defensive pipeline:
-     * <ol>
-     *   <li>{@link AiExistingQuestionParser#cleanJsonResponse(String)} strips
-     *       markdown fences and surrounding prose.</li>
-     *   <li>The cleaner is followed by a tolerant normalizer
-     *       ({@link AiExistingQuestionParser#parseAndNormalize(String, ObjectMapper)})
-     *       that maps every accepted alias (question/questionText/content/text,
-     *       answers/options/choices, isCorrect/correct/correctAnswer/...) onto
-     *       the canonical {@link AiExamParseResponse} shape, supports three
-     *       option shapes (string array / labeled objects / A→text map), and
-     *       finally runs {@link AiExistingQuestionParser#sanitize(AiExamParseResponse)}
-     *       so the controller never blows up on partial output.</li>
-     * </ol>
-     *
-     * <p>Errors here are converted into a short, user-friendly message; the
-     * raw first-200-character body is logged for debugging only and never
-     * surfaced into the UI.
-     */
+    private AiExamParseResponse executeWithFallbackExam(String taskType, String extractedText,
+                                                         String filename, AiTaskType aiTaskType)
+            throws AiProcessingException {
+        List<AiProviderType> order = getProviderOrder();
+        List<ProviderFailure> allFailures = new ArrayList<>();
+
+        for (AiProviderType providerType : order) {
+            AiProvider provider;
+            try {
+                provider = providerFactory.resolve(providerType);
+            } catch (Exception resolveEx) {
+                continue;
+            }
+
+            if (!provider.isConfigured()) continue;
+
+            String model = provider.getLastModelUsed();
+            if (model == null) model = provider.getModels().isEmpty() ? "unknown" : provider.getModels().get(0);
+
+            log.info("[AiCoreService] Attempting task={} with provider={} (model={})", taskType, providerType, model);
+
+            try {
+                AiExamParseResponse result = provider.parseExamFromText(extractedText, filename, aiTaskType);
+                log.info("[AiCoreService] SUCCESS — task={} provider={} model={}", taskType, providerType, model);
+                return result;
+            } catch (Throwable t) {
+                boolean temporary = isTemporaryFailure(t);
+                String reason = t.getMessage() != null ? t.getMessage() : t.getClass().getSimpleName();
+                allFailures.add(new ProviderFailure(providerType, model, reason, temporary));
+                if (temporary) {
+                    log.warn("[AiCoreService] task={} provider={} failed TEMPORARILY ({}) — falling back",
+                            taskType, providerType, reason);
+                } else {
+                    log.warn("[AiCoreService] task={} provider={} failed PERMANENTLY ({}) — NOT falling back",
+                            taskType, providerType, reason);
+                    throw wrapFailure(taskType, allFailures);
+                }
+            }
+        }
+
+        throw wrapFailure(taskType, allFailures);
+    }
+
     private AiExamParseResponse parseExamResponseFromChat(String raw) throws AiProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         try {
@@ -281,52 +440,30 @@ public class AiCoreService {
     // ============================================================
 
     /**
-     * Resolve the configured provider, with null-safety for invalid enum values.
-     * If the config provider is invalid or null, falls back to the first configured provider.
-     */
-    private AiProvider resolveProvider() {
-        try {
-            String cfg = config.getProvider();
-            if (cfg != null && !cfg.isBlank()) {
-                AiProviderType type = AiProviderType.valueOf(cfg.toUpperCase().trim());
-                return providerFactory.resolveOrDefault(type);
-            }
-        } catch (IllegalArgumentException e) {
-            log.warn("[AiCoreService] Unknown AI provider '{}', falling back to first configured", config.getProvider());
-        }
-        return providerFactory.resolveOrDefault(AiProviderType.OPENROUTER);
-    }
-
-    /**
-     * Get the currently configured provider.
+     * Get the currently configured provider (legacy — prefer checking providerOrder).
      */
     public AiProvider getCurrentProvider() {
         return providerFactory.resolve();
     }
 
-    /**
-     * Get all available providers.
-     */
     public List<AiProvider> getAllProviders() {
         return providerFactory.getAllAvailable();
     }
 
-    /**
-     * Get provider status summary.
-     */
     public String getStatus() {
         StringBuilder sb = new StringBuilder();
         sb.append("AI Core Status:\n");
-        
+        sb.append("  Provider order: ").append(config.getProviderOrder()).append("\n");
+
         for (AiProvider p : providerFactory.getAllAvailable()) {
-            sb.append(String.format("  - %s: %s\n", 
-                    p.getName(), 
+            sb.append(String.format("  - %s: %s\n",
+                    p.getName(),
                     p.isConfigured() ? "configured" : "NOT CONFIGURED"));
         }
-        
+
         AiProvider current = providerFactory.resolve();
-        sb.append(String.format("Current provider: %s\n", current.getName()));
-        
+        sb.append(String.format("  Current provider: %s\n", current.getName()));
+
         return sb.toString();
     }
 }

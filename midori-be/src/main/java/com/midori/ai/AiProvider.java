@@ -157,4 +157,10 @@ public interface AiProvider {
      * Get the list of models configured for this provider.
      */
     List<String> getModels();
+
+    default String getLastFinishReason() { return null; }
+    default Integer getLastPromptTokens() { return null; }
+    default Integer getLastCompletionTokens() { return null; }
+    default Integer getLastTotalTokens() { return null; }
+    default void clearMetrics() {}
 }

@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.midori.ai.AiProvider;
 import com.midori.ai.AiProviderType;
+import com.midori.ai.AiTaskType;
 import com.midori.ai.config.AiConfigProperties;
 import com.midori.ai.dto.AiExamParseResponse;
 import com.midori.ai.AiParsingException;
+import com.midori.ai.key.OpenRouterKeyManager;
 import com.midori.ai.prompt.AiPromptBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -47,11 +49,11 @@ public class OpenRouterProvider implements AiProvider {
 
     private static final String OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-    private static final int DEFAULT_CHAT_TIMEOUT_MS = 15000;
-    private static final int DEFAULT_QUIZ_TIMEOUT_MS = 25000;
+    private static final int DEFAULT_CHAT_TIMEOUT_MS = 45000;
+    private static final int DEFAULT_QUIZ_TIMEOUT_MS = 60000;
     private static final int DEFAULT_CONNECT_TIMEOUT_MS = 5000;
 
-    private static final int DEFAULT_CHAT_MAX_TOKENS = 1400;
+    private static final int DEFAULT_CHAT_MAX_TOKENS = 4096;
     private static final int DEFAULT_QUIZ_MAX_TOKENS = 4096;
 
     private static final double DEFAULT_STUDY_TEMPERATURE = 0.25;
@@ -72,7 +74,7 @@ public class OpenRouterProvider implements AiProvider {
 
     private final AiConfigProperties config;
     private final ObjectMapper objectMapper;
-    private final String apiKey;
+    private final OpenRouterKeyManager keyManager;
     private final String referer;
     private final String appTitle;
 
@@ -85,6 +87,10 @@ public class OpenRouterProvider implements AiProvider {
     private final int quizMaxTokens;
 
     private volatile String lastModelUsed;
+    private final ThreadLocal<String> lastFinishReason = new ThreadLocal<>();
+    private final ThreadLocal<Integer> lastPromptTokens = new ThreadLocal<>();
+    private final ThreadLocal<Integer> lastCompletionTokens = new ThreadLocal<>();
+    private final ThreadLocal<Integer> lastTotalTokens = new ThreadLocal<>();
     private final ThreadLocal<Boolean> benchmarkObservationEnabled = new ThreadLocal<>();
     private final ThreadLocal<ChatObservation> lastChatObservation = new ThreadLocal<>();
 
@@ -201,8 +207,8 @@ public class OpenRouterProvider implements AiProvider {
         this.objectMapper = objectMapper;
 
         AiConfigProperties.OpenRouterConfig cfg = config.getOpenrouter();
-        
-        this.apiKey = resolveApiKey(cfg.getApiKey());
+
+        this.keyManager = new OpenRouterKeyManager(cfg.getApiKeysArray());
         this.referer = cfg.getReferer() != null ? cfg.getReferer() : "http://localhost:8081";
         this.appTitle = cfg.getAppTitle() != null ? cfg.getAppTitle() : "MIDORI AI Sensei";
 
@@ -211,34 +217,22 @@ public class OpenRouterProvider implements AiProvider {
         this.chatMaxTokens = cfg.getChatMaxTokens() > 0 ? cfg.getChatMaxTokens() : DEFAULT_CHAT_MAX_TOKENS;
         this.quizMaxTokens = cfg.getQuizMaxTokens() > 0 ? cfg.getQuizMaxTokens() : DEFAULT_QUIZ_MAX_TOKENS;
 
-        List<String> primary = sanitizeModels(parseModelsConfig(cfg.getModels()));
-        List<String> fallbacks = sanitizeModels(parseModelsConfig(cfg.getFallbackModels()));
+        List<String> primary = sanitizeModels(parseModelList(cfg.getModels()));
+        List<String> fallbacks = sanitizeModels(cfg.getFallbackModelsList());
 
         if (primary.isEmpty()) {
+            log.warn("[OpenRouterProvider] No OpenRouter model configured. Set OPENROUTER_MODEL env var.");
             primary.add("openrouter/free");
         }
 
-        this.chatModels = buildCappedChain(primary, fallbacks, 2);
-        this.quizModels = buildCappedChain(primary, fallbacks, 2);
+        this.chatModels = buildCappedChain(primary, fallbacks, 4);
+        this.quizModels = buildCappedChain(primary, fallbacks, 4);
 
-        log.info("[OpenRouterProvider] Startup - Configured primary model(s): {}", primary);
-        log.info("[OpenRouterProvider] Startup - Configured fallback model(s): {}", fallbacks);
-        log.info("[OpenRouterProvider] Startup - Resolved active chat model: {}", this.chatModels.isEmpty() ? "none" : this.chatModels.get(0));
-        log.info("[OpenRouterProvider] Startup - Resolved active quiz model: {}", this.quizModels.isEmpty() ? "none" : this.quizModels.get(0));
-
-        log.info("[OpenRouterProvider] Initialized chat chain (size={}, timeoutMs={}, maxTokens={}): {}",
-                this.chatModels.size(), this.chatTimeoutMs, this.chatMaxTokens, this.chatModels);
-        log.info("[OpenRouterProvider] Initialized quiz chain (size={}, timeoutMs={}, maxTokens={}): {}",
-                this.quizModels.size(), this.quizTimeoutMs, this.quizMaxTokens, this.quizModels);
-        log.info("[OpenRouterProvider] API key present: {}",
-                this.apiKey != null && !this.apiKey.isBlank() && !this.apiKey.startsWith("PASTE_"));
-    }
-
-    private String resolveApiKey(String configKey) {
-        if (configKey != null && !configKey.isBlank()) {
-            return configKey;
-        }
-        return null;
+        int totalKeys = keyManager.getTotalKeyCount();
+        int activeKeys = keyManager.getRemainingKeyCount();
+        log.info("[OpenRouterProvider] Initialized — keys: {}/{} active, chat-chain: {}, quiz-chain: {}",
+                activeKeys, totalKeys, this.chatModels, this.quizModels);
+        log.info("[OpenRouterProvider] Token configuration - chatMaxTokens: {}, quizMaxTokens: {}", chatMaxTokens, quizMaxTokens);
     }
 
     @Override
@@ -248,12 +242,15 @@ public class OpenRouterProvider implements AiProvider {
 
     @Override
     public String getName() {
-        return "OpenRouter " + (chatModels.isEmpty() ? "unknown" : chatModels.get(0));
+        int total = keyManager.getTotalKeyCount();
+        int remaining = keyManager.getRemainingKeyCount();
+        String model = chatModels.isEmpty() ? "unknown" : chatModels.get(0);
+        return String.format("OpenRouter %s [%d/%d keys active]", model, remaining, total);
     }
 
     @Override
     public boolean isConfigured() {
-        return apiKey != null && !apiKey.isBlank() && !apiKey.startsWith("PASTE_");
+        return config.getOpenrouter().isConfigured();
     }
 
     @Override
@@ -266,87 +263,152 @@ public class OpenRouterProvider implements AiProvider {
         return lastModelUsed;
     }
 
+    @Override
+    public String getLastFinishReason() {
+        return lastFinishReason.get();
+    }
+
+    @Override
+    public Integer getLastPromptTokens() {
+        return lastPromptTokens.get();
+    }
+
+    @Override
+    public Integer getLastCompletionTokens() {
+        return lastCompletionTokens.get();
+    }
+
+    @Override
+    public Integer getLastTotalTokens() {
+        return lastTotalTokens.get();
+    }
+
+    @Override
+    public void clearMetrics() {
+        lastFinishReason.remove();
+        lastPromptTokens.remove();
+        lastCompletionTokens.remove();
+        lastTotalTokens.remove();
+    }
+
     // ============================================================
     // Chat Implementation
     // ============================================================
 
     @Override
     public String chat(String systemPrompt, String userMessage, List<String[]> conversationHistory) {
+        return chat(systemPrompt, userMessage, conversationHistory, null);
+    }
+
+    @Override
+    public String chat(String systemPrompt, String userMessage, List<String[]> conversationHistory, AiTaskType taskType) {
         if (!isConfigured()) {
-            throw new IllegalStateException("OpenRouter API key is not configured. Please set ai.openrouter.api-key in application-local.yml");
+            throw new IllegalStateException("OpenRouter API key is not configured. Set OPENROUTER_API_KEYS env var.");
         }
 
         lastChatObservation.remove();
         String requestedModel = chatModels.isEmpty() ? null : chatModels.get(0);
         long overallStart = System.currentTimeMillis();
-        int retryCount = 0;
         Throwable lastError = null;
         String lastRawHttpResponse = null;
         String lastRawHttpResponseBase64 = null;
-        for (int attempt = 0; attempt < chatModels.size(); attempt++) {
-            String model = chatModels.get(attempt);
-            long start = System.currentTimeMillis();
-            try {
-                ParsedChatResponse response = callChatObserved(model, systemPrompt, userMessage, conversationHistory,
-                        chatMaxTokens, DEFAULT_STUDY_TEMPERATURE, createFactory(chatTimeoutMs));
-                long duration = System.currentTimeMillis() - start;
-                boolean fallbackOccurred = attempt > 0;
-                log.info("OpenRouter model={} durationMs={} status=OK", model, duration);
-                lastModelUsed = model;
-                observe(new ChatObservation(
-                        "OPENROUTER",
-                        requestedModel,
-                        response.actualResolvedModel(),
-                        fallbackOccurred ? model : null,
-                        fallbackOccurred,
-                        response.finishReason(),
-                        System.currentTimeMillis() - overallStart,
-                        retryCount,
-                        response.promptTokens(),
-                        response.completionTokens(),
-                        response.totalTokens(),
-                        response.rawHttpResponse(),
-                        response.rawHttpResponseBase64(),
-                        null));
-                return response.text();
-            } catch (AuthException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.error("OpenRouter model={} durationMs={} status=AUTH reason={}", model, duration, e.getMessage());
-                recordFailedObservation(requestedModel, model, attempt, retryCount + 1, overallStart,
-                        e, lastRawHttpResponse, lastRawHttpResponseBase64);
-                throw e;
-            } catch (NonRetryableException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.error("OpenRouter model={} durationMs={} status=NON_RETRYABLE reason={}",
-                        model, duration, e.getMessage());
-                recordFailedObservation(requestedModel, model, attempt, retryCount + 1, overallStart,
-                        e, lastRawHttpResponse, lastRawHttpResponseBase64);
-                throw new RuntimeException("AI không phản hồi được: " + e.getMessage());
-            } catch (RuntimeException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=RETRY reason={}",
-                        model, duration, e.getMessage());
-                if (e instanceof ObservedChatException observed) {
-                    lastRawHttpResponse = observed.rawHttpResponse;
-                    lastRawHttpResponseBase64 = observed.rawHttpResponseBase64;
+
+        for (int modelIdx = 0; modelIdx < chatModels.size(); modelIdx++) {
+            String model = chatModels.get(modelIdx);
+            int modelAttempt = modelIdx + 1;
+
+            int keyAttempt = 0;
+            while (keyAttempt < keyManager.getRemainingKeyCount()) {
+                String apiKey = keyManager.getCurrentKey();
+                int currentKeyIdx = keyManager.getCurrentKeyIndex();
+                int activeKeys = keyManager.getRemainingKeyCount();
+                String masked = OpenRouterKeyManager.mask(apiKey);
+                long start = System.currentTimeMillis();
+
+                try {
+                    ParsedChatResponse response = callChatObservedWithTaskType(
+                            model, apiKey, systemPrompt, userMessage, conversationHistory,
+                            chatMaxTokens, DEFAULT_STUDY_TEMPERATURE, createFactory(chatTimeoutMs), taskType);
+                    long duration = System.currentTimeMillis() - start;
+                    log.info("[OpenRouter] model={} key={}/{} durationMs={} status=OK",
+                            model, currentKeyIdx + 1, activeKeys, duration);
+                    lastModelUsed = model;
+                    observe(new ChatObservation(
+                            "OPENROUTER", requestedModel, response.actualResolvedModel(),
+                            (keyAttempt > 0 || modelAttempt > 1) ? model : null,
+                            keyAttempt > 0 || modelAttempt > 1,
+                            response.finishReason(),
+                            System.currentTimeMillis() - overallStart,
+                            keyAttempt,
+                            response.promptTokens(), response.completionTokens(), response.totalTokens(),
+                            response.rawHttpResponse(), response.rawHttpResponseBase64(), null));
+                    return response.text();
+
+                } catch (AuthException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] model={} key={} status=AUTH — excluding key",
+                            model, masked);
+                    keyManager.excludeKey(apiKey);
+                    lastError = e;
+                    if (keyManager.getRemainingKeyCount() == 0) break;
+                    keyAttempt++;
+                    continue;
+
+                } catch (RetryableException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] model={} key={} durationMs={} status=RETRY — rotating key: {}",
+                            model, masked, duration, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+
+                } catch (NonRetryableException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] model={} key={} status=NON_RETRYABLE — trying next model: {}",
+                            model, masked, e.getMessage());
+                    lastError = e;
+                    break; // break key loop, try next model
+
+                } catch (ObservedChatException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    lastRawHttpResponse = e.rawHttpResponse;
+                    lastRawHttpResponseBase64 = e.rawHttpResponseBase64;
+                    log.warn("[OpenRouter] model={} key={} durationMs={} status=RETRY: {}",
+                            model, masked, duration, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+
+                } catch (RuntimeException e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] model={} key={} durationMs={} status=RETRY: {}",
+                            model, masked, duration, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+
+                } catch (Exception e) {
+                    long duration = System.currentTimeMillis() - start;
+                    log.warn("[OpenRouter] model={} key={} durationMs={} status=UNEXPECTED: {}",
+                            model, masked, duration, e.getMessage());
+                    lastError = e;
+                    break;
                 }
-                retryCount++;
-                lastError = e;
-            } catch (Exception e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=UNEXPECTED reason={}",
-                        model, duration, e.getMessage());
-                retryCount++;
-                lastError = e;
             }
         }
 
-        log.error("OpenRouter all chat models exhausted (chainSize={})", chatModels.size());
-        recordFailedObservation(requestedModel, null, chatModels.size(), retryCount, overallStart,
+        log.error("[OpenRouter] All models and keys exhausted. lastError={}", lastError != null ? lastError.getMessage() : "null");
+        recordFailedObservation(requestedModel, null, chatModels.size(), 0, overallStart,
                 lastError, lastRawHttpResponse, lastRawHttpResponseBase64);
         String msg = lastError != null ? lastError.getMessage() : "Không rõ";
         if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout")) {
-            throw new RuntimeException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
+            throw new TemporaryFailureException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
         }
         throw new RuntimeException("AI không phản hồi được. Vui lòng thử lại sau.");
     }
@@ -403,46 +465,69 @@ public class OpenRouterProvider implements AiProvider {
                 materialTitle, materialContent, questionCount, questionType, difficulty, selectedSkills);
 
         Throwable lastError = null;
-        for (int attempt = 0; attempt < quizModels.size(); attempt++) {
-            String model = quizModels.get(attempt);
-            long start = System.currentTimeMillis();
-            try {
-                String response = callGenerateQuestions(model, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE, 
-                        createFactory(quizTimeoutMs));
-                String cleaned = cleanJsonResponse(response);
-                lastModelUsed = model;
-                return cleaned;
-            } catch (AuthException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.error("OpenRouter model={} durationMs={} status=AUTH kind=quiz reason={}", model, duration, e.getMessage());
-                throw e;
-            } catch (InvalidJsonException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=INVALID_JSON kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                lastError = e;
-            } catch (NonRetryableException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.error("OpenRouter model={} durationMs={} status=NON_RETRYABLE kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                throw new RuntimeException("AI không phản hồi được: " + e.getMessage());
-            } catch (RuntimeException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=RETRY kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                lastError = e;
-            } catch (Exception e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=UNEXPECTED kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                lastError = e;
+        for (int modelIdx = 0; modelIdx < quizModels.size(); modelIdx++) {
+            String model = quizModels.get(modelIdx);
+            int keyAttempt = 0;
+            while (keyAttempt < keyManager.getRemainingKeyCount()) {
+                String apiKey = keyManager.getCurrentKey();
+                String masked = OpenRouterKeyManager.mask(apiKey);
+                int currentKeyIdx = keyManager.getCurrentKeyIndex();
+                int activeKeys = keyManager.getRemainingKeyCount();
+                long start = System.currentTimeMillis();
+                try {
+                    String response = callGenerateQuestions(model, apiKey, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
+                            createFactory(quizTimeoutMs));
+                    String cleaned = cleanJsonResponse(response);
+                    lastModelUsed = model;
+                    log.info("[OpenRouter] model={} key={}/{} kind=quiz status=OK", model, currentKeyIdx + 1, activeKeys);
+                    return cleaned;
+                } catch (AuthException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz status=AUTH — excluding key: {}",
+                            model, masked, e.getMessage());
+                    keyManager.excludeKey(apiKey);
+                    lastError = e;
+                    if (keyManager.getRemainingKeyCount() == 0) break;
+                    keyAttempt++;
+                    continue;
+                } catch (RetryableException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz status=RETRY — rotating key: {}",
+                            model, masked, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (InvalidJsonException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz status=INVALID_JSON — trying next model: {}",
+                            model, masked, e.getMessage());
+                    lastError = e;
+                    break;
+                } catch (NonRetryableException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz status=NON_RETRYABLE — trying next model: {}",
+                            model, masked, e.getMessage());
+                    lastError = e;
+                    break;
+                } catch (RuntimeException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz status=RETRY — rotating key: {}",
+                            model, masked, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (Exception e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz status=UNEXPECTED — trying next model: {}",
+                            model, masked, e.getMessage());
+                    lastError = e;
+                    break;
+                }
             }
         }
 
-        log.error("OpenRouter all quiz models exhausted (chainSize={})", quizModels.size());
+        log.error("[OpenRouter] All quiz models and keys exhausted. lastError={}", lastError != null ? lastError.getMessage() : "null");
         String msg = lastError != null ? lastError.getMessage() : "Không rõ";
         if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout")) {
-            throw new RuntimeException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
+            throw new TemporaryFailureException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
         }
         if (msg.toLowerCase().contains("invalid") || msg.toLowerCase().contains("json")) {
             throw new RuntimeException("AI trả dữ liệu không hợp lệ. Đang dùng quiz local.");
@@ -464,46 +549,69 @@ public class OpenRouterProvider implements AiProvider {
                 materialTitle, materialContent, distributionTotal, questionType, distributionLine, selectedSkills);
 
         Throwable lastError = null;
-        for (int attempt = 0; attempt < quizModels.size(); attempt++) {
-            String model = quizModels.get(attempt);
-            long start = System.currentTimeMillis();
-            try {
-                String response = callGenerateQuestions(model, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
-                        createFactory(quizTimeoutMs));
-                String cleaned = cleanJsonResponse(response);
-                lastModelUsed = model;
-                return cleaned;
-            } catch (AuthException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.error("OpenRouter model={} durationMs={} status=AUTH kind=quiz reason={}", model, duration, e.getMessage());
-                throw e;
-            } catch (InvalidJsonException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=INVALID_JSON kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                lastError = e;
-            } catch (NonRetryableException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.error("OpenRouter model={} durationMs={} status=NON_RETRYABLE kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                throw new RuntimeException("AI không phản hồi được: " + e.getMessage());
-            } catch (RuntimeException e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=RETRY kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                lastError = e;
-            } catch (Exception e) {
-                long duration = System.currentTimeMillis() - start;
-                log.warn("OpenRouter model={} durationMs={} status=UNEXPECTED kind=quiz reason={}",
-                        model, duration, e.getMessage());
-                lastError = e;
+        for (int modelIdx = 0; modelIdx < quizModels.size(); modelIdx++) {
+            String model = quizModels.get(modelIdx);
+            int keyAttempt = 0;
+            while (keyAttempt < keyManager.getRemainingKeyCount()) {
+                String apiKey = keyManager.getCurrentKey();
+                String masked = OpenRouterKeyManager.mask(apiKey);
+                int currentKeyIdx = keyManager.getCurrentKeyIndex();
+                int activeKeys = keyManager.getRemainingKeyCount();
+                long start = System.currentTimeMillis();
+                try {
+                    String response = callGenerateQuestions(model, apiKey, prompt, quizMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
+                            createFactory(quizTimeoutMs));
+                    String cleaned = cleanJsonResponse(response);
+                    lastModelUsed = model;
+                    log.info("[OpenRouter] model={} key={}/{} kind=quiz-dist status=OK", model, currentKeyIdx + 1, activeKeys);
+                    return cleaned;
+                } catch (AuthException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=AUTH — excluding key: {}",
+                            model, masked, e.getMessage());
+                    keyManager.excludeKey(apiKey);
+                    lastError = e;
+                    if (keyManager.getRemainingKeyCount() == 0) break;
+                    keyAttempt++;
+                    continue;
+                } catch (RetryableException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=RETRY — rotating key: {}",
+                            model, masked, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (InvalidJsonException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=INVALID_JSON — trying next model: {}",
+                            model, masked, e.getMessage());
+                    lastError = e;
+                    break;
+                } catch (NonRetryableException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=NON_RETRYABLE — trying next model: {}",
+                            model, masked, e.getMessage());
+                    lastError = e;
+                    break;
+                } catch (RuntimeException e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=RETRY — rotating key: {}",
+                            model, masked, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    lastError = e;
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (Exception e) {
+                    log.warn("[OpenRouter] model={} key={} kind=quiz-dist status=UNEXPECTED — trying next model: {}",
+                            model, masked, e.getMessage());
+                    lastError = e;
+                    break;
+                }
             }
         }
 
-        log.error("OpenRouter all quiz models exhausted (chainSize={})", quizModels.size());
+        log.error("[OpenRouter] All quiz-dist models and keys exhausted. lastError={}", lastError != null ? lastError.getMessage() : "null");
         String msg = lastError != null ? lastError.getMessage() : "Không rõ";
         if (msg.contains("429") || msg.toLowerCase().contains("rate") || msg.toLowerCase().contains("timeout")) {
-            throw new RuntimeException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
+            throw new TemporaryFailureException("AI Sensei đang quá tải. Vui lòng thử lại sau khoảng 1 phút.");
         }
         if (msg.toLowerCase().contains("invalid") || msg.toLowerCase().contains("json")) {
             throw new RuntimeException("AI trả dữ liệu không hợp lệ. Đang dùng quiz local.");
@@ -522,27 +630,50 @@ public class OpenRouterProvider implements AiProvider {
         }
 
         String prompt = AiPromptBuilder.buildExamParsingPrompt(extractedText, filename);
-        
-        // Use chat models for exam parsing
-        for (int attempt = 0; attempt < chatModels.size(); attempt++) {
-            String model = chatModels.get(attempt);
-            long startMs = System.currentTimeMillis();
-            try {
-                String response = callChat(model, null, prompt, null, chatMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
-                        createFactory(quizTimeoutMs));
-                
-                long latencyMs = System.currentTimeMillis() - startMs;
-                log.info("OpenRouter exam parse responded in {}ms for model {}", latencyMs, model);
-                lastModelUsed = model;
-                
-                String cleaned = cleanJsonResponse(response);
-                return parseExamJson(cleaned);
-            } catch (Exception e) {
-                log.warn("OpenRouter model {} failed for exam parsing: {}", model, e.getMessage());
+
+        // Use chat models for exam parsing with key rotation
+        for (int modelIdx = 0; modelIdx < chatModels.size(); modelIdx++) {
+            String model = chatModels.get(modelIdx);
+            int keyAttempt = 0;
+            while (keyAttempt < keyManager.getRemainingKeyCount()) {
+                String apiKey = keyManager.getCurrentKey();
+                int currentKeyIdx = keyManager.getCurrentKeyIndex();
+                int activeKeys = keyManager.getRemainingKeyCount();
+                long startMs = System.currentTimeMillis();
+                try {
+                    String response = callChat(model, apiKey, null, prompt, null, chatMaxTokens, DEFAULT_QUIZ_TEMPERATURE,
+                            createFactory(quizTimeoutMs));
+                    long latencyMs = System.currentTimeMillis() - startMs;
+                    log.info("[OpenRouter] model={} key={}/{} kind=exam status=OK ({}ms)", model, currentKeyIdx + 1, activeKeys, latencyMs);
+                    lastModelUsed = model;
+                    String cleaned = cleanJsonResponse(response);
+                    return parseExamJson(cleaned);
+                } catch (AuthException e) {
+                    log.warn("[OpenRouter] model={} kind=exam status=AUTH — excluding key: {}", model, e.getMessage());
+                    keyManager.excludeKey(apiKey);
+                    if (keyManager.getRemainingKeyCount() == 0) break;
+                    keyAttempt++;
+                    continue;
+                } catch (RetryableException | ObservedChatException e) {
+                    log.warn("[OpenRouter] model={} kind=exam status=RETRY — rotating key: {}", model, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (RuntimeException e) {
+                    log.warn("[OpenRouter] model={} kind=exam status=RETRY — rotating key: {}", model, e.getMessage());
+                    String next = keyManager.getNextKey();
+                    if (next == null) break;
+                    keyAttempt++;
+                    continue;
+                } catch (Exception e) {
+                    log.warn("[OpenRouter] model={} kind=exam status=UNEXPECTED — trying next model: {}", model, e.getMessage());
+                    break;
+                }
             }
         }
 
-        throw new AiParsingException("OpenRouter failed to parse exam. All models exhausted.");
+        throw new AiParsingException("OpenRouter failed to parse exam. All models and keys exhausted.");
     }
 
     // ============================================================
@@ -554,19 +685,6 @@ public class OpenRouterProvider implements AiProvider {
         f.setConnectTimeout(Duration.ofMillis(DEFAULT_CONNECT_TIMEOUT_MS));
         f.setReadTimeout(Duration.ofMillis(readTimeoutMs));
         return f;
-    }
-
-    private List<String> parseModelsConfig(String modelsConfig) {
-        List<String> result = new ArrayList<>();
-        if (modelsConfig != null && !modelsConfig.isBlank()) {
-            for (String m : modelsConfig.split(",")) {
-                String trimmed = m.trim();
-                if (!trimmed.isEmpty()) {
-                    result.add(trimmed);
-                }
-            }
-        }
-        return result;
     }
 
     private List<String> sanitizeModels(List<String> input) {
@@ -585,6 +703,17 @@ public class OpenRouterProvider implements AiProvider {
         return out;
     }
 
+    private List<String> parseModelList(String modelsConfig) {
+        List<String> result = new ArrayList<>();
+        if (modelsConfig != null && !modelsConfig.isBlank()) {
+            for (String m : modelsConfig.split(",")) {
+                String trimmed = m.trim();
+                if (!trimmed.isEmpty()) result.add(trimmed);
+            }
+        }
+        return result;
+    }
+
     private List<String> buildCappedChain(List<String> primary, List<String> fallbacks, int maxSize) {
         List<String> chain = new ArrayList<>();
         for (String m : primary) {
@@ -598,22 +727,43 @@ public class OpenRouterProvider implements AiProvider {
         return chain;
     }
 
-    private String callChat(String model, String systemPrompt, String userMessage,
+    private String callChat(String model, String apiKey, String systemPrompt, String userMessage,
                             List<String[]> conversationHistory,
                             int maxTokens, double temperature,
                             SimpleClientHttpRequestFactory factory) {
-        return callChatObserved(model, systemPrompt, userMessage, conversationHistory,
+        return callChatObserved(model, apiKey, systemPrompt, userMessage, conversationHistory,
                 maxTokens, temperature, factory).text();
     }
 
     private ParsedChatResponse callChatObserved(
             String model,
+            String apiKey,
             String systemPrompt,
             String userMessage,
             List<String[]> conversationHistory,
             int maxTokens,
             double temperature,
             SimpleClientHttpRequestFactory factory) {
+        return callChatObservedWithTaskType(model, apiKey, systemPrompt, userMessage, conversationHistory,
+                maxTokens, temperature, factory, null);
+    }
+
+    private ParsedChatResponse callChatObservedWithTaskType(
+            String model,
+            String apiKey,
+            String systemPrompt,
+            String userMessage,
+            List<String[]> conversationHistory,
+            int maxTokens,
+            double temperature,
+            SimpleClientHttpRequestFactory factory,
+            AiTaskType taskType) {
+        // Bump maxTokens for ADMIN_CONTENT_LIBRARY_GENERATION (vocabulary/grammar/reading generation with PDFs).
+        int effectiveMaxTokens = maxTokens;
+        if (taskType == AiTaskType.ADMIN_CONTENT_LIBRARY_GENERATION) {
+            effectiveMaxTokens = Math.max(maxTokens, 8192);
+        }
+
         List<Map<String, Object>> messages = new ArrayList<>();
 
         if (systemPrompt != null) {
@@ -634,10 +784,14 @@ public class OpenRouterProvider implements AiProvider {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
         requestBody.put("messages", messages);
-        requestBody.put("max_tokens", maxTokens);
+        requestBody.put("max_tokens", effectiveMaxTokens);
         requestBody.put("temperature", temperature);
         requestBody.put("top_p", 0.8);
         requestBody.put("frequency_penalty", 0.3);
+
+        if (taskType == AiTaskType.ADMIN_CONTENT_LIBRARY_GENERATION) {
+            requestBody.put("response_format", Map.of("type", "json_object"));
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -684,7 +838,7 @@ public class OpenRouterProvider implements AiProvider {
                 .toString();
     }
 
-    private String callGenerateQuestions(String model, String prompt,
+    private String callGenerateQuestions(String model, String apiKey, String prompt,
                                         int maxTokens, double temperature,
                                         SimpleClientHttpRequestFactory factory) {
         Map<String, Object> requestBody = new HashMap<>();
@@ -797,6 +951,17 @@ public class OpenRouterProvider implements AiProvider {
                 String text = message.path("content").asText();
                 if (text != null && !text.isEmpty()) {
                     JsonNode usage = root.path("usage");
+                    
+                    lastFinishReason.set(textOrNull(choice.path("finish_reason")));
+                    if (usage != null && !usage.isMissingNode() && !usage.isNull()) {
+                        Long pt = longOrNull(usage.path("prompt_tokens"));
+                        Long ct = longOrNull(usage.path("completion_tokens"));
+                        Long tt = longOrNull(usage.path("total_tokens"));
+                        lastPromptTokens.set(pt != null ? pt.intValue() : null);
+                        lastCompletionTokens.set(ct != null ? ct.intValue() : null);
+                        lastTotalTokens.set(tt != null ? tt.intValue() : null);
+                    }
+                    
                     return new ParsedChatResponse(
                             text,
                             textOrNull(root.path("model")),
@@ -888,6 +1053,14 @@ public class OpenRouterProvider implements AiProvider {
     }
     private static class NonRetryableException extends RuntimeException {
         NonRetryableException(String msg) { super(msg); }
+    }
+    /**
+     * Signifies that all models/keys within OpenRouter are temporarily unavailable
+     * (rate limits, timeouts, 429s). AiCoreService.classifyFailure() checks this
+     * type to allow cross-provider fallback without relying on message-string parsing.
+     */
+    public static class TemporaryFailureException extends RuntimeException {
+        public TemporaryFailureException(String msg) { super(msg); }
     }
     private static class InvalidJsonException extends RuntimeException {
         InvalidJsonException(String msg) { super(msg); }

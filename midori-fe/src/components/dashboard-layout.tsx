@@ -75,7 +75,6 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNotifications } from "@/lib/context/notification-context";
-import { useQuery } from "@tanstack/react-query";
 import { studentProgressApi } from "@/lib/api/studentProgress";
 
 // Hierarchical navigation types

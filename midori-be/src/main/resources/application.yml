@@ -90,12 +90,13 @@ supabase:
 
 # Groq API Keys
 groq:
-  api-keys: "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,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"
+  api-keys: "${GROQ_API_KEY_1:},${GROQ_API_KEY_2:}"
   api-key: ${GROQ_API_KEY:${groq.api-keys}}
 
-# Gemini API Keys (multiple keys for fallback)
+# AI Configuration
 ai:
   provider: ${AI_PROVIDER:gemini}
+  provider-order: ${AI_PROVIDER_ORDER:gemini,openrouter}
   timeout-seconds: 120
   temperature: 0.1
   max-tokens: 8192
@@ -105,9 +106,9 @@ ai:
     queue-capacity: ${AI_EXECUTOR_QUEUE_CAPACITY:100}
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    api-keys: "AQ.Ab8RN6J_uqI-pBJ-Q6KcJT6u2tW_4K5QRmS7t3DLTfSIBb8fnQ,AQ.Ab8RN6IUflU19XeySpgvsKNEND7ECfhIlewFz24CgPNVF6nGqg,AQ.Ab8RN6IMf9quTzsgDPP70RAYUdjJvvtW2FGrBkj8RXbqdXBksg,AIzaSyC4uGSSu8Ueo4n0g3ur0hNPpHxcuqJhJlw"
+    api-keys: ${GEMINI_API_KEY_1:},${GEMINI_API_KEY_2:},${GEMINI_API_KEY_3:}
     model: ${GEMINI_MODEL:gemini-flash-latest}
-    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-flash-latest,gemini-2.0-flash,gemini-2.0-flash-lite,gemini-1.5-flash,gemini-1.5-flash-8b}
+    fallback-models: ${GEMINI_FALLBACK_MODELS:gemini-2.0-flash,gemini-2.0-flash-lite}
     base-url: https://generativelanguage.googleapis.com
     enabled: true
   openai:
@@ -122,15 +123,14 @@ ai:
     enabled: false
   openrouter:
     api-key: ${OPENROUTER_API_KEY:}
-    models: openrouter/free
-    # Fallback model(s) - tried if primary fails
-    # tencent/hy3:free confirmed to produce correct UTF-8 Japanese for N5 quiz tasks
-    fallback-models: google/gemini-2.5-flash
+    api-keys: ${OPENROUTER_API_KEYS:${OPENROUTER_API_KEY:}}
+    models: ${OPENROUTER_MODEL:google/gemma-4-31b-it:free}
+    fallback-models: ${OPENROUTER_FALLBACK_MODELS:google/gemma-4-26b-a4b-it:free,openai/gpt-oss-20b:free}
     # Per-call timeouts (ms)
-    chat-timeout-ms: 15000
-    quiz-timeout-ms: 25000
+    chat-timeout-ms: 45000
+    quiz-timeout-ms: 60000
     connect-timeout-ms: 5000
-    chat-max-tokens: 1400
+    chat-max-tokens: 4096
     quiz-max-tokens: 4096
     referer: ${AI_OPENROUTER_REFERER:http://localhost:8081}
   pdf:

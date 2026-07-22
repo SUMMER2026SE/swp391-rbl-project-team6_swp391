@@ -197,8 +197,8 @@ public class GeminiModelResolver {
                     .min(Comparator.comparingInt(GeminiModel::getCostLevel))
                     .orElse(GeminiModel.GEMINI_25_FLASH);
 
-            case COMPLEX_REASONING -> available.stream()
-                    .filter(m -> m.supportsTaskType(AiTaskType.COMPLEX_REASONING))
+            case COMPLEX_REASONING, ADMIN_CONTENT_LIBRARY_GENERATION -> available.stream()
+                    .filter(m -> m.supportsTaskType(taskType))
                     .max(Comparator.comparingInt(GeminiModel::getCapabilityLevel))
                     .orElse(GeminiModel.GEMINI_25_PRO);
 

@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { AdminShadowingManagement } from "@/components/admin/AdminShadowingManagement";
+import { AdminAiGenerateModal } from "@/components/admin/content-library/AdminAiGenerateModal";
 import {
   BookOpen,
   GraduationCap,
@@ -22,6 +24,8 @@ import {
   Cloud,
   CloudOff,
   FileSpreadsheet,
+  Sparkles,
+  MoreHorizontal,
 } from "lucide-react";
 import { useContentLibrary } from "@/services/contentLibraryService";
 import {
@@ -77,6 +81,7 @@ import {
 } from "@/services/adminVocabularyService";
 import { adminListeningApi, adminUploadApi } from "@/lib/api/listening";
 import { AdminGrammarContentPage } from "@/components/admin/content-library/AdminGrammarContentPage";
+import { adminGrammarApi, type GrammarLessonWithContentsRequest } from "@/lib/api/grammarContent";
 
 export const Route = createFileRoute("/admin/content-library/$level/$skill/_index")({
   component: SkillDetailPage,
@@ -3127,6 +3132,17 @@ function LegacySkillDetailPage() {
   const publishReadingMutation = usePublishReadingLesson(upperLevel);
   const unpublishReadingMutation = useUnpublishReadingLesson(upperLevel);
 
+  // ── Grammar hooks for AI content ──
+  const createGrammarMutation = useMutation({
+    mutationFn: (data: GrammarLessonWithContentsRequest) => adminGrammarApi.createGrammarLesson(data),
+    onSuccess: () => {
+      toast.success("Grammar lesson created successfully");
+      setShowGrammarEditModal(false);
+      setGrammarDraftData(null);
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to create grammar lesson"),
+  });
+
   console.log("[LESSON LIST]", {
     level,
     skill,
@@ -3782,6 +3798,115 @@ function LegacySkillDetailPage() {
     }
   };
 
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    if (showMoreMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showMoreMenu]);
+
+  const handleApplyAiDraft = (draft: {
+    title: string;
+    description: string;
+    lessonNumber?: number;
+    vocabularyDraft?: any;
+    grammarDraft?: any;
+    readingDraft?: any;
+  }) => {
+    if (skill === "vocabulary" && draft.vocabularyDraft) {
+      const draftItems = draft.vocabularyDraft.items || [];
+      const items = draftItems.map((item: any, idx: number) => ({
+        id: `temp-${idx + 1}`,
+        itemOrder: idx + 1,
+        japanese: item.japanese || "",
+        furigana: item.furigana || "",
+        romaji: item.romaji || "",
+        meaning: item.meaning || "",
+        exampleSentence: item.exampleSentence || "",
+        exampleTranslation: item.exampleTranslation || "",
+        partOfSpeech: item.partOfSpeech || "",
+      }));
+
+      handleVocabularySave({
+        title: draft.title || "AI Generated Vocabulary Lesson",
+        description: draft.description || "",
+        lessonNumber: draft.lessonNumber || (vocabularyLessons.length || 0) + 1,
+        isActive: false, // Default status: DRAFT (isActive: false)
+        items: items,
+      });
+    } else if (skill === "grammar" && draft.grammarDraft) {
+      // Apply grammar draft
+      const draftItems = draft.grammarDraft.items || [];
+      const contents = draftItems.map((item: any, idx: number) => ({
+        contentOrder: idx + 1,
+        pattern: item.grammarPoint || "",
+        meaning: item.meaningVietnamese || "",
+        structure: item.meaningJapanese || "",
+        usage: item.explanation || "",
+        examples: item.exampleSentence ? [{
+          exampleOrder: 1,
+          japanese: item.exampleSentence,
+          vietnameseMeaning: item.notes || "",
+        }] : [],
+      }));
+
+      const payload: GrammarLessonWithContentsRequest = {
+        lesson: {
+          jlptLevel: upperLevel,
+          lessonNumber: draft.lessonNumber || 1,
+          title: draft.title || "AI Generated Grammar Lesson",
+          description: draft.description || "",
+          isActive: false,
+        },
+        contents: contents,
+      };
+
+      createGrammarMutation.mutate(payload);
+    } else if (skill === "reading" && draft.readingDraft) {
+      const passages = (draft.readingDraft.passages || []).map((p: any, pIdx: number) => ({
+        id: `temp-p-${pIdx + 1}`,
+        passageOrder: pIdx + 1,
+        title: p.title || `Passage ${pIdx + 1}`,
+        content: p.content || "",
+        questions: (p.questions || []).map((q: any, qIdx: number) => ({
+          id: `temp-q-${pIdx}-${qIdx}`,
+          questionOrder: qIdx + 1,
+          question: q.questionText || "",
+          explanation: q.explanation || "",
+          optionA: q.options?.[0]?.optionText || "",
+          optionB: q.options?.[1]?.optionText || "",
+          optionC: q.options?.[2]?.optionText || "",
+          optionD: q.options?.[3]?.optionText || "",
+          correctAnswer: q.options?.findIndex((o: any) => o.isCorrect) === 1 ? "B" :
+                         q.options?.findIndex((o: any) => o.isCorrect) === 2 ? "C" :
+                         q.options?.findIndex((o: any) => o.isCorrect) === 3 ? "D" : "A",
+        })),
+      }));
+
+      handleReadSave({
+        title: draft.title || "AI Generated Reading Lesson",
+        description: draft.description || "",
+        lessonNumber: draft.lessonNumber || (readingLessons.length || 0) + 1,
+        isActive: false, // Default status: DRAFT
+        passages: passages,
+      });
+    }
+  };
+
+  // Grammar draft data state for AI-generated content
+  const [grammarDraftData, setGrammarDraftData] = useState<any>(null);
+  const [showGrammarEditModal, setShowGrammarEditModal] = useState(false);
+
   const getItemCount = (
     item:
       | VocabularyLesson
@@ -3823,12 +3948,14 @@ function LegacySkillDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium text-secondary-col hover:bg-[var(--accent)] transition flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" /> Import Excel
-          </button>
+          {(skill === "vocabulary" || skill === "reading" || skill === "grammar") && (
+            <button
+              onClick={() => setShowAiModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" /> Generate with AI
+            </button>
+          )}
           <button
             onClick={() =>
               skill === "reading"
@@ -3841,8 +3968,51 @@ function LegacySkillDetailPage() {
             }
             className="px-4 py-2.5 rounded-xl bg-gradient-hero text-white text-sm font-bold shadow-md hover:opacity-90 transition flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> Create Lesson
+            <Plus className="w-4 h-4" /> Create Manually
           </button>
+          {/* More Actions Dropdown */}
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="px-3 py-2.5 rounded-xl border border-[var(--border)] text-secondary-col hover:bg-[var(--accent)] transition flex items-center gap-1"
+            >
+              <MoreHorizontal className="w-5 h-5" />
+              <ChevronDown className={`w-4 h-4 transition-transform ${showMoreMenu ? "rotate-180" : ""}`} />
+            </button>
+            {showMoreMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-xl z-50 py-1 overflow-hidden">
+                <button
+                  onClick={() => {
+                    setShowImportModal(true);
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-primary-col hover:bg-[var(--accent)] transition flex items-center gap-3"
+                >
+                  <Upload className="w-4 h-4 text-emerald-500" />
+                  Import Excel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-primary-col hover:bg-[var(--accent)] transition flex items-center gap-3"
+                >
+                  <Download className="w-4 h-4 text-sky-500" />
+                  Download Template
+                </button>
+                <div className="border-t border-[var(--border)] my-1" />
+                <button
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-primary-col hover:bg-[var(--accent)] transition flex items-center gap-3"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-amber-500" />
+                  Export Data
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -4353,6 +4523,17 @@ function LegacySkillDetailPage() {
           setVocabularyEditMode(undefined);
         }}
       />
+
+      {/* AI Generate Modal */}
+      {(skill === "vocabulary" || skill === "reading" || skill === "grammar") && (
+        <AdminAiGenerateModal
+          open={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          skillType={skill.toUpperCase() as "VOCABULARY" | "GRAMMAR" | "READING"}
+          currentLevel={upperLevel}
+          onApplyDraft={handleApplyAiDraft}
+        />
+      )}
     </div>
   );
 }

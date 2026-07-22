@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,6 +60,10 @@ public class GeminiProvider implements AiProvider {
     private final GeminiKeyManager keyManager;
     private final GeminiModelResolver modelResolver;
     private volatile String lastModelUsed;
+    private final ThreadLocal<String> lastFinishReason = new ThreadLocal<>();
+    private final ThreadLocal<Integer> lastPromptTokens = new ThreadLocal<>();
+    private final ThreadLocal<Integer> lastCompletionTokens = new ThreadLocal<>();
+    private final ThreadLocal<Integer> lastTotalTokens = new ThreadLocal<>();
 
     // Global request counter for monitoring
     private static final AtomicInteger globalRequestCounter = new AtomicInteger(0);
@@ -68,7 +74,8 @@ public class GeminiProvider implements AiProvider {
         this.config = config;
         this.objectMapper = objectMapper;
         this.webClientBuilder = webClientBuilder;
-        this.keyManager = new GeminiKeyManager(config.getGemini().getApiKeysStr());
+        String keysConfig = String.join(",", config.getGemini().getApiKeys());
+        this.keyManager = new GeminiKeyManager(keysConfig);
         this.modelResolver = modelResolver;
 
         log.info("==============================================");
@@ -159,6 +166,34 @@ public class GeminiProvider implements AiProvider {
         return lastModelUsed;
     }
 
+    @Override
+    public String getLastFinishReason() {
+        return lastFinishReason.get();
+    }
+
+    @Override
+    public Integer getLastPromptTokens() {
+        return lastPromptTokens.get();
+    }
+
+    @Override
+    public Integer getLastCompletionTokens() {
+        return lastCompletionTokens.get();
+    }
+
+    @Override
+    public Integer getLastTotalTokens() {
+        return lastTotalTokens.get();
+    }
+
+    @Override
+    public void clearMetrics() {
+        lastFinishReason.remove();
+        lastPromptTokens.remove();
+        lastCompletionTokens.remove();
+        lastTotalTokens.remove();
+    }
+
     // ============================================================
     // Shared Retry Helper
     // ============================================================
@@ -180,7 +215,19 @@ public class GeminiProvider implements AiProvider {
 
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             String apiKey = keyManager.getCurrentKey();
-            log.info("[GeminiProvider] Using Gemini key {}/{} for {}", attempt + 1, maxRetries, operationLabel);
+            int currentKeyIndex = 0;
+            String[] allKeys = config.getGemini().getApiKeys();
+            if (allKeys != null) {
+                for (int ki = 0; ki < allKeys.length; ki++) {
+                    if (allKeys[ki].equals(apiKey)) {
+                        currentKeyIndex = ki;
+                        break;
+                    }
+                }
+            }
+            String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
+            log.info("[GeminiProvider] Using Gemini key {}/{} (index={}, key={}) for {}",
+                    attempt + 1, maxRetries, currentKeyIndex, keyMasked, operationLabel);
 
             try {
                 T result = call.execute(apiKey);
@@ -191,6 +238,15 @@ public class GeminiProvider implements AiProvider {
                 int status = e.getStatusCode().value();
                 String responseBody = e.getResponseBodyAsString();
                 log.error("[GeminiProvider] HTTP ERROR - Status: {}, Response: {}", status, responseBody);
+
+                // API_KEY_INVALID is a permanent error — do NOT retry or rotate
+                if (isApiKeyInvalid(status, responseBody)) {
+                    log.error("[GeminiProvider] API_KEY_INVALID — key is permanently invalid. Skipping rotation and failing fast.");
+                    lastError = new RuntimeException("Gemini API key is invalid (HTTP 400): " + responseBody, e);
+                    break;
+                }
+
+                // 429/401/403 = temporary (rate limit / auth) → rotate to next key
                 if ((status == 429 || status == 401 || status == 403) && attempt < maxRetries - 1) {
                     log.warn("[GeminiProvider] HTTP {} received on {} with key {}/{} — rotating to next key", status, operationLabel, attempt + 1, maxRetries);
                     keyManager.markKeyFailedAndGetNext();
@@ -270,6 +326,19 @@ public class GeminiProvider implements AiProvider {
         return status == 400 || status == 404 || status == 429 || status == 500 || status == 503;
     }
 
+    /**
+     * Detects whether a Gemini HTTP error is caused by an invalid API key.
+     * Returns true only when status is 400 and the error reason is API_KEY_INVALID.
+     * This is a permanent failure — retrying the same key or rotating to other keys
+     * with the same invalid key will never succeed.
+     */
+    private boolean isApiKeyInvalid(Integer status, String responseBody) {
+        if (status == null || status != 400 || responseBody == null) {
+            return false;
+        }
+        return responseBody.contains("API_KEY_INVALID") || responseBody.contains("API key not valid");
+    }
+
     private <T> T executeWithFallback(String operationLabel, FallbackAction<T> action, AiTaskType taskType) {
         validateConfig();
         List<String> models = resolveModelsForTask(taskType, operationLabel);
@@ -308,6 +377,12 @@ public class GeminiProvider implements AiProvider {
                         operationLabel, model, status != null ? status : "N/A", msg);
 
                 failures.add(new ModelFailure(model, status, body, msg));
+
+                // 400 + API_KEY_INVALID = permanent failure; abort model fallback too
+                if (isApiKeyInvalid(status, body)) {
+                    log.error("[GeminiProvider] [FALLBACK-LOOP] API_KEY_INVALID — permanent failure. Aborting fallback loop.");
+                    break;
+                }
 
                 if (i == models.size() - 1) {
                     break;
@@ -360,7 +435,12 @@ public class GeminiProvider implements AiProvider {
 
         Map<String, Object> generationConfig = new HashMap<>();
         generationConfig.put("temperature", 0.7);
-        generationConfig.put("maxOutputTokens", config.getMaxTokens() > 0 ? config.getMaxTokens() : 8192);
+        int effectiveMaxTokens = config.getMaxTokens() > 0 ? config.getMaxTokens() : 8192;
+        if (taskType == AiTaskType.ADMIN_CONTENT_LIBRARY_GENERATION) {
+            effectiveMaxTokens = Math.max(effectiveMaxTokens, 16384);
+            generationConfig.put("responseMimeType", "application/json");
+        }
+        generationConfig.put("maxOutputTokens", effectiveMaxTokens);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("contents", contents);
@@ -369,15 +449,11 @@ public class GeminiProvider implements AiProvider {
 
         String baseUrl = config.getGemini().getBaseUrl();
         String apiKeysStr = config.getGemini().getApiKeysStr();
-        
-        log.info("[GeminiProvider] =============================================");
+
         log.info("[GeminiProvider] CHAT REQUEST - Request ID: {}", requestId);
         log.info("[GeminiProvider] CHAT REQUEST - BaseURL: {}", baseUrl);
         log.info("[GeminiProvider] CHAT REQUEST - API Key loaded: {}", (apiKeysStr != null && !apiKeysStr.isBlank()) ? "YES" : "NO");
         log.info("[GeminiProvider] CHAT REQUEST - Task Type: {}", taskType);
-        log.info("[GeminiProvider] CHAT REQUEST - Request body size: {} bytes", requestBody.toString().length());
-        log.info("[GeminiProvider] =============================================");
-        log.info("[GeminiProvider] Request body preview: {}", truncateForLog(requestBody.toString(), 500));
 
         return executeWithFallback("chat", (model, apiKey) -> {
             String keyMasked = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4);
@@ -401,13 +477,13 @@ public class GeminiProvider implements AiProvider {
 
             long latencyMs = System.currentTimeMillis() - callStartTime;
             long totalMs = System.currentTimeMillis() - requestStartTime;
-            
+
             log.info("[GeminiProvider] CHAT RESPONSE - Request ID: {}", requestId);
             log.info("[GeminiProvider]   Model: {}", model);
             log.info("[GeminiProvider]   Latency: {}ms", latencyMs);
             log.info("[GeminiProvider]   Total Time: {}ms", totalMs);
             log.info("[GeminiProvider]   Response length: {} chars", rawResponse != null ? rawResponse.length() : 0);
-            
+
             return extractTextFromResponse(rawResponse);
         }, taskType);
     }
@@ -526,7 +602,21 @@ public class GeminiProvider implements AiProvider {
                 .block();
 
         try {
-            return objectMapper.readValue(rawResponse, Map.class);
+            Map<String, Object> root = objectMapper.readValue(rawResponse, Map.class);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> candidates = (List<Map<String, Object>>) root.get("candidates");
+            if (candidates != null && !candidates.isEmpty()) {
+                String fr = (String) candidates.get(0).get("finishReason");
+                lastFinishReason.set(fr);
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> usage = (Map<String, Object>) root.get("usageMetadata");
+            if (usage != null) {
+                lastPromptTokens.set((Integer) usage.get("promptTokenCount"));
+                lastCompletionTokens.set((Integer) usage.get("candidatesTokenCount"));
+                lastTotalTokens.set((Integer) usage.get("totalTokenCount"));
+            }
+            return root;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse Gemini response", e);
         }
@@ -548,6 +638,17 @@ public class GeminiProvider implements AiProvider {
 
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) root.get("candidates");
+            if (candidates != null && !candidates.isEmpty()) {
+                String fr = (String) candidates.get(0).get("finishReason");
+                lastFinishReason.set(fr);
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> usage = (Map<String, Object>) root.get("usageMetadata");
+            if (usage != null) {
+                lastPromptTokens.set((Integer) usage.get("promptTokenCount"));
+                lastCompletionTokens.set((Integer) usage.get("candidatesTokenCount"));
+                lastTotalTokens.set((Integer) usage.get("totalTokenCount"));
+            }
             if (candidates == null || candidates.isEmpty()) {
                 throw new RuntimeException("Gemini returned no candidates");
             }
