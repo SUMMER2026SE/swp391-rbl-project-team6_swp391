@@ -20,9 +20,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { AlertCircle, BookOpen, Hash, X, UserPlus, Pencil } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  Hash,
+  X,
+  UserPlus,
+  Pencil,
+  Upload,
+  Download,
+  CheckCircle2,
+  XCircle,
+  FileSpreadsheet,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import { classesApi, UpdateClassRequest } from "@/lib/api/classes";
 import { ApiError } from "@/lib/api/client";
+import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function isValidEmail(email: string): boolean {
   const trimmed = email.trim().toLowerCase();
@@ -64,15 +88,23 @@ export function InviteStudentsDialog({
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Required: the class to invite students into. */
   classId?: string;
   className?: string;
   classLevel?: string;
   teacherName?: string;
 }) {
   const queryClient = useQueryClient();
+  
+  // File Import States
+  const [file, setFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [results, setResults] = useState<any | null>(null);
+
+  // Manual Entry States
   const [emailsInput, setEmailsInput] = useState("");
-  const [sending, setSending] = useState(false);
+  const [manualSending, setManualSending] = useState(false);
 
   const { data: fetchedClass } = useQuery({
     queryKey: ["teacherClassDetail", classId],
@@ -80,38 +112,132 @@ export function InviteStudentsDialog({
     enabled: !!classId && open && (!className || !classLevel),
   });
 
-  const { valid, invalid } = useMemo(() => parseEmails(emailsInput), [emailsInput]);
+  const displayClassName = className ?? fetchedClass?.name ?? "the class";
+  const displayLevel = classLevel ?? fetchedClass?.level ?? "";
 
-  const canSend = valid.length > 0 && invalid.length === 0 && !!classId;
+  const { valid, invalid } = useMemo(() => parseEmails(emailsInput), [emailsInput]);
+  const canSendManual = valid.length > 0 && invalid.length === 0 && !!classId;
 
   const invalidateClassQueries = (id: string) => {
-    // Teacher-side: refresh the screens that show this class's students
     void queryClient.invalidateQueries({ queryKey: ["classStudents", id] });
     void queryClient.invalidateQueries({ queryKey: ["teacherClassDetail", id] });
     void queryClient.invalidateQueries({ queryKey: ["teacherAllClasses"] });
-    // Student-side: when the newly-added student opens their dashboard /
-    // classes list, they should already see the class. Invalidate any
-    // currently-mounted student queries too (no-op if not mounted).
     void queryClient.invalidateQueries({ queryKey: ["studentJoinedClassesDashboard"] });
     void queryClient.invalidateQueries({ queryKey: ["studentJoinedClasses"] });
   };
 
-  const displayClassName = className ?? fetchedClass?.name ?? "the class";
-  const displayLevel = classLevel ?? fetchedClass?.level ?? "";
-
-  const handleSend = async () => {
-    if (!canSend) {
-      if (!classId) {
-        toast.error("Cannot add students: no class selected.");
-      } else if (valid.length === 0) {
-        toast.error("Please enter at least one valid email.");
-      } else if (invalid.length > 0) {
-        toast.error("Please fix invalid email addresses before adding.");
-      }
-      return;
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
     }
+  };
 
-    setSending(true);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      const name = droppedFile.name.toLowerCase();
+      if (name.endsWith(".csv") || name.endsWith(".xlsx")) {
+        if (droppedFile.size > 5 * 1024 * 1024) {
+          toast.error("File is too large. Max size is 5MB.");
+          return;
+        }
+        setFile(droppedFile);
+      } else {
+        toast.error("Unsupported file format. Please upload .xlsx or .csv");
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      const name = selectedFile.name.toLowerCase();
+      if (name.endsWith(".csv") || name.endsWith(".xlsx")) {
+        if (selectedFile.size > 5 * 1024 * 1024) {
+          toast.error("File is too large. Max size is 5MB.");
+          return;
+        }
+        setFile(selectedFile);
+      } else {
+        toast.error("Unsupported file format. Please upload .xlsx or .csv");
+      }
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const token = localStorage.getItem("midori_access_token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api"}/teacher/classes/import/template`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to download template");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "student_import_template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Template downloaded successfully");
+    } catch (err) {
+      toast.error("Failed to download template");
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file || !classId) return;
+
+    setUploading(true);
+    setUploadProgress(10);
+
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 15;
+      });
+    }, 200);
+
+    try {
+      const response = await classesApi.importStudents(classId, file);
+      clearInterval(interval);
+      setUploadProgress(100);
+      setTimeout(() => {
+        setResults(response.data || response);
+        setUploading(false);
+        invalidateClassQueries(classId);
+        toast.success("Import completed successfully");
+      }, 300);
+    } catch (err: any) {
+      clearInterval(interval);
+      setUploading(false);
+      setUploadProgress(0);
+      const msg = err instanceof ApiError ? err.message : err.message || "Failed to import students";
+      toast.error(msg);
+    }
+  };
+
+  const handleManualSend = async () => {
+    if (!canSendManual) return;
+
+    setManualSending(true);
     let successCount = 0;
     const failed: { email: string; message: string }[] = [];
 
@@ -130,152 +256,343 @@ export function InviteStudentsDialog({
       }
     }
 
-    setSending(false);
+    setManualSending(false);
 
     if (failed.length === 0) {
-      const levelDisplay = displayLevel ? ` ${displayLevel}` : "";
-      const classDisplay = displayClassName !== "the class" ? displayClassName : "this class";
-      if (successCount === 1) {
-        toast.success(`Added ${valid[0]} to${levelDisplay} ${classDisplay}.`);
-      } else {
-        toast.success(`Added ${successCount} students to${levelDisplay} ${classDisplay}.`);
-      }
+      toast.success(`Added ${successCount} student(s) successfully.`);
       invalidateClassQueries(classId!);
       setEmailsInput("");
       onOpenChange(false);
       return;
     }
 
-    // Partial or total failure
     if (successCount > 0) {
       invalidateClassQueries(classId!);
-      toast.warning(
-        `${successCount} student${successCount === 1 ? "" : "s"} added, ${failed.length} failed.`,
-      );
+      toast.warning(`${successCount} student(s) added, ${failed.length} failed.`);
     }
     for (const f of failed) {
       toast.error(`${f.email}: ${f.message}`);
     }
   };
 
+  const handleReset = () => {
+    setFile(null);
+    setResults(null);
+    setUploadProgress(0);
+    setUploading(false);
+    setEmailsInput("");
+  };
+
   const handleClose = () => {
-    if (sending) return;
+    if (uploading || manualSending) return;
     onOpenChange(false);
+    setTimeout(() => {
+      handleReset();
+    }, 200);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
             <UserPlus className="w-5 h-5 text-primary" />
             Add Students
           </DialogTitle>
           <DialogDescription>
-            Add students to {displayClassName} by email. They will be enrolled immediately.
+            Add students to {displayClassName} ({displayLevel}) by email manually or by uploading Excel/CSV.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
-          {/* Email input */}
-          <div className="space-y-1.5">
-            <Label htmlFor="invite-emails">Student emails</Label>
-            <Textarea
-              id="invite-emails"
-              rows={3}
-              placeholder="hiroshi@example.com, yuki@example.com"
-              value={emailsInput}
-              onChange={(e) => setEmailsInput(e.target.value)}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground">Separate emails with commas, newlines, or paste from Excel.</p>
-          </div>
+        <div className="flex-1 space-y-4 py-2">
+          {!results ? (
+            <Tabs defaultValue="manual" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="manual">Add Manually</TabsTrigger>
+                <TabsTrigger value="file">Import File</TabsTrigger>
+              </TabsList>
 
-          {/* Invalid emails warning */}
-          {invalid.length > 0 && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-1">
-              <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
-                <AlertCircle className="w-4 h-4" />
-                Please fix invalid email addresses before adding students.
-              </div>
-              <div className="text-xs text-destructive/80 space-y-0.5">
-                {invalid.map((email, i) => (
-                  <p key={i}>• {email}</p>
-                ))}
-              </div>
-            </div>
-          )}
+              {/* Tab 1: Add Manually */}
+              <TabsContent value="manual" className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-emails">Student emails</Label>
+                  <Textarea
+                    id="invite-emails"
+                    rows={4}
+                    placeholder="hiroshi@example.com, yuki@example.com"
+                    value={emailsInput}
+                    onChange={(e) => setEmailsInput(e.target.value)}
+                    className="resize-none"
+                    disabled={manualSending}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Separate emails with commas, newlines, or tabs.
+                  </p>
+                </div>
 
-          {/* No class context warning */}
-          {!classId && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
-                <AlertCircle className="w-4 h-4" />
-                No class selected. Please open this dialog from a class page.
-              </div>
-            </div>
-          )}
+                {invalid.length > 0 && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-1">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                      <AlertCircle className="w-4 h-4" />
+                      Please fix invalid email addresses before adding students.
+                    </div>
+                    <div className="text-xs text-destructive/80 space-y-0.5">
+                      {invalid.map((email, i) => (
+                        <p key={i}>• {email}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-          {/* Summary of who's being added */}
-          <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2 text-sm">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Summary
-            </p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Class:</span>
-              </div>
-              <div className="font-medium text-foreground truncate">{displayClassName}</div>
+                <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2 text-sm">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Summary
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>Class:</span>
+                    </div>
+                    <div className="font-medium text-foreground truncate">{displayClassName}</div>
 
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Hash className="w-3.5 h-3.5" />
-                <span>Level:</span>
-              </div>
-              <div className="font-medium text-foreground">{displayLevel || "—"}</div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Hash className="w-3.5 h-3.5" />
+                      <span>Level:</span>
+                    </div>
+                    <div className="font-medium text-foreground">{displayLevel || "—"}</div>
 
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Will be added:</span>
-              </div>
-              <div className="font-medium text-foreground">
-                {valid.length > 0 ? `${valid.length} student${valid.length !== 1 ? "s" : ""}` : "—"}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground pt-1">
-              Students will be enrolled immediately and will see the class on their dashboard. No
-              email is sent.
-            </p>
-          </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Will be added:</span>
+                    </div>
+                    <div className="font-medium text-foreground">
+                      {valid.length > 0 ? `${valid.length} student${valid.length !== 1 ? "s" : ""}` : "—"}
+                    </div>
+                  </div>
+                </div>
 
-          {/* Recipients summary */}
-          {valid.length > 0 && invalid.length === 0 && (
-            <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
-              <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-primary">{valid.length}</span> student
-                {valid.length !== 1 ? "s" : ""} will be added to this class
-              </p>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={handleClose} disabled={manualSending}>
+                    Cancel
+                  </Button>
+                  <Button disabled={!canSendManual || manualSending} onClick={handleManualSend}>
+                    {manualSending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Add students
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Tab 2: Import File */}
+              <TabsContent value="file" className="space-y-4">
+                <div
+                  className={`relative border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all ${
+                    dragActive
+                      ? "border-primary bg-primary/5"
+                      : file
+                      ? "border-emerald-500/50 bg-emerald-500/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragOver={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    id="import-file-input"
+                    className="hidden"
+                    accept=".csv,.xlsx"
+                    onChange={handleFileChange}
+                    disabled={uploading}
+                  />
+
+                  {file ? (
+                    <div className="text-center space-y-2">
+                      <FileSpreadsheet className="w-12 h-12 mx-auto text-emerald-500" />
+                      <div>
+                        <p className="font-semibold text-sm text-foreground truncate max-w-md">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFile(null)}
+                        disabled={uploading}
+                        className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                      >
+                        Remove file
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-3">
+                      <Upload className="w-10 h-10 mx-auto text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-semibold">Drag & drop your file here, or click to browse</p>
+                        <p className="text-xs text-muted-foreground mt-1">Supports .xlsx and .csv files up to 5MB</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="cursor-pointer"
+                        disabled={uploading}
+                      >
+                        <label htmlFor="import-file-input">Choose File</label>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold">Need the file structure?</p>
+                    <p className="text-[11px] text-muted-foreground">Download the Excel template with required fields.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadTemplate}
+                    disabled={uploading}
+                    className="h-8 gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download Template
+                  </Button>
+                </div>
+
+                {uploading && (
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>Uploading and processing...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={handleClose} disabled={uploading}>
+                    Cancel
+                  </Button>
+                  <Button disabled={!file || uploading} onClick={handleImport}>
+                    {uploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Import
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            // Results Dashboard
+            <div className="space-y-5">
+              <div className="rounded-xl border bg-card p-4 space-y-3">
+                <h3 className="font-semibold text-sm">Import Result</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+                  <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                    <div className="font-bold text-lg">{results.summary?.added ?? 0}</div>
+                    <div className="text-[10px] uppercase font-semibold">Added</div>
+                  </div>
+                  <div className="p-2 rounded bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400">
+                    <div className="font-bold text-lg">{results.summary?.alreadyInClass ?? 0}</div>
+                    <div className="text-[10px] uppercase font-semibold">In Class</div>
+                  </div>
+                  <div className="p-2 rounded bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400">
+                    <div className="font-bold text-lg">{results.summary?.accountNotFound ?? 0}</div>
+                    <div className="text-[10px] uppercase font-semibold">Not Found</div>
+                  </div>
+                  <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
+                    <div className="font-bold text-lg">{results.summary?.invalidEmail ?? 0}</div>
+                    <div className="text-[10px] uppercase font-semibold">Invalid</div>
+                  </div>
+                  <div className="p-2 rounded bg-gray-500/10 border border-gray-500/20 text-gray-700 dark:text-gray-400">
+                    <div className="font-bold text-lg">{results.summary?.duplicateInFile ?? 0}</div>
+                    <div className="text-[10px] uppercase font-semibold">Duplicate</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* View Details table */}
+              <div className="space-y-1.5">
+                <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">Detailed Report</h4>
+                <div className="rounded-lg border max-h-[30vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      <TableRow>
+                        <TableHead className="w-16">Row</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Message</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.details?.length > 0 ? (
+                        results.details.map((detail: any, idx: number) => {
+                          let badgeStyle = "text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-400";
+                          if (detail.status === "SUCCESS") {
+                            badgeStyle = "text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400";
+                          } else if (detail.status === "ALREADY_IN_CLASS") {
+                            badgeStyle = "text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400";
+                          } else if (detail.status === "ACCOUNT_NOT_FOUND") {
+                            badgeStyle = "text-rose-700 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-400";
+                          } else if (detail.status === "INVALID_EMAIL") {
+                            badgeStyle = "text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400";
+                          } else if (detail.status === "DUPLICATE_IN_FILE") {
+                            badgeStyle = "text-neutral-700 bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-400";
+                          }
+                          return (
+                            <TableRow key={idx}>
+                              <TableCell className="font-medium text-xs">{detail.row}</TableCell>
+                              <TableCell className="text-xs">{detail.email}</TableCell>
+                              <TableCell>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${badgeStyle}`}>
+                                  {detail.status}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{detail.message}</TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-4 text-xs text-muted-foreground">
+                            No details reported.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleClose} disabled={sending}>
-            Cancel
-          </Button>
-          <Button disabled={!canSend || sending} onClick={handleSend}>
-            {sending ? (
-              <>
-                <span className="animate-spin mr-2">⟳</span>
-                Adding...
-              </>
-            ) : (
-              <>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add students
-              </>
-            )}
-          </Button>
+          {results && (
+            <>
+              <Button variant="outline" onClick={handleReset}>
+                Import Another File
+              </Button>
+              <Button onClick={handleClose}>Done</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

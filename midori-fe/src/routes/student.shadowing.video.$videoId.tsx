@@ -30,6 +30,7 @@ import {
   AlignLeft,
   Bookmark,
   Loader2,
+  BrainCircuit,
 } from "lucide-react";
 import { SakuraBg } from "@/components/sakura-bg";
 import { studentShadowingApi } from "@/lib/api/shadowing";
@@ -1029,11 +1030,25 @@ function VideoLearningPage() {
               {/* ── VOCABULARY TAB ──────────────────────────────────── */}
               {activeTab === "vocabulary" && (
                 <div className="flex flex-col flex-1 min-h-0">
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-white/8 shrink-0">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-white/8 shrink-0 gap-2">
                     <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
                       <Bookmark className="w-3.5 h-3.5 text-primary" />
                       Từ vựng đã lưu ({globalSavedWords.length})
                     </span>
+                    <button
+                      onClick={() => navigate({ to: `/student/vocabulary/flashcards`, search: { sourceVideoId: videoId } })}
+                      disabled={globalSavedWords.length === 0}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white rounded-xl shadow-md transition-all cursor-pointer",
+                        globalSavedWords.length === 0
+                          ? "bg-slate-300 dark:bg-slate-700 cursor-not-allowed opacity-65 shadow-none"
+                          : "bg-gradient-hero hover:opacity-90 active:scale-95"
+                      )}
+                      title={globalSavedWords.length === 0 ? "Hãy lưu ít nhất một từ để bắt đầu học." : "Ôn tập các từ vựng bạn đã lưu"}
+                    >
+                      <BrainCircuit className="w-3.5 h-3.5" />
+                      Học Flashcard
+                    </button>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">

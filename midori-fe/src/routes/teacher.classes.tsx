@@ -292,7 +292,7 @@ function ClassesLayout() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => setInviteFor(c.id)}>
                             <UserPlus className="mr-2 h-4 w-4" />
-                            Invite students
+                            Import students
                           </DropdownMenuItem>
                         </>
                       )}

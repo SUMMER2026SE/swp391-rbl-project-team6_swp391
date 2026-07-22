@@ -297,6 +297,13 @@ export function DashboardLayout({
       if (to === "/teacher/classes/create") {
         return pathname === "/teacher/classes/create";
       }
+      if (to === "/admin/class-management") {
+        return (
+          pathname === "/admin/class-management" ||
+          pathname.startsWith("/admin/class-management/") ||
+          pathname.startsWith("/admin/class/")
+        );
+      }
       if (exact) return pathname === to;
       const isBaseRoute = to === `/${role}`;
       return (

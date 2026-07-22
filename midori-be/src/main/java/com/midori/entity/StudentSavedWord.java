@@ -65,6 +65,35 @@ public class StudentSavedWord {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Builder.Default
+    @Column(name = "learning_status", nullable = false, length = 20)
+    private String learningStatus = "NEW";
+
+    @Builder.Default
+    @Column(name = "is_difficult", nullable = false)
+    private Boolean isDifficult = false;
+
+    @Column(name = "last_reviewed_at")
+    private Instant lastReviewedAt;
+
+    @Column(name = "next_review_at")
+    private Instant nextReviewAt;
+
+    @Builder.Default
+    @Column(name = "review_count", nullable = false)
+    private Integer reviewCount = 0;
+
+    @Builder.Default
+    @Column(name = "correct_count", nullable = false)
+    private Integer correctCount = 0;
+
+    @Builder.Default
+    @Column(name = "lapse_count", nullable = false)
+    private Integer lapseCount = 0;
+
+    @Column(name = "mastered_at")
+    private Instant masteredAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

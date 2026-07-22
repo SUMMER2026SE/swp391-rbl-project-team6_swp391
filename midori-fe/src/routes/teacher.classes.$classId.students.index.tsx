@@ -117,7 +117,7 @@ function StudentsPage() {
         </div>
         <Button onClick={() => setInvite(true)} className="ml-auto">
           <UserPlus className="mr-2 h-4 w-4" />
-          Invite students
+          Import Students
         </Button>
       </div>
 
