@@ -70,6 +70,21 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                                    @Param("keyword") String keyword,
                                    Pageable pageable);
 
+    @Query(value = "SELECT u FROM User u LEFT JOIN FETCH u.profile " +
+            "WHERE (:#{#role} IS NULL OR u.role = :role) " +
+            "AND u.status IN :statuses " +
+            "AND (:#{#keyword} IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR (u.profile IS NOT NULL AND LOWER(u.profile.displayName) LIKE LOWER(CONCAT('%', :keyword, '%'))))",
+            countQuery = "SELECT COUNT(u) FROM User u " +
+                    "WHERE (:#{#role} IS NULL OR u.role = :role) " +
+                    "AND u.status IN :statuses " +
+                    "AND (:#{#keyword} IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "OR (u.profile IS NOT NULL AND LOWER(u.profile.displayName) LIKE LOWER(CONCAT('%', :keyword, '%'))))")
+    Page<User> findAllWithInactiveStatuses(@Param("role") Role role,
+                                           @Param("statuses") List<UserStatus> statuses,
+                                           @Param("keyword") String keyword,
+                                           Pageable pageable);
+
     @Query("SELECT c.id, COUNT(u) FROM User u JOIN u.assignedClasses c GROUP BY c.id")
     List<Object[]> countStudentsPerClass();
 

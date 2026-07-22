@@ -22,10 +22,9 @@ const DEFAULT_TABS: NotificationTabDescriptor[] = [
   { id: "all", label: "All" },
   { id: "unread", label: "Unread" },
   { id: "LESSON", label: "Lesson" },
-  { id: "CONTENT_APPROVED", label: "Approved" },
-  { id: "CONTENT_REJECTED", label: "Rejected" },
-  { id: "TEACHER_APPROVED", label: "Teacher Approved" },
-  { id: "TEACHER_REJECTED", label: "Teacher Rejected" },
+  { id: "CONTEXT", label: "Context" },
+  { id: "EXAM", label: "Exam" },
+  { id: "APPROVED", label: "Approved" },
   { id: "SYSTEM", label: "System" },
 ];
 

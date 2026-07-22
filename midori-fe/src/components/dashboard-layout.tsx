@@ -233,7 +233,7 @@ export function DashboardLayout({
   const [notifOpen, setNotifOpen] = useState(false);
 
   // Use global notification context for real data
-  const { notifications, unreadCount } = useNotifications();
+  const { notifications, unreadCount, markRead } = useNotifications();
 
   // Admin role uses DashboardLayout too but admin has its own notification page
   // No need to show dropdown badge for admin (they manage notifications)
@@ -983,8 +983,36 @@ export function DashboardLayout({
                           {dropdownNotifications.map((n) => {
                             const Icon = n.icon;
                             return (
-                              <div
+                              <button
                                 key={n.id}
+                                type="button"
+                                onClick={() => {
+                                  setNotifOpen(false);
+                                  // Clicking a notification from the bell
+                                  // popup must take the user straight to the
+                                  // detail view of that notification, not
+                                  // just stop on the list page. We navigate
+                                  // to the role-scoped inbox with `?id=` so
+                                  // the route handler can open the drawer
+                                  // for the right notification and then
+                                  // strip the param.
+                                  const params: Record<string, unknown> = {};
+                                  if (role === "teacher") {
+                                    params.q = "";
+                                  }
+                                  params.id = n.id;
+                                  nav({
+                                    to: notificationsPath as never,
+                                    search: params as never,
+                                  });
+                                  // Optimistically mark as read so the
+                                  // bell badge updates immediately. The
+                                  // route handler also marks it as read
+                                  // when the detail drawer closes.
+                                  if (n.unread) {
+                                    void markRead(n.id);
+                                  }
+                                }}
                                 className={`w-full flex items-start gap-3 px-3 py-3 rounded-xl text-left transition-all duration-150 ${
                                   n.unread
                                     ? "bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900/60"
@@ -1016,7 +1044,7 @@ export function DashboardLayout({
                                     {n.time}
                                   </span>
                                 </div>
-                              </div>
+                              </button>
                             );
                           })}
                         </div>
@@ -1026,7 +1054,20 @@ export function DashboardLayout({
                         <button
                           onClick={() => {
                             setNotifOpen(false);
-                            nav({ to: notificationsPath as never });
+                            // "View all" is purely a navigation shortcut to
+                            // the inbox list page; it must NOT auto-open any
+                            // detail drawer. We explicitly send `id: null`
+                            // so the inbox renders the regular list and the
+                            // user picks a notification themselves.
+                            const params: Record<string, unknown> = {};
+                            if (role === "teacher") {
+                              params.q = "";
+                            }
+                            params.id = null;
+                            nav({
+                              to: notificationsPath as never,
+                              search: params as never,
+                            });
                           }}
                           className="w-full block py-2.5 text-center text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition"
                         >

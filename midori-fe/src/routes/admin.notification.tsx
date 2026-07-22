@@ -261,13 +261,13 @@ function NotificationManagementPage() {
     if (formData.target === TARGET_AUDIENCE.SPECIFIC_CLASS) {
       const code = formData.classCode.trim();
       if (!code) {
-        setClassIdError("Class ID is required when Target Audience is Specific Class");
-        setCreateError("Please enter the Class ID before creating");
+        setClassIdError("Class Code is required when Target Audience is Specific Class");
+        setCreateError("Please enter the Class Code before creating");
         return;
       }
       if (!classLookup || classLookupError) {
-        setClassIdError("Please verify the Class ID by clicking the Verify button");
-        setCreateError("Please verify the Class ID before creating");
+        setClassIdError("Please verify the Class Code by clicking the Verify button");
+        setCreateError("Please verify the Class Code before creating");
         return;
       }
       setClassIdError(null);
@@ -295,7 +295,7 @@ function NotificationManagementPage() {
       };
 
       if (formData.target === TARGET_AUDIENCE.SPECIFIC_CLASS) {
-        payload.targetClassId = formData.classCode.trim();
+        payload.classCode = formData.classCode.trim();
       }
 
       const created = await notificationApi.createNotification(payload);
@@ -340,7 +340,7 @@ function NotificationManagementPage() {
       content: notification.content ?? "",
       type: (notification.type ?? NOTIFICATION_TYPES.SYSTEM) as NotificationType,
       target: (notification.targetType as TargetAudience) ?? TARGET_AUDIENCE.ALL,
-      classCode: notification.targetClassId ?? "",
+      classCode: notification.classCode ?? "",
       scheduledDate: notification.scheduledAt ? toDatetimeLocalValue(notification.scheduledAt) : "",
     });
     setShowEditModal(true);
@@ -360,17 +360,17 @@ function NotificationManagementPage() {
         content: detail.content ?? "",
         type: (detail.type ?? NOTIFICATION_TYPES.SYSTEM) as NotificationType,
         target: (detail.targetType as TargetAudience) ?? TARGET_AUDIENCE.ALL,
-        classCode: detail.targetClassId ?? "",
+        classCode: detail.classCode ?? "",
         scheduledDate: detail.scheduledAt ? toDatetimeLocalValue(detail.scheduledAt) : "",
       });
 
       // Hydrate class lookup if the notification targets a specific class.
       if (
         (detail.targetType as TargetAudience) === TARGET_AUDIENCE.SPECIFIC_CLASS &&
-        detail.targetClassId
+        detail.classCode
       ) {
         try {
-          const lookup = await notificationApi.lookupClass(detail.targetClassId);
+          const lookup = await notificationApi.lookupClass(detail.classCode);
           setClassLookup({
             name: lookup.name,
             studentCount: lookup.studentCount ?? 0,
@@ -402,13 +402,13 @@ function NotificationManagementPage() {
     if (formData.target === TARGET_AUDIENCE.SPECIFIC_CLASS) {
       const code = formData.classCode.trim();
       if (!code) {
-        setClassIdError("Class ID is required when Target Audience is Specific Class");
-        setEditError("Please enter the Class ID before saving");
+        setClassIdError("Class Code is required when Target Audience is Specific Class");
+        setEditError("Please enter the Class Code before saving");
         return;
       }
       if (!classLookup || classLookupError) {
-        setClassIdError("Please verify the Class ID by clicking the Verify button");
-        setEditError("Please verify the Class ID before saving");
+        setClassIdError("Please verify the Class Code by clicking the Verify button");
+        setEditError("Please verify the Class Code before saving");
         return;
       }
       setClassIdError(null);
@@ -436,7 +436,7 @@ function NotificationManagementPage() {
       };
 
       if (formData.target === TARGET_AUDIENCE.SPECIFIC_CLASS) {
-        payload.targetClassId = formData.classCode.trim();
+        payload.classCode = formData.classCode.trim();
       }
 
       const updated = await notificationApi.updateNotification(editingNotificationId, payload);
@@ -575,7 +575,7 @@ function NotificationManagementPage() {
                 ? "CLASS"
                 : "CLASS";
 
-      if (targetType === "CLASS" && !notification.targetClassId) {
+      if (targetType === "CLASS" && !notification.classCode) {
         setSendErrors((prev) => ({
           ...prev,
           [notification.id]:
@@ -590,7 +590,7 @@ function NotificationManagementPage() {
           role: notification.targetType === "TEACHERS" ? "TEACHER" : "STUDENT",
         }),
         ...(targetType === "CLASS" && {
-          classId: notification.targetClassId ?? undefined,
+          classCode: notification.classCode ?? undefined,
         }),
       };
 
@@ -980,13 +980,13 @@ function NotificationManagementPage() {
               </div>
 
               <div
-                data-testid="class-id-block"
+                data-testid="class-code-block"
                 className={formData.target === TARGET_AUDIENCE.SPECIFIC_CLASS ? "" : "hidden"}
                 aria-hidden={formData.target !== TARGET_AUDIENCE.SPECIFIC_CLASS}
               >
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
-                    Class ID *
+                    Class Code *
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -999,7 +999,7 @@ function NotificationManagementPage() {
                         setClassLookupError(null);
                         setClassIdError(null);
                       }}
-                      placeholder="Enter class ID (UUID)"
+                      placeholder="Enter class code (e.g. N5-A1)"
                       className={`flex-1 px-4 py-3 rounded-xl input-glass text-sm ${
                         classIdError ? "border border-red-500 focus:outline-red-500" : ""
                       }`}
@@ -1195,13 +1195,13 @@ function NotificationManagementPage() {
               </div>
 
               <div
-                data-testid="edit-class-id-block"
+                data-testid="edit-class-code-block"
                 className={formData.target === TARGET_AUDIENCE.SPECIFIC_CLASS ? "" : "hidden"}
                 aria-hidden={formData.target !== TARGET_AUDIENCE.SPECIFIC_CLASS}
               >
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-col uppercase tracking-wider">
-                    Class ID *
+                    Class Code *
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -1214,7 +1214,7 @@ function NotificationManagementPage() {
                         setClassLookupError(null);
                         setClassIdError(null);
                       }}
-                      placeholder="Enter class ID (UUID)"
+                      placeholder="Enter class code (e.g. N5-A1)"
                       className={`flex-1 px-4 py-3 rounded-xl input-glass text-sm ${
                         classIdError ? "border border-red-500 focus:outline-red-500" : ""
                       }`}

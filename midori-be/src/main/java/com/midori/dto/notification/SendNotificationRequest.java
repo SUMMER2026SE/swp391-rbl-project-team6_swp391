@@ -1,13 +1,10 @@
 package com.midori.dto.notification;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Data
 @Builder
@@ -20,5 +17,11 @@ public class SendNotificationRequest {
 
     private String role;
 
-    private UUID classId;
+    /**
+     * Class identifier for {@code targetType == "CLASS"}. Accepts either a
+     * human-friendly {@code classCode} (e.g. "N5-A1") or a UUID; the service
+     * resolves it through {@code ClassRepository.findByClassCode} (with a
+     * UUID-shaped fallback) so admins no longer need to type a UUID.
+     */
+    private String classCode;
 }

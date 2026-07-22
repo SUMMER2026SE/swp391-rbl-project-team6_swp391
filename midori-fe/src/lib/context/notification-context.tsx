@@ -23,6 +23,10 @@ import {
   type NotificationPushPayload,
   type NotificationSocketStatus,
 } from "@/lib/websocket/notification-socket";
+import {
+  usePushNotification,
+  type UsePushNotificationReturn,
+} from "@/lib/hooks/usePushNotification";
 
 interface NotificationCtx {
   notifications: Notification[];
@@ -38,6 +42,14 @@ interface NotificationCtx {
    * notifications.
    */
   pushStatus: NotificationSocketStatus;
+  /**
+   * Push notification subscription state. The shape is whatever
+   * `usePushNotification()` returns, exposed through the context so any
+   * consumer (e.g. the bell dropdown) can render a subscription toggle
+   * (loading spinner, error state, etc.) without duplicating the
+   * subscription lifecycle.
+   */
+  pushNotification: UsePushNotificationReturn;
 }
 
 const NotificationCtx = createContext<NotificationCtx | null>(null);
@@ -75,6 +87,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pushStatus, setPushStatus] = useState<NotificationSocketStatus>("idle");
+
+  // Push notification subscription
+  const pushNotification = usePushNotification();
+
+  // Register service worker for push notifications
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Register service worker if not already registered
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready
+        .then((registration) => {
+          // Check if service worker is already registered
+          return navigator.serviceWorker.getRegistration();
+        })
+        .then((existingRegistration) => {
+          if (!existingRegistration) {
+            // Register the service worker from public folder
+            return navigator.serviceWorker.register("/service-worker.js", {
+              scope: "/",
+            });
+          }
+          return existingRegistration;
+        })
+        .catch((error) => {
+          console.warn("[Push] Service worker registration failed:", error);
+        });
+    }
+  }, []);
 
   // Keep the latest notifications in a ref so the WebSocket listener
   // (registered once at mount) can read/write without re-subscribing on
@@ -220,6 +261,32 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("midori:auth-changed", handler);
   }, []);
 
+  // Listen for service worker messages (notification clicks)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === "NOTIFICATION_CLICK") {
+        const notificationId = event.data.notificationId;
+
+        // Refresh notifications to get the latest state
+        refresh();
+
+        // Show a toast with click confirmation
+        if (notificationId) {
+          toast.info("Notification clicked", {
+            description: `Opening notification ${notificationId}`,
+          });
+        }
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener("message", handleSWMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener("message", handleSWMessage);
+    };
+  }, [refresh]);
+
   const markRead = useCallback(async (notificationId: number) => {
     // Capture the previous state so we can restore exactly what was there if
     // the request fails. This avoids the previous bug where a concurrent
@@ -277,6 +344,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         markRead,
         markAllRead,
         pushStatus,
+        pushNotification,
       }}
     >
       {children}
@@ -296,6 +364,16 @@ export function useNotifications(): NotificationCtx {
       markRead: async () => {},
       markAllRead: async () => {},
       pushStatus: "idle",
+      pushNotification: {
+        isSupported: false,
+        isSubscribed: false,
+        isSubscribing: false,
+        permission: "unsupported",
+        error: null,
+        subscribe: async () => false,
+        unsubscribe: async () => false,
+        checkSubscription: async () => {},
+      },
     };
   }
   return ctx;

@@ -7,7 +7,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "notifications")
@@ -40,8 +39,14 @@ public class Notification {
     @Column(name = "target_role", length = 50)
     private String targetRole;
 
-    @Column(name = "target_class_id")
-    private UUID targetClassId;
+    /**
+     * Class identifier used when {@link #targetType} is {@code SPECIFIC_CLASS}.
+     * Stores a human-friendly {@code class_code} (e.g. "N5-A1"); the service
+     * resolver also accepts a UUID-shaped value as a fallback so legacy rows
+     * (pre-V42) keep resolving without a data migration script.
+     */
+    @Column(name = "target_class_code", length = 50)
+    private String targetClassCode;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

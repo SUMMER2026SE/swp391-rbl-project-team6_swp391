@@ -2,25 +2,30 @@ import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
   CheckCircle,
-  XCircle,
-  UserCheck,
-  UserX,
+  ClipboardList,
   Settings,
   Bell,
   Send,
   FileText,
   Calendar,
+  ScrollText,
 } from "lucide-react";
 
 /**
  * Notification Types - centralized constants to avoid hardcoding
+ *
+ * Canonical set, mirrored from the backend `NotificationType` enum:
+ *   LESSON, CONTEXT, EXAM, APPROVED, SYSTEM
+ *
+ * Legacy values (CONTENT_APPROVED / CONTENT_REJECTED / TEACHER_APPROVED /
+ * TEACHER_REJECTED) are normalised by the BE V41 migration before they
+ * reach the FE, so the union here is the single source of truth.
  */
 export const NOTIFICATION_TYPES = {
   LESSON: "LESSON",
-  CONTENT_APPROVED: "CONTENT_APPROVED",
-  CONTENT_REJECTED: "CONTENT_REJECTED",
-  TEACHER_APPROVED: "TEACHER_APPROVED",
-  TEACHER_REJECTED: "TEACHER_REJECTED",
+  CONTEXT: "CONTEXT",
+  EXAM: "EXAM",
+  APPROVED: "APPROVED",
   SYSTEM: "SYSTEM",
 } as const;
 
@@ -39,28 +44,22 @@ export const NOTIFICATION_TYPE_LIST: {
     color: "emerald",
   },
   {
-    value: NOTIFICATION_TYPES.CONTENT_APPROVED,
-    label: "Content Approved",
+    value: NOTIFICATION_TYPES.CONTEXT,
+    label: "Context",
+    icon: ScrollText,
+    color: "orange",
+  },
+  {
+    value: NOTIFICATION_TYPES.EXAM,
+    label: "Exam",
+    icon: ClipboardList,
+    color: "violet",
+  },
+  {
+    value: NOTIFICATION_TYPES.APPROVED,
+    label: "Approved",
     icon: CheckCircle,
     color: "green",
-  },
-  {
-    value: NOTIFICATION_TYPES.CONTENT_REJECTED,
-    label: "Content Rejected",
-    icon: XCircle,
-    color: "red",
-  },
-  {
-    value: NOTIFICATION_TYPES.TEACHER_APPROVED,
-    label: "Teacher Approved",
-    icon: UserCheck,
-    color: "green",
-  },
-  {
-    value: NOTIFICATION_TYPES.TEACHER_REJECTED,
-    label: "Teacher Rejected",
-    icon: UserX,
-    color: "red",
   },
   {
     value: NOTIFICATION_TYPES.SYSTEM,
@@ -83,6 +82,19 @@ export function getNotificationTypeConfig(type: NotificationType) {
     }
   );
 }
+
+/**
+ * Legacy values that may still appear in cached responses (e.g. an admin
+ * page tab open before a BE deploy). We map them onto the canonical label
+ * so the UI never shows a stale "Content Approved" / "Teacher Rejected"
+ * string that no longer corresponds to a backend enum value.
+ */
+export const LEGACY_NOTIFICATION_TYPE_LABELS: Record<string, string> = {
+  CONTENT_APPROVED: "Approved",
+  CONTENT_REJECTED: "Context",
+  TEACHER_APPROVED: "Approved",
+  TEACHER_REJECTED: "Context",
+};
 
 /**
  * Notification Statuses - centralized constants to avoid hardcoding

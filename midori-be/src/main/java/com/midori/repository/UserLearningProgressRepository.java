@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -68,4 +69,13 @@ public interface UserLearningProgressRepository extends JpaRepository<UserLearni
 
     @Query("SELECT COUNT(p) FROM UserLearningProgress p WHERE p.user.id = :userId")
     long countAllByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Most recent `lastStudiedAt` for any learning progress entry owned by
+     * the user. Used to compute a student's "last activity" inside a class
+     * (combined with their latest homework submission). Null when the user
+     * has no learning progress record yet.
+     */
+    @Query("SELECT MAX(p.lastStudiedAt) FROM UserLearningProgress p WHERE p.user.id = :userId")
+    Instant latestStudiedAtByUserId(@Param("userId") UUID userId);
 }
