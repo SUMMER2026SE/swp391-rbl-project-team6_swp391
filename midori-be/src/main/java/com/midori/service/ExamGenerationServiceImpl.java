@@ -91,7 +91,10 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
             if (students != null) {
                 for (User student : students) {
                     try {
-                        startStudentExam(exam.getId(), student.getId());
+                        boolean exists = studentExamRepository.findByExamIdAndStudentId(exam.getId(), student.getId()).isPresent();
+                        if (!exists) {
+                            startStudentExam(exam.getId(), student.getId());
+                        }
                     } catch (Exception e) {
                         // Log or ignore if student exam already exists
                     }
@@ -283,7 +286,8 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
             studentQuestions = generateFixedQuestions(exam, studentExam);
         }
 
-        studentExam.setQuestions(studentQuestions);
+        studentExam.getQuestions().clear();
+        studentExam.getQuestions().addAll(studentQuestions);
         studentExam = studentExamRepository.save(studentExam);
 
         return mapToStudentExamResponse(studentExam, exam.getExamMode() == ExamMode.RANDOM_PER_STUDENT);
@@ -476,14 +480,17 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         exam.setStatus(ExamStatus.PUBLISHED);
-        exam = examRepository.save(exam);
+        exam = examRepository.saveAndFlush(exam);
 
         if (exam.getAssignedClass() != null) {
             List<User> students = exam.getAssignedClass().getStudents();
             if (students != null) {
                 for (User student : students) {
                     try {
-                        startStudentExam(exam.getId(), student.getId());
+                        boolean exists = studentExamRepository.findByExamIdAndStudentId(exam.getId(), student.getId()).isPresent();
+                        if (!exists) {
+                            startStudentExam(exam.getId(), student.getId());
+                        }
                     } catch (Exception e) {
                         // ignore/skip
                     }
@@ -528,19 +535,6 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
             try {
                 ExamStatus newStatus = ExamStatus.valueOf(request.getStatus().toUpperCase());
                 exam.setStatus(newStatus);
-
-                if (newStatus == ExamStatus.PUBLISHED && exam.getAssignedClass() != null) {
-                    List<User> students = exam.getAssignedClass().getStudents();
-                    if (students != null) {
-                        for (User student : students) {
-                            try {
-                                startStudentExam(exam.getId(), student.getId());
-                            } catch (Exception e) {
-                                // ignore duplicate student exam
-                            }
-                        }
-                    }
-                }
             } catch (Exception e) {
                 throw new BadRequestException("Invalid status: " + request.getStatus());
             }
@@ -557,7 +551,24 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
             }
         }
 
-        exam = examRepository.save(exam);
+        exam = examRepository.saveAndFlush(exam);
+
+        if (exam.getStatus() == ExamStatus.PUBLISHED && exam.getAssignedClass() != null) {
+            List<User> students = exam.getAssignedClass().getStudents();
+            if (students != null) {
+                for (User student : students) {
+                    try {
+                        boolean exists = studentExamRepository.findByExamIdAndStudentId(exam.getId(), student.getId()).isPresent();
+                        if (!exists) {
+                            startStudentExam(exam.getId(), student.getId());
+                        }
+                    } catch (Exception e) {
+                        // ignore duplicate student exam
+                    }
+                }
+            }
+        }
+
         return mapToExamResponse(exam);
     }
 
@@ -624,7 +635,8 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
         // Replace the whole collection — orphanRemoval=true takes care of deletes,
         // and Hibernate persists any entity instances we add (kept ones are still
         // attached because we reused the same managed objects, new ones are transient).
-        exam.setQuestions(new ArrayList<>(incoming));
+        exam.getQuestions().clear();
+        exam.getQuestions().addAll(incoming);
 
         if (exam.getTotalQuestions() == null || exam.getTotalQuestions() != incoming.size()) {
             exam.setTotalQuestions(incoming.size());
@@ -690,11 +702,18 @@ public class ExamGenerationServiceImpl implements ExamGenerationService {
 
         exam.setAssignedClass(classEntity);
         exam.setStatus(ExamStatus.PUBLISHED);
-        exam = examRepository.save(exam);
+        exam = examRepository.saveAndFlush(exam);
 
         List<User> students = classEntity.getStudents();
         for (User student : students) {
-            startStudentExam(examId, student.getId());
+            try {
+                boolean exists = studentExamRepository.findByExamIdAndStudentId(examId, student.getId()).isPresent();
+                if (!exists) {
+                    startStudentExam(examId, student.getId());
+                }
+            } catch (Exception e) {
+                // ignore
+            }
         }
 
         return mapToExamResponse(exam);

@@ -839,7 +839,6 @@ function MyQuestionsPage() {
                 <SelectItem value="Vocabulary">Vocabulary</SelectItem>
                 <SelectItem value="Grammar">Grammar</SelectItem>
                 <SelectItem value="Reading">Reading</SelectItem>
-                <SelectItem value="Listening">Listening</SelectItem>
               </SelectContent>
             </Select>
           )}

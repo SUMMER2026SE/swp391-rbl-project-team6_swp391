@@ -71,12 +71,12 @@ export function QuestionTopicCard({
         </div>
 
         {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-2 mt-auto">
+        <div className="grid grid-cols-1 gap-2 mt-auto">
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="h-8.5 rounded-xl border-slate-200/80 dark:border-white/5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all"
+            className="w-full h-8.5 rounded-xl border-slate-200/80 dark:border-white/5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-900/50 transition-all"
             onClick={(e) => {
               e.stopPropagation();
               onAssignHomework?.(topic.id);
@@ -84,19 +84,6 @@ export function QuestionTopicCard({
           >
             <ClipboardList className="h-3.5 w-3.5" />
             <span>Homework</span>
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8.5 rounded-xl border-slate-200/80 dark:border-white/5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-violet-50 dark:hover:bg-violet-950/20 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-200 dark:hover:border-violet-900/50 transition-all"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAssignExam?.(topic.id);
-            }}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            <span>Exam</span>
           </Button>
         </div>
       </CardContent>

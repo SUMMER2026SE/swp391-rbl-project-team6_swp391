@@ -1899,11 +1899,11 @@ function TeachersPage() {
             <div className="card-base overflow-hidden">
               {/* Table Header */}
               <div className="grid grid-cols-12 gap-2 px-5 py-3 border-b separator text-[10px] uppercase tracking-wider text-muted-col font-bold">
-                <div className="col-span-4">Teacher</div>
-                <div className="col-span-4 text-center">Email</div>
+                <div className="col-span-3">Teacher</div>
+                <div className="col-span-3 text-center">Email</div>
                 <div className="col-span-2 text-center">Applied Date</div>
-                <div className="col-span-1 text-center">Status</div>
-                <div className="col-span-1 text-right">Actions</div>
+                <div className="col-span-2 text-center">Status</div>
+                <div className="col-span-2 text-right">Actions</div>
               </div>
 
               {/* Table Rows */}
@@ -1931,7 +1931,7 @@ function TeachersPage() {
                     className="grid grid-cols-12 gap-2 px-5 py-4 border-b border-border hover:bg-accent/50 transition items-center"
                   >
                     {/* Teacher */}
-                    <div className="col-span-4 flex items-center gap-3">
+                    <div className="col-span-3 flex items-center gap-3">
                       <div
                         className={`w-9 h-9 rounded-xl bg-linear-to-br ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}
                       >
@@ -1948,7 +1948,7 @@ function TeachersPage() {
                     </div>
 
                     {/* Email */}
-                    <div className="col-span-4 text-center text-xs text-secondary-col truncate px-2">
+                    <div className="col-span-3 text-center text-xs text-secondary-col truncate px-2">
                       {teacher.email}
                     </div>
 
@@ -1958,7 +1958,7 @@ function TeachersPage() {
                     </div>
 
                     {/* Status */}
-                    <div className="col-span-1 text-center">
+                    <div className="col-span-2 text-center">
                       <span
                         className={`px-2 py-1 rounded-full text-[10px] font-bold ${statusColors[teacher.status] || statusColors.pending}`}
                       >
@@ -1967,7 +1967,7 @@ function TeachersPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="col-span-1 text-right">
+                    <div className="col-span-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         {/* View Profile */}
                         <button
