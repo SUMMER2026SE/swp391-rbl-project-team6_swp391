@@ -242,7 +242,7 @@ function QuestionBankLessonListPage() {
         <div className="card-base overflow-hidden">
           {/* Table Header */}
           <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b separator">
-            <div className="col-span-5 text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="col-span-4 text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Lesson
             </div>
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
@@ -251,7 +251,7 @@ function QuestionBankLessonListPage() {
             <div className="col-span-2 text-center text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Status
             </div>
-            <div className="col-span-3 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
+            <div className="col-span-4 text-right text-[10px] uppercase tracking-wider text-muted-col font-bold">
               Actions
             </div>
           </div>
@@ -264,7 +264,7 @@ function QuestionBankLessonListPage() {
                   key={lesson.id}
                   className="grid grid-cols-12 gap-4 px-5 py-4 hover:bg-[var(--accent)]/50 transition items-center"
                 >
-                  <div className="col-span-5">
+                  <div className="col-span-4">
                     <div className="flex items-center gap-3">
                       <span className="w-8 h-8 rounded-lg bg-[oklch(0.62_0.18_270)]/10 flex items-center justify-center text-sm font-bold text-[oklch(0.62_0.18_270)]">
                         {lesson.lessonNumber}
@@ -278,7 +278,7 @@ function QuestionBankLessonListPage() {
                   <div className="col-span-2 flex justify-center">
                     <StatusBadge status={lesson.status} />
                   </div>
-                  <div className="col-span-3 flex justify-end gap-2">
+                  <div className="col-span-4 flex justify-end gap-2">
                     <button
                       onClick={() =>
                         navigate({

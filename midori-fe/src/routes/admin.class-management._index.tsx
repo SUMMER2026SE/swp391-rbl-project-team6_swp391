@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -71,9 +72,8 @@ export const Route = createFileRoute("/admin/class-management/_index")({
 });
 
 function ClassManagementPage() {
-  const [classes, setClasses] = useState<AdminClassResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
   // Action-level success/error (archive/restore) — shown as inline banner above
   // the table so it doesn't hide the data the user is acting on.
   const [actionMessage, setActionMessage] = useState<
@@ -91,29 +91,21 @@ function ClassManagementPage() {
   const [restoreClass, setRestoreClass] = useState<AdminClassResponse | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
 
-  const fetchClasses = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await adminApi.getAdminClasses();
-      setClasses(data);
-    } catch (err) {
-      const message =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Failed to load classes. Please try again.";
-      setError(message);
-      setClasses([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    data: classes = [],
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["admin", "classes"],
+    queryFn: adminApi.getAdminClasses,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchClasses();
-  }, [fetchClasses]);
+  const error = queryError ? (queryError as Error).message : null;
+
+  const fetchClasses = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "classes"] });
+  }, [queryClient]);
 
   // Levels come from the data so the dropdown never shows options that don't exist.
   const availableLevels = useMemo(() => {

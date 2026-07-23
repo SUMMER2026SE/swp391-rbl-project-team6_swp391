@@ -40,6 +40,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        String uri = request.getRequestURI();
+        String feReqId = request.getParameter("fe_req_id");
+        long start = System.currentTimeMillis();
+        if (uri != null && uri.endsWith("/me")) {
+            log.info("[BE JwtAuthenticationFilter START] URI: {}, fe_req_id: {}, Thread: {}", uri, feReqId, Thread.currentThread().getName());
+        }
         try {
             String jwt = getJwtFromRequest(request);
 
@@ -65,7 +71,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("Could not set user authentication in security context", ex);
         }
 
-        filterChain.doFilter(request, response);
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            if (uri != null && uri.endsWith("/me")) {
+                log.info("[BE JwtAuthenticationFilter END] URI: {}, fe_req_id: {}, Duration: {}ms, Status: {}", uri, feReqId, System.currentTimeMillis() - start, response.getStatus());
+            }
+        }
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {

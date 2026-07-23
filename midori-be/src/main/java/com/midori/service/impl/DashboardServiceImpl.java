@@ -47,26 +47,36 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public AdminDashboardSummaryResponse getSummary() {
-        long totalUsers = userRepository.count();
-        long totalTeachers = userRepository.countByRole(Role.TEACHER);
-        long totalStudents = userRepository.countByRole(Role.STUDENT);
-        long totalActiveUsers = userRepository.countByStatus(UserStatus.ACTIVE);
-        long pendingTeachers = userRepository.countByRoleAndStatus(Role.TEACHER, UserStatus.PENDING_APPROVAL);
+        List<Object[]> userStatsList = userRepository.getDashboardStats();
+        Object[] userStats = userStatsList.isEmpty() ? new Object[]{0L, 0L, 0L, 0L, 0L} : userStatsList.get(0);
+        long totalUsers = userStats[0] != null ? ((Number) userStats[0]).longValue() : 0L;
+        long totalTeachers = userStats[1] != null ? ((Number) userStats[1]).longValue() : 0L;
+        long totalStudents = userStats[2] != null ? ((Number) userStats[2]).longValue() : 0L;
+        long totalActiveUsers = userStats[3] != null ? ((Number) userStats[3]).longValue() : 0L;
+        long pendingTeachers = userStats[4] != null ? ((Number) userStats[4]).longValue() : 0L;
 
-        long totalGrammar = grammarRepository.count();
-        long pendingGrammar = grammarRepository.countByStatus(GrammarStatus.PENDING);
-        long approvedGrammar = grammarRepository.countByStatus(GrammarStatus.APPROVED);
+        List<Object[]> grammarStatsList = grammarRepository.getDashboardStats();
+        Object[] grammarStats = grammarStatsList.isEmpty() ? new Object[]{0L, 0L, 0L} : grammarStatsList.get(0);
+        long totalGrammar = grammarStats[0] != null ? ((Number) grammarStats[0]).longValue() : 0L;
+        long pendingGrammar = grammarStats[1] != null ? ((Number) grammarStats[1]).longValue() : 0L;
+        long approvedGrammar = grammarStats[2] != null ? ((Number) grammarStats[2]).longValue() : 0L;
 
-        long totalFlashcardSets = flashcardSetRepository.count();
-        long pendingFlashcardSets = flashcardSetRepository.countByStatus(FlashcardSetStatus.PENDING);
-        long approvedFlashcardSets = flashcardSetRepository.countByStatus(FlashcardSetStatus.APPROVED);
+        List<Object[]> flashcardStatsList = flashcardSetRepository.getDashboardStats();
+        Object[] flashcardStats = flashcardStatsList.isEmpty() ? new Object[]{0L, 0L, 0L} : flashcardStatsList.get(0);
+        long totalFlashcardSets = flashcardStats[0] != null ? ((Number) flashcardStats[0]).longValue() : 0L;
+        long pendingFlashcardSets = flashcardStats[1] != null ? ((Number) flashcardStats[1]).longValue() : 0L;
+        long approvedFlashcardSets = flashcardStats[2] != null ? ((Number) flashcardStats[2]).longValue() : 0L;
 
-        long totalListeningLessons = listeningLessonRepository.count();
-        long inactiveListeningLessons = listeningLessonRepository.countByIsActive(false);
-        long activeListeningLessons = listeningLessonRepository.countByIsActive(true);
+        List<Object[]> listeningStatsList = listeningLessonRepository.getDashboardStats();
+        Object[] listeningStats = listeningStatsList.isEmpty() ? new Object[]{0L, 0L, 0L} : listeningStatsList.get(0);
+        long totalListeningLessons = listeningStats[0] != null ? ((Number) listeningStats[0]).longValue() : 0L;
+        long inactiveListeningLessons = listeningStats[1] != null ? ((Number) listeningStats[1]).longValue() : 0L;
+        long activeListeningLessons = listeningStats[2] != null ? ((Number) listeningStats[2]).longValue() : 0L;
 
-        long totalVocabularyLessons = vocabularyLessonRepository.count();
-        long publishedVocabularyLessons = vocabularyLessonRepository.countByIsPublished(true);
+        List<Object[]> vocabStatsList = vocabularyLessonRepository.getDashboardStats();
+        Object[] vocabStats = vocabStatsList.isEmpty() ? new Object[]{0L, 0L} : vocabStatsList.get(0);
+        long totalVocabularyLessons = vocabStats[0] != null ? ((Number) vocabStats[0]).longValue() : 0L;
+        long publishedVocabularyLessons = vocabStats[1] != null ? ((Number) vocabStats[1]).longValue() : 0L;
 
         long pendingContent = pendingGrammar + pendingFlashcardSets + inactiveListeningLessons;
         long totalProgressRecords = userLearningProgressRepository.count();

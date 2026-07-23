@@ -90,4 +90,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.profile WHERE u.role = :role ORDER BY u.createdAt DESC")
     List<User> findRecentUsersByRole(@Param("role") Role role, Pageable pageable);
+
+    @Query("SELECT COUNT(u), " +
+           "SUM(CASE WHEN u.role = 'TEACHER' THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN u.role = 'STUDENT' THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN u.status = 'ACTIVE' THEN 1L ELSE 0L END), " +
+           "SUM(CASE WHEN u.role = 'TEACHER' AND u.status = 'PENDING_APPROVAL' THEN 1L ELSE 0L END) " +
+           "FROM User u")
+    List<Object[]> getDashboardStats();
 }

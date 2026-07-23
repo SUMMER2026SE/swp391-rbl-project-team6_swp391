@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api/client";
 import { authApi } from "./api/auth";
 import { profileApi, type ProfileResponse } from "./api/profile";
@@ -153,26 +154,29 @@ function mergeUser(storedUser: User | null, apiUser: User): User {
 async function hydrateWithProfile(baseUser: User): Promise<User> {
   let user = { ...baseUser };
   try {
-    const profile: ProfileResponse = await profileApi.getMyProfile();
-    const profileAvatar = isAvatar(profile.avatarUrl) ? profile.avatarUrl : null;
-    const profileName = isAvatar(profile.displayName) ? profile.displayName : null;
-    user = {
-      ...user,
-      name: profileName ?? user.name,
-      avatar: profileAvatar ?? user.avatar ?? null,
-    };
-  } catch {}
+    const [profile, classes] = await Promise.all([
+      profileApi.getMyProfile().catch(() => null),
+      user.role === "student" ? classesApi.getJoinedClasses().catch(() => []) : Promise.resolve([])
+    ]);
 
-  if (user.role === "student") {
-    try {
-      const classes = await classesApi.getJoinedClasses();
-      if (classes && classes.length > 0) {
+    if (profile) {
+      const profileAvatar = isAvatar(profile.avatarUrl) ? profile.avatarUrl : null;
+      const profileName = isAvatar(profile.displayName) ? profile.displayName : null;
+      user = {
+        ...user,
+        name: profileName ?? user.name,
+        avatar: profileAvatar ?? user.avatar ?? null,
+      };
+    }
+
+    if (user.role === "student" && classes) {
+      if (classes.length > 0) {
         user.classId = classes[0].id;
       } else {
         user.classId = null;
       }
-    } catch {}
-  }
+    }
+  } catch {}
 
   return user;
 }
@@ -234,6 +238,61 @@ export function canAccessRoleRoute(user: Pick<User, "role" | "status" | "classId
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const queryClient = useQueryClient();
+
+  const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+
+  const { data: qUser, isSuccess, isError } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async ({ signal }) => {
+      const currentToken = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+      if (!currentToken) return null;
+      try {
+        const userResponse = await authApi.getMe({ signal });
+        const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+        const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
+        const apiUser = userResponseToUser(userResponse);
+        const merged = mergeUser(storedUser, apiUser);
+        const hydrated = await hydrateWithProfile(merged);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(USER_KEY, JSON.stringify(hydrated));
+        }
+        return hydrated;
+      } catch (err: any) {
+        if (err.name === "AbortError") {
+          throw err;
+        }
+        api.removeToken();
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        throw err;
+      }
+    },
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: 1,
+  });
+
+  useEffect(() => {
+    const currentToken = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+    if (!currentToken) {
+      try {
+        const raw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+        if (raw) setUser(JSON.parse(raw));
+      } catch {}
+      setLoaded(true);
+      return;
+    }
+
+    if (isSuccess) {
+      setUser(qUser);
+      setLoaded(true);
+    } else if (isError) {
+      setUser(null);
+      setLoaded(true);
+    }
+  }, [isSuccess, isError, qUser]);
 
   const persistUser = (u: User | null) => {
     setUser(u);
@@ -244,41 +303,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshCurrentUser = async () => {
-    const userResponse = await authApi.getMe();
-    const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
-    const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
-    const apiUser = userResponseToUser(userResponse);
-    const merged = mergeUser(storedUser, apiUser);
-    const hydrated = await hydrateWithProfile(merged);
-    persistUser(hydrated);
-    return hydrated;
-  };
-
-  useEffect(() => {
-    async function restore() {
-      const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-
-      if (token) {
-        try {
-          await refreshCurrentUser();
-        } catch (err) {
-          console.debug("[Auth] getMe failed during restore", err);
-          api.removeToken();
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
+    const res = await queryClient.fetchQuery<User | null>({
+      queryKey: ["currentUser"],
+      queryFn: async () => {
+        const userResponse = await authApi.getMe();
+        const storedRaw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
+        const storedUser: User | null = storedRaw ? JSON.parse(storedRaw) : null;
+        const apiUser = userResponseToUser(userResponse);
+        const merged = mergeUser(storedUser, apiUser);
+        const hydrated = await hydrateWithProfile(merged);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(USER_KEY, JSON.stringify(hydrated));
         }
-      } else {
-        try {
-          const raw = typeof window !== "undefined" ? localStorage.getItem(USER_KEY) : null;
-          if (raw) setUser(JSON.parse(raw));
-        } catch {}
+        return hydrated;
       }
-
-      setLoaded(true);
-    }
-
-    restore();
-  }, []);
+    });
+    setUser(res);
+    return res || {} as User;
+  };
 
   const value: AuthCtx = {
     user,
@@ -293,10 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = userResponseToUser(data.user);
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
-      // Notify other providers (e.g. NotificationContext) that the auth
-      // credentials have changed so they can re-open / close the realtime
-      // push channel. We use a custom DOM event rather than a context to
-      // keep the auth layer free of cross-provider imports.
+      queryClient.setQueryData(["currentUser"], hydrated);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -324,6 +363,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
+      queryClient.setQueryData(["currentUser"], hydrated);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -334,6 +374,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.removeToken();
       localStorage.removeItem(TOKEN_KEY);
       persistUser(null);
+      queryClient.setQueryData(["currentUser"], null);
+      queryClient.clear();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -343,6 +385,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) return;
       const updated = { ...user, ...patch };
       persistUser(updated);
+      queryClient.setQueryData(["currentUser"], updated);
     },
 
     refreshCurrentUser,
