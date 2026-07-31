@@ -57,7 +57,8 @@ class AdminAiContentServiceTest {
                 }
                 """;
 
-        when(aiCoreService.chat(anyString(), anyString(), any(), any())).thenReturn(mockAiResponse);
+        when(aiCoreService.chatWithDetails(anyString(), anyString(), any(), any()))
+                .thenReturn(new com.midori.ai.core.AiCoreService.AiResponse(mockAiResponse, "mockProvider", "mockModel", "stop", 10, 20, 30));
 
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
                 .skillType("VOCABULARY")
@@ -215,7 +216,8 @@ class AdminAiContentServiceTest {
                 }
                 """;
 
-        when(aiCoreService.chat(anyString(), anyString(), any(), any())).thenReturn(mockAiResponse);
+        when(aiCoreService.chatWithDetails(anyString(), anyString(), any(), any()))
+                .thenReturn(new com.midori.ai.core.AiCoreService.AiResponse(mockAiResponse, "mockProvider", "mockModel", "stop", 10, 20, 30));
 
         AdminAiContentGenerateRequest request = AdminAiContentGenerateRequest.builder()
                 .skillType("VOCABULARY")

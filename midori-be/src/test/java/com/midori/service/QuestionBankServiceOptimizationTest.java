@@ -4,6 +4,7 @@ import com.midori.dto.questiondto.GeneratePreviewRequest;
 import com.midori.dto.questiondto.QuestionBankGeneratorLessonResponse;
 import com.midori.dto.questiondto.TeacherQuestionPreviewDto;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Arrays;
 
 @SpringBootTest
+@EnabledIfEnvironmentVariable(named = "DB_TEST_ENABLED", matches = "true")
 public class QuestionBankServiceOptimizationTest {
 
     @Autowired
