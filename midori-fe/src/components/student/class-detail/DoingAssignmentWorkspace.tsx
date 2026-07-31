@@ -959,12 +959,6 @@ export function DoingAssignmentWorkspace({
             {/* Actions */}
             <div className="space-y-2 pt-1 flex flex-col">
               <button
-                onClick={onClose}
-                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-foreground text-xs font-black uppercase tracking-wider transition"
-              >
-                Return to Class
-              </button>
-              <button
                 onClick={() => {
                   const firstWrong = questions.findIndex(
                     (q, i) =>
@@ -972,9 +966,15 @@ export function DoingAssignmentWorkspace({
                   );
                   setCurrentReviewIndex(firstWrong >= 0 ? firstWrong : 0);
                 }}
-                className="w-full py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition"
+                className="w-full py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition-all duration-200 active:scale-[0.98]"
               >
                 Review Mistakes
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-50/50 dark:bg-slate-900/60 dark:hover:bg-slate-800/40 border border-slate-100 dark:border-slate-800/60 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-xs font-black uppercase tracking-wider transition-all duration-200 active:scale-[0.98]"
+              >
+                Return to Class
               </button>
             </div>
           </Card>
