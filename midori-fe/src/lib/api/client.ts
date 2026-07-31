@@ -71,16 +71,25 @@ async function request<T>(method: string, path: string, body?: unknown, init?: R
   }
 
   const tokenBeforeRequest = getToken();
-  const res = await fetch(url, options);
+  let res: Response;
+  try {
+    res = await fetch(url, options);
+  } catch (error: any) {
+    console.error("[API Client] Network error:", error);
+    throw new ApiError("Network error. Please check your internet connection or backend server status.", 0);
+  }
 
   let json: ApiResponse<T>;
   try {
     json = await res.json();
   } catch {
     if (!res.ok) {
+      if (res.status >= 500) {
+        throw new ApiError("Server error. Please try again later.", res.status);
+      }
       const msg =
         res.status === 401 && (path === "/auth/login" || path === "/auth/google")
-          ? "Unable to sign in. Please try again."
+          ? "Invalid email or password."
           : res.status === 403
             ? "You do not have permission to access this resource."
             : "Request failed. Please try again.";
