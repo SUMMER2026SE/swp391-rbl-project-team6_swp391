@@ -52,6 +52,7 @@ public class ClassServiceImpl implements ClassService {
     private final com.midori.repository.ClassMembershipRepository classMembershipRepository;
     private final ClassStatusEventRepository classStatusEventRepository;
     private final com.midori.repository.UserLearningProgressRepository userLearningProgressRepository;
+    private final LearningAccessService learningAccessService;
 
     @Override
     public List<ClassEntity> getAllClasses(String status) {
