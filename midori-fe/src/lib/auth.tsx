@@ -157,29 +157,23 @@ function mergeUser(storedUser: User | null, apiUser: User): User {
 async function hydrateWithProfile(baseUser: User): Promise<User> {
   let user = { ...baseUser };
   try {
-    const [profile, classes] = await Promise.all([
-      profileApi.getMyProfile().catch(() => null),
-      user.role === "student" ? classesApi.getJoinedClasses().catch(() => [] as ClassResponse[]) : Promise.resolve([] as ClassResponse[])
-    ]);
-
-    if (profile) {
-      const profileAvatar = isAvatar(profile.avatarUrl) ? profile.avatarUrl : null;
-      const profileName = isAvatar(profile.displayName) ? profile.displayName : null;
-      user = {
-        ...user,
-        name: profileName ?? user.name,
-        avatar: profileAvatar ?? user.avatar ?? null,
-      };
-    }
+    const classes = await (user.role === "student" ? classesApi.getJoinedClasses().catch((e) => {
+      console.error("[Auth] Error fetching joined classes", e);
+      return null;
+    }) : Promise.resolve(null));
 
     if (user.role === "student") {
-      if (classes && classes.length > 0) {
-        user.classId = classes[0].id;
-      } else {
-        user.classId = null;
+      if (classes !== null) {
+        if (classes.length > 0) {
+          user.classId = classes[0].id;
+        } else {
+          user.classId = null;
+        }
       }
     }
-  } catch {}
+  } catch (err) {
+    console.error("[Auth] Hydrate error", err);
+  }
 
   return user;
 }
@@ -273,8 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshCurrentUser = useCallback(async () => {
     const latest = await fetchMe();
-    const currentToken = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-    queryClient.setQueryData(["auth-me", currentToken], latest);
+    queryClient.setQueryData(["me"], latest);
     setUser(latest);
     if (typeof window !== "undefined") {
       localStorage.setItem(USER_KEY, JSON.stringify(latest));
@@ -283,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchMe, queryClient]);
 
   const { data: qUser, isError } = useQuery({
-    queryKey: ["auth-me", token],
+    queryKey: ["me"],
     queryFn: fetchMe,
     enabled: !!token,
     staleTime: Infinity,
@@ -335,10 +328,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = res;
 
       api.setToken(data.accessToken);
-      setToken(data.accessToken);
       const u = userResponseToUser(data.user);
+      // Hydrate profile ONCE here, then seed the React Query cache so that
+      // setToken() → queryKey change does NOT trigger a second fetchMe call.
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
+      // Pre-populate cache before updating token state — this ensures the
+      // useQuery(["me"]) sees fresh data immediately and skips
+      // its own fetch, eliminating the duplicate /me request.
+      queryClient.setQueryData(["me"], hydrated);
+      setToken(data.accessToken);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -352,7 +351,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithGoogle: async (idToken: string, role?: string) => {
       const res = await authApi.googleLogin(idToken, role);
       api.setToken(res.accessToken);
-      setToken(res.accessToken);
       let u = userResponseToUser(res.user);
       if (!isAvatar(u.avatar) && !isAvatar(u.googleAvatar)) {
         const base64Url = idToken.split(".")[1];
@@ -365,9 +363,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {}
         }
       }
+      // Hydrate ONCE, then seed cache before setToken() to prevent duplicate fetch.
       const hydrated = await hydrateWithProfile(u);
       persistUser(hydrated);
-      queryClient.setQueryData(["currentUser"], hydrated);
+      // Seed the me key (prevents duplicate /me).
+      queryClient.setQueryData(["me"], hydrated);
+      setToken(res.accessToken);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
       }
@@ -379,7 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(TOKEN_KEY);
       setToken(null);
       persistUser(null);
-      queryClient.setQueryData(["currentUser"], null);
+      queryClient.setQueryData(["me"], null);
       queryClient.clear();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("midori:auth-changed"));
@@ -390,7 +391,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) return;
       const updated = { ...user, ...patch };
       persistUser(updated);
-      queryClient.setQueryData(["currentUser"], updated);
+      queryClient.setQueryData(["me"], updated);
     },
 
     refreshCurrentUser,

@@ -293,6 +293,7 @@ export function DashboardLayout({
       if (to === "/student/shadowing") {
         return (
           pathname === "/student/shadowing" ||
+          pathname.startsWith("/student/shadowing/") ||
           (pathname.startsWith("/student/vocabulary") && !!search?.sourceVideoId)
         );
       }
