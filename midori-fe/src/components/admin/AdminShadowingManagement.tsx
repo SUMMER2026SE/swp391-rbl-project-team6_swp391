@@ -217,15 +217,44 @@ export function ShadowingCard({
   onPreview: () => void;
   onDelete: () => void;
 }) {
+  const showVideoPreview = lesson.status === "completed" && !!lesson.videoUrl;
+
   return (
     <div className="glass-card p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
       {/* Left: Thumbnail (16:9) */}
-      <div className="relative w-full md:w-44 aspect-video rounded-2xl overflow-hidden bg-muted border border-[var(--border)] shrink-0 shadow-inner">
-        <img 
-          src={lesson.thumbnail} 
-          alt={lesson.title} 
-          className="w-full h-full object-cover select-none"
-        />
+      <div
+        className="relative w-full md:w-44 aspect-video rounded-2xl overflow-hidden bg-muted border border-[var(--border)] shrink-0 shadow-inner group/thumb cursor-pointer"
+        onClick={showVideoPreview ? onPreview : undefined}
+      >
+        {showVideoPreview ? (
+          /* Video first-frame preview */
+          <>
+            <video
+              src={lesson.videoUrl}
+              preload="metadata"
+              muted
+              playsInline
+              className="w-full h-full object-cover select-none"
+              onLoadedMetadata={(e) => {
+                // Seek to 0.5s to get a better first frame
+                (e.target as HTMLVideoElement).currentTime = 0.5;
+              }}
+            />
+            {/* Play overlay on hover */}
+            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/40">
+                <Play className="w-5 h-5 text-white ml-0.5" />
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Fallback static thumbnail */
+          <img
+            src={lesson.thumbnail}
+            alt={lesson.title}
+            className="w-full h-full object-cover select-none"
+          />
+        )}
         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/65 backdrop-blur-[2px] text-[10px] font-bold text-white flex items-center gap-1">
           <Clock className="w-3 h-3" />
           {lesson.duration}
