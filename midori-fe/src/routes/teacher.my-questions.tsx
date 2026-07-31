@@ -47,7 +47,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/teacher/my-questions")({
-  head: () => ({ meta: [{ title: "My Library — MIDORI Teacher" }] }),
+  head: () => ({ meta: [{ title: "My Questions — MIDORI Teacher" }] }),
   component: MyQuestionsPage,
 });
 
@@ -407,6 +407,26 @@ function MyQuestionsPage() {
 
   const isLoading = classesLoading || homeworksLoading || examsLoading;
 
+  const filteredHomeworksCount = useMemo(() => {
+    let count = 0;
+    Object.values(groupedHomeworks).forEach((lessonsObj) => {
+      Object.values(lessonsObj).forEach((skillsObj) => {
+        Object.values(skillsObj).forEach((arr) => {
+          count += arr.length;
+        });
+      });
+    });
+    return count;
+  }, [groupedHomeworks]);
+
+  const filteredExamsCount = useMemo(() => {
+    let count = 0;
+    Object.values(groupedExams).forEach((arr) => {
+      count += arr.length;
+    });
+    return count;
+  }, [groupedExams]);
+
   const sortedLevels = ["N5", "N4", "N3", "N2", "N1"];
 
   const renderHomeworkList = () => {
@@ -757,7 +777,7 @@ function MyQuestionsPage() {
               PERSONAL LIBRARY
             </div>
             <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-slate-100 leading-none">
-              My Library
+              My Questions
             </h1>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-1.5">
               Manage your personal homework assignments and exams.
@@ -777,7 +797,7 @@ function MyQuestionsPage() {
           }`}
         >
           <ClipboardList className="w-4 h-4" />
-          Homework ({homeworks.length})
+          Homework ({filteredHomeworksCount})
         </button>
         <button
           onClick={() => setActiveTab("exam")}
@@ -788,7 +808,7 @@ function MyQuestionsPage() {
           }`}
         >
           <FileText className="w-4 h-4" />
-          Exam ({exams.length})
+          Exam ({filteredExamsCount})
         </button>
       </div>
 

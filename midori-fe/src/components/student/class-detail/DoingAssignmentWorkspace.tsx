@@ -957,7 +957,7 @@ export function DoingAssignmentWorkspace({
             </div>
 
             {/* Actions */}
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2 pt-1 flex flex-col">
               <button
                 onClick={onClose}
                 className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-foreground text-xs font-black uppercase tracking-wider transition"
@@ -972,7 +972,7 @@ export function DoingAssignmentWorkspace({
                   );
                   setCurrentReviewIndex(firstWrong >= 0 ? firstWrong : 0);
                 }}
-                className="py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition"
+                className="w-full py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-wider transition"
               >
                 Review Mistakes
               </button>
